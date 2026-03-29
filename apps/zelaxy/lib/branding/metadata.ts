@@ -104,7 +104,7 @@ export function generateBrandedMetadata(override: Partial<Metadata> = {}): Metad
           sizes: '512x512',
           type: 'image/png',
         },
-        { url: brand.faviconUrl || '/zelaxy.png', sizes: 'any', type: 'image/png' },
+        { url: brand.faviconUrl || '/social/og-preview.png', sizes: 'any', type: 'image/png' },
       ],
       apple: '/favicon/apple-touch-icon.png',
       shortcut: brand.faviconUrl || '/favicon/favicon.ico',
@@ -156,7 +156,7 @@ export function generateStructuredData() {
       '@type': 'Organization',
       name: brand.name,
       url: baseUrl,
-      logo: `${baseUrl}/zelaxy.png`,
+      logo: `${baseUrl}/social/og-preview.png`,
       sameAs: [
         'https://github.com/manu14357/Zelaxy',
         'https://x.com/zelaxy',
@@ -172,7 +172,7 @@ export function generateStructuredData() {
       'Custom block and tool SDK',
       'Self-hostable open-source platform',
     ],
-    screenshot: `${baseUrl}/social/facebook.png`,
+    screenshot: `${baseUrl}/social/og-preview.png`,
     softwareVersion: '1.0',
     releaseNotes: 'Initial public release',
   }
@@ -190,7 +190,7 @@ export function generateOrganizationData() {
     '@type': 'Organization',
     name: brand.name,
     url: baseUrl,
-    logo: `${baseUrl}/zelaxy.png`,
+    logo: `${baseUrl}/social/og-preview.png`,
     description:
       'Open-source AI agent builder and workflow automation platform.',
     email: brand.supportEmail,
@@ -218,7 +218,7 @@ export function generateWebsiteData() {
     publisher: {
       '@type': 'Organization',
       name: brand.name,
-      logo: `${baseUrl}/zelaxy.png`,
+      logo: `${baseUrl}/social/og-preview.png`,
     },
   }
 }

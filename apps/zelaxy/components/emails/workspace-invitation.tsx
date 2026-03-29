@@ -58,7 +58,7 @@ export const WorkspaceInvitationEmail = ({
             <Row>
               <Column style={{ textAlign: 'center' }}>
                 <Img
-                  src={brand.logoUrl || getAssetUrl('static/zelaxy.png')}
+                  src={brand.logoUrl || getAssetUrl('social/og-preview.png')}
                   width='114'
                   alt={brand.name}
                   style={{

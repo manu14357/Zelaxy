@@ -72,7 +72,7 @@ export const BatchInvitationEmail = ({
         <Container style={container}>
           <Section style={logoContainer}>
             <Img
-              src={brand.logoUrl || 'http://localhost:3000//logo.png'}
+              src={brand.logoUrl || getAssetUrl('social/og-preview.png')}
               width='120'
               height='36'
               alt={brand.name}

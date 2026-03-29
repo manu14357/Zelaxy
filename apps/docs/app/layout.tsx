@@ -102,7 +102,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       '@type': 'Organization',
       name: 'Zelaxy',
       url: 'https://zelaxy.in',
-      logo: 'https://zelaxy.in/zelaxy.png',
+      logo: 'https://zelaxy.in/social/og-preview.png',
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
