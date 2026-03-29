@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://github.com/manu14357/Zelaxy/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="https://github.com/manu14357/Zelaxy/stargazers"><img src="https://img.shields.io/github/stars/manu14357/Zelaxy" alt="Stars" /></a>
+  <a href="https://github.com/manu14357/Zelaxy/stargazers"><img src="https://img.shields.io/github/stars/manu14357/Zelaxy?style=social" alt="GitHub Stars" /></a>
 </p>
 
 ---
@@ -216,7 +216,11 @@ MIT © 2025 Zelaxy
 
 <p align="center">
   <a href="https://star-history.com/#manu14357/Zelaxy&Date">
-    <img src="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" alt="Star History" width="600" />
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date&theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" />
+      <img src="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" alt="Star History Chart" width="600" />
+    </picture>
   </a>
 </p>
 
