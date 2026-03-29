@@ -12,6 +12,7 @@ import {
   Text,
 } from '@react-email/components'
 import { getBrandConfig } from '@/lib/branding/branding'
+import { getAssetUrl } from '@/lib/utils'
 
 interface WorkspaceInvitation {
   workspaceId: string
