@@ -1,0 +1,56 @@
+---
+title: Telegram
+description: Send messages and media through Telegram bots
+icon: Send
+---
+
+# Telegram
+
+Send messages, photos, documents, and manage Telegram bot interactions. Uses the Telegram Bot API for automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `telegram` |
+| **Category** | Tool — Communication |
+| **Auth** | Bot Token |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Send Message** | Send text to a chat or group |
+| **Send Photo** | Send an image with caption |
+| **Get Updates** | Fetch recent messages sent to the bot |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Bot Token | Password | From @BotFather |
+| Chat ID | Short input | Target chat/group ID |
+| Message | Long text | Message text with `{{variables}}` |
+| Photo URL | Short input | Image URL for photo messages |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `messageId` | `number` | Sent message ID |
+| `content` | `string` | Response data |
+
+## Example: Daily Digest Bot
+
+**Workflow:**
+```
+[Starter (schedule: daily 9am)] → [Agent: Summarize News] → [Telegram: Send]
+```
+
+The Agent generates a daily news summary and the Telegram block sends it to your personal chat or group.
+
+## Tips
+
+- **Get Chat ID** by messaging your bot, then calling `getUpdates` to find your chat ID
+- **Supports Markdown** — use `*bold*` and `_italic_` in messages
+- **Group bots** need to be added as members and may need admin permissions

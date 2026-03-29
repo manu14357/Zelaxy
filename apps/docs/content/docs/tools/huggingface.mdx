@@ -1,0 +1,54 @@
+---
+title: HuggingFace
+description: Run inference on HuggingFace models
+icon: Cpu
+---
+
+# HuggingFace
+
+Run inference on any model hosted on HuggingFace — text generation, classification, summarization, translation, image analysis, and more. Access thousands of open-source models.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `huggingface` |
+| **Category** | Tool — AI & ML |
+| **Auth** | API Key (HF Token) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Inference** | Run a model on input data |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | HuggingFace token |
+| Model | Short input | Model ID (e.g., `facebook/bart-large-mnli`) |
+| Input | Long text | Input text or data |
+| Parameters | Code editor | Model-specific parameters (JSON) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Model output |
+| `result` | `json` | Structured inference result |
+
+## Example: Sentiment Analysis
+
+**Workflow:**
+```
+[Starter: Review text] → [HuggingFace: Classify] → [Condition] → [Slack]
+```
+
+**Config:** Model `distilbert-base-uncased-finetuned-sst-2-english` classifies sentiment. If negative, alert the support team via Slack.
+
+## Tips
+
+- **Thousands of models** — search huggingface.co for specialized models
+- **Free tier** available — rate-limited but sufficient for testing
+- **Specialized models** often outperform general LLMs on specific tasks (NER, sentiment, etc.)

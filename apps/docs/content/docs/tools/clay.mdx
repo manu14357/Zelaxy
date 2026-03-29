@@ -1,0 +1,56 @@
+---
+title: Clay
+description: Enrich contact and company data for sales intelligence
+icon: Layers
+---
+
+# Clay
+
+Enrich contact and company data using Clay's data enrichment platform. Pull in firmographics, technographics, and contact details from multiple data sources simultaneously.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `clay` |
+| **Category** | Tool — CRM |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Enrich Person** | Get detailed person data |
+| **Enrich Company** | Get company information |
+| **Search People** | Find people by criteria |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Clay API key |
+| Email | Short input | Person's email for enrichment |
+| Domain | Short input | Company domain |
+| LinkedIn URL | Short input | LinkedIn profile URL |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | Enriched data object |
+| `content` | `string` | Formatted enrichment data |
+
+## Example: Automated Lead Research
+
+**Workflow:**
+```
+[Starter: Lead email] → [Clay: Enrich Person] → [Agent: Write Outreach] → [Gmail: Send]
+```
+
+Input a lead's email, Clay enriches with company info, role, and social profiles. Agent crafts a personalized outreach email using the enriched data.
+
+## Tips
+
+- **Multiple data sources** — Clay aggregates data from many providers for better coverage
+- **Combine with Hunter** — find the email, then enrich with Clay
+- **Best for B2B sales** — firmographic and technographic data

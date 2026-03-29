@@ -1,0 +1,55 @@
+---
+title: ArXiv
+description: Search and retrieve academic papers from ArXiv
+icon: GraduationCap
+---
+
+# ArXiv
+
+Search the ArXiv preprint server for academic papers in physics, math, computer science, biology, and more. No API key required — ArXiv's API is free and open.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `arxiv` |
+| **Category** | Tool — Search |
+| **Auth** | None (free) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Search** | Search papers by keyword, author, or category |
+| **Get Paper** | Retrieve paper details by ArXiv ID |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Query | Short input | Search query (title, author, abstract) |
+| Max Results | Slider | Number of papers (1–50) |
+| Category | Dropdown | ArXiv category filter (cs.AI, math, etc.) |
+| Sort By | Dropdown | Relevance, Last Updated, Submitted Date |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `papers` | `json` | Array of paper objects |
+| `content` | `string` | Formatted paper summaries |
+
+## Example: Research Literature Review
+
+**Workflow:**
+```
+[Starter: Research topic] → [ArXiv: Search] → [Agent: Summarize] → [Response]
+```
+
+Search for papers on a topic, Agent reads the abstracts and creates a literature review summary with key findings and citations.
+
+## Tips
+
+- **Free and unlimited** — no API key needed
+- **Category codes** — `cs.AI` (AI), `cs.CL` (NLP), `cs.CV` (Computer Vision)
+- **Great with Agent tools** — let the Agent search ArXiv during reasoning for academic grounding

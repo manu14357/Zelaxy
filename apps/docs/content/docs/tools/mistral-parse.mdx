@@ -1,0 +1,55 @@
+---
+title: Mistral Parse
+description: Parse and extract structured data from documents using Mistral
+icon: FileSearch
+---
+
+# Mistral Parse
+
+Parse documents (PDFs, images, scanned files) using Mistral's document understanding models. Extract structured data, tables, and text from complex documents.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mistral_parse` |
+| **Category** | Tool — AI & ML |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Parse Document** | Extract content from a document |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Mistral API key |
+| Document | File upload | Upload PDF or image |
+| Document URL | Short input | URL of the document |
+| Output Format | Dropdown | `markdown`, `json` |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Extracted document content |
+| `tables` | `json` | Extracted tables |
+| `metadata` | `json` | Document metadata |
+
+## Example: Invoice Processor
+
+**Workflow:**
+```
+[Starter: Upload Invoice] → [Mistral Parse] → [Agent: Extract Fields] → [Airtable: Create Record]
+```
+
+Upload an invoice PDF, Mistral Parse extracts the text and tables, Agent identifies vendor, amounts, and line items, Airtable stores the structured data.
+
+## Tips
+
+- **Handles scanned documents** — OCR is built in
+- **Tables** are extracted separately — useful for financial documents
+- **Combine with Agent** for intelligent field extraction from parsed content

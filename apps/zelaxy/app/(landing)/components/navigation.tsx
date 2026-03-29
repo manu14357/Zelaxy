@@ -1,0 +1,144 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Menu, X } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { getDocsUrl } from '@/lib/docs-url'
+import { ThemeToggle } from './theme-toggle'
+
+export function Navigation() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  const navItems = [
+    { href: '#blocks', label: 'Blocks' },
+    { href: '#how-it-works', label: 'How It Works' },
+    { href: '#features', label: 'Features' },
+    { href: getDocsUrl(), label: 'Docs' },
+  ]
+
+  return (
+    <nav
+      className={`fixed top-0 right-0 left-0 z-50 transition-all duration-500 ${
+        isScrolled
+          ? 'border-white/[0.06] border-b bg-[#060606]/80 shadow-[0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-xl backdrop-saturate-150'
+          : 'bg-transparent'
+      }`}
+    >
+      <div className='mx-auto max-w-6xl px-6 sm:px-8'>
+        <div className='flex h-14 items-center justify-between'>
+          {/* Logo */}
+          <Link href='/' className='group flex items-center space-x-2'>
+            <div className='flex h-9 w-9 items-center justify-center'>
+              <svg
+                width='28'
+                height='28'
+                viewBox='0 0 100 100'
+                fill='none'
+                xmlns='http://www.w3.org/2000/svg'
+                className='text-white transition-colors duration-300'
+              >
+                <circle cx='50' cy='15' r='4' stroke='currentColor' strokeWidth='5' fill='none' />
+                <path d='M50 15 L50 40' stroke='currentColor' strokeWidth='5' strokeLinecap='round' strokeLinejoin='round' />
+                <path d='M50 40 L35 20' stroke='currentColor' strokeWidth='5' strokeLinecap='round' strokeLinejoin='round' fill='none' />
+                <path d='M50 40 L65 20' stroke='currentColor' strokeWidth='5' strokeLinecap='round' strokeLinejoin='round' fill='none' />
+                <path d='M35 20 L20 45 L20 75 Q20 82 30 85 L50 85' stroke='currentColor' strokeWidth='5' strokeLinecap='round' strokeLinejoin='round' fill='none' />
+                <path d='M65 20 L80 45 L80 75 Q80 82 70 85 L50 85' stroke='currentColor' strokeWidth='5' strokeLinecap='round' strokeLinejoin='round' fill='none' />
+                <circle cx='40' cy='55' r='4' fill='currentColor' />
+                <circle cx='60' cy='55' r='4' fill='currentColor' />
+                <path d='M40 68 Q50 76 60 68' stroke='currentColor' strokeWidth='5' strokeLinecap='round' strokeLinejoin='round' fill='none' />
+              </svg>
+            </div>
+            <span className='bg-gradient-to-r from-primary via-orange-400 to-amber-300 bg-clip-text font-semibold text-[17px] text-transparent tracking-[-0.01em]'>
+              Zelaxy
+            </span>
+          </Link>
+
+          {/* Desktop Nav */}
+          <div className='hidden items-center gap-8 md:flex'>
+            {navItems.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className='font-medium text-[13px] text-neutral-500 transition-colors duration-300 hover:text-white'
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+
+          {/* Right */}
+          <div className='hidden items-center gap-3 md:flex'>
+            <ThemeToggle />
+            <Link href='/login'>
+              <Button
+                variant='ghost'
+                className='h-8 px-3 font-medium text-[13px] text-neutral-400 hover:text-white'
+              >
+                Sign In
+              </Button>
+            </Link>
+            <Link href='/arena'>
+              <Button className='h-8 rounded-full bg-white px-5 font-medium text-[13px] text-black transition-all duration-300 hover:bg-neutral-200'>
+                Get Started
+              </Button>
+            </Link>
+          </div>
+
+          {/* Mobile */}
+          <div className='flex items-center gap-2 md:hidden'>
+            <ThemeToggle />
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className='rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-white/5 hover:text-white'
+            >
+              {isOpen ? <X className='h-5 w-5' /> : <Menu className='h-5 w-5' />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {isOpen && (
+          <div className='absolute top-14 right-0 left-0 border-white/[0.06] border-b bg-[#060606]/95 backdrop-blur-xl backdrop-saturate-150 md:hidden'>
+            <div className='space-y-1 px-6 py-5'>
+              {navItems.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className='block py-2.5 font-medium text-[15px] text-neutral-400 transition-colors hover:text-white'
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.label}
+                </a>
+              ))}
+              <div className='flex flex-col gap-2 border-white/[0.06] border-t pt-4'>
+                <Link href='/login'>
+                  <Button
+                    variant='ghost'
+                    className='w-full text-[15px] text-neutral-400 hover:text-white'
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href='/arena'>
+                  <Button className='w-full rounded-full bg-white text-[15px] text-black hover:bg-neutral-200'>
+                    Get Started
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </nav>
+  )
+}

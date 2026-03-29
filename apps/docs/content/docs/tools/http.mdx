@@ -1,0 +1,57 @@
+---
+title: HTTP
+description: Make raw HTTP requests to any API endpoint
+icon: Globe
+---
+
+# HTTP
+
+The HTTP tool makes raw HTTP requests to any endpoint. It's the same as the API block but designed to be used as an Agent tool — the Agent decides when and how to make API calls during reasoning.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `http` |
+| **Category** | Tool — Developer |
+| **Auth** | None (configured per request) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Request** | Make an HTTP request (any method) |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| URL | Short input | Target URL |
+| Method | Dropdown | GET, POST, PUT, PATCH, DELETE |
+| Headers | Table | Custom headers |
+| Body | Code editor | Request body (POST/PUT) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `response` | `json` | Response body |
+| `status` | `number` | HTTP status code |
+| `headers` | `json` | Response headers |
+
+## Example: Agent with API Access
+
+**Workflow:**
+```
+[Starter] → [Agent] → [Response]
+              ↑
+        [HTTP] (connected as tool)
+```
+
+Give an Agent the ability to call any API. Provide the API docs in the system prompt, and the Agent constructs and executes requests dynamically.
+
+## Tips
+
+- **Use API block for standalone** requests; **HTTP tool for Agent** tool-calling
+- **Agent decides** the URL, method, and body based on the user's request
+- **Provide API docs** in the Agent's system prompt for best results

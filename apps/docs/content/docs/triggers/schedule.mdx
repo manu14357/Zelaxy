@@ -1,0 +1,75 @@
+---
+title: Schedule Trigger
+description: Run workflows on a recurring schedule using cron expressions
+icon: Clock
+---
+
+# Schedule Trigger
+
+The Schedule trigger runs workflows automatically on a time-based schedule. Define when and how often using cron expressions or preset intervals.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `schedule` |
+| **Category** | Trigger |
+
+## When to Use
+
+- Run daily reports, weekly summaries, or hourly checks
+- Poll APIs or inboxes on a regular cadence
+- Automate recurring tasks (data sync, cleanup, notifications)
+- Batch processing at off-peak hours
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Frequency | Dropdown | Preset: Every minute, hourly, daily, weekly, monthly |
+| Cron Expression | Short input | Custom cron (e.g., `0 9 * * 1-5`) |
+| Timezone | Dropdown | Schedule timezone |
+
+### Cron Expression Format
+
+```
+┌─── minute (0–59)
+│ ┌─── hour (0–23)
+│ │ ┌─── day of month (1–31)
+│ │ │ ┌─── month (1–12)
+│ │ │ │ ┌─── day of week (0–7, 0 and 7 = Sunday)
+│ │ │ │ │
+* * * * *
+```
+
+### Common Patterns
+
+| Pattern | Cron | Description |
+|---------|------|-------------|
+| Every 5 min | `*/5 * * * *` | Every 5 minutes |
+| Hourly | `0 * * * *` | Every hour at :00 |
+| Daily 9am | `0 9 * * *` | Every day at 9:00 AM |
+| Weekdays 9am | `0 9 * * 1-5` | Monday–Friday at 9:00 AM |
+| Weekly Monday | `0 9 * * 1` | Every Monday at 9:00 AM |
+| Monthly 1st | `0 9 1 * *` | First day of each month |
+
+## Example: Daily Metrics Dashboard
+
+**Workflow:**
+```
+[Starter (schedule: daily 8am)] → [Snowflake: Query] → [Agent: Analyze] → [Slack: Post]
+```
+
+**Schedule:** `0 8 * * 1-5` (weekdays at 8am)
+
+Every weekday morning:
+1. Snowflake queries yesterday's metrics
+2. Agent analyzes trends and anomalies
+3. Slack posts a formatted dashboard summary to `#metrics`
+
+## Tips
+
+- **Use presets** for common intervals — they're easier to maintain
+- **Timezone matters** — set it to your team's timezone, not UTC
+- **Starter input is empty** on scheduled runs — design workflows accordingly
+- **Powered by Trigger.dev** — reliable, distributed schedule execution

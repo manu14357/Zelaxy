@@ -1,0 +1,63 @@
+---
+title: Google Calendar
+description: Create, list, and manage events in Google Calendar
+icon: Calendar
+---
+
+# Google Calendar
+
+Create, update, list, and delete events in Google Calendar. Supports multiple calendars, recurring events, and attendee management.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_calendar` |
+| **Category** | Tool — Google Workspace |
+| **Auth** | OAuth 2.0 (Google) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Create Event** | Create a new calendar event |
+| **List Events** | Get upcoming events |
+| **Update Event** | Modify an existing event |
+| **Delete Event** | Remove an event |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Google Account | OAuth | Connect Google account |
+| Calendar | Dropdown | Select calendar |
+| Title | Short input | Event title |
+| Start / End | Short input | Date-time (ISO format) |
+| Description | Long text | Event description |
+| Attendees | Short input | Email addresses |
+| Location | Short input | Event location |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `eventId` | `string` | Calendar event ID |
+| `content` | `string` | Event details or list |
+| `htmlLink` | `string` | Link to the event |
+
+## Example: Meeting Scheduler Agent
+
+**Workflow:**
+```
+[Starter: "Schedule meeting with John tomorrow at 2pm"] → [Agent] → [Google Calendar: Create]
+              ↑
+        [Google Calendar: List] (connected as tool)
+```
+
+The Agent understands natural language scheduling requests, checks your calendar for availability using the List Events tool, and creates the event.
+
+## Tips
+
+- **ISO dates** — use `2024-03-15T14:00:00-05:00` format for precise scheduling
+- **Agent tool mode** — let the AI check availability before booking
+- **Attendees** are auto-invited when you add their emails

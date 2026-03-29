@@ -1,0 +1,72 @@
+---
+title: Snowflake
+description: Execute queries on Snowflake data warehouse
+icon: Snowflake
+---
+
+# Snowflake
+
+Run SQL queries on your Snowflake data warehouse. Supports standard queries, warehouse selection, and schema navigation for analytics and data workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `snowflake` |
+| **Category** | Tool — Database |
+| **Auth** | Snowflake Credentials |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Query** | Execute a SQL query |
+| **List Databases** | Get available databases |
+| **List Schemas** | Get schemas in a database |
+| **List Tables** | Get tables in a schema |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Account | Short input | Snowflake account identifier |
+| Username | Short input | User name |
+| Password | Password | Password |
+| Warehouse | Short input | Compute warehouse name |
+| Database | Short input | Database name |
+| Schema | Short input | Schema name |
+| Query | Code editor | SQL to execute |
+| Role | Short input | Snowflake role (optional) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | Query results |
+| `content` | `string` | Formatted data |
+| `columns` | `json` | Column metadata |
+
+## Example: Analytics Dashboard
+
+**Workflow:**
+```
+[Starter (schedule: daily 8am)] → [Snowflake: Query] → [Agent: Analyze] → [Slack: Report]
+```
+
+**Query:**
+```sql
+SELECT DATE_TRUNC('day', created_at) as date,
+       COUNT(*) as signups,
+       SUM(revenue) as daily_revenue
+FROM analytics.events
+WHERE created_at >= DATEADD('day', -7, CURRENT_DATE())
+GROUP BY 1 ORDER BY 1
+```
+
+Agent analyzes the weekly trends and posts a daily analytics summary to Slack.
+
+## Tips
+
+- **Warehouse selection** matters — use a small warehouse for simple queries, large for heavy analytics
+- **Role** determines access — ensure your role has SELECT permissions on target tables
+- **See [Snowflake Setup Guide](/documentation/snowflake-setup.md)** for detailed configuration

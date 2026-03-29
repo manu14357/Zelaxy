@@ -1,0 +1,70 @@
+---
+title: Image Generator Block
+description: Generate images from text descriptions using AI models
+icon: Image
+---
+
+# Image Generator Block
+
+The Image Generator block creates images from text prompts using DALL-E, Stable Diffusion, or other AI image models. It supports multiple sizes, styles, and quality settings.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `image_generator` |
+| **Category** | Core Block |
+| **Color** | `#EC4899` (Pink) |
+
+## When to Use
+
+- Generate illustrations, diagrams, or artwork from descriptions
+- Create marketing visuals dynamically
+- Build creative tools that produce images on demand
+- Generate placeholder or concept images
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Prompt | Long text | Image description: `{{agent.content}}` |
+| Provider | Dropdown | `openai` (DALL-E), `stability` |
+| Model | Dropdown | `dall-e-3`, `dall-e-2`, etc. |
+| Size | Dropdown | `1024x1024`, `1792x1024`, `1024x1792` |
+| Quality | Dropdown | `standard`, `hd` |
+| Style | Dropdown | `vivid`, `natural` |
+| API Key | Password | Provider API key |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | `string` | URL of the generated image |
+| `content` | `string` | Base64 or URL of the image |
+| `revisedPrompt` | `string` | The prompt DALL-E actually used (may refine yours) |
+
+## Example: Product Mockup Generator
+
+**Goal:** Generate product mockup images from descriptions.
+
+**Workflow:**
+```
+[Starter] → [Agent: Prompt Writer] → [Image Generator] → [Response]
+```
+
+**Configuration:**
+- **Agent System Prompt:** `Convert this product description into a detailed image generation prompt. Focus on visual details, lighting, style, and composition.`
+- **Image Generator Prompt:** `{{agent.content}}`
+- **Model:** `dall-e-3`
+- **Size:** `1024x1024`
+- **Quality:** `hd`
+- **Style:** `vivid`
+
+**Response:** `![Generated Image]({{image_generator.url}})`
+
+## Tips
+
+- **Let an Agent write the prompt** — AI-crafted prompts produce better images than raw user input
+- **DALL-E 3** is the best quality; **DALL-E 2** is cheaper and faster
+- **`hd` quality** costs 2x but provides much sharper details
+- **Check `revisedPrompt`** — DALL-E 3 may modify your prompt for safety/quality

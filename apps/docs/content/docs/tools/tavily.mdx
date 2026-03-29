@@ -1,0 +1,60 @@
+---
+title: Tavily
+description: AI-optimized web search with automatic summarization
+icon: Radar
+---
+
+# Tavily
+
+Tavily is an AI-optimized search engine designed specifically for LLM applications. It returns clean, summarized results — not raw HTML — making it ideal for AI agent workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `tavily` |
+| **Category** | Tool — Search |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Search** | AI-optimized web search |
+| **Extract** | Extract content from specific URLs |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Tavily API key |
+| Query | Short input | Search query |
+| Search Depth | Dropdown | `basic` (fast) or `advanced` (thorough) |
+| Max Results | Slider | Number of results (1–20) |
+| Include Answer | Toggle | Get a direct AI-generated answer |
+| Include Domains | Short input | Limit search to specific domains |
+| Exclude Domains | Short input | Exclude specific domains |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `json` | Structured search results |
+| `answer` | `string` | AI-generated direct answer |
+| `content` | `string` | Combined result content |
+
+## Example: AI Research Assistant
+
+**Workflow:**
+```
+[Starter] → [Tavily: Search] → [Agent: Synthesize] → [Response]
+```
+
+User asks a research question. Tavily searches with `advanced` depth and `Include Answer` enabled. Agent synthesizes Tavily's results into a comprehensive answer with citations.
+
+## Tips
+
+- **Best search for AI agents** — results are pre-cleaned and summarized
+- **Advanced depth** does multi-step searching — slower but more thorough
+- **Domain filtering** is powerful — `include: arxiv.org, nature.com` for academic research
+- **Include Answer** gives a quick summary before the full results

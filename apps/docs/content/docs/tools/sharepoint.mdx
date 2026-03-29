@@ -1,0 +1,60 @@
+---
+title: SharePoint
+description: Read, write, and search documents in SharePoint
+icon: Share2
+---
+
+# SharePoint
+
+Access SharePoint sites, document libraries, and lists. Read, write, and search content across your SharePoint organization.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `sharepoint` |
+| **Category** | Tool — Microsoft 365 |
+| **Auth** | OAuth 2.0 (Microsoft) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **List Sites** | Get accessible SharePoint sites |
+| **List Documents** | Get documents from a library |
+| **Upload Document** | Upload a file to a library |
+| **Search** | Search across SharePoint |
+| **Read Document** | Download document content |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Microsoft Account | OAuth | Connect Microsoft 365 |
+| Site | Dropdown | Select SharePoint site |
+| Library | Short input | Document library name |
+| File | File upload | File to upload |
+| Search Query | Short input | SharePoint search query |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Document content or search results |
+| `files` | `json` | Array of document objects |
+| `url` | `string` | Document URL |
+
+## Example: Knowledge Base Search
+
+**Workflow:**
+```
+[Starter] → [SharePoint: Search] → [Agent: Answer] → [Response]
+```
+
+User asks a question, SharePoint searches the company's document library, Agent reads the relevant documents and provides an answer.
+
+## Tips
+
+- **Site permissions** determine what you can access — ensure the OAuth app has SharePoint scopes
+- **Search** covers all document types — PDFs, Word, Excel, presentations
+- **Combine with Knowledge block** for RAG over SharePoint documents

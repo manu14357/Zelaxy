@@ -1,0 +1,72 @@
+---
+title: Confluence
+description: Create, search, and manage pages in Atlassian Confluence
+icon: FileStack
+---
+
+# Confluence
+
+Create, read, search, and update pages in Atlassian Confluence — the team wiki and documentation platform. Integrates with your Atlassian workspace.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `confluence` |
+| **Category** | Tool — Collaboration |
+| **Auth** | API Key (Atlassian) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Create Page** | Create a new Confluence page |
+| **Search** | Search pages by query (CQL) |
+| **Get Page** | Read a specific page |
+| **Update Page** | Modify page content |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Domain | Short input | Atlassian domain |
+| Email | Short input | Account email |
+| API Token | Password | Atlassian API token |
+| Space | Short input | Confluence space key |
+| Title | Short input | Page title |
+| Content | Long text | Page body (HTML/Wiki markup) |
+| CQL Query | Short input | Confluence Query Language filter |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pageId` | `string` | Page ID |
+| `url` | `string` | Page URL |
+| `content` | `string` | Page content or search results |
+
+## Example: Auto-Generate Knowledge Base
+
+**Workflow:**
+```
+[Starter: Topic + Notes] → [Agent: Write Documentation] → [Confluence: Create Page]
+```
+
+Provide rough notes or bullet points. Agent writes polished documentation. Confluence creates it as a new page in the appropriate space.
+
+**Agent Prompt:**
+```
+Convert these rough notes into a well-structured Confluence page with:
+- Overview section
+- Step-by-step instructions
+- FAQs
+- Related links
+
+Notes: {{starter.input}}
+```
+
+## Tips
+
+- **CQL** is powerful — `type=page AND space=TEAM AND text ~ "deployment"` finds deployment docs
+- **HTML body** — Confluence pages use HTML, so include `<h2>`, `<p>`, `<ul>` tags
+- **Combine with Jira** for a complete Atlassian workflow (tickets + documentation)

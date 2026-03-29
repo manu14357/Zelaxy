@@ -1,0 +1,51 @@
+---
+title: Stagehand Agent
+description: Autonomous browser agent for complex multi-step web tasks
+icon: MonitorPlay
+---
+
+# Stagehand Agent
+
+The Stagehand Agent is an autonomous browser automation agent. Unlike Stagehand (which executes one action at a time), the Agent plans and executes multi-step browser tasks independently — navigating, interacting, and extracting data with minimal guidance.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `stagehand_agent` |
+| **Category** | Tool — Web Scraping |
+| **Auth** | API Key |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Stagehand API key |
+| Task | Long text | High-level task description |
+| Start URL | Short input | Starting URL |
+| Max Steps | Slider | Maximum actions to take |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Task results |
+| `steps` | `json` | Actions taken |
+| `success` | `boolean` | Task completion status |
+
+## Example: Price Comparison
+
+**Workflow:**
+```
+[Starter: Product name] → [Stagehand Agent] → [Agent: Compare] → [Response]
+```
+
+**Task:** `Search for "{{starter.input}}" on Amazon and Best Buy. Extract the product name, price, rating, and availability from the first result on each site.`
+
+The Agent autonomously navigates both sites, searches, and extracts pricing data.
+
+## Tips
+
+- **High-level instructions** work best — describe the goal, not individual steps
+- **Set max steps** to prevent infinite loops on complex sites
+- **More expensive** than Stagehand — use for genuinely complex multi-step tasks

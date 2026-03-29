@@ -1,0 +1,65 @@
+---
+title: Translate Block
+description: Translate text between languages using AI
+icon: Languages
+---
+
+# Translate Block
+
+The Translate block converts text from one language to another using an LLM. It supports any language pair and preserves meaning, tone, and context better than rule-based translation engines.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `translate` |
+| **Category** | Core Block |
+| **Color** | `#06B6D4` (Cyan) |
+
+## When to Use
+
+- Translate user input or AI output to another language
+- Build multilingual chatbots
+- Localize content for different markets
+- Translate support tickets before processing
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Content | Long text | Text to translate: `{{agent.content}}` |
+| Source Language | Dropdown | Input language (or `Auto-Detect`) |
+| Target Language | Dropdown | Desired output language |
+| Model | Dropdown | LLM for translation |
+| API Key | Password | Provider API key |
+| Preserve Formatting | Toggle | Keep markdown, HTML, or code formatting |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Translated text |
+| `sourceLanguage` | `string` | Detected source language |
+| `targetLanguage` | `string` | Target language used |
+
+## Example: Multilingual Support Bot
+
+**Goal:** Accept support tickets in any language and respond in the user's language.
+
+**Workflow:**
+```
+[Starter] → [Translate: to English] → [Agent: Support] → [Translate: to Source] → [Response]
+```
+
+**How it works:**
+1. Customer writes in Spanish: "¿Cómo cambio mi contraseña?"
+2. First Translate block converts to English: "How do I change my password?"
+3. Agent processes the English question with its knowledge base
+4. Second Translate block converts the response back to Spanish
+5. Customer receives the answer in their own language
+
+## Tips
+
+- **Auto-Detect source language** when you don't know what language users will use
+- **LLM translation** handles idioms and context better than Google Translate for complex text
+- **Use GPT-4o or Claude** for high-quality translations; mini models work for simple text

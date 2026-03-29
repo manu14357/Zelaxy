@@ -1,0 +1,165 @@
+---
+title: Gmail
+description: Send, read, and search emails through Gmail
+icon: Mail
+---
+
+# Gmail
+
+Full Gmail integration — send emails, read inbox messages, search by query, and manage labels. Uses Google OAuth for secure access to your Gmail account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `gmail` |
+| **Category** | Tool — Email |
+| **Auth** | OAuth 2.0 (Google) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Send Email** | Compose and send an email |
+| **Read Emails** | Fetch recent emails from inbox or read a specific email by Message ID |
+| **Search Emails** | Search using Gmail query syntax |
+| **List Labels** | Get all labels/folders |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Google Account | OAuth | Connect your Gmail |
+| To | Short input | Recipient email(s), comma-separated |
+| Subject | Short input | Email subject line |
+| Body | Long text | Email body (HTML supported) |
+| CC / BCC | Short input | Carbon copy recipients |
+| **Message ID** | Short input | Specific Gmail message ID to fetch — overrides Label/Folder. Supports variable references like `{{loop.currentItem}}` or `{{webhook.payload.message_id}}` |
+| Label / Folder | Folder selector | Gmail label to read from (ignored when Message ID is provided) |
+| Include Attachments | Switch | Download and include attachment data |
+| Search Query | Short input | Gmail search query (for search op) |
+| Max Results | Slider | Number of emails to fetch (1–50) |
+
+## Outputs
+
+### Read Operation
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Email body as plain text (HTML is stripped automatically) |
+| `metadata` | `json` | Email metadata object (see below) |
+| `attachments` | `json` | Array of attachment objects (when Include Attachments is ON) |
+
+**`metadata` object fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Gmail message ID |
+| `threadId` | `string` | Conversation thread ID |
+| `from` | `string` | Sender formatted as `"Name <email>"` |
+| `to` | `string` | Recipients formatted as `"Name <email>"`, comma-separated |
+| `cc` | `string` | CC recipients formatted as `"Name <email>"`, comma-separated |
+| `subject` | `string` | Email subject line |
+| `date` | `string` | Received date/time (ISO 8601) |
+| `hasAttachments` | `boolean` | Whether the email has attachments |
+| `attachmentCount` | `number` | Number of attachments |
+| `labels` | `string` | Email labels (comma-separated) |
+
+**`attachments` array item fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string` | Attachment filename |
+| `mimeType` | `string` | MIME type (e.g., `application/pdf`) |
+| `size` | `number` | File size in bytes |
+| `data` | `Buffer` | Raw attachment data |
+| `content` | `string` | Text content (for text-based attachments only) |
+
+### Send / Draft Operations
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `message` | `string` | Status message |
+| `messageId` | `string` | Sent/draft message ID |
+| `threadId` | `string` | Conversation thread ID |
+
+### Trigger Mode
+
+When Gmail is used as a **trigger** (first block), it outputs:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `email` | `json` | Full email object with `id`, `subject`, `from`, `to`, `bodyText`, `bodyHtml`, `attachments`, etc. |
+| `rawEmail` | `json` | Complete raw Gmail API response (if enabled) |
+
+## Reading a Specific Email by ID
+
+You can fetch a single email by its Gmail message ID. This is useful when integrating with external platforms that send you message IDs (e.g., via webhook).
+
+**How it works:**
+1. Leave the **Label** field empty
+2. Enter the message ID in the **Message ID** field (or use a variable like `{{webhook.payload.message_id}}`)
+3. Enable **Include Attachments** if you need attachment data
+4. The tool calls `GET /gmail/v1/users/me/messages/{messageId}?format=full` directly
+
+**When Message ID is provided, the Label/Folder setting is ignored.**
+
+### Example: Process Selected Emails from External Platform
+
+```
+[Webhook (receives message_ids[])] → [Loop over IDs] → [Gmail: Read by ID] → [Agent: Process] → [API: Send results back]
+```
+
+**Gmail Read Config:**
+- **Message ID:** `{{loop.currentItem}}`
+- **Include Attachments:** ON
+- **Label:** _(leave empty)_
+
+**Accessing outputs in downstream blocks:**
+```
+Email body:    {{gmail.content}}
+Subject:       {{gmail.metadata.subject}}
+Sender:        {{gmail.metadata.from}}
+Recipients:    {{gmail.metadata.to}}
+Message ID:    {{gmail.metadata.id}}
+Thread ID:     {{gmail.metadata.threadId}}
+Attachments:   {{gmail.attachments}}
+```
+
+## Example: AI Email Assistant
+
+**Goal:** Read unread emails, summarize them, and draft replies.
+
+**Workflow:**
+```
+[Starter (schedule: hourly)] → [Gmail: Read] → [Loop] → [Agent: Summarize] → [Gmail: Send Reply]
+```
+
+**How it works:**
+1. Every hour, Gmail block fetches unread emails
+2. Loop iterates over each email
+3. Agent reads the email and generates a summary + draft reply
+4. Gmail sends the reply (or saves as draft)
+
+**Gmail Read Config:**
+- **Search Query:** `is:unread category:primary`
+- **Max Results:** `10`
+
+**Agent Prompt:**
+```
+Read this email and draft a professional reply:
+From: {{loop.currentItem.from}}
+Subject: {{loop.currentItem.subject}}
+Body: {{loop.currentItem.body}}
+```
+
+## Trigger Support
+
+Gmail can trigger workflows when new emails arrive. Configure a webhook trigger that polls for new messages.
+
+## Tips
+
+- **Gmail search syntax** is powerful: `from:boss@company.com after:2024/01/01 has:attachment`
+- **HTML body** — use `<b>bold</b>` and `<br>` for formatting
+- **Rate limits** — Gmail API allows ~250 sends/day for regular accounts
+- **Batch with Loop** — process multiple emails efficiently

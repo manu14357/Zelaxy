@@ -1,0 +1,58 @@
+---
+title: Hunter
+description: Find and verify email addresses
+icon: UserSearch
+---
+
+# Hunter
+
+Find and verify professional email addresses using Hunter.io. Look up emails by domain, name, or company — essential for sales outreach and lead generation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `hunter` |
+| **Category** | Tool — CRM |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Domain Search** | Find emails by company domain |
+| **Email Finder** | Find specific person's email |
+| **Email Verifier** | Verify if an email is valid |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Hunter.io API key |
+| Domain | Short input | Company domain |
+| First Name | Short input | Person's first name |
+| Last Name | Short input | Person's last name |
+| Email | Short input | Email to verify |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `emails` | `json` | Found email addresses |
+| `content` | `string` | Email or verification result |
+| `confidence` | `number` | Confidence score |
+
+## Example: Lead Enrichment Pipeline
+
+**Workflow:**
+```
+[Starter: Company list] → [Loop] → [Hunter: Domain Search] → [Agent: Qualify] → [Airtable: Save]
+```
+
+For each company in a list, find decision-maker emails, have an Agent qualify the leads, and save qualified ones to an Airtable CRM.
+
+## Tips
+
+- **Free tier** includes 25 searches/month
+- **Verification** tells you if an email is valid before you send — reduces bounces
+- **Combine with Clay** for comprehensive lead enrichment

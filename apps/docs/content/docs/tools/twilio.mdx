@@ -1,0 +1,57 @@
+---
+title: Twilio
+description: Send SMS messages and make phone calls via Twilio
+icon: PhoneCall
+---
+
+# Twilio
+
+Send SMS messages and initiate phone calls through the Twilio API. Supports programmable messaging for notifications, alerts, and two-factor authentication.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `twilio` |
+| **Category** | Tool — Communication |
+| **Auth** | Account SID + Auth Token |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Send SMS** | Send a text message |
+| **Make Call** | Initiate a phone call with TwiML |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Account SID | Short input | Twilio Account SID |
+| Auth Token | Password | Twilio Auth Token |
+| From Number | Short input | Your Twilio phone number |
+| To Number | Short input | Recipient phone number |
+| Message | Long text | SMS body with `{{variables}}` |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sid` | `string` | Message/Call SID |
+| `status` | `string` | Delivery status |
+| `content` | `string` | Response data |
+
+## Example: Error Alert via SMS
+
+**Workflow:**
+```
+[Starter (webhook)] → [Condition: Is Critical?] → [Twilio: Send SMS]
+```
+
+When a monitoring webhook detects a critical error, send an SMS alert to the on-call engineer.
+
+## Tips
+
+- **Trial accounts** can only send to verified numbers
+- **International format** required: `+1XXXXXXXXXX`
+- **SMS character limit** is 1600 characters; longer messages are split

@@ -1,0 +1,56 @@
+---
+title: Google Docs
+description: Create and read documents in Google Docs
+icon: FileText
+---
+
+# Google Docs
+
+Create new documents and read existing ones in Google Docs. Supports content insertion, reading, and basic document management.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_docs` |
+| **Category** | Tool — Google Workspace |
+| **Auth** | OAuth 2.0 (Google) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Create Document** | Create a new Google Doc |
+| **Read Document** | Get content of a document |
+| **Update Document** | Insert or replace content |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Google Account | OAuth | Connect Google account |
+| Document ID | Short input | Doc ID (from URL) |
+| Title | Short input | New document title |
+| Content | Long text | Document body |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `documentId` | `string` | Created/read document ID |
+| `content` | `string` | Document content |
+| `url` | `string` | Document URL |
+
+## Example: Automated Report Generation
+
+**Workflow:**
+```
+[Starter] → [Agent: Write Report] → [Google Docs: Create] → [Gmail: Share Link]
+```
+
+Agent generates a report, Google Docs creates it as a shareable document, and Gmail sends the link to stakeholders.
+
+## Tips
+
+- **Document ID** is in the URL: `docs.google.com/document/d/{ID}/edit`
+- **Content supports** basic text — for complex formatting, use the Google Docs API directly via API block

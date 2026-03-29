@@ -1,0 +1,65 @@
+---
+title: Response Block
+description: Return output to the user or calling system
+icon: MessageSquare
+---
+
+# Response Block
+
+The Response block is the final output point of a workflow. It returns results to the user interface, API caller, or parent workflow. It supports text, markdown, structured data, and file outputs.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `response` |
+| **Category** | Core Block |
+| **Color** | `#2563EB` (Blue) |
+
+## When to Use
+
+- Return a final answer to the user in the chat interface
+- Send structured data back to an API caller
+- Output files, images, or formatted content
+- End a workflow with a summary
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Response Content | Long text | The content to return (supports `{{variables}}` and markdown) |
+| Response Type | Dropdown | `text`, `markdown`, `json`, `file` |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | The final response content |
+
+## Example: Formatted Summary Response
+
+**Workflow:**
+```
+[Starter] → [Agent: Analyze] → [Response]
+```
+
+**Response Content:**
+```markdown
+## Analysis Results
+
+{{agent.content}}
+
+---
+*Processed at {{function.result.timestamp}}*
+```
+
+**How it works:**
+1. Agent analyzes the user's input
+2. Response block formats the output with markdown headers and timestamps
+3. User sees a nicely formatted summary in the chat
+
+## Tips
+
+- **Use markdown** for rich formatting — headers, bold, lists, code blocks all render in the chat
+- **Include multiple block outputs** — combine results from different branches: `Summary: {{agent1.content}}\n\nDetails: {{agent2.content}}`
+- **JSON response type** is useful when workflows are called via API — returns parseable data

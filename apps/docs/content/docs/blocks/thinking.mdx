@@ -1,0 +1,70 @@
+---
+title: Thinking Block
+description: Add explicit chain-of-thought reasoning before decisions
+icon: Lightbulb
+---
+
+# Thinking Block
+
+The Thinking block adds a dedicated reasoning step to your workflow. It prompts an LLM to think step-by-step before producing an answer — improving quality on complex tasks like math, logic, planning, and analysis.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `thinking` |
+| **Category** | Core Block |
+| **Color** | `#8B5CF6` (Violet) |
+
+## When to Use
+
+- Complex reasoning tasks that benefit from step-by-step thinking
+- Math problems, logic puzzles, or multi-step analysis
+- Planning and strategy tasks
+- Debugging reasoning errors in your workflow
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Thinking Prompt | Long text | What to reason about |
+| Context | Long text | Data for reasoning: `{{agent.content}}` |
+| Model | Dropdown | LLM model (o1/o3 models have built-in thinking) |
+| API Key | Password | Provider API key |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Final reasoned answer |
+| `thinking` | `string` | Step-by-step reasoning trace |
+| `confidence` | `number` | Reasoning confidence score |
+
+## Example: Complex Decision Making
+
+**Goal:** Analyze a business proposal with explicit reasoning before deciding.
+
+**Workflow:**
+```
+[Starter] → [Thinking] → [Agent: Decision] → [Response]
+```
+
+**Configuration:**
+- **Thinking Prompt:**
+  ```
+  Analyze this business proposal step by step. Consider:
+  1. Market viability
+  2. Financial projections
+  3. Competitive landscape
+  4. Risks and mitigation
+  Then provide your overall assessment.
+  ```
+- **Context:** `{{starter.input}}`
+
+**Agent uses:** `{{thinking.content}}` as pre-analyzed input, along with `{{thinking.thinking}}` for transparency.
+
+## Tips
+
+- **Use for complex tasks only** — simple tasks don't benefit from explicit thinking and just add latency
+- **o1/o3 models have built-in reasoning** — you may not need this block with those models
+- **Expose the reasoning trace** (`{{thinking.thinking}}`) in responses for transparency

@@ -1,0 +1,55 @@
+---
+title: Jina
+description: Read and extract clean text from web pages
+icon: FileText
+---
+
+# Jina
+
+Jina Reader converts any web page into clean, readable text. It strips HTML, navigation, ads, and boilerplate — returning just the main content in markdown format.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `jina` |
+| **Category** | Tool — Web Scraping |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Read** | Extract clean text from a URL |
+| **Search** | Search and read multiple pages |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Jina API key |
+| URL | Short input | Web page URL |
+| Query | Short input | Search query (search mode) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Clean extracted text |
+| `title` | `string` | Page title |
+| `url` | `string` | Source URL |
+
+## Example: Quick Page Summarizer
+
+**Workflow:**
+```
+[Starter: URL] → [Jina: Read] → [Agent: Summarize] → [Response]
+```
+
+Paste any URL, Jina extracts the clean text, Agent summarizes the key points.
+
+## Tips
+
+- **Fastest reader** — Jina is optimized for speed and clean extraction
+- **Best for articles** — great at extracting blog posts, news articles, documentation
+- **Use as Agent tool** — let the AI read web pages during reasoning

@@ -1,0 +1,75 @@
+---
+title: Loop Block
+description: Iterate over arrays or repeat actions a fixed number of times
+icon: Repeat
+---
+
+# Loop Block
+
+The Loop block repeats a set of actions either a fixed number of times or once for each item in an array. It's essential for batch processing — sending multiple emails, processing lists, or iterating over API results.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `loop` |
+| **Category** | Core Block |
+| **Color** | `#F59E0B` (Yellow) |
+
+## When to Use
+
+- Process each item in a list (emails, records, search results)
+- Repeat an action N times
+- Batch-send messages to multiple recipients
+- Iterate over API pagination results
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Loop Type | Dropdown | `forEach` (iterate array) or `for` (fixed count) |
+| Array Input | Short input | Array to iterate over (forEach mode): `{{agent.content}}` |
+| Iterations | Slider | Number of repetitions (for mode): 1–100 |
+
+### Inside the Loop
+Blocks placed inside the loop's container execute once per iteration. Inside the loop, use `{{loop.currentItem}}` to access the current array element and `{{loop.index}}` for the iteration index.
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `array` | Array of all iteration results |
+| `currentItem` | `any` | Current item (during iteration) |
+| `index` | `number` | Current index (during iteration) |
+| `totalItems` | `number` | Total number of items |
+
+## Example: Send Personalized Emails
+
+**Goal:** Send a welcome email to each new signup from a list.
+
+**Workflow:**
+```
+[Starter: JSON array of users] → [Loop (forEach)] → [Gmail: Send] → [Response]
+```
+
+**Configuration:**
+- **Loop Type:** `forEach`
+- **Array Input:** `{{starter.input}}` (expects `[{"name": "Alice", "email": "alice@example.com"}, ...]`)
+
+**Gmail block inside the loop:**
+- **To:** `{{loop.currentItem.email}}`
+- **Subject:** `Welcome, {{loop.currentItem.name}}!`
+- **Body:** `Hi {{loop.currentItem.name}}, welcome to our platform!`
+
+**How it works:**
+1. Starter receives a JSON array of user objects
+2. Loop iterates over each user
+3. Gmail sends a personalized email to each user
+4. Results array contains all send confirmations
+
+## Tips
+
+- **`forEach` is most common** — use it for arrays from Agent (structured output) or API responses
+- **Access nested fields** with dot notation: `{{loop.currentItem.user.email}}`
+- **Combine with Function block** to prepare the array before looping
+- **Loop results** are collected as `{{loop.results}}` — an array of each iteration's output

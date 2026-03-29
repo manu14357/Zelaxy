@@ -1,0 +1,65 @@
+---
+title: File Block
+description: Read, write, and manipulate files in your workflows
+icon: File
+---
+
+# File Block
+
+The File block handles file operations — reading uploaded files, writing output files, converting formats, and managing file data within workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `file` |
+| **Category** | Core Block |
+| **Color** | `#6366f1` (Indigo) |
+
+## When to Use
+
+- Read content from uploaded documents (PDF, CSV, TXT)
+- Write generated content to output files
+- Convert between file formats
+- Process file data in automated pipelines
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Operation | Dropdown | `read`, `write`, `convert` |
+| File | File upload | Select the file to process |
+| File Path | Short input | File path or reference |
+| Output Format | Dropdown | Target format for conversion |
+| Content | Long text | Content to write (write mode) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | File contents (read) or file path (write) |
+| `metadata` | `json` | File info: name, size, type |
+| `url` | `string` | Download URL for generated files |
+
+## Example: PDF Report Pipeline
+
+**Goal:** Read a CSV, analyze it with AI, and generate a report.
+
+**Workflow:**
+```
+[Starter: Upload CSV] → [File: Read] → [Agent: Analyze] → [Response]
+```
+
+**How it works:**
+1. User uploads a CSV file
+2. File block reads the CSV content as text
+3. Agent analyzes the data and generates insights
+4. Response returns the analysis
+
+**Agent Prompt:** `Analyze this CSV data and provide key insights, trends, and anomalies:\n\n{{file.content}}`
+
+## Tips
+
+- **CSV files** are read as text — the Agent or Function block can parse them
+- **Large files** may exceed context limits — consider splitting or summarizing first
+- **Use with Google Drive or OneDrive** blocks for cloud file workflows

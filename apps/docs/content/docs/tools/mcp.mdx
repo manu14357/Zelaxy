@@ -1,0 +1,66 @@
+---
+title: MCP
+description: Connect to Model Context Protocol servers for extended capabilities
+icon: Plug
+---
+
+# MCP (Model Context Protocol)
+
+Connect to any MCP server to extend your Agent's capabilities. MCP provides a standardized protocol for AI tools — connect to databases, file systems, APIs, and custom tools through a unified interface.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mcp` |
+| **Category** | Tool — Developer |
+| **Auth** | Configuration-based |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Connect** | Connect to an MCP server |
+| **Call Tool** | Execute a tool from the MCP server |
+| **List Tools** | Discover available tools |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Server URL | Short input | MCP server endpoint |
+| Transport | Dropdown | `stdio`, `sse`, `streamable-http` |
+| Command | Short input | Server command (stdio) |
+| Args | Table | Command arguments |
+| Headers | Table | HTTP headers (SSE) |
+| Environment Variables | Table | Env vars for the server |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Tool execution result |
+| `tools` | `json` | Available tools list |
+
+## Example: File System MCP
+
+**Workflow:**
+```
+[Starter] → [Agent] → [Response]
+              ↑
+        [MCP: File System] (connected as tool)
+```
+
+Connect the official `@modelcontextprotocol/server-filesystem` MCP server. The Agent can now read, write, and list files as part of its reasoning.
+
+**MCP Config:**
+- **Transport:** `stdio`
+- **Command:** `npx`
+- **Args:** `@modelcontextprotocol/server-filesystem`, `/path/to/allowed/directory`
+
+## Tips
+
+- **Stdio** — runs a local process (best for local MCP servers)
+- **SSE/HTTP** — connects to remote MCP servers
+- **Any MCP server works** — filesystem, database, Slack, custom tools, etc.
+- **See the [MCP documentation](/documentation/MCP/)** for setup guides

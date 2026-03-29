@@ -1,0 +1,71 @@
+---
+title: Core Blocks
+description: The fundamental building blocks of every Zelaxy workflow
+icon: Blocks
+---
+
+# Core Blocks
+
+Core blocks are the fundamental processing units in Zelaxy. They handle AI reasoning, control flow, data transformation, and workflow orchestration. Every workflow uses at least a Starter block and typically an Agent block.
+
+## Block Categories
+
+### AI & Reasoning
+| Block | Description | Use When |
+|-------|-------------|----------|
+| [Agent](/docs/blocks/agent) | Multi-provider LLM with tool calling | You need AI reasoning, generation, or analysis |
+| [Thinking](/docs/blocks/thinking) | Forces step-by-step reasoning | You want to improve an agent's chain-of-thought |
+| [Evaluator](/docs/blocks/evaluator) | Score and assess content quality | You need to rate, rank, or evaluate outputs |
+| [Translate](/docs/blocks/translate) | Multi-language translation | You need to convert text between languages |
+
+### Control Flow
+| Block | Description | Use When |
+|-------|-------------|----------|
+| [Condition](/docs/blocks/condition) | Boolean or LLM-based branching | You need IF/ELSE logic in your workflow |
+| [Router](/docs/blocks/router) | Multi-path routing (up to 4 paths) | You need to route to 3+ different paths |
+| [Loop](/docs/blocks/loop) | Iterate over arrays or repeat N times | You need to process items one by one |
+| [Parallel](/docs/blocks/parallel) | Run multiple blocks simultaneously | You need to run independent tasks concurrently |
+
+### Data & I/O
+| Block | Description | Use When |
+|-------|-------------|----------|
+| [Starter](/docs/blocks/starter) | Workflow entry point | Every workflow needs one as the first block |
+| [Response](/docs/blocks/response) | Return final output | You want to display or return the workflow result |
+| [Function](/docs/blocks/function) | Execute custom JavaScript/TypeScript | You need custom data transformation logic |
+| [API](/docs/blocks/api) | Make HTTP requests to any API | You need to call an external REST API |
+
+### Knowledge & Memory
+| Block | Description | Use When |
+|-------|-------------|----------|
+| [Knowledge](/docs/blocks/knowledge) | Vector search across documents | You need RAG (retrieval-augmented generation) |
+| [Memory](/docs/blocks/memory) | Persistent data storage | You need to store/retrieve data across runs |
+
+### Safety & Quality
+| Block | Description | Use When |
+|-------|-------------|----------|
+| [Guardrails](/docs/blocks/guardrails) | Validate content (JSON, regex, PII, hallucination) | You need to check output quality or safety |
+
+### Media & Files
+| Block | Description | Use When |
+|-------|-------------|----------|
+| [Image Generator](/docs/blocks/image-generator) | Generate images with DALL-E 3 / GPT Image | You need to create images from text prompts |
+| [Vision](/docs/blocks/vision) | Analyze images with vision models | You need to extract information from images |
+| [File](/docs/blocks/file) | Parse PDF, CSV, DOCX files | You need to read and extract file contents |
+
+### Orchestration
+| Block | Description | Use When |
+|-------|-------------|----------|
+| [Workflow](/docs/blocks/workflow) | Execute another workflow as a sub-workflow | You want to reuse workflows as building blocks |
+
+## How Blocks Connect
+
+Every block has **inputs** and **outputs**. You reference outputs using the `{{blockName.fieldName}}` syntax:
+
+```
+Starter → Agent → Condition
+         ↓
+   {{starter.input}}    →  Agent processes it
+                          {{agent.content}}  →  Condition evaluates it
+```
+
+Blocks auto-detect connections when you draw lines between them on the canvas.

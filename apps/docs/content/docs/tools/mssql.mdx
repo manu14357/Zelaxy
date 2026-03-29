@@ -1,0 +1,60 @@
+---
+title: MSSQL
+description: Execute SQL queries on Microsoft SQL Server
+icon: Database
+---
+
+# MSSQL
+
+Execute SQL queries against Microsoft SQL Server databases. Supports SELECT, INSERT, UPDATE, DELETE, and stored procedures.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mssql` |
+| **Category** | Tool — Database |
+| **Auth** | Connection String |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Query** | Execute a SQL query |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Host | Short input | Server hostname |
+| Port | Short input | Port (default: 1433) |
+| Database | Short input | Database name |
+| Username | Short input | SQL Server username |
+| Password | Password | SQL Server password |
+| Query | Code editor | SQL query to execute |
+| Encrypt | Toggle | Use encrypted connection |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | Query result rows |
+| `content` | `string` | Formatted results |
+| `rowCount` | `number` | Number of rows returned/affected |
+
+## Example: Enterprise Data Chatbot
+
+**Workflow:**
+```
+[Starter] → [Agent] → [Response]
+              ↑
+        [MSSQL] (connected as tool)
+```
+
+Agent receives natural-language questions, translates them to SQL, queries the enterprise SQL Server database, and returns formatted results.
+
+## Tips
+
+- **Use parameterized queries** for SQL injection prevention
+- **Enable encryption** for production connections
+- **Agent as tool** — provide table schemas in the system prompt so the AI can write accurate queries

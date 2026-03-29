@@ -1,0 +1,30 @@
+Zelaxy
+Copyright 2025 Zelaxy
+
+This product includes software developed by Zelaxy.
+Licensed under the MIT License. See LICENSE for details.
+
+---
+
+Third-Party Notices
+
+This project uses the following open-source dependencies. Each is licensed
+under its own terms. See the respective project for full license text.
+
+- Next.js (MIT) - https://github.com/vercel/next.js
+- React (MIT) - https://github.com/facebook/react
+- Tailwind CSS (MIT) - https://github.com/tailwindlabs/tailwindcss
+- shadcn/ui (MIT) - https://github.com/shadcn-ui/ui
+- Drizzle ORM (Apache-2.0) - https://github.com/drizzle-team/drizzle-orm
+- better-auth (MIT) - https://github.com/better-auth/better-auth
+- Zustand (MIT) - https://github.com/pmndrs/zustand
+- Socket.io (MIT) - https://github.com/socketio/socket.io
+- Turborepo (MIT) - https://github.com/vercel/turbo
+- Bun (MIT) - https://github.com/oven-sh/bun
+- @xyflow/react (MIT) - https://github.com/xyflow/xyflow
+- Fumadocs (MIT) - https://github.com/fuma-nama/fumadocs
+- Trigger.dev (Apache-2.0) - https://github.com/triggerdotdev/trigger.dev
+- Vitest (MIT) - https://github.com/vitest-dev/vitest
+- Biome (MIT) - https://github.com/biomejs/biome
+
+For a full list of dependencies, see package.json files in the repository.

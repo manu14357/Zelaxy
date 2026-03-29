@@ -1,0 +1,66 @@
+---
+title: Evaluator Block
+description: Score and assess content quality with AI-powered evaluation
+icon: Award
+---
+
+# Evaluator Block
+
+The Evaluator block uses an LLM to score and assess content against defined criteria. It returns a numerical score, detailed feedback, and pass/fail determination — useful for quality gates, content ranking, and automated review pipelines.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `evaluator` |
+| **Category** | Core Block |
+| **Color** | `#10B981` (Emerald) |
+
+## When to Use
+
+- You need to score content quality (1–10 scale)
+- You want to create quality gates ("only proceed if score ≥ 7")
+- You need to compare and rank multiple outputs
+- You want automated feedback on generated content
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Evaluation Prompt | Long text | Criteria for scoring (e.g., "Rate clarity, accuracy, and completeness") |
+| Content to Evaluate | Long text | The content to score (e.g., `{{agent.content}}`) |
+| Model | Dropdown | LLM model for evaluation |
+| API Key | Password | Provider API key |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `score` | `number` | Numerical score |
+| `feedback` | `string` | Detailed evaluation feedback |
+| `passed` | `boolean` | Whether content met the criteria |
+| `reasoning` | `string` | Step-by-step evaluation reasoning |
+
+## Example: Content Quality Gate
+
+**Goal:** Only publish blog posts that score 7+ on quality.
+
+**Workflow:**
+```
+[Starter] → [Agent: Writer] → [Evaluator] → [Condition] → [Publish] / [Agent: Rewrite]
+```
+
+**Configuration:**
+- **Evaluation Prompt:** `Rate this blog post on a scale of 1-10 based on: clarity (is it easy to understand?), accuracy (are facts correct?), engagement (is it interesting to read?), and completeness (does it cover the topic fully?).`
+- **Content:** `{{agent.content}}`
+- **Model:** `gpt-4o`
+
+**Follow-up Condition:** `{{evaluator.score}} >= 7`
+- True → Publish the post
+- False → Send back to a rewrite Agent with `{{evaluator.feedback}}` as guidance
+
+## Tips
+
+- **Use GPT-4o** for evaluation — it provides more nuanced and accurate scoring than mini models
+- **Be specific in your criteria** — vague prompts lead to inconsistent scores
+- **Chain with Condition** — use `{{evaluator.score}} >= threshold` to create quality gates

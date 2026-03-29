@@ -1,0 +1,184 @@
+import type {
+  MicrosoftExcelToolParams,
+  MicrosoftExcelWriteResponse,
+} from '@/tools/microsoft_excel/types'
+import type { ToolConfig } from '@/tools/types'
+
+export const updateTool: ToolConfig<MicrosoftExcelToolParams, MicrosoftExcelWriteResponse> = {
+  id: 'microsoft_excel_update',
+  name: 'Update Microsoft Excel',
+  description: 'Update existing data in a Microsoft Excel spreadsheet',
+  version: '1.0',
+
+  oauth: {
+    required: true,
+    provider: 'microsoft-excel',
+    additionalScopes: [],
+  },
+
+  params: {
+    accessToken: {
+      type: 'string',
+      required: true,
+      visibility: 'hidden',
+      description: 'The access token for the Microsoft Excel API',
+    },
+    spreadsheetId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'The ID of the spreadsheet to update',
+    },
+    range: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'The range of cells to update',
+    },
+    values: {
+      type: 'array',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'The data to update in the spreadsheet',
+    },
+    valueInputOption: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only',
+      description: 'The format of the data to update',
+    },
+    includeValuesInResponse: {
+      type: 'boolean',
+      required: false,
+      visibility: 'hidden',
+      description: 'Whether to include the updated values in the response',
+    },
+  },
+
+  request: {
+    url: (params) => {
+      const rangeInput = params.range?.trim()
+      const match = rangeInput?.match(/^([^!]+)!(.+)$/)
+
+      if (!match) {
+        throw new Error(`Invalid range format: "${params.range}". Use the format "Sheet1!A1:B2"`)
+      }
+
+      const sheetName = encodeURIComponent(match[1])
+      const address = encodeURIComponent(match[2])
+
+      const url = new URL(
+        `https://graph.microsoft.com/v1.0/me/drive/items/${params.spreadsheetId}/workbook/worksheets('${sheetName}')/range(address='${address}')`
+      )
+
+      const valueInputOption = params.valueInputOption || 'USER_ENTERED'
+      url.searchParams.append('valueInputOption', valueInputOption)
+
+      if (params.includeValuesInResponse) {
+        url.searchParams.append('includeValuesInResponse', 'true')
+      }
+
+      return url.toString()
+    },
+    method: 'PATCH',
+    headers: (params) => ({
+      Authorization: `Bearer ${params.accessToken}`,
+      'Content-Type': 'application/json',
+    }),
+    body: (params) => {
+      let processedValues: any = params.values || []
+
+      if (
+        Array.isArray(processedValues) &&
+        processedValues.length > 0 &&
+        typeof processedValues[0] === 'object' &&
+        !Array.isArray(processedValues[0])
+      ) {
+        const allKeys = new Set<string>()
+        processedValues.forEach((obj: any) => {
+          if (obj && typeof obj === 'object') {
+            Object.keys(obj).forEach((key) => allKeys.add(key))
+          }
+        })
+        const headers = Array.from(allKeys)
+
+        const rows = processedValues.map((obj: any) => {
+          if (!obj || typeof obj !== 'object') {
+            return Array(headers.length).fill('')
+          }
+          return headers.map((key) => {
+            const value = obj[key]
+            if (value !== null && typeof value === 'object') {
+              return JSON.stringify(value)
+            }
+            return value === undefined ? '' : value
+          })
+        })
+
+        processedValues = [headers, ...rows]
+      }
+
+      const body: Record<string, any> = {
+        majorDimension: params.majorDimension || 'ROWS',
+        values: processedValues,
+      }
+
+      if (params.range) {
+        body.range = params.range
+      }
+
+      return body
+    },
+  },
+
+  transformResponse: async (response: Response) => {
+    const data = await response.json()
+
+    const urlParts = response.url.split('/drive/items/')
+    const spreadsheetId = urlParts[1]?.split('/')[0] || ''
+
+    const metadata = {
+      spreadsheetId,
+      properties: {},
+      spreadsheetUrl: `https://graph.microsoft.com/v1.0/me/drive/items/${spreadsheetId}`,
+    }
+
+    const result = {
+      success: true,
+      output: {
+        updatedRange: data.updatedRange,
+        updatedRows: data.updatedRows,
+        updatedColumns: data.updatedColumns,
+        updatedCells: data.updatedCells,
+        metadata: {
+          spreadsheetId: metadata.spreadsheetId,
+          spreadsheetUrl: metadata.spreadsheetUrl,
+        },
+      },
+    }
+
+    return result
+  },
+
+  outputs: {
+    success: { type: 'boolean', description: 'Operation success status' },
+    output: {
+      type: 'object',
+      description: 'Update operation results and metadata',
+      properties: {
+        updatedRange: { type: 'string', description: 'The range that was updated' },
+        updatedRows: { type: 'number', description: 'Number of rows that were updated' },
+        updatedColumns: { type: 'number', description: 'Number of columns that were updated' },
+        updatedCells: { type: 'number', description: 'Number of cells that were updated' },
+        metadata: {
+          type: 'object',
+          description: 'Spreadsheet metadata',
+          properties: {
+            spreadsheetId: { type: 'string', description: 'The ID of the spreadsheet' },
+            spreadsheetUrl: { type: 'string', description: 'URL to access the spreadsheet' },
+          },
+        },
+      },
+    },
+  },
+}

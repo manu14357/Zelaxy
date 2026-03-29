@@ -1,0 +1,55 @@
+---
+title: Typeform
+description: Retrieve form responses and manage forms in Typeform
+icon: FileQuestion
+---
+
+# Typeform
+
+List forms and retrieve responses from Typeform. Useful for processing survey results, feedback, and form submissions in automated workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `typeform` |
+| **Category** | Tool — Project Management |
+| **Auth** | OAuth 2.0 |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **List Forms** | Get all forms in your account |
+| **Get Responses** | Retrieve form submissions |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Typeform Account | OAuth | Connect Typeform |
+| Form | Dropdown | Select a form |
+| Since | Short input | Fetch responses after this date |
+| Max Responses | Slider | Number to retrieve (1–100) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `responses` | `json` | Array of form responses |
+| `content` | `string` | Response data |
+| `totalItems` | `number` | Total response count |
+
+## Example: Feedback Analyzer
+
+**Workflow:**
+```
+[Starter (schedule: daily)] → [Typeform: Get Responses] → [Agent: Analyze Sentiment] → [Slack]
+```
+
+Daily, pull new Typeform responses, analyze sentiment with AI, and post a summary to Slack with key trends and ratings.
+
+## Tips
+
+- **Use date filters** to only process new responses
+- **Combine with Loop** to process each response individually

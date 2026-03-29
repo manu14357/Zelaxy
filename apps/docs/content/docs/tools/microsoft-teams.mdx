@@ -1,0 +1,56 @@
+---
+title: Microsoft Teams
+description: Send messages and manage channels in Microsoft Teams
+icon: Users
+---
+
+# Microsoft Teams
+
+Send messages, list channels, and interact with Microsoft Teams from your workflows. Uses Microsoft Graph API with OAuth authentication.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `microsoft_teams` |
+| **Category** | Tool — Communication |
+| **Auth** | OAuth 2.0 (Microsoft) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Send Message** | Post a message to a channel |
+| **List Channels** | Get channels in a team |
+| **List Teams** | Get all teams you belong to |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Microsoft Account | OAuth | Connect Microsoft 365 |
+| Team | Dropdown | Select a team |
+| Channel | Channel selector | Select a channel |
+| Message | Long text | Message content with `{{variables}}` |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `messageId` | `string` | Posted message ID |
+| `content` | `string` | Message or list data |
+
+## Example: Daily Standup Summary
+
+**Workflow:**
+```
+[Starter (schedule: daily 9am)] → [Agent: Summarize PRs] → [Teams: Post]
+```
+
+Every morning, the Agent summarizes open GitHub PRs and posts the summary to the `#dev-standup` Teams channel.
+
+## Tips
+
+- **OAuth permissions** — ensure your app registration has `ChannelMessage.Send` permissions
+- **Teams supports HTML** in messages for rich formatting
+- **Use with Outlook** for a complete Microsoft 365 automation stack

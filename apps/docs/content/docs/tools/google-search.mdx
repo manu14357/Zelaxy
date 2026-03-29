@@ -1,0 +1,56 @@
+---
+title: Google Search
+description: Search the web using Google's Custom Search API
+icon: Search
+---
+
+# Google Search
+
+Perform web searches using Google's Custom Search JSON API. Returns search results with titles, snippets, and URLs. Best for broad web searches with Google's ranking quality.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_search` |
+| **Category** | Tool — Search |
+| **Auth** | API Key + Search Engine ID |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Search** | Execute a web search query |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Google Cloud API key |
+| Search Engine ID | Short input | Custom Search Engine ID (cx) |
+| Query | Short input | Search query: `{{starter.input}}` |
+| Max Results | Slider | Number of results (1–10) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `json` | Array of search results |
+| `content` | `string` | Formatted search results |
+
+## Example: Research Agent
+
+**Workflow:**
+```
+[Starter] → [Agent] → [Response]
+              ↑
+        [Google Search] (connected as tool)
+```
+
+Connect Google Search to an Agent as a tool. The Agent automatically searches when it needs web information to answer questions.
+
+## Tips
+
+- **Requires setup** — create a Custom Search Engine at programmablesearchengine.google.com
+- **10 results max** per query — use multiple queries for broader research
+- **Agent tool mode** is most powerful — let the AI decide when to search

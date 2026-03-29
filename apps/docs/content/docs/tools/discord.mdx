@@ -1,0 +1,55 @@
+---
+title: Discord
+description: Send messages and manage Discord servers from workflows
+icon: MessageCircle
+---
+
+# Discord
+
+Send messages, manage channels, and interact with Discord servers. Supports bot token and OAuth authentication for different use cases.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `discord` |
+| **Category** | Tool — Communication |
+| **Auth** | OAuth 2.0 / Bot Token |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Send Message** | Post a message to a channel |
+| **List Channels** | Get all channels in a server |
+| **List Servers** | Get all servers the bot is in |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Discord Account | OAuth | Connect Discord account |
+| Server | Dropdown | Select Discord server |
+| Channel | Channel selector | Pick a channel |
+| Message | Long text | Message with `{{variables}}` |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `messageId` | `string` | ID of the sent message |
+| `content` | `string` | Message content or response data |
+
+## Example: Community Notifications
+
+**Workflow:**
+```
+[Starter (webhook)] → [Agent: Format] → [Discord: Send]
+```
+
+When a GitHub webhook fires (new release), the Agent formats a release announcement and posts it to the `#announcements` channel.
+
+## Tips
+
+- **Bot tokens** are better for server automation; **OAuth** for user-level actions
+- **Use embeds** for rich formatting — include titles, colors, and fields in your message

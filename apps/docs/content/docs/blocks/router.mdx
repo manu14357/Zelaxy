@@ -1,0 +1,77 @@
+---
+title: Router Block
+description: Route workflow execution to multiple paths based on AI classification
+icon: Route
+---
+
+# Router Block
+
+The Router block splits workflow execution into up to 4 different paths based on AI-powered classification. Unlike the Condition block (which only does True/False), the Router can direct flow to multiple named destinations — making it ideal for classification, categorization, and multi-branch decision trees.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `router` |
+| **Category** | Core Block |
+| **Color** | `#F7931E` (Amber) |
+
+## When to Use
+
+- You need 3 or more branching paths (Condition only supports 2)
+- You want AI to classify input into categories
+- You're building a multi-intent chatbot or ticket routing system
+- You need to route based on content type, language, or topic
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Route Prompt | Long text | Instructions for the LLM on how to classify input |
+| Context | Long text | The data to classify (e.g., `{{starter.input}}`) |
+| Model | Dropdown | LLM model for classification |
+| API Key | Password | Provider API key |
+
+### Routes
+Define 2–4 named routes. Each route has a label that the LLM uses to make its decision. The LLM responds with the route name, and the workflow follows that path.
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Router's classification response |
+| `selectedRoute` | `string` | Name of the chosen route |
+| `reasoning` | `string` | Why the route was selected |
+| `confidence` | `number` | Classification confidence |
+
+## Example: Customer Support Ticket Router
+
+**Goal:** Automatically route support tickets to the right department.
+
+**Workflow:**
+```
+[Starter] → [Router] → [Agent: Billing]     (Route 1)
+                      → [Agent: Technical]   (Route 2)
+                      → [Agent: Sales]       (Route 3)
+                      → [Agent: General]     (Route 4)
+```
+
+**Configuration:**
+- **Route Prompt:** `Classify this customer support message into the correct department. Consider the topic, keywords, and intent.`
+- **Context:** `{{starter.input}}`
+- **Model:** `gpt-4o-mini`
+- **Routes:** `Billing`, `Technical`, `Sales`, `General`
+
+**How it works:**
+1. Customer submits a support message
+2. Router sends it to GPT-4o-mini for classification
+3. Model returns one of the 4 route names
+4. Workflow branches to the specialized Agent for that department
+5. Each department Agent has its own system prompt and tools
+
+## Tips
+
+- **Use descriptive route names** — the LLM uses them to decide, so `Billing Support` is better than `Route1`
+- **Keep to 2–4 routes** — more routes reduce classification accuracy
+- **Use Router over chained Conditions** when you have 3+ paths — it's cleaner and uses only 1 LLM call
+- **GPT-4o-mini works great** for simple classification — save expensive models for reasoning tasks

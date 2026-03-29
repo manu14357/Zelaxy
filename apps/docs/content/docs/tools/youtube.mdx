@@ -1,0 +1,57 @@
+---
+title: YouTube
+description: Search videos and get transcripts from YouTube
+icon: Youtube
+---
+
+# YouTube
+
+Search YouTube videos, retrieve metadata, and extract transcripts. Ideal for content research, video summarization, and media monitoring.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `youtube` |
+| **Category** | Tool — Social Media |
+| **Auth** | API Key (Google) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Search** | Search for videos |
+| **Get Video** | Get video metadata |
+| **Get Transcript** | Extract video transcript |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | YouTube Data API key |
+| Query | Short input | Search query |
+| Video ID | Short input | YouTube video ID |
+| Max Results | Slider | Number of results |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `videos` | `json` | Search results |
+| `transcript` | `string` | Video transcript text |
+| `content` | `string` | Video info or transcript |
+
+## Example: Video Summarizer
+
+**Workflow:**
+```
+[Starter: YouTube URL] → [Function: Extract ID] → [YouTube: Get Transcript] → [Agent: Summarize] → [Response]
+```
+
+Paste a YouTube URL, extract the video ID, get the full transcript, and Agent creates a comprehensive summary with key timestamps.
+
+## Tips
+
+- **Transcript extraction** is the killer feature — turn any video into analyzable text
+- **Not all videos** have transcripts — auto-generated captions work in most cases
+- **Video ID** is the part after `v=` in the URL: `youtube.com/watch?v={ID}`

@@ -1,0 +1,75 @@
+---
+title: Vision Block
+description: Analyze images with AI vision models for descriptions and extraction
+icon: Eye
+---
+
+# Vision Block
+
+The Vision block sends images to multimodal AI models (GPT-4o, Claude, Gemini) for visual analysis. It can describe images, extract text (OCR), identify objects, read charts, and answer questions about visual content.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `vision` |
+| **Category** | Core Block |
+| **Color** | `#8B5CF6` (Violet) |
+
+## When to Use
+
+- Extract text from images or screenshots (OCR)
+- Describe or caption images
+- Analyze charts, graphs, or diagrams
+- Answer questions about visual content
+- Process receipts, invoices, or documents
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Image | File upload | Upload image or provide URL |
+| Image URL | Short input | Direct URL to an image |
+| Prompt | Long text | What to analyze (e.g., "Extract all text from this image") |
+| Model | Dropdown | Vision-capable model (GPT-4o, Claude 3, etc.) |
+| API Key | Password | Provider API key |
+| Detail Level | Dropdown | `low` (fast) or `high` (detailed) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | AI's analysis of the image |
+| `text` | `string` | Extracted text (OCR mode) |
+| `objects` | `json` | Detected objects/elements |
+
+## Example: Receipt Data Extraction
+
+**Goal:** Extract structured data from receipt photos.
+
+**Workflow:**
+```
+[Starter: Upload Receipt] → [Vision] → [Function: Parse] → [Google Sheets]
+```
+
+**Configuration:**
+- **Image:** `{{starter.file}}`
+- **Prompt:**
+  ```
+  Extract structured data from this receipt. Return JSON with:
+  - store_name
+  - date
+  - items (array of {name, quantity, price})
+  - subtotal, tax, total
+  ```
+- **Model:** `gpt-4o`
+- **Detail Level:** `high`
+
+**Function block** parses the JSON from `{{vision.content}}` and formats it for Google Sheets.
+
+## Tips
+
+- **GPT-4o and Claude 3** are the best vision models — both handle complex images well
+- **High detail** costs more tokens but is essential for small text and fine details
+- **Combine with structured output** in the prompt to get parseable JSON from image analysis
+- **URL input** is useful when images come from other blocks (Image Search, API responses)

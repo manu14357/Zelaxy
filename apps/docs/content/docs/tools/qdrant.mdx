@@ -1,0 +1,68 @@
+---
+title: Qdrant
+description: Store and search vectors in Qdrant
+icon: CircleDot
+---
+
+# Qdrant
+
+Store, search, and manage vector embeddings in Qdrant — a high-performance open-source vector database. Supports filtering, payload management, and batch operations.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `qdrant` |
+| **Category** | Tool — Vector Database |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Upsert** | Insert or update vectors with payloads |
+| **Search** | Find similar vectors |
+| **Delete** | Remove vectors |
+| **List Collections** | Get available collections |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Qdrant API key |
+| URL | Short input | Qdrant cluster URL |
+| Collection | Short input | Collection name |
+| Top K | Slider | Number of results |
+| Vector | Code editor | Query vector |
+| Filter | Code editor | Qdrant filter conditions (JSON) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `json` | Similar vectors with scores and payloads |
+| `content` | `string` | Formatted results |
+
+## Example: Filtered Semantic Search
+
+**Workflow:**
+```
+[Starter: Query + Category] → [OpenAI: Embed] → [Qdrant: Search] → [Agent] → [Response]
+```
+
+**Qdrant Filter:**
+```json
+{
+  "must": [
+    { "key": "category", "match": { "value": "{{starter.input.category}}" } }
+  ]
+}
+```
+
+Search similar vectors but only within a specific category — combining semantic similarity with metadata filtering.
+
+## Tips
+
+- **Payload filters** are powerful — combine semantic search with exact match filters
+- **Self-hosted option** — Qdrant can run locally with Docker
+- **Higher dimension support** than some alternatives — works with any embedding model

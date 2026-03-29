@@ -1,0 +1,67 @@
+---
+title: Parallel Block
+description: Execute multiple workflow branches simultaneously
+icon: Columns3
+---
+
+# Parallel Block
+
+The Parallel block runs multiple branches of your workflow at the same time, then waits for all branches to complete before continuing. Use it to speed up workflows by running independent tasks concurrently.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `parallel` |
+| **Category** | Core Block |
+| **Color** | `#8B5CF6` (Violet) |
+
+## When to Use
+
+- Run independent API calls simultaneously
+- Query multiple data sources at once
+- Generate multiple AI outputs in parallel (e.g., summaries in different styles)
+- Speed up workflows where tasks don't depend on each other
+
+## Configuration
+
+The Parallel block is a container. Place blocks inside each branch. Each branch runs independently and the parallel block waits for all branches to finish.
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Branches | Container | 2+ parallel execution paths |
+| Wait for All | Toggle | Wait for all branches before continuing (default: true) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `json` | Object containing results from all branches |
+| `completedBranches` | `number` | Count of branches that finished |
+| `branchErrors` | `json` | Any errors from individual branches |
+
+## Example: Multi-Source Research
+
+**Goal:** Research a topic across Wikipedia, ArXiv, and web search simultaneously.
+
+**Workflow:**
+```
+                        ┌→ [Google Search] ─→ [Agent: Web Summary]   ─┐
+[Starter] → [Parallel]  → [Wikipedia]     ─→ [Agent: Wiki Summary]    → [Agent: Combine] → [Response]
+                        └→ [ArXiv]        ─→ [Agent: Paper Summary] ─┘
+```
+
+**How it works:**
+1. User provides a research topic
+2. Parallel block launches 3 branches simultaneously:
+   - Branch 1: Google Search → summarize web results
+   - Branch 2: Wikipedia → summarize encyclopedia content
+   - Branch 3: ArXiv → summarize academic papers
+3. All branches complete concurrently (3x faster than sequential)
+4. Final Agent combines all summaries into a comprehensive report
+
+## Tips
+
+- **Only parallelize independent tasks** — if branch B needs branch A's output, they can't run in parallel
+- **Great for multi-provider AI** — run the same prompt on GPT-4o, Claude, and Gemini simultaneously to compare
+- **Watch rate limits** — parallel API calls may trigger rate limiting on external services
