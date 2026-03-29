@@ -316,7 +316,7 @@ export class ExecutionLogger implements IExecutionLoggerService {
           totalCost: costToStore.toString(),
           currentPeriodCost: costToStore.toString(), // Initialize current period usage
           lastActive: new Date(),
-        })
+        }).onConflictDoNothing({ target: userStats.userId })
 
         logger.debug('Created new user stats record with cost data', {
           userId,

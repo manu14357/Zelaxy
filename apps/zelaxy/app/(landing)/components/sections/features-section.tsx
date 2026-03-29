@@ -62,7 +62,7 @@ const features = [
   },
   {
     icon: Sparkles,
-    title: 'AI Wand',
+    title: 'Agie AI Copilot',
     description:
       'Built-in AI copilot that generates system prompts, code, and JSON schemas from natural language descriptions. Ask and it builds.',
     span: '',

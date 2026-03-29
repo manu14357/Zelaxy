@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowRight, Eye, EyeOff, Loader2, Lock, Sparkles } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, Loader2, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,18 +35,20 @@ export function RequestResetForm({
     <form onSubmit={handleSubmit} className={className}>
       <div className='grid gap-4'>
         <div className='grid gap-2'>
-          <Label htmlFor='reset-email'>Email</Label>
+          <Label htmlFor='reset-email' className='font-medium text-neutral-300 text-sm'>
+            Email
+          </Label>
           <Input
             id='reset-email'
             value={email}
             onChange={(e) => onEmailChange(e.target.value)}
-            placeholder='your@email.com'
+            placeholder='you@example.com'
             type='email'
             disabled={isSubmitting}
             required
-            className='placeholder:text-white/60'
+            className='h-12 rounded-xl border border-white/10 bg-white/5 text-white placeholder:text-neutral-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/20'
           />
-          <p className='text-muted-foreground text-sm'>
+          <p className='text-neutral-500 text-sm'>
             We'll send a password reset link to this email address.
           </p>
         </div>
@@ -55,17 +57,21 @@ export function RequestResetForm({
         {statusType && (
           <div
             className={cn(
-              'rounded-md border p-3 text-sm',
+              'rounded-lg border p-3 text-sm',
               statusType === 'success'
-                ? 'border-green-200 bg-green-50 text-green-700'
-                : 'border-red-200 bg-red-50 text-red-700'
+                ? 'border-green-500/20 bg-green-500/10 text-green-400'
+                : 'border-red-500/20 bg-red-500/10 text-red-400'
             )}
           >
             {statusMessage}
           </div>
         )}
 
-        <Button type='submit' disabled={isSubmitting} className='w-full'>
+        <Button
+          type='submit'
+          disabled={isSubmitting}
+          className='h-12 w-full rounded-xl bg-white font-semibold text-black transition-all hover:bg-neutral-100'
+        >
           {isSubmitting ? (
             <>
               <Loader2 className='mr-2 h-4 w-4 animate-spin' />
@@ -123,17 +129,14 @@ export function SetNewPasswordForm({
 
   return (
     <form onSubmit={handleSubmit} className={className}>
-      <div className='space-y-6'>
-        <div className='space-y-5'>
-          <div className='space-y-3'>
-            <Label
-              htmlFor='password'
-              className='font-semibold text-base text-gray-700 dark:text-gray-300'
-            >
+      <div className='space-y-5'>
+        <div className='space-y-4'>
+          <div className='space-y-2'>
+            <Label htmlFor='password' className='font-medium text-neutral-300 text-sm'>
               New Password
             </Label>
             <div className='relative'>
-              <Lock className='-translate-y-1/2 absolute top-1/2 left-4 h-5 w-5 text-gray-400 dark:text-gray-500' />
+              <Lock className='-translate-y-1/2 absolute top-1/2 left-3.5 h-4 w-4 text-neutral-500' />
               <Input
                 id='password'
                 type={showPassword ? 'text' : 'password'}
@@ -145,30 +148,25 @@ export function SetNewPasswordForm({
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder='Enter new password'
-                className={cn(
-                  'h-14 rounded-2xl border-2 border-gray-300 bg-white/10 pr-14 pl-12 text-base text-gray-900 backdrop-blur-none transition-all duration-300 placeholder:text-gray-500 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-900/10 dark:text-white dark:placeholder:text-gray-400'
-                )}
+                className='h-12 rounded-xl border border-white/10 bg-white/5 pr-12 pl-11 text-white placeholder:text-neutral-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/20'
               />
               <button
                 type='button'
                 onClick={() => setShowPassword(!showPassword)}
-                className='-translate-y-1/2 absolute top-1/2 right-4 rounded-xl p-2 text-gray-400 transition-colors duration-200 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
+                className='-translate-y-1/2 absolute top-1/2 right-3.5 text-neutral-500 transition-colors hover:text-neutral-300'
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
-          <div className='space-y-3'>
-            <Label
-              htmlFor='confirmPassword'
-              className='font-semibold text-base text-gray-700 dark:text-gray-300'
-            >
+          <div className='space-y-2'>
+            <Label htmlFor='confirmPassword' className='font-medium text-neutral-300 text-sm'>
               Confirm Password
             </Label>
             <div className='relative'>
-              <Lock className='-translate-y-1/2 absolute top-1/2 left-4 h-5 w-5 text-gray-400 dark:text-gray-500' />
+              <Lock className='-translate-y-1/2 absolute top-1/2 left-3.5 h-4 w-4 text-neutral-500' />
               <Input
                 id='confirmPassword'
                 type={showConfirmPassword ? 'text' : 'password'}
@@ -180,69 +178,55 @@ export function SetNewPasswordForm({
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 placeholder='Confirm new password'
-                className={cn(
-                  'h-14 rounded-2xl border-2 border-gray-300 bg-white/10 pr-14 pl-12 text-base text-gray-900 backdrop-blur-none transition-all duration-300 placeholder:text-gray-500 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-900/10 dark:text-white dark:placeholder:text-gray-400'
-                )}
+                className='h-12 rounded-xl border border-white/10 bg-white/5 pr-12 pl-11 text-white placeholder:text-neutral-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/20'
               />
               <button
                 type='button'
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className='-translate-y-1/2 absolute top-1/2 right-4 rounded-xl p-2 text-gray-400 transition-colors duration-200 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
+                className='-translate-y-1/2 absolute top-1/2 right-3.5 text-neutral-500 transition-colors hover:text-neutral-300'
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
-                {showConfirmPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
         </div>
 
         {validationMessage && (
-          <div className='slide-in-from-top-1 mt-3 animate-in space-y-2 text-red-500 text-sm duration-300'>
-            <p className='flex items-center space-x-2 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20'>
-              <span className='h-1.5 w-1.5 rounded-full bg-red-500' />
-              <span>{validationMessage}</span>
-            </p>
-          </div>
+          <p className='rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-red-400 text-sm'>
+            {validationMessage}
+          </p>
         )}
 
         {statusType && (
-          <div
+          <p
             className={cn(
-              'slide-in-from-top-2 animate-in rounded-2xl border-2 p-4 text-base duration-300',
+              'rounded-lg p-3 text-sm',
               statusType === 'success'
-                ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300'
-                : 'border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300'
+                ? 'bg-green-500/10 text-green-400'
+                : 'bg-red-500/10 text-red-400'
             )}
           >
-            <div className='flex items-center space-x-3'>
-              {statusType === 'success' ? (
-                <Sparkles className='h-5 w-5 flex-shrink-0 animate-pulse' />
-              ) : (
-                <span className='h-5 w-5 flex-shrink-0 text-center text-lg'>⚠</span>
-              )}
-              <span className='font-medium'>{statusMessage}</span>
-            </div>
-          </div>
+            {statusMessage}
+          </p>
         )}
 
         <Button
           disabled={isSubmitting || !token}
           type='submit'
-          className='relative h-14 w-full overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-orange-600 to-primary font-bold text-lg text-white shadow-lg transition-all duration-300 hover:from-orange-700 hover:via-orange-700 hover:to-orange-700'
+          className='h-12 w-full rounded-xl bg-white font-semibold text-[15px] text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300 hover:bg-neutral-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]'
         >
-          <span className='relative z-10 flex items-center justify-center space-x-3'>
-            {isSubmitting ? (
-              <>
-                <div className='h-6 w-6 animate-spin rounded-full border-3 border-white/30 border-t-white' />
-                <span>Resetting password...</span>
-              </>
-            ) : (
-              <>
-                <span>Reset Password</span>
-                <ArrowRight className='h-6 w-6 transition-transform duration-300' />
-              </>
-            )}
-          </span>
+          {isSubmitting ? (
+            <span className='flex items-center gap-2'>
+              <div className='h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black' />
+              Resetting password...
+            </span>
+          ) : (
+            <span className='flex items-center gap-2'>
+              Reset Password
+              <ArrowRight className='h-4 w-4' />
+            </span>
+          )}
         </Button>
       </div>
     </form>

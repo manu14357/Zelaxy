@@ -25,6 +25,7 @@ import { quickValidateEmail } from '@/lib/email/validation'
 import { env, isTruthy } from '@/lib/env'
 import { isBillingEnabled, isProd } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
+import { getDefaultAvatarUrl } from '@/lib/multiavatar'
 import { getEmailDomain } from '@/lib/urls/utils'
 import { db } from '@/db'
 import * as schema from '@/db/schema'
@@ -81,6 +82,21 @@ export const auth = betterAuth({
     freshAge: 60 * 60, // 1 hour (or set to 0 to disable completely)
   },
   databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          // Replace any OAuth provider profile image with a random Multiavatar
+          // This ensures all users (including Google OAuth) get a unique generated avatar
+          const avatarUrl = getDefaultAvatarUrl(user.name || user.email || undefined)
+          return {
+            data: {
+              ...user,
+              image: avatarUrl,
+            },
+          }
+        },
+      },
+    },
     session: {
       create: {
         before: async (session) => {

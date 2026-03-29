@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { client, signOut, useSession } from '@/lib/auth-client'
-import { getDefaultAvatarUrl } from '@/lib/multiavatar'
+import { getDefaultAvatarUrl, isMultiavatarUrl } from '@/lib/multiavatar'
 import { cn } from '@/lib/utils'
 import { useFolderStore } from '@/stores/folders/store'
 import { useAvatarStore } from '@/stores/user/avatar-store'
@@ -307,9 +307,17 @@ interface ProfileDropdownProps {
 }
 
 function ProfileDropdown({ expanded, avatarUrl, userName, userEmail }: ProfileDropdownProps) {
+  const [imgError, setImgError] = useState(false)
+  const effectiveUrl = avatarUrl && !imgError ? avatarUrl : null
+
   const avatarImg = (size: string) =>
-    avatarUrl ? (
-      <img src={avatarUrl} alt={userName || 'User'} className='h-full w-full object-cover' />
+    effectiveUrl ? (
+      <img
+        src={effectiveUrl}
+        alt={userName || 'User'}
+        className='h-full w-full object-cover'
+        onError={() => setImgError(true)}
+      />
     ) : (
       <div
         className='flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 font-semibold text-[13px] text-white'
@@ -319,111 +327,34 @@ function ProfileDropdown({ expanded, avatarUrl, userName, userEmail }: ProfileDr
       </div>
     )
 
-  const dropdownHeader = (ringSize: string) => (
-    <div className='flex items-center gap-3 border-border/40 border-b p-3'>
-      <div
-        className={`${ringSize} overflow-hidden rounded-full ring-2 ring-border/30 ring-offset-1 ring-offset-background`}
-      >
-        {avatarImg(ringSize)}
-      </div>
-      <div className='min-w-0 flex-1'>
-        <div className='truncate font-medium text-[13px] text-foreground' suppressHydrationWarning>
-          {userName || 'User'}
-        </div>
-        <div className='truncate text-[11px] text-muted-foreground' suppressHydrationWarning>
-          {userEmail || 'user@example.com'}
-        </div>
-      </div>
-    </div>
-  )
-
-  const menuItems = (
-    <>
-      <div className='p-1'>
-        <DropdownMenuItem className='gap-3 rounded-lg py-2.5 text-[13px]'>
-          <Sparkles className='h-4 w-4 text-amber-500' />
-          <span>Upgrade to Pro</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem className='gap-3 rounded-lg py-2.5 text-[13px]'>
-          <User className='h-4 w-4' />
-          <span>Account</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem className='gap-3 rounded-lg py-2.5 text-[13px]'>
-          <CreditCard className='h-4 w-4' />
-          <span>Billing</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem className='gap-3 rounded-lg py-2.5 text-[13px]'>
-          <Bell className='h-4 w-4' />
-          <span>Notifications</span>
-        </DropdownMenuItem>
-      </div>
-      <DropdownMenuSeparator className='bg-border/40' />
-      <div className='p-1'>
-        <DropdownMenuItem
-          className='gap-3 rounded-lg py-2.5 text-[13px] text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950'
-          onClick={() => signOut()}
-        >
-          <LogOut className='h-4 w-4' />
-          <span>Log out</span>
-        </DropdownMenuItem>
-      </div>
-    </>
-  )
-
   return (
     <div className='border-border/40 border-t p-2.5'>
       {expanded ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <div className='flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-all duration-150 hover:bg-accent/50'>
-              <div className='h-8 w-8 flex-shrink-0 overflow-hidden rounded-full ring-2 ring-border/30 ring-offset-1 ring-offset-background'>
-                {avatarImg('h-8 w-8')}
-              </div>
-              <div className='min-w-0 flex-1'>
-                <div
-                  className='truncate font-medium text-[13px] text-foreground'
-                  suppressHydrationWarning
-                >
-                  {userName || 'User'}
-                </div>
-                <div
-                  className='truncate text-[11px] text-muted-foreground'
-                  suppressHydrationWarning
-                >
-                  {userEmail || 'user@example.com'}
-                </div>
-              </div>
+        <div className='flex items-center gap-3 rounded-lg p-2'>
+          <div className='h-8 w-8 flex-shrink-0 overflow-hidden rounded-full ring-2 ring-border/30 ring-offset-1 ring-offset-background'>
+            {avatarImg('h-8 w-8')}
+          </div>
+          <div className='min-w-0 flex-1'>
+            <div
+              className='truncate font-medium text-[13px] text-foreground'
+              suppressHydrationWarning
+            >
+              {userName || 'User'}
             </div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            side='right'
-            align='end'
-            className='ml-2 w-56 rounded-xl border-border/60 shadow-lg'
-            sideOffset={8}
-          >
-            {dropdownHeader('h-9 w-9')}
-            {menuItems}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <div
+              className='truncate text-[11px] text-muted-foreground'
+              suppressHydrationWarning
+            >
+              {userEmail || 'user@example.com'}
+            </div>
+          </div>
+        </div>
       ) : (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <div className='flex justify-center py-1'>
-              <div className='h-8 w-8 cursor-pointer overflow-hidden rounded-full ring-2 ring-border/30 ring-offset-1 ring-offset-background transition-all duration-150 hover:ring-primary/30'>
-                {avatarImg('h-8 w-8')}
-              </div>
-            </div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            side='right'
-            align='end'
-            className='ml-2 w-56 rounded-xl border-border/60 shadow-lg'
-            sideOffset={8}
-          >
-            {dropdownHeader('h-9 w-9')}
-            {menuItems}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className='flex justify-center py-1'>
+          <div className='h-8 w-8 overflow-hidden rounded-full ring-2 ring-border/30 ring-offset-1 ring-offset-background'>
+            {avatarImg('h-8 w-8')}
+          </div>
+        </div>
       )}
     </div>
   )
@@ -499,6 +430,7 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
   }, [])
 
   const storeAvatarUrl = useAvatarStore((state) => state.avatarUrl)
+  const setStoreAvatarUrl = useAvatarStore((state) => state.setAvatarUrl)
 
   // Compute user avatar URL — store override > session image > Multiavatar fallback
   // Gate all resolution behind `mounted` to avoid hydration mismatch
@@ -516,24 +448,29 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
     mounted,
   ])
 
-  // Auto-assign a Multiavatar for users who don't have a profile image
+  // Auto-assign a Multiavatar for users who don't have one yet
+  // (includes users with broken OAuth provider images)
   useEffect(() => {
-    if (!mounted || !sessionData?.user?.id || sessionData?.user?.image) return
+    if (!mounted || !sessionData?.user?.id) return
+    // Skip if user already has a Multiavatar
+    if (sessionData?.user?.image && isMultiavatarUrl(sessionData.user.image)) return
 
     const autoAssignAvatar = async () => {
       const avatarUrl = getDefaultAvatarUrl(sessionData.user.name || sessionData.user.email)
+      // Immediately update the store so the avatar shows without waiting for session refresh
+      setStoreAvatarUrl(avatarUrl)
       try {
         const { error } = await client.updateUser({ image: avatarUrl })
         if (!error) {
-          console.log('[AdvancedSidebar] Auto-assigned avatar for user without profile image')
+          console.log('[AdvancedSidebar] Auto-assigned Multiavatar for user')
         }
       } catch {
-        // Silently fail — the fallback gradient will still show
+        // Silently fail — the store avatar will still show
       }
     }
 
     autoAssignAvatar()
-  }, [mounted, sessionData?.user?.id, sessionData?.user?.image])
+  }, [mounted, sessionData?.user?.id, sessionData?.user?.image, setStoreAvatarUrl])
 
   const clearConsole = useConsoleStore((state) => state.clearConsole)
   const exportConsoleCSV = useConsoleStore((state) => state.exportConsoleCSV)
@@ -779,13 +716,13 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
       if (isEditableElement) return
 
       if (
-        event.key.toLowerCase() === 'k' &&
+        event.key?.toLowerCase() === 'k' &&
         ((event.metaKey &&
           typeof navigator !== 'undefined' &&
-          navigator.platform.toUpperCase().indexOf('MAC') >= 0) ||
+          /mac/i.test(navigator.userAgent)) ||
           (event.ctrlKey &&
             (typeof navigator === 'undefined' ||
-              navigator.platform.toUpperCase().indexOf('MAC') < 0)))
+              !/mac/i.test(navigator.userAgent))))
       ) {
         event.preventDefault()
         setShowSearchModal(true)
