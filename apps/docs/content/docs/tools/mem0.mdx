@@ -1,0 +1,60 @@
+---
+title: Mem0
+description: AI memory layer with automatic summarization
+icon: BrainCircuit
+---
+
+# Mem0
+
+Mem0 provides intelligent AI memory — store, retrieve, and manage conversational memories with automatic summarization and relevance ranking. Unlike raw vector DBs, Mem0 understands context.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mem0` |
+| **Category** | Tool — Vector Database |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Add Memory** | Store a new memory |
+| **Search** | Find relevant memories |
+| **Get All** | Retrieve all memories for a user |
+| **Delete** | Remove a memory |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Mem0 API key |
+| User ID | Short input | User identifier for memory isolation |
+| Content | Long text | Memory content to store |
+| Query | Short input | Search query for retrieval |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `memories` | `json` | Retrieved memory objects |
+| `content` | `string` | Memory content |
+
+## Example: Personal AI Assistant
+
+**Workflow:**
+```
+[Starter] → [Mem0: Search] → [Agent] → [Mem0: Add] → [Response]
+```
+
+1. User sends a message
+2. Mem0 searches for relevant past memories (preferences, past conversations)
+3. Agent uses memories as context for a personalized response
+4. New conversation is stored as a memory for next time
+
+## Tips
+
+- **User IDs** isolate memories — essential for multi-user applications
+- **Automatic summarization** — Mem0 condenses long conversations into key facts
+- **Better than raw vectors** for conversation memory — it understands what's worth remembering

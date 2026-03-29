@@ -1,0 +1,59 @@
+---
+title: OpenAI
+description: Access OpenAI specialized APIs — embeddings, moderation, TTS, STT
+icon: Sparkles
+---
+
+# OpenAI
+
+Access OpenAI's specialized APIs beyond chat — generate embeddings, run content moderation, convert text-to-speech, and transcribe audio. These complement the Agent block which handles chat/completion.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `openai` |
+| **Category** | Tool — AI & ML |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Embeddings** | Generate vector embeddings for text |
+| **Moderation** | Check content for policy violations |
+| **Text-to-Speech** | Convert text to audio |
+| **Speech-to-Text** | Transcribe audio to text |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | OpenAI API key |
+| Operation | Dropdown | Select operation type |
+| Input | Long text | Text to process |
+| Model | Dropdown | Operation-specific model |
+| Voice | Dropdown | TTS voice (alloy, echo, fable, etc.) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Processing result |
+| `embedding` | `json` | Vector embedding array |
+| `moderation` | `json` | Moderation flags and scores |
+
+## Example: Audio Content Pipeline
+
+**Workflow:**
+```
+[Starter: Topic] → [Agent: Write Script] → [OpenAI: TTS] → [Response: Audio URL]
+```
+
+Agent writes a podcast script, OpenAI TTS converts it to speech, user receives playable audio.
+
+## Tips
+
+- **Embeddings** are for vector search — use with Pinecone/Qdrant for custom RAG
+- **Moderation** is free — use it as a fast content safety filter
+- **For chat/completion** — use the Agent block, not this tool

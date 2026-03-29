@@ -1,0 +1,46 @@
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  animation: gradient 3s ease infinite;
+}
+
+@keyframes scroll-blocks-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+@keyframes scroll-blocks-right {
+  0% {
+    transform: translateX(-33.333%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-scroll-blocks-left {
+  animation: scroll-blocks-left 30s linear infinite;
+}
+
+.animate-scroll-blocks-right {
+  animation: scroll-blocks-right 30s linear infinite;
+}
+
+.animate-scroll-blocks-left:hover,
+.animate-scroll-blocks-right:hover {
+  animation-play-state: paused;
+}

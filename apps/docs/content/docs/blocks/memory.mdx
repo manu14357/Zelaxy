@@ -1,0 +1,73 @@
+---
+title: Memory Block
+description: Store and retrieve conversation context for multi-turn interactions
+icon: Brain
+---
+
+# Memory Block
+
+The Memory block provides persistent short-term and long-term memory for your workflows. It stores conversation history, user context, and session data — enabling multi-turn chatbot experiences where the AI remembers previous interactions.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `memory` |
+| **Category** | Core Block |
+| **Color** | `#EC4899` (Pink) |
+
+## When to Use
+
+- Build chatbots that remember conversation history
+- Store user preferences across sessions
+- Maintain context in multi-step workflows
+- Create personalized AI interactions
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Memory Type | Dropdown | `conversation` (chat history) or `context` (key-value store) |
+| Session ID | Short input | Unique session identifier (e.g., `{{starter.sessionId}}`) |
+| Max History | Slider | Maximum messages to retain |
+| Storage | Dropdown | Memory backend (Mem0, local, etc.) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Retrieved memory content |
+| `history` | `json` | Conversation history array |
+| `context` | `json` | Stored context data |
+
+## Example: Persistent Chatbot
+
+**Goal:** Build a chatbot that remembers your name and previous questions.
+
+**Workflow:**
+```
+[Starter] → [Memory: Retrieve] → [Agent] → [Memory: Store] → [Response]
+```
+
+**How it works:**
+1. User sends a message
+2. Memory block retrieves past conversation history for this session
+3. Agent receives both the new message AND conversation history
+4. After generating a response, Memory block stores the new exchange
+5. Next time the user chats, the Agent has full context
+
+**Agent System Prompt:**
+```
+You are a helpful assistant. Use the conversation history to maintain context.
+If the user previously told you something, reference it naturally.
+
+Previous conversation:
+{{memory.history}}
+```
+
+## Tips
+
+- **Use session IDs** to separate conversations between different users
+- **Set max history** to control context size and costs (10–20 messages is usually enough)
+- **Conversation memory** stores messages automatically; **context memory** stores custom key-value pairs
+- **Pair with Mem0** for advanced long-term memory with automatic summarization

@@ -1,0 +1,59 @@
+---
+title: Linear
+description: Create and manage issues in Linear
+icon: SquareKanban
+---
+
+# Linear
+
+Create, update, and list issues in Linear — the modern project management tool. Supports team-level operations and issue lifecycle management.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `linear` |
+| **Category** | Tool — Project Management |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Create Issue** | Create a new issue |
+| **Update Issue** | Update status, assignee, labels |
+| **List Issues** | Get issues with filters |
+| **List Teams** | Get all teams |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Linear API key |
+| Team | Dropdown | Select team |
+| Title | Short input | Issue title |
+| Description | Long text | Issue description (Markdown) |
+| Priority | Dropdown | Urgent, High, Medium, Low, None |
+| Status | Dropdown | Issue status |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `issueId` | `string` | Issue identifier |
+| `url` | `string` | Direct link to issue |
+| `content` | `string` | Issue data |
+
+## Example: Feature Request Pipeline
+
+**Workflow:**
+```
+[Starter (webhook: feedback form)] → [Agent: Classify & Format] → [Linear: Create Issue]
+```
+
+Customer feedback is analyzed by an Agent, classified as bug/feature/question, then automatically creates a Linear issue with the right labels and priority.
+
+## Tips
+
+- **Markdown supported** in descriptions — use headers, lists, and code blocks
+- **Linear's API** is fast and well-designed — ideal for high-volume automation

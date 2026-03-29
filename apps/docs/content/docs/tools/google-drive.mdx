@@ -1,0 +1,61 @@
+---
+title: Google Drive
+description: Upload, download, and manage files in Google Drive
+icon: HardDrive
+---
+
+# Google Drive
+
+Upload, download, list, and search files in Google Drive. Manage folders, sharing permissions, and file organization.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_drive` |
+| **Category** | Tool — Google Workspace |
+| **Auth** | OAuth 2.0 (Google) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Upload File** | Upload a file to Drive |
+| **Download File** | Download a file's content |
+| **List Files** | List files in a folder |
+| **Search Files** | Search files by name or query |
+| **Create Folder** | Create a new folder |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Google Account | OAuth | Connect Google account |
+| File | File upload | File to upload |
+| File ID | Short input | Drive file ID |
+| Folder ID | Short input | Target folder ID |
+| Search Query | Short input | Drive search query |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fileId` | `string` | File ID |
+| `content` | `string` | File content or list |
+| `url` | `string` | File sharing URL |
+| `files` | `json` | Array of file objects |
+
+## Example: Document Processing Pipeline
+
+**Workflow:**
+```
+[Starter (webhook)] → [Google Drive: Download] → [Agent: Analyze] → [Google Sheets: Log]
+```
+
+When a new file is uploaded to a specific Drive folder (via webhook), download it, have an Agent analyze the content, and log results to a tracking spreadsheet.
+
+## Tips
+
+- **Search syntax** — `name contains 'report' and mimeType = 'application/pdf'`
+- **Folder uploads** — specify a folder ID to organize uploaded files
+- **Sharing permissions** are inherited from the parent folder

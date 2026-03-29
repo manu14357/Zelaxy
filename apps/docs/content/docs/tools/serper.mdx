@@ -1,0 +1,58 @@
+---
+title: Serper
+description: Fast web search, news, and image search via Serper API
+icon: Search
+---
+
+# Serper
+
+Fast and affordable web search using the Serper API — powered by Google search results. Supports web, news, image, and places search with structured JSON responses.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `serper` |
+| **Category** | Tool — Search |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Web Search** | Search web pages |
+| **News Search** | Search recent news articles |
+| **Image Search** | Search for images |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Serper API key |
+| Query | Short input | Search query |
+| Search Type | Dropdown | Web, News, Images |
+| Max Results | Slider | Number of results |
+| Country | Dropdown | Target country for results |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `json` | Search results array |
+| `content` | `string` | Formatted results |
+| `answerBox` | `json` | Google's direct answer (if available) |
+
+## Example: Competitive Analysis
+
+**Workflow:**
+```
+[Starter: Company name] → [Serper: News Search] → [Agent: Analyze] → [Response]
+```
+
+Search for recent news about a company, then have an Agent analyze the news for competitive insights, sentiment, and key developments.
+
+## Tips
+
+- **Cheaper than Google API** — Serper offers generous free tier and lower pricing
+- **Answer box** returns Google's featured snippet — often the most relevant result
+- **News search** is great for real-time monitoring workflows

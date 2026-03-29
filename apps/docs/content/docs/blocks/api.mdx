@@ -1,0 +1,77 @@
+---
+title: API Block
+description: Make HTTP requests to any REST API endpoint
+icon: Globe
+---
+
+# API Block
+
+The API block sends HTTP requests to external endpoints. It supports all HTTP methods, custom headers, request bodies, query parameters, and authentication. Use it to integrate with any REST API that doesn't have a dedicated tool block.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `api` |
+| **Category** | Core Block |
+| **Color** | `#2563EB` (Blue) |
+
+## When to Use
+
+- Call any REST API (internal or external)
+- Fetch data that no existing tool block supports
+- Post data to webhooks or custom services
+- Integrate with your own backend APIs
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| URL | Short input | Full URL with optional `{{variables}}` |
+| Method | Dropdown | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` |
+| Headers | Table | Key-value header pairs (e.g., `Authorization: Bearer {{key}}`) |
+| Body | Code editor | JSON request body (shown for POST/PUT/PATCH) |
+| Query Parameters | Table | Key-value query params appended to URL |
+| Timeout | Slider | Request timeout in milliseconds |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `response` | `json` | Parsed response body |
+| `status` | `number` | HTTP status code |
+| `headers` | `json` | Response headers |
+
+## Example: Fetch Weather Data
+
+**Goal:** Get current weather for a city and include it in a response.
+
+**Workflow:**
+```
+[Starter] → [API Block] → [Agent] → [Response]
+```
+
+**Configuration:**
+- **URL:** `https://api.openweathermap.org/data/2.5/weather`
+- **Method:** `GET`
+- **Query Parameters:**
+  | Key | Value |
+  |-----|-------|
+  | q | `{{starter.input}}` |
+  | appid | `your-api-key` |
+  | units | `metric` |
+
+**Agent's user prompt:** `Given this weather data: {{api.response}}, provide a friendly weather summary.`
+
+**How it works:**
+1. User types a city name
+2. API block fetches weather from OpenWeatherMap
+3. Agent reads the JSON response and generates a natural-language summary
+4. Response block returns the summary
+
+## Tips
+
+- **Use headers for auth** — add `Authorization: Bearer {{token}}` for secured APIs
+- **Dynamic URLs** — embed variables: `https://api.example.com/users/{{starter.userId}}`
+- **Check `{{api.status}}`** with a Condition block to handle errors gracefully
+- **POST bodies** can include block references: `{"query": "{{starter.input}}"}`

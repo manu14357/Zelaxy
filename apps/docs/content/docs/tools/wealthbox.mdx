@@ -1,0 +1,59 @@
+---
+title: Wealthbox
+description: Manage contacts, tasks, and events in Wealthbox CRM
+icon: DollarSign
+---
+
+# Wealthbox
+
+Manage contacts, tasks, and events in Wealthbox CRM — designed for financial advisors and wealth management professionals.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `wealthbox` |
+| **Category** | Tool — CRM |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Create Contact** | Add a new contact |
+| **List Contacts** | Get contacts with filters |
+| **Create Task** | Create a new task |
+| **List Tasks** | Get tasks |
+| **Create Event** | Schedule an event |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Wealthbox API key |
+| First Name | Short input | Contact first name |
+| Last Name | Short input | Contact last name |
+| Email | Short input | Contact email |
+| Phone | Short input | Contact phone |
+| Notes | Long text | Contact notes |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `contactId` | `string` | Contact ID |
+| `content` | `string` | Response data |
+
+## Example: Client Onboarding
+
+**Workflow:**
+```
+[Starter (webhook: form submission)] → [Agent: Process] → [Wealthbox: Create Contact] → [Gmail: Welcome Email]
+```
+
+New client fills out an onboarding form. Agent extracts info, creates a Wealthbox contact, and sends a personalized welcome email.
+
+## Tips
+
+- **Financial industry** — Wealthbox is tailored for advisors and wealth managers
+- **Combine with calendar tools** for automated meeting scheduling with clients

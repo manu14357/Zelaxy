@@ -1,0 +1,31 @@
+{
+  "title": "Core Blocks",
+  "icon": "Blocks",
+  "pages": [
+    "index",
+    "---AI & Logic---",
+    "agent",
+    "condition",
+    "router",
+    "evaluator",
+    "---Code & API---",
+    "function",
+    "api",
+    "---Flow Control---",
+    "loop",
+    "parallel",
+    "starter",
+    "response",
+    "workflow",
+    "---Data & Memory---",
+    "knowledge",
+    "memory",
+    "guardrails",
+    "---Utilities---",
+    "thinking",
+    "translate",
+    "image-generator",
+    "file",
+    "vision"
+  ]
+}

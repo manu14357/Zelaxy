@@ -1,0 +1,59 @@
+---
+title: Microsoft Excel
+description: Read, write, and manage Excel workbooks in Microsoft 365
+icon: Sheet
+---
+
+# Microsoft Excel
+
+Read, write, and manage Excel workbooks through the Microsoft Graph API. Supports multiple worksheets, cell ranges, tables, and formulas.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `microsoft_excel` |
+| **Category** | Tool — Microsoft 365 |
+| **Auth** | OAuth 2.0 (Microsoft) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Read Range** | Read data from a cell range |
+| **Write Range** | Write data to cells |
+| **List Worksheets** | Get all sheets in a workbook |
+| **Create Workbook** | Create a new Excel file |
+| **Add Row** | Append data to a table |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Microsoft Account | OAuth | Connect Microsoft 365 |
+| Workbook | File selector | Select an Excel file |
+| Worksheet | Short input | Sheet name |
+| Range | Short input | Cell range (e.g., `A1:D10`) |
+| Values | Table | Data to write |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `values` | `json` | Cell data (2D array) |
+| `content` | `string` | Formatted data |
+
+## Example: Expense Report Processor
+
+**Workflow:**
+```
+[Starter: Receipt image] → [Vision: Extract] → [Function: Format] → [Excel: Append Row]
+```
+
+Upload a receipt photo, Vision block extracts the data, Function formats it, and Excel adds a new row to the expense tracking workbook.
+
+## Tips
+
+- **A1 notation** works the same as Google Sheets
+- **Use file selector** to browse OneDrive for your workbooks
+- **Tables** support auto-expanding — append rows without specifying exact range

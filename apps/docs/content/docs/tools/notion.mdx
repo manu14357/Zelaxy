@@ -1,0 +1,61 @@
+---
+title: Notion
+description: Create pages, update databases, and search content in Notion
+icon: NotebookPen
+---
+
+# Notion
+
+Create and update Notion pages, query databases, and search across your workspace. Supports rich content blocks and database properties.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `notion` |
+| **Category** | Tool — Project Management |
+| **Auth** | OAuth 2.0 |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Create Page** | Create a new page in a database |
+| **Update Page** | Modify page properties |
+| **Search** | Search pages and databases by title |
+| **Query Database** | Filter and sort database entries |
+| **Get Page** | Retrieve a specific page's content |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Notion Account | OAuth | Connect Notion workspace |
+| Database | Dropdown | Select target database |
+| Page Title | Short input | Page title |
+| Properties | Table | Key-value property pairs |
+| Content | Long text | Page body (Markdown) |
+| Search Query | Short input | Search term |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pageId` | `string` | Created/updated page ID |
+| `url` | `string` | Page URL |
+| `content` | `string` | Page content or search results |
+
+## Example: Meeting Notes Archive
+
+**Workflow:**
+```
+[Starter] → [Agent: Summarize Meeting] → [Notion: Create Page]
+```
+
+Paste meeting transcript into Starter, Agent summarizes key points and action items, Notion creates a new page in the "Meeting Notes" database with title, date, attendees, and summary as properties.
+
+## Tips
+
+- **Database properties** map to columns — set Status, Priority, Tags, etc.
+- **Search** returns pages you've shared with the integration
+- **Rich content** — can include headings, lists, toggles, and more

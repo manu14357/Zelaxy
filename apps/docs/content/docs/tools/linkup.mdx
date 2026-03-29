@@ -1,0 +1,53 @@
+---
+title: Linkup
+description: Enrich URLs with metadata and structured data
+icon: Link
+---
+
+# Linkup
+
+Linkup retrieves metadata and enriched information from URLs. Extract titles, descriptions, images, and structured data from any web page.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `linkup` |
+| **Category** | Tool — Search |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Search** | Search and enrich links |
+| **Extract** | Extract metadata from URLs |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Linkup API key |
+| Query | Short input | Search query or URL |
+| Depth | Dropdown | `standard` or `deep` |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Enriched content |
+| `results` | `json` | Structured metadata |
+
+## Example: Link Preview Generator
+
+**Workflow:**
+```
+[Starter: URL] → [Linkup: Extract] → [Response]
+```
+
+Paste a URL and get back the title, description, image, and key metadata — useful for building link preview cards.
+
+## Tips
+
+- **Deep mode** retrieves more detailed content at higher cost
+- **Combine with Agent** for intelligent link analysis and summarization

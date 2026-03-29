@@ -1,0 +1,100 @@
+---
+title: Condition Block
+description: Branch workflow execution with boolean expressions or LLM-as-a-Judge
+icon: GitBranch
+---
+
+# Condition Block
+
+The Condition block adds IF/ELSE branching to your workflow. It evaluates a condition and routes execution down one of two paths — **True** or **False**. It supports two modes: traditional boolean expressions and AI-powered LLM judging for complex, natural-language decisions.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `condition` |
+| **Category** | Core Block |
+| **Color** | `#FF752F` (Orange) |
+
+## When to Use
+
+- You need IF/ELSE logic based on a previous block's output
+- You want to filter, validate, or classify data before processing
+- You need AI to make a subjective judgment (tone, quality, relevance)
+- You want to branch based on API response codes, string matches, or numeric comparisons
+
+## Configuration
+
+### Evaluation Mode
+
+**Boolean Expression** — Standard comparisons using block references:
+```
+{{agent.content}} == "approved"
+{{api.status}} >= 200 && {{api.status}} < 300
+{{starter.input}}.length > 10
+```
+
+**LLM as Judge** — Use an AI model to evaluate complex criteria:
+- Provide a **prompt** describing what to evaluate
+- Provide **context** (the data to judge)
+- Select a **model** (GPT-4o-mini is fast and cost-effective)
+- Optionally **require high confidence** (>80%)
+
+### LLM Judge Settings
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| LLM Judge Prompt | Long text | Criteria for the LLM (responds YES/NO) |
+| Context for Evaluation | Long text | Data to evaluate, e.g., `{{agent.content}}` |
+| LLM Model | Dropdown | Model for judging |
+| Require High Confidence | Toggle | Only accept >80% confidence decisions |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Evaluation content or reasoning |
+| `conditionResult` | `boolean` | `true` or `false` |
+| `selectedPath` | `json` | Which path was taken |
+| `selectedConditionId` | `string` | Path ID (`true` or `false`) |
+| `llmJudgement` | `json` | LLM reasoning + confidence (LLM mode only) |
+
+## Example: Content Moderation Pipeline
+
+**Goal:** Check if AI-generated content is appropriate before publishing.
+
+**Workflow:**
+```
+[Starter] → [Agent] → [Condition] → [Slack] (approved)
+                                   → [Response: "Rejected"] (rejected)
+```
+
+**Configuration (LLM Judge mode):**
+- **Prompt:** `Is this content professional, factual, and free of harmful language? Consider tone, accuracy, and appropriateness for a business audience.`
+- **Context:** `{{agent.content}}`
+- **Model:** `gpt-4o-mini`
+- **Require High Confidence:** ✅
+
+**How it works:**
+1. Agent generates content from user input
+2. Condition block sends content to GPT-4o-mini for review
+3. If approved (YES with >80% confidence) → content goes to Slack
+4. If rejected → user gets a "Content flagged for review" response
+
+## Example: Boolean Expression
+
+**Goal:** Route customer inquiries based on urgency level.
+
+**Configuration (Boolean Expression mode):**
+```
+{{agent.content}} == "urgent"
+```
+
+The Agent uses structured output to return an urgency classification. The Condition checks the string and routes accordingly.
+
+## Tips
+
+- **Boolean mode is faster and free** — use it for simple comparisons
+- **LLM Judge mode costs tokens** but handles nuanced decisions (tone, quality, relevance)
+- **Use `gpt-4o-mini`** for LLM judging — it's fast and cheap for YES/NO decisions
+- **Chain conditions** for multi-level branching, or use a Router block for 3+ paths

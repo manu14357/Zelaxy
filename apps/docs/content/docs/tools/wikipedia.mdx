@@ -1,0 +1,57 @@
+---
+title: Wikipedia
+description: Search and retrieve content from Wikipedia
+icon: BookMarked
+---
+
+# Wikipedia
+
+Search Wikipedia articles and retrieve content for knowledge-grounded AI responses. Free to use with no API key required.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `wikipedia` |
+| **Category** | Tool — Search |
+| **Auth** | None (free) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Search** | Search Wikipedia articles |
+| **Get Article** | Retrieve full article content |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Query | Short input | Search query |
+| Language | Dropdown | Wikipedia language (en, es, fr, de, etc.) |
+| Max Results | Slider | Number of results |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Article content or summaries |
+| `results` | `json` | Search result array |
+| `url` | `string` | Article URL |
+
+## Example: Knowledge-Grounded Chatbot
+
+**Workflow:**
+```
+[Starter] → [Agent] → [Response]
+              ↑
+        [Wikipedia] (connected as tool)
+```
+
+Connect Wikipedia as a tool to an Agent. The Agent searches Wikipedia for factual background when answering knowledge questions, improving accuracy.
+
+## Tips
+
+- **Free and reliable** — great for factual grounding without API costs
+- **Multi-language** — search in 300+ languages
+- **Best as Agent tool** — let the AI decide when Wikipedia knowledge is needed

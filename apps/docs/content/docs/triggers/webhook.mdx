@@ -1,0 +1,687 @@
+---
+title: Webhook Trigger
+description: Start workflows from service-specific webhook events
+icon: Webhook
+---
+
+# Webhook Trigger
+
+The Webhook trigger provides a dedicated URL that receives HTTP POST requests from external services. When a request arrives, the workflow starts automatically with the webhook payload as input.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `webhook` |
+| **Category** | Trigger |
+
+## Supported Providers
+
+Zelaxy supports webhook triggers from the following services. Each provider has its own output schema — see the detailed sections below.
+
+| Provider | Trigger ID | Auth Type | Description |
+|----------|-----------|-----------|-------------|
+| [Gmail](#gmail) | `gmail_poller` | OAuth | Triggers on new emails |
+| [Outlook](#outlook) | `outlook_poller` | OAuth | Triggers on new emails |
+| [Slack](#slack) | `slack_webhook` | Signing Secret | Triggers on messages, mentions, reactions |
+| [GitHub](#github) | `github_webhook` | Webhook Secret | Triggers on push, PRs, issues |
+| [Telegram](#telegram) | `telegram_webhook` | Bot Token | Triggers on bot messages |
+| [WhatsApp](#whatsapp) | `whatsapp_webhook` | Verification Token | Triggers on incoming messages |
+| [Stripe](#stripe) | `stripe_webhook` | — | Triggers on payments, subscriptions |
+| [Airtable](#airtable) | `airtable_webhook` | OAuth | Triggers on record changes |
+| [Microsoft Teams](#microsoft-teams) | `microsoftteams_webhook` | HMAC Secret | Triggers on messages and mentions |
+| [Generic](#generic-webhook) | `generic_webhook` | — | Universal HTTP endpoint |
+
+## How It Works
+
+1. Activate the workflow — a unique webhook URL is generated
+2. Copy the URL and register it in the external service's webhook settings
+3. When the service sends an event, the workflow triggers
+4. **Service-specific webhooks** (Slack, GitHub, Telegram, etc.) flatten event data to convenient top-level properties — e.g., `{{Webhook 1.event.text}}`, `{{Webhook 1.message.text}}`
+5. **Generic webhooks** store the raw request body under `webhook.data.payload` — access fields via `{{Webhook 1.webhook.data.payload.fieldName}}`
+
+> **Block name normalization:** Block names are case-insensitive and spaces are removed. `{{Webhook 1.field}}`, `{{webhook1.field}}`, and `{{WEBHOOK1.field}}` all resolve to the same block.
+
+### Universal Raw Data Access (All Providers)
+
+Every webhook trigger (regardless of provider) also stores the complete raw HTTP request under `webhook.data`. This provides a fallback when you need fields not covered by the provider-specific outputs:
+
+| Reference | Description |
+|-----------|-------------|
+| `{{Webhook 1.webhook.data.payload}}` | Complete raw HTTP body |
+| `{{Webhook 1.webhook.data.payload.nested.field}}` | Any field from the raw body |
+| `{{Webhook 1.webhook.data.headers}}` | HTTP request headers |
+| `{{Webhook 1.webhook.data.method}}` | HTTP method (`POST`, etc.) |
+
+---
+
+## Gmail
+
+Triggers when new emails are received in a connected Gmail account. Requires OAuth with Google.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Gmail Account | OAuth | Select connected Gmail account |
+| Labels to Monitor | Multi-select | Gmail labels to watch (empty = all) |
+| Label Filter Behavior | Select | `INCLUDE` or `EXCLUDE` selected labels |
+| Mark as Read | Toggle | Mark processed emails as read |
+| Include Raw Email Data | Toggle | Include full Gmail API response |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `email.id` | string | Gmail message ID |
+| `email.threadId` | string | Gmail thread ID |
+| `email.subject` | string | Email subject line |
+| `email.from` | string | Sender email address |
+| `email.to` | string | Recipient email address |
+| `email.cc` | string | CC recipients |
+| `email.date` | string | Email date (ISO format) |
+| `email.bodyText` | string | Plain text email body |
+| `email.bodyHtml` | string | HTML email body |
+| `email.labels` | string | Email labels array |
+| `email.hasAttachments` | boolean | Whether email has attachments |
+| `email.attachments` | json | Array of attachment info (filename, mimeType, size) |
+| `timestamp` | string | Event timestamp |
+| `rawEmail` | json | Complete raw Gmail API response (if enabled) |
+
+### Sample Payload
+
+```json
+{
+  "email": {
+    "id": "18e0ffabd5b5a0f4",
+    "threadId": "18e0ffabd5b5a0f4",
+    "subject": "Monthly Report - April 2025",
+    "from": "sender@example.com",
+    "to": "recipient@example.com",
+    "cc": "team@example.com",
+    "date": "2025-05-10T10:15:23.000Z",
+    "bodyText": "Hello,\n\nPlease find attached the monthly report.\n\nBest regards",
+    "bodyHtml": "<div><p>Hello,</p><p>Please find attached the monthly report.</p></div>",
+    "labels": ["INBOX", "IMPORTANT"],
+    "hasAttachments": true,
+    "attachments": [
+      { "filename": "report-april-2025.pdf", "mimeType": "application/pdf", "size": 2048576 }
+    ]
+  },
+  "timestamp": "2025-05-10T10:15:30.123Z"
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.email.subject}}`, `{{Webhook 1.email.from}}`, `{{Webhook 1.email.bodyText}}`
+
+---
+
+## Outlook
+
+Triggers when new emails are received in a connected Outlook/Microsoft 365 account. Requires OAuth with Microsoft.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Microsoft Account | OAuth | Select connected Microsoft account |
+| Folders to Monitor | Multi-select | Outlook folders to watch (empty = all) |
+| Folder Filter Behavior | Select | `INCLUDE` or `EXCLUDE` selected folders |
+| Mark as Read | Toggle | Mark processed emails as read |
+| Include Raw Email Data | Toggle | Include full MS Graph API response |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `email.id` | string | Outlook message ID |
+| `email.conversationId` | string | Outlook conversation ID |
+| `email.subject` | string | Email subject line |
+| `email.from` | string | Sender email address |
+| `email.to` | string | Recipient email address |
+| `email.cc` | string | CC recipients |
+| `email.date` | string | Email date (ISO format) |
+| `email.bodyText` | string | Plain text email body (preview) |
+| `email.bodyHtml` | string | HTML email body |
+| `email.hasAttachments` | boolean | Whether email has attachments |
+| `email.isRead` | boolean | Whether email is read |
+| `email.folderId` | string | Outlook folder ID |
+| `email.messageId` | string | Message ID for threading |
+| `email.threadId` | string | Thread ID for conversation threading |
+| `timestamp` | string | Event timestamp |
+| `rawEmail` | json | Complete raw MS Graph API response (if enabled) |
+
+### Sample Payload
+
+```json
+{
+  "email": {
+    "id": "AAMkADg1OWUyZjg4LWJkNGYtNDFhYy04OGVjLWVkM2VhY2YzYTcwZg...",
+    "conversationId": "AAQkADg1OWUyZjg4LWJkNGYtNDFhYy04OGVjLWVkM2VhY2YzYTcwZg...",
+    "subject": "Quarterly Business Review - Q1 2025",
+    "from": "manager@company.com",
+    "to": "team@company.com",
+    "cc": "stakeholders@company.com",
+    "date": "2025-05-10T14:30:00Z",
+    "bodyText": "Hi Team,\n\nPlease find attached the Q1 2025 business review...",
+    "bodyHtml": "<div><p>Hi Team,</p><p>Please find attached the Q1 review...</p></div>",
+    "hasAttachments": true,
+    "isRead": false,
+    "folderId": "AQMkADg1OWUyZjg4LWJkNGYtNDFhYy04OGVjAC4AAAJzE3bU",
+    "messageId": "AAMkADg1OWUyZjg4...",
+    "threadId": "AAQkADg1OWUyZjg4..."
+  },
+  "timestamp": "2025-05-10T14:30:15.123Z"
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.email.subject}}`, `{{Webhook 1.email.from}}`, `{{Webhook 1.email.isRead}}`
+
+---
+
+## Slack
+
+Triggers on Slack events like app mentions, messages, and reactions. Requires a Slack app signing secret.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Signing Secret | Password | Slack app signing secret for request validation |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event.event_type` | string | Type of Slack event (e.g., `app_mention`, `message`) |
+| `event.channel` | string | Slack channel ID |
+| `event.channel_name` | string | Human-readable channel name |
+| `event.user` | string | User ID who triggered the event |
+| `event.user_name` | string | Username who triggered the event |
+| `event.text` | string | Message text content |
+| `event.timestamp` | string | Event timestamp |
+| `event.team_id` | string | Slack workspace/team ID |
+| `event.event_id` | string | Unique event identifier |
+
+### Sample Payload
+
+```json
+{
+  "type": "event_callback",
+  "event": {
+    "type": "app_mention",
+    "channel": "C0123456789",
+    "user": "U0123456789",
+    "text": "<@U0BOTUSER123> Hello from Slack!",
+    "ts": "1234567890.123456",
+    "channel_type": "channel"
+  },
+  "team_id": "T0123456789",
+  "event_id": "Ev0123456789",
+  "event_time": 1234567890
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event.text}}`, `{{Webhook 1.event.user_name}}`, `{{Webhook 1.event.channel_name}}`
+
+---
+
+## GitHub
+
+Triggers on GitHub events like push, pull requests, issues, and more. Supports webhook secret for signature verification.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Content Type | Select | `application/json` or `application/x-www-form-urlencoded` |
+| Webhook Secret | Password | Secret for signature validation (recommended) |
+| SSL Verification | Select | `enabled` or `disabled` |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | Type of GitHub event (e.g., `push`, `pull_request`, `issues`) |
+| `action` | string | Action performed (e.g., `opened`, `closed`, `synchronize`) |
+| `branch` | string | Branch name extracted from ref |
+| `ref` | string | Git reference (e.g., `refs/heads/main`) |
+| `before` | string | SHA of the commit before the push |
+| `after` | string | SHA of the commit after the push |
+| `created` | boolean | Whether the push created the reference |
+| `deleted` | boolean | Whether the push deleted the reference |
+| `forced` | boolean | Whether the push was forced |
+| `compare` | string | URL to compare changes |
+| `repository.name` | string | Repository name |
+| `repository.full_name` | string | Full name (owner/repo) |
+| `repository.html_url` | string | Repository URL |
+| `repository.private` | boolean | Whether repository is private |
+| `repository.default_branch` | string | Default branch name |
+| `repository.owner.login` | string | Owner username |
+| `repository.owner.avatar_url` | string | Owner avatar URL |
+| `sender.login` | string | User who triggered the event |
+| `sender.id` | number | Sender user ID |
+| `sender.avatar_url` | string | Sender avatar URL |
+| `pusher.name` | string | Pusher name |
+| `pusher.email` | string | Pusher email |
+| `commits` | array | Array of commit objects |
+| `commits[].id` | string | Commit SHA |
+| `commits[].message` | string | Commit message |
+| `commits[].author.name` | string | Commit author name |
+| `commits[].author.email` | string | Commit author email |
+| `commits[].added` | array | Files added |
+| `commits[].removed` | array | Files removed |
+| `commits[].modified` | array | Files modified |
+| `head_commit.id` | string | Head commit SHA |
+| `head_commit.message` | string | Head commit message |
+| `head_commit.timestamp` | string | Head commit timestamp |
+
+### Sample Payload (Pull Request)
+
+```json
+{
+  "action": "opened",
+  "number": 1,
+  "pull_request": {
+    "id": 1, "number": 1, "state": "open", "title": "Update README",
+    "user": { "login": "octocat", "id": 1 },
+    "body": "This is a simple change to pull into main.",
+    "head": { "ref": "feature-branch", "sha": "abc123" },
+    "base": { "ref": "main", "sha": "def456" }
+  },
+  "repository": {
+    "id": 35129377, "name": "public-repo", "full_name": "octocat/public-repo",
+    "owner": { "login": "octocat", "id": 6752317 }
+  },
+  "sender": { "login": "octocat", "id": 6752317 }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.action}}`, `{{Webhook 1.repository.full_name}}`, `{{Webhook 1.sender.login}}`
+
+---
+
+## Telegram
+
+Triggers on messages sent to a Telegram bot. Requires a bot token from BotFather.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Bot Token | Password | Telegram bot token from BotFather |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `message.update_id` | number | Unique identifier for the update |
+| `message.message_id` | number | Unique message identifier |
+| `message.from_id` | number | User ID who sent the message |
+| `message.from_username` | string | Username of the sender |
+| `message.from_first_name` | string | First name of the sender |
+| `message.from_last_name` | string | Last name of the sender |
+| `message.chat_id` | number | Unique identifier for the chat |
+| `message.chat_type` | string | Type of chat (`private`, `group`, `supergroup`, `channel`) |
+| `message.chat_title` | string | Title of the chat (for groups/channels) |
+| `message.text` | string | Message text content |
+| `message.date` | number | Date sent (Unix timestamp) |
+| `message.entities` | string | Special entities (mentions, hashtags, etc.) as JSON |
+
+### Sample Payload
+
+```json
+{
+  "update_id": 123456789,
+  "message": {
+    "message_id": 123,
+    "from": {
+      "id": 987654321, "is_bot": false, "first_name": "John",
+      "last_name": "Doe", "username": "johndoe"
+    },
+    "chat": {
+      "id": 987654321, "first_name": "John", "last_name": "Doe",
+      "username": "johndoe", "type": "private"
+    },
+    "date": 1234567890,
+    "text": "Hello from Telegram!"
+  }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.message.text}}`, `{{Webhook 1.message.from_username}}`, `{{Webhook 1.message.chat_id}}`
+
+---
+
+## WhatsApp
+
+Triggers on incoming WhatsApp messages via the Business Platform. Requires a verification token.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Verification Token | Password | Token matching your WhatsApp Business Platform dashboard |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `messageId` | string | Unique message identifier |
+| `from` | string | Phone number of the sender |
+| `phoneNumberId` | string | WhatsApp Business phone number ID that received the message |
+| `text` | string | Message text content |
+| `timestamp` | string | Message timestamp |
+| `raw` | string | Complete raw message object as JSON string |
+
+### Sample Payload
+
+```json
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "1234567890123456",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "15551234567",
+          "phone_number_id": "1234567890123456"
+        },
+        "contacts": [{ "profile": { "name": "John Doe" }, "wa_id": "15555551234" }],
+        "messages": [{
+          "from": "15555551234",
+          "id": "wamid.HBgNMTU1NTU1NTEyMzQVAgASGBQz...",
+          "timestamp": "1234567890",
+          "text": { "body": "Hello from WhatsApp!" },
+          "type": "text"
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.text}}`, `{{Webhook 1.from}}`, `{{Webhook 1.messageId}}`
+
+---
+
+## Stripe
+
+Triggers on Stripe events like successful payments, subscription changes, and more. Events are selected in the Stripe dashboard.
+
+### Configuration
+
+No additional configuration needed — configure event types in your Stripe dashboard.
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `id` | string | Stripe event ID |
+| `type` | string | Event type (e.g., `charge.succeeded`, `payment_intent.succeeded`) |
+| `created` | string | Timestamp when event was created |
+| `data` | string | Event data containing the affected Stripe object |
+| `object` | string | The Stripe object type (e.g., `charge`, `payment_intent`) |
+| `livemode` | string | Whether event occurred in live mode |
+| `apiVersion` | string | API version used to render this event |
+| `request` | string | Info about the request that triggered this event |
+
+### Sample Payload
+
+```json
+{
+  "id": "evt_1234567890",
+  "type": "charge.succeeded",
+  "created": 1641234567,
+  "data": {
+    "object": {
+      "id": "ch_1234567890", "object": "charge", "amount": 2500,
+      "currency": "usd", "description": "Sample charge", "paid": true,
+      "status": "succeeded", "customer": "cus_1234567890",
+      "receipt_email": "customer@example.com"
+    }
+  },
+  "object": "event",
+  "livemode": false,
+  "api_version": "2020-08-27",
+  "request": { "id": "req_1234567890", "idempotency_key": null }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.type}}`, `{{Webhook 1.data}}`, `{{Webhook 1.id}}`
+
+---
+
+## Airtable
+
+Triggers on Airtable record changes (create, update, delete). Requires OAuth with Airtable.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Base ID | Text | Airtable Base ID (e.g., `appXXXXXXXXXXXXXX`) |
+| Table ID | Text | Table ID within the base (e.g., `tblXXXXXXXXXXXXXX`) |
+| Include Full Record Data | Toggle | Receive complete record data, not just changes |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | Type of event (e.g., `record.created`, `record.updated`, `record.deleted`) |
+| `base_id` | string | Airtable base identifier |
+| `table_id` | string | Airtable table identifier |
+| `record_id` | string | Record identifier that was modified |
+| `record_data` | string | Complete record data (when Include Full Record Data is enabled) |
+| `changed_fields` | string | Fields that were changed in the record |
+| `webhook_id` | string | Unique webhook identifier |
+| `timestamp` | string | Event timestamp |
+
+### Sample Payload
+
+```json
+{
+  "webhook": { "id": "achAbCdEfGhIjKlMn" },
+  "timestamp": "2023-01-01T00:00:00.000Z",
+  "base": { "id": "appXXXXXXXXXXXXXX" },
+  "table": { "id": "tblXXXXXXXXXXXXXX" },
+  "changedTablesById": {
+    "tblXXXXXXXXXXXXXX": {
+      "changedRecordsById": {
+        "recXXXXXXXXXXXXXX": {
+          "current": {
+            "id": "recXXXXXXXXXXXXXX",
+            "fields": { "Name": "Sample Record", "Status": "Active" }
+          },
+          "previous": {
+            "id": "recXXXXXXXXXXXXXX",
+            "fields": { "Name": "Sample Record", "Status": "Inactive" }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.record_id}}`, `{{Webhook 1.record_data}}`
+
+---
+
+## Microsoft Teams
+
+Triggers on Microsoft Teams events like messages and mentions via an outgoing webhook.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| HMAC Secret | Password | Security token from Teams outgoing webhook setup |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `type` | string | Type of Teams message (e.g., `message`) |
+| `id` | string | Unique message identifier |
+| `timestamp` | string | Message timestamp |
+| `localTimestamp` | string | Local timestamp of the message |
+| `serviceUrl` | string | Microsoft Teams service URL |
+| `channelId` | string | Teams channel ID |
+| `from_id` | string | User ID who sent the message |
+| `from_name` | string | Username who sent the message |
+| `conversation_id` | string | Conversation/thread ID |
+| `text` | string | Message text content |
+
+### Sample Payload
+
+```json
+{
+  "type": "message",
+  "id": "1234567890",
+  "timestamp": "2023-01-01T00:00:00.000Z",
+  "localTimestamp": "2023-01-01T00:00:00.000Z",
+  "serviceUrl": "https://smba.trafficmanager.net/amer/",
+  "channelId": "msteams",
+  "from": { "id": "29:1234567890abcdef", "name": "John Doe" },
+  "conversation": { "id": "19:meeting_abcdef@thread.v2" },
+  "text": "Hello Zelaxy Bot!"
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.text}}`, `{{Webhook 1.from_name}}`, `{{Webhook 1.conversation_id}}`
+
+---
+
+## Generic Webhook
+
+Universal HTTP endpoint that accepts requests from any source. No provider-specific validation.
+
+See the dedicated [Generic Webhook](generic-webhook) page for full details, including comprehensive data access examples.
+
+### Outputs
+
+For generic webhooks, the raw HTTP request is stored under the `webhook.data` namespace:
+
+| Path | Type | Description |
+|------|------|-------------|
+| `webhook.data.payload` | json | **Complete HTTP request body** |
+| `webhook.data.payload.<field>` | any | Any field from the request body |
+| `webhook.data.headers` | json | HTTP request headers |
+| `webhook.data.method` | string | HTTP method (POST, PUT, etc.) |
+| `webhook.data.path` | string | Webhook path identifier |
+| `webhook.data.provider` | string | Always `"generic"` |
+
+### Usage Example
+
+If the external service sends:
+```json
+{
+  "event": "message.received",
+  "data": {
+    "provider_message_id": "msg_abc123",
+    "content": "Hello world"
+  }
+}
+```
+
+Reference in downstream blocks:
+- `{{Webhook 1.webhook.data.payload}}` — full body
+- `{{Webhook 1.webhook.data.payload.event}}` — `"message.received"`
+- `{{Webhook 1.webhook.data.payload.data.provider_message_id}}` — `"msg_abc123"`
+- `{{Webhook 1.webhook.data.payload.data.content}}` — `"Hello world"`
+- `{{Webhook 1.webhook.data.headers}}` — request headers
+- `{{Webhook 1.webhook.data.method}}` — `"POST"`
+
+---
+
+## Data Access Reference
+
+### Variable Syntax
+
+All webhook data is accessed using the `{{BlockName.path.to.field}}` template syntax inside any connected downstream block (Agent, Function, API, Condition, etc.).
+
+```
+{{Webhook 1.path.to.field}}
+```
+
+- **Block name** = the label on the canvas (default: `Webhook 1`)
+- **Path** = dot-separated property path into the block output
+- **Block names are normalized**: case-insensitive, spaces removed (`Webhook 1` = `webhook1`)
+
+### Provider-Specific vs Raw Data Access
+
+| Provider | Convenient Access (Flattened) | Raw Access (Always Available) |
+|----------|-------------------------------|-------------------------------|
+| Gmail | `{{Webhook 1.email.subject}}` | `{{Webhook 1.webhook.data.payload}}` |
+| Outlook | `{{Webhook 1.email.subject}}` | `{{Webhook 1.webhook.data.payload}}` |
+| Slack | `{{Webhook 1.event.text}}` | `{{Webhook 1.webhook.data.payload}}` |
+| GitHub | `{{Webhook 1.action}}` | `{{Webhook 1.webhook.data.payload}}` |
+| Telegram | `{{Webhook 1.message.text}}` | `{{Webhook 1.webhook.data.payload}}` |
+| WhatsApp | `{{Webhook 1.whatsapp.data.text}}` | `{{Webhook 1.webhook.data.payload}}` |
+| Stripe | `{{Webhook 1.type}}` | `{{Webhook 1.webhook.data.payload}}` |
+| Microsoft Teams | `{{Webhook 1.text}}` | `{{Webhook 1.webhook.data.payload}}` |
+| **Generic** | _N/A — use raw access_ | `{{Webhook 1.webhook.data.payload.field}}` |
+
+### Nested Field Access
+
+Use dots to traverse nested objects:
+
+```
+{{Webhook 1.webhook.data.payload.data.provider_message_id}}
+```
+
+This resolves the path: `output` → `webhook` → `data` → `payload` → `data` → `provider_message_id`
+
+### Array Access
+
+Use bracket notation to access array elements:
+
+```
+{{Webhook 1.webhook.data.payload.items[0].name}}
+```
+
+### Common Generic Webhook Patterns
+
+| What you want | Reference |
+|---------------|-----------|
+| Full HTTP body | `{{Webhook 1.webhook.data.payload}}` |
+| Top-level body field | `{{Webhook 1.webhook.data.payload.fieldName}}` |
+| Nested body field | `{{Webhook 1.webhook.data.payload.parent.child}}` |
+| Array element | `{{Webhook 1.webhook.data.payload.items[0]}}` |
+| HTTP headers | `{{Webhook 1.webhook.data.headers}}` |
+| HTTP method | `{{Webhook 1.webhook.data.method}}` |
+
+---
+
+## Security
+
+- **Always set a webhook secret** — validates that requests come from the actual service
+- **HTTPS only** — all webhook URLs use HTTPS
+- **Signature verification** — Zelaxy validates webhook signatures automatically for supported providers
+
+## Tips
+
+- **Each workflow has a unique URL** — don't share it publicly
+- **Test with curl:** `curl -X POST https://your-webhook-url -H "Content-Type: application/json" -d '{"test": true}'`
+- **Retry handling** — some services retry failed webhooks; ensure your workflow is idempotent

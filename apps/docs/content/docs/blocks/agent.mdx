@@ -1,0 +1,144 @@
+---
+title: Agent Block
+description: Build AI agents with multi-provider LLM support, tool calling, and structured outputs
+icon: Bot
+---
+
+# Agent Block
+
+The Agent block is the most powerful block in Zelaxy. It connects to any major LLM provider, supports tool calling, structured JSON outputs, conversation memory, and intelligent fallback systems. Use it whenever you need AI reasoning, text generation, classification, summarization, or any language task.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `agent` |
+| **Category** | Core Block |
+| **Color** | `#6366f1` (Indigo) |
+
+## When to Use
+
+- Generate text, summaries, or analyses from input data
+- Classify, categorize, or extract information from content
+- Call external tools (search, APIs, databases) as part of reasoning
+- Build chatbots with persistent memory
+- Get structured JSON responses for downstream processing
+
+## Configuration
+
+### System Prompt
+Define the agent's behavior, personality, and reasoning framework. The built-in **AI Wand** can generate sophisticated system prompts for you — just describe what you want the agent to do.
+
+### User Message / Context
+The input the agent processes. Typically references another block's output: `{{starter.input}}` or `{{previous_block.content}}`.
+
+### Model Selection
+Searchable dropdown with all supported providers. Each model shows its provider icon and performance characteristics.
+
+| Provider | Models | Auth |
+|----------|--------|------|
+| OpenAI | GPT-4o, GPT-4o-mini, o1, o3-mini | API Key |
+| Anthropic | Claude 3.5 Sonnet, Claude 3 Opus/Haiku | API Key |
+| Google | Gemini 2.0 Flash, Gemini Pro | API Key |
+| xAI | Grok-2, Grok-2-mini | API Key |
+| DeepSeek | DeepSeek Chat, DeepSeek Reasoner | API Key |
+| Groq | Llama, Mixtral (fast inference) | API Key |
+| Cerebras | Ultra-fast inference models | API Key |
+| Azure OpenAI | GPT-4o (Azure-hosted) | API Key + Endpoint |
+| OpenRouter | Access to 100+ models | API Key |
+| Ollama | Any local model | None (local) |
+
+### Advanced Settings
+
+| Setting | Type | Range | Description |
+|---------|------|-------|-------------|
+| Temperature | Slider | 0–2 | Controls randomness. 0 = deterministic, 1 = balanced, 2 = creative |
+| Top-P | Slider | 0.1–1 | Nucleus sampling — limits token selection pool |
+| Top-K | Slider | 1–100 | Restricts vocabulary to top K tokens |
+| Max Output Tokens | Slider | 100–8192 | Caps response length |
+| Presence Penalty | Slider | -2 to 2 | Encourages topic diversity |
+| Frequency Penalty | Slider | -2 to 2 | Reduces word repetition |
+| Fallback Model | Dropdown | — | Backup model if primary fails |
+| Max Retries | Slider | 0–5 | Retry attempts on failure |
+| Timeout | Slider | 10–300s | Request timeout |
+| Context Window | Slider | 1K–200K | Max context tokens |
+| Context Priority | Dropdown | Recent/Relevant/Balanced | How to prioritize context |
+| Safety Level | Dropdown | Strict/Moderate/Permissive | Content filtering |
+| Confidence Threshold | Slider | 0.1–1 | Minimum confidence score |
+| Enable Streaming | Toggle | — | Real-time token streaming |
+| Enable Caching | Toggle | — | Cache responses for performance |
+
+### Response Format (Structured Output)
+Define a JSON schema to get typed, predictable responses. The AI Wand can generate schemas from natural language descriptions.
+
+### Tool Integration
+Connect tool blocks (Slack, Gmail, Search, etc.) to the Agent. The agent automatically discovers connected tools and calls them during reasoning.
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | The agent's generated text response |
+| `model` | `string` | Model identifier used (e.g., `gpt-4o`) |
+| `tokens` | `json` | Token usage: `{prompt, completion, total}` |
+| `toolCalls` | `json` | List of tool calls made with arguments and results |
+| `context` | `json` | Conversation context and session data |
+
+## Example: Research Assistant
+
+**Goal:** Build an agent that researches a topic and returns a structured summary.
+
+**Workflow:**
+```
+[Starter] → [Agent] → [Response]
+```
+
+**Configuration:**
+- **System Prompt:**
+  ```
+  You are a research assistant. Given a topic, provide a comprehensive summary
+  with key facts, recent developments, and sources. Always be factual and cite
+  your reasoning.
+  ```
+- **User Message:** `{{starter.input}}`
+- **Model:** `gpt-4o`
+- **Temperature:** `0.3` (factual, low creativity)
+- **Response Format:**
+  ```json
+  {
+    "type": "object",
+    "properties": {
+      "summary": { "type": "string" },
+      "keyFacts": { "type": "array", "items": { "type": "string" } },
+      "confidence": { "type": "number" }
+    }
+  }
+  ```
+
+**Result:** The agent returns a structured JSON object that downstream blocks can parse reliably.
+
+## Example: Agent with Tools
+
+**Goal:** Agent that answers questions using web search and then sends results via Slack.
+
+**Workflow:**
+```
+[Starter] → [Agent] → [Slack]
+              ↑
+        [Google Search]  (connected as tool)
+```
+
+**How it works:**
+1. Connect a **Google Search** block to the Agent (draw line to the tools input)
+2. The Agent automatically discovers the search tool
+3. When the user asks a question, the Agent decides whether to search the web
+4. Search results feed back into the Agent's reasoning
+5. Final answer goes to `{{agent.content}}` → Slack message
+
+## Tips
+
+- **Use structured output** for pipelines — downstream blocks can reliably parse JSON fields
+- **Set low temperature (0.1–0.3)** for factual/classification tasks
+- **Set high temperature (0.7–1.0)** for creative writing
+- **Enable fallback model** for production workflows — prevents failures if primary model is down
+- **Connect memory blocks** for multi-turn chatbot experiences

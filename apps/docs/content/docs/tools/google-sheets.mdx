@@ -1,0 +1,68 @@
+---
+title: Google Sheets
+description: Read, write, and manage data in Google Sheets
+icon: Sheet
+---
+
+# Google Sheets
+
+Read, write, update, and manage data in Google Sheets spreadsheets. Supports cell ranges, multiple sheets, and batch operations — perfect for data pipelines.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_sheets` |
+| **Category** | Tool — Google Workspace |
+| **Auth** | OAuth 2.0 (Google) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Read Range** | Read data from a cell range |
+| **Write Range** | Write data to a cell range |
+| **Append Row** | Add a new row at the bottom |
+| **Update Cells** | Update specific cells |
+| **List Sheets** | Get all sheets in a spreadsheet |
+| **Create Spreadsheet** | Create a new spreadsheet |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Google Account | OAuth | Connect Google account |
+| Spreadsheet ID | Short input | From the spreadsheet URL |
+| Sheet Name | Short input | Tab name (default: "Sheet1") |
+| Range | Short input | Cell range (e.g., `A1:D10`) |
+| Values | Table | Data to write (rows and columns) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `values` | `json` | 2D array of cell values |
+| `content` | `string` | Formatted data |
+| `updatedCells` | `number` | Number of cells modified |
+
+## Example: Data Collection Dashboard
+
+**Workflow:**
+```
+[Starter (schedule: hourly)] → [API: Fetch Metrics] → [Function: Format] → [Google Sheets: Append]
+```
+
+Every hour, fetch metrics from an API, format as a row, and append to a tracking spreadsheet. Over time, this builds a dashboard dataset.
+
+**Google Sheets Config:**
+- **Spreadsheet ID:** `1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms`
+- **Sheet:** `Metrics`
+- **Range:** `A:E` (auto-appends to next empty row)
+- **Values:** `[[{{function.result.date}}, {{function.result.users}}, {{function.result.revenue}}]]`
+
+## Tips
+
+- **Spreadsheet ID** is in the URL: `sheets.google.com/spreadsheets/d/{ID}/edit`
+- **A1 notation** — `Sheet1!A1:D10` specifies sheet and range
+- **Append Row** is most common — automatically finds the next empty row
+- **Batch writes** — pass a 2D array to write multiple rows at once

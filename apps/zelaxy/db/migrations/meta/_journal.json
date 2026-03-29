@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1770447775573,
+      "tag": "0000_careless_quentin_quire",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770493965885,
+      "tag": "0001_young_texas_twister",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770714000000,
+      "tag": "0002_add_streamable_http_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772272800000,
+      "tag": "0003_org_enterprise_features",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772274362485,
+      "tag": "0004_fancy_big_bertha",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772275000000,
+      "tag": "0005_admin_platform_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772275503467,
+      "tag": "0006_loose_roughhouse",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1772284725220,
+      "tag": "0007_cynical_living_tribunal",
+      "breakpoints": true
+    }
+  ]
+}

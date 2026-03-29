@@ -1,0 +1,14 @@
+{
+  "title": "Documentation",
+  "icon": "BookOpen",
+  "pages": [
+    "---Getting Started---",
+    "index",
+    "---Core Blocks---",
+    "blocks",
+    "---Tool Integrations---",
+    "tools",
+    "---Triggers---",
+    "triggers"
+  ]
+}

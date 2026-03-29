@@ -1,0 +1,146 @@
+---
+title: Outlook
+description: Send, read, and manage emails through Microsoft Outlook
+icon: Inbox
+---
+
+# Outlook
+
+Send, read, and search Outlook emails via Microsoft Graph API. Full integration with Microsoft 365 email including attachments and calendar.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `outlook` |
+| **Category** | Tool — Email |
+| **Auth** | OAuth 2.0 (Microsoft) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Send Email** | Compose and send an email |
+| **Read Emails** | Fetch emails from inbox/folders or read a specific email by Message ID |
+| **Search Emails** | Search by subject, sender, date |
+| **List Folders** | Get all mail folders |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Microsoft Account | OAuth | Connect Microsoft 365 |
+| To | Short input | Recipient email(s) |
+| Subject | Short input | Email subject |
+| Body | Long text | Email body (HTML supported) |
+| CC / BCC | Short input | Carbon copy recipients |
+| Reply to Message ID | Short input | Message ID to reply to (for threading) |
+| Conversation ID | Short input | Conversation ID for threading |
+| **Message ID** | Short input | Specific Outlook message ID to fetch — overrides Folder. Supports variable references like `{{loop.currentItem}}` or `{{webhook.payload.message_id}}` |
+| Folder | Folder selector | Mail folder to read from (ignored when Message ID is provided) |
+| Include Attachments | Switch | Download and include attachment data |
+| Number of Emails | Short input | Number of emails to retrieve (default: 1, max: 10) |
+
+## Outputs
+
+### Read Operation
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Email body as plain text (HTML is stripped automatically) |
+| `metadata` | `json` | Email metadata object (see below) |
+| `attachments` | `json` | Array of attachment objects (when Include Attachments is ON) |
+
+**`metadata` object fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Outlook message ID |
+| `conversationId` | `string` | Conversation thread ID |
+| `from` | `string` | Sender formatted as `"Name <email>"` |
+| `to` | `string` | Recipients formatted as `"Name <email>"`, comma-separated |
+| `cc` | `string` | CC recipients formatted as `"Name <email>"`, comma-separated |
+| `subject` | `string` | Email subject line |
+| `date` | `string` | Received date/time (ISO 8601) |
+| `hasAttachments` | `boolean` | Whether the email has attachments |
+| `attachmentCount` | `number` | Number of attachments |
+| `isRead` | `boolean` | Whether the email has been read |
+| `importance` | `string` | Email importance level |
+| `bodyPreview` | `string` | Short preview of the email body |
+
+**`attachments` array item fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string` | Attachment filename |
+| `mimeType` | `string` | MIME type (e.g., `application/pdf`) |
+| `size` | `number` | File size in bytes |
+| `data` | `Buffer` | Raw attachment data |
+| `content` | `string` | Text content (for text-based attachments only) |
+
+### Send / Draft Operations
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `message` | `string` | Status message |
+| `messageId` | `string` | Sent/draft message ID |
+| `status` | `string` | Send/draft status |
+
+### Trigger Mode
+
+When Outlook is used as a **trigger** (first block), it outputs:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `email` | `json` | Full email object with `id`, `subject`, `from`, `to`, `bodyText`, `bodyHtml`, `attachments`, etc. |
+| `rawEmail` | `json` | Complete raw Microsoft Graph API response (if enabled) |
+
+## Reading a Specific Email by ID
+
+You can fetch a single email by its Outlook message ID. This is useful when integrating with external platforms that send you message IDs (e.g., via webhook).
+
+**How it works:**
+1. Leave the **Folder** field empty
+2. Enter the message ID in the **Message ID** field (or use a variable like `{{webhook.payload.message_id}}`)
+3. Enable **Include Attachments** if you need attachment data
+4. The tool calls `GET /v1.0/me/messages/{messageId}?$expand=attachments` directly via the Microsoft Graph API
+
+**When Message ID is provided, the Folder setting is ignored.**
+
+### Example: Process Selected Emails from External Platform
+
+```
+[Webhook (receives message_ids[])] → [Loop over IDs] → [Outlook: Read by ID] → [Agent: Process] → [API: Send results back]
+```
+
+**Outlook Read Config:**
+- **Message ID:** `{{loop.currentItem}}`
+- **Include Attachments:** ON
+- **Folder:** _(leave empty)_
+
+**Accessing outputs in downstream blocks:**
+```
+Email body:    {{outlook.content}}
+Subject:       {{outlook.metadata.subject}}
+Sender:        {{outlook.metadata.from}}
+Recipients:    {{outlook.metadata.to}}
+Message ID:    {{outlook.metadata.id}}
+Attachments:   {{outlook.attachments}}
+```
+
+## Example: Automated Report Distribution
+
+**Workflow:**
+```
+[Starter (schedule: weekly Mon 8am)] → [Agent: Generate Report] → [Outlook: Send]
+```
+
+The Agent generates a weekly performance report and Outlook sends it to the team distribution list.
+
+## Tips
+
+- **Microsoft Graph** powers this — same auth works for Teams, OneDrive, SharePoint
+- **HTML body** supported for rich email formatting — read output auto-strips HTML to plain text
+- **Combine with Teams** for a full Microsoft communication stack
+- **Output parity with Gmail** — `content`, `metadata`, and `attachments` fields match the Gmail block structure, making it easy to swap between providers
+- **Rate limits** — Microsoft Graph API has per-app and per-mailbox throttling limits

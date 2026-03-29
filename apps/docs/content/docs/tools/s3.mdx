@@ -1,0 +1,61 @@
+---
+title: AWS S3
+description: Upload, download, and manage files in Amazon S3
+icon: CloudUpload
+---
+
+# AWS S3
+
+Upload, download, list, and manage objects in Amazon S3 buckets. Supports any file type, presigned URLs, and bucket management.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `s3` |
+| **Category** | Tool — Storage |
+| **Auth** | AWS Access Key + Secret |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Upload** | Upload a file to S3 |
+| **Download** | Download a file from S3 |
+| **List Objects** | List files in a bucket/prefix |
+| **Delete** | Remove an object |
+| **Presigned URL** | Generate a temporary download link |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Access Key | Short input | AWS access key ID |
+| Secret Key | Password | AWS secret access key |
+| Region | Short input | AWS region (e.g., `us-east-1`) |
+| Bucket | Short input | S3 bucket name |
+| Key | Short input | Object key (file path) |
+| File | File upload | File to upload |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | `string` | File URL or presigned URL |
+| `content` | `string` | File content or list |
+| `etag` | `string` | Object ETag |
+
+## Example: File Backup Pipeline
+
+**Workflow:**
+```
+[Starter (schedule: nightly)] → [Supabase: Export] → [Function: CSV] → [S3: Upload]
+```
+
+Nightly, export data from Supabase, convert to CSV, and upload to S3 as a timestamped backup file.
+
+## Tips
+
+- **Presigned URLs** are great for sharing — temporary, secure access without exposing credentials
+- **Key structure** — use paths like `backups/2024/03/data.csv` for organization
+- **IAM permissions** — the access key needs `s3:PutObject`, `s3:GetObject`, etc.

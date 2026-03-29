@@ -1,0 +1,65 @@
+---
+title: Workflow Block
+description: Call another workflow as a sub-workflow for modular composition
+icon: Workflow
+---
+
+# Workflow Block
+
+The Workflow block executes another saved workflow as a reusable sub-workflow. This enables modular, composable automation — build complex systems by combining smaller, tested workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `workflow` |
+| **Category** | Core Block |
+| **Color** | `#6366f1` (Indigo) |
+
+## When to Use
+
+- Reuse a workflow across multiple parent workflows
+- Break complex logic into smaller, testable units
+- Call a shared "send notification" or "process data" workflow from multiple places
+- Build layered agent systems (orchestrator → specialist agents)
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Workflow ID | Dropdown | Select from your saved workflows |
+| Input | Long text | Data to pass to the sub-workflow's Starter block |
+| Wait for Completion | Toggle | Wait for sub-workflow to finish (default: true) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `result` | `any` | The sub-workflow's Response block output |
+| `status` | `string` | Execution status (`completed`, `failed`) |
+| `executionTime` | `number` | Duration in milliseconds |
+
+## Example: Orchestrator Pattern
+
+**Goal:** A master workflow routes tasks to specialized sub-workflows.
+
+**Master Workflow:**
+```
+[Starter] → [Router] → [Workflow: Email Handler]     (Route 1)
+                      → [Workflow: Research Agent]    (Route 2)
+                      → [Workflow: Data Analyzer]     (Route 3)
+```
+
+**How it works:**
+1. User sends a request to the master workflow
+2. Router classifies the intent
+3. The appropriate sub-workflow is called with the user's input
+4. Sub-workflow executes its own blocks and returns its Response
+5. Master workflow gets the result in `{{workflow.result}}`
+
+## Tips
+
+- **Test sub-workflows independently** before calling them from parent workflows
+- **Pass structured data** as input for clarity: `{"task": "...", "context": "..."}`
+- **Avoid deep nesting** — 2–3 levels of sub-workflows is manageable; deeper gets hard to debug
+- **Sub-workflows share credentials** from the same workspace

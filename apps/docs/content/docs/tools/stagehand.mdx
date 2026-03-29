@@ -1,0 +1,60 @@
+---
+title: Stagehand
+description: AI-powered browser automation for web interactions
+icon: Monitor
+---
+
+# Stagehand
+
+Stagehand automates browser interactions using AI — click buttons, fill forms, navigate pages, and extract data using natural language instructions instead of CSS selectors.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `stagehand` |
+| **Category** | Tool — Web Scraping |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Navigate** | Go to a URL |
+| **Act** | Perform an action (click, type, scroll) |
+| **Extract** | Extract data from the current page |
+| **Observe** | Analyze the current page state |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Stagehand API key |
+| URL | Short input | Target URL |
+| Instruction | Long text | Natural language instruction |
+| Variables | Table | Dynamic values for instructions |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Action result or extracted data |
+| `screenshot` | `string` | Page screenshot URL |
+| `success` | `boolean` | Whether the action succeeded |
+
+## Example: Automated Form Submission
+
+**Workflow:**
+```
+[Starter: Form data] → [Stagehand: Navigate] → [Stagehand: Act] → [Response]
+```
+
+**Instructions:**
+1. Navigate to `https://example.com/form`
+2. Act: `Fill the "Name" field with "{{starter.input.name}}", fill "Email" with "{{starter.input.email}}", then click the Submit button`
+
+## Tips
+
+- **Natural language** — describe what to do, not how (no CSS selectors needed)
+- **Chain multiple actions** — Navigate → Act → Extract for complex flows
+- **Use for sites without APIs** — automate interactions that have no programmatic interface

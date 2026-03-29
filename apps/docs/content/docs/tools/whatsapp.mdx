@@ -1,0 +1,55 @@
+---
+title: WhatsApp
+description: Send messages via WhatsApp Business API
+icon: Phone
+---
+
+# WhatsApp
+
+Send messages and templates through the WhatsApp Business API (via Meta's Cloud API). Ideal for customer notifications and automated responses.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `whatsapp` |
+| **Category** | Tool — Communication |
+| **Auth** | API Key (Meta Business) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Send Message** | Send a text message |
+| **Send Template** | Send a pre-approved template message |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Meta Cloud API token |
+| Phone Number ID | Short input | Your WhatsApp Business number ID |
+| Recipient | Short input | Target phone number (international format) |
+| Message | Long text | Message body |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `messageId` | `string` | WhatsApp message ID |
+| `status` | `string` | Delivery status |
+
+## Example: Order Confirmation
+
+**Workflow:**
+```
+[Starter (webhook: order placed)] → [Function: Format] → [WhatsApp: Send]
+```
+
+When an order webhook fires, format the order details and send a WhatsApp confirmation to the customer.
+
+## Tips
+
+- **Templates are required** for first-contact messages (Meta policy)
+- **Phone numbers** must include country code: `+1234567890`
+- **Rate limits** apply — check Meta's Business API documentation

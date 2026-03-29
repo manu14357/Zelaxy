@@ -1,0 +1,1070 @@
+/* Zelaxy Design System */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   ZELAXY DESIGN SYSTEM
+   ========================================================================== */
+
+:root {
+  /* System Font */
+  --font-system: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+}
+
+/* Apply system font globally */
+* {
+  font-family: var(--font-system);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Integration Animation Keyframes */
+@keyframes scroll-right {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+/* Workflow Animation Keyframes */
+@keyframes workflow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(249, 115, 22, 0);
+  }
+}
+
+@keyframes workflow-glow {
+  0%,
+  100% {
+    box-shadow: 0 4px 20px rgba(249, 115, 22, 0.3);
+  }
+  50% {
+    box-shadow: 0 8px 30px rgba(249, 115, 22, 0.6);
+  }
+}
+
+@keyframes data-flow {
+  0% {
+    transform: translateX(-100%) scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(0%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%) scale(0);
+    opacity: 0;
+  }
+}
+
+/* Integration Animation Classes */
+.animate-scroll-right {
+  animation: scroll-right 30s linear infinite;
+}
+
+.animate-scroll-left {
+  animation: scroll-left 30s linear infinite;
+}
+
+/* Workflow Animation Classes */
+.animate-workflow-pulse {
+  animation: workflow-pulse 2s ease-in-out infinite;
+}
+
+.animate-workflow-glow {
+  animation: workflow-glow 3s ease-in-out infinite;
+}
+
+.animate-data-flow {
+  animation: data-flow 2s ease-in-out infinite;
+}
+
+/* Pause animation on hover */
+.animate-scroll-right:hover,
+.animate-scroll-left:hover {
+  animation-play-state: paused;
+}
+
+/* Block scroll animations */
+@keyframes scroll-blocks-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+@keyframes scroll-blocks-right {
+  0% {
+    transform: translateX(-33.333%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-scroll-blocks-left {
+  animation: scroll-blocks-left 40s linear infinite;
+}
+
+.animate-scroll-blocks-right {
+  animation: scroll-blocks-right 40s linear infinite;
+}
+
+.animate-scroll-blocks-left:hover,
+.animate-scroll-blocks-right:hover {
+  animation-play-state: paused;
+}
+
+/* Zelaxy blur effects */
+.backdrop-blur-apple {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Zelaxy shadows */
+.shadow-apple {
+  box-shadow:
+    0 4px 16px 0 rgba(0, 0, 0, 0.12),
+    0 4px 20px 0 rgba(0, 0, 0, 0.08);
+}
+
+/* Enhanced gradient animations */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  animation: gradient 3s ease infinite;
+}
+
+.shadow-apple-lg {
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.12),
+    0 8px 40px 0 rgba(0, 0, 0, 0.08);
+}
+
+/* Button hover effects */
+.btn-apple {
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.btn-apple:hover {
+  transform: translateY(-1px);
+}
+
+.btn-apple:active {
+  transform: translateY(0);
+}
+
+/* Zelaxy text gradient - orange accent */
+.text-gradient-apple {
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Apple-style animations */
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-in-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes float-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(249, 115, 22, 0.6);
+  }
+}
+
+/* Zelaxy gradient backgrounds */
+.bg-gradient-apple-blue {
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+}
+
+.bg-gradient-apple-purple {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.bg-gradient-apple-warm {
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+}
+
+/* Glass morphism */
+.glass-apple {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.glass-apple-dark {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Custom utility classes for better spacing */
+.section-padding {
+  padding: 6rem 0;
+}
+
+@media (max-width: 768px) {
+  .section-padding {
+    padding: 4rem 0;
+  }
+}
+
+/* Focus states */
+.focus-apple {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.25);
+}
+
+/* Smooth transitions for all interactive elements */
+button,
+a,
+input,
+textarea {
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ==========================================================================
+   WORKFLOW COMPONENT Z-INDEX FIXES
+   ========================================================================== */
+.workflow-container .react-flow__edges {
+  z-index: 0 !important;
+}
+
+.workflow-container .react-flow__node {
+  z-index: 21 !important;
+}
+
+/* Reset v12 default node styling for custom nodes */
+.workflow-container .react-flow__node-workflowBlock,
+.workflow-container .react-flow__node-loopNode,
+.workflow-container .react-flow__node-parallelNode {
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.workflow-container .react-flow__node-workflowBlock.selectable:focus,
+.workflow-container .react-flow__node-workflowBlock.selectable:focus-visible,
+.workflow-container .react-flow__node-loopNode.selectable:focus,
+.workflow-container .react-flow__node-loopNode.selectable:focus-visible,
+.workflow-container .react-flow__node-parallelNode.selectable:focus,
+.workflow-container .react-flow__node-parallelNode.selectable:focus-visible {
+  box-shadow: none !important;
+}
+
+.workflow-container .react-flow__node-loopNode,
+.workflow-container .react-flow__node-parallelNode {
+  z-index: -1 !important;
+}
+
+/* Reset v12 node-group styles that cause visible rectangles */
+.workflow-container .react-flow__node-group {
+  border: none !important;
+  background-color: transparent !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+
+.workflow-container .react-flow__handle {
+  z-index: 30 !important;
+  pointer-events: auto !important;
+}
+
+.workflow-container .react-flow__edge [data-testid="workflow-edge"] {
+  z-index: 0 !important;
+}
+
+/* Enhanced edge styling with smooth rounded corners */
+.workflow-container .react-flow__edge path {
+  transition:
+    stroke 0.2s ease,
+    stroke-width 0.2s ease,
+    filter 0.2s ease,
+    opacity 0.2s ease;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.workflow-container .react-flow__edge:hover path {
+  stroke-width: 2.5px !important;
+  filter: drop-shadow(0 2px 8px rgba(249, 115, 22, 0.25)) !important;
+}
+
+/* Connection line styling during drag */
+.workflow-container .react-flow__connection-line {
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  filter: drop-shadow(0 2px 6px rgba(249, 115, 22, 0.2)) !important;
+}
+
+.workflow-container .react-flow__connection-line path {
+  stroke-dasharray: 6, 6 !important;
+  animation: connection-dash 0.8s linear infinite !important;
+}
+
+@keyframes connection-dash {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -12;
+  }
+}
+
+/* ==========================================================================
+   REACTFLOW v12 DARK MODE - CUSTOM VARIABLE OVERRIDES
+   ========================================================================== */
+.react-flow.dark {
+  --xy-background-color-default: hsl(var(--workflow-background));
+  --xy-background-pattern-dots-color-default: hsl(var(--workflow-dots));
+  --xy-node-background-color-default: hsl(var(--card-background));
+  --xy-node-border-default: 1px solid hsl(var(--card-border));
+  --xy-node-color-default: hsl(var(--card-text));
+  --xy-node-group-background-color-default: transparent;
+  --xy-node-boxshadow-hover-default: 0 1px 4px 1px rgba(255, 255, 255, 0.06);
+  --xy-node-boxshadow-selected-default: 0 0 0 1px hsl(25 95% 53%);
+  --xy-edge-stroke-default: #4b5563;
+  --xy-edge-stroke-selected-default: #f97316;
+  --xy-connectionline-stroke-default: #f97316;
+  --xy-handle-background-color-default: #9ca3af;
+  --xy-handle-border-color-default: hsl(var(--background));
+  --xy-minimap-background-color-default: rgba(15, 20, 30, 0.8);
+  --xy-minimap-mask-background-color-default: rgba(249, 115, 22, 0.05);
+  --xy-minimap-node-background-color-default: hsl(var(--card-background));
+  --xy-selection-background-color-default: rgba(249, 115, 22, 0.08);
+  --xy-selection-border-default: 1px dotted rgba(249, 115, 22, 0.6);
+}
+
+/* Light mode overrides */
+.react-flow:not(.dark) {
+  --xy-background-color-default: hsl(var(--workflow-background));
+  --xy-background-pattern-dots-color-default: hsl(var(--workflow-dots));
+  --xy-node-background-color-default: hsl(var(--card-background));
+  --xy-node-border-default: 1px solid hsl(var(--card-border));
+  --xy-node-color-default: hsl(var(--card-text));
+  --xy-node-group-background-color-default: transparent;
+  --xy-node-boxshadow-selected-default: 0 0 0 1px hsl(25 95% 53%);
+  --xy-edge-stroke-default: #8b95a8;
+  --xy-edge-stroke-selected-default: #f97316;
+  --xy-connectionline-stroke-default: #f97316;
+  --xy-handle-background-color-default: #94a3b8;
+  --xy-handle-border-color-default: #fff;
+  --xy-selection-background-color-default: rgba(249, 115, 22, 0.06);
+  --xy-selection-border-default: 1px dotted rgba(249, 115, 22, 0.6);
+}
+
+/* Dark mode edge hover */
+.dark .workflow-container .react-flow__edge:hover path {
+  filter: drop-shadow(0 2px 8px rgba(249, 115, 22, 0.35)) !important;
+}
+
+/* Dark mode node group (loop/parallel) */
+.dark .workflow-container .react-flow__node-group {
+  border: none;
+  background-color: transparent;
+}
+
+/* ==========================================================================
+   THEME SYSTEM - CSS CUSTOM PROPERTIES (Zelaxy Orange)
+   ========================================================================== */
+@layer base {
+  /* Light Mode Theme */
+  :root,
+  .light {
+    /* Core Colors */
+    --background: 0 0% 100%;
+    --foreground: 220 13% 9%;
+
+    /* Card Colors */
+    --card: 210 20% 98%;
+    --card-foreground: 220 13% 9%;
+
+    /* Popover Colors */
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 9%;
+
+    /* Primary - Orange */
+    --primary: 25 95% 53%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Light Orange */
+    --secondary: 27 96% 61%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted Colors */
+    --muted: 210 20% 98%;
+    --muted-foreground: 220 9% 46%;
+
+    /* Accent Colors */
+    --accent: 24 94% 95%;
+    --accent-foreground: 25 95% 40%;
+
+    /* Destructive Colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Success */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Border & Input Colors */
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
+    --ring: 25 95% 53%;
+
+    /* Border Radius */
+    --radius: 0.5rem;
+
+    /* Scrollbar Properties */
+    --scrollbar-track: 220 13% 90%;
+    --scrollbar-thumb: 220 9% 72%;
+    --scrollbar-thumb-hover: 220 9% 60%;
+    --scrollbar-size: 8px;
+
+    /* Workflow Properties */
+    --workflow-background: 30 15% 99%;
+    --workflow-dots: 25 40% 45%;
+    --block-border: 25 80% 88%;
+    --block-border-hover: 25 85% 78%;
+    --card-background: 210 20% 98%;
+    --card-border: 220 13% 90%;
+    --card-text: 220 13% 9%;
+    --card-hover: 210 20% 95%;
+
+    /* Base Component Properties */
+    --base-muted-foreground: #6b7280;
+
+    /* Gradient Colors - Orange */
+    --gradient-primary: 25 95% 53%;
+    --gradient-secondary: 27 96% 61%;
+  }
+
+  /* Dark Mode Theme */
+  .dark {
+    /* Core Colors */
+    --background: 0 0% 4%;
+    --foreground: 210 20% 98%;
+
+    /* Card Colors */
+    --card: 217 19% 12%;
+    --card-foreground: 210 20% 98%;
+
+    /* Popover Colors */
+    --popover: 217 19% 12%;
+    --popover-foreground: 210 20% 98%;
+
+    /* Primary - Orange */
+    --primary: 25 95% 53%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Light Orange */
+    --secondary: 27 96% 61%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted Colors */
+    --muted: 217 19% 17%;
+    --muted-foreground: 218 11% 65%;
+
+    /* Accent Colors */
+    --accent: 217 19% 17%;
+    --accent-foreground: 25 95% 60%;
+
+    /* Destructive Colors */
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Success */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Border & Input Colors */
+    --border: 217 19% 22%;
+    --input: 217 19% 22%;
+    --ring: 25 95% 53%;
+
+    /* Scrollbar Properties */
+    --scrollbar-track: 217 19% 17%;
+    --scrollbar-thumb: 217 19% 30%;
+    --scrollbar-thumb-hover: 217 19% 40%;
+
+    /* Workflow Properties */
+    --workflow-background: 220 15% 7%;
+    --workflow-dots: 25 20% 40%;
+    --block-border: 25 60% 25%;
+    --block-border-hover: 25 70% 35%;
+    --card-background: 217 19% 12%;
+    --card-border: 217 19% 22%;
+    --card-text: 210 20% 98%;
+    --card-hover: 217 19% 15%;
+
+    /* Base Component Properties */
+    --base-muted-foreground: #9ca3af;
+
+    /* Gradient Colors - Orange for dark mode */
+    --gradient-primary: 25 95% 58%;
+    --gradient-secondary: 27 96% 66%;
+  }
+}
+
+/* ==========================================================================
+   BASE STYLES
+   ========================================================================== */
+@layer base {
+  * {
+    @apply border-border;
+    overscroll-behavior-x: none;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: none;
+    min-height: 100vh;
+    /* Prevent layout shifts when scrollbar appears/disappears */
+    scrollbar-gutter: stable;
+    /* Improve animation performance */
+    text-rendering: optimizeSpeed;
+  }
+
+  /* Global Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: hsl(var(--scrollbar-track));
+    border-radius: var(--radius);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--scrollbar-thumb));
+    border-radius: var(--radius);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--scrollbar-thumb-hover));
+  }
+
+  /* For Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
+  }
+}
+
+/* ==========================================================================
+   TYPOGRAPHY
+   ========================================================================== */
+.font-geist-sans {
+  font-family: var(--font-geist-sans);
+}
+
+.font-geist-mono {
+  font-family: var(--font-geist-mono);
+}
+
+/* ==========================================================================
+   PANEL STYLES
+   ========================================================================== */
+.panel-tab-base {
+  color: var(--base-muted-foreground);
+}
+
+.panel-tab-active {
+  /* Light Mode Panel Tab Active */
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+
+/* Dark Mode Panel Tab Active */
+.dark .panel-tab-active {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+
+.panel-tab-inactive:hover {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--card-foreground));
+}
+
+/* ==========================================================================
+   DARK MODE OVERRIDES
+   ========================================================================== */
+.dark .error-badge {
+  background-color: hsl(0, 70%, 20%) !important;
+  /* Darker red background for dark mode */
+  color: hsl(0, 0%, 100%) !important;
+  /* Pure white text for better contrast */
+}
+
+.dark .bg-red-500 {
+  @apply bg-red-700;
+}
+
+/* ==========================================================================
+   BROWSER INPUT OVERRIDES
+   ========================================================================== */
+/* Chrome, Safari, Edge, Opera */
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Firefox */
+input[type="search"]::-moz-search-cancel-button {
+  display: none;
+}
+
+/* Microsoft Edge */
+input[type="search"]::-ms-clear {
+  display: none;
+}
+
+/* ==========================================================================
+   LAYOUT UTILITIES
+   ========================================================================== */
+.main-content-overlay {
+  z-index: 40;
+  /* Higher z-index to appear above content */
+}
+
+/* ==========================================================================
+   ANIMATIONS & UTILITIES
+   ========================================================================== */
+@layer utilities {
+  /* Animation Performance */
+  .animation-container {
+    contain: paint layout style;
+    will-change: opacity, transform;
+  }
+
+  /* Scrollbar Utilities */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    /* For Webkit browsers (Chrome, Safari, Edge) */
+    -webkit-scrollbar: none;
+    -webkit-scrollbar-width: none;
+    -webkit-scrollbar-track: transparent;
+    -webkit-scrollbar-thumb: transparent;
+
+    /* For Firefox */
+    scrollbar-width: none;
+    scrollbar-color: transparent transparent;
+
+    /* For Internet Explorer and Edge Legacy */
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+    background: transparent;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar-track {
+    display: none;
+    background: transparent;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar-thumb {
+    display: none;
+    background: transparent;
+  }
+
+  /* Gradient Text Utility - Use with Tailwind gradient directions */
+  .gradient-text {
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Animation Classes */
+  .animate-pulse-ring {
+    animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .transition-ring {
+    transition-property: box-shadow, transform;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
+
+  .animate-orbit {
+    animation: orbit calc(var(--duration, 2) * 1s) linear infinite;
+  }
+
+  .animate-marquee {
+    animation: marquee var(--duration) infinite linear;
+  }
+
+  .animate-marquee-vertical {
+    animation: marquee-vertical var(--duration) linear infinite;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out forwards;
+  }
+
+  /* Special Effects */
+  .streaming-effect {
+    @apply relative overflow-hidden;
+  }
+
+  .streaming-effect::after {
+    content: "";
+    @apply pointer-events-none absolute left-0 top-0 h-full w-full;
+    background: linear-gradient(
+      90deg,
+      rgba(128, 128, 128, 0) 0%,
+      rgba(128, 128, 128, 0.1) 50%,
+      rgba(128, 128, 128, 0) 100%
+    );
+    animation: code-shimmer 1.5s infinite;
+    z-index: 10;
+  }
+
+  .dark .streaming-effect::after {
+    background: linear-gradient(
+      90deg,
+      rgba(180, 180, 180, 0) 0%,
+      rgba(180, 180, 180, 0.1) 50%,
+      rgba(180, 180, 180, 0) 100%
+    );
+  }
+
+  .loading-placeholder::placeholder {
+    animation: placeholder-pulse 1.5s ease-in-out infinite;
+  }
+
+  /* ==========================================================================
+     KEYFRAME ANIMATIONS
+     ========================================================================== */
+  @keyframes pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 hsl(var(--border));
+    }
+
+    50% {
+      box-shadow: 0 0 0 8px hsl(var(--border));
+    }
+
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--border));
+    }
+  }
+
+  @keyframes code-shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes orbit {
+    0% {
+      transform: rotate(calc(var(--angle) * 1deg)) translateY(calc(var(--radius) * 1px))
+        rotate(calc(var(--angle) * -1deg));
+    }
+
+    100% {
+      transform: rotate(calc(var(--angle) * 1deg + 360deg)) translateY(calc(var(--radius) * 1px))
+        rotate(calc((var(--angle) * -1deg) - 360deg));
+    }
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+
+    to {
+      transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+
+  @keyframes marquee-vertical {
+    from {
+      transform: translateY(0);
+    }
+
+    to {
+      transform: translateY(calc(-100% - var(--gap)));
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes placeholder-pulse {
+    0%,
+    100% {
+      opacity: 0.5;
+    }
+
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+/* ==========================================================================
+   ZELAXY DESIGN SYSTEM — SURFACES & TEXT HIERARCHY
+   ========================================================================== */
+@layer base {
+  :root {
+    /* Border System */
+    --border-subtle: 220 13% 92%;
+    --border-medium: 220 13% 85%;
+    --border-strong: 220 13% 75%;
+
+    /* Surfaces */
+    --surface-primary: 0 0% 100%;
+    --surface-secondary: 210 20% 98%;
+    --surface-tertiary: 210 20% 95%;
+
+    /* Text Hierarchy */
+    --text-primary: 220 13% 9%;
+    --text-secondary: 220 9% 30%;
+    --text-tertiary: 220 9% 46%;
+    --text-quaternary: 220 9% 60%;
+
+    /* Spacing System */
+    --spacing-xs: 2px;
+    --spacing-sm: 4px;
+    --spacing-md: 8px;
+    --spacing-lg: 12px;
+    --spacing-xl: 16px;
+    --spacing-2xl: 24px;
+    --spacing-3xl: 32px;
+  }
+
+  .dark {
+    /* Dark Mode Borders */
+    --border-subtle: 217 19% 20%;
+    --border-medium: 217 19% 25%;
+    --border-strong: 217 19% 35%;
+
+    /* Dark Mode Surfaces */
+    --surface-primary: 0 0% 4%;
+    --surface-secondary: 217 19% 12%;
+    --surface-tertiary: 217 19% 17%;
+
+    /* Dark Mode Text */
+    --text-primary: 210 20% 98%;
+    --text-secondary: 218 11% 85%;
+    --text-tertiary: 218 11% 65%;
+    --text-quaternary: 218 11% 45%;
+  }
+}
+
+/* ==========================================================================
+   ZELAXY UTILITIES
+   ========================================================================== */
+@layer utilities {
+  /* Border Utilities */
+  .border-apple-subtle {
+    border-color: hsl(var(--border-subtle));
+  }
+
+  .border-apple-medium {
+    border-color: hsl(var(--border-medium));
+  }
+
+  .border-apple-strong {
+    border-color: hsl(var(--border-strong));
+  }
+
+  /* Surface Utilities */
+  .bg-surface-primary {
+    background-color: hsl(var(--surface-primary));
+  }
+
+  .bg-surface-secondary {
+    background-color: hsl(var(--surface-secondary));
+  }
+
+  .bg-surface-tertiary {
+    background-color: hsl(var(--surface-tertiary));
+  }
+
+  /* Text Utilities */
+  .text-apple-primary {
+    color: hsl(var(--text-primary));
+  }
+
+  .text-apple-secondary {
+    color: hsl(var(--text-secondary));
+  }
+
+  .text-apple-tertiary {
+    color: hsl(var(--text-tertiary));
+  }
+
+  .text-apple-quaternary {
+    color: hsl(var(--text-quaternary));
+  }
+
+  /* Blur Effects */
+  .backdrop-blur-apple {
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+  }
+
+  /* Transitions */
+  .transition-apple {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .transition-apple-slow {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}

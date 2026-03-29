@@ -1,0 +1,116 @@
+/* ═══════════════════════════════════════════════════
+   Zelaxy Logs — Enhanced Timeline UI
+   ═══════════════════════════════════════════════════ */
+
+/* ── Animations ── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes livePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes liveGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-16px);
+    opacity: 0;
+  }
+}
+
+/* ── Log Cards ── */
+.log-card {
+  animation: fadeInUp 0.3s ease-out both;
+}
+
+/* ── Custom Scrollbar ── */
+.logs-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.logs-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.logs-container::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.15);
+  border-radius: 100px;
+}
+
+.logs-container::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.25);
+}
+
+/* ── Filter Panel ── */
+.filter-panel {
+  animation: slideInLeft 0.2s ease-out;
+}
+
+.filter-panel.closing {
+  animation: slideOutLeft 0.2s ease-out;
+}
+
+/* ── Dark Mode ── */
+@media (prefers-color-scheme: dark) {
+  .logs-container::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+  }
+
+  .logs-container::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+  }
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .log-card {
+    animation-delay: 0ms !important;
+  }
+}

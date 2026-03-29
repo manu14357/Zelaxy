@@ -1,0 +1,55 @@
+---
+title: Browser Use
+description: Programmatic browser control for automation tasks
+icon: Chrome
+---
+
+# Browser Use
+
+Browser Use provides programmatic browser control for web automation. Execute browser actions, capture screenshots, and interact with web applications in automated workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `browser_use` |
+| **Category** | Tool — Web Scraping |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Execute Task** | Run a browser automation task |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Browser Use API key |
+| Task | Long text | Browser task description |
+| URL | Short input | Starting URL |
+| Max Steps | Slider | Maximum actions allowed |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Task results |
+| `screenshots` | `json` | Captured screenshots |
+| `success` | `boolean` | Completion status |
+
+## Example: E2E Testing
+
+**Workflow:**
+```
+[Starter: Test scenario] → [Browser Use] → [Condition: Passed?] → [Slack: Report]
+```
+
+Describe a test scenario in natural language: "Go to our app, login with test credentials, create a new project, and verify it appears in the project list." Browser Use executes it and reports pass/fail.
+
+## Tips
+
+- **Good for testing** — describe test scenarios in plain English
+- **Screenshots** help with debugging failed automations
+- **Combine with Agent** for intelligent error handling

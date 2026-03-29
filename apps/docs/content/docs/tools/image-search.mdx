@@ -1,0 +1,54 @@
+---
+title: Image Search
+description: Search for images across the web
+icon: ScanSearch
+---
+
+# Image Search
+
+Search for images across the web and return URLs, thumbnails, and metadata. Useful for content creation, visual research, and image-based workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `image_search` |
+| **Category** | Tool — AI & ML |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Search** | Search for images by query |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Search API key |
+| Query | Short input | Image search query |
+| Max Results | Slider | Number of images (1–20) |
+| Size | Dropdown | Small, Medium, Large |
+| Safe Search | Toggle | Filter explicit content |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `images` | `json` | Array of image objects with URLs |
+| `content` | `string` | Image URLs and metadata |
+
+## Example: Content Illustration
+
+**Workflow:**
+```
+[Starter: Blog topic] → [Agent: Write Post] → [Image Search] → [Response: Post + Images]
+```
+
+Agent writes a blog post, Image Search finds relevant illustrations, Response combines text with images.
+
+## Tips
+
+- **Safe Search** — always enable for production workflows
+- **Use with Vision block** — search for images then analyze them with AI

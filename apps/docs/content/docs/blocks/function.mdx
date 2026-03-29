@@ -1,0 +1,92 @@
+---
+title: Function Block
+description: Execute custom JavaScript code for data transformation and logic
+icon: Code
+---
+
+# Function Block
+
+The Function block lets you run custom JavaScript code inside your workflow. Use it for data transformation, formatting, calculations, API response parsing, or any logic that doesn't need a dedicated block.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `function` |
+| **Category** | Core Block |
+| **Color** | `#7C3AED` (Purple) |
+
+## When to Use
+
+- Transform or reshape data between blocks
+- Parse JSON, extract fields, or format strings
+- Perform calculations or date math
+- Filter arrays or aggregate data
+- Build custom logic not covered by other blocks
+
+## Configuration
+
+### Code Editor
+Write JavaScript that processes inputs and returns results. Access block outputs via the `inputs` parameter.
+
+```javascript
+// Access previous block outputs
+const data = inputs.agent.content;
+const parsed = JSON.parse(data);
+
+// Transform and return
+return {
+  names: parsed.users.map(u => u.name),
+  count: parsed.users.length,
+  timestamp: new Date().toISOString()
+};
+```
+
+### Inputs Table
+Define named inputs that map to other block outputs. Each input has:
+- **Name** — Variable name accessible in your code
+- **Value** — Block reference (e.g., `{{agent.content}}`)
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `result` | `any` | Whatever your function returns |
+
+## Example: Format API Response
+
+**Goal:** Extract and reshape JSON from an API call.
+
+**Workflow:**
+```
+[Starter] → [API Block] → [Function] → [Slack]
+```
+
+**Inputs:**
+| Name | Value |
+|------|-------|
+| apiResult | `{{api.response}}` |
+
+**Code:**
+```javascript
+const data = JSON.parse(inputs.apiResult);
+
+// Extract just what Slack needs
+const summary = data.results.map(item => {
+  return `• ${item.title} — $${item.price}`;
+}).join('\n');
+
+return {
+  message: `Found ${data.results.length} items:\n${summary}`,
+  total: data.results.reduce((sum, item) => sum + item.price, 0)
+};
+```
+
+**Slack message uses:** `{{function.result.message}}`
+
+## Tips
+
+- **Always `JSON.parse()`** when receiving string-encoded JSON from Agent or API blocks
+- **Return an object** with named fields for easy downstream access (`{{function.result.fieldName}}`)
+- **Use for data cleanup** — trim strings, fix casing, merge arrays, etc.
+- **Debug with `console.log()`** — output appears in execution logs

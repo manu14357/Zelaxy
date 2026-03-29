@@ -1,0 +1,64 @@
+---
+title: Pinecone
+description: Store and search vector embeddings in Pinecone
+icon: TreePine
+---
+
+# Pinecone
+
+Store, search, and manage vector embeddings in Pinecone — the leading managed vector database. Ideal for building semantic search, recommendation systems, and RAG pipelines.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `pinecone` |
+| **Category** | Tool — Vector Database |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Upsert** | Insert or update vectors |
+| **Query** | Search for similar vectors |
+| **Delete** | Remove vectors by ID |
+| **List** | List vectors in a namespace |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Pinecone API key |
+| Environment | Short input | Pinecone environment |
+| Index | Short input | Index name |
+| Namespace | Short input | Namespace for isolation |
+| Top K | Slider | Number of results (1–100) |
+| Vector | Code editor | Query vector (JSON array) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `matches` | `json` | Similar vectors with scores |
+| `content` | `string` | Match results |
+
+## Example: Custom RAG System
+
+**Workflow (Indexing):**
+```
+[Starter: Document] → [Function: Chunk] → [OpenAI: Embed] → [Pinecone: Upsert]
+```
+
+**Workflow (Querying):**
+```
+[Starter: Question] → [OpenAI: Embed] → [Pinecone: Query] → [Agent: Answer] → [Response]
+```
+
+Embed documents into Pinecone, then query similar chunks when answering questions — a full custom RAG pipeline.
+
+## Tips
+
+- **Namespaces** isolate data — use per-user or per-collection namespaces
+- **OpenAI embeddings** (1536 dimensions) are the most common pairing
+- **Top K = 5–10** usually provides enough context without overwhelming the LLM

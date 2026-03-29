@@ -1,0 +1,58 @@
+---
+title: X (Twitter)
+description: Post tweets, search, and interact on X (Twitter)
+icon: AtSign
+---
+
+# X (Twitter)
+
+Post tweets, search for content, read timelines, and interact with the X (formerly Twitter) platform. Supports both posting and monitoring use cases.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `x` |
+| **Category** | Tool — Social Media |
+| **Auth** | OAuth 2.0 |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Post Tweet** | Publish a new tweet |
+| **Search** | Search tweets by query |
+| **Get Timeline** | Read user timeline |
+| **Get User** | Get user profile info |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| X Account | OAuth | Connect X account |
+| Tweet Content | Long text | Tweet text (max 280 chars) |
+| Search Query | Short input | Search keywords |
+| Max Results | Slider | Number of results |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tweetId` | `string` | Posted tweet ID |
+| `content` | `string` | Tweet text or search results |
+| `tweets` | `json` | Array of tweet objects |
+
+## Example: Social Media Monitor
+
+**Workflow:**
+```
+[Starter (schedule: every 30min)] → [X: Search] → [Agent: Analyze] → [Slack: Alert]
+```
+
+Monitor brand mentions every 30 minutes. Agent analyzes sentiment. If negative mentions are found, alert the marketing team on Slack.
+
+## Tips
+
+- **280 character limit** — Agent can help craft concise tweets
+- **Search operators** — `from:user`, `#hashtag`, `-filter:retweets`
+- **Rate limits** — X API has strict rate limits; schedule accordingly

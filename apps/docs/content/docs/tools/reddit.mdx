@@ -1,0 +1,58 @@
+---
+title: Reddit
+description: Search and read posts from Reddit
+icon: MessageSquareMore
+---
+
+# Reddit
+
+Search Reddit posts, read subreddits, and retrieve comments. Useful for social listening, research, and community monitoring.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `reddit` |
+| **Category** | Tool — Social Media |
+| **Auth** | API Key (Client ID + Secret) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Search** | Search posts across Reddit |
+| **Get Subreddit** | Get posts from a specific subreddit |
+| **Get Comments** | Get comments on a post |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Client ID | Short input | Reddit app client ID |
+| Client Secret | Password | Reddit app client secret |
+| Query | Short input | Search query |
+| Subreddit | Short input | Subreddit name (without r/) |
+| Sort | Dropdown | Hot, New, Top, Rising |
+| Limit | Slider | Number of posts (1–100) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `posts` | `json` | Array of post objects |
+| `content` | `string` | Formatted results |
+
+## Example: Market Research from Reddit
+
+**Workflow:**
+```
+[Starter: Product name] → [Reddit: Search] → [Agent: Analyze Sentiment] → [Response]
+```
+
+Search Reddit for discussions about a product. Agent reads the posts and provides sentiment analysis, common complaints, and feature requests.
+
+## Tips
+
+- **Subreddit-specific search** — `r/technology`, `r/startups`, etc.
+- **Sort by Top** for highest-quality discussions
+- **Great for product research** — Reddit has honest, unfiltered opinions

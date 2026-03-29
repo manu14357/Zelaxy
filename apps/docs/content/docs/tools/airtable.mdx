@@ -1,0 +1,60 @@
+---
+title: Airtable
+description: Read, create, and update records in Airtable bases
+icon: Table
+---
+
+# Airtable
+
+Read, create, and update records in Airtable databases. Supports filtering, sorting, and working with attachments and linked records.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `airtable` |
+| **Category** | Tool — Project Management |
+| **Auth** | API Key (Personal Access Token) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **List Records** | Get records from a table with filters |
+| **Create Record** | Add a new record |
+| **Update Record** | Modify existing record fields |
+| **List Bases** | Get all accessible bases |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Airtable personal access token |
+| Base | Dropdown | Select an Airtable base |
+| Table | Dropdown | Select a table |
+| Fields | Table | Key-value field data |
+| Filter Formula | Short input | Airtable formula filter |
+| Max Records | Slider | Records to return (1–100) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `records` | `json` | Array of record objects |
+| `recordId` | `string` | Created/updated record ID |
+| `content` | `string` | Response data |
+
+## Example: CRM Data Pipeline
+
+**Workflow:**
+```
+[Starter: Customer email] → [Agent: Extract Info] → [Airtable: Create Record]
+```
+
+Receive a customer inquiry email, Agent extracts name, company, and request type, then creates a new record in the Airtable CRM base.
+
+## Tips
+
+- **Filter formula** uses Airtable's formula syntax: `{Status} = 'Active'`
+- **Field names** must match exactly (case-sensitive) — check your table
+- **Linked records** need record IDs, not display values

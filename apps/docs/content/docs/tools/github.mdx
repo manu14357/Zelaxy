@@ -1,0 +1,79 @@
+---
+title: GitHub
+description: Manage repositories, issues, and pull requests on GitHub
+icon: Github
+---
+
+# GitHub
+
+Full GitHub integration — manage repos, create issues, open pull requests, search code, and interact with the GitHub API. Supports OAuth and personal access tokens.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `github` |
+| **Category** | Tool — Developer |
+| **Auth** | OAuth 2.0 / Personal Access Token |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Create Issue** | Open a new issue |
+| **List Issues** | Get issues for a repo |
+| **Create PR** | Open a pull request |
+| **Search Code** | Search code across repos |
+| **Get Repository** | Get repo metadata |
+| **List Repos** | List your repositories |
+| **Create Comment** | Comment on issue/PR |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| GitHub Account | OAuth | Connect GitHub |
+| Repository | Short input | `owner/repo` format |
+| Title | Short input | Issue/PR title |
+| Body | Long text | Description (Markdown) |
+| Labels | Short input | Comma-separated labels |
+| Branch | Short input | Branch name for PRs |
+| Query | Short input | Search query |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Response data |
+| `number` | `number` | Issue/PR number |
+| `url` | `string` | Direct link |
+| `data` | `json` | Full API response |
+
+## Example: Auto Issue from Error Logs
+
+**Workflow:**
+```
+[Starter (webhook: error monitor)] → [Agent: Analyze] → [GitHub: Create Issue]
+```
+
+**GitHub Config:**
+- **Repo:** `myorg/backend`
+- **Title:** `[Auto] {{agent.content.title}}`
+- **Labels:** `bug, auto-created`
+- **Body:**
+
+```text
+## Error Analysis
+
+{{agent.content.analysis}}
+
+## Stack Trace
+
+{{starter.input.stack}}
+```
+
+## Tips
+
+- **Search code** is powerful for finding usage patterns across repos
+- **PAT tokens** are simpler for personal automation; **OAuth** for team apps
+- **Markdown** in issues/PRs — use code blocks, task lists, and mentions

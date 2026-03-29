@@ -1,0 +1,280 @@
+---
+title: Generic Webhook Trigger
+description: Universal HTTP endpoint for any service or custom integration
+icon: Webhook
+---
+
+# Generic Webhook Trigger
+
+The Generic Webhook is a universal HTTP endpoint that accepts POST requests from any source. Unlike service-specific webhooks, it has no provider-specific validation — making it flexible for custom integrations.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `generic_webhook` |
+| **Category** | Trigger |
+
+## When to Use
+
+- Integrate with services not covered by built-in webhooks
+- Receive data from custom applications or scripts
+- Build API endpoints that trigger workflows
+- Connect IoT devices, monitoring tools, or internal services
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Authentication | Dropdown | None, API Key, Bearer Token |
+| Secret Key | Password | Shared secret for validation |
+| Accept Methods | Checkbox list | HTTP methods to accept (POST, PUT) |
+
+## How It Works
+
+1. Activate the workflow — a unique webhook URL is generated
+2. Copy the URL and register it in your external service or script
+3. Send HTTP POST requests to that URL with a JSON body
+4. The webhook block receives the request and makes the data available to downstream blocks
+5. Access the full request body via `{{Webhook 1.webhook.data.payload}}`
+6. Access specific fields via `{{Webhook 1.webhook.data.payload.fieldName}}`
+
+---
+
+## Internal Data Structure
+
+When a generic webhook receives an HTTP request, the data is stored in a structured format inside the webhook block's output. Understanding this structure is key to correctly referencing data in downstream blocks.
+
+```json
+{
+  "input": "",
+  "webhook": {
+    "data": {
+      "path": "your-webhook-path-id",
+      "provider": "generic",
+      "providerConfig": {},
+      "payload": {
+        // ← This is the raw HTTP body you sent
+      },
+      "headers": {
+        "content-type": "application/json",
+        "user-agent": "...",
+        // ← All HTTP request headers
+      },
+      "method": "POST"
+    }
+  },
+  "workflowId": "workflow-uuid"
+}
+```
+
+### Key Paths
+
+| Path | Type | Description |
+|------|------|-------------|
+| `webhook.data.payload` | json | **Complete HTTP request body** — this is the data you sent |
+| `webhook.data.headers` | json | HTTP request headers object |
+| `webhook.data.method` | string | HTTP method (`POST`, `PUT`, etc.) |
+| `webhook.data.path` | string | The webhook path identifier |
+| `webhook.data.provider` | string | Always `"generic"` for generic webhooks |
+| `webhook.data.providerConfig` | json | Webhook configuration metadata |
+
+---
+
+## Accessing Data in Downstream Blocks
+
+Use the `{{BlockName.path.to.field}}` syntax to reference webhook data in any connected downstream block. The block name is the label shown on the canvas (default: **Webhook 1**).
+
+> **Name normalization:** Block names are **case-insensitive** and **spaces are removed**. So `{{Webhook 1.field}}`, `{{webhook1.field}}`, and `{{WEBHOOK1.field}}` all resolve to the same block.
+
+### Reference Syntax
+
+```
+{{Webhook 1.webhook.data.payload}}                      → Full request body (JSON object)
+{{Webhook 1.webhook.data.payload.fieldName}}             → Top-level field from body
+{{Webhook 1.webhook.data.payload.nested.deep.field}}     → Deeply nested field from body
+{{Webhook 1.webhook.data.headers}}                       → All HTTP headers
+{{Webhook 1.webhook.data.method}}                        → HTTP method string
+```
+
+### Example: Simple JSON Body
+
+If an external service sends this POST request:
+
+```json
+{
+  "event": "order.placed",
+  "id": "ord_98765",
+  "amount": 49.99,
+  "customer": {
+    "name": "Jane Doe",
+    "email": "jane@example.com"
+  }
+}
+```
+
+You reference the data as:
+
+| Reference | Resolves To |
+|-----------|-------------|
+| `{{Webhook 1.webhook.data.payload}}` | The entire JSON object above |
+| `{{Webhook 1.webhook.data.payload.event}}` | `"order.placed"` |
+| `{{Webhook 1.webhook.data.payload.id}}` | `"ord_98765"` |
+| `{{Webhook 1.webhook.data.payload.amount}}` | `49.99` |
+| `{{Webhook 1.webhook.data.payload.customer.name}}` | `"Jane Doe"` |
+| `{{Webhook 1.webhook.data.payload.customer.email}}` | `"jane@example.com"` |
+| `{{Webhook 1.webhook.data.method}}` | `"POST"` |
+
+### Example: Nested Payload with `data` Wrapper
+
+Many services wrap their event data inside a `data` object. For example, a messaging platform might send:
+
+```json
+{
+  "event": "message.received",
+  "data": {
+    "provider_message_id": "msg_abc123",
+    "sender": "+1234567890",
+    "content": "Hello world",
+    "metadata": {
+      "channel": "sms",
+      "timestamp": "2025-01-15T10:30:00Z"
+    }
+  }
+}
+```
+
+You reference the data as:
+
+| Reference | Resolves To |
+|-----------|-------------|
+| `{{Webhook 1.webhook.data.payload.event}}` | `"message.received"` |
+| `{{Webhook 1.webhook.data.payload.data.provider_message_id}}` | `"msg_abc123"` |
+| `{{Webhook 1.webhook.data.payload.data.sender}}` | `"+1234567890"` |
+| `{{Webhook 1.webhook.data.payload.data.content}}` | `"Hello world"` |
+| `{{Webhook 1.webhook.data.payload.data.metadata.channel}}` | `"sms"` |
+| `{{Webhook 1.webhook.data.payload.data.metadata.timestamp}}` | `"2025-01-15T10:30:00Z"` |
+
+### Example: Array Access
+
+If the payload includes arrays, use bracket notation to access specific elements:
+
+```json
+{
+  "items": [
+    { "name": "Widget A", "price": 10 },
+    { "name": "Widget B", "price": 20 }
+  ]
+}
+```
+
+| Reference | Resolves To |
+|-----------|-------------|
+| `{{Webhook 1.webhook.data.payload.items[0].name}}` | `"Widget A"` |
+| `{{Webhook 1.webhook.data.payload.items[1].price}}` | `20` |
+
+### Accessing Headers
+
+HTTP request headers are available as a flat object:
+
+| Reference | Example Value |
+|-----------|---------------|
+| `{{Webhook 1.webhook.data.headers.content-type}}` | `"application/json"` |
+| `{{Webhook 1.webhook.data.headers.user-agent}}` | `"MyApp/1.0"` |
+| `{{Webhook 1.webhook.data.headers.x-custom-header}}` | Your custom header value |
+
+---
+
+## Using Webhook Data in Different Block Types
+
+### In an Agent / AI Block
+
+Pass the full payload or specific fields as context:
+
+```
+Process this webhook event: {{Webhook 1.webhook.data.payload}}
+The message content is: {{Webhook 1.webhook.data.payload.data.content}}
+```
+
+### In a Function Block
+
+Access webhook data inside JavaScript code:
+
+```javascript
+const payload = {{Webhook 1.webhook.data.payload}};
+const messageId = payload.data.provider_message_id;
+const sender = payload.data.sender;
+
+return { messageId, sender, processed: true };
+```
+
+### In a Condition Block
+
+Use webhook fields in conditions to route the workflow:
+
+- **Value:** `{{Webhook 1.webhook.data.payload.event}}`
+- **Operator:** `equals`
+- **Compare to:** `order.placed`
+
+### In an API Block
+
+Forward webhook data to another API:
+
+```json
+{
+  "event": "{{Webhook 1.webhook.data.payload.event}}",
+  "message_id": "{{Webhook 1.webhook.data.payload.data.provider_message_id}}",
+  "forwarded_at": "{{Webhook 1.webhook.data.payload.data.metadata.timestamp}}"
+}
+```
+
+---
+
+## Example: IoT Data Pipeline
+
+**Workflow:**
+```
+[Webhook 1 (generic webhook)] → [Function: Parse Sensor Data] → [Supabase: Store] → [Condition: Alert?] → [Slack]
+```
+
+IoT sensors send readings via HTTP. Function parses the payload, Supabase stores the data, and if readings exceed thresholds, Slack gets an alert.
+
+**Sensor POST:**
+```json
+{
+  "device_id": "sensor-42",
+  "temperature": 85.5,
+  "humidity": 62,
+  "timestamp": "2024-03-15T14:30:00Z"
+}
+```
+
+**Accessing in downstream blocks:**
+- `{{Webhook 1.webhook.data.payload.device_id}}` → `"sensor-42"`
+- `{{Webhook 1.webhook.data.payload.temperature}}` → `85.5`
+- `{{Webhook 1.webhook.data.payload.humidity}}` → `62`
+
+---
+
+## Quick Reference
+
+| What you want | Reference |
+|---------------|-----------|
+| Full HTTP body | `{{Webhook 1.webhook.data.payload}}` |
+| Top-level field | `{{Webhook 1.webhook.data.payload.fieldName}}` |
+| Nested field | `{{Webhook 1.webhook.data.payload.parent.child}}` |
+| Deeply nested field | `{{Webhook 1.webhook.data.payload.a.b.c.d}}` |
+| Array element | `{{Webhook 1.webhook.data.payload.items[0]}}` |
+| Array element field | `{{Webhook 1.webhook.data.payload.items[0].name}}` |
+| HTTP headers | `{{Webhook 1.webhook.data.headers}}` |
+| Specific header | `{{Webhook 1.webhook.data.headers.x-custom}}` |
+| HTTP method | `{{Webhook 1.webhook.data.method}}` |
+
+## Tips
+
+- **No signature validation** by default — add API key authentication for security
+- **Works with anything** that can send HTTP — scripts, apps, no-code tools, IoT devices
+- **Parse the body** in a Function block if the structure varies between senders
+- **Block name matters** — if you rename the webhook block (e.g., to "Order Hook"), update references to `{{Order Hook.webhook.data.payload.field}}`
+- **Use a Function block to reshape** — if the nested path is long, use a Function block to extract and flatten the data for simpler references downstream
+- **Test with curl:** `curl -X POST https://your-webhook-url -H "Content-Type: application/json" -d '{"test": true}'`

@@ -1,0 +1,20 @@
+.bottomPanel {
+  left: var(--panel-left);
+  top: var(--panel-top);
+  width: var(--panel-width);
+  height: var(--panel-height);
+}
+
+.bottomPanelContent {
+  height: var(--content-height);
+  flex: 1;
+  overflow: hidden;
+  padding: 0.625rem; /* 10px padding on all sides for better spacing */
+  background: transparent;
+}
+
+/* Ensure console and variables components fit properly */
+.bottomPanelContent > * {
+  height: 100%;
+  border-radius: 0.375rem; /* 6px border radius for inner content */
+}

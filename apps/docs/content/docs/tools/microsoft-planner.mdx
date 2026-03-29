@@ -1,0 +1,59 @@
+---
+title: Microsoft Planner
+description: Create and manage tasks in Microsoft Planner
+icon: ClipboardList
+---
+
+# Microsoft Planner
+
+Create tasks, list plans, and manage assignments in Microsoft Planner. Part of the Microsoft 365 productivity suite, accessible via Microsoft Graph API.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `microsoft_planner` |
+| **Category** | Tool — Project Management |
+| **Auth** | OAuth 2.0 (Microsoft) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Create Task** | Create a new task in a plan |
+| **List Tasks** | Get all tasks in a plan |
+| **Update Task** | Modify task details |
+| **List Plans** | Get all plans in a group |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Microsoft Account | OAuth | Connect Microsoft 365 |
+| Plan | Dropdown | Select a planner plan |
+| Bucket | Dropdown | Task bucket/column |
+| Title | Short input | Task title |
+| Description | Long text | Task notes |
+| Due Date | Short input | Due date (ISO format) |
+| Assigned To | Short input | User email |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `taskId` | `string` | Created task ID |
+| `content` | `string` | Task or list data |
+
+## Example: Sprint Task Creation
+
+**Workflow:**
+```
+[Starter: Sprint goals] → [Agent: Break into tasks] → [Loop] → [Planner: Create Task]
+```
+
+Input sprint goals, Agent breaks them into individual tasks with descriptions and priorities, Loop creates each task in the Sprint board bucket.
+
+## Tips
+
+- **Buckets** are columns in the Planner board — organize tasks by category or phase
+- **Combine with Teams** — Planner tasks appear in Teams' Tasks tab

@@ -1,0 +1,79 @@
+---
+title: Knowledge Block
+description: Query your knowledge base using RAG for context-aware AI responses
+icon: BookOpen
+---
+
+# Knowledge Block
+
+The Knowledge block performs Retrieval-Augmented Generation (RAG) — it searches your uploaded documents, PDFs, websites, and data using vector similarity and feeds the most relevant chunks to an AI agent. This grounds AI responses in your actual data, reducing hallucinations.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `knowledge` |
+| **Category** | Core Block |
+| **Color** | `#06B6D4` (Cyan) |
+
+## When to Use
+
+- Build Q&A systems over your own documents
+- Ground AI responses in company-specific data
+- Search uploaded PDFs, websites, or databases
+- Create domain-specific chatbots with accurate answers
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Knowledge Base | Dropdown | Select from your uploaded knowledge bases |
+| Search Query | Long text | What to search for: `{{starter.input}}` |
+| Top K Results | Slider | Number of chunks to retrieve (1–20) |
+| Similarity Threshold | Slider | Minimum relevance score (0–1) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Retrieved text chunks combined |
+| `results` | `json` | Array of matched chunks with metadata and scores |
+| `sources` | `json` | Source document references |
+
+## Example: Company FAQ Bot
+
+**Goal:** Answer questions using your company's documentation.
+
+**Workflow:**
+```
+[Starter] → [Knowledge] → [Agent] → [Response]
+```
+
+**Configuration:**
+- **Knowledge Base:** "Company Handbook" (uploaded PDF)
+- **Search Query:** `{{starter.input}}`
+- **Top K:** `5`
+- **Similarity Threshold:** `0.7`
+
+**Agent System Prompt:**
+```
+Answer the user's question using ONLY the provided context. If the context
+doesn't contain the answer, say "I don't have that information."
+
+Context:
+{{knowledge.content}}
+```
+
+**How it works:**
+1. User asks "What is the PTO policy?"
+2. Knowledge block searches the handbook using vector similarity
+3. Top 5 relevant chunks are retrieved
+4. Agent reads the chunks and generates an accurate answer
+5. Sources are cited for transparency
+
+## Tips
+
+- **Upload diverse sources** — PDFs, websites, text files all get embedded and indexed
+- **Set threshold to 0.7+** for high-quality matches; lower for broader recall
+- **Top K = 3–5** is usually enough; more chunks = more context tokens = higher cost
+- **Always pair with an Agent** — the Knowledge block retrieves, the Agent reasons

@@ -1,0 +1,66 @@
+---
+title: Firecrawl
+description: Crawl, scrape, and extract structured data from websites
+icon: Bug
+---
+
+# Firecrawl
+
+Firecrawl crawls websites and extracts clean, structured content. It handles JavaScript rendering, pagination, and complex site structures — returning clean markdown or structured data.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `firecrawl` |
+| **Category** | Tool — Web Scraping |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Scrape** | Extract content from a single page |
+| **Crawl** | Crawl multiple pages from a starting URL |
+| **Map** | Get a sitemap of all discoverable URLs |
+| **Extract** | Extract structured data using a schema |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Firecrawl API key |
+| URL | Short input | Target URL to scrape or crawl |
+| Formats | Checkbox list | `markdown`, `html`, `links`, `screenshot` |
+| Max Pages | Slider | Maximum pages to crawl (1–100) |
+| Only Main Content | Toggle | Exclude headers, footers, sidebars |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Extracted content (markdown) |
+| `pages` | `json` | Array of crawled page objects |
+| `metadata` | `json` | Page metadata (title, description) |
+
+## Example: Competitive Intelligence
+
+**Workflow:**
+```
+[Starter: Competitor URL] → [Firecrawl: Crawl] → [Agent: Analyze] → [Notion: Save]
+```
+
+Crawl a competitor's website (landing pages, pricing, features), then have an Agent analyze the content and save a competitive analysis report to Notion.
+
+**Firecrawl Config:**
+- **URL:** `{{starter.input}}`
+- **Max Pages:** `20`
+- **Only Main Content:** ✅
+- **Formats:** `markdown`
+
+## Tips
+
+- **Scrape vs Crawl** — Scrape for one page, Crawl for multiple pages from a site
+- **Markdown format** is best for AI processing — clean text without HTML noise
+- **Only Main Content** removes navigation, ads, and boilerplate
+- **Extract mode** — define a JSON schema to get structured data from pages

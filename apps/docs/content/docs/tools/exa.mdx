@@ -1,0 +1,56 @@
+---
+title: Exa
+description: Neural search engine for finding similar content
+icon: Sparkles
+---
+
+# Exa
+
+Exa is a neural search engine that finds content semantically similar to your query. Unlike keyword search, it understands meaning — ideal for finding similar articles, research papers, and content.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `exa` |
+| **Category** | Tool — Search |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Search** | Semantic content search |
+| **Find Similar** | Find pages similar to a URL |
+| **Get Contents** | Retrieve full content of URLs |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Exa API key |
+| Query | Short input | Natural language search query |
+| Num Results | Slider | Number of results (1–20) |
+| Type | Dropdown | `auto`, `neural`, `keyword` |
+| Category | Dropdown | Filter by content type |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `json` | Search results with content |
+| `content` | `string` | Combined result text |
+
+## Example: Content Discovery
+
+**Workflow:**
+```
+[Starter: Topic] → [Exa: Search] → [Agent: Curate] → [Notion: Create Page]
+```
+
+Search for articles on a topic, Agent curates the top 5 most relevant, and saves a reading list to Notion.
+
+## Tips
+
+- **Neural search** understands context — "startup pitch deck examples" finds actual decks, not articles about decks
+- **Find Similar** is unique — give it a URL and it finds semantically similar pages

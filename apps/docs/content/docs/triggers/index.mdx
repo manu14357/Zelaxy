@@ -1,0 +1,58 @@
+---
+title: Triggers
+description: Automatically start workflows from webhooks, schedules, and external events
+icon: Zap
+---
+
+# Triggers
+
+Triggers start workflows automatically — no manual execution needed. Configure webhooks to respond to external events, schedules for recurring tasks, or generic webhooks for custom integrations.
+
+## How Triggers Work
+
+1. **Configure a trigger** on your workflow's Starter block
+2. **Activate the workflow** — this registers the trigger endpoint
+3. **External events** hit the trigger and start the workflow automatically
+
+Trigger data is available in your workflow via `{{starter.input}}` (payload body) and `{{starter.trigger}}` (trigger metadata like headers).
+
+## Trigger Types
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| [Webhook](triggers/webhook) | Dedicated URL per service | Service-specific integrations |
+| [Generic Webhook](triggers/generic-webhook) | Universal HTTP endpoint | Any service that can send POST requests |
+| [Schedule](triggers/schedule) | Cron-based time triggers | Recurring tasks (hourly reports, daily syncs) |
+
+## Supported Webhook Providers
+
+| Provider | Auth | Outputs |
+|----------|------|---------|
+| [Gmail](triggers/webhook#gmail) | OAuth | Email subject, from, to, body, attachments |
+| [Outlook](triggers/webhook#outlook) | OAuth | Email subject, from, to, body, folders, read status |
+| [Slack](triggers/webhook#slack) | Signing Secret | Event type, channel, user, message text |
+| [GitHub](triggers/webhook#github) | Webhook Secret | Push, PR, issues — commits, repo, sender |
+| [Telegram](triggers/webhook#telegram) | Bot Token | Message text, sender, chat info |
+| [WhatsApp](triggers/webhook#whatsapp) | Verification Token | Message text, sender phone, message ID |
+| [Stripe](triggers/webhook#stripe) | — | Event type, payment data, customer info |
+| [Airtable](triggers/webhook#airtable) | OAuth | Record changes, field data, event type |
+| [Microsoft Teams](triggers/webhook#microsoft-teams) | HMAC Secret | Message text, sender, channel, conversation |
+| [Generic](triggers/webhook#generic-webhook) | Optional | Full payload, headers, method, query params |
+
+## Example: GitHub PR Review Automation
+
+```
+[Starter (webhook: GitHub)] → [Agent: Review PR] → [GitHub: Comment]
+```
+
+1. Configure a GitHub webhook trigger on the Starter
+2. GitHub sends a webhook when a PR is opened
+3. Agent reads the PR diff and generates a code review
+4. GitHub block posts the review as a PR comment
+
+## Tips
+
+- **Webhooks are instant** — trigger fires immediately when the event occurs
+- **Schedules** use cron syntax — `0 9 * * 1-5` = weekdays at 9am
+- **Test triggers** by sending a curl request to the webhook URL
+- **Trigger data** is the raw HTTP body — use a Function block to parse if needed

@@ -1,0 +1,915 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+/* ==========================================================================
+   ZELAXY DESIGN SYSTEM — Enhanced Theme
+   ========================================================================== */
+
+:root {
+  /* ── Fumadocs Core ── */
+  --fd-primary: 25 95% 53%;
+  --fd-primary-foreground: 0 0% 100%;
+  --fd-background: 0 0% 100%;
+  --fd-foreground: 220 13% 9%;
+  --fd-muted: 210 20% 98%;
+  --fd-muted-foreground: 220 9% 46%;
+  --fd-accent: 24 94% 95%;
+  --fd-accent-foreground: 25 95% 40%;
+  --fd-border: 220 13% 90%;
+  --fd-radius: 0.625rem;
+
+  /* ── Extended Palette ── */
+  --fd-card: 210 20% 98%;
+  --fd-card-foreground: 220 13% 9%;
+  --fd-popover: 0 0% 100%;
+  --fd-popover-foreground: 220 13% 9%;
+  --fd-secondary: 27 96% 61%;
+  --fd-secondary-foreground: 0 0% 100%;
+  --fd-destructive: 0 84% 60%;
+  --fd-destructive-foreground: 0 0% 98%;
+  --fd-success: 142 71% 45%;
+  --fd-success-foreground: 0 0% 100%;
+  --fd-warning: 38 92% 50%;
+  --fd-warning-foreground: 0 0% 100%;
+  --fd-input: 220 13% 90%;
+  --fd-ring: 25 95% 53%;
+
+  /* ── Scrollbar ── */
+  --scrollbar-track: 220 13% 90%;
+  --scrollbar-thumb: 220 9% 72%;
+  --scrollbar-thumb-hover: 220 9% 60%;
+
+  /* ── Brand Gradients ── */
+  --gradient-primary: 25 95% 53%;
+  --gradient-secondary: 27 96% 61%;
+
+  /* ── Enhanced heading tones ── */
+  --heading-h1: 220 13% 8%;
+  --heading-h2: 220 13% 12%;
+  --heading-h3: 220 13% 18%;
+  --heading-h4: 220 9% 28%;
+}
+
+.dark {
+  /* ── Fumadocs Core ── */
+  --fd-primary: 25 95% 53%;
+  --fd-primary-foreground: 0 0% 100%;
+  --fd-background: 0 0% 4%;
+  --fd-foreground: 210 20% 98%;
+  --fd-muted: 217 19% 12%;
+  --fd-muted-foreground: 218 11% 65%;
+  --fd-accent: 217 19% 17%;
+  --fd-accent-foreground: 25 95% 60%;
+  --fd-border: 217 19% 22%;
+
+  /* ── Extended Palette ── */
+  --fd-card: 217 19% 12%;
+  --fd-card-foreground: 210 20% 98%;
+  --fd-popover: 217 19% 12%;
+  --fd-popover-foreground: 210 20% 98%;
+  --fd-secondary: 27 96% 61%;
+  --fd-secondary-foreground: 0 0% 100%;
+  --fd-destructive: 0 63% 31%;
+  --fd-destructive-foreground: 0 0% 98%;
+  --fd-success: 142 71% 45%;
+  --fd-success-foreground: 0 0% 100%;
+  --fd-warning: 38 92% 50%;
+  --fd-warning-foreground: 0 0% 100%;
+  --fd-input: 217 19% 22%;
+  --fd-ring: 25 95% 53%;
+
+  /* ── Scrollbar ── */
+  --scrollbar-track: 217 19% 17%;
+  --scrollbar-thumb: 217 19% 30%;
+  --scrollbar-thumb-hover: 217 19% 40%;
+
+  /* ── Brand Gradients ── */
+  --gradient-primary: 25 95% 58%;
+  --gradient-secondary: 27 96% 66%;
+
+  /* ── Enhanced heading tones (dark) ── */
+  --heading-h1: 210 20% 98%;
+  --heading-h2: 210 18% 92%;
+  --heading-h3: 210 15% 84%;
+  --heading-h4: 218 11% 72%;
+}
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1,
+    "calt" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* ==========================================================================
+   TYPOGRAPHY — Refined, borderless headings
+   ========================================================================== */
+
+/* All headings: no border, no underline, no decoration */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  border: none !important;
+  border-bottom: none !important;
+  border-top: none !important;
+  padding-bottom: 0 !important;
+  text-decoration: none !important;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.prose h1::before,
+.prose h1::after,
+.prose h2::before,
+.prose h2::after,
+.prose h3::before,
+.prose h3::after,
+.prose h4::before,
+.prose h4::after {
+  content: none !important;
+  display: none !important;
+}
+
+.prose h1 *,
+.prose h2 *,
+.prose h3 *,
+.prose h4 *,
+.prose h1 > a,
+.prose h2 > a,
+.prose h3 > a,
+.prose h4 > a,
+.prose h1 > a:hover,
+.prose h2 > a:hover,
+.prose h3 > a:hover,
+.prose h4 > a:hover,
+.prose h1 > a:focus-visible,
+.prose h2 > a:focus-visible,
+.prose h3 > a:focus-visible,
+.prose h4 > a:focus-visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  text-decoration: none !important;
+}
+
+.prose h1 {
+  font-size: clamp(1.875rem, 3.5vw, 2.5rem);
+  font-weight: 700;
+  color: hsl(var(--heading-h1));
+  margin-bottom: 0.65em;
+  margin-top: 0;
+}
+
+.prose h2 {
+  scroll-margin-top: 6rem;
+  font-size: 1.4375rem;
+  font-weight: 650;
+  color: hsl(var(--heading-h2));
+  margin-top: 2.25em;
+  margin-bottom: 0.5em;
+}
+
+.prose h3 {
+  font-size: 1.1875rem;
+  font-weight: 600;
+  color: hsl(var(--heading-h3));
+  margin-top: 1.75em;
+  margin-bottom: 0.4em;
+}
+
+.prose h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--heading-h4));
+  margin-top: 1.25em;
+  margin-bottom: 0.35em;
+  text-transform: none;
+}
+
+/* Body text */
+.prose p,
+.prose li {
+  font-weight: 300;
+  line-height: 1.85;
+  color: hsl(var(--fd-muted-foreground));
+  font-size: 0.9375rem;
+}
+
+.prose strong {
+  font-weight: 650;
+  color: hsl(var(--fd-foreground));
+}
+
+/* Lead paragraph (first p after h1 or with .lead class) */
+.prose .lead,
+.prose > p:first-of-type {
+  font-size: 1.0625rem;
+  font-weight: 350;
+  line-height: 1.75;
+  color: hsl(var(--fd-muted-foreground) / 0.85);
+}
+
+/* ==========================================================================
+   SIDEBAR
+   ========================================================================== */
+
+[data-sidebar] {
+  font-size: 0.8125rem;
+}
+
+[data-sidebar] svg[data-icon],
+[data-sidebar] [data-icon] svg {
+  opacity: 0.7;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+[data-sidebar] a[data-active="true"] svg[data-icon],
+[data-sidebar] a[data-active="true"] [data-icon] svg {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+[data-sidebar] a {
+  transition: all 0.15s ease;
+  border-radius: var(--fd-radius);
+  padding: 0.375rem 0.5rem;
+}
+
+[data-sidebar] a:hover {
+  background-color: hsl(var(--fd-accent));
+}
+
+[data-sidebar] a:hover svg {
+  opacity: 1;
+}
+
+[data-sidebar] a[data-active="true"] {
+  font-weight: 500;
+  background: linear-gradient(90deg, hsl(var(--fd-accent)) 0%, hsl(var(--fd-accent) / 0.4) 100%);
+  color: hsl(var(--fd-accent-foreground));
+  border-left: 2px solid hsl(var(--fd-primary));
+}
+
+[data-sidebar] [data-separator] {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: hsl(var(--fd-muted-foreground));
+  opacity: 0.5;
+  padding-top: 1.25rem;
+  padding-bottom: 0.25rem;
+}
+
+/* ==========================================================================
+   CODE BLOCKS
+   ========================================================================== */
+
+.prose pre {
+  border: none;
+  border-radius: var(--fd-radius);
+  font-size: 0.8125rem;
+  line-height: 1.75;
+  background-color: transparent;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: none;
+  margin: 0;
+  padding: 0.85rem 1rem;
+}
+
+.dark .prose pre {
+  box-shadow: none;
+}
+
+.prose figure:has(pre) {
+  margin: 1.25rem 0;
+  border: 1px solid hsl(var(--fd-border) / 0.7);
+  border-radius: calc(var(--fd-radius) + 0.125rem);
+  background: linear-gradient(180deg, hsl(var(--fd-card)) 0%, hsl(var(--fd-card) / 0.92) 100%);
+  box-shadow: 0 4px 14px hsl(220 13% 0% / 0.04);
+  overflow: hidden;
+}
+
+.dark .prose figure:has(pre) {
+  border-color: hsl(var(--fd-border) / 0.85);
+  background: linear-gradient(180deg, hsl(var(--fd-card) / 0.98) 0%, hsl(var(--fd-card) / 0.9) 100%);
+  box-shadow: 0 6px 18px hsl(0 0% 0% / 0.2);
+}
+
+.prose figure:has(pre) > div,
+.prose figure:has(pre) > pre {
+  margin: 0;
+}
+
+.prose pre code,
+.prose pre code span,
+.prose pre > div,
+.prose pre > div > code,
+.prose pre [data-language],
+.prose pre [data-theme],
+.prose pre [data-line],
+.prose figure:has(pre) > div {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.prose :not(pre) > code {
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125em;
+  font-weight: 500;
+  background-color: hsl(var(--fd-accent));
+  border: none;
+  color: hsl(var(--fd-accent-foreground));
+  white-space: nowrap;
+}
+
+/* Code copy button */
+.prose pre [data-copy] {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.prose pre:hover [data-copy] {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   TABLES
+   ========================================================================== */
+
+.prose table {
+  font-size: 0.8125rem;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid hsl(var(--fd-border));
+  border-radius: var(--fd-radius);
+  overflow: hidden;
+  box-shadow: 0 1px 3px hsl(220 13% 0% / 0.04);
+}
+
+.prose thead th {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  color: hsl(var(--fd-muted-foreground));
+  background-color: hsl(var(--fd-muted));
+  border-bottom: 1px solid hsl(var(--fd-border));
+  padding: 0.625rem 0.875rem;
+}
+
+.prose tbody td {
+  border-bottom: 1px solid hsl(var(--fd-border) / 0.35);
+  padding: 0.5625rem 0.875rem;
+  vertical-align: middle;
+}
+
+.prose tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.prose tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.prose tbody tr:hover {
+  background-color: hsl(var(--fd-accent) / 0.35);
+}
+
+/* Responsive table wrapper */
+.prose .table-wrapper,
+.prose div:has(> table) {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.25rem 0;
+}
+
+/* ==========================================================================
+   NAVIGATION — glass morphism
+   ========================================================================== */
+
+nav[data-navbar] {
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  backdrop-filter: blur(28px) saturate(190%);
+  background: hsl(var(--fd-background) / 0.72) !important;
+  border-bottom: 0.5px solid hsl(var(--fd-border) / 0.35);
+  z-index: 50;
+}
+
+nav[data-navbar] a {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition:
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+nav[data-navbar] a:hover {
+  opacity: 0.7;
+}
+
+nav[data-navbar] button[aria-label] {
+  border-radius: var(--fd-radius);
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+nav[data-navbar] button[aria-label]:hover {
+  transform: scale(1.05);
+}
+
+nav[data-navbar] [data-search-trigger] {
+  border-radius: var(--fd-radius);
+  border: 1px solid hsl(var(--fd-border));
+  background-color: hsl(var(--fd-muted));
+  transition: all 0.15s ease;
+}
+
+nav[data-navbar] [data-search-trigger]:hover {
+  border-color: hsl(var(--fd-primary) / 0.35);
+  background-color: hsl(var(--fd-accent) / 0.5);
+}
+
+/* ==========================================================================
+   CARDS & CONTAINERS
+   ========================================================================== */
+
+[data-card],
+.fd-card {
+  border-radius: var(--fd-radius);
+  border: 1px solid hsl(var(--fd-border));
+  background-color: hsl(var(--fd-card));
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+[data-card]:hover,
+.fd-card:hover {
+  border-color: hsl(var(--fd-primary) / 0.3);
+  box-shadow:
+    0 6px 20px hsl(var(--fd-primary) / 0.07),
+    0 1px 4px hsl(var(--fd-primary) / 0.04);
+  transform: translateY(-1.5px);
+}
+
+/* ==========================================================================
+   BLOCKQUOTES & CALLOUTS
+   ========================================================================== */
+
+.prose blockquote {
+  border-left: 3px solid hsl(var(--fd-primary) / 0.45);
+  background: linear-gradient(
+    100deg,
+    hsl(var(--fd-accent) / 0.3) 0%,
+    hsl(var(--fd-accent) / 0.1) 100%
+  );
+  padding: 0.9375rem 1.25rem;
+  border-radius: 0 var(--fd-radius) var(--fd-radius) 0;
+  color: hsl(var(--fd-muted-foreground));
+  margin: 1.5rem 0;
+}
+
+.prose blockquote p {
+  margin: 0;
+  font-style: italic;
+}
+
+[data-callout] {
+  border-radius: var(--fd-radius);
+  border: 1px solid hsl(var(--fd-border));
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   SCROLLBAR
+   ========================================================================== */
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--scrollbar-thumb) / 0.35);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--scrollbar-thumb-hover) / 0.55);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--scrollbar-thumb) / 0.35) transparent;
+}
+
+/* ==========================================================================
+   SELECTION
+   ========================================================================== */
+
+::selection {
+  background: hsl(var(--fd-primary) / 0.18);
+  color: hsl(var(--fd-foreground));
+}
+
+/* ==========================================================================
+   LINKS
+   ========================================================================== */
+
+.prose a:not([data-card]) {
+  color: hsl(var(--fd-primary));
+  text-decoration: none;
+  font-weight: 400;
+  transition:
+    color 0.15s ease,
+    opacity 0.15s ease;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.prose a:not([data-card]):hover {
+  text-decoration: underline;
+  text-decoration-color: hsl(var(--fd-primary) / 0.45);
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   TOC (Table of Contents)
+   ========================================================================== */
+
+[data-toc] {
+  font-size: 0.8125rem;
+}
+
+[data-toc] a {
+  transition: all 0.15s ease;
+  border-left: 2px solid transparent;
+  padding-left: 0.625rem;
+}
+
+[data-toc] a:hover {
+  color: hsl(var(--fd-foreground));
+}
+
+[data-toc] a[data-active="true"] {
+  color: hsl(var(--fd-primary));
+  font-weight: 500;
+  border-left-color: hsl(var(--fd-primary));
+}
+
+/* ==========================================================================
+   SEARCH DIALOG
+   ========================================================================== */
+
+[data-search] {
+  backdrop-filter: blur(16px);
+}
+
+[data-search] input {
+  border-radius: var(--fd-radius);
+  border: 1px solid hsl(var(--fd-border));
+  background-color: hsl(var(--fd-card));
+  font-size: 0.9375rem;
+  transition: all 0.15s ease;
+}
+
+[data-search] input:focus {
+  border-color: hsl(var(--fd-primary) / 0.5);
+  box-shadow: 0 0 0 3px hsl(var(--fd-primary) / 0.08);
+  outline: none;
+}
+
+[data-search] [data-search-result]:hover {
+  background-color: hsl(var(--fd-accent));
+}
+
+/* ==========================================================================
+   BRAND UTILITIES
+   ========================================================================== */
+
+.zelaxy-gradient-text {
+  background: linear-gradient(135deg, hsl(var(--gradient-primary)), hsl(var(--gradient-secondary)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.zelaxy-gradient-border {
+  border-image: linear-gradient(
+      135deg,
+      hsl(var(--gradient-primary)),
+      hsl(var(--gradient-secondary))
+    )
+    1;
+}
+
+/* Shimmer utility for loading states */
+.zelaxy-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--fd-muted)) 25%,
+    hsl(var(--fd-accent) / 0.5) 50%,
+    hsl(var(--fd-muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite ease-in-out;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+/* ==========================================================================
+   HORIZONTAL RULES
+   ========================================================================== */
+
+.prose hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--fd-border) / 0.7), transparent);
+  margin: 2.5rem 0;
+}
+
+/* ==========================================================================
+   LISTS
+   ========================================================================== */
+
+.prose ul {
+  list-style-type: disc;
+}
+
+.prose ul > li::marker {
+  color: hsl(var(--fd-primary) / 0.55);
+}
+
+.prose ol > li::marker {
+  color: hsl(var(--fd-primary) / 0.65);
+  font-weight: 600;
+}
+
+.prose li + li {
+  margin-top: 0.3em;
+}
+
+/* ==========================================================================
+   IMAGES & MEDIA — Responsive
+   ========================================================================== */
+
+.prose img {
+  border-radius: var(--fd-radius);
+  border: 1px solid hsl(var(--fd-border));
+  max-width: 100%;
+  height: auto;
+  box-shadow: 0 2px 8px hsl(220 13% 0% / 0.06);
+}
+
+.prose video {
+  border-radius: var(--fd-radius);
+  max-width: 100%;
+}
+
+/* ==========================================================================
+   BREADCRUMB
+   ========================================================================== */
+
+[data-breadcrumb] {
+  font-size: 0.8125rem;
+  color: hsl(var(--fd-muted-foreground));
+}
+
+[data-breadcrumb] a {
+  transition: color 0.15s ease;
+}
+
+[data-breadcrumb] a:hover {
+  color: hsl(var(--fd-primary));
+}
+
+/* ==========================================================================
+   FOOTER PAGINATION (prev/next)
+   ========================================================================== */
+
+[data-footer-nav] a {
+  border: 1px solid hsl(var(--fd-border));
+  border-radius: var(--fd-radius);
+  padding: 0.9375rem 1.125rem;
+  transition: all 0.2s ease;
+  background-color: hsl(var(--fd-card));
+}
+
+[data-footer-nav] a:hover {
+  border-color: hsl(var(--fd-primary) / 0.3);
+  background-color: hsl(var(--fd-accent) / 0.25);
+  box-shadow: 0 3px 10px hsl(var(--fd-primary) / 0.08);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   RESPONSIVE — Mobile-first enhancements
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  .prose h1 {
+    font-size: 1.625rem;
+    letter-spacing: -0.025em;
+  }
+
+  .prose h2 {
+    font-size: 1.25rem;
+  }
+
+  .prose h3 {
+    font-size: 1.0625rem;
+  }
+
+  .prose p,
+  .prose li {
+    font-size: 0.875rem;
+    line-height: 1.75;
+  }
+
+  .prose pre {
+    font-size: 0.75rem;
+    border-radius: 0;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-left: none;
+    border-right: none;
+  }
+
+  .prose table {
+    font-size: 0.75rem;
+  }
+
+  .prose thead th {
+    font-size: 0.625rem;
+    padding: 0.5rem;
+  }
+
+  .prose tbody td {
+    padding: 0.375rem 0.5rem;
+  }
+
+  .prose blockquote {
+    padding: 0.625rem 0.875rem;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  [data-card],
+  .fd-card {
+    border-radius: 0.5rem;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .prose h1 {
+    font-size: 1.875rem;
+  }
+
+  .prose p,
+  .prose li {
+    font-size: 0.9rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .prose p,
+  .prose li {
+    max-width: 72ch;
+  }
+}
+
+/* Touch device improvements */
+@media (hover: none) and (pointer: coarse) {
+  [data-sidebar] a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  nav[data-navbar] a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  [data-toc] a {
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  nav[data-navbar],
+  [data-sidebar],
+  [data-toc],
+  [data-footer-nav] {
+    display: none !important;
+  }
+
+  .prose {
+    max-width: 100%;
+    font-size: 11pt;
+    color: #000;
+  }
+
+  .prose a {
+    color: #000;
+    text-decoration: underline;
+  }
+
+  .prose pre {
+    white-space: pre-wrap;
+    border: 1px solid #ccc;
+    page-break-inside: avoid;
+  }
+}
+
+/* ==========================================================================
+   FOCUS STATES — Accessibility
+   ========================================================================== */
+
+:focus-visible {
+  outline: 2px solid hsl(var(--fd-primary));
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.prose {
+  animation: fade-in 0.35s ease-out both;
+}
+
+[data-sidebar] {
+  animation: slide-in-left 0.3s ease-out both;
+}

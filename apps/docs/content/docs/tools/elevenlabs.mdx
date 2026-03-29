@@ -1,0 +1,57 @@
+---
+title: ElevenLabs
+description: Generate natural-sounding speech from text
+icon: AudioLines
+---
+
+# ElevenLabs
+
+Generate high-quality, natural-sounding speech from text using ElevenLabs' advanced TTS models. Supports multiple voices, languages, and emotional styles.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `elevenlabs` |
+| **Category** | Tool — AI & ML |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Text-to-Speech** | Convert text to audio |
+| **List Voices** | Get available voices |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | ElevenLabs API key |
+| Text | Long text | Text to convert to speech |
+| Voice | Dropdown | Select a voice |
+| Model | Dropdown | TTS model (multilingual, turbo) |
+| Stability | Slider | Voice consistency (0–1) |
+| Similarity | Slider | How closely to match voice (0–1) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `audioUrl` | `string` | URL to generated audio |
+| `content` | `string` | Audio data or URL |
+
+## Example: Podcast Generator
+
+**Workflow:**
+```
+[Starter: Topic] → [Agent: Write Script] → [ElevenLabs: TTS] → [Response]
+```
+
+Agent writes a podcast script on the given topic. ElevenLabs converts it to natural-sounding speech. User gets a playable audio file.
+
+## Tips
+
+- **Voice cloning** — ElevenLabs supports custom voice creation (check their platform)
+- **Stability** — lower = more expressive, higher = more consistent
+- **Multilingual models** handle non-English text better

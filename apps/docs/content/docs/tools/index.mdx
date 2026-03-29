@@ -1,0 +1,171 @@
+---
+title: Tool Integrations
+description: Connect your workflows to 80+ external services and APIs
+icon: Wrench
+---
+
+# Tool Integrations
+
+Zelaxy includes 80+ built-in tool integrations that connect your workflows to external services. Tools handle authentication, API calls, and data formatting automatically — you just configure and connect.
+
+## How Tools Work
+
+1. **Add a tool block** to your workflow canvas
+2. **Authenticate** via OAuth or API key (one-time setup)
+3. **Select an operation** (e.g., "Send Message", "Create Issue")
+4. **Configure inputs** using `{{variables}}` from other blocks
+5. **Connect to an Agent** for AI-driven tool calling, or use standalone
+
+## Tool as Agent Tool vs Standalone
+
+**Standalone:** The tool block executes its operation directly in the workflow pipeline.
+
+**Agent Tool:** Connect the tool block to an Agent block. The Agent discovers the tool and decides when to call it during reasoning. This enables dynamic tool use — the AI chooses which tools to call based on the conversation.
+
+## Categories
+
+### Communication
+Send messages and interact with team platforms.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [Slack](tools/slack) | Send message, list channels, read history | OAuth |
+| [Discord](tools/discord) | Send message, list channels, manage servers | OAuth / Bot Token |
+| [Telegram](tools/telegram) | Send message, send photo, get updates | Bot Token |
+| [WhatsApp](tools/whatsapp) | Send message, send template | API Key |
+| [Twilio](tools/twilio) | Send SMS, make calls | Account SID + Auth Token |
+| [Microsoft Teams](tools/microsoft-teams) | Send message, list channels, list teams | OAuth |
+
+### Email
+Send and read emails programmatically.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [Gmail](tools/gmail) | Send, read, search, list emails | OAuth |
+| [Outlook](tools/outlook) | Send, read, search, list emails | OAuth |
+
+### Project Management
+Create and manage tasks, issues, and projects.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [Jira](tools/jira) | Create/update/search issues, manage projects | OAuth |
+| [Linear](tools/linear) | Create/update issues, list projects | API Key |
+| [Notion](tools/notion) | Create/update pages, search databases | OAuth |
+| [Microsoft Planner](tools/microsoft-planner) | Create/list tasks, manage plans | OAuth |
+| [Airtable](tools/airtable) | Create/read/update records, list bases | API Key |
+| [Typeform](tools/typeform) | List forms, get responses | OAuth |
+
+### Search & Research
+Search the web, academic papers, and specialized sources.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [Google Search](tools/google-search) | Web search via Google API | API Key |
+| [Serper](tools/serper) | Fast web search, news, images | API Key |
+| [Tavily](tools/tavily) | AI-optimized search with summaries | API Key |
+| [Exa](tools/exa) | Neural search engine | API Key |
+| [Perplexity](tools/perplexity) | AI-powered research | API Key |
+| [ArXiv](tools/arxiv) | Academic paper search | None |
+| [Wikipedia](tools/wikipedia) | Encyclopedia search | None |
+| [Linkup](tools/linkup) | Link enrichment and metadata | API Key |
+
+### Web Scraping & Browser
+Extract data from websites and automate browser tasks.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [Firecrawl](tools/firecrawl) | Crawl, scrape, extract from websites | API Key |
+| [Jina](tools/jina) | Read web pages as clean text | API Key |
+| [Stagehand](tools/stagehand) | AI browser automation | API Key |
+| [Stagehand Agent](tools/stagehand-agent) | Autonomous browser agent | API Key |
+| [Browser Use](tools/browser-use) | Programmatic browser control | API Key |
+
+### Google Workspace
+Integrate with Google's productivity suite.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [Google Calendar](tools/google-calendar) | Create/list/update events | OAuth |
+| [Google Docs](tools/google-docs) | Create/read/update documents | OAuth |
+| [Google Drive](tools/google-drive) | Upload, download, search files | OAuth |
+| [Google Sheets](tools/google-sheets) | Read/write/update spreadsheets | OAuth |
+
+### Microsoft 365
+Connect to Microsoft's productivity tools.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [Microsoft Excel](tools/microsoft-excel) | Read/write workbooks, manage sheets | OAuth |
+| [OneDrive](tools/onedrive) | Upload, download, search files | OAuth |
+| [SharePoint](tools/sharepoint) | Read/write documents, search sites | OAuth |
+
+### AI & Machine Learning
+Connect to AI models and services.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [OpenAI](tools/openai) | Embeddings, moderation, TTS, STT | API Key |
+| [HuggingFace](tools/huggingface) | Run inference on HF models | API Key |
+| [Mistral Parse](tools/mistral-parse) | Document parsing with Mistral | API Key |
+| [Image Search](tools/image-search) | Search images across the web | API Key |
+| [ElevenLabs](tools/elevenlabs) | Text-to-speech generation | API Key |
+
+### Databases
+Query and manage database systems.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [Supabase](tools/supabase) | Query, insert, update Postgres data | API Key |
+| [MSSQL](tools/mssql) | Execute SQL queries on SQL Server | Connection string |
+| [Snowflake](tools/snowflake) | Run queries on Snowflake warehouse | Credentials |
+
+### Vector Databases
+Store and search embeddings.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [Pinecone](tools/pinecone) | Upsert, query, delete vectors | API Key |
+| [Qdrant](tools/qdrant) | Upsert, search, manage collections | API Key |
+| [Mem0](tools/mem0) | AI memory with automatic summarization | API Key |
+
+### Storage
+File storage and management.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [AWS S3](tools/s3) | Upload, download, list objects | AWS credentials |
+
+### Developer Tools
+Git, APIs, and automation.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [GitHub](tools/github) | Repos, issues, PRs, code search | OAuth / Token |
+| [MCP](tools/mcp) | Model Context Protocol servers | Config |
+| [HTTP](tools/http) | Raw HTTP requests to any API | None |
+
+### Social & Media
+Post and interact on social platforms.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [X (Twitter)](tools/x) | Post tweets, search, read timeline | OAuth |
+| [Reddit](tools/reddit) | Search posts, read subreddits | API Key |
+| [YouTube](tools/youtube) | Search videos, get transcripts | API Key |
+
+### CRM & Sales
+Customer relationship management.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [Wealthbox](tools/wealthbox) | Manage contacts, tasks, events | API Key |
+| [Hunter](tools/hunter) | Find and verify email addresses | API Key |
+| [Clay](tools/clay) | Enrich contact and company data | API Key |
+
+### Collaboration
+Team documentation and wikis.
+
+| Tool | Operations | Auth |
+|------|-----------|------|
+| [Confluence](tools/confluence) | Create/search/update pages | API Key |

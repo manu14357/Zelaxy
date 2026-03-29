@@ -1,0 +1,68 @@
+---
+title: Slack
+description: Send messages, manage channels, and interact with Slack workspaces
+icon: MessageCircle
+---
+
+# Slack
+
+The Slack block integrates your workflow with Slack — send messages, read channel history, list channels, and react to messages. It supports both standalone execution and Agent tool calling.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `slack` |
+| **Category** | Tool — Communication |
+| **Auth** | OAuth 2.0 |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Send Message** | Post a message to a channel or DM |
+| **Read Messages** | Retrieve recent messages from a channel |
+| **List Channels** | Get all channels in the workspace |
+| **React to Message** | Add emoji reactions to messages |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Slack Account | OAuth | Connect your Slack workspace |
+| Channel | Channel selector | Pick a channel from the list |
+| Message | Long text | Message content with `{{variables}}` |
+| Thread TS | Short input | Reply in a thread (optional) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `messageId` | `string` | Timestamp ID of sent message |
+| `channelId` | `string` | Channel where message was sent |
+| `content` | `string` | Message content or channel list |
+
+## Example: AI Alert System
+
+**Goal:** Monitor an API and send Slack alerts when issues are detected.
+
+**Workflow:**
+```
+[Starter (schedule: every 5 min)] → [API: Health Check] → [Condition] → [Slack: Alert]
+```
+
+**Slack Configuration:**
+- **Channel:** `#alerts`
+- **Message:**
+  ```
+  🚨 Service Alert
+  Status: {{api.status}}
+  Response: {{api.response}}
+  Time: {{function.result.timestamp}}
+  ```
+
+## Tips
+
+- **Use channel selector** instead of hardcoding channel IDs
+- **Thread replies** keep alert channels clean — use `Thread TS` to reply to existing messages
+- **Connect to Agent** for AI-driven Slack interactions (the Agent decides when and what to post)

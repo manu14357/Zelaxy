@@ -1,0 +1,53 @@
+---
+title: Perplexity
+description: AI-powered research with cited answers
+icon: CircleHelp
+---
+
+# Perplexity
+
+Use Perplexity's AI-powered search for research queries that return comprehensive, cited answers. Combines web search with LLM synthesis for authoritative results.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `perplexity` |
+| **Category** | Tool — Search |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Search** | AI-powered research query |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Perplexity API key |
+| Query | Short input | Research question |
+| Model | Dropdown | Perplexity model (sonar, etc.) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | AI-generated answer with citations |
+| `citations` | `json` | Source URLs |
+
+## Example: Fact-Checking Pipeline
+
+**Workflow:**
+```
+[Starter: Claim] → [Perplexity: Research] → [Agent: Verify] → [Response]
+```
+
+User submits a claim. Perplexity researches it with sources. Agent evaluates the evidence and returns a fact-check verdict with citations.
+
+## Tips
+
+- **Best for research questions** — provides comprehensive answers, not just links
+- **Citations included** — every claim is backed by source URLs
+- **Higher cost** than basic search — use for quality-critical research

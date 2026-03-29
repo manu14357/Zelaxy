@@ -1,0 +1,70 @@
+---
+title: Jira
+description: Create, update, and search issues in Atlassian Jira
+icon: TicketCheck
+---
+
+# Jira
+
+Full Jira integration for issue tracking — create issues, update status, search with JQL, assign users, and manage projects. Ideal for automated ticket management and DevOps workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `jira` |
+| **Category** | Tool — Project Management |
+| **Auth** | OAuth 2.0 (Atlassian) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Create Issue** | Create a new issue (Bug, Story, Task, Epic) |
+| **Update Issue** | Modify status, assignee, or fields |
+| **Search Issues** | Query issues using JQL |
+| **Get Issue** | Fetch a specific issue by key |
+| **List Projects** | Get all accessible projects |
+| **Add Comment** | Comment on an existing issue |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Atlassian Account | OAuth | Connect your Jira workspace |
+| Project | Project selector | Select a Jira project |
+| Issue Type | Dropdown | Bug, Story, Task, Epic, etc. |
+| Summary | Short input | Issue title |
+| Description | Long text | Issue description |
+| Assignee | Short input | User email or ID |
+| Priority | Dropdown | Highest, High, Medium, Low, Lowest |
+| JQL Query | Short input | Jira Query Language filter |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `issueKey` | `string` | Issue key (e.g., `PROJ-123`) |
+| `issueId` | `string` | Issue ID |
+| `content` | `string` | Issue data or search results |
+| `url` | `string` | Direct link to the issue |
+
+## Example: Auto-Create Bug Reports from Errors
+
+**Workflow:**
+```
+[Starter (webhook: error monitor)] → [Agent: Analyze Error] → [Jira: Create Issue]
+```
+
+**Jira Configuration:**
+- **Project:** `Engineering`
+- **Issue Type:** `Bug`
+- **Summary:** `[Auto] {{agent.content.title}}`
+- **Description:** `{{agent.content.analysis}}\n\nStack trace:\n{{starter.input.stackTrace}}`
+- **Priority:** `High`
+
+## Tips
+
+- **JQL is powerful** — `project = ENG AND status = "In Progress" AND assignee = currentUser()`
+- **Use with Agent** — let AI analyze error logs and auto-classify bug severity
+- **Webhook trigger** — respond to Jira events (issue created, status changed)

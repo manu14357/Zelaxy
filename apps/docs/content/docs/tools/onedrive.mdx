@@ -1,0 +1,59 @@
+---
+title: OneDrive
+description: Upload, download, and manage files in OneDrive
+icon: CloudUpload
+---
+
+# OneDrive
+
+Upload, download, list, and search files in Microsoft OneDrive. Manage personal and shared drives through Microsoft Graph API.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `onedrive` |
+| **Category** | Tool — Microsoft 365 |
+| **Auth** | OAuth 2.0 (Microsoft) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Upload File** | Upload a file to OneDrive |
+| **Download File** | Download a file |
+| **List Files** | List files in a folder |
+| **Search** | Search files by name |
+| **Create Folder** | Create a new folder |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Microsoft Account | OAuth | Connect Microsoft 365 |
+| File | File upload | File to upload |
+| Path | Short input | OneDrive path |
+| Search Query | Short input | File search query |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fileId` | `string` | File ID |
+| `content` | `string` | File content |
+| `url` | `string` | Download/sharing URL |
+
+## Example: Document Backup Pipeline
+
+**Workflow:**
+```
+[Starter (schedule: daily)] → [Google Drive: Download] → [OneDrive: Upload]
+```
+
+Daily backup of critical files from Google Drive to OneDrive for cross-platform redundancy.
+
+## Tips
+
+- **Path format** — `/Documents/Reports/report.pdf`
+- **Shared drives** are accessible if you have permissions
+- **Same auth** as Excel, Teams, Outlook, SharePoint

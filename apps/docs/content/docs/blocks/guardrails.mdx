@@ -1,0 +1,75 @@
+---
+title: Guardrails Block
+description: Validate and filter AI-generated content with safety rules
+icon: Shield
+---
+
+# Guardrails Block
+
+The Guardrails block applies safety rules, content filters, and validation constraints to AI-generated content. It acts as a gatekeeper — blocking or flagging content that violates your defined policies before it reaches users or external systems.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `guardrails` |
+| **Category** | Core Block |
+| **Color** | `#EF4444` (Red) |
+
+## When to Use
+
+- Enforce content policies on AI outputs
+- Block harmful, biased, or off-topic responses
+- Validate format and structure of generated content
+- Create compliance-safe AI workflows (HIPAA, PII, etc.)
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Content to Check | Long text | Content to validate: `{{agent.content}}` |
+| Rules | Code editor | JSON rules array defining constraints |
+| Action on Violation | Dropdown | `block`, `flag`, `modify` |
+| Custom Prompt | Long text | Additional validation instructions for the LLM |
+| Model | Dropdown | LLM for evaluation (used in some modes) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Validated/filtered content |
+| `passed` | `boolean` | Whether all rules passed |
+| `violations` | `json` | Array of rule violations |
+| `reasoning` | `string` | Why content was flagged/blocked |
+
+## Example: PII Filter
+
+**Goal:** Ensure AI responses never contain personal identifiable information.
+
+**Workflow:**
+```
+[Starter] → [Agent] → [Guardrails] → [Condition] → [Response] / [Agent: Rewrite]
+```
+
+**Configuration:**
+- **Content:** `{{agent.content}}`
+- **Rules:**
+  ```json
+  [
+    { "type": "no_pii", "description": "Block phone numbers, SSNs, addresses" },
+    { "type": "no_profanity", "description": "Block inappropriate language" },
+    { "type": "on_topic", "description": "Must relate to customer support" }
+  ]
+  ```
+- **Action on Violation:** `block`
+
+**Follow-up Condition:** `{{guardrails.passed}} == true`
+- True → return content to user
+- False → send to rewrite Agent with `{{guardrails.violations}}` as feedback
+
+## Tips
+
+- **Place after Agent blocks** to filter AI output before delivery
+- **Use `block` action** for strict safety requirements
+- **Use `flag` action** for monitoring — content passes through but violations are logged
+- **Combine rules** — you can check for PII, profanity, tone, and topic relevance simultaneously

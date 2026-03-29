@@ -1,0 +1,69 @@
+---
+title: Supabase
+description: Query and manage data in Supabase (PostgreSQL)
+icon: Database
+---
+
+# Supabase
+
+Execute queries, insert data, and manage records in Supabase — the open-source Firebase alternative backed by PostgreSQL. Supports SQL queries and Supabase client operations.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `supabase` |
+| **Category** | Tool — Database |
+| **Auth** | API Key (Supabase URL + Anon/Service Key) |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Select** | Query data from a table |
+| **Insert** | Insert new rows |
+| **Update** | Update existing rows |
+| **Delete** | Delete rows |
+| **SQL Query** | Execute raw SQL |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Supabase URL | Short input | Project URL |
+| API Key | Password | Service role or anon key |
+| Table | Short input | Table name |
+| Query | Code editor | SQL query or filter |
+| Data | Code editor | JSON data for insert/update |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | Query results |
+| `content` | `string` | Formatted results |
+| `count` | `number` | Row count |
+
+## Example: Database Chatbot
+
+**Workflow:**
+```
+[Starter] → [Agent] → [Response]
+              ↑
+        [Supabase] (connected as tool)
+```
+
+Connect Supabase as a tool to an Agent. The Agent writes SQL queries to answer natural-language questions about your data.
+
+**Agent Prompt:**
+```
+You have access to a Supabase database. The 'users' table has columns:
+id, name, email, plan, created_at. The 'orders' table has: id, user_id,
+amount, status, created_at. Answer the user's questions by querying the database.
+```
+
+## Tips
+
+- **Service role key** bypasses Row Level Security — use carefully
+- **Anon key** respects RLS policies — safer for user-facing workflows
+- **Agent tool mode** is powerful — let AI write queries based on natural language
