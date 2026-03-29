@@ -140,6 +140,23 @@ export const WorkflowEdge = ({
         </linearGradient>
       </defs>
 
+      {/* Dedicated hit-area path for reliable edge selection */}
+      <path
+        d={edgePath}
+        stroke='transparent'
+        strokeWidth='32'
+        fill='none'
+        className='workflow-edge-interaction'
+        style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+        onMouseDown={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          if (data?.onSelect) {
+            ;(data.onSelect as () => void)()
+          }
+        }}
+      />
+
       {/* Main edge path - smooth rounded corners */}
       <path
         id={`path-${id}`}
@@ -157,6 +174,7 @@ export const WorkflowEdge = ({
         data-is-selected={isSelected ? 'true' : 'false'}
         data-is-inside-loop={isInsideLoop ? 'true' : 'false'}
         className='transition-[stroke,stroke-width,opacity,filter] duration-200'
+        style={{ pointerEvents: 'none' }}
       />
 
       {/* Animated flowing dashes — subtle marching ants */}
@@ -169,6 +187,7 @@ export const WorkflowEdge = ({
         strokeDasharray='4 8'
         opacity={isSelected ? '0.7' : '0.4'}
         className='transition-opacity duration-200'
+        style={{ pointerEvents: 'none' }}
       >
         <animate
           attributeName='stroke-dashoffset'
@@ -189,6 +208,7 @@ export const WorkflowEdge = ({
           strokeLinejoin='round'
           opacity='0.1'
           className='transition-opacity duration-200'
+          style={{ pointerEvents: 'none' }}
         />
       )}
 
@@ -201,6 +221,7 @@ export const WorkflowEdge = ({
           fill='none'
           strokeLinecap='round'
           opacity='0.18'
+          style={{ pointerEvents: 'none' }}
         />
       )}
 

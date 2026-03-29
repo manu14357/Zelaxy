@@ -22,13 +22,12 @@ export const StarterBlock: BlockConfig = {
       ],
       value: () => 'manual',
     },
-    // Structured Input format - visible if manual run is selected (advanced mode)
+    // Structured Input format - visible if manual run is selected
     {
       id: 'inputFormat',
       title: 'Input Format (for API calls)',
       type: 'input-format',
       layout: 'full',
-      mode: 'advanced',
       condition: { field: 'startWorkflow', value: 'manual' },
     },
   ],

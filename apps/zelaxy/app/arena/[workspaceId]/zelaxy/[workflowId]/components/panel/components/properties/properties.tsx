@@ -364,8 +364,8 @@ export function Properties({ panelWidth = 308 }: PropertiesProps) {
             </p>
           )}
 
-          {/* Advanced Mode Toggle - only show for blocks that have advanced sub-blocks */}
-          {blockConfig.subBlocks?.some((sb) => sb.mode === 'advanced') && (
+          {/* Advanced Mode Toggle - only show for blocks that have advanced sub-blocks, hide for starter blocks */}
+          {selectedBlock.type !== 'starter' && blockConfig.subBlocks?.some((sb) => sb.mode === 'advanced') && (
             <div className='flex items-center justify-between pt-2'>
               <span className='text-muted-foreground text-sm'>Advanced Mode</span>
               <button

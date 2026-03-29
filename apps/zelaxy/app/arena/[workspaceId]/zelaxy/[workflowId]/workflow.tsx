@@ -1060,9 +1060,9 @@ const WorkflowContent = React.memo(() => {
           isActive,
           isPending,
         },
-        // Include dynamic dimensions for container resizing calculations
-        width: block.isWide ? 450 : 350, // Standard width based on isWide state
-        height: Math.max(block.height || 100, 100), // Use actual height with minimum
+        // Keep node hitbox aligned with the visible card so edges remain clickable nearby.
+        width: block.isWide ? 240 : 180,
+        height: Math.max(block.height || 80, 80),
       })
     })
 
@@ -1520,6 +1520,13 @@ const WorkflowContent = React.memo(() => {
         isSelected,
         isInsideLoop,
         parentLoopId,
+        onSelect: () => {
+          setSelectedEdgeInfo({
+            id: edge.id,
+            parentLoopId,
+            contextId: edgeContextId,
+          })
+        },
         onDelete: (edgeId: string) => {
           // Log deletion for debugging
 
