@@ -3,14 +3,18 @@ import { getBrandConfig } from '@/lib/branding/branding'
 import { env } from '@/lib/env'
 import { getAssetUrl } from '@/lib/utils'
 
+const SITE_URL = 'https://zelaxy.in'
+
 /**
  * Generate dynamic metadata based on brand configuration
  */
 export function generateBrandedMetadata(override: Partial<Metadata> = {}): Metadata {
   const brand = getBrandConfig()
+  const baseUrl = env.NEXT_PUBLIC_APP_URL || SITE_URL
 
-  const defaultTitle = brand.name
-  const defaultDescription = `Build and deploy AI agents using our Figma-like canvas. Build, write evals, and deploy AI agent workflows that automate workflows and streamline your business processes.`
+  const defaultTitle = `${brand.name} — Visual AI Agent Builder & Workflow Automation`
+  const defaultDescription =
+    'Build, test, and deploy AI agents on a visual drag-and-drop canvas. 78+ blocks, 80+ tools, real-time collaboration, and one-click deployment — no code required.'
 
   return {
     title: {
@@ -19,35 +23,36 @@ export function generateBrandedMetadata(override: Partial<Metadata> = {}): Metad
     },
     description: defaultDescription,
     applicationName: brand.name,
-    authors: [{ name: brand.name }],
+    authors: [{ name: brand.name, url: baseUrl }],
     generator: 'Next.js',
     keywords: [
-      'AI agent',
       'AI agent builder',
-      'AI agent workflow',
       'AI workflow automation',
       'visual workflow editor',
-      'AI agents',
+      'no-code AI agents',
+      'drag and drop AI builder',
+      'AI agent deployment',
       'workflow canvas',
-      'intelligent automation',
-      'AI tools',
+      'AI automation platform',
+      'business process automation',
+      'AI agent orchestration',
+      'LLM workflow builder',
+      'AI pipeline builder',
+      'multi-agent system',
+      'agentic workflow',
+      'AI tools integration',
       'workflow designer',
-      'artificial intelligence',
-      'business automation',
-      'AI agent workflows',
-      'visual programming',
+      'intelligent automation',
+      'AI agent evaluation',
+      'real-time collaboration AI',
+      'open source AI builder',
     ],
     referrer: 'origin-when-cross-origin',
     creator: brand.name,
     publisher: brand.name,
-    metadataBase: env.NEXT_PUBLIC_APP_URL
-      ? new URL(env.NEXT_PUBLIC_APP_URL)
-      : new URL('https://zelaxy.in'),
+    metadataBase: new URL(baseUrl),
     alternates: {
       canonical: '/',
-      languages: {
-        'en-US': '/en-US',
-      },
     },
     robots: {
       index: true,
@@ -63,7 +68,7 @@ export function generateBrandedMetadata(override: Partial<Metadata> = {}): Metad
     openGraph: {
       type: 'website',
       locale: 'en_US',
-      url: env.NEXT_PUBLIC_APP_URL || 'https://zelaxy.in',
+      url: baseUrl,
       title: defaultTitle,
       description: defaultDescription,
       siteName: brand.name,
@@ -72,7 +77,7 @@ export function generateBrandedMetadata(override: Partial<Metadata> = {}): Metad
           url: brand.logoUrl || getAssetUrl('social/facebook.png'),
           width: 1200,
           height: 630,
-          alt: brand.name,
+          alt: `${brand.name} — Visual AI Agent Builder`,
         },
       ],
     },
@@ -124,32 +129,96 @@ export function generateBrandedMetadata(override: Partial<Metadata> = {}): Metad
 }
 
 /**
- * Generate static structured data for SEO
+ * SoftwareApplication structured data (JSON-LD)
  */
 export function generateStructuredData() {
+  const brand = getBrandConfig()
+  const baseUrl = env.NEXT_PUBLIC_APP_URL || SITE_URL
+
   return {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'Zelaxy',
+    name: brand.name,
+    alternateName: 'Zelaxy AI Agent Builder',
     description:
-      'Build and deploy AI agents using our Figma-like canvas. Build, write evals, and deploy AI agent workflows that automate workflows and streamline your business processes.',
-    url: 'https://zelaxy.in',
+      'Build, test, and deploy AI agents on a visual drag-and-drop canvas. 78+ blocks, 80+ tools, real-time collaboration, and one-click deployment — no code required.',
+    url: baseUrl,
     applicationCategory: 'BusinessApplication',
+    applicationSubCategory: 'Artificial Intelligence',
     operatingSystem: 'Web Browser',
     offers: {
       '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
       category: 'SaaS',
     },
     creator: {
       '@type': 'Organization',
-      name: 'Zelaxy',
-      url: 'https://zelaxy.in',
+      name: brand.name,
+      url: baseUrl,
+      logo: `${baseUrl}/zelaxy.png`,
+      sameAs: [
+        'https://github.com/manu14357/Zelaxy',
+        'https://x.com/zelaxy',
+      ],
     },
     featureList: [
-      'Visual AI Agent Builder',
-      'Workflow Canvas Interface',
-      'AI Agent Automation',
-      'Custom AI Workflows',
+      'Visual drag-and-drop AI agent builder',
+      'Workflow canvas with 78+ blocks',
+      '80+ pre-built tool integrations',
+      'Real-time multi-user collaboration',
+      'One-click agent deployment',
+      'AI agent evaluation and testing',
+      'Custom block and tool SDK',
+      'Self-hostable open-source platform',
     ],
+    screenshot: `${baseUrl}/social/facebook.png`,
+    softwareVersion: '1.0',
+    releaseNotes: 'Initial public release',
+  }
+}
+
+/**
+ * Organization structured data (JSON-LD)
+ */
+export function generateOrganizationData() {
+  const brand = getBrandConfig()
+  const baseUrl = env.NEXT_PUBLIC_APP_URL || SITE_URL
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: brand.name,
+    url: baseUrl,
+    logo: `${baseUrl}/zelaxy.png`,
+    description:
+      'Open-source AI agent builder and workflow automation platform.',
+    email: brand.supportEmail,
+    sameAs: [
+      'https://github.com/manu14357/Zelaxy',
+      'https://x.com/zelaxy',
+    ],
+  }
+}
+
+/**
+ * WebSite structured data with search action (JSON-LD)
+ */
+export function generateWebsiteData() {
+  const brand = getBrandConfig()
+  const baseUrl = env.NEXT_PUBLIC_APP_URL || SITE_URL
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: brand.name,
+    url: baseUrl,
+    description:
+      'Build, test, and deploy AI agents on a visual drag-and-drop canvas.',
+    publisher: {
+      '@type': 'Organization',
+      name: brand.name,
+      logo: `${baseUrl}/zelaxy.png`,
+    },
   }
 }
