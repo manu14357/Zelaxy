@@ -74,7 +74,7 @@ export function generateBrandedMetadata(override: Partial<Metadata> = {}): Metad
       siteName: brand.name,
       images: [
         {
-          url: brand.logoUrl || getAssetUrl('social/facebook.png'),
+          url: brand.logoUrl || getAssetUrl('social/og-preview.png'),
           width: 1200,
           height: 630,
           alt: `${brand.name} — Visual AI Agent Builder`,
@@ -85,7 +85,7 @@ export function generateBrandedMetadata(override: Partial<Metadata> = {}): Metad
       card: 'summary_large_image',
       title: defaultTitle,
       description: defaultDescription,
-      images: [brand.logoUrl || getAssetUrl('social/twitter.png')],
+      images: [brand.logoUrl || getAssetUrl('social/og-preview.png')],
       creator: '@zelaxy',
       site: '@zelaxy',
     },
