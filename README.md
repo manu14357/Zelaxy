@@ -214,15 +214,13 @@ MIT © 2025 Zelaxy
 
 ---
 
-<p align="center">
-  <a href="https://star-history.com/#manu14357/Zelaxy&Date">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date&theme=dark" />
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" />
-      <img src="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" alt="Star History Chart" width="600" />
-    </picture>
-  </a>
-</p>
+<a href="https://star-history.com/#manu14357/Zelaxy&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" />
+    <img src="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" alt="Star History Chart" width="600" />
+  </picture>
+</a>
 
 <p align="center">
   Open source under MIT. Built for people who want to automate with AI, not write glue code.
