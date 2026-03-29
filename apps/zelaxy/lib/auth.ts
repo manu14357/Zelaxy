@@ -66,6 +66,8 @@ export const auth = betterAuth({
   baseURL: getBaseURL(),
   trustedOrigins: [
     env.NEXT_PUBLIC_APP_URL,
+    'https://zelaxy.in',
+    'https://www.zelaxy.in',
     ...(env.NEXT_PUBLIC_VERCEL_URL ? [`https://${env.NEXT_PUBLIC_VERCEL_URL}`] : []),
     ...(env.NEXT_PUBLIC_SOCKET_URL ? [env.NEXT_PUBLIC_SOCKET_URL] : []),
   ].filter(Boolean),
