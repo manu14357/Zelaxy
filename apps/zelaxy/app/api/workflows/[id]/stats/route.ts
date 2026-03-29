@@ -62,7 +62,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           totalTokensUsed: 0,
           totalCost: '0.00',
           lastActive: sql`now()`,
-        })
+        }).onConflictDoNothing({ target: userStats.userId })
       } else {
         // Update existing record
         await db

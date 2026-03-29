@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
         totalCost: costToStore.toString(),
         currentPeriodCost: costToStore.toString(),
         lastActive: new Date(),
-      })
+      }).onConflictDoNothing({ target: userStats.userId })
 
       logger.info(`[${requestId}] Created new user stats record`, {
         userId,

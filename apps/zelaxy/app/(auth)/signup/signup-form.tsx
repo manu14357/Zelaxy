@@ -371,286 +371,172 @@ function SignupFormContent({
   }
 
   return (
-    <div className='fade-in grid min-h-screen animate-in gap-0 duration-700 lg:grid-cols-2'>
-      {/* Left Side - Branding */}
-      <div className='flex flex-col items-center justify-center px-8 py-12 lg:px-16'>
-        {/* Enhanced Header with Logo */}
-        <div className='max-w-md space-y-8 text-center'>
-          {/* Logo with hover effects */}
-          <div className='mb-8 flex justify-center'>
-            <div className='group relative'>
-              <div className='flex h-24 w-24 items-center justify-center'>
-                <svg
-                  width='80'
-                  height='80'
-                  viewBox='0 0 100 100'
-                  fill='none'
-                  xmlns='http://www.w3.org/2000/svg'
-                  className='text-primary transition-all duration-500 group-hover:scale-110 dark:text-primary/80'
-                >
-                  <circle cx='50' cy='15' r='4' stroke='currentColor' strokeWidth='5' fill='none' />
-                  <path
-                    d='M50 15 L50 40'
-                    stroke='currentColor'
-                    strokeWidth='5'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                  />
-                  <path
-                    d='M50 40 L35 20'
-                    stroke='currentColor'
-                    strokeWidth='5'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    fill='none'
-                  />
-                  <path
-                    d='M50 40 L65 20'
-                    stroke='currentColor'
-                    strokeWidth='5'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    fill='none'
-                  />
-                  <path
-                    d='M35 20 L20 45 L20 75 Q20 82 30 85 L50 85'
-                    stroke='currentColor'
-                    strokeWidth='5'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    fill='none'
-                  />
-                  <path
-                    d='M65 20 L80 45 L80 75 Q80 82 70 85 L50 85'
-                    stroke='currentColor'
-                    strokeWidth='5'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    fill='none'
-                  />
-                  <circle cx='40' cy='55' r='4' fill='currentColor' />
-                  <circle cx='60' cy='55' r='4' fill='currentColor' />
-                  <path
-                    d='M40 68 Q50 76 60 68'
-                    stroke='currentColor'
-                    strokeWidth='5'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    fill='none'
-                  />
-                </svg>
-              </div>
-              <div className='-inset-4 absolute rounded-full bg-gradient-to-r from-primary/20 via-orange-600/20 to-primary/20 opacity-0 blur-xl transition-all duration-500 group-hover:opacity-100 dark:from-primary/30 dark:via-orange-400/30 dark:to-orange-400/30' />
-            </div>
-          </div>
-          <h1 className='font-bold text-6xl tracking-tight sm:text-7xl'>
-            <span className='animate-gradient bg-[length:200%_200%] bg-gradient-to-r from-primary via-orange-600 to-primary bg-clip-text text-transparent'>
-              Zelaxy
-            </span>
-          </h1>
-          <p className='text-gray-600 text-xl leading-relaxed dark:text-gray-300'>
-            Join Zelaxy to start building intelligent workflows that evolve with your needs.
+    <div className='flex min-h-screen items-center justify-center px-4 py-12'>
+      <div className='w-full max-w-md space-y-8'>
+        {/* Header */}
+        <div className='space-y-3 text-center'>
+          <Link href='/' className='inline-block'>
+            <h1 className='font-bold text-5xl tracking-[-0.04em]'>
+              <span className='animate-gradient bg-[length:200%_200%] bg-gradient-to-r from-primary via-orange-400 to-amber-300 bg-clip-text text-transparent'>
+                Zelaxy
+              </span>
+            </h1>
+          </Link>
+          <p className='text-neutral-400 text-base'>
+            Create your account and start building workflows
           </p>
-
-          {/* Social Login Buttons */}
-          <div className='space-y-4 pt-8'>
-            <SocialLoginButtons
-              githubAvailable={githubAvailable}
-              googleAvailable={googleAvailable}
-              callbackURL={redirectUrl || '/workspace'}
-              isProduction={isProduction}
-            />
-          </div>
         </div>
-      </div>
 
-      {/* Right Side - Signup Form */}
-      <div className='flex flex-col items-center justify-center border-gray-200/20 border-l bg-transparent px-8 py-12 backdrop-blur-none lg:px-16 dark:border-gray-700/20'>
-        <div className='w-full max-w-md space-y-8'>
-          {/* Form Header */}
-          <div className='space-y-4 text-center'>
-            <h2 className='font-bold text-3xl text-gray-900 dark:text-white'>Create Account</h2>
-            <p className='text-gray-600 dark:text-gray-400'>
-              Enter your details to create a new account
-            </p>
-          </div>
+        {/* Social Login */}
+        <SocialLoginButtons
+          githubAvailable={githubAvailable}
+          googleAvailable={googleAvailable}
+          callbackURL={redirectUrl || '/workspace'}
+          isProduction={isProduction}
+        />
 
-          {/* Signup Form */}
-          <div className='relative overflow-hidden rounded-3xl border-0 bg-transparent shadow-none backdrop-blur-none'>
-            {/* Floating orbs for visual interest */}
-            <div className='absolute top-4 right-4 h-2 w-2 animate-pulse rounded-full bg-gradient-to-r from-primary to-orange-400 opacity-60' />
-            <div className='absolute bottom-4 left-4 h-3 w-3 animate-bounce rounded-full bg-gradient-to-r from-purple-400 to-pink-400 opacity-40 [animation-delay:1s] [animation-duration:3s]' />
-            <div className='absolute top-1/2 left-8 h-1 w-1 animate-pulse rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 opacity-50 [animation-delay:2s]' />
+        {/* Divider */}
+        <div className='flex items-center gap-4'>
+          <div className='h-px flex-1 bg-white/10' />
+          <span className='text-neutral-500 text-xs uppercase tracking-wider'>or</span>
+          <div className='h-px flex-1 bg-white/10' />
+        </div>
 
-            <div className='relative p-8'>
-              <form onSubmit={onSubmit} className='space-y-6'>
-                <div className='space-y-5'>
-                  <div className='space-y-3'>
-                    <Label
-                      htmlFor='name'
-                      className='font-semibold text-base text-gray-700 dark:text-gray-300'
-                    >
-                      Full Name
-                    </Label>
-                    <Input
-                      id='name'
-                      name='name'
-                      placeholder='Enter your name'
-                      type='text'
-                      autoCapitalize='words'
-                      autoComplete='name'
-                      title='Name can only contain letters, spaces, hyphens, and apostrophes'
-                      value={name}
-                      onChange={handleNameChange}
-                      className={cn(
-                        'h-14 rounded-2xl border-2 border-gray-300 bg-white/10 text-base text-gray-900 backdrop-blur-none transition-all duration-300 placeholder:text-gray-500 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-900/10 dark:text-white dark:placeholder:text-gray-400',
-                        showNameValidationError &&
-                          nameErrors.length > 0 &&
-                          'border-red-400 focus:border-red-400 focus:ring-red-400/20'
-                      )}
-                    />
-                    {showNameValidationError && nameErrors.length > 0 && (
-                      <div className='slide-in-from-top-1 mt-3 animate-in space-y-2 text-red-500 text-sm duration-300'>
-                        {nameErrors.map((error, index) => (
-                          <p
-                            key={index}
-                            className='flex items-center space-x-2 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20'
-                          >
-                            <span className='h-1.5 w-1.5 rounded-full bg-red-500' />
-                            <span>{error}</span>
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className='space-y-3'>
-                    <Label
-                      htmlFor='email'
-                      className='font-semibold text-base text-gray-700 dark:text-gray-300'
-                    >
-                      Email Address
-                    </Label>
-                    <Input
-                      id='email'
-                      name='email'
-                      placeholder='Enter your email'
-                      autoCapitalize='none'
-                      autoComplete='email'
-                      autoCorrect='off'
-                      value={email}
-                      onChange={handleEmailChange}
-                      className={cn(
-                        'h-14 rounded-2xl border-2 border-gray-300 bg-white/10 text-base text-gray-900 backdrop-blur-none transition-all duration-300 placeholder:text-gray-500 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-900/10 dark:text-white dark:placeholder:text-gray-400',
-                        (emailError || (showEmailValidationError && emailErrors.length > 0)) &&
-                          'border-red-400 focus:border-red-400 focus:ring-red-400/20'
-                      )}
-                    />
-                    {showEmailValidationError && emailErrors.length > 0 && (
-                      <div className='slide-in-from-top-1 mt-3 animate-in space-y-2 text-red-500 text-sm duration-300'>
-                        {emailErrors.map((error, index) => (
-                          <p
-                            key={index}
-                            className='flex items-center space-x-2 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20'
-                          >
-                            <span className='h-1.5 w-1.5 rounded-full bg-red-500' />
-                            <span>{error}</span>
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                    {emailError && !showEmailValidationError && (
-                      <div className='slide-in-from-top-1 mt-3 animate-in space-y-2 text-red-500 text-sm duration-300'>
-                        <p className='flex items-center space-x-2 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20'>
-                          <span className='h-1.5 w-1.5 rounded-full bg-red-500' />
-                          <span>{emailError}</span>
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className='space-y-3'>
-                    <Label
-                      htmlFor='password'
-                      className='font-semibold text-base text-gray-700 dark:text-gray-300'
-                    >
-                      Password
-                    </Label>
-                    <div className='relative'>
-                      <Input
-                        id='password'
-                        name='password'
-                        type={showPassword ? 'text' : 'password'}
-                        autoCapitalize='none'
-                        autoComplete='new-password'
-                        placeholder='Enter your password'
-                        autoCorrect='off'
-                        value={password}
-                        onChange={handlePasswordChange}
-                        className='h-14 rounded-2xl border-2 border-gray-300 bg-white/10 pr-14 text-base text-gray-900 backdrop-blur-none transition-all duration-300 placeholder:text-gray-500 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-900/10 dark:text-white dark:placeholder:text-gray-400'
-                      />
-                      <button
-                        type='button'
-                        onClick={() => setShowPassword(!showPassword)}
-                        className='-translate-y-1/2 absolute top-1/2 right-4 rounded-xl p-2 text-gray-400 transition-colors duration-200 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
-                      </button>
-                    </div>
-                    {showValidationError && passwordErrors.length > 0 && (
-                      <div className='slide-in-from-top-1 mt-3 animate-in space-y-2 text-red-500 text-sm duration-300'>
-                        {passwordErrors.map((error, index) => (
-                          <p
-                            key={index}
-                            className='flex items-center space-x-2 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20'
-                          >
-                            <span className='h-1.5 w-1.5 rounded-full bg-red-500' />
-                            <span>{error}</span>
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+        {/* Form */}
+        <form onSubmit={onSubmit} className='space-y-5'>
+          <div className='space-y-4'>
+            {/* Name */}
+            <div className='space-y-2'>
+              <Label htmlFor='name' className='font-medium text-neutral-300 text-sm'>
+                Full Name
+              </Label>
+              <Input
+                id='name'
+                name='name'
+                placeholder='Your name'
+                type='text'
+                autoCapitalize='words'
+                autoComplete='name'
+                title='Name can only contain letters, spaces, hyphens, and apostrophes'
+                value={name}
+                onChange={handleNameChange}
+                className={cn(
+                  'h-12 rounded-xl border border-white/10 bg-white/5 text-white placeholder:text-neutral-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/20',
+                  showNameValidationError &&
+                    nameErrors.length > 0 &&
+                    'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20'
+                )}
+              />
+              {showNameValidationError && nameErrors.length > 0 && (
+                <div className='space-y-1'>
+                  {nameErrors.map((error, index) => (
+                    <p key={index} className='text-red-400 text-sm'>
+                      {error}
+                    </p>
+                  ))}
                 </div>
+              )}
+            </div>
 
-                <Button
-                  type='submit'
-                  className='relative h-14 w-full overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-orange-600 to-primary font-bold text-lg text-white shadow-lg transition-all duration-300 hover:from-orange-700 hover:via-orange-700 hover:to-orange-700'
-                  disabled={isLoading}
+            {/* Email */}
+            <div className='space-y-2'>
+              <Label htmlFor='email' className='font-medium text-neutral-300 text-sm'>
+                Email Address
+              </Label>
+              <Input
+                id='email'
+                name='email'
+                placeholder='you@example.com'
+                autoCapitalize='none'
+                autoComplete='email'
+                autoCorrect='off'
+                value={email}
+                onChange={handleEmailChange}
+                className={cn(
+                  'h-12 rounded-xl border border-white/10 bg-white/5 text-white placeholder:text-neutral-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/20',
+                  (emailError || (showEmailValidationError && emailErrors.length > 0)) &&
+                    'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20'
+                )}
+              />
+              {showEmailValidationError && emailErrors.length > 0 && (
+                <div className='space-y-1'>
+                  {emailErrors.map((error, index) => (
+                    <p key={index} className='text-red-400 text-sm'>
+                      {error}
+                    </p>
+                  ))}
+                </div>
+              )}
+              {emailError && !showEmailValidationError && (
+                <p className='text-red-400 text-sm'>{emailError}</p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div className='space-y-2'>
+              <Label htmlFor='password' className='font-medium text-neutral-300 text-sm'>
+                Password
+              </Label>
+              <div className='relative'>
+                <Input
+                  id='password'
+                  name='password'
+                  type={showPassword ? 'text' : 'password'}
+                  autoCapitalize='none'
+                  autoComplete='new-password'
+                  placeholder='Min. 8 characters'
+                  autoCorrect='off'
+                  value={password}
+                  onChange={handlePasswordChange}
+                  className='h-12 rounded-xl border border-white/10 bg-white/5 pr-12 text-white placeholder:text-neutral-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/20'
+                />
+                <button
+                  type='button'
+                  onClick={() => setShowPassword(!showPassword)}
+                  className='-translate-y-1/2 absolute top-1/2 right-3.5 text-neutral-500 transition-colors hover:text-neutral-300'
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  <span className='relative z-10 flex items-center justify-center space-x-3'>
-                    {isLoading ? (
-                      <>
-                        <div className='h-6 w-6 animate-spin rounded-full border-3 border-white/30 border-t-white' />
-                        <span>Creating account...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Create Account</span>
-                      </>
-                    )}
-                  </span>
-                </Button>
-              </form>
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {showValidationError && passwordErrors.length > 0 && (
+                <div className='space-y-1'>
+                  {passwordErrors.map((error, index) => (
+                    <p key={index} className='text-red-400 text-sm'>
+                      {error}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Sign In Link */}
-          <div className='space-y-4 text-center'>
-            <div className='inline-flex items-center space-x-2 rounded-full border-0 bg-transparent px-6 py-3 text-gray-600 shadow-none backdrop-blur-none dark:text-gray-400'>
-              <span>Already have an account?</span>
-              <Link
-                href={
-                  isInviteFlow ? `/login?invite_flow=true&callbackUrl=${redirectUrl}` : '/login'
-                }
-                className='font-bold text-primary underline-offset-4 transition-all duration-200 hover:scale-105 hover:text-primary hover:underline dark:text-primary/80 dark:hover:text-primary/70'
-              >
-                Sign in
-              </Link>
-            </div>
-          </div>
-        </div>
+          <Button
+            type='submit'
+            className='h-12 w-full rounded-xl bg-white font-semibold text-[15px] text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300 hover:bg-neutral-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]'
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <span className='flex items-center gap-2'>
+                <div className='h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black' />
+                Creating account...
+              </span>
+            ) : (
+              'Create Account'
+            )}
+          </Button>
+        </form>
+
+        {/* Footer */}
+        <p className='text-center text-neutral-500 text-sm'>
+          Already have an account?{' '}
+          <Link
+            href={isInviteFlow ? `/login?invite_flow=true&callbackUrl=${redirectUrl}` : '/login'}
+            className='font-medium text-primary/80 transition-colors hover:text-primary'
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   )

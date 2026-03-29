@@ -71,7 +71,7 @@ export async function updateWorkflowRunCounts(workflowId: string, runs = 1) {
           totalTokensUsed: 0,
           totalCost: '0.00',
           lastActive: new Date(),
-        })
+        }).onConflictDoNothing({ target: userStats.userId })
       } else {
         // Update existing record
         await db

@@ -42,9 +42,17 @@ export function AvatarPicker({ onAvatarUpdated }: AvatarPickerProps) {
   }, [userSeed])
 
   // Initialize on mount — prefer store override over session image
+  // If the current image is not a Multiavatar (e.g. broken OAuth URL), generate a new one
   useEffect(() => {
     if (session?.user) {
-      setCurrentAvatar(storeAvatarUrl || session.user.image || null)
+      const existingImage = storeAvatarUrl || session.user.image || null
+      if (existingImage && !isMultiavatarUrl(existingImage)) {
+        // Replace OAuth provider image with a Multiavatar
+        const newAvatar = getDefaultAvatarUrl(userSeed)
+        setCurrentAvatar(newAvatar)
+      } else {
+        setCurrentAvatar(existingImage)
+      }
       refreshAvatars()
     }
   }, [session?.user?.id])
@@ -103,7 +111,16 @@ export function AvatarPicker({ onAvatarUpdated }: AvatarPickerProps) {
       <div className='flex items-center gap-4'>
         <div className='relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-border/60 bg-muted/30 shadow-sm'>
           {currentAvatar ? (
-            <img src={currentAvatar} alt='Current avatar' className='h-full w-full object-cover' />
+            <img
+              src={currentAvatar}
+              alt='Current avatar'
+              className='h-full w-full object-cover'
+              onError={() => {
+                // If the current avatar fails to load, replace with Multiavatar
+                const fallback = getDefaultAvatarUrl(userSeed)
+                setCurrentAvatar(fallback)
+              }}
+            />
           ) : (
             <img
               src={getDefaultAvatarUrl(userSeed)}

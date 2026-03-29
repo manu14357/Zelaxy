@@ -17,7 +17,7 @@ const BLOCKS_WITHOUT_DOCS = new Set(['smtp'])
  * Default docs base URL (the docs Next.js app).
  * Can be overridden via NEXT_PUBLIC_DOCUMENTATION_URL env var.
  */
-const DEFAULT_DOCS_BASE = 'http://docs.localhost:3001'
+const DEFAULT_DOCS_BASE = 'https://docs.zelaxy.in'
 
 /**
  * Get the docs base URL from environment or default.

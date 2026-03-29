@@ -93,11 +93,11 @@ export function SocialLoginButtons({
   const githubButton = (
     <Button
       variant='outline'
-      className='w-full border-2 border-gray-300 bg-transparent text-gray-900 hover:border-gray-200 dark:text-white'
+      className='w-full border border-white/10 bg-white/5 text-white hover:bg-white/10'
       disabled={!githubAvailable || isGithubLoading}
       onClick={signInWithGithub}
     >
-      <GithubIcon className='mr-2 h-4 w-4 text-gray-900 dark:text-white' />
+      <GithubIcon className='mr-2 h-4 w-4 text-white' />
       {isGithubLoading ? 'Connecting...' : 'Continue with GitHub'}
     </Button>
   )
@@ -105,11 +105,11 @@ export function SocialLoginButtons({
   const googleButton = (
     <Button
       variant='outline'
-      className='w-full border-2 border-gray-300 bg-transparent text-gray-900 hover:border-gray-200 dark:text-white'
+      className='w-full border border-white/10 bg-white/5 text-white hover:bg-white/10'
       disabled={!googleAvailable || isGoogleLoading}
       onClick={signInWithGoogle}
     >
-      <GoogleIcon className='mr-2 h-4 w-4 text-gray-900 dark:text-white' />
+      <GoogleIcon className='mr-2 h-4 w-4' />
       {isGoogleLoading ? 'Connecting...' : 'Continue with Google'}
     </Button>
   )

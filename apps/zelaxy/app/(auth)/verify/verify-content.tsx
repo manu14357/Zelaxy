@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { cn } from '@/lib/utils'
@@ -53,10 +54,17 @@ function VerificationForm({
 
   return (
     <div className='space-y-6'>
-      <div className='space-y-2 text-center'>
-        <h1 className='font-semibold text-[32px] text-white tracking-tight'>
+      <div className='space-y-3 text-center'>
+        <Link href='/' className='inline-block'>
+          <h1 className='font-bold text-5xl tracking-[-0.04em]'>
+            <span className='animate-gradient bg-[length:200%_200%] bg-gradient-to-r from-primary via-orange-400 to-amber-300 bg-clip-text text-transparent'>
+              Zelaxy
+            </span>
+          </h1>
+        </Link>
+        <h2 className='font-semibold text-2xl text-white tracking-tight'>
           {isVerified ? 'Email Verified!' : 'Verify Your Email'}
-        </h1>
+        </h2>
         <p className='text-neutral-400 text-sm'>
           {isVerified
             ? 'Your email has been verified. Redirecting to dashboard...'

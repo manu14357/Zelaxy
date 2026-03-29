@@ -109,6 +109,21 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Global text overflow prevention */
+.prose {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.prose p,
+.prose li,
+.prose td,
+.prose th,
+.prose blockquote {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
 /* ==========================================================================
    TYPOGRAPHY — Refined, borderless headings
    ========================================================================== */
@@ -338,7 +353,9 @@ body {
   background-color: hsl(var(--fd-accent));
   border: none;
   color: hsl(var(--fd-accent-foreground));
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Code copy button */
@@ -790,6 +807,62 @@ nav[data-navbar] [data-search-trigger]:hover {
   [data-card],
   .fd-card {
     border-radius: 0.5rem;
+  }
+
+  /* Fix main content overflow on mobile */
+  .prose {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Ensure page layout doesn't overflow viewport */
+  [data-page],
+  main,
+  article {
+    min-width: 0;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Fix code blocks horizontal scrolling container */
+  .prose pre {
+    max-width: calc(100vw - 2rem);
+    overflow-x: auto;
+  }
+
+  /* Inline code wrapping on mobile */
+  .prose :not(pre) > code {
+    word-break: break-all;
+  }
+
+  /* Ensure images don't overflow */
+  .prose img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Table responsive wrapper */
+  .prose table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Sidebar overlay on mobile — ensure it doesn't push content */
+  [data-sidebar] {
+    max-width: 85vw;
+  }
+
+  /* Fix heading overflow */
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4 {
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 }
 
