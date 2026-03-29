@@ -20,7 +20,7 @@ async function initializeSentry() {
 
 /**
  * Local development cron scheduler.
- * On Vercel, cron jobs are defined in vercel.json.
+ * Production cron definitions can be kept as a plain text reference in vercel.txt.
  * Locally, we use setInterval to simulate the same behavior.
  */
 function startLocalCronJobs() {
