@@ -106,7 +106,7 @@ function SidebarBanner() {
 
       {/* Quick link */}
       <a
-        href='http://localhost:3000'
+        href='https://zelaxy.in'
         className='flex items-center gap-2 rounded-lg border border-neutral-200/50 bg-neutral-50/50 px-3 py-2 font-medium text-[12px] text-neutral-500 transition-all duration-200 hover:border-orange-200/50 hover:text-orange-600 dark:border-neutral-800/50 dark:bg-neutral-900/30 dark:text-neutral-400 dark:hover:border-orange-800/30 dark:hover:text-orange-400'
       >
         <ExternalLink style={{ width: 12, height: 12 }} />

@@ -1,5 +1,12 @@
+<h1 align="center">
+  <h1 align="center">✦ Z E L A X Y ✦</h1>
+</h1>
 <p align="center">
-  <img src="apps/zelaxy/app/(landing)/assets/theme.png" alt="Zelaxy" width="100%" />
+  <sub>AI Workflow Automation — Visual · Extensible · Real-time</sub>
+</p>
+
+<p align="center">
+  <img src="apps/zelaxy/app/(landing)/assets/Readme.png" alt="Zelaxy" width="100%" />
 </p>
 
 <p align="center">
