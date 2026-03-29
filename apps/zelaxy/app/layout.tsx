@@ -1,7 +1,12 @@
 import type { Metadata, Viewport } from 'next'
 import { PublicEnvScript } from 'next-runtime-env'
 import { BrandedLayout } from '@/components/branded-layout'
-import { generateBrandedMetadata, generateStructuredData } from '@/lib/branding/metadata'
+import {
+  generateBrandedMetadata,
+  generateOrganizationData,
+  generateStructuredData,
+  generateWebsiteData,
+} from '@/lib/branding/metadata'
 import { createLogger } from '@/lib/logs/console/logger'
 import { getAssetUrl } from '@/lib/utils'
 
@@ -54,6 +59,8 @@ export const metadata: Metadata = generateBrandedMetadata()
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const structuredData = generateStructuredData()
+  const organizationData = generateOrganizationData()
+  const websiteData = generateWebsiteData()
 
   return (
     <html lang='en' suppressHydrationWarning>
@@ -62,22 +69,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           type='application/ld+json'
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(structuredData),
+            __html: JSON.stringify([structuredData, organizationData, websiteData]),
           }}
         />
 
         {/* Meta tags for better SEO */}
-        <meta name='theme-color' content='#ffffff' />
-        <meta name='color-scheme' content='light' />
+        <meta name='theme-color' content='#ffffff' media='(prefers-color-scheme: light)' />
+        <meta name='theme-color' content='#060606' media='(prefers-color-scheme: dark)' />
+        <meta name='color-scheme' content='light dark' />
         <meta name='format-detection' content='telephone=no' />
         <meta httpEquiv='x-ua-compatible' content='ie=edge' />
+
+        {/* DNS prefetch for external services */}
+        <link rel='dns-prefetch' href='//fonts.googleapis.com' />
+        <link rel='preconnect' href='https://fonts.googleapis.com' crossOrigin='anonymous' />
 
         {/* Additional Open Graph tags */}
         <meta property='og:image:width' content='1200' />
         <meta property='og:image:height' content='630' />
         <meta
           property='og:image:alt'
-          content='Zelaxy - AI Agent Builder with Visual Canvas Interface'
+          content='Zelaxy — Visual AI Agent Builder & Workflow Automation'
         />
         <meta property='og:site_name' content='Zelaxy' />
         <meta property='og:locale' content='en_US' />
@@ -85,7 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Twitter Card tags */}
         <meta name='twitter:image:width' content='1200' />
         <meta name='twitter:image:height' content='675' />
-        <meta name='twitter:image:alt' content='Zelaxy - AI Agent Builder' />
+        <meta name='twitter:image:alt' content='Zelaxy — Visual AI Agent Builder' />
         <meta name='twitter:url' content='https://zelaxy.in' />
         <meta name='twitter:domain' content='zelaxy.in' />
 

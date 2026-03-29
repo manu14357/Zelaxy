@@ -83,9 +83,39 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
   const category = getCategoryInfo(params.slug)
   const titlePrefix = category ? `${category.label}: ` : ''
+  const title = `${titlePrefix}${page.data.title}`
+  const description =
+    page.data.description ||
+    `Learn about ${page.data.title} in the Zelaxy documentation — AI agent builder reference.`
+  const docsUrl = 'https://docs.zelaxy.in'
+  const pageUrl = `${docsUrl}${page.url}`
 
   return {
-    title: `${titlePrefix}${page.data.title}`,
-    description: page.data.description,
+    title,
+    description,
+    alternates: {
+      canonical: page.url,
+    },
+    openGraph: {
+      title: `${title} — Zelaxy Docs`,
+      description,
+      url: pageUrl,
+      type: 'article',
+      siteName: 'Zelaxy Documentation',
+      images: [
+        {
+          url: 'https://zelaxy.in/social/facebook.png',
+          width: 1200,
+          height: 630,
+          alt: `${page.data.title} — Zelaxy Docs`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary',
+      title: `${title} — Zelaxy Docs`,
+      description,
+      site: '@zelaxy',
+    },
   }
 }
