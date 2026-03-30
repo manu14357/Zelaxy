@@ -58,6 +58,9 @@ export function DocsFooter() {
                 <span className='font-medium text-[11px] text-orange-500/80 uppercase tracking-wide dark:text-orange-400/60'>
                   Docs
                 </span>
+                <span className='rounded-full border border-orange-500/20 bg-orange-500/10 px-1.5 py-0.5 font-medium text-[10px] text-orange-500/80 dark:border-orange-400/20 dark:bg-orange-400/10 dark:text-orange-400/60'>
+                  v0.1.0
+                </span>
               </div>
             </Link>
             <p className='mt-3 max-w-[240px] text-[13px] leading-relaxed text-fd-muted-foreground'>
