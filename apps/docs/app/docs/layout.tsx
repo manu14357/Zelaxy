@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { Blocks, ExternalLink, Wrench, Zap } from 'lucide-react'
 import { source } from '@/lib/source'
+import { DocsFooter } from '../components/footer'
 
 function ZelaxyLogo() {
   return (
@@ -97,6 +98,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       githubUrl='https://github.com/zelaxy-ai/zelaxy'
     >
       {children}
+      <DocsFooter />
     </DocsLayout>
   )
 }
