@@ -104,7 +104,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       siteName: 'Zelaxy Documentation',
       images: [
         {
-          url: 'https://zelaxy.in/social/facebook.png',
+          url: 'https://zelaxy.in/social/og-preview.png',
           width: 1200,
           height: 630,
           alt: `${page.data.title} — Zelaxy Docs`,

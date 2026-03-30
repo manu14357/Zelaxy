@@ -106,7 +106,7 @@ export default function LoginPage({
   const [showValidationError, setShowValidationError] = useState(false)
 
   // Initialize state for URL parameters
-  const [callbackUrl, setCallbackUrl] = useState('/workspace')
+  const [callbackUrl, setCallbackUrl] = useState('/arena')
   const [isInviteFlow, setIsInviteFlow] = useState(false)
 
   // Forgot password states
@@ -136,7 +136,7 @@ export default function LoginPage({
           setCallbackUrl(callback)
         } else {
           logger.warn('Invalid callback URL detected and blocked:', { url: callback })
-          // Keep the default safe value ('/workspace')
+          // Keep the default safe value ('/arena')
         }
       }
 
@@ -203,13 +203,12 @@ export default function LoginPage({
 
     try {
       // Final validation before submission
-      const safeCallbackUrl = validateCallbackUrl(callbackUrl) ? callbackUrl : '/workspace'
+      const safeCallbackUrl = validateCallbackUrl(callbackUrl) ? callbackUrl : '/arena'
 
       const result = await client.signIn.email(
         {
           email,
           password,
-          callbackURL: safeCallbackUrl,
         },
         {
           onError: (ctx) => {
@@ -270,6 +269,9 @@ export default function LoginPage({
         localStorage.setItem('has_logged_in_before', 'true')
         document.cookie = 'has_logged_in_before=true; path=/; max-age=31536000; SameSite=Lax' // 1 year expiry
       }
+
+      // Use client-side navigation for instant redirect (no full page reload)
+      router.push(safeCallbackUrl)
     } catch (err: any) {
       // Handle only the special verification case that requires a redirect
       if (err.message?.includes('not verified') || err.code?.includes('EMAIL_NOT_VERIFIED')) {

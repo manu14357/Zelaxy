@@ -63,7 +63,7 @@ export const InvitationEmail = ({
             <Row>
               <Column style={{ textAlign: 'center' }}>
                 <Img
-                  src={brand.logoUrl || getAssetUrl('social/og-preview.png')}
+                  src={brand.logoUrl || getAssetUrl('Zelaxy.png')}
                   width='114'
                   alt={brand.name}
                   style={{

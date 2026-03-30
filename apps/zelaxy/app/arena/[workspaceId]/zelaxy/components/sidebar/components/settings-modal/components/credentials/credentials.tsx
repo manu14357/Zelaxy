@@ -171,10 +171,10 @@ export function Credentials({ onOpenChange }: CredentialsProps) {
       }
 
       // Clear the URL parameters
-      router.replace('/workspace')
+      router.replace('/arena')
     } else if (error) {
       logger.error('OAuth error:', { error })
-      router.replace('/workspace')
+      router.replace('/arena')
     }
   }, [searchParams, router, userId])
 

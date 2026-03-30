@@ -16,7 +16,7 @@ import { AlertTriangle, X } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import '@xyflow/react/dist/style.css'
 import { createLogger } from '@/lib/logs/console/logger'
-import { useUserPermissionsContext } from '@/app/arena/[workspaceId]/providers/workspace-permissions-provider'
+import { useWorkspacePermissionsContext } from '@/app/arena/[workspaceId]/providers/workspace-permissions-provider'
 import { ControlBar } from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/control-bar/control-bar'
 import { DiffControls } from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/diff-controls'
 import { ErrorBoundary } from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/error/index'
@@ -39,7 +39,6 @@ import {
 import { getBlock } from '@/blocks'
 import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
 import { useStreamCleanup } from '@/hooks/use-stream-cleanup'
-import { useWorkspacePermissions } from '@/hooks/use-workspace-permissions'
 import { useCopilotStore } from '@/stores/copilot/store'
 import { useExecutionStore } from '@/stores/execution/store'
 import { useVariablesStore } from '@/stores/panel/variables/store'
@@ -194,7 +193,11 @@ const WorkflowContent = React.memo(() => {
   }, [edges, isShowingDiff, isDiffReady, diffAnalysis, blocks])
 
   // User permissions - get current user's specific permissions from context
-  const userPermissions = useUserPermissionsContext()
+  const {
+    userPermissions,
+    workspacePermissions: wsPerms,
+    permissionsError: wsPermsError,
+  } = useWorkspacePermissionsContext()
 
   // Create diff-aware permissions that disable editing when in diff mode
   const effectivePermissions = useMemo(() => {
@@ -211,10 +214,9 @@ const WorkflowContent = React.memo(() => {
     return userPermissions
   }, [userPermissions, isDiffMode])
 
-  // Workspace permissions - get all users and their permissions for this workspace
-  const { permissions: workspacePermissions, error: permissionsError } = useWorkspacePermissions(
-    workspaceId || null
-  )
+  // Workspace permissions - use from context (already fetched by WorkspacePermissionsProvider)
+  const workspacePermissions = wsPerms
+  const permissionsError = wsPermsError
 
   // Store access
   const {

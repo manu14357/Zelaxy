@@ -3,62 +3,49 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LoadingAgent } from '@/components/ui/loading-agent'
-import { useSession } from '@/lib/auth-client'
 import { createLogger } from '@/lib/logs/console/logger'
 
 const logger = createLogger('ArenaPage')
 
 export default function ArenaPage() {
   const router = useRouter()
-  const { data: session, isPending } = useSession()
 
   useEffect(() => {
     const redirectToFirstArena = async () => {
-      // Wait for session to load
-      if (isPending) {
-        return
-      }
-
-      // If user is not authenticated, redirect to login
-      if (!session?.user) {
-        logger.info('User not authenticated, redirecting to login')
-        router.replace('/login')
-        return
-      }
-
       try {
-        // Auto-accept any pending organization invitations for this user
-        try {
-          await fetch('/api/organizations/invitations/auto-accept', { method: 'POST' })
-        } catch {
-          // Non-critical — continue even if auto-accept fails
-        }
-
         // Check if we need to redirect a specific workflow from old URL format
         const urlParams = new URLSearchParams(window.location.search)
         const redirectWorkflowId = urlParams.get('redirect_workflow')
 
-        if (redirectWorkflowId) {
-          // Try to get the arena for this workflow
-          try {
-            const workflowResponse = await fetch(`/api/workflows/${redirectWorkflowId}`)
-            if (workflowResponse.ok) {
-              const workflowData = await workflowResponse.json()
-              const workspaceId = workflowData.data?.workspaceId
+        // Run auto-accept and arenas fetch in parallel for faster loading
+        // Middleware already verified the session, so we skip useSession() and fetch immediately
+        const [, arenasResponse, workflowResponse] = await Promise.all([
+          // Auto-accept any pending organization invitations (fire-and-forget)
+          fetch('/api/organizations/invitations/auto-accept', { method: 'POST' }).catch(() => {}),
+          // Fetch user's arenas
+          fetch('/api/arenas'),
+          // If redirecting a workflow, fetch it in parallel
+          redirectWorkflowId
+            ? fetch(`/api/workflows/${redirectWorkflowId}`).catch(() => null)
+            : Promise.resolve(null),
+        ])
 
-              if (workspaceId) {
-                logger.info(`Redirecting workflow ${redirectWorkflowId} to arena ${workspaceId}`)
-                router.replace(`/arena/${workspaceId}/zelaxy/${redirectWorkflowId}`)
-                return
-              }
+        // Handle workflow redirect if applicable
+        if (redirectWorkflowId && workflowResponse?.ok) {
+          try {
+            const workflowData = await workflowResponse.json()
+            const workspaceId = workflowData.data?.workspaceId
+            if (workspaceId) {
+              logger.info(`Redirecting workflow ${redirectWorkflowId} to arena ${workspaceId}`)
+              router.replace(`/arena/${workspaceId}/zelaxy/${redirectWorkflowId}`)
+              return
             }
           } catch (error) {
-            logger.error('Error fetching workflow for redirect:', error)
+            logger.error('Error parsing workflow redirect:', error)
           }
         }
 
-        // Fetch user's arenas
-        const response = await fetch('/api/arenas')
+        const response = arenasResponse
 
         if (response.status === 401) {
           logger.warn('Session invalid or user deleted, redirecting to login')
@@ -110,6 +97,9 @@ export default function ArenaPage() {
         const firstArena = arenas[0]
         logger.info(`Redirecting to first arena: ${firstArena.id}`)
 
+        // Prefetch the target route for faster navigation
+        router.prefetch(`/arena/${firstArena.id}/zelaxy`)
+
         // Redirect to the first arena
         router.replace(`/arena/${firstArena.id}/zelaxy`)
       } catch (error) {
@@ -124,23 +114,14 @@ export default function ArenaPage() {
     if (typeof window !== 'undefined' && window.location.pathname === '/arena') {
       redirectToFirstArena()
     }
-  }, [session, isPending, router])
+  }, [router])
 
-  // Show loading state while we determine where to redirect
-  if (isPending) {
-    return (
-      <div className='flex h-screen w-full items-center justify-center'>
-        <div className='flex flex-col items-center justify-center text-center align-middle'>
-          <LoadingAgent size='lg' />
-        </div>
+  // Always show loading - middleware handles auth, we're just determining where to redirect
+  return (
+    <div className='flex h-screen w-full items-center justify-center'>
+      <div className='flex flex-col items-center justify-center text-center align-middle'>
+        <LoadingAgent size='lg' />
       </div>
-    )
-  }
-
-  // If user is not authenticated, show nothing (redirect will happen)
-  if (!session?.user) {
-    return null
-  }
-
-  return null
+    </div>
+  )
 }

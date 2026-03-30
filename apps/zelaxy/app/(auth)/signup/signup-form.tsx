@@ -391,7 +391,7 @@ function SignupFormContent({
         <SocialLoginButtons
           githubAvailable={githubAvailable}
           googleAvailable={googleAvailable}
-          callbackURL={redirectUrl || '/workspace'}
+          callbackURL={redirectUrl || '/arena'}
           isProduction={isProduction}
         />
 
