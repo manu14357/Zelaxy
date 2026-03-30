@@ -8,7 +8,7 @@ const footerLinks = {
     { name: 'AI Workflow Builder', href: '/#how-it-works' },
     { name: 'Blocks Library', href: '/#blocks' },
     { name: 'Features', href: '/#features' },
-    { name: 'Self-Host', href: getDocsUrl('/deployment') },
+    { name: 'Self-Host', href: `${getDocsUrl()}/deployment` },
   ],
   Resources: [
     { name: 'Documentation', href: getDocsUrl() },
