@@ -37,7 +37,11 @@ export const metadata: Metadata = {
     'no-code AI agent tutorial',
   ],
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32' },
+      { url: '/Zelaxy.png', type: 'image/png', sizes: '500x500' },
+    ],
+    apple: '/Zelaxy.png',
   },
   alternates: {
     canonical: '/',
