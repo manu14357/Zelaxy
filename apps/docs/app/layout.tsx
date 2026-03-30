@@ -62,7 +62,7 @@ export const metadata: Metadata = {
       'Complete reference for Zelaxy AI agent builder — 78+ workflow blocks, 80+ tool integrations, triggers, SDK guides, and deployment tutorials.',
     images: [
       {
-        url: 'https://zelaxy.in/social/facebook.png',
+        url: 'https://zelaxy.in/social/og-preview.png',
         width: 1200,
         height: 630,
         alt: 'Zelaxy Documentation',
@@ -76,7 +76,7 @@ export const metadata: Metadata = {
       'Complete reference for Zelaxy AI agent builder — 78+ workflow blocks, 80+ tool integrations, triggers, and SDK guides.',
     site: '@zelaxy',
     creator: '@zelaxy',
-    images: ['https://zelaxy.in/social/twitter.png'],
+    images: ['https://zelaxy.in/social/og-preview.png'],
   },
 }
 
@@ -102,7 +102,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       '@type': 'Organization',
       name: 'Zelaxy',
       url: 'https://zelaxy.in',
-      logo: 'https://zelaxy.in/social/og-preview.png',
+      logo: 'https://zelaxy.in/Zelaxy.png',
     },
     mainEntityOfPage: {
       '@type': 'WebPage',

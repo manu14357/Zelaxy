@@ -16,7 +16,7 @@ interface SocialLoginButtonsProps {
 export function SocialLoginButtons({
   githubAvailable,
   googleAvailable,
-  callbackURL = '/workspace',
+  callbackURL = '/arena',
   isProduction,
 }: SocialLoginButtonsProps) {
   const [isGithubLoading, setIsGithubLoading] = useState(false)

@@ -126,7 +126,7 @@ export function useGlobalShortcuts() {
           const workspaceId = pathParts[workspaceIndex + 1]
           router.push(`/arena/${workspaceId}/logs`)
         } else {
-          router.push('/workspace')
+          router.push('/arena')
         }
       }
     }

@@ -102,7 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name='twitter:domain' content='zelaxy.in' />
 
         {/* Additional image sources */}
-        <link rel='image_src' href={getAssetUrl('social/facebook.png')} />
+        <link rel='image_src' href={getAssetUrl('social/og-preview.png')} />
 
         <PublicEnvScript />
       </head>

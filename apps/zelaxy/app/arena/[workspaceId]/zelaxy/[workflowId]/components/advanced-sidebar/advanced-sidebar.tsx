@@ -1204,72 +1204,7 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
             <div className='flex h-12 items-center border-border/40 border-b px-3'>
               <div className='flex items-center gap-2.5'>
                 <div className='flex h-6 w-6 items-center justify-center'>
-                  <svg
-                    width='24'
-                    height='24'
-                    viewBox='0 0 100 100'
-                    fill='none'
-                    xmlns='http://www.w3.org/2000/svg'
-                    className='text-primary'
-                  >
-                    <circle
-                      cx='50'
-                      cy='15'
-                      r='4'
-                      stroke='currentColor'
-                      strokeWidth='5'
-                      fill='none'
-                    />
-                    <path
-                      d='M50 15 L50 40'
-                      stroke='currentColor'
-                      strokeWidth='5'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    />
-                    <path
-                      d='M50 40 L35 20'
-                      stroke='currentColor'
-                      strokeWidth='5'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      fill='none'
-                    />
-                    <path
-                      d='M50 40 L65 20'
-                      stroke='currentColor'
-                      strokeWidth='5'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      fill='none'
-                    />
-                    <path
-                      d='M35 20 L20 45 L20 75 Q20 82 30 85 L50 85'
-                      stroke='currentColor'
-                      strokeWidth='5'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      fill='none'
-                    />
-                    <path
-                      d='M65 20 L80 45 L80 75 Q80 82 70 85 L50 85'
-                      stroke='currentColor'
-                      strokeWidth='5'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      fill='none'
-                    />
-                    <circle cx='40' cy='55' r='4' fill='currentColor' />
-                    <circle cx='60' cy='55' r='4' fill='currentColor' />
-                    <path
-                      d='M40 68 Q50 76 60 68'
-                      stroke='currentColor'
-                      strokeWidth='5'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      fill='none'
-                    />
-                  </svg>
+                  <img src='/Zelaxy.png' alt='Zelaxy' width={20} height={20} className='h-5 w-5' />
                 </div>
                 <span className='font-semibold text-[13px] text-foreground tracking-tight'>
                   Zelaxy
@@ -1280,65 +1215,7 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
             // Collapsed: Show only logo
             <div className='flex h-12 items-center justify-center border-border/40 border-b'>
               <div className='flex h-8 w-8 items-center justify-center'>
-                <svg
-                  width='32'
-                  height='32'
-                  viewBox='0 0 100 100'
-                  fill='none'
-                  xmlns='http://www.w3.org/2000/svg'
-                  className='text-primary'
-                >
-                  <circle cx='50' cy='15' r='4' stroke='currentColor' strokeWidth='5' fill='none' />
-                  <path
-                    d='M50 15 L50 40'
-                    stroke='currentColor'
-                    strokeWidth='5'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                  />
-                  <path
-                    d='M50 40 L35 20'
-                    stroke='currentColor'
-                    strokeWidth='5'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    fill='none'
-                  />
-                  <path
-                    d='M50 40 L65 20'
-                    stroke='currentColor'
-                    strokeWidth='5'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    fill='none'
-                  />
-                  <path
-                    d='M35 20 L20 45 L20 75 Q20 82 30 85 L50 85'
-                    stroke='currentColor'
-                    strokeWidth='5'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    fill='none'
-                  />
-                  <path
-                    d='M65 20 L80 45 L80 75 Q80 82 70 85 L50 85'
-                    stroke='currentColor'
-                    strokeWidth='5'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    fill='none'
-                  />
-                  <circle cx='40' cy='55' r='4' fill='currentColor' />
-                  <circle cx='60' cy='55' r='4' fill='currentColor' />
-                  <path
-                    d='M40 68 Q50 76 60 68'
-                    stroke='currentColor'
-                    strokeWidth='5'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    fill='none'
-                  />
-                </svg>
+                <img src='/Zelaxy.png' alt='Zelaxy' width={24} height={24} className='h-6 w-6' />
               </div>
             </div>
           )}

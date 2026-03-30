@@ -16,67 +16,7 @@ export default function NavWrapper({ onOpenTypeformLink }: NavWrapperProps) {
         <div className='flex h-16 items-center justify-between'>
           {/* Logo */}
           <Link href='/' className='group flex items-center space-x-2'>
-            <div className='flex h-14 w-14 items-center justify-center'>
-              <svg
-                width='40'
-                height='40'
-                viewBox='0 0 100 100'
-                fill='none'
-                xmlns='http://www.w3.org/2000/svg'
-                className='text-primary transition-colors duration-300 dark:text-white'
-              >
-                <circle cx='50' cy='15' r='4' stroke='currentColor' strokeWidth='5' fill='none' />
-                <path
-                  d='M50 15 L50 40'
-                  stroke='currentColor'
-                  strokeWidth='5'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                />
-                <path
-                  d='M50 40 L35 20'
-                  stroke='currentColor'
-                  strokeWidth='5'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  fill='none'
-                />
-                <path
-                  d='M50 40 L65 20'
-                  stroke='currentColor'
-                  strokeWidth='5'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  fill='none'
-                />
-                <path
-                  d='M35 20 L20 45 L20 75 Q20 82 30 85 L50 85'
-                  stroke='currentColor'
-                  strokeWidth='5'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  fill='none'
-                />
-                <path
-                  d='M65 20 L80 45 L80 75 Q80 82 70 85 L50 85'
-                  stroke='currentColor'
-                  strokeWidth='5'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  fill='none'
-                />
-                <circle cx='40' cy='55' r='4' fill='currentColor' />
-                <circle cx='60' cy='55' r='4' fill='currentColor' />
-                <path
-                  d='M40 68 Q50 76 60 68'
-                  stroke='currentColor'
-                  strokeWidth='5'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  fill='none'
-                />
-              </svg>
-            </div>
+            <img src='/Zelaxy.png' alt='Zelaxy' width={28} height={28} className='h-7 w-7' />
             <span className='bg-gradient-to-r from-primary to-orange-600 bg-clip-text font-bold text-transparent text-xl transition-all duration-300 dark:bg-none dark:text-white'>
               Zelaxy
             </span>
@@ -127,7 +67,7 @@ export default function NavWrapper({ onOpenTypeformLink }: NavWrapperProps) {
                 <ArrowRight className='ml-2 h-4 w-4' />
               </Button>
             ) : (
-              <Link href='/workspace'>
+              <Link href='/arena'>
                 <Button className='rounded-full bg-gradient-to-r from-primary to-orange-600 px-6 text-white shadow-lg transition-all duration-300 hover:from-orange-700 hover:to-orange-700 hover:shadow-xl'>
                   Get Started
                   <ArrowRight className='ml-2 h-4 w-4' />

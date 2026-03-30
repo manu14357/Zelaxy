@@ -28,66 +28,8 @@ export function ChatHeader({ chatConfig }: ChatHeaderProps) {
           />
         ) : (
           // Default Zelaxy logo when no custom image is provided
-          <div className='flex h-12 w-12 items-center justify-center rounded-md bg-primary'>
-            <svg
-              width='24'
-              height='24'
-              viewBox='0 0 100 100'
-              fill='none'
-              xmlns='http://www.w3.org/2000/svg'
-              className='text-white'
-            >
-              <circle cx='50' cy='15' r='4' stroke='currentColor' strokeWidth='5' fill='none' />
-              <path
-                d='M50 15 L50 40'
-                stroke='currentColor'
-                strokeWidth='5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-              <path
-                d='M50 40 L35 20'
-                stroke='currentColor'
-                strokeWidth='5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                fill='none'
-              />
-              <path
-                d='M50 40 L65 20'
-                stroke='currentColor'
-                strokeWidth='5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                fill='none'
-              />
-              <path
-                d='M35 20 L20 45 L20 75 Q20 82 30 85 L50 85'
-                stroke='currentColor'
-                strokeWidth='5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                fill='none'
-              />
-              <path
-                d='M65 20 L80 45 L80 75 Q80 82 70 85 L50 85'
-                stroke='currentColor'
-                strokeWidth='5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                fill='none'
-              />
-              <circle cx='40' cy='55' r='4' fill='currentColor' />
-              <circle cx='60' cy='55' r='4' fill='currentColor' />
-              <path
-                d='M40 68 Q50 76 60 68'
-                stroke='currentColor'
-                strokeWidth='5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                fill='none'
-              />
-            </svg>
+          <div className='flex h-12 w-12 items-center justify-center'>
+            <img src='/Zelaxy.png' alt='Zelaxy' width={28} height={28} className='h-7 w-7' />
           </div>
         )}
         <h2 className='font-medium text-lg'>
@@ -103,65 +45,7 @@ export function ChatHeader({ chatConfig }: ChatHeaderProps) {
           title='Powered by Zelaxy'
         >
           <div className='flex h-7 w-7 items-center justify-center rounded-md bg-primary'>
-            <svg
-              width='16'
-              height='16'
-              viewBox='0 0 100 100'
-              fill='none'
-              xmlns='http://www.w3.org/2000/svg'
-              className='text-white'
-            >
-              <circle cx='50' cy='15' r='4' stroke='currentColor' strokeWidth='5' fill='none' />
-              <path
-                d='M50 15 L50 40'
-                stroke='currentColor'
-                strokeWidth='5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-              <path
-                d='M50 40 L35 20'
-                stroke='currentColor'
-                strokeWidth='5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                fill='none'
-              />
-              <path
-                d='M50 40 L65 20'
-                stroke='currentColor'
-                strokeWidth='5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                fill='none'
-              />
-              <path
-                d='M35 20 L20 45 L20 75 Q20 82 30 85 L50 85'
-                stroke='currentColor'
-                strokeWidth='5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                fill='none'
-              />
-              <path
-                d='M65 20 L80 45 L80 75 Q80 82 70 85 L50 85'
-                stroke='currentColor'
-                strokeWidth='5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                fill='none'
-              />
-              <circle cx='40' cy='55' r='4' fill='currentColor' />
-              <circle cx='60' cy='55' r='4' fill='currentColor' />
-              <path
-                d='M40 68 Q50 76 60 68'
-                stroke='currentColor'
-                strokeWidth='5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                fill='none'
-              />
-            </svg>
+            <img src='/Zelaxy.png' alt='Zelaxy' width={16} height={16} className='h-4 w-4' />
           </div>
         </a>
       </div>
