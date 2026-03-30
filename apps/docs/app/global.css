@@ -845,10 +845,21 @@ nav[data-navbar] [data-search-trigger]:hover {
 
   /* Table responsive wrapper */
   .prose table {
-    display: block;
     max-width: 100%;
+  }
+
+  .prose div:has(> table) {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    max-width: calc(100vw - 2rem);
+  }
+
+  .prose thead th {
+    white-space: nowrap;
+  }
+
+  .prose tbody td {
+    min-width: 5rem;
   }
 
   /* Sidebar overlay on mobile — ensure it doesn't push content */
