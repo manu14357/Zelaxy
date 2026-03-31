@@ -61,7 +61,7 @@ export function HowItWorksSection() {
       <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent' />
 
       {/* Ambient background glow */}
-      <div className='pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[800px] rounded-full bg-orange-500/[0.03] blur-[120px]' />
+      <div className='-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/2 left-1/2 h-[500px] w-[800px] rounded-full bg-orange-500/[0.03] blur-[120px]' />
 
       <div className='mx-auto max-w-6xl px-6 sm:px-8'>
         {/* Header */}
@@ -105,15 +105,15 @@ export function HowItWorksSection() {
                   {/* Card */}
                   <div className='hover:-translate-y-1.5 relative overflow-hidden rounded-2xl border border-orange-500/[0.08] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-8 transition-all duration-500 hover:border-orange-500/20 hover:shadow-[0_8px_40px_rgba(249,115,22,0.08)]'>
                     {/* Top orange glow on hover */}
-                    <div className='pointer-events-none absolute inset-x-0 -top-20 h-40 rounded-full bg-orange-500/[0.00] blur-3xl transition-all duration-700 group-hover:bg-orange-500/[0.06]' />
+                    <div className='-top-20 pointer-events-none absolute inset-x-0 h-40 rounded-full bg-orange-500/[0.00] blur-3xl transition-all duration-700 group-hover:bg-orange-500/[0.06]' />
 
                     {/* Step number */}
-                    <span className='relative mb-6 block font-bold text-[52px] leading-none tracking-tight text-orange-500/[0.08] transition-colors duration-500 group-hover:text-orange-500/[0.15]'>
+                    <span className='relative mb-6 block font-bold text-[52px] text-orange-500/[0.08] leading-none tracking-tight transition-colors duration-500 group-hover:text-orange-500/[0.15]'>
                       {step.number}
                     </span>
 
                     {/* Icon badge */}
-                    <div className='mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 transition-all duration-500 group-hover:bg-orange-500/15 group-hover:ring-orange-500/30 group-hover:shadow-[0_0_20px_rgba(249,115,22,0.15)]'>
+                    <div className='mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 transition-all duration-500 group-hover:bg-orange-500/15 group-hover:shadow-[0_0_20px_rgba(249,115,22,0.15)] group-hover:ring-orange-500/30'>
                       <Icon className='h-5 w-5 text-orange-400' />
                     </div>
 

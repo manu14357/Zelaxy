@@ -28,7 +28,7 @@ export function GitHubStarsBanner() {
         </span>
 
         {stars !== null && (
-          <span className='inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-0.5 text-[12px] font-medium text-amber-300'>
+          <span className='inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-0.5 font-medium text-[12px] text-amber-300'>
             <Star className='h-3 w-3 fill-amber-400 text-amber-400' />
             {stars} {stars === 1 ? 'star' : 'stars'} on GitHub
           </span>

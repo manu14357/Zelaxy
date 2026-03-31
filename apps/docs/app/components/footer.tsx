@@ -67,7 +67,7 @@ export function DocsFooter() {
                 </span>
               </div>
             </Link>
-            <p className='mt-3 max-w-[240px] text-[13px] leading-relaxed text-fd-muted-foreground'>
+            <p className='mt-3 max-w-[240px] text-[13px] text-fd-muted-foreground leading-relaxed'>
               Complete reference for the Zelaxy AI agent builder — blocks, tools, triggers &amp; SDK
               guides.
             </p>
@@ -98,7 +98,7 @@ export function DocsFooter() {
           {/* Link columns */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h3 className='mb-4 font-semibold text-[11px] tracking-[0.1em] text-fd-foreground uppercase'>
+              <h3 className='mb-4 font-semibold text-[11px] text-fd-foreground uppercase tracking-[0.1em]'>
                 {category}
               </h3>
               <ul className='space-y-3'>

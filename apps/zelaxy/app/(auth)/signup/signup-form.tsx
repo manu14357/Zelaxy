@@ -382,7 +382,7 @@ function SignupFormContent({
               </span>
             </h1>
           </Link>
-          <p className='text-neutral-400 text-base'>
+          <p className='text-base text-neutral-400'>
             Create your account and start building workflows
           </p>
         </div>

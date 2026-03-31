@@ -86,7 +86,7 @@ function ResetPasswordContent() {
               </span>
             </h1>
           </Link>
-          <p className='text-neutral-400 text-base'>
+          <p className='text-base text-neutral-400'>
             Create a new secure password for your account
           </p>
         </div>

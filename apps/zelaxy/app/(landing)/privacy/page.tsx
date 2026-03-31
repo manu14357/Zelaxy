@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import Link from 'next/link'
 import { ArrowLeft, Shield } from 'lucide-react'
+import Link from 'next/link'
 import { MDXRemote } from 'next-mdx-remote/rsc'
 import { Footer } from '@/app/(landing)/components/footer'
 import { legalMdxComponents } from '@/app/(landing)/components/legal-mdx-components'
@@ -75,7 +75,7 @@ export default async function PrivacyPolicy() {
           <div className='min-w-0'>
             {/* Intro */}
             <div className='mb-10 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent p-6'>
-              <p className='leading-relaxed text-neutral-400'>
+              <p className='text-neutral-400 leading-relaxed'>
                 This Privacy Policy describes how your personal information is collected, used, and
                 shared when you visit or use Zelaxy (&ldquo;the Service&rdquo;, &ldquo;we&rdquo;,
                 &ldquo;us&rdquo;, or &ldquo;our&rdquo;). By using the Service, you agree to the
@@ -85,7 +85,7 @@ export default async function PrivacyPolicy() {
 
             {/* Mobile TOC */}
             <div className='mb-10 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent p-6 lg:hidden'>
-              <h2 className='mb-4 font-semibold text-[13px] tracking-wide text-white uppercase'>
+              <h2 className='mb-4 font-semibold text-[13px] text-white uppercase tracking-wide'>
                 Table of Contents
               </h2>
               <nav className='columns-2 gap-x-6'>

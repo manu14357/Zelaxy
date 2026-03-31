@@ -362,7 +362,7 @@ export default function LoginPage({
               </span>
             </h1>
           </Link>
-          <p className='text-neutral-400 text-base'>
+          <p className='text-base text-neutral-400'>
             Sign in to continue building intelligent workflows
           </p>
         </div>

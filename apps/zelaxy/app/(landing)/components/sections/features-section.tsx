@@ -101,7 +101,7 @@ export function FeaturesSection() {
       <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent' />
 
       {/* Ambient glow */}
-      <div className='pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[400px] w-[600px] rounded-full bg-orange-500/[0.03] blur-[120px]' />
+      <div className='-translate-x-1/2 pointer-events-none absolute top-0 left-1/2 h-[400px] w-[600px] rounded-full bg-orange-500/[0.03] blur-[120px]' />
 
       <div className='mx-auto max-w-6xl px-6 sm:px-8'>
         {/* Header */}
@@ -145,12 +145,12 @@ export function FeaturesSection() {
               >
                 {/* Hover glow */}
                 <div className='pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100'>
-                  <div className='absolute -top-16 -right-16 h-40 w-40 rounded-full bg-orange-500/[0.06] blur-3xl' />
+                  <div className='-top-16 -right-16 absolute h-40 w-40 rounded-full bg-orange-500/[0.06] blur-3xl' />
                 </div>
 
                 <div className='relative'>
                   {/* Icon */}
-                  <div className='mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 transition-all duration-500 group-hover:bg-orange-500/15 group-hover:ring-orange-500/30 group-hover:shadow-[0_0_20px_rgba(249,115,22,0.15)]'>
+                  <div className='mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 transition-all duration-500 group-hover:bg-orange-500/15 group-hover:shadow-[0_0_20px_rgba(249,115,22,0.15)] group-hover:ring-orange-500/30'>
                     <Icon className='h-5 w-5 text-orange-400' />
                   </div>
 

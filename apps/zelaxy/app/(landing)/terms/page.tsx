@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import Link from 'next/link'
 import { ArrowLeft, FileText } from 'lucide-react'
+import Link from 'next/link'
 import { MDXRemote } from 'next-mdx-remote/rsc'
 import { Footer } from '@/app/(landing)/components/footer'
 import { legalMdxComponents } from '@/app/(landing)/components/legal-mdx-components'
@@ -68,7 +68,7 @@ export default async function TermsOfService() {
           <div className='min-w-0'>
             {/* Intro */}
             <div className='mb-10 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent p-6'>
-              <p className='leading-relaxed text-neutral-400'>
+              <p className='text-neutral-400 leading-relaxed'>
                 Please read these Terms of Service (&ldquo;Terms&rdquo;) carefully before using the
                 Zelaxy platform (the &ldquo;Service&rdquo;) operated by Zelaxy, Inc
                 (&ldquo;us&rdquo;, &ldquo;we&rdquo;, or &ldquo;our&rdquo;). By accessing or using
@@ -79,7 +79,7 @@ export default async function TermsOfService() {
 
             {/* Mobile TOC */}
             <div className='mb-10 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent p-6 lg:hidden'>
-              <h2 className='mb-4 font-semibold text-[13px] tracking-wide text-white uppercase'>
+              <h2 className='mb-4 font-semibold text-[13px] text-white uppercase tracking-wide'>
                 Table of Contents
               </h2>
               <nav className='columns-2 gap-x-6'>
