@@ -3,221 +3,235 @@ name: deployment
 description: 'Build, deploy, and configure the Zelaxy platform. Use for: Turborepo pipeline, Vercel deployment, Docker builds, environment variables, Trigger.dev background jobs, cron jobs, Next.js config, Socket.io server deployment.'
 ---
 
-# Deployment & Infrastructure Skill — Zelaxy
+# Deployment Skill - Zelaxy
 
 ## Purpose
-Build, deploy, and configure the Zelaxy platform.
+Build, deploy, and debug Zelaxy infrastructure using repository-accurate behavior across Next.js app runtime, Socket.IO server, Trigger.dev tasks, cron endpoints, and database migrations.
+
+## Non-Negotiable Rule: Validate Deployment Changes
+
+If you touch deployment scripts, environment wiring, Next.js config, cron routes, Trigger config, or socket runtime:
+
+1. Run the relevant build/type-check commands.
+2. Run a targeted runtime smoke check for changed surfaces.
+3. Report exact commands and outcomes.
+4. If you cannot run verification, explicitly call out what remains unvalidated.
 
 ## When to Use
-- Building the project
-- Deploying to Vercel or Docker
-- Configuring environment variables
-- Managing background jobs (Trigger.dev)
-- Setting up cron jobs
-- Debugging deployment issues
+- Configuring build and runtime deployment for `apps/zelaxy` and `apps/docs`
+- Setting up environment variables and secrets
+- Deploying or debugging Socket.IO service topology
+- Configuring Trigger.dev background execution
+- Wiring cron jobs and diagnosing scheduler failures
+- Handling database migration rollout or connection URL differences
 
-## Build Pipeline (Turborepo)
+## Deployment Topology (Current)
+
+Zelaxy is not a single process deployment. Treat these as separate runtime units:
+
+1. Main app: Next.js app in `apps/zelaxy`
+2. Docs app: separate Next.js app in `apps/docs`
+3. Realtime server: separate Socket.IO process in `apps/zelaxy/socket-server/index.ts`
+4. Background tasks: Trigger.dev tasks in `apps/zelaxy/background/*`
+5. Scheduler: external cron service calling API routes
+6. Data services: PostgreSQL (required), optional Redis and cloud object storage
+
+## Source-of-Truth Files
+
+- Monorepo scripts: `package.json`
+- Turborepo pipeline: `turbo.json`
+- App scripts/config: `apps/zelaxy/package.json`, `apps/zelaxy/next.config.ts`
+- Env schema/examples: `apps/zelaxy/lib/env.ts`, `apps/zelaxy/.env.example`
+- Trigger config/tasks: `apps/zelaxy/trigger.config.ts`, `apps/zelaxy/background/workflow-execution.ts`, `apps/zelaxy/background/webhook-execution.ts`
+- Cron references/routes: `apps/zelaxy/vercel.txt`, `apps/zelaxy/app/api/**/route.ts`
+- Socket server runtime: `apps/zelaxy/socket-server/index.ts`, `apps/zelaxy/socket-server/config/socket.ts`
+- DB migration config: `apps/zelaxy/drizzle.config.ts`
+- Docs app runtime: `apps/docs/package.json`, `apps/docs/next.config.mjs`
+
+## Build and Runtime Commands
+
+From repository root:
 
 ```bash
-# Build all apps
+bun install
 bun run build
-
-# Dev all apps
-bun run dev
-
-# Specific tasks
-bun run test
-bun run lint
-bun run format
-bun run format:check
 bun run type-check
+bun run test
+bun run dev:full
 ```
 
-### Turbo Pipeline Config
-| Task | Depends On | Cached | Outputs |
-|------|-----------|--------|---------|
-| `build` | `^build` | Yes | `.next/**`, `dist/**` |
-| `dev` | — | No (persistent) | — |
-| `test` | `^build` | Yes | — |
-| `lint` | — | Yes | — |
-| `type-check` | — | Yes | — |
-
-- Uses `envMode: "loose"` — env vars from `.env*` files are inputs to `build`
-
-## Next.js Deployment Config
-
-### Output Modes
-| Mode | When | Config |
-|------|------|--------|
-| `standalone` | Docker builds | `DOCKER_BUILD=true` |
-| `export` | Cloudflare Pages | `CLOUDFLARE_PAGES=true` |
-| (default) | Vercel | No env var needed |
-
-### Server External Packages
-```
-sharp, tesseract.js, pdf-parse, detect-libc, mupdf
-```
-
-### Image Remote Patterns
-```
-GitHub avatars, Stability AI, Azure Blob (*.blob.core.windows.net),
-AWS S3 (*.s3.amazonaws.com, *.s3.*.amazonaws.com), custom blob URL
-```
-
-### Security Headers (auto-applied)
-- `Content-Security-Policy` (build-time + runtime)
-- `X-Content-Type-Options: nosniff`
-- `X-Frame-Options: SAMEORIGIN`
-- `Cross-Origin-Embedder-Policy: credentialless`
-- Source map access blocking
-
-### CORS
-- Applied to `/api/:path*` and `/api/workflows/:id/execute`
-- Methods: GET, POST, PUT, DELETE, OPTIONS
-- Headers: Content-Type, Authorization, X-API-Key, X-CSRF-Token
-
-### Experimental Features
-- `optimizeCss: true`
-- `turbopackSourceMaps: false`
-
-## Vercel Cron Jobs
-
-| Endpoint | Schedule | Purpose |
-|----------|----------|---------|
-| `/api/schedules/execute` | Every minute | Run scheduled workflows |
-| `/api/webhooks/poll/gmail` | Every minute | Poll Gmail triggers |
-| `/api/webhooks/poll/outlook` | Every minute | Poll Outlook triggers |
-| `/api/logs/cleanup` | Daily midnight | Clean old execution logs |
-| `/api/billing/daily` | Daily 2 AM | Process daily billing |
-
-## Background Jobs (Trigger.dev)
-
-```typescript
-// trigger.config.ts
-project: "proj_zunnejsqpkvkzywyajao"
-runtime: "node"
-maxDuration: 180  // seconds
-retries: { maxAttempts: 1 }  // no retries in dev
-dirs: ['./background']
-// Custom: 1024MB Node.js heap for PDF/DWG processing
-```
-
-### Background Task Files
-```
-background/
-├── webhook-execution.ts    # Webhook-triggered workflow execution
-└── workflow-execution.ts   # Async workflow execution
-```
-
-## Environment Variables
-
-### Required (Core)
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `BETTER_AUTH_URL` | Auth service URL |
-| `BETTER_AUTH_SECRET` | Auth secret (min 32 chars) |
-| `ENCRYPTION_KEY` | AES-256 key (64-char hex, min 32) |
-| `INTERNAL_API_SECRET` | Internal API auth |
-
-### Registration Control
-| Variable | Description |
-|----------|-------------|
-| `DISABLE_REGISTRATION` | Block new signups |
-| `ALLOWED_LOGIN_EMAILS` | Comma-separated email whitelist |
-| `ALLOWED_LOGIN_DOMAINS` | Comma-separated domain whitelist |
-
-### Storage
-| Variable | Description |
-|----------|-------------|
-| `POSTGRES_URL` | PostgreSQL URL |
-| `REDIS_URL` | Redis URL |
-| `S3_BUCKET_NAME` | Primary S3 bucket |
-| `S3_LOGS_BUCKET_NAME` | Execution logs bucket |
-| `S3_KB_BUCKET_NAME` | Knowledge base bucket |
-| `S3_EXECUTION_FILES_BUCKET_NAME` | Execution files |
-| `S3_CHAT_BUCKET_NAME` | Chat storage |
-| `S3_COPILOT_BUCKET_NAME` | Copilot storage |
-| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | AWS credentials |
-| `AZURE_ACCOUNT_NAME`, `AZURE_ACCOUNT_KEY`, `AZURE_CONNECTION_STRING` | Azure storage |
-
-### AI Providers
-| Variable | Description |
-|----------|-------------|
-| `OPENAI_API_KEY` (×4) | OpenAI keys (primary + fallback) |
-| `ANTHROPIC_API_KEY` (×3) | Anthropic keys |
-| `MISTRAL_API_KEY` | Mistral |
-| `OLLAMA_URL` | Local Ollama instance |
-| `ELEVENLABS_API_KEY` | Text-to-speech |
-| `SERPER_API_KEY` | Web search |
-| `AZURE_OPENAI_*` | Azure OpenAI config |
-
-### Real-time
-| Variable | Description |
-|----------|-------------|
-| `SOCKET_SERVER_URL` | Socket.io server URL |
-| `SOCKET_PORT` | Socket port (default: 3002) |
-| `ALLOWED_ORIGINS` | CORS origins |
-
-### Client-side (NEXT_PUBLIC_*)
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_APP_URL` | Main app URL |
-| `NEXT_PUBLIC_SOCKET_URL` | WebSocket URL |
-| `NEXT_PUBLIC_BLOB_BASE_URL` | Blob storage URL |
-| `NEXT_PUBLIC_BRAND_NAME` | Whitelabel brand name |
-| `NEXT_PUBLIC_BRAND_LOGO_URL` | Custom logo |
-| `NEXT_PUBLIC_BRAND_PRIMARY_COLOR` | Theme color |
-
-### Rate Limiting
-| Variable | Default |
-|----------|---------|
-| `RATE_LIMIT_WINDOW_MS` | 60000 (60s) |
-| Free tier sync/async | 10/50 |
-| Pro tier sync/async | 25/200 |
-| Team tier sync/async | 75/500 |
-| Enterprise sync/async | 150/1000 |
-
-### Background Jobs
-| Variable | Description |
-|----------|-------------|
-| `TRIGGER_SECRET_KEY` | Trigger.dev auth |
-| `CRON_SECRET` | Vercel cron auth |
-| `JOB_RETENTION_DAYS` | Log retention period |
-
-### Util
-- `skipValidation: true` — env validation is opt-in
-- `NEXT_TELEMETRY_DISABLED` defaults to `'1'`
-- `isTruthy()` helper for string boolean parsing
-- `getEnv()` for universal client/server env access via `next-runtime-env`
-
-## Socket.io Server Deployment
+Key app-level commands:
 
 ```bash
-# Runs separately from Next.js
-# Host: 0.0.0.0, Port: SOCKET_PORT || 3002
-# Transports: websocket (primary), polling (fallback)
-# Ping: timeout 60s, interval 25s
-# Max buffer: 1MB
+# Main app
+bun --cwd apps/zelaxy run dev
+bun --cwd apps/zelaxy run build
+bun --cwd apps/zelaxy run start:prod
+
+# Realtime server (separate process)
+bun --cwd apps/zelaxy run dev:sockets
+
+# Docs app (separate process in production too)
+bun --cwd apps/docs run build
+bun --cwd apps/docs run start
 ```
 
-## Database Migrations
+## Turborepo Behavior
+
+- `envMode` is `loose`.
+- `build` task uses `.env*` as explicit inputs.
+- `build` depends on `^build`.
+- `dev` is persistent and uncached.
+- `test` depends on `^build`.
+
+## Next.js Deployment Behavior (`apps/zelaxy/next.config.ts`)
+
+### Output Mode Switching
+
+- `DOCKER_BUILD=true` -> `output: 'standalone'`
+- `CLOUDFLARE_PAGES=true` -> `output: 'export'` plus `trailingSlash=true`
+- Default -> regular server output
+
+### Important Side Effect in Docker Mode
+
+When `DOCKER_BUILD=true`, both TypeScript and ESLint build errors are ignored (`ignoreBuildErrors` / `ignoreDuringBuilds`). Always run `bun run type-check` separately before release.
+
+### Routing and Host Behavior
+
+- Hosted-domain redirects only apply when `NEXT_PUBLIC_APP_URL === 'https://www.zelaxy.in'`.
+- Docs subdomain proxying is host-based and driven by:
+  - `NEXT_PUBLIC_DOCUMENTATION_URL` (public hostname to match)
+  - `DOCS_INTERNAL_URL` (internal docs service URL)
+
+### CORS / Header Behavior
+
+- General API CORS headers are applied to `/api/:path*`.
+- `/api/workflows/:id/execute` is intentionally more permissive (`Access-Control-Allow-Origin: *`).
+- CSP/COEP/COOP policies vary by route groups and must be validated after config changes.
+
+## Socket.IO Deployment Model
+
+Socket server is a separate HTTP server process, not part of `next start`.
+
+- Entrypoint: `apps/zelaxy/socket-server/index.ts`
+- Bind host: `0.0.0.0` (default)
+- Port resolution: `PORT || SOCKET_PORT || 3002`
+- CORS origins derive from `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_VERCEL_URL`, and `ALLOWED_ORIGINS`
+- Cookie mode uses `sameSite: 'none'` and `secure` in production
+
+Operational implications:
+
+1. `bun run start:prod` only starts Next.js app; socket process must be deployed separately.
+2. Set `NEXT_PUBLIC_SOCKET_URL` for clients to the socket service URL.
+3. Avoid accidental port conflicts by explicitly setting `SOCKET_PORT` when `PORT` is set by platform defaults.
+
+## Trigger.dev Background Jobs
+
+Trigger config lives in `apps/zelaxy/trigger.config.ts`:
+
+- `runtime: 'node'`
+- `maxDuration: 180`
+- retries enabled with `maxAttempts: 1`
+- task discovery from `dirs: ['./background']`
+
+Defined tasks:
+
+- `workflow-execution`
+- `webhook-execution`
+
+Local worker dev command (run from `apps/zelaxy`):
 
 ```bash
-# Generate migration
+bunx trigger.dev@latest dev
+```
+
+Note: the `increase-memory` build extension sets `NODE_OPTIONS=--max-old-space-size=1024` only for Trigger `dev` target.
+
+## Cron Configuration and Endpoint Semantics
+
+Cron schedules are currently captured in `apps/zelaxy/vercel.txt` (reference file):
+
+- `/api/schedules/execute` -> `*/1 * * * *`
+- `/api/webhooks/poll/gmail` -> `*/1 * * * *`
+- `/api/webhooks/poll/outlook` -> `*/1 * * * *`
+- `/api/logs/cleanup` -> `0 0 * * *`
+- `/api/billing/daily` -> `0 2 * * *`
+
+Endpoint behavior that affects scheduler setup:
+
+1. `/api/webhooks/poll/gmail` and `/api/webhooks/poll/outlook`: `GET`, requires `Authorization: Bearer ${CRON_SECRET}`.
+2. `/api/logs/cleanup`: `GET`, requires cron auth and S3 log bucket config.
+3. `/api/billing/daily`: billing execution is on `POST`; `GET` is health check only.
+4. `/api/schedules/execute`: `GET`, currently does not enforce `verifyCronAuth`; protect via network or platform-level controls.
+
+Local development cron simulation runs in `apps/zelaxy/instrumentation-node.ts` and uses `setInterval` plus `CRON_SECRET`.
+
+## Environment Variable Strategy
+
+Primary env contract is in `apps/zelaxy/lib/env.ts` with examples in `apps/zelaxy/.env.example`.
+
+Important behavior:
+
+- `createEnv` uses `skipValidation: true`, so misconfiguration can survive startup and fail at runtime.
+- `getEnv()` supports runtime client env via `next-runtime-env`.
+
+Minimum baseline for core app startup:
+
+- `DATABASE_URL`
+- `BETTER_AUTH_URL`
+- `BETTER_AUTH_SECRET`
+- `ENCRYPTION_KEY`
+- `INTERNAL_API_SECRET`
+- `NEXT_PUBLIC_APP_URL`
+
+Deployment-critical groups:
+
+- Cron: `CRON_SECRET`
+- Trigger.dev: `TRIGGER_SECRET_KEY`
+- Socket: `NEXT_PUBLIC_SOCKET_URL`, optional `SOCKET_SERVER_URL`, `SOCKET_PORT`, `ALLOWED_ORIGINS`
+- Docs host routing: `NEXT_PUBLIC_DOCUMENTATION_URL`, `DOCS_INTERNAL_URL`
+- DB migrations: `DIRECT_URL` (falls back to `DATABASE_URL` in `drizzle.config.ts`)
+
+## Deployment Playbooks
+
+### 1) Standard Node/Vercel-style Deploy
+
+1. Build from root: `bun run build`
+2. Run migrations in app env: `bun --cwd apps/zelaxy run db:migrate`
+3. Start app service: `bun run start:prod`
+4. Start socket service separately: `bun --cwd apps/zelaxy run dev:sockets` (or equivalent process command)
+5. Ensure Trigger.dev worker/project is configured and live
+6. Configure cron scheduler for all required endpoints and methods
+
+### 2) Docker-Oriented Build
+
+1. Build with `DOCKER_BUILD=true` to generate standalone output.
+2. Do not rely on build success alone; run explicit type-check because build ignores TS/ESLint errors in this mode.
+3. Repo currently has no checked-in Dockerfile, so provide your own image/runtime wiring.
+
+### 3) Cloudflare Pages Export Mode
+
+1. Build with `CLOUDFLARE_PAGES=true` to enable static export mode.
+2. This mode is static-output oriented and does not cover full server runtime features (API routes, socket server, Trigger-driven execution).
+
+## Database Migration Workflow
+
+From `apps/zelaxy`:
+
+```bash
 bunx drizzle-kit generate
-
-# Push schema changes (dev)
 bunx drizzle-kit push
-
-# Run migrations (production)
 bunx drizzle-kit migrate
 ```
 
-## Common Issues
-1. **Build failure**: Check `bun install` ran at root, `^build` dependencies built first
-2. **Missing env vars**: Check `apps/core/lib/env.ts` for required vars
-3. **Socket connection fails**: Ensure `SOCKET_PORT` and CORS origins configured
-4. **Cron not firing**: Verify `vercel.json` crons and `CRON_SECRET` matches
-5. **Background job timeout**: Max 180s — split long tasks
-6. **PDF processing OOM**: Trigger.dev build extends Node.js heap to 1024MB
+Use `migrate` for production rollouts; prefer controlled migration application before app start.
+
+## Common Deployment Failure Patterns
+
+1. Cron endpoints return `401`: scheduler missing `Authorization: Bearer ${CRON_SECRET}`.
+2. Billing cron appears healthy but no charges happen: scheduler calls `GET /api/billing/daily` instead of `POST`.
+3. Realtime features fail after deploy: app started but socket server process not deployed.
+4. Socket CORS/auth issues: mismatch among `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SOCKET_URL`, and `ALLOWED_ORIGINS`.
+5. Build passes in Docker mode but runtime breaks: TS/ESLint errors were ignored due to `DOCKER_BUILD=true`.
+6. Docs host routing fails: missing or invalid `NEXT_PUBLIC_DOCUMENTATION_URL` / `DOCS_INTERNAL_URL`.
+7. Runtime crashes despite successful boot: env validation skipped (`skipValidation: true`) and critical vars missing.

@@ -1,269 +1,215 @@
 ---
 name: real-time-and-state
-description: 'Work with Socket.io real-time features and Zustand state management. Use for: socket server handlers, room-based collaboration, presence tracking, cursor sync, Zustand store creation, cross-store communication, SSR-safe storage.'
+description: 'Work with Socket.IO collaboration and Zustand state in Zelaxy. Use for: socket token auth, workflow/workspace rooms, operation queue retries, presence/cursor sync, workflow rehydration, history middleware, and SSR-safe persisted stores.'
 ---
 
-# Real-time & State Management Skill — Zelaxy
+# Real-time and State Skill - Zelaxy
 
 ## Purpose
-Work with Socket.io real-time features and Zustand state management.
+Build, extend, and debug collaborative editing and execution streaming with Socket.IO plus Zustand across `apps/zelaxy`.
 
 ## When to Use
-- Adding real-time collaboration features
-- Creating or modifying Zustand stores
-- Working with presence/cursor tracking
-- Debugging socket connection issues
-- Managing execution state
+- Adding or changing socket handlers, event payloads, or room behavior
+- Building canvas collaboration features (blocks, edges, subblocks, variables)
+- Fixing reconnect, auth, presence, or stale-state synchronization issues
+- Modifying the operation queue, acknowledgement flow, or retry behavior
+- Creating or refactoring Zustand stores and cross-store coordination
 
-## Socket.io Architecture
+## Read These Files First
+- `apps/zelaxy/socket-server/index.ts` - Socket server bootstrap and middleware wiring
+- `apps/zelaxy/socket-server/config/socket.ts` - Socket.IO transport/CORS/cookie config
+- `apps/zelaxy/socket-server/middleware/auth.ts` - Better Auth one-time token verification
+- `apps/zelaxy/socket-server/middleware/permissions.ts` - workflow/workspace permission checks
+- `apps/zelaxy/socket-server/handlers/*.ts` - all real-time event handlers
+- `apps/zelaxy/socket-server/rooms/manager.ts` - workflow room state and presence source of truth
+- `apps/zelaxy/socket-server/database/operations.ts` - normalized table persistence for operations
+- `apps/zelaxy/socket-server/routes/http.ts` - server-to-server notification endpoints
+- `apps/zelaxy/contexts/socket-context.tsx` - client Socket.IO lifecycle + emit/listen API
+- `apps/zelaxy/hooks/use-collaborative-workflow.ts` - local-first collaborative workflow behavior
+- `apps/zelaxy/stores/operation-queue/store.ts` - sequential queue, retry, timeout, debounce
+- `apps/zelaxy/stores/workflows/workflow/store.ts` - workflow graph state + history hooks
+- `apps/zelaxy/stores/workflows/middleware.ts` - undo/redo with subblock snapshots
+- `apps/zelaxy/stores/workflows/registry/store.ts` - workflow loading and workspace transition reset
+- `apps/zelaxy/stores/workflows/subblock/store.ts` - per-workflow subblock value layer
+- `apps/zelaxy/stores/safe-storage.ts` - SSR-safe persist storage fallback
 
-### Server Setup
-```
-Location: apps/zelaxy/socket-server/
-Port: SOCKET_PORT || 3002 (separate from Next.js)
-Host: 0.0.0.0
-Transports: websocket (primary), polling (fallback)
-Ping: timeout 60s, interval 25s
-Max buffer: 1MB
-```
+## Runtime Architecture
 
-### Directory Structure
-```
-socket-server/
-├── index.ts              # Server entry point
-├── config/socket.ts      # Socket.IO creation + CORS
-├── database/             # DB persistence layer
-├── handlers/             # Event handlers
-│   ├── connection.ts     # Connect/disconnect
-│   ├── operations.ts     # Workflow operations
-│   ├── presence.ts       # User presence
-│   ├── subblocks.ts      # Sub-block updates
-│   ├── variables.ts      # Variable updates
-│   ├── workflow.ts       # Workflow events
-│   └── workspace.ts      # Workspace events
-├── middleware/
-│   ├── auth.ts           # Auth via Better Auth one-time token
-│   └── permissions.ts    # Access control
-├── rooms/manager.ts      # Room management
-├── routes/               # HTTP endpoints
-└── validation/           # Input validation
-```
+### Socket Server
+`apps/zelaxy/socket-server` runs as a dedicated process.
 
-### Authentication
-```typescript
-// Middleware: socket-server/middleware/auth.ts
-// Uses Better Auth one-time token validation
-// Token from: socket.handshake.auth.token
-// Stores on socket: userId, userName, userEmail, activeOrganizationId
-// Rejects connections without valid token
-```
+- Port: `PORT || SOCKET_PORT || 3002`
+- Host: `0.0.0.0` by default
+- Transports: `websocket` with `polling` fallback
+- Auth: Better Auth one-time token from `socket.handshake.auth.token`
+- CORS origins: `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_VERCEL_URL`, `http://localhost:3000`, plus `ALLOWED_ORIGINS`
 
-### CORS Configuration
-```typescript
-// Allowed origins:
-// - NEXT_PUBLIC_APP_URL
-// - NEXT_PUBLIC_VERCEL_URL
-// - localhost:3000
-// - ALLOWED_ORIGINS (comma-separated)
-// Credentials: true
-```
+### Room Model
+- Workflow room: collaborative canvas state and presence
+- Workspace room: execution log streaming across workflows (`workspace:<workspaceId>`)
+- One socket can only be in one workflow room at a time
+- Presence list is authoritative via `presence-update` from `RoomManager`
 
-### Room-Based Collaboration
-- Users join workflow/workspace rooms
-- Operations broadcast to room members
-- Presence tracked per room
-- Conflict resolution via operation confirmation/failure events
+### Client Model
+- `SocketProvider` creates a single client session socket
+- One-time socket token is regenerated for every connection and reconnection attempt
+- Workflow join is URL-driven (`workflowId` route param) and auto-rejoined after reconnect
+- Workspace join is explicit for logs/execution listeners
 
-## Socket Context (Client)
+## End-to-End Operation Flow
 
-```typescript
-// contexts/socket-context.tsx
-// Provides: socket, isConnected, isConnecting, presenceUsers
-
-// Room operations
-joinWorkflow(workflowId)
-leaveWorkflow(workflowId)
-joinWorkspace(workspaceId)
-leaveWorkspace(workspaceId)
-
-// Collaborative editing
-emitWorkflowOperation(operation)    // Block/edge changes
-emitSubblockUpdate(update)          // Sub-block value changes
-emitVariableUpdate(update)          // Variable changes
-
-// Presence
-emitCursorUpdate(position)          // Mouse position
-emitSelectionUpdate(selection)      // Selected blocks/edges
-
-// Execution events (listen)
-onExecutionStarted(callback)
-onExecutionBlockComplete(callback)
-onExecutionComplete(callback)
-
-// Conflict resolution (listen)
-onOperationConfirmed(callback)
-onOperationFailed(callback)
+```text
+UI action
+  -> useCollaborativeWorkflow local update
+  -> add operation to operation queue
+  -> SocketContext emits operation with operationId
+  -> server validates + authorizes + persists/broadcasts
+  -> server emits operation-confirmed or operation-failed
+  -> queue confirmOperation/failOperation updates reliability state
 ```
 
-### PresenceUser Type
-```typescript
-type PresenceUser = {
-  userId: string
-  userName: string
-  cursor?: { x: number; y: number }
-  selectedBlockId?: string
-  selectedEdgeId?: string
-}
-```
+### Important server behavior
+- Position updates (`update-position` on `block`) are broadcast first, then persisted async for low latency.
+- Most other operations are persisted first, then broadcast.
+- Client `operationId` is used only for ack/fail semantics and queue reliability.
 
-## Zustand Store Architecture
+## Event Contract Map
 
-### Store Domains
-```
-stores/
-├── execution/          # Workflow execution state
-├── workflows/          # Workflow data + registry + subblock + yaml
-├── copilot/            # AI copilot state
-├── custom-tools/       # Custom tool definitions
-├── custom-ui/          # Embedded UI state
-├── knowledge/          # Knowledge base state
-├── llm-selection/      # LLM provider selection
-├── logs/               # Execution logs
-├── ollama/             # Local Ollama state
-├── bottom-panel/       # Bottom panel UI state
-├── operation-queue/    # Socket operation queue
-├── organization/       # Organization state
-├── panel/              # Side panel state
-├── settings/           # User settings
-├── sidebar/            # Sidebar state
-├── subscription/       # Billing/subscription
-├── user/               # User profile
-├── workflow-diff/      # Workflow diff/compare
-├── folders/            # Folder organization
-├── constants.ts        # Shared constants
-├── safe-storage.ts     # SSR-safe storage wrapper
-└── index.ts            # Re-exports
-```
+### Primary collaboration events
+- Client -> server: `join-workflow`, `leave-workflow`, `request-sync`
+- Client -> server: `workflow-operation`, `subblock-update`, `variable-update`
+- Client -> server: `cursor-update`, `selection-update`
+- Client <- server: `workflow-state`, `workflow-operation`, `subblock-update`, `variable-update`
+- Client <- server: `operation-confirmed`, `operation-failed`, `operation-error`, `operation-forbidden`
+- Client <- server: `presence-update`, `cursor-update`, `selection-update`
 
-### Store Pattern
+### External workflow lifecycle events (HTTP -> socket broadcast)
+- `workflow-deleted`
+- `workflow-reverted`
+- `workflow-updated`
+- `copilot-workflow-edit`
 
-```typescript
-// Standard store creation
-import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
+### Execution streaming events
+- `execution:started`
+- `execution:block-complete`
+- `execution:complete`
 
-interface MyState {
-  items: Item[]
-  isLoading: boolean
-}
+## Server Handler Responsibilities
 
-interface MyActions {
-  setItems: (items: Item[]) => void
-  fetchItems: () => Promise<void>
-  reset: () => void
-}
+### `handlers/workflow.ts`
+- Handles `join-workflow`, access checks, room switch, presence updates, initial `workflow-state`
+- Handles `request-sync` for explicit state refresh
+- Handles `leave-workflow`
 
-export const useMyStore = create<MyState & MyActions>()(
-  devtools(
-    (set, get) => ({
-      // State
-      items: [],
-      isLoading: false,
+### `handlers/operations.ts`
+- Validates payload via `WorkflowOperationSchema`
+- Checks permissions using `verifyOperationPermission`
+- Persists/broadcasts operations and emits ack/fail
+- Uses retryable flags for queue behavior on failures
 
-      // Actions
-      setItems: (items) => set({ items }),
+### `handlers/subblocks.ts` and `handlers/variables.ts`
+- Persist subblock/variable updates in transactions
+- Skip or fail gracefully when workflow/block/variable no longer exists
+- Emit `operation-confirmed` or `operation-failed` when `operationId` is present
 
-      fetchItems: async () => {
-        if (get().isLoading) return  // Dedup guard
-        set({ isLoading: true })
-        try {
-          const res = await fetch('/api/my-items')
-          const data = await res.json()
-          set({ items: data.data, isLoading: false })
-        } catch {
-          set({ isLoading: false })
-        }
-      },
+### `handlers/presence.ts`
+- Updates cursor/selection in room presence state
+- Broadcasts deltas to other sockets in the room
 
-      reset: () => set({ items: [], isLoading: false }),
-    }),
-    { name: 'my-store' }
-  )
-)
-```
+### `handlers/workspace.ts`
+- Joins/leaves workspace-prefixed rooms for execution log streaming
 
-### Workflow Store (Advanced)
-```typescript
-// Uses custom middleware stack:
-// devtools + withHistory (undo/redo)
+## Client Socket Context Patterns
 
-// State includes:
-// blocks, edges, loops, parallels, lastSaved, isDeployed, deployedAt
+### `contexts/socket-context.tsx`
+- Fetches one-time token from `/api/auth/socket-token`
+- Uses `auth: (cb) => ...` to regenerate token for each connection attempt
+- Maintains `isConnected`, `isConnecting`, `currentWorkflowId`, `currentWorkspaceId`, `presenceUsers`
+- Throttles high-frequency emits:
+  - block position updates batched at ~33ms
+  - cursor emits throttled at ~33ms
+- Handles rehydration flows:
+  - `workflow-state` updates workflow + subblock stores
+  - `workflow-updated` triggers `request-sync`
+  - `copilot-workflow-edit` fetches fresh workflow from API and rehydrates stores
 
-// SyncControl interface for save/sync
-// (originally HTTP, now socket-based — methods are no-ops)
+## Collaborative Hook Rules
 
-// Deployment tracking per workflow via deploymentStatuses
-```
+### `hooks/use-collaborative-workflow.ts`
+- Uses local-first updates for responsive UI
+- Registers emitters into operation queue with `registerEmitFunctions`
+- Uses `isApplyingRemoteChange` guard to prevent feedback loops
+- Applies out-of-order protection for block position updates using server/client timestamps
+- Skips socket emissions in diff mode (`useWorkflowDiffStore().isShowingDiff`)
+- Handles queue acknowledgement through `onOperationConfirmed` and `onOperationFailed`
 
-### Execution Store
-```typescript
-// Key state:
-activeBlockIds: Set<string>   // Currently executing blocks
-pendingBlocks: string[]       // Blocks waiting to execute
-isExecuting: boolean
-isDebugging: boolean
-executor: Executor | null
-debugContext: DebugContext | null
+## Zustand State Architecture
 
-// Auto-pans canvas to active blocks during execution
-```
+### Core stores for collaboration
+- `workflow/store.ts`: canonical in-memory graph (`blocks`, `edges`, `loops`, `parallels`) plus deployment flags
+- `workflows/middleware.ts`: undo/redo history with subblock snapshot capture
+- `workflows/registry/store.ts`: workflow metadata loading, active workflow, workspace transition reset guards
+- `workflows/subblock/store.ts`: value layer keyed by workflow -> block -> subblock
+- `panel/variables/store.ts`: workflow variable map and reference update logic
+- `operation-queue/store.ts`: FIFO processing, timeout, retries, debounced updates, offline failover
 
-### SSR-Safe Storage
-```typescript
-// stores/safe-storage.ts
-import { createSafeStorage } from './safe-storage'
+### Queue semantics (`operation-queue/store.ts`)
+- Sequential FIFO processing (single in-flight operation)
+- Debounce windows:
+  - subblock updates: 25ms keyed by `blockId-subblockId`
+  - variable updates: 25ms keyed by `variableId-field`
+- Timeout: 5s per in-flight operation
+- Retry policy: exponential backoff (`2s`, `4s`, `8s`), max 3 retries
+- On terminal failure: `triggerOfflineMode()` clears queue and sets `hasOperationError`
+- Supports targeted cancellation for block/variable scoped operations
 
-// Wraps createJSONStorage with SSR fallback
-// No-op StateStorage for server-side (Trigger.dev, Node.js)
-// Use when persisting store to localStorage
-```
+### Workflow history semantics
+- History present/past/future snapshots include subblock values
+- Undo/redo restores both graph state and subblock store values
+- Sync control methods are intentionally no-ops in socket-first architecture
 
-### Cross-Store Communication
+### SSR-safe persistence
+- Use `createSafeStorage()` in persisted stores
+- Falls back to no-op storage when `window.localStorage` is unavailable
+- Prevents server-side `storage.setItem` crashes in non-browser runtimes
 
-```typescript
-// Read another store's state (not reactive)
-import { useOtherStore } from '@/stores/other'
+## Implementation Rules
 
-const doSomething = () => {
-  const otherValue = useOtherStore.getState().someValue
-  // Use otherValue...
-}
+### When adding or changing collaboration operations
+1. Update validation schema in `socket-server/validation/schemas.ts` if payload shape changes.
+2. Update server persistence logic in `socket-server/database/operations.ts`.
+3. Update relevant handlers in `socket-server/handlers`.
+4. Update client emit and listener logic in `contexts/socket-context.tsx`.
+5. Update queue routing logic in `stores/operation-queue/store.ts` if target/type changed.
+6. Update collaborative hook logic in `hooks/use-collaborative-workflow.ts`.
 
-// Subscribe reactively in a component
-const value = useOtherStore(s => s.someValue)
-```
+### When adding or changing stores
+1. Keep one clear domain per store.
+2. Prefer selectors over full-store subscriptions in React components.
+3. Use `OtherStore.getState()` for non-reactive cross-store reads to avoid circular render coupling.
+4. Add explicit reset logic when switching workspace/user context.
 
-### Selector Best Practices
+## Mandatory Sync for User-Facing Changes
 
-```typescript
-// GOOD — Fine-grained selector, minimal re-renders
-const isExecuting = useExecutionStore(s => s.isExecuting)
-const blockCount = useWorkflowStore(s => s.blocks.length)
+Any user-visible collaboration or state behavior change must include sync updates in the same task unless explicitly waived by the user:
 
-// GOOD — Derived selector
-const activeBlock = useExecutionStore(s =>
-  s.activeBlockIds.size > 0 ? [...s.activeBlockIds][0] : null
-)
+1. Update affected tests (queue behavior, handler behavior, workflow synchronization).
+2. Update documentation when event names, payloads, permissions, or UX behavior change.
+3. Update changelog/release notes when real-time behavior changes materially.
 
-// BAD — Full store subscription, re-renders on every change
-const { isExecuting, activeBlockIds, pendingBlocks } = useExecutionStore()
-```
+## Debug Checklist
+1. Confirm token generation endpoint works: `/api/auth/socket-token`.
+2. Confirm socket auth middleware accepts token and attaches user context.
+3. Confirm correct room membership (`join-workflow` or `join-workspace`).
+4. Check for `operation-failed` vs `operation-forbidden` vs `operation-error` event type.
+5. Validate queue state: pending/processing counts, timeout/retry activity.
+6. Verify workflow sync path (`request-sync`, `workflow-state`, `copilot-workflow-edit`).
+7. Check permission role behavior (`admin`, `write`, `read`) for target operation.
 
-## Common Issues
-1. **Socket not connecting**: Check `SOCKET_PORT`, CORS origins, auth token
-2. **Presence not updating**: Verify room join and cursor emit events
-3. **Store not updating UI**: Use selectors, not destructured store
-4. **SSR hydration mismatch**: Use `createSafeStorage()` for persisted stores
-5. **Circular store deps**: Use `getState()` for cross-store reads, not hooks
-6. **Operation queue overflow**: Check socket connection health, reconnect logic
+## Common Pitfalls
+1. Emitting events without `currentWorkflowId` causes silent no-op on client.
+2. Forgetting `operationId` breaks queue acknowledgement and retry handling.
+3. Skipping schema updates when payloads change causes Zod validation failures.
+4. Updating workflow graph without subblock synchronization causes stale field values.
+5. Treating `user-joined/user-left` as primary presence source instead of `presence-update`.
+6. Using persisted storage directly in server contexts instead of `createSafeStorage()`.
