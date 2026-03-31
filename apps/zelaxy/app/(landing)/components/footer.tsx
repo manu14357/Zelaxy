@@ -54,7 +54,7 @@ export function Footer() {
           {/* Link columns */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h3 className='mb-5 font-semibold text-[11px] tracking-[0.12em] text-neutral-300 uppercase'>
+              <h3 className='mb-5 font-semibold text-[11px] text-neutral-300 uppercase tracking-[0.12em]'>
                 {category}
               </h3>
               <ul className='space-y-3.5'>
@@ -76,10 +76,10 @@ export function Footer() {
 
           {/* Newsletter */}
           <div className='col-span-2 sm:col-span-3 lg:col-span-1 lg:col-start-4'>
-            <h3 className='mb-1.5 font-semibold text-[11px] tracking-[0.12em] text-neutral-300 uppercase'>
+            <h3 className='mb-1.5 font-semibold text-[11px] text-neutral-300 uppercase tracking-[0.12em]'>
               Newsletter
             </h3>
-            <p className='mb-4 text-[13px] leading-relaxed text-neutral-500'>
+            <p className='mb-4 text-[13px] text-neutral-500 leading-relaxed'>
               New features, blocks &amp; updates.
             </p>
             <form onSubmit={(e) => e.preventDefault()} className='space-y-2'>
@@ -90,7 +90,7 @@ export function Footer() {
               />
               <button
                 type='submit'
-                className='h-9 w-full rounded-lg bg-white/[0.09] text-[13px] font-medium text-neutral-100 transition-colors hover:bg-white/[0.14] hover:text-white'
+                className='h-9 w-full rounded-lg bg-white/[0.09] font-medium text-[13px] text-neutral-100 transition-colors hover:bg-white/[0.14] hover:text-white'
               >
                 Subscribe
               </button>
@@ -122,7 +122,7 @@ export function Footer() {
       </div>
 
       {/* Large brand wordmark — full-bleed, centered */}
-      <div className='border-t border-white/[0.04]'>
+      <div className='border-white/[0.04] border-t'>
         <div className='flex select-none items-end justify-center gap-[clamp(0.75rem,3vw,2rem)] px-4 pt-16 pb-10'>
           <img
             src='/Zelaxy.png'
@@ -131,7 +131,7 @@ export function Footer() {
             className='h-[clamp(4rem,16vw,12rem)] w-auto opacity-[0.55]'
           />
           <span
-            className='font-black text-[clamp(4.5rem,18vw,14rem)] uppercase leading-[0.82] tracking-[0.06em] text-orange-400/50'
+            className='font-black text-[clamp(4.5rem,18vw,14rem)] text-orange-400/50 uppercase leading-[0.82] tracking-[0.06em]'
             style={{ fontFamily: '"Outfit", sans-serif' }}
           >
             Zelaxy

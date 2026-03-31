@@ -24,7 +24,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       />
 
       {/* Radial glow */}
-      <div className='pointer-events-none absolute top-1/3 left-1/2 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-b from-primary/15 via-primary/5 to-transparent blur-3xl' />
+      <div className='-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/3 left-1/2 h-[500px] w-[700px] rounded-full bg-gradient-to-b from-primary/15 via-primary/5 to-transparent blur-3xl' />
 
       {/* Content */}
       <div className='relative z-10 flex flex-1'>

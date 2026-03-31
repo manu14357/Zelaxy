@@ -43,7 +43,7 @@ export function HeroSection() {
       />
 
       {/* Radial glow */}
-      <div className='pointer-events-none absolute top-1/3 left-1/2 z-[1] h-[600px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-b from-primary/20 via-primary/5 to-transparent blur-3xl' />
+      <div className='-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/3 left-1/2 z-[1] h-[600px] w-[900px] rounded-full bg-gradient-to-b from-primary/20 via-primary/5 to-transparent blur-3xl' />
 
       <div className='relative z-10 mx-auto max-w-4xl px-6 sm:px-8'>
         <div className='text-center'>

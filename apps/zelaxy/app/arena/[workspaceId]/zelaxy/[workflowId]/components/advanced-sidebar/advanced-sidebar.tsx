@@ -3,27 +3,23 @@
 import type React from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Bell,
   BookOpen,
   Boxes,
   ChevronLeft,
   ChevronRight,
-  CreditCard,
   Download,
   History,
   LayoutDashboard,
-  LogOut,
   Plus,
   Search,
   Settings,
   Sparkles,
   Terminal,
-  User,
   Variable,
   X,
 } from 'lucide-react'
 import { useParams, usePathname, useRouter } from 'next/navigation'
-import { client, signOut, useSession } from '@/lib/auth-client'
+import { client, useSession } from '@/lib/auth-client'
 import { getDefaultAvatarUrl, isMultiavatarUrl } from '@/lib/multiavatar'
 import { cn } from '@/lib/utils'
 import { useFolderStore } from '@/stores/folders/store'
@@ -172,13 +168,6 @@ const getIconBgClass = (bgColor?: string) => {
 }
 
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'

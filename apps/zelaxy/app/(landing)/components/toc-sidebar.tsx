@@ -41,7 +41,7 @@ export function TocSidebar({ items }: { items: TocItem[] }) {
   return (
     <aside className='hidden lg:block'>
       <div className='sticky top-24 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.02] to-transparent p-5'>
-        <h4 className='mb-4 font-semibold text-[10px] tracking-widest text-neutral-600 uppercase'>
+        <h4 className='mb-4 font-semibold text-[10px] text-neutral-600 uppercase tracking-widest'>
           On this page
         </h4>
         <nav className='space-y-0.5'>

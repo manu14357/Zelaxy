@@ -8,8 +8,8 @@ import {
   HeroSection,
   HowItWorksSection,
 } from '@/app/(landing)/components'
-import { ThemeProvider } from '@/app/(landing)/components/theme-provider'
 import { GitHubStarsBanner } from '@/app/(landing)/components/github-stars-banner'
+import { ThemeProvider } from '@/app/(landing)/components/theme-provider'
 
 export default function Landing() {
   return (

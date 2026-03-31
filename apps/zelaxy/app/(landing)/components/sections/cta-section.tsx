@@ -53,7 +53,7 @@ export function CTASection() {
               <Link href='/arena'>
                 <Button
                   size='lg'
-                  className='group rounded-full bg-white px-8 py-6 text-base text-[#060606] shadow-lg shadow-white/5 transition-all duration-300 hover:bg-neutral-200 hover:shadow-xl'
+                  className='group rounded-full bg-white px-8 py-6 text-[#060606] text-base shadow-lg shadow-white/5 transition-all duration-300 hover:bg-neutral-200 hover:shadow-xl'
                 >
                   Get Started Free
                   <ArrowRight className='ml-2 h-4 w-4 transition-transform group-hover:translate-x-1' />
