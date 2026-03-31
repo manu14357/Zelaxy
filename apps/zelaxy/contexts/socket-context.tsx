@@ -127,6 +127,13 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
   const params = useParams()
   const urlWorkflowId = params?.workflowId as string | undefined
 
+  // Keep a ref of urlWorkflowId so the connect handler always has the latest value
+  // (the socket init effect only depends on user?.id, so closures would be stale)
+  const urlWorkflowIdRef = useRef(urlWorkflowId)
+  useEffect(() => {
+    urlWorkflowIdRef.current = urlWorkflowId
+  }, [urlWorkflowId])
+
   // Use refs to store event handlers to avoid stale closures
   const eventHandlers = useRef<{
     workflowOperation?: (data: any) => void
@@ -220,14 +227,15 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
           })
 
           // Automatically join the current workflow room based on URL
-          // This handles both initial connections and reconnections
-          if (urlWorkflowId) {
-            logger.info(`Joining workflow room after connection: ${urlWorkflowId}`)
+          // Use ref to get the LATEST urlWorkflowId (not the stale closure value)
+          const currentUrlWorkflowId = urlWorkflowIdRef.current
+          if (currentUrlWorkflowId) {
+            logger.info(`Joining workflow room after connection: ${currentUrlWorkflowId}`)
             socketInstance.emit('join-workflow', {
-              workflowId: urlWorkflowId,
+              workflowId: currentUrlWorkflowId,
             })
             // Update our internal state to match the URL
-            setCurrentWorkflowId(urlWorkflowId)
+            setCurrentWorkflowId(currentUrlWorkflowId)
           }
         })
 
@@ -239,8 +247,10 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
             reason,
           })
 
-          // Clear presence when disconnected
+          // Clear presence and workflow room state when disconnected
+          // This ensures the room-switching effect will re-join on reconnection
           setPresenceUsers([])
+          setCurrentWorkflowId(null)
         })
 
         socketInstance.on('connect_error', (error: any) => {
@@ -295,6 +305,12 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
         socketInstance.on('reconnect_failed', () => {
           logger.error('Socket reconnection failed - all attempts exhausted')
           setIsConnecting(false)
+        })
+
+        // Handle join-workflow errors - clear state so room-switching effect can retry
+        socketInstance.on('join-workflow-error', (data: any) => {
+          logger.error('Failed to join workflow room:', data)
+          setCurrentWorkflowId(null)
         })
 
         // Presence events
