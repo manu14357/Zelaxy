@@ -18,6 +18,23 @@ interface Logger {
  */
 export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?: Server) {
   return (req: IncomingMessage, res: ServerResponse) => {
+    // Handle CORS preflight for all /api/* routes
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': req.headers.origin || '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+      })
+      res.end()
+      return
+    }
+
+    // Add CORS headers to all responses
+    if (req.headers.origin) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin)
+    }
+
     // Handle health check for Railway
     if (req.method === 'GET' && req.url === '/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' })
