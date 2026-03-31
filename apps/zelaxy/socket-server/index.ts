@@ -77,7 +77,7 @@ io.engine.on('connection_error', (err) => {
 })
 
 const PORT = Number(env.PORT || env.SOCKET_PORT || 3002)
-const HOST = process.env.HOSTNAME || '0.0.0.0'
+const HOST = '0.0.0.0'
 
 logger.info('Starting Socket.IO server...', {
   port: PORT,

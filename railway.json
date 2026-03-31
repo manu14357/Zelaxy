@@ -13,7 +13,7 @@
   "deploy": {
     "startCommand": "cd apps/zelaxy && bun run start:sockets",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 30,
+    "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 5
   }
