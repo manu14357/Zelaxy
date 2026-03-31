@@ -1,12 +1,12 @@
 ---
 name: api-and-auth
-description: 'Build, modify, and debug API routes and authentication flows. Use for: creating Next.js API routes, better-auth setup, OAuth integration, Zod validation, session management, middleware, CORS, rate limiting, webhook endpoints.'
+description: 'Build, modify, and debug API routes and authentication flows. Use for: creating Next.js API routes, better-auth setup, OAuth integration, Zod validation, session management, middleware, CORS, rate limiting, webhook trigger endpoints, chat/public API auth, dual auth (session + workflow), and internal x-api-key auth.'
 ---
 
 # API & Authentication Skill — Zelaxy
 
 ## Purpose
-Build, modify, and debug API routes and authentication flows.
+Build, modify, and debug API routes and authentication flows in `apps/zelaxy`.
 
 ## When to Use
 - Creating new API routes
@@ -14,35 +14,40 @@ Build, modify, and debug API routes and authentication flows.
 - Adding middleware or guards
 - Debugging API errors
 - Working with better-auth configuration
-- Implementing rate limiting
+- Implementing rate limiting / request validation
+- Updating webhook trigger endpoints
+- Working with chat/public API auth and CORS behavior
 
 ## Auth Stack
-- **Framework**: better-auth (Next.js 15 compatible)
-- **Session**: HTTP-only cookies
-- **OAuth**: 15+ providers (Google, GitHub, Microsoft, Slack, etc.)
-- **Multi-tenant**: Organization → Workspace scoping
-- **Encryption**: AES-256 for stored credentials
+- **Framework**: `better-auth` + `toNextJsHandler` route bridge
+- **Primary session helper**: `getSession()` from `lib/auth.ts`
+- **Session storage**: DB-backed sessions with cookie session token
+- **Auth plugins in use**: `nextCookies`, `oneTimeToken`, `emailOTP`, `genericOAuth`, `organization`, optional `stripe`
+- **OAuth model**: provider connections persisted in `account` table (with refresh support)
+- **Secrets/encryption**: encrypted env vars and credentials handled in lib utilities
 
 ## Auth Flow
 
 ```
-1. User signs up/logs in → better-auth
-2. Session token → HTTP-only cookie
-3. API request → middleware extracts session
-4. Session → user + activeOrganization
-5. Route handler → validates workspace access
-6. Response → standard format
+1. Auth requests hit /api/auth/[...all] and are handled by better-auth.
+2. better-auth stores session/account records in Postgres via Drizzle adapter.
+3. API routes call getSession() (or route-specific auth helper).
+4. Route applies additional authorization (workspace/user/resource ownership).
+5. Route validates body/query (commonly with Zod).
+6. Route returns JSON (shape differs by route family, do not force one global schema).
 ```
 
 ## Middleware (`middleware.ts`)
 
 ```typescript
 // Key checks:
-// 1. Session validation via getSessionCookie()
-// 2. Subdomain extraction (custom domains)
-// 3. Docs subdomain routing (docs.*)
-// 4. Chat subdomain rewrite
-// 5. Suspicious UA pattern detection (security)
+// 1. Session presence check via getSessionCookie()
+// 2. Docs subdomain passthrough (proxied in next.config.ts rewrites)
+// 3. Custom subdomain handling + chat rewrite behavior
+// 4. Legacy route redirects (/zelaxy, /workspace, /arena/*/w)
+// 5. Protected arena routes redirect to /login when unauthenticated
+// 6. Suspicious User-Agent blocking (with webhook trigger exemption)
+// 7. Runtime CSP header injection for app/chat entry routes
 ```
 
 ## API Route Patterns
@@ -50,24 +55,63 @@ Build, modify, and debug API routes and authentication flows.
 ### Location
 ```
 apps/zelaxy/app/api/
-├── auth/                 # better-auth routes
-├── workflows/            # CRUD, execute, sync
-├── copilot/chat/         # AI copilot
-├── webhooks/             # Webhook management
-├── schedules/            # Cron management
-├── knowledge/            # Knowledge base CRUD
-├── tools/                # Tool execution
-├── mcp/                  # MCP server management
-├── users/                # User management
-├── organizations/        # Org management
-├── workspaces/           # Workspace management
-├── custom-ui/            # Embedded UIs
-├── embed/                # Embeddable endpoints
-├── jobs/                 # Background job triggers
-└── admin/                # Admin endpoints
+├── auth/                 # better-auth bridge + oauth/session utilities
+├── arenas/               # workspace/arena membership and permissions
+├── billing/              # usage and billing actions
+├── chat/                 # chat deployment + public subdomain endpoints
+├── copilot/              # copilot API methods/checkpoints/templates
+├── environment/          # user env variables (dual auth pattern)
+├── files/                # upload/download/serve/presigned/delete
+├── function/             # function execution endpoints
+├── jobs/                 # background task orchestration
+├── knowledge/            # knowledge base + ingestion
+├── logs/                 # execution/chat logs
+├── mcp/                  # MCP server/tool APIs
+├── organizations/        # org config + environment
+├── schedules/            # scheduled runs
+├── tools/                # tool execution APIs
+├── webhooks/             # trigger + provider webhook processing
+├── workflows/            # workflow CRUD/execute/helpers
+└── plus admin/users/workspaces/usage-limits/health/etc.
 ```
 
-### Standard Route Template
+### Core Auth Patterns (Important)
+
+There is no single auth strategy across all APIs. Pick the correct one for the route family:
+
+1. Session auth
+```typescript
+const session = await getSession()
+if (!session?.user?.id) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+}
+```
+
+2. Session or API key fallback (copilot helper)
+```typescript
+const { userId, isAuthenticated } = await authenticateCopilotRequest(req)
+if (!isAuthenticated || !userId) {
+  return createUnauthorizedResponse()
+}
+```
+
+3. Internal service key auth (machine-to-machine)
+```typescript
+const apiKey = req.headers.get('x-api-key')
+if (apiKey !== env.INTERNAL_API_SECRET) {
+  return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
+}
+```
+
+4. Dual auth by workflow context (session OR workflow ownership)
+```typescript
+const userId = await getUserId(requestId, workflowId)
+if (!userId) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+}
+```
+
+### Standard Route Template (Session + Zod + DB scope)
 
 ```typescript
 // app/api/my-resource/route.ts
@@ -85,13 +129,13 @@ const createSchema = z.object({
 
 export async function GET(request: NextRequest) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const workspaceId = request.nextUrl.searchParams.get('workspaceId')
   if (!workspaceId) {
-    return NextResponse.json({ success: false, error: 'Missing workspaceId' }, { status: 400 })
+    return NextResponse.json({ error: 'Missing workspaceId' }, { status: 400 })
   }
 
   const items = await db
@@ -102,20 +146,19 @@ export async function GET(request: NextRequest) {
       // Always scope by workspace!
     ))
 
-  return NextResponse.json({ success: true, data: items })
+  return NextResponse.json({ data: items })
 }
 
 export async function POST(request: NextRequest) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const body = await request.json()
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({
-      success: false,
       error: 'Validation failed',
       details: parsed.error.flatten(),
     }, { status: 400 })
@@ -126,7 +169,7 @@ export async function POST(request: NextRequest) {
     .values({ ...parsed.data, userId: session.user.id })
     .returning()
 
-  return NextResponse.json({ success: true, data: item }, { status: 201 })
+  return NextResponse.json({ data: item }, { status: 201 })
 }
 ```
 
@@ -143,55 +186,54 @@ export async function GET(
 }
 ```
 
-### Response Format
+### Response Conventions
 
 ```typescript
-// Success
-{ success: true, data: any, metadata?: { page, total, ... } }
+// Do not enforce one global response shape.
+// Existing APIs use multiple valid patterns:
 
-// Error
-{ success: false, error: string, details?: any }
+// Pattern A: plain NextResponse JSON
+return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-// HTTP Status Codes
-200 — OK
-201 — Created
-400 — Bad Request (validation)
-401 — Unauthorized (no session)
-403 — Forbidden (no access to resource)
-404 — Not Found
-429 — Rate Limited
-500 — Internal Server Error
+// Pattern B: helpers in app/api/workflows/utils.ts
+return createErrorResponse('Invalid request', 400)
+return createSuccessResponse({ data })
+
+// Pattern C: endpoint-specific success envelope
+return NextResponse.json({ success: true, output: result }, { status: 200 })
 ```
 
 ## OAuth Configuration
 
-### Supported Providers
+### Where OAuth Is Configured
 ```
-Google (gmail, drive, docs, sheets, calendar)
-GitHub, X (Twitter), Microsoft, Confluence
-Airtable, Notion, Jira, Discord, Linear
-Slack, Reddit, Wealthbox
+apps/zelaxy/lib/auth.ts
+  - socialProviders: google, microsoft (github social provider intentionally disabled)
+  - genericOAuth providers: github-repo, google-* scopes, microsoft, slack, reddit, etc.
+
+apps/zelaxy/app/api/auth/oauth/
+  - token/credentials/connections/disconnect utilities and tests
 ```
 
 ### OAuth Flow
 ```
-1. Frontend → `/api/auth/oauth/connect?provider=google&scopes=gmail.send`
-2. Redirect → Provider consent screen
-3. Callback → `/api/auth/callback/google`
-4. Token stored → `credential` table (encrypted)
-5. Usage → `getCredentials(credentialId)` in handlers
+1. Frontend hits better-auth oauth2 connect/callback endpoints.
+2. Provider redirects back to /api/auth/oauth2/callback/<providerId>.
+3. Token metadata is stored on the account/provider connection.
+4. Route helpers refresh expired tokens when refresh token exists.
+5. API routes fetch tokens through oauth utils (do not read raw headers directly).
 ```
 
-### Credential Storage
+### Token Access Pattern
 ```typescript
-// Encrypted with AES-256 using ENCRYPTION_KEY env var
-credential: {
-  id: uuid,
-  userId: uuid,
-  provider: text,               // 'google', 'github', etc.
-  credentialData: jsonb,        // { accessToken, refreshToken, scopes }
-  expiresAt: timestamp,
-  workspaceId: uuid,
+const credential = await getCredential(requestId, credentialId, userId)
+if (!credential) {
+  return NextResponse.json({ error: 'Credential not found' }, { status: 404 })
+}
+
+const token = await refreshAccessTokenIfNeeded(credentialId, userId, requestId)
+if (!token) {
+  return NextResponse.json({ error: 'Token unavailable' }, { status: 401 })
 }
 ```
 
@@ -201,44 +243,55 @@ credential: {
 import { z } from 'zod'
 
 // Request body validation
-const workflowSchema = z.object({
-  name: z.string().min(1).max(255),
-  description: z.string().optional(),
-  state: z.record(z.unknown()).optional(),
-  variables: z.array(z.object({
-    key: z.string(),
-    value: z.string(),
-    type: z.enum(['string', 'number', 'boolean']),
-  })).optional(),
+const payloadSchema = z.object({
+  id: z.string().min(1),
+  metadata: z.record(z.unknown()).optional(),
 })
 
-// Query parameter validation
+// Query coercion
 const paginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
-  sort: z.enum(['createdAt', 'updatedAt', 'name']).default('createdAt'),
-  order: z.enum(['asc', 'desc']).default('desc'),
 })
 ```
+
+Prefer `safeParse` for user-facing API routes where you want explicit error payloads.
 
 ## Rate Limiting
 
 ```typescript
-// Via queue service — subscription plan based
-// Check rate limit before executing
-const allowed = await checkRateLimit(userId, 'workflow_execution')
-if (!allowed) {
-  return NextResponse.json(
-    { success: false, error: 'Rate limit exceeded' },
-    { status: 429 }
-  )
+// Webhook and async execution paths use queue/RateLimiter checks
+const rateLimitCheck = await rateLimiter.checkRateLimit(userId, plan, 'webhook', true)
+if (!rateLimitCheck.allowed) {
+  return new NextResponse('Rate limit exceeded', { status: 429 })
 }
 ```
 
+## Webhook Endpoint Guidance
+
+- Main trigger endpoint: `app/api/webhooks/trigger/[path]/route.ts`
+- `GET` supports provider verification checks (e.g., WhatsApp challenge)
+- `POST` handles raw body parsing, content-type branching, provider signature checks, and async trigger tasking
+- Keep webhook trigger routes public, but validate provider signatures/hmac where required
+- Middleware UA blocking exempts `/api/webhooks/trigger/*`
+
+## CORS and Headers
+
+- Baseline API CORS headers are set in `next.config.ts` for `/api/:path*`
+- Some public endpoints add route-level CORS helpers (notably chat endpoints)
+- Keep OPTIONS handling where cross-origin browser usage is expected
+
+## Testing Expectations for API/Auth Changes
+
+- Add or update route tests alongside endpoint changes (`route.test.ts`)
+- Use existing API test utilities under `app/api/__test-utils__/`
+- Cover at least: unauthenticated request, invalid payload, success case
+
 ## Common Issues
-1. **Next.js 15 params**: `params` is now a `Promise` — always `await params`
-2. **Missing auth check**: Every route MUST check session (except public endpoints)
-3. **Missing workspace scope**: All DB queries MUST filter by workspaceId
-4. **CORS**: Configured in `next.config.ts` for API routes
-5. **Streaming responses**: Use `ReadableStream` for SSE endpoints
-6. **File uploads**: Use `request.formData()`, not `request.json()`
+1. **Wrong auth pattern**: Using session auth where route expects internal API key or dual auth
+2. **Next.js 15 params**: `params` is a Promise in route handlers with dynamic segments
+3. **Assuming one response schema**: Different API groups intentionally return different JSON shapes
+4. **Missing ownership checks**: Session auth alone is not authorization; scope DB queries by owner/workspace
+5. **Webhook parsing bugs**: Some providers send form-encoded payloads, not JSON
+6. **Token refresh gaps**: OAuth access tokens can expire; use refresh helpers instead of raw token reads
+7. **CORS regressions**: Public chat/webhook endpoints may need route-level CORS behavior in addition to global headers

@@ -1,180 +1,221 @@
 ---
 name: performance
-description: 'Optimize execution speed, database queries, and frontend rendering. Use for: executor streaming, pgvector HNSW tuning, React re-render optimization, Zustand selectors, bundle size, Turbopack config, N+1 query prevention.'
+description: 'Optimize execution speed, database queries, and frontend rendering. Use for: executor layer/stream performance, pgvector HNSW tuning, knowledge/image search strategy, React Flow render optimization, Zustand selector patterns, Next.js bundle tuning, and mandatory performance regression testing.'
 ---
 
-# Performance Skill — Zelaxy
+# Performance Skill - Zelaxy
 
 ## Purpose
-Optimize execution speed, database queries, and frontend rendering.
+Optimize runtime speed and scalability in this repository with measurable, test-backed changes.
+
+## Non-Negotiable Rule: Performance Changes Require Tests
+
+When performance-related code changes are made:
+
+1. Update or add tests that cover changed behavior.
+2. Run relevant tests before completion.
+3. Report exact test commands and results.
+4. If tests cannot run, explain why and what remains unverified.
+
+Performance edits without regression-test validation are incomplete unless explicitly waived.
 
 ## When to Use
-- Optimizing workflow execution performance
-- Improving database query speed
-- Reducing frontend bundle size or render time
-- Debugging slow operations
-- Tuning pgvector similarity search
+- Reducing workflow execution latency
+- Improving query speed and vector search recall/latency balance
+- Fixing canvas/UI render bottlenecks
+- Reducing server/client bundle overhead
+- Preventing regressions after optimizations
 
-## Executor Performance
+## Architecture Map (High-Impact Files)
+
+- Executor runtime: `apps/zelaxy/executor/index.ts`
+- Streaming response processing: `apps/zelaxy/executor/utils.ts`
+- Executor contracts: `apps/zelaxy/executor/types.ts`
+- Knowledge search strategy: `apps/zelaxy/app/api/knowledge/search/utils.ts`
+- Knowledge search route orchestration: `apps/zelaxy/app/api/knowledge/search/route.ts`
+- Workflow normalized DB IO: `apps/zelaxy/lib/workflows/db-helpers.ts`
+- DB connection pool config: `apps/zelaxy/db/index.ts`
+- Vector schema/indexes: `apps/zelaxy/db/schema.ts`
+- Canvas render path: `apps/zelaxy/app/arena/[workspaceId]/zelaxy/[workflowId]/workflow.tsx`
+- Diff/render caching store: `apps/zelaxy/stores/workflow-diff/store.ts`
+- Build/bundle config: `apps/zelaxy/next.config.ts`
+
+## Optimization Workflow (Required)
+
+1. Measure baseline first (latency, DB time, render cost, memory).
+2. Identify concrete hotspot file and code path.
+3. Apply smallest viable optimization.
+4. Add or update tests for changed behavior.
+5. Run targeted tests (and broader suites if shared runtime changed).
+6. Verify no correctness regressions, then report measurable impact.
+
+## Executor Performance (Current Behavior)
 
 ### Execution Architecture
-- Topological sort ensures correct DAG execution order
-- Blocks execute sequentially (unless in parallel blocks)
-- Streaming via `onStream` callback for real-time output
-- Cancellation support via `isCancelled` flag — check between blocks
 
-### Streaming
-```typescript
-// Executor supports streaming callbacks
-onStream?: (blockId: string, chunk: string) => void
-onBlockComplete?: (blockId: string, result: BlockState) => void
-onExecutionStart?: () => void
-onExecutionComplete?: (result: ExecutionResult) => void
-```
+- Blocks are scheduled by dependency layers and each layer executes concurrently.
+- `executeLayer` uses `Promise.allSettled(...)`, so one block failing does not instantly cancel successful siblings.
+- Flow-control semantics (`loop`, `parallel`, routing blocks) are handled by dedicated managers/handlers.
+- Cancellation is checked during execution (`isCancelled`), with structured failure return.
 
-### Parallel Execution
-- `ParallelManager` handles concurrent block execution
-- Two strategies: `count` (fixed iterations) and `collection` (iterate over array)
-- Each parallel branch runs its own execution context
-- Results merged after all branches complete
+Important correction:
+- Execution is not globally "one block at a time". Layers run in parallel when dependencies allow.
 
-### Loop Optimization
-- `LoopManager` handles for/forEach/while loops
-- Loop context injected per iteration (avoids full state rebuild)
-- Break conditions checked per iteration
+### Streaming Path
+
+- Streaming is modeled as `StreamingExecution` (`stream` + full execution metadata).
+- Executor tees stream output into two channels:
+  - client stream for UI callbacks
+  - executor stream for persisted/structured result assembly
+- `StreamingResponseFormatProcessor` can transform streamed JSON into selected response fields.
+
+Performance guidance:
+
+1. Keep `onStream` callbacks non-blocking.
+2. Avoid heavy synchronous parsing in stream callbacks.
+3. Preserve structured-output parsing fallback behavior when stream JSON is partial.
+4. Test empty/partial/chunked stream cases when touching stream logic.
 
 ## Database Performance
 
-### Index Strategy
+### Connection Pooling
 
-**Composite indexes** for common query patterns:
-```
-workflow_blocks: workflow_id + parent_id, workflow_id + type
-workflow_edges: workflow_id + source, workflow_id + target
-workflow_folders: workspace_id + parent_id, parent_id + sort_order
-workflows: user_id + workspace_id
-```
+From `apps/zelaxy/db/index.ts`:
 
-### pgvector Optimization
+- postgres-js pool max: `60`
+- `prepare: false`
+- `idle_timeout: 20`
+- `connect_timeout: 30`
 
-**HNSW Index** (approximate nearest neighbor):
-```sql
--- Index config
-embedding_vector_hnsw_idx
-  USING hnsw
-  ON knowledge_chunks (embedding vector_cosine_ops)
-  WITH (m = 16, ef_construction = 64)
-```
+Treat pool changes as system-level tuning. Validate impact on app plus socket-server capacity before modifying.
 
-**Parameters**:
-| Param | Value | Effect |
-|-------|-------|--------|
-| `m` | 16 | Graph connectivity (higher = better recall, more memory) |
-| `ef_construction` | 64 | Build quality (higher = slower build, better index) |
-| dimensions | 2000 | Supports most embedding models |
-| distance | cosine | Standard for text embeddings |
+### Workflow Persistence Patterns
 
-**Query pattern**:
-```typescript
-// Similarity search with Drizzle
-import { cosineDistance, desc, sql } from 'drizzle-orm'
+`apps/zelaxy/lib/workflows/db-helpers.ts` already applies performance-friendly patterns:
 
-const results = await db
-  .select({
-    content: knowledgeChunks.content,
-    similarity: sql<number>`1 - (${cosineDistance(knowledgeChunks.embedding, queryVector)})`,
-  })
-  .from(knowledgeChunks)
-  .where(and(
-    eq(knowledgeChunks.knowledgeBaseId, kbId),
-    eq(knowledgeChunks.enabled, true),
-  ))
-  .orderBy(desc(sql`1 - (${cosineDistance(knowledgeChunks.embedding, queryVector)})`))
-  .limit(10)
-```
+- Parallel reads via `Promise.all` for blocks/edges/subflows.
+- Transactional write path with batched inserts per entity type.
+- Single workflow-scoped delete+insert cycle during state save.
 
-**Optimization tips**:
-- Filter by `knowledgeBaseId` BEFORE similarity search (index narrows candidates)
-- Use tag columns (tag1-tag7) for pre-filtering
-- Keep `limit` reasonable (10-20 for RAG, not 100+)
-- Full-text search via `content_tsv` tsvector for keyword matching
+Keep workflow DB operations scoped by workflow id and wrapped in a transaction when mutating normalized tables.
 
-### Full-Text Search
-```typescript
-// Generated tsvector column
-content_tsv: tsvector, generatedAlwaysAs: to_tsvector('english', content)
+### Vector and Search Index Strategy
 
-// Query with ts_rank
-.where(sql`content_tsv @@ plainto_tsquery('english', ${query})`)
-.orderBy(desc(sql`ts_rank(content_tsv, plainto_tsquery('english', ${query}))`))
-```
 
-### Query Best Practices
-1. **Always filter by workspace/org first** — narrows the scan
-2. **Use composite indexes** — query in index column order
-3. **Avoid SELECT \*** — specify only needed columns
-4. **Batch inserts** — use `.values([...])` for multiple rows
-5. **Use `.returning()` wisely** — only when you need the result
-6. **Paginate large results** — `.limit().offset()` with proper indexes
+#### Embedding tables with HNSW
 
-## Frontend Performance
+In `apps/zelaxy/db/schema.ts`:
 
-### Next.js Optimizations
-- `optimizeCss: true` (experimental) — CSS minification
-- `turbopackSourceMaps: false` — faster dev builds
-- `standalone` output for Docker — smaller image
-- Turbopack for dev (faster HMR than Webpack)
-- `transpilePackages` for tree-shaking external deps
+- `embedding.embedding` dimension: `2000`
+- `docs_embeddings.embedding` dimension: `1536`
+- `image_embedding.embedding` dimension: `2000`
+- HNSW indexes use `vector_cosine_ops` with:
+  - `m: 16`
+  - `ef_construction: 64`
 
-### Bundle Size
-- Sentry integration with extensive `ignoredModules` and `widenClientFileUpload`
-- External packages kept server-side: `sharp`, `tesseract.js`, `pdf-parse`, `mupdf`
-- React 19 with automatic batching
+These tables also pair vector indexes with:
 
-### React Flow (Workflow Canvas)
-- Virtualized rendering — only visible nodes rendered
-- Custom node types with memoization
-- Edge rendering optimized with React Flow's built-in batching
-- `useReactFlow()` hook for imperative operations
+- enabled-state filters
+- tag indexes (`tag1`..`tag7`)
+- GIN full-text indexes (`content_tsv` variants)
 
-### Zustand State
-- Stores split by domain (execution, workflows, copilot, etc.)
-- Selectors for fine-grained re-renders:
-  ```typescript
-  // Good — only re-renders when isExecuting changes
-  const isExecuting = useExecutionStore(s => s.isExecuting)
+### Knowledge Search Strategy (Current)
 
-  // Bad — re-renders on any store change
-  const store = useExecutionStore()
-  ```
-- `devtools` middleware for debugging (dev only)
-- `withHistory` custom middleware for undo/redo (workflow store)
-- `createSafeStorage()` for SSR-safe persistence
+`apps/zelaxy/app/api/knowledge/search/utils.ts` uses adaptive strategy:
 
-### Image Optimization
-- Remote patterns configured for CDN sources
-- Next.js Image component for lazy loading and responsive images
+- `getQueryStrategy(...)` selects single-query vs per-KB parallel mode.
+- Tag-only search path.
+- Vector-only search path.
+- Tag+vector path that filters by tags first, then vector-searches reduced candidate IDs.
 
-## Monitoring
+Key performance characteristics:
 
-### Sentry Integration
-- Error tracking with `@sentry/nextjs`
-- Disabled in development
-- Configurable via `telemetry.config.ts`
-- Source maps uploaded but access-blocked in production
+1. Candidate reduction before expensive vector ranking where possible.
+2. Query thresholding via distance cutoff.
+3. Per-KB parallel fan-out only when KB count/topK heuristics justify it.
 
-### Real-time Callbacks
-```typescript
-// Execution monitoring
-onExecutionStart()       // Track execution start
-onBlockComplete(id, st)  // Track individual block completion
-onExecutionComplete(res) // Track total execution time
-```
+### Image Search Strategy
 
-## Common Bottlenecks
-1. **Large workflow execution**: Many sequential blocks — consider parallel blocks
-2. **pgvector search on large KBs**: Ensure HNSW index exists, pre-filter by tags
-3. **Streaming stalls**: Check `onStream` callback isn't blocking
-4. **Store re-renders**: Use selectors, not full store subscriptions
-5. **Dev server slow**: Turbopack enabled by default; check no circular deps
-6. **Background job timeout**: 180s max — split large file processing
+Image search path (`lib/image-search/searcher.ts`) includes:
+
+- raw SQL vector ranking with constrained candidate limits (`topK * 3` then dedupe)
+- hybrid search combining keyword and visual ranking using reciprocal-rank fusion
+- concurrent keyword+visual retrieval via `Promise.all`
+
+Indexing path (`lib/image-search/indexer.ts`) includes batched concurrent processing with `Promise.allSettled`.
+
+## Frontend and State Performance
+
+### Canvas Rendering Path
+
+`workflow.tsx` already uses extensive memoization:
+
+- `React.memo` wrappers for large components
+- heavy `useMemo` usage for derived node/edge data
+- `useCallback` for event handlers
+- stable `nodeTypes`/`edgeTypes` module-level declarations
+
+React Flow configuration includes tuned interaction parameters (`fitView`, zoom bounds, drag behaviors, selective edit handlers).
+
+Important correction:
+- Do not assume `onlyRenderVisibleElements` is enabled; it is not currently set in the main workflow canvas.
+
+### Zustand Selector Patterns
+
+Prefer narrow selectors plus equality optimization where relevant.
+
+Verified examples:
+
+- `use-block-connections.ts` uses `zustand/shallow` to reduce unnecessary rerenders.
+- `workflow-diff/store.ts` adds explicit performance controls:
+  - singleton diff engine
+  - debounced batched updates
+  - cached selector/hash state reuse
+
+Avoid full-store subscriptions in high-frequency UI surfaces.
+
+## Build and Bundle Performance
+
+From `apps/zelaxy/next.config.ts`:
+
+- Turbopack configured with explicit root and extensions.
+- `experimental.optimizeCss: true`.
+- `experimental.turbopackSourceMaps: false`.
+- `serverExternalPackages` excludes heavy server-only dependencies from client bundles.
+- `transpilePackages` is explicitly curated.
+- Sentry config enables bundle-size optimization flags.
+
+From `turbo.json`:
+
+- test task depends on upstream builds (`"dependsOn": ["^build"]`).
+
+Treat build-performance changes as cross-workspace impacts; validate both app runtime and CI pipelines.
+
+## Performance Test Expectations
+
+For performance-related code changes, add or update tests near changed domain:
+
+- Executor stream/layer logic: `apps/zelaxy/executor/*.test.ts`
+- Knowledge search strategy: `apps/zelaxy/app/api/knowledge/search/*.test.ts`
+- Workflow DB helper behavior: `apps/zelaxy/lib/workflows/*.test.ts`
+- UI/store behavior: colocated component/store tests with `jsdom` when needed
+
+Run targeted tests first, then broader suite if shared pathways changed.
+
+Suggested commands:
+
+- `cd apps/zelaxy; bun run test -- executor/utils.test.ts`
+- `cd apps/zelaxy; bun run test -- app/api/knowledge/search/route.test.ts`
+- `cd apps/zelaxy; bun run test -- lib/workflows/db-helpers.test.ts`
+- `cd apps/zelaxy; bun run test` (when touching shared/runtime-critical code)
+
+## Common Pitfalls
+
+1. Treating executor as fully sequential and missing layer-level parallel effects.
+2. Doing expensive synchronous work inside stream callbacks.
+3. Running vector search without prefilters (`knowledgeBaseId`, `enabled`, tags).
+4. Enlarging topK or candidate windows without recall/latency measurement.
+5. Over-subscribing Zustand stores in canvas-heavy components.
+6. Assuming canvas viewport virtualization is already enabled when it is not.
+7. Changing DB pool/index settings without end-to-end validation.
+8. Shipping optimization refactors without regression tests and executed test evidence.

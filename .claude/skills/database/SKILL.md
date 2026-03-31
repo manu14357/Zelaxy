@@ -1,234 +1,212 @@
 ---
 name: database
-description: 'Work with PostgreSQL database schema, Drizzle ORM queries, migrations, and pgvector. Use for: schema changes, SQL queries, vector embeddings, HNSW indexes, knowledge base tables, multi-tenant data isolation, migration generation.'
+description: 'Work with PostgreSQL schema, Drizzle ORM queries, migrations, and pgvector. Use for: schema/table changes, enum/index updates, tenant-scoped queries, workflow normalized tables, knowledge/image embeddings, HNSW/FTS search, and migration generation.'
 ---
 
-# Database & Schema Skill — Zelaxy
+# Database Skill - Zelaxy
 
 ## Purpose
-Work with the PostgreSQL database schema, Drizzle ORM queries, migrations, and pgvector.
+Work with the PostgreSQL schema, Drizzle queries, migrations, and vector search infrastructure in `apps/zelaxy`.
 
 ## When to Use
-- Adding or modifying database tables
-- Writing Drizzle ORM queries
-- Creating or debugging migrations
-- Working with pgvector embeddings
-- Optimizing database performance
+- Adding or modifying tables, columns, enums, constraints, or indexes
+- Writing or debugging Drizzle queries/transactions
+- Creating and applying migrations with `drizzle-kit`
+- Working on knowledge/image embedding pipelines (`pgvector`, HNSW, FTS)
+- Fixing multi-tenant query scoping issues (user/workspace/organization)
 
-## Stack
-- **Database**: PostgreSQL 17
-- **ORM**: Drizzle ORM v1+
-- **Vector**: pgvector extension
+## Stack and Source of Truth
+- **Database**: PostgreSQL 17 + `pgvector`
+- **ORM**: `drizzle-orm`
 - **Migration tool**: `drizzle-kit`
 - **Schema**: `apps/zelaxy/db/schema.ts`
-- **DB client**: `apps/zelaxy/db/index.ts`
-- **Config**: `apps/zelaxy/drizzle.config.ts`
+- **Runtime DB client**: `apps/zelaxy/db/index.ts`
+- **Migration config**: `apps/zelaxy/drizzle.config.ts`
 
-## Schema Overview
+## Connection and Environment
 
-### Core Tables
+### Runtime connection (`db/index.ts`)
+- Uses `POSTGRES_URL ?? DATABASE_URL`
+- Uses `postgres` (postgres-js) with:
+  - `max: 60`
+  - `idle_timeout: 20`
+  - `connect_timeout: 30`
+  - `prepare: false`
+- Exposes `db` through Drizzle and caches in dev via global singleton
 
-| Table | Purpose | Key Relations |
-|-------|---------|---------------|
-| `user` | User accounts | → sessions, accounts, organizations |
-| `session` | Auth sessions (better-auth) | → user, activeOrganization |
-| `account` | OAuth provider accounts | → user |
-| `organization` | Multi-tenant containers | → owner (user), workspaces |
-| `workspace` | Workflow containers | → organization, workflows |
-| `workflow` | Workflow documents | → workspace, blocks, edges |
-| `workflowBlocks` | Canvas block data | → workflow, parentId (self-ref) |
-| `workflowEdges` | Block connections | → workflow, source/target blocks |
-| `workflowSubflows` | Loop/parallel metadata | → workflow |
-| `workflowExecutionSnapshots` | Execution state snapshots | → workflow |
-| `workflowExecutionLogs` | Execution history | → workflow |
-| `knowledgeBase` | RAG document collections | → workspace |
-| `knowledgeDocuments` | Individual documents | → knowledgeBase |
-| `knowledgeChunks` | Text chunks + embeddings | → knowledgeDocument |
-| `credential` | Encrypted OAuth tokens | → user, workspace |
-| `schedule` | Cron job definitions | → workflow |
-| `webhook` | Webhook endpoints | → workflow |
+### Migration connection (`drizzle.config.ts`)
+- Uses `process.env.DIRECT_URL || env.DATABASE_URL`
+- Schema path: `./db/schema.ts`
+- Migrations output: `./db/migrations`
 
-### Key Columns
+When debugging "works at runtime but fails in migration" issues, check `DIRECT_URL` vs `POSTGRES_URL` vs `DATABASE_URL` first.
 
+## Schema Architecture (Current)
+
+### Identity and auth
+- `user`, `session`, `account`, `verification`
+- API and auth integrations also use `api_key` and `custom_oauth_provider`
+
+### Organizations, workspaces, permissions
+- `organization`, `member`, `invitation`
+- `workspace`, `workspace_invitation`, `permissions`
+- `org_environment`, `platform_settings`, `audit_log`
+
+### Workflow model
+- `workflow`
+- `workflow_blocks`
+- `workflow_edges`
+- `workflow_subflows`
+- `workflow_folder`
+- `workflow_execution_snapshots`
+- `workflow_execution_logs`
+- `workflow_schedule`, `webhook`
+
+Important: `workflow.state` is marked deprecated in schema comments. New/updated workflow persistence must keep normalized tables (`workflow_blocks`, `workflow_edges`, `workflow_subflows`) as source of truth.
+
+### Knowledge and vector search
+- `knowledge_base`
+- `document`
+- `embedding`
+- `knowledge_base_tag_definitions`
+- `docs_embeddings` (docs site style embeddings table)
+
+### Image search / CAD search
+- `image_catalog`
+- `image_document`
+- `image_embedding`
+- `image_catalog_tag_definitions`
+- Related enums: catalog status, source, extraction mode, embedding type, processing mode
+
+### MCP and tooling data
+- `mcp_servers`
+- `mcp_server_tools`
+- `mcp_tool_executions`
+- `custom_tools`
+
+### Other product tables
+- `chat`, `copilot_chats`, `copilot_feedback`, `workflow_checkpoints`
+- `templates`, `template_stars`, `marketplace`
+- `environment`, `settings`, `subscription`, `user_stats`, `user_rate_limits`, `memory`, `waitlist`
+
+## Critical Modeling Conventions
+
+1. IDs are not uniformly UUIDs.
+- Most tables use `text` primary keys.
+- Some tables use UUIDs (`mcp_*`, `copilot_*`, `workflow_checkpoints.chatId`, `docs_embeddings.chunkId`).
+- Never assume `uuid` when adding FKs or writing joins.
+
+2. Multi-tenant scoping is mandatory.
+- Scope queries by `userId`, `workspaceId`, or `organizationId` as appropriate.
+- Permission checks often involve `permissions` plus workspace/org membership.
+
+3. Soft delete exists on selected domains.
+- Example: `knowledge_base.deletedAt`, `document.deletedAt`, `image_catalog.deletedAt`, `image_document.deletedAt`.
+- Query paths must filter soft-deleted rows when expected.
+
+4. Vector + FTS dual search is built in.
+- `embedding` and `image_embedding` include vector columns + generated `tsvector` columns + HNSW and GIN indexes.
+
+5. Tag filtering is first-class.
+- Knowledge/image document and embedding tables use `tag1`..`tag7` columns and tag-definition tables.
+
+## Drizzle Query Patterns
+
+### Tenant-scoped reads
 ```typescript
-// workflow table
-workflow: {
-  id: uuid().primaryKey(),
-  name: text().notNull(),
-  state: jsonb().$type<WorkflowState>(),       // Full canvas state
-  deployedState: jsonb(),                        // Published version
-  variables: jsonb().$type<WorkflowVariable[]>(),
-  isPublished: boolean().default(false),
-  workspaceId: uuid().references(() => workspace.id),
-  createdAt: timestamp().defaultNow(),
-  updatedAt: timestamp().defaultNow(),
-}
-
-// knowledgeChunks — pgvector
-knowledgeChunks: {
-  id: uuid().primaryKey(),
-  content: text().notNull(),
-  embedding: vector({ dimensions: 1536 }),       // pgvector column
-  tokenCount: integer(),
-  metadata: jsonb(),
-  documentId: uuid().references(() => knowledgeDocuments.id),
-}
-```
-
-### Indexes
-
-```typescript
-// Composite indexes for common query patterns
-index('workflow_workspace_idx').on(workflow.workspaceId)
-index('blocks_workflow_idx').on(workflowBlocks.workflowId, workflowBlocks.type)
-index('blocks_parent_idx').on(workflowBlocks.parentId, workflowBlocks.sortOrder)
-index('chunks_document_idx').on(knowledgeChunks.documentId)
-
-// pgvector HNSW index for similarity search
-index('chunks_embedding_idx').using('hnsw', knowledgeChunks.embedding.op('vector_cosine_ops'))
-```
-
-## Drizzle ORM Patterns
-
-### Basic Queries
-
-```typescript
+import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '@/db'
-import { workflow, workflowBlocks } from '@/db/schema'
-import { eq, and, desc } from 'drizzle-orm'
+import { knowledgeBase } from '@/db/schema'
 
-// Select
-const workflows = await db
+const items = await db
   .select()
-  .from(workflow)
-  .where(and(
-    eq(workflow.workspaceId, workspaceId),
-    eq(workflow.isPublished, true)
-  ))
-  .orderBy(desc(workflow.updatedAt))
-  .limit(20)
-
-// Insert
-const [newWorkflow] = await db
-  .insert(workflow)
-  .values({ name, workspaceId, state: initialState })
-  .returning()
-
-// Update
-await db
-  .update(workflow)
-  .set({ name: newName, updatedAt: new Date() })
-  .where(eq(workflow.id, workflowId))
-
-// Delete
-await db
-  .delete(workflowBlocks)
-  .where(eq(workflowBlocks.workflowId, workflowId))
-```
-
-### Joins
-
-```typescript
-const result = await db
-  .select({
-    workflow: workflow,
-    blockCount: sql<number>`count(${workflowBlocks.id})`,
-  })
-  .from(workflow)
-  .leftJoin(workflowBlocks, eq(workflow.id, workflowBlocks.workflowId))
-  .where(eq(workflow.workspaceId, workspaceId))
-  .groupBy(workflow.id)
-```
-
-### pgvector Similarity Search
-
-```typescript
-import { sql } from 'drizzle-orm'
-import { cosineDistance, gt } from 'drizzle-orm/pg-core'
-
-const similarChunks = await db
-  .select({
-    id: knowledgeChunks.id,
-    content: knowledgeChunks.content,
-    similarity: sql<number>`1 - (${cosineDistance(knowledgeChunks.embedding, queryEmbedding)})`,
-  })
-  .from(knowledgeChunks)
+  .from(knowledgeBase)
   .where(
-    gt(sql`1 - (${cosineDistance(knowledgeChunks.embedding, queryEmbedding)})`, 0.7)
+    and(
+      eq(knowledgeBase.userId, userId),
+      eq(knowledgeBase.workspaceId, workspaceId),
+      isNull(knowledgeBase.deletedAt)
+    )
   )
-  .orderBy(sql`${cosineDistance(knowledgeChunks.embedding, queryEmbedding)}`)
-  .limit(10)
 ```
 
-### JSONB Queries
-
+### Vector search (current pattern)
 ```typescript
-// Query JSONB fields
-const results = await db
-  .select()
-  .from(workflow)
-  .where(sql`${workflow.state}->>'version' = '2'`)
+import { and, eq, sql } from 'drizzle-orm'
+import { db } from '@/db'
+import { embedding } from '@/db/schema'
 
-// Update JSONB field
-await db
-  .update(workflow)
-  .set({
-    variables: sql`${workflow.variables} || ${JSON.stringify([newVar])}::jsonb`
+const rows = await db
+  .select({
+    id: embedding.id,
+    content: embedding.content,
+    distance: sql<number>`${embedding.embedding} <=> ${queryVector}::vector`.as('distance'),
   })
-  .where(eq(workflow.id, workflowId))
+  .from(embedding)
+  .where(
+    and(
+      eq(embedding.knowledgeBaseId, knowledgeBaseId),
+      sql`${embedding.embedding} <=> ${queryVector}::vector < ${distanceThreshold}`
+    )
+  )
+  .orderBy(sql`${embedding.embedding} <=> ${queryVector}::vector`)
+  .limit(topK)
 ```
+
+### Transaction pattern
+```typescript
+await db.transaction(async (tx) => {
+  await tx.delete(workflowBlocks).where(eq(workflowBlocks.workflowId, workflowId))
+  await tx.delete(workflowEdges).where(eq(workflowEdges.workflowId, workflowId))
+  await tx.insert(workflowBlocks).values(blockRows)
+  await tx.insert(workflowEdges).values(edgeRows)
+})
+```
+
+Use transactions for multi-table mutations that must commit atomically.
 
 ## Migrations
 
-### Commands
+### Common commands (from `apps/zelaxy`)
 ```bash
-cd apps/zelaxy
-
-# Generate migration from schema changes
 bunx drizzle-kit generate
-
-# Apply migrations
 bunx drizzle-kit migrate
-
-# Open visual DB explorer
 bunx drizzle-kit studio
-
-# Drop and recreate (CAUTION — destroys data)
 bunx drizzle-kit push
 ```
 
-### Migration Best Practices
-- Always generate migration after schema changes
-- Review generated SQL before applying
-- Test migrations on a staging database first
-- Never modify existing migration files
-- Use `DEFAULT` values for new required columns on existing tables
-- Add `NOT NULL` constraints in a separate migration after backfilling
-
-## Multi-Tenant Isolation
-
-**CRITICAL**: All queries MUST include workspace or organization scoping.
-
-```typescript
-// CORRECT — scoped
-const workflows = await db
-  .select()
-  .from(workflow)
-  .where(and(
-    eq(workflow.workspaceId, workspaceId),  // Always scope!
-    eq(workflow.isPublished, true)
-  ))
-
-// WRONG — no scoping, leaks data across tenants
-const workflows = await db
-  .select()
-  .from(workflow)
-  .where(eq(workflow.isPublished, true))  // Missing workspaceId!
+### Script aliases (in `apps/zelaxy/package.json`)
+```bash
+bun run db:migrate
+bun run db:studio
+bun run db:push
 ```
 
+`db:push` is useful for rapid local prototyping but is riskier for controlled production migration workflows.
+
+## Change Workflow Checklist
+
+1. Update `db/schema.ts`.
+2. Add/adjust indexes and constraints for real query patterns.
+3. Generate a migration (`drizzle-kit generate`).
+4. Review SQL in `db/migrations/*.sql` carefully.
+5. Apply migration locally (`drizzle-kit migrate`).
+6. Update affected queries/services/tests.
+7. Validate tenant scoping and soft-delete behavior.
+
+## Performance Guidance
+
+- Prefer composite indexes that match actual `where + orderBy` combinations.
+- For vector retrieval, prefilter by tenant/domain (`knowledgeBaseId`, `catalogId`, `enabled`) before ordering by `<=>`.
+- Add GIN indexes for JSONB/FTS usage when introducing new heavy filters.
+- Keep embedding dimensions aligned with model expectations (`1536` and `2000` are both in use).
+
 ## Common Issues
-1. **Missing pgvector extension**: Run `CREATE EXTENSION IF NOT EXISTS vector;` before migrations
-2. **JSONB type safety**: Use `.$type<T>()` on jsonb columns for TypeScript types
-3. **N+1 queries**: Use joins or batch queries, not loops
-4. **Large result sets**: Always `limit()` and paginate
-5. **Transaction safety**: Use `db.transaction()` for multi-table mutations
+
+1. **Wrong ID type assumptions**: joining UUID/text IDs incorrectly.
+2. **Using deprecated workflow state path**: writing only to `workflow.state` without normalized workflow tables.
+3. **Missing tenant filters**: unscoped reads leak cross-workspace/org data.
+4. **Missing soft-delete filters**: deleted knowledge/image records appear in results.
+5. **Credential table confusion**: OAuth integrations use `account` and `custom_oauth_provider` (not a `credential` table in schema).
+6. **Migration env mismatch**: `DIRECT_URL` and runtime DB URLs pointing to different databases.
+7. **Vector infra gaps**: pgvector/HNSW assumptions without extension/index readiness.

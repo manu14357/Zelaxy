@@ -1,121 +1,178 @@
 ---
 name: code-review
-description: 'Review code changes for correctness, conventions, performance, and security. Use for: PR review, code quality checks, Biome linting rules, import ordering, TypeScript conventions, anti-pattern detection.'
+description: 'Review code changes for correctness, conventions, performance, security, and test coverage. Use for: PR review, regression-risk analysis, Biome/TypeScript convention checks, API auth and validation review, block/tool contract audits, and severity-ordered findings.'
 ---
 
-# Code Review Skill — Zelaxy
+# Code Review Skill - Zelaxy
 
 ## Purpose
-Review code changes in the Zelaxy monorepo for correctness, consistency with project conventions, performance, and security.
+Perform repository-accurate code reviews that prioritize bugs, regressions, security risks, and missing tests over style-only comments.
+
+## Non-Negotiable Review Output Format
+
+When asked to "review":
+
+1. List findings first, ordered by severity (`critical`, `high`, `medium`, `low`).
+2. Include exact file and line references for each finding.
+3. Explain impact and concrete fix suggestion.
+4. Add open questions/assumptions after findings.
+5. Add summary last.
+
+If no issues are found, explicitly say so and call out residual risks/testing gaps.
+
+## Non-Negotiable Rule: Code-Test Sync
+
+If a change modifies behavior:
+
+1. Confirm tests were updated or justify why unchanged.
+2. Run relevant tests.
+3. Report exact test commands and outcomes.
+4. Treat missing test coverage as a review finding.
 
 ## When to Use
-- Reviewing pull requests or code diffs
-- Checking new block or tool implementations
-- Auditing API routes for security and validation
-- Verifying executor/handler changes for correctness
+- PR/diff reviews
+- Auditing API routes for auth, validation, and tenant isolation
+- Reviewing block/tool additions or executor changes
+- Validating correctness after performance/security refactors
 
-## Project Conventions
+## Review Workflow (Required)
 
-### TypeScript
-- **Strict mode** enabled (`tsconfig.json`)
-- TypeScript 5.7+ with 100% TypeScript codebase
-- No `any` unless absolutely necessary — prefer `unknown` + type narrowing
-- Use `as const` for literal types
-- Prefer `interface` for object shapes, `type` for unions/intersections
+1. Inspect diff and identify touched domains (`api`, `executor`, `blocks`, `tools`, `stores`, `db`, `ui`).
+2. Validate against hard contracts (types/interfaces/registry patterns).
+3. Run static checks and targeted tests for touched areas.
+4. Report severity-ordered findings with file/line evidence.
+5. Call out missing tests, docs drift, and rollout risk.
 
-### Imports (Biome enforced order)
+## Repo-Enforced Conventions
+
+### Biome and formatting
+
+From `biome.json`:
+
+- Indentation: 2 spaces
+- Line width: 100
+- Quote style: single quotes (including JSX)
+- Semicolons: `asNeeded` (do not enforce "always")
+- Import organize groups:
+  1. `:NODE:`, `react`, `react/**`
+  2. `:PACKAGE:`
+  3. `@/components/**`
+  4. `@/lib/**`
+  5. `@/app/**`
+  6. `:ALIAS:`
+  7. `:RELATIVE:`
+
+Rule nuance reviewers must respect:
+
+- `noExplicitAny` is disabled.
+- `noUnusedVariables` and `noUnusedFunctionParameters` are disabled.
+- Some strict style rules are enabled (`useAsConstAssertion`, `noInferrableTypes`, etc.).
+
+### TypeScript strictness
+
+- `apps/zelaxy/tsconfig.json`: `strict: true`
+- `packages/ts-sdk/tsconfig.json`: `strict: true`
+
+Reviewer focus should be runtime correctness and contract safety, not forcing style rules that the repo does not enforce.
+
+## Domain-Specific Review Checks
+
+### API routes (`apps/zelaxy/app/api/**`)
+
+1. Auth model matches route intent:
+	- user routes usually `getSession()`
+	- internal/system routes may use `x-api-key` (`env.INTERNAL_API_SECRET`)
+2. Request validation uses Zod parse/safeParse before DB/tool calls.
+3. Tenant boundaries enforced (`userId`, `workspaceId`, `organizationId` where required).
+4. Error handling does not leak secrets/tokens.
+5. Response shape stays consistent with local module pattern.
+	- Some routes use `createErrorResponse`/`createSuccessResponse`
+	- Others return `NextResponse.json({ success: ... })`
+	- Do not force a single response wrapper repo-wide.
+
+### Blocks (`apps/zelaxy/blocks/**`)
+
+1. New/changed blocks satisfy `BlockConfig` and `SubBlockConfig` contracts.
+2. Block type is present in `blocks/registry.ts`.
+3. Inputs/outputs/subblocks remain consistent with handler expectations.
+4. Docs parity check for block additions/renames:
+	- `apps/docs/content/docs/blocks/*.mdx`
+5. Watch for slug/type drift (underscore vs hyphen mapping in docs slugs).
+
+### Tools (`apps/zelaxy/tools/**`)
+
+1. Tool definitions satisfy `ToolConfig`/`ToolResponse` expectations.
+2. Tool is registered in `tools/registry.ts`.
+3. Parameter visibility (`user-or-llm` | `user-only` | `llm-only` | `hidden`) is deliberate.
+4. OAuth/credential paths use secure token retrieval flows (no hardcoded secrets).
+5. Transform/post-process logic handles failure paths and preserves typed output shape.
+
+### Executor (`apps/zelaxy/executor/**`)
+
+1. Preserve layer-based execution semantics (parallel per dependency layer).
+2. Preserve streaming contracts (`StreamingExecution`, stream processing behavior).
+3. Validate loop/parallel edge-case handling (`stopOnError`, iteration state, branch failures).
+4. Check for shared context mutation that can cause cross-branch regressions.
+5. Require regression tests for execution-path changes.
+
+### Database and queries (`apps/zelaxy/db/**`, `apps/zelaxy/lib/**`)
+
+1. Ensure tenant/user scope is present on data reads/writes when required.
+2. Avoid performance regressions (unbounded queries, missing filters).
+3. Raw SQL is acceptable when justified (for example vector/hybrid search paths) but must be parameter-safe and tested.
+4. Schema/migration changes require matching application usage updates.
+
+### UI and state (`apps/zelaxy/app/**`, `apps/zelaxy/components/**`, `apps/zelaxy/stores/**`)
+
+1. Verify no hydration hazards in SSR paths.
+2. Check selector breadth in Zustand usage to avoid avoidable rerenders.
+3. Confirm accessibility regressions are not introduced in interactive components.
+4. Respect existing typography/theme conventions per surface (Inter and Geist are both used in repo contexts).
+
+## Commands for Review Validation
+
+Prefer non-destructive checks first:
+
+```bash
+# repo root
+bun run check
+bun run type-check
+bun run test
 ```
-1. Node builtins + React
-2. External packages
-3. @/components
-4. @/lib
-5. @/app
-6. Other aliases
-7. Relative imports
+
+Targeted examples:
+
+```bash
+cd apps/zelaxy
+bun run test -- app/api/chat/route.test.ts
+bun run test -- executor/utils.test.ts
+
+cd packages/ts-sdk
+bun run test
 ```
 
-### Formatting (Biome)
-- 2-space indentation
-- 100-char line width
-- Single quotes for JSX
-- Semicolons required
-- Trailing commas
-- Bracket spacing enabled
+## High-Value Findings to Prioritize
 
-### File Organization
-- One export per file for blocks and tools
-- Barrel exports via `index.ts`
-- Co-locate tests next to source (`*.test.ts`)
-- Handlers in dedicated `handlers/` directories
+1. Authorization bypass or missing tenant scoping.
+2. Missing/incorrect validation before side effects.
+3. Behavior changes without test updates.
+4. Executor control-flow regressions (loop/parallel/stream).
+5. Registry drift (block/tool implemented but not wired).
+6. Docs drift for block/tool surface changes.
+7. Performance regressions on hot paths.
+8. Error handling that hides failures or leaks sensitive details.
 
-## Review Checklist
+## Common False Positives to Avoid
 
-### General
-- [ ] No `console.log` in production code (use structured logger)
-- [ ] No hardcoded secrets, URLs, or credentials
-- [ ] Error handling with proper error types
-- [ ] Zod validation at API boundaries
-- [ ] No unnecessary `any` types
+1. "No console usage ever" as an absolute rule. Repo contains intentional console usage in some runtime paths and scripts.
+2. "No any allowed" as a hard blocker. `noExplicitAny` is disabled; judge by risk, boundaries, and unsafe propagation.
+3. "Every API must return identical wrapper shape." Follow local module conventions.
+4. "Inter-only typography." The repo uses both Inter and Geist depending on surface.
 
-### Blocks
-- [ ] Follows `BlockConfig` interface from `blocks/types.ts`
-- [ ] Registered in `blocks/registry.ts`
-- [ ] Has proper `outputs` schema
-- [ ] Sub-blocks use correct `SubBlockType` (31 types available)
-- [ ] Wand configuration if AI-assisted fields needed
-- [ ] Conditional visibility (`condition`) defined correctly
+## Completion Checklist
 
-### Tools
-- [ ] Implements `ToolConfig<P, R>` from `tools/types.ts`
-- [ ] Registered in `tools/registry.ts`
-- [ ] Parameters have correct `visibility` (`user-or-llm` | `user-only` | `llm-only` | `hidden`)
-- [ ] OAuth credentials fetched from DB, not hardcoded
-- [ ] `transformResponse` handles edge cases
-- [ ] Timing support included (`startTime`, `endTime`, `duration`)
-
-### Executor/Handlers
-- [ ] Implements `BlockHandler` interface: `execute(block, inputs, context): Promise<BlockOutput>`
-- [ ] Handles `ExecutionContext` immutably
-- [ ] Input references resolved via `<block.blockName.output.field>` syntax
-- [ ] Loop handlers respect `stopOnError` flag
-- [ ] Parallel handlers handle both `count` and `collection` strategies
-- [ ] Streaming output uses `ResponseFormatStreamProcessor` correctly
-
-### API Routes
-- [ ] Auth check via `getSession()` or middleware
-- [ ] Workspace scoping (multi-tenant isolation)
-- [ ] Zod schema validation on request body
-- [ ] Standard response format: `{ success, data?, error?, metadata? }`
-- [ ] Proper HTTP status codes (401, 403, 400, 404, 500)
-- [ ] Rate limiting where appropriate
-
-### Database
-- [ ] Drizzle ORM queries use proper relations
-- [ ] JSONB fields typed with Drizzle's `.$type<T>()`
-- [ ] Indexes on frequently queried columns
-- [ ] No raw SQL unless absolutely necessary
-- [ ] Migrations tested with `bunx drizzle-kit migrate`
-
-### UI Components
-- [ ] Uses shadcn/ui (Radix) primitives
-- [ ] Tailwind classes follow project theme (zelaxy-orange primary)
-- [ ] Dark mode compatible (class-based)
-- [ ] Inter font family
-- [ ] No inline styles — use Tailwind utilities
-- [ ] Accessible (keyboard navigation, ARIA labels)
-
-### Security
-- [ ] No SQL injection (Drizzle ORM parameterized by default)
-- [ ] No XSS (React auto-escapes, but check `dangerouslySetInnerHTML`)
-- [ ] OAuth tokens encrypted in DB (`credentialData` JSONB)
-- [ ] API keys validated at middleware level
-- [ ] CSRF protection via better-auth
-- [ ] Input sanitization on user-provided content
-
-## Common Anti-Patterns to Flag
-1. **Mutable context** — `ExecutionContext` should be treated as immutable
-2. **Missing error boundaries** — Handler failures should be caught and logged
-3. **Unbounded queries** — Always paginate DB queries
-4. **Missing workspace scoping** — All queries must filter by workspaceId/organizationId
-5. **Synchronous heavy operations** — Use `async/await` and stream where possible
-6. **Direct DOM manipulation** — Use React state, not `document.querySelector`
+- Findings are severity-ordered and evidence-backed.
+- File/line references are included for each finding.
+- Test coverage gaps are called out explicitly.
+- Executed commands and outcomes are reported.
+- Residual risks/open questions are documented.
