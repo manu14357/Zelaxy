@@ -69,12 +69,14 @@ describe('ZelaxyClient', () => {
       const fetch = await import('node-fetch')
       const mockResponse = {
         ok: true,
-        text: vi.fn().mockResolvedValue(JSON.stringify({
-          isDeployed: true,
-          deployedAt: '2023-01-01T00:00:00Z',
-          isPublished: false,
-          needsRedeployment: false,
-        })),
+        text: vi.fn().mockResolvedValue(
+          JSON.stringify({
+            isDeployed: true,
+            deployedAt: '2023-01-01T00:00:00Z',
+            isPublished: false,
+            needsRedeployment: false,
+          })
+        ),
       }
       vi.mocked(fetch.default).mockResolvedValue(mockResponse as any)
 
@@ -86,12 +88,14 @@ describe('ZelaxyClient', () => {
       const fetch = await import('node-fetch')
       const mockResponse = {
         ok: true,
-        text: vi.fn().mockResolvedValue(JSON.stringify({
-          isDeployed: false,
-          deployedAt: null,
-          isPublished: false,
-          needsRedeployment: true,
-        })),
+        text: vi.fn().mockResolvedValue(
+          JSON.stringify({
+            isDeployed: false,
+            deployedAt: null,
+            isPublished: false,
+            needsRedeployment: true,
+          })
+        ),
       }
       vi.mocked(fetch.default).mockResolvedValue(mockResponse as any)
 
