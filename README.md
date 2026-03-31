@@ -151,6 +151,12 @@ cd apps/zelaxy && bunx trigger.dev@latest dev # Background jobs
 
 ---
 
+## Deployment
+
+The Next.js app deploys to **Vercel**. The Socket.IO server deploys separately to **Railway** (configured via `railway.json`). Set `NEXT_PUBLIC_SOCKET_URL` and `SOCKET_SERVER_URL` on Vercel to your Railway URL.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
