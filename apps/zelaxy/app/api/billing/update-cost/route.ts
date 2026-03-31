@@ -123,19 +123,22 @@ export async function POST(req: NextRequest) {
 
     if (userStatsRecords.length === 0) {
       // Create new user stats record (same logic as ExecutionLogger)
-      await db.insert(userStats).values({
-        id: crypto.randomUUID(),
-        userId: userId,
-        totalManualExecutions: 0,
-        totalApiCalls: 0,
-        totalWebhookTriggers: 0,
-        totalScheduledExecutions: 0,
-        totalChatExecutions: 0,
-        totalTokensUsed: totalTokens,
-        totalCost: costToStore.toString(),
-        currentPeriodCost: costToStore.toString(),
-        lastActive: new Date(),
-      }).onConflictDoNothing({ target: userStats.userId })
+      await db
+        .insert(userStats)
+        .values({
+          id: crypto.randomUUID(),
+          userId: userId,
+          totalManualExecutions: 0,
+          totalApiCalls: 0,
+          totalWebhookTriggers: 0,
+          totalScheduledExecutions: 0,
+          totalChatExecutions: 0,
+          totalTokensUsed: totalTokens,
+          totalCost: costToStore.toString(),
+          currentPeriodCost: costToStore.toString(),
+          lastActive: new Date(),
+        })
+        .onConflictDoNothing({ target: userStats.userId })
 
       logger.info(`[${requestId}] Created new user stats record`, {
         userId,

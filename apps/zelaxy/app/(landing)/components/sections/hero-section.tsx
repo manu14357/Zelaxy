@@ -79,7 +79,8 @@ export function HeroSection() {
               isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
             }`}
           >
-            The visual platform to design AI-powered workflows — wire up agents, APIs, databases, and logic blocks on a drag-and-drop canvas, then ship automations that run themselves.
+            The visual platform to design AI-powered workflows — wire up agents, APIs, databases,
+            and logic blocks on a drag-and-drop canvas, then ship automations that run themselves.
           </p>
 
           {/* CTA Buttons */}

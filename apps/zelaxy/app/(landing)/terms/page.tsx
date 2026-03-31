@@ -23,10 +23,7 @@ const tocItems = [
 ]
 
 export default async function TermsOfService() {
-  const source = readFileSync(
-    join(process.cwd(), 'app/(landing)/terms/terms.mdx'),
-    'utf8'
-  )
+  const source = readFileSync(join(process.cwd(), 'app/(landing)/terms/terms.mdx'), 'utf8')
 
   return (
     <main className='relative min-h-screen bg-[#060606] text-white'>
@@ -72,10 +69,11 @@ export default async function TermsOfService() {
             {/* Intro */}
             <div className='mb-10 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent p-6'>
               <p className='leading-relaxed text-neutral-400'>
-                Please read these Terms of Service (&ldquo;Terms&rdquo;) carefully before using the Zelaxy
-                platform (the &ldquo;Service&rdquo;) operated by Zelaxy, Inc (&ldquo;us&rdquo;, &ldquo;we&rdquo;, or &ldquo;our&rdquo;).
-                By accessing or using the Service, you agree to be bound by these Terms. If you
-                disagree with any part of the terms, you may not access the Service.
+                Please read these Terms of Service (&ldquo;Terms&rdquo;) carefully before using the
+                Zelaxy platform (the &ldquo;Service&rdquo;) operated by Zelaxy, Inc
+                (&ldquo;us&rdquo;, &ldquo;we&rdquo;, or &ldquo;our&rdquo;). By accessing or using
+                the Service, you agree to be bound by these Terms. If you disagree with any part of
+                the terms, you may not access the Service.
               </p>
             </div>
 

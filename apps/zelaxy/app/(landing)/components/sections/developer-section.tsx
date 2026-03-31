@@ -16,15 +16,9 @@ export function DeveloperSection() {
           </span>
 
           {/* Name */}
-          <h3 className='mb-1.5 font-bold text-white text-xl tracking-[-0.01em]'>
-            Manohar Choppa
-          </h3>
-          <p className='mb-1 font-medium text-[15px] text-primary'>
-            Developer
-          </p>
-          <p className='mb-4 text-[13px] text-neutral-500'>
-            B.Tech CSE (AI &amp; ML)
-          </p>
+          <h3 className='mb-1.5 font-bold text-white text-xl tracking-[-0.01em]'>Manohar Choppa</h3>
+          <p className='mb-1 font-medium text-[15px] text-primary'>Developer</p>
+          <p className='mb-4 text-[13px] text-neutral-500'>B.Tech CSE (AI &amp; ML)</p>
 
           {/* Gen Z Badge */}
           <span className='mb-10 inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 py-1.5 text-[13px] text-neutral-400 backdrop-blur-sm'>

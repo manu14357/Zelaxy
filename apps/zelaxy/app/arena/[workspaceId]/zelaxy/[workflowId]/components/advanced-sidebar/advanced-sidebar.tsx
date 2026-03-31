@@ -341,10 +341,7 @@ function ProfileDropdown({ expanded, avatarUrl, userName, userEmail }: ProfileDr
             >
               {userName || 'User'}
             </div>
-            <div
-              className='truncate text-[11px] text-muted-foreground'
-              suppressHydrationWarning
-            >
+            <div className='truncate text-[11px] text-muted-foreground' suppressHydrationWarning>
               {userEmail || 'user@example.com'}
             </div>
           </div>
@@ -717,12 +714,9 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
 
       if (
         event.key?.toLowerCase() === 'k' &&
-        ((event.metaKey &&
-          typeof navigator !== 'undefined' &&
-          /mac/i.test(navigator.userAgent)) ||
+        ((event.metaKey && typeof navigator !== 'undefined' && /mac/i.test(navigator.userAgent)) ||
           (event.ctrlKey &&
-            (typeof navigator === 'undefined' ||
-              !/mac/i.test(navigator.userAgent))))
+            (typeof navigator === 'undefined' || !/mac/i.test(navigator.userAgent))))
       ) {
         event.preventDefault()
         setShowSearchModal(true)

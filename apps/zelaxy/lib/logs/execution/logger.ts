@@ -304,19 +304,22 @@ export class ExecutionLogger implements IExecutionLoggerService {
         // Create new user stats record with trigger-specific counts
         const triggerCounts = this.getTriggerCounts(trigger)
 
-        await db.insert(userStats).values({
-          id: crypto.randomUUID(),
-          userId: userId,
-          totalManualExecutions: triggerCounts.manual,
-          totalApiCalls: triggerCounts.api,
-          totalWebhookTriggers: triggerCounts.webhook,
-          totalScheduledExecutions: triggerCounts.schedule,
-          totalChatExecutions: triggerCounts.chat,
-          totalTokensUsed: costSummary.totalTokens,
-          totalCost: costToStore.toString(),
-          currentPeriodCost: costToStore.toString(), // Initialize current period usage
-          lastActive: new Date(),
-        }).onConflictDoNothing({ target: userStats.userId })
+        await db
+          .insert(userStats)
+          .values({
+            id: crypto.randomUUID(),
+            userId: userId,
+            totalManualExecutions: triggerCounts.manual,
+            totalApiCalls: triggerCounts.api,
+            totalWebhookTriggers: triggerCounts.webhook,
+            totalScheduledExecutions: triggerCounts.schedule,
+            totalChatExecutions: triggerCounts.chat,
+            totalTokensUsed: costSummary.totalTokens,
+            totalCost: costToStore.toString(),
+            currentPeriodCost: costToStore.toString(), // Initialize current period usage
+            lastActive: new Date(),
+          })
+          .onConflictDoNothing({ target: userStats.userId })
 
         logger.debug('Created new user stats record with cost data', {
           userId,

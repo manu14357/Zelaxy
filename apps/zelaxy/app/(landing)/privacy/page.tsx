@@ -30,10 +30,7 @@ const tocItems = [
 ]
 
 export default async function PrivacyPolicy() {
-  const source = readFileSync(
-    join(process.cwd(), 'app/(landing)/privacy/privacy.mdx'),
-    'utf8'
-  )
+  const source = readFileSync(join(process.cwd(), 'app/(landing)/privacy/privacy.mdx'), 'utf8')
 
   return (
     <main className='relative min-h-screen bg-[#060606] text-white'>
@@ -79,10 +76,10 @@ export default async function PrivacyPolicy() {
             {/* Intro */}
             <div className='mb-10 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent p-6'>
               <p className='leading-relaxed text-neutral-400'>
-                This Privacy Policy describes how your personal information is collected, used,
-                and shared when you visit or use Zelaxy (&ldquo;the Service&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;).
-                By using the Service, you agree to the collection and use of information in
-                accordance with this policy.
+                This Privacy Policy describes how your personal information is collected, used, and
+                shared when you visit or use Zelaxy (&ldquo;the Service&rdquo;, &ldquo;we&rdquo;,
+                &ldquo;us&rdquo;, or &ldquo;our&rdquo;). By using the Service, you agree to the
+                collection and use of information in accordance with this policy.
               </p>
             </div>
 

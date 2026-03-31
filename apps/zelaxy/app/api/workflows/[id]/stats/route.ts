@@ -51,18 +51,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       if (userStatsRecords.length === 0) {
         // Create new record if none exists
-        await db.insert(userStats).values({
-          id: crypto.randomUUID(),
-          userId: workflowRecord.userId,
-          totalManualExecutions: runs,
-          totalApiCalls: 0,
-          totalWebhookTriggers: 0,
-          totalScheduledExecutions: 0,
-          totalChatExecutions: 0,
-          totalTokensUsed: 0,
-          totalCost: '0.00',
-          lastActive: sql`now()`,
-        }).onConflictDoNothing({ target: userStats.userId })
+        await db
+          .insert(userStats)
+          .values({
+            id: crypto.randomUUID(),
+            userId: workflowRecord.userId,
+            totalManualExecutions: runs,
+            totalApiCalls: 0,
+            totalWebhookTriggers: 0,
+            totalScheduledExecutions: 0,
+            totalChatExecutions: 0,
+            totalTokensUsed: 0,
+            totalCost: '0.00',
+            lastActive: sql`now()`,
+          })
+          .onConflictDoNothing({ target: userStats.userId })
       } else {
         // Update existing record
         await db

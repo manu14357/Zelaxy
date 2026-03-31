@@ -44,9 +44,11 @@ export function Footer() {
       {/* Google Font for wordmark */}
       <link rel='preconnect' href='https://fonts.googleapis.com' />
       <link rel='preconnect' href='https://fonts.gstatic.com' crossOrigin='anonymous' />
-      <link href='https://fonts.googleapis.com/css2?family=Outfit:wght@900&display=swap' rel='stylesheet' />
+      <link
+        href='https://fonts.googleapis.com/css2?family=Outfit:wght@900&display=swap'
+        rel='stylesheet'
+      />
       <div className='mx-auto max-w-6xl px-6 sm:px-8'>
-
         {/* Top section: Links + Newsletter */}
         <div className='grid grid-cols-2 gap-x-8 gap-y-10 pt-16 pb-14 sm:grid-cols-3 lg:grid-cols-4'>
           {/* Link columns */}
@@ -142,9 +144,7 @@ export function Footer() {
         <div className='flex flex-col items-center justify-between gap-3 border-white/[0.04] border-t py-6 sm:flex-row'>
           <div className='flex items-center gap-2'>
             <span className='inline-block h-1.5 w-1.5 rounded-full bg-emerald-500' />
-            <span className='text-[12px] text-neutral-500'>
-              All systems operational
-            </span>
+            <span className='text-[12px] text-neutral-500'>All systems operational</span>
           </div>
           <div className='flex flex-wrap items-center justify-center gap-x-5 gap-y-2 sm:justify-end'>
             <a
@@ -167,9 +167,7 @@ export function Footer() {
             >
               Terms of service
             </Link>
-            <span className='text-[12px] text-neutral-600'>
-              © 2026 Zelaxy
-            </span>
+            <span className='text-[12px] text-neutral-600'>© 2026 Zelaxy</span>
           </div>
         </div>
       </div>

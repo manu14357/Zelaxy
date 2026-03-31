@@ -89,9 +89,7 @@ function BlockCard({
       >
         <Icon className='h-4 w-4 text-white' />
       </div>
-      <span className='whitespace-nowrap font-medium text-[13px] text-neutral-300'>
-        {name}
-      </span>
+      <span className='whitespace-nowrap font-medium text-[13px] text-neutral-300'>{name}</span>
     </div>
   )
 }
@@ -140,7 +138,8 @@ export function BlocksScrollSection() {
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
           }`}
         >
-          AI models, databases, APIs, communication tools, and logic — all as drag-and-drop blocks with the variable system to wire data flow.
+          AI models, databases, APIs, communication tools, and logic — all as drag-and-drop blocks
+          with the variable system to wire data flow.
         </p>
       </div>
 

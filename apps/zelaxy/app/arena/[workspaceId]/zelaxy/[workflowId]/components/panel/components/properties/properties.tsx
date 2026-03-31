@@ -249,25 +249,26 @@ export function Properties({ panelWidth = 308 }: PropertiesProps) {
           )}
 
           {/* Advanced Mode Toggle - only show for blocks that have advanced sub-blocks, hide for starter blocks */}
-          {selectedBlock.type !== 'starter' && blockConfig.subBlocks?.some((sb) => sb.mode === 'advanced') && (
-            <div className='flex items-center justify-between pt-2'>
-              <span className='text-muted-foreground text-sm'>Advanced Mode</span>
-              <button
-                onClick={() => {
-                  if (selectedNodeId) {
-                    collaborativeToggleBlockAdvancedMode(selectedNodeId)
-                  }
-                }}
-                className={`rounded-md border px-3 py-1.5 text-xs transition-all duration-200 ${
-                  selectedBlock.advancedMode
-                    ? 'border-primary bg-primary text-white shadow-sm'
-                    : 'border-border bg-transparent text-muted-foreground hover:border-primary hover:text-foreground'
-                }`}
-              >
-                {selectedBlock.advancedMode ? 'Advanced' : 'Basic'}
-              </button>
-            </div>
-          )}
+          {selectedBlock.type !== 'starter' &&
+            blockConfig.subBlocks?.some((sb) => sb.mode === 'advanced') && (
+              <div className='flex items-center justify-between pt-2'>
+                <span className='text-muted-foreground text-sm'>Advanced Mode</span>
+                <button
+                  onClick={() => {
+                    if (selectedNodeId) {
+                      collaborativeToggleBlockAdvancedMode(selectedNodeId)
+                    }
+                  }}
+                  className={`rounded-md border px-3 py-1.5 text-xs transition-all duration-200 ${
+                    selectedBlock.advancedMode
+                      ? 'border-primary bg-primary text-white shadow-sm'
+                      : 'border-border bg-transparent text-muted-foreground hover:border-primary hover:text-foreground'
+                  }`}
+                >
+                  {selectedBlock.advancedMode ? 'Advanced' : 'Basic'}
+                </button>
+              </div>
+            )}
         </div>
 
         <Separator />

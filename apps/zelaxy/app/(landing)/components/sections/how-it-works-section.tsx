@@ -56,11 +56,7 @@ export function HowItWorksSection() {
   }, [])
 
   return (
-    <section
-      ref={sectionRef}
-      id='how-it-works'
-      className='relative bg-[#050505] py-28 sm:py-36'
-    >
+    <section ref={sectionRef} id='how-it-works' className='relative bg-[#050505] py-28 sm:py-36'>
       {/* Orange accent line at top */}
       <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent' />
 
@@ -82,8 +78,7 @@ export function HowItWorksSection() {
               isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
             }`}
           >
-            Four steps to{' '}
-            <span className='text-gradient-apple'>infinite automations.</span>
+            Four steps to <span className='text-gradient-apple'>infinite automations.</span>
           </h2>
           <p
             className={`mx-auto max-w-lg text-[17px] text-neutral-400 leading-relaxed transition-all delay-200 duration-1000 ease-out ${

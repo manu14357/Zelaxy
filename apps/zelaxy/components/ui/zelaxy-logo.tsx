@@ -7,11 +7,7 @@ interface ZelaxyLogoProps {
   variant?: 'default' | 'blue'
 }
 
-export function ZelaxyLogo({
-  className,
-  size = 24,
-  showGlow = false,
-}: ZelaxyLogoProps) {
+export function ZelaxyLogo({ className, size = 24, showGlow = false }: ZelaxyLogoProps) {
   return (
     <div className={cn('group relative inline-flex items-center justify-center', className)}>
       <div className={cn('flex items-center justify-center', showGlow && 'relative')}>

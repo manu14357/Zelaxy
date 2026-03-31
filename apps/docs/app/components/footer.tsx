@@ -5,7 +5,11 @@ const footerLinks = {
     { name: 'Documentation', href: '/docs' },
     { name: 'GitHub', href: 'https://github.com/manu14357/Zelaxy', external: true },
     { name: 'Changelog', href: 'https://github.com/manu14357/Zelaxy/releases', external: true },
-    { name: 'Contributing', href: 'https://github.com/manu14357/Zelaxy/blob/main/CONTRIBUTING.md', external: true },
+    {
+      name: 'Contributing',
+      href: 'https://github.com/manu14357/Zelaxy/blob/main/CONTRIBUTING.md',
+      external: true,
+    },
   ],
   Product: [
     { name: 'Home', href: 'https://zelaxy.in', external: true },
@@ -64,7 +68,8 @@ export function DocsFooter() {
               </div>
             </Link>
             <p className='mt-3 max-w-[240px] text-[13px] leading-relaxed text-fd-muted-foreground'>
-              Complete reference for the Zelaxy AI agent builder — blocks, tools, triggers &amp; SDK guides.
+              Complete reference for the Zelaxy AI agent builder — blocks, tools, triggers &amp; SDK
+              guides.
             </p>
 
             {/* Social icons */}

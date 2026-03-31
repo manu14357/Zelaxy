@@ -60,18 +60,21 @@ export async function updateWorkflowRunCounts(workflowId: string, runs = 1) {
 
       if (userStatsRecord.length === 0) {
         // Create new record
-        await db.insert(userStats).values({
-          id: crypto.randomUUID(),
-          userId: workflow.userId,
-          totalManualExecutions: runs,
-          totalApiCalls: 0,
-          totalWebhookTriggers: 0,
-          totalScheduledExecutions: 0,
-          totalChatExecutions: 0,
-          totalTokensUsed: 0,
-          totalCost: '0.00',
-          lastActive: new Date(),
-        }).onConflictDoNothing({ target: userStats.userId })
+        await db
+          .insert(userStats)
+          .values({
+            id: crypto.randomUUID(),
+            userId: workflow.userId,
+            totalManualExecutions: runs,
+            totalApiCalls: 0,
+            totalWebhookTriggers: 0,
+            totalScheduledExecutions: 0,
+            totalChatExecutions: 0,
+            totalTokensUsed: 0,
+            totalCost: '0.00',
+            lastActive: new Date(),
+          })
+          .onConflictDoNothing({ target: userStats.userId })
       } else {
         // Update existing record
         await db

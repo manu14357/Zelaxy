@@ -31,7 +31,13 @@ export function CopilotWelcome({ onQuestionClick, mode = 'ask' }: CopilotWelcome
         <div className='mb-2 flex justify-center'>
           <div className='group relative'>
             <div className='flex h-16 w-16 items-center justify-center'>
-              <img src='/Zelaxy.png' alt='Zelaxy' width={32} height={32} className='h-8 w-8 transition-all duration-500 group-hover:scale-110' />
+              <img
+                src='/Zelaxy.png'
+                alt='Zelaxy'
+                width={32}
+                height={32}
+                className='h-8 w-8 transition-all duration-500 group-hover:scale-110'
+              />
             </div>
             <div className='-inset-2 absolute rounded-full bg-gradient-to-r from-primary/20 via-orange-600/20 to-primary/20 opacity-0 blur-lg transition-all duration-500 group-hover:opacity-100 dark:from-primary/30 dark:via-orange-400/30 dark:to-orange-400/30' />
           </div>

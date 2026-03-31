@@ -58,9 +58,7 @@ export function TocSidebar({ items }: { items: TocItem[] }) {
                     : 'text-neutral-600 hover:bg-white/[0.04] hover:text-neutral-300',
                 ].join(' ')}
               >
-                {isActive && (
-                  <span className='h-3.5 w-0.5 shrink-0 rounded-full bg-orange-400' />
-                )}
+                {isActive && <span className='h-3.5 w-0.5 shrink-0 rounded-full bg-orange-400' />}
                 {item.label}
               </a>
             )

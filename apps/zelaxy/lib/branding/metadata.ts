@@ -157,10 +157,7 @@ export function generateStructuredData() {
       name: brand.name,
       url: baseUrl,
       logo: `${baseUrl}/Zelaxy.png`,
-      sameAs: [
-        'https://github.com/manu14357/Zelaxy',
-        'https://x.com/zelaxy',
-      ],
+      sameAs: ['https://github.com/manu14357/Zelaxy', 'https://x.com/zelaxy'],
     },
     featureList: [
       'Visual drag-and-drop AI agent builder',
@@ -191,13 +188,9 @@ export function generateOrganizationData() {
     name: brand.name,
     url: baseUrl,
     logo: `${baseUrl}/Zelaxy.png`,
-    description:
-      'Open-source AI agent builder and workflow automation platform.',
+    description: 'Open-source AI agent builder and workflow automation platform.',
     email: brand.supportEmail,
-    sameAs: [
-      'https://github.com/manu14357/Zelaxy',
-      'https://x.com/zelaxy',
-    ],
+    sameAs: ['https://github.com/manu14357/Zelaxy', 'https://x.com/zelaxy'],
   }
 }
 
@@ -213,8 +206,7 @@ export function generateWebsiteData() {
     '@type': 'WebSite',
     name: brand.name,
     url: baseUrl,
-    description:
-      'Build, test, and deploy AI agents on a visual drag-and-drop canvas.',
+    description: 'Build, test, and deploy AI agents on a visual drag-and-drop canvas.',
     publisher: {
       '@type': 'Organization',
       name: brand.name,

@@ -175,13 +175,16 @@ export async function initializeUserUsageLimit(userId: string): Promise<void> {
     // Create initial usage stats with default free credits limit
     // Use onConflictDoNothing to handle race conditions where multiple requests
     // try to initialize the same user concurrently
-    await db.insert(userStats).values({
-      id: crypto.randomUUID(),
-      userId,
-      currentUsageLimit: DEFAULT_FREE_CREDITS.toString(), // Default free credits for new users
-      usageLimitUpdatedAt: new Date(),
-      billingPeriodStart: new Date(), // Start billing period immediately
-    }).onConflictDoNothing({ target: userStats.userId })
+    await db
+      .insert(userStats)
+      .values({
+        id: crypto.randomUUID(),
+        userId,
+        currentUsageLimit: DEFAULT_FREE_CREDITS.toString(), // Default free credits for new users
+        usageLimitUpdatedAt: new Date(),
+        billingPeriodStart: new Date(), // Start billing period immediately
+      })
+      .onConflictDoNothing({ target: userStats.userId })
 
     logger.info('Initialized usage limit for new user', { userId, limit: DEFAULT_FREE_CREDITS })
   } catch (error) {
@@ -368,12 +371,15 @@ export async function syncUsageLimitsFromSubscription(userId: string): Promise<v
 
     if (currentUserStats.length === 0) {
       // Create new user stats with default limit
-      await db.insert(userStats).values({
-        id: crypto.randomUUID(),
-        userId,
-        currentUsageLimit: defaultLimit.toString(),
-        usageLimitUpdatedAt: new Date(),
-      }).onConflictDoNothing({ target: userStats.userId })
+      await db
+        .insert(userStats)
+        .values({
+          id: crypto.randomUUID(),
+          userId,
+          currentUsageLimit: defaultLimit.toString(),
+          usageLimitUpdatedAt: new Date(),
+        })
+        .onConflictDoNothing({ target: userStats.userId })
       logger.info('Created usage stats with synced limit', { userId, limit: defaultLimit })
       return
     }

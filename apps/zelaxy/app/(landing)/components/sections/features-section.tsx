@@ -96,11 +96,7 @@ export function FeaturesSection() {
   }, [])
 
   return (
-    <section
-      ref={sectionRef}
-      id='features'
-      className='relative bg-[#060606] py-28 sm:py-36'
-    >
+    <section ref={sectionRef} id='features' className='relative bg-[#060606] py-28 sm:py-36'>
       {/* Orange accent divider */}
       <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent' />
 
@@ -122,8 +118,7 @@ export function FeaturesSection() {
               isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
             }`}
           >
-            Everything to{' '}
-            <span className='text-gradient-apple'>automate anything.</span>
+            Everything to <span className='text-gradient-apple'>automate anything.</span>
           </h2>
           <p
             className={`mx-auto max-w-lg text-[17px] text-neutral-400 leading-relaxed transition-all delay-200 duration-1000 ease-out ${
@@ -145,9 +140,7 @@ export function FeaturesSection() {
                   feature.highlight
                     ? 'border-orange-500/[0.12] bg-gradient-to-br from-orange-500/[0.06] via-white/[0.02] to-transparent hover:border-orange-500/25 hover:shadow-[0_8px_40px_rgba(249,115,22,0.1)]'
                     : 'border-orange-500/[0.06] bg-gradient-to-b from-white/[0.03] to-white/[0.01] hover:border-orange-500/15 hover:shadow-[0_8px_30px_rgba(249,115,22,0.06)]'
-                } ${
-                  isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-                }`}
+                } ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
                 style={{ transitionDelay: `${300 + index * 80}ms` }}
               >
                 {/* Hover glow */}

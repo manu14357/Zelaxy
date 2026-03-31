@@ -13,19 +13,11 @@ function H2({ children }: { children?: React.ReactNode }) {
 }
 
 function H3({ children }: { children?: React.ReactNode }) {
-  return (
-    <h3 className='mb-3 font-medium text-base text-orange-400'>
-      {children}
-    </h3>
-  )
+  return <h3 className='mb-3 font-medium text-base text-orange-400'>{children}</h3>
 }
 
 function P({ children }: { children?: React.ReactNode }) {
-  return (
-    <p className='mb-4 leading-relaxed text-neutral-400 last:mb-0'>
-      {children}
-    </p>
-  )
+  return <p className='mb-4 leading-relaxed text-neutral-400 last:mb-0'>{children}</p>
 }
 
 function UL({ children }: { children?: React.ReactNode }) {

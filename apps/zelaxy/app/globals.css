@@ -355,7 +355,8 @@ textarea {
 }
 
 /* Enhanced edge styling with smooth rounded corners */
-.workflow-container .react-flow__edge path:not(.workflow-edge-interaction):not(.react-flow__edge-interaction) {
+.workflow-container .react-flow__edge
+  path:not(.workflow-edge-interaction):not(.react-flow__edge-interaction) {
   transition:
     stroke 0.2s ease,
     stroke-width 0.2s ease,
@@ -365,7 +366,9 @@ textarea {
   stroke-linejoin: round;
 }
 
-.workflow-container .react-flow__edge:hover path:not(.workflow-edge-interaction):not(.react-flow__edge-interaction) {
+.workflow-container
+  .react-flow__edge:hover
+  path:not(.workflow-edge-interaction):not(.react-flow__edge-interaction) {
   stroke-width: 2.5px !important;
   filter: drop-shadow(0 2px 8px rgba(249, 115, 22, 0.25)) !important;
 }

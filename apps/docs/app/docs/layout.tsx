@@ -7,7 +7,13 @@ import { DocsFooter } from '../components/footer'
 function ZelaxyLogo() {
   return (
     <div className='group flex items-center gap-2.5'>
-      <img src='https://zelaxy.in/Zelaxy.png' alt='Zelaxy' width={22} height={22} className='h-5.5 w-5.5' />
+      <img
+        src='https://zelaxy.in/Zelaxy.png'
+        alt='Zelaxy'
+        width={22}
+        height={22}
+        className='h-5.5 w-5.5'
+      />
       <div className='flex items-baseline gap-1.5'>
         <span className='font-semibold text-[15px] text-neutral-900 tracking-[-0.025em] dark:text-white'>
           Zelaxy
