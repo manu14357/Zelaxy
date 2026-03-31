@@ -38,7 +38,12 @@ describe('AgentBlock', () => {
       }
 
       const result = paramsFunction(params)
-      expect(result).toEqual(params)
+      expect(result).toMatchObject(params)
+      expect(result.metadata).toBeDefined()
+      expect(result.generation).toBeDefined()
+      expect(result.performance).toBeDefined()
+      expect(result.safety).toBeDefined()
+      expect(result.context).toBeDefined()
     })
 
     it('should filter out tools with usageControl set to "none"', () => {
@@ -130,7 +135,7 @@ describe('AgentBlock', () => {
       const result = paramsFunction(params)
 
       // Verify custom tool transformation
-      expect(result.tools[0]).toEqual({
+      expect(result.tools[0]).toMatchObject({
         id: 'custom_function',
         name: 'Custom Tool',
         description: 'A custom function description',

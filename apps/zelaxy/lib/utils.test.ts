@@ -47,7 +47,7 @@ afterEach(() => {
 describe('generateApiKey', () => {
   it.concurrent('should generate API key with zelaxy_ prefix', () => {
     const key = generateApiKey()
-    expect(key).toMatch(/^zelaxy_/)
+    expect(key).toMatch(/^Zelaxy_/)
   })
 
   it.concurrent('should generate unique API keys for each call', () => {

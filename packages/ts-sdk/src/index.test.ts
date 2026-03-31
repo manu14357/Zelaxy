@@ -37,7 +37,7 @@ describe('ZelaxyClient', () => {
       // Verify the method exists
       expect(client.setApiKey).toBeDefined()
       // Verify the API key was actually updated
-      expect((client as any).apiKey).toBe(newApiKey)
+      expect((client as any)._apiKey).toBe(newApiKey)
     })
   })
 
@@ -45,14 +45,14 @@ describe('ZelaxyClient', () => {
     it('should update the base URL', () => {
       const newBaseUrl = 'https://new.zelaxy.ai'
       client.setBaseUrl(newBaseUrl)
-      expect((client as any).baseUrl).toBe(newBaseUrl)
+      expect((client as any)._baseUrl).toBe(newBaseUrl)
     })
 
     it('should strip trailing slash from base URL', () => {
       const urlWithSlash = 'https://test.zelaxy.ai/'
       client.setBaseUrl(urlWithSlash)
       // Verify the trailing slash was actually stripped
-      expect((client as any).baseUrl).toBe('https://test.zelaxy.ai')
+      expect((client as any)._baseUrl).toBe('https://test.zelaxy.ai')
     })
   })
 
@@ -69,12 +69,12 @@ describe('ZelaxyClient', () => {
       const fetch = await import('node-fetch')
       const mockResponse = {
         ok: true,
-        json: vi.fn().mockResolvedValue({
+        text: vi.fn().mockResolvedValue(JSON.stringify({
           isDeployed: true,
           deployedAt: '2023-01-01T00:00:00Z',
           isPublished: false,
           needsRedeployment: false,
-        }),
+        })),
       }
       vi.mocked(fetch.default).mockResolvedValue(mockResponse as any)
 
@@ -86,12 +86,12 @@ describe('ZelaxyClient', () => {
       const fetch = await import('node-fetch')
       const mockResponse = {
         ok: true,
-        json: vi.fn().mockResolvedValue({
+        text: vi.fn().mockResolvedValue(JSON.stringify({
           isDeployed: false,
           deployedAt: null,
           isPublished: false,
           needsRedeployment: true,
-        }),
+        })),
       }
       vi.mocked(fetch.default).mockResolvedValue(mockResponse as any)
 

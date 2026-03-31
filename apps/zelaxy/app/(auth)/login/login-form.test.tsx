@@ -56,7 +56,7 @@ describe('LoginPage', () => {
     it('should render login form with all required elements', () => {
       render(<LoginPage {...defaultProps} />)
 
-      expect(screen.getByPlaceholderText(/enter your email/i)).toBeInTheDocument()
+      expect(screen.getByLabelText(/email address/i)).toBeInTheDocument()
       expect(screen.getByPlaceholderText(/enter your password/i)).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
       expect(screen.getByText(/forgot password/i)).toBeInTheDocument()
@@ -91,7 +91,7 @@ describe('LoginPage', () => {
     it('should allow users to type in form fields', () => {
       render(<LoginPage {...defaultProps} />)
 
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
+      const emailInput = screen.getByLabelText(/email address/i)
       const passwordInput = screen.getByPlaceholderText(/enter your password/i)
 
       fireEvent.change(emailInput, { target: { value: 'user@company.com' } })
@@ -112,7 +112,7 @@ describe('LoginPage', () => {
 
       render(<LoginPage {...defaultProps} />)
 
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
+      const emailInput = screen.getByLabelText(/email address/i)
       const passwordInput = screen.getByPlaceholderText(/enter your password/i)
       const submitButton = screen.getByRole('button', { name: /sign in/i })
 
@@ -136,7 +136,7 @@ describe('LoginPage', () => {
 
       render(<LoginPage {...defaultProps} />)
 
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
+      const emailInput = screen.getByLabelText(/email address/i)
       const passwordInput = screen.getByPlaceholderText(/enter your password/i)
       const submitButton = screen.getByRole('button', { name: /sign in/i })
 
@@ -149,7 +149,6 @@ describe('LoginPage', () => {
           {
             email: 'user@company.com',
             password: 'password123',
-            callbackURL: '/workspace',
           },
           expect.objectContaining({
             onError: expect.any(Function),
@@ -177,7 +176,7 @@ describe('LoginPage', () => {
 
       render(<LoginPage {...defaultProps} />)
 
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
+      const emailInput = screen.getByLabelText(/email address/i)
       const passwordInput = screen.getByPlaceholderText(/enter your password/i)
       const submitButton = screen.getByRole('button', { name: /sign in/i })
 
@@ -238,7 +237,7 @@ describe('LoginPage', () => {
 
       render(<LoginPage {...defaultProps} />)
 
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
+      const emailInput = screen.getByLabelText(/email address/i)
       const passwordInput = screen.getByPlaceholderText(/enter your password/i)
       const submitButton = screen.getByRole('button', { name: /sign in/i })
 

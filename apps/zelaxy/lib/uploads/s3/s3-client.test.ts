@@ -327,6 +327,7 @@ describe('S3 Client', () => {
           accessKeyId: 'test-access-key',
           secretAccessKey: 'test-secret-key',
         },
+        requestChecksumCalculation: 'WHEN_REQUIRED',
       })
     })
 
@@ -357,6 +358,7 @@ describe('S3 Client', () => {
       expect(S3Client).toHaveBeenCalledWith({
         region: 'test-region',
         credentials: undefined,
+        requestChecksumCalculation: 'WHEN_REQUIRED',
       })
     })
   })

@@ -64,7 +64,7 @@ describe('mailer', () => {
 
       // Should call Resend with correct parameters
       expect(mockSend).toHaveBeenCalledWith({
-        from: 'Zelaxy {{\x01}}',
+        from: 'Zelaxy <no-reply@zelaxy.in>',
         to: testEmailOptions.to,
         subject: testEmailOptions.subject,
         html: testEmailOptions.html,
@@ -91,12 +91,13 @@ describe('mailer', () => {
 
       // Should call Resend with unsubscribe headers
       expect(mockSend).toHaveBeenCalledWith({
-        from: 'Zelaxy {{\x01}}',
+        from: 'Zelaxy <no-reply@zelaxy.in>',
         to: testEmailOptions.to,
         subject: testEmailOptions.subject,
         html: '{{\x01}}Test content{{\x01}}{{\x01}}Unsubscribe{{\x01}}',
         headers: {
-          'List-Unsubscribe': '{{\x01}}',
+          'List-Unsubscribe':
+            '<https://test.zelaxy.in/unsubscribe?token=mock-token-123&email=test%40example.com>',
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         },
       })
@@ -118,7 +119,7 @@ describe('mailer', () => {
       expect(mockSend).not.toHaveBeenCalled()
     })
 
-    it.concurrent('should handle Resend API errors', async () => {
+    it('should handle Resend API errors', async () => {
       mockSend.mockResolvedValue({
         data: null,
         error: { message: 'API rate limit exceeded' },
@@ -130,7 +131,7 @@ describe('mailer', () => {
       expect(result.message).toBe('API rate limit exceeded')
     })
 
-    it.concurrent('should handle unexpected errors', async () => {
+    it('should handle unexpected errors', async () => {
       mockSend.mockRejectedValue(new Error('Network error'))
 
       const result = await sendEmail(testEmailOptions)
@@ -139,7 +140,7 @@ describe('mailer', () => {
       expect(result.message).toBe('Failed to send email')
     })
 
-    it.concurrent('should use custom from address when provided', async () => {
+    it('should use custom from address when provided', async () => {
       await sendEmail({
         ...testEmailOptions,
         from: 'custom@example.com',
@@ -147,7 +148,7 @@ describe('mailer', () => {
 
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
-          from: 'Zelaxy {{\x01}}',
+          from: 'Zelaxy <custom@example.com>',
         })
       )
     })
@@ -167,7 +168,7 @@ describe('mailer', () => {
       )
     })
 
-    it.concurrent('should replace unsubscribe token placeholders in HTML', async () => {
+    it('should replace unsubscribe token placeholders in HTML', async () => {
       const htmlWithPlaceholder = '{{\x01}}Content{{\x01}}{{\x01}}Unsubscribe{{\x01}}'
 
       await sendEmail({

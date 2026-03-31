@@ -1245,39 +1245,39 @@ describe('TagDropdown Tag Selection Logic', () => {
     const testCases = [
       {
         description: 'should remove existing closing bracket from incomplete tag',
-        inputValue: 'Hello <start.>',
+        inputValue: 'Hello {{start.}}',
         cursorPosition: 13, // cursor after the dot
         tag: 'start.input',
-        expectedResult: 'Hello <start.input>',
+        expectedResult: 'Hello {{start.input}}',
       },
       {
         description: 'should remove existing closing bracket when replacing tag content',
-        inputValue: 'Hello <start.>',
+        inputValue: 'Hello {{start.}}',
         cursorPosition: 12, // cursor after 'start.'
         tag: 'start.data',
-        expectedResult: 'Hello <start.data>',
+        expectedResult: 'Hello {{start.data}}',
       },
       {
         description: 'should preserve content after closing bracket',
-        inputValue: 'Hello <start.> world',
+        inputValue: 'Hello {{start.}} world',
         cursorPosition: 13,
         tag: 'start.input',
-        expectedResult: 'Hello <start.input> world',
+        expectedResult: 'Hello {{start.input}} world',
       },
       {
         description:
           'should not affect closing bracket if text between contains invalid characters',
-        inputValue: 'Hello <start.> and <end.>',
+        inputValue: 'Hello {{start.}} and {{end.}}',
         cursorPosition: 12,
         tag: 'start.data',
-        expectedResult: 'Hello <start.data> and <end.>',
+        expectedResult: 'Hello {{start.data}} and {{end.}}',
       },
       {
         description: 'should handle case with no existing closing bracket',
         inputValue: 'Hello {{start',
-        cursorPosition: 12,
+        cursorPosition: 13,
         tag: 'start.input',
-        expectedResult: 'Hello <start.input>',
+        expectedResult: 'Hello {{start.input}}',
       },
     ]
 
@@ -1285,20 +1285,20 @@ describe('TagDropdown Tag Selection Logic', () => {
       // Simulate the handleTagSelect logic
       const textBeforeCursor = inputValue.slice(0, cursorPosition)
       const textAfterCursor = inputValue.slice(cursorPosition)
-      const lastOpenBracket = textBeforeCursor.lastIndexOf('<')
+      const lastOpenBracket = textBeforeCursor.lastIndexOf('{{')
 
       // Apply the new logic for handling existing closing brackets
-      const nextCloseBracket = textAfterCursor.indexOf('>')
+      const nextCloseBracket = textAfterCursor.indexOf('}}')
       let remainingTextAfterCursor = textAfterCursor
 
       if (nextCloseBracket !== -1) {
         const textBetween = textAfterCursor.slice(0, nextCloseBracket)
         if (/^[a-zA-Z0-9._]*$/.test(textBetween)) {
-          remainingTextAfterCursor = textAfterCursor.slice(nextCloseBracket + 1)
+          remainingTextAfterCursor = textAfterCursor.slice(nextCloseBracket + 2)
         }
       }
 
-      const newValue = `${textBeforeCursor.slice(0, lastOpenBracket)}<${tag}>${remainingTextAfterCursor}`
+      const newValue = `${textBeforeCursor.slice(0, lastOpenBracket)}{{${tag}}}${remainingTextAfterCursor}`
 
       expect(newValue).toBe(expectedResult)
     })
@@ -1326,14 +1326,14 @@ describe('TagDropdown Tag Selection Logic', () => {
   it.concurrent('should find correct position of last open bracket', () => {
     const testCases = [
       { input: 'Hello {{start', expected: 6 },
-      { input: 'Hello <done> and {{start', expected: 16 },
+      { input: 'Hello {{done}} and {{start', expected: 19 },
       { input: 'No brackets here', expected: -1 },
       { input: '{{start', expected: 0 },
-      { input: 'Multiple < < < <last', expected: 15 },
+      { input: 'Multiple {{a}} {{b}} {{last', expected: 21 },
     ]
 
     testCases.forEach(({ input, expected }) => {
-      const lastOpenBracket = input.lastIndexOf('<')
+      const lastOpenBracket = input.lastIndexOf('{{')
       expect(lastOpenBracket).toBe(expected)
     })
   })

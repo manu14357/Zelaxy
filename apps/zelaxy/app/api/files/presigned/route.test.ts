@@ -39,9 +39,11 @@ describe('/api/files/presigned', () => {
       const response = await POST(request)
       const data = await response.json()
 
-      expect(response.status).toBe(500) // Changed from 400 to 500 (StorageConfigError)
-      expect(data.error).toBe('Direct uploads are only available when cloud storage is enabled')
-      expect(data.code).toBe('STORAGE_CONFIG_ERROR')
+      expect(response.status).toBe(200)
+      expect(data.message).toBe(
+        'Direct uploads are not available for local storage. Use /api/files/upload instead.'
+      )
+      expect(data.fallbackUploadUrl).toBe('/api/files/upload')
       expect(data.directUploadSupported).toBe(false)
     })
 

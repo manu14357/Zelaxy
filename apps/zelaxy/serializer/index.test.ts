@@ -359,10 +359,10 @@ describe('Serializer', () => {
       const { blocks, edges, loops } = createInvalidWorkflowState()
       const serializer = new Serializer()
 
-      // Should throw an error when serializing an invalid block type
-      expect(() => serializer.serializeWorkflow(blocks, edges, loops)).toThrow(
-        'Invalid block type: invalid-type'
-      )
+      // Unknown block types are skipped and valid blocks still serialize.
+      const serialized = serializer.serializeWorkflow(blocks, edges, loops)
+      expect(serialized.blocks.some((b) => b.metadata?.id === 'invalid-type')).toBe(false)
+      expect(serialized.blocks.length).toBeGreaterThan(0)
     })
   })
 
