@@ -1,229 +1,205 @@
 ---
 name: testing
-description: 'Write, review, and debug tests using Vitest. Use for: unit tests, handler tests, executor tests, block tests, global mocks, test patterns, coverage requirements, vi.fn() mocking, test file conventions.'
+description: 'Write, review, and debug tests using Vitest. Use for: unit tests, API route tests, executor/serializer/tool tests, jsdom vs node environment selection, shared __test-utils__ patterns, and mandatory code-to-test sync with executed test runs.'
 ---
 
-# Testing Skill — Zelaxy
+# Testing Skill - Zelaxy
 
 ## Purpose
-Write, review, and debug tests for the Zelaxy monorepo using Vitest.
+Write, review, and debug automated tests in this monorepo, with primary focus on `apps/zelaxy` and secondary focus on `packages/ts-sdk`.
+
+## Non-Negotiable Rule: Code-Test Sync
+
+When production code changes, test work is required in the same task.
+
+1. Update or add tests for the changed behavior.
+2. Run relevant tests before completion.
+3. Report exactly what commands were run and whether they passed.
+4. If tests cannot be run, explain why and what remains to validate.
+5. "No test changes needed" should be rare and explicitly justified.
+
+Do not finish code changes without test updates and execution evidence unless the user explicitly waives testing.
 
 ## When to Use
-- Writing unit tests for blocks, tools, handlers, or utilities
-- Writing integration tests for the executor
-- Debugging failing tests
-- Adding test coverage to existing code
-- Reviewing test quality
+- Adding or modifying code in blocks, tools, executor, API routes, stores, UI, or shared libs
+- Writing new test files
+- Fixing failing Vitest suites
+- Improving test coverage around regressions
+- Reviewing test quality and missing scenarios
 
 ## Test Infrastructure
 
-### Config
-- **Framework**: Vitest
-- **Config**: `apps/zelaxy/vitest.config.ts`
-- **Setup**: `apps/zelaxy/vitest.setup.ts`
-- **Environment**: Node.js
-- **Globals**: `true` (no need to import `describe`, `it`, `expect`)
-- **Path alias**: `@/` → project root
+### Primary app (`apps/zelaxy`)
+- Framework: Vitest 3
+- Config: `apps/zelaxy/vitest.config.ts`
+- Global setup: `apps/zelaxy/vitest.setup.ts`
+- Default test environment: `node`
+- Globals: enabled (`describe`, `it`, `expect`, `vi` available globally)
+- Include pattern: `**/*.test.{ts,tsx}`
+- Core alias: `@` -> `apps/zelaxy` root
 
-### Commands
+### TS SDK (`packages/ts-sdk`)
+- Framework: Vitest 3
+- Config: `packages/ts-sdk/vitest.config.ts`
+- Environment: `node`
+- Include patterns: `src/**/*.test.{ts,tsx}`, `tests/**/*.test.{ts,tsx}`
+
+### Global test setup behavior (apps/zelaxy)
+`vitest.setup.ts` sets baseline mocks and behavior:
+- `global.fetch` mocked
+- logger and selected Zustand stores mocked
+- block registry helper mocked
+- `@testing-library/jest-dom/vitest` loaded for DOM assertions
+- noisy expected console warnings/errors filtered (notably Zustand persist warnings)
+
+## Command Reference
+
+### From repo root
 ```bash
-bun run test              # Run all tests
-bun run test -- --watch   # Watch mode
-bun run test -- --ui      # Vitest UI
-bun run test -- --coverage # Coverage report
+bun run test
+```
+Runs `turbo run test` across workspace packages with test scripts.
+
+### From `apps/zelaxy`
+```bash
+bun run test
+bun run test:watch
+bun run test:coverage
+bun run test -- app/api/folders/route.test.ts
+bun run test -- executor/index.test.ts
+bun run test -- -t "should return 401 for unauthenticated requests"
 ```
 
-### Global Mocks (vitest.setup.ts)
-These are automatically mocked in every test:
-
-```typescript
-// fetch → returns { ok: true, json: () => {} }
-global.fetch = vi.fn()
-
-// Logger → spy functions (info, warn, error, debug)
-vi.mock('@/lib/logger')
-
-// Block registry → minimal mock BlockConfig
-vi.mock('@/blocks')
-
-// Console → suppressed for expected errors
-console.error = vi.fn()
-console.warn = vi.fn()
+### From `packages/ts-sdk`
+```bash
+bun run test
+bun run test:watch
 ```
 
-## Test Patterns
+Use targeted test runs while iterating, then run broader suites when changes touch shared runtime paths.
 
-### Unit Test (utility function)
-```typescript
-// utils.test.ts
-import { resolveOutputType } from './utils'
+## Environment Selection Rules
 
-describe('resolveOutputType', () => {
-  it('resolves primitive types', () => {
-    expect(resolveOutputType('string')).toBe('string')
-  })
+Default is `node`. Use per-file override when DOM APIs are required:
 
-  it('handles nested objects', () => {
-    const result = resolveOutputType({ name: 'string', age: 'number' })
-    expect(result).toEqual({ name: 'string', age: 'number' })
-  })
-})
+```ts
+/**
+ * @vitest-environment jsdom
+ */
 ```
 
-### Handler Test
-```typescript
-// handlers/api-handler.test.ts
-import { apiHandler } from './api-handler'
-import type { ExecutionContext } from '../types'
+Guidance:
+- Use `node` for API routes, executor, serializer, socket server, services, DB utilities.
+- Use `jsdom` for React components, UI interactions, and DOM-dependent store behavior.
 
-describe('apiHandler', () => {
-  const mockContext: ExecutionContext = {
-    workflowId: 'wf-1',
-    executionId: 'exec-1',
-    blockStates: {},
-    environmentVariables: {},
-    // ... minimal required fields
-  }
+## File Placement and Naming
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+- Co-locate tests with source where practical: `foo.ts` -> `foo.test.ts`.
+- API route tests: keep `route.test.ts` next to route file.
+- Executor deep integration tests: use `apps/zelaxy/executor/tests/`.
+- Reusable fixtures/mocks: keep in domain `__test-utils__` folders.
+- Use behavior-driven test names (`should ...`).
 
-  it('executes GET request', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({ data: 'test' }),
-      headers: new Headers(),
-    } as Response)
+## Shared Test Utilities (Use These First)
 
-    const result = await apiHandler.execute(
-      { id: 'b1', type: 'api', config: { method: 'GET', url: 'https://api.example.com' } },
-      {},
-      mockContext
-    )
+### API helpers
+`apps/zelaxy/app/api/__test-utils__/utils.ts`
+- `mockAuth()`
+- `setupCommonApiMocks()`
+- `createMockRequest()`
+- `createMockDatabase()`
+- `setupComprehensiveTestMocks()` (preferred for new broad API tests)
+- legacy helpers still present: `createMockTransaction()`, `mockAuthSession()`
 
-    expect(result.response.data).toEqual({ data: 'test' })
-    expect(result.response.status).toBe(200)
-  })
+Important route-test pattern:
+1. set up `vi.doMock(...)` and auth/db mocks
+2. dynamically import route handler (`await import(...)`)
+3. invoke `GET/POST/PUT/DELETE` and assert response
 
-  it('handles network errors', async () => {
-    vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'))
+### Executor helpers
+`apps/zelaxy/executor/__test-utils__/executor-mocks.ts`
+- `setupAllMocks()`
+- workflow factories (`createMinimalWorkflow`, loop/parallel/router variants)
+- context factories (`createMockContext`)
+- handler/store/core executor mock setup helpers
 
-    await expect(
-      apiHandler.execute(
-        { id: 'b1', type: 'api', config: { method: 'GET', url: 'https://fail.com' } },
-        {},
-        mockContext
-      )
-    ).rejects.toThrow('Network error')
-  })
-})
-```
+### Tool helpers
+`apps/zelaxy/tools/__test-utils__/test-tools.ts`
+- `ToolTester` for controlled tool execution tests
+- `createMockFetch()`, `createErrorFetch()`
+- `mockEnvironmentVariables()`
+- `mockOAuthTokenRequest()`
 
-### Executor Integration Test
-```typescript
-// executor/index.test.ts
-import { Executor } from './index'
+### Serializer fixtures
+`apps/zelaxy/serializer/__test-utils__/test-workflows.ts`
+- reusable workflow fixtures for serializer behavior tests
 
-describe('Executor', () => {
-  it('executes blocks in topological order', async () => {
-    const executor = new Executor({
-      blocks: [
-        { id: 'a', type: 'function', dependencies: [] },
-        { id: 'b', type: 'function', dependencies: ['a'] },
-      ],
-      edges: [{ source: 'a', target: 'b' }],
-    })
+## Domain-by-Domain Test Requirements
 
-    const result = await executor.execute()
-    expect(result.blockStates['a'].status).toBe('completed')
-    expect(result.blockStates['b'].status).toBe('completed')
-  })
-})
-```
+### API route changes
+Minimum cases:
+1. unauthenticated request
+2. invalid input or missing required fields
+3. permission or authorization constraints
+4. success path
+5. internal error handling
 
-### Block Definition Test
-```typescript
-// blocks/blocks/my-block.test.ts
-import { myBlockConfig } from './my-block'
+Also verify response shape/status contract used by that route family.
 
-describe('myBlockConfig', () => {
-  it('has required fields', () => {
-    expect(myBlockConfig.type).toBeDefined()
-    expect(myBlockConfig.toolbar).toBeDefined()
-    expect(myBlockConfig.outputs).toBeDefined()
-  })
+### Executor or handler changes
+Minimum cases:
+1. normal execution path
+2. failure path
+3. routing/path semantics (condition/router/parallel/loop as applicable)
+4. regression case for the bug or behavior change
 
-  it('has valid sub-block types', () => {
-    for (const row of myBlockConfig.subBlocks) {
-      for (const subBlock of row) {
-        expect(subBlock.type).toBeDefined()
-        expect(subBlock.id).toBeDefined()
-      }
-    }
-  })
-})
-```
+### Tool changes
+Minimum cases:
+1. parameter validation behavior
+2. request shaping (URL, method, headers, body)
+3. transform/post-process behavior
+4. error propagation
 
-## Test Organization
+### Block config or serializer changes
+Minimum cases:
+1. block-to-tool mapping behavior
+2. parameter transformation behavior
+3. required parameter validation behavior
+4. serialization output for changed block types
 
-### File placement
-- Co-locate: `executor/index.ts` → `executor/index.test.ts`
-- Test utilities: `executor/__test-utils__/`
-- Integration tests: `executor/tests/`
+### UI/store changes
+Minimum cases:
+1. render baseline
+2. primary interaction path
+3. state update effect
+4. error/disabled or edge interaction path
 
-### Naming
-- `describe` → module or function name
-- `it` → behavior description starting with verb
-- Test file → `<source-file>.test.ts`
+Use `jsdom` and Testing Library where interaction is DOM-driven.
 
-## Mocking Guidelines
+## Mocking and Isolation Guidelines
 
-### Mock external services (always)
-```typescript
-vi.mock('@/services/mcp', () => ({
-  MCPService: { callTool: vi.fn() }
-}))
-```
+- Prefer mocking external boundaries (network, DB, provider SDKs), not pure logic.
+- Clear/reset mocks between tests (`vi.clearAllMocks()`, `vi.resetAllMocks()` as needed).
+- Use `vi.resetModules()` when module-level state or `vi.doMock` order matters.
+- Override `global.fetch` per-suite when behavior-specific assertions are needed.
+- Keep mocks minimal and aligned to real interfaces to avoid false positives.
 
-### Mock database (for handler tests)
-```typescript
-vi.mock('@/db', () => ({
-  db: {
-    select: vi.fn().mockReturnThis(),
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockResolvedValue([]),
-  }
-}))
-```
+## Test Review Checklist (Before Completion)
 
-### Mock OAuth credentials
-```typescript
-vi.mock('@/lib/oauth/oauth', () => ({
-  getCredentials: vi.fn().mockResolvedValue({
-    accessToken: 'mock-token',
-    refreshToken: 'mock-refresh',
-  })
-}))
-```
+1. Do tests cover changed behavior and at least one failure/edge case?
+2. Are tests colocated and named consistently?
+3. Are correct environment annotations used (`node` vs `jsdom`)?
+4. Are mock lifecycles cleaned up to avoid cross-test leakage?
+5. Were relevant tests executed locally?
+6. Were executed commands and results reported?
 
-### Do NOT mock
-- Pure utility functions
-- Type definitions
-- Configuration constants
+## Common Pitfalls
 
-## Coverage Expectations
-- **Executor**: High coverage — critical path
-- **Handlers**: Each handler should have happy path + error cases
-- **Blocks**: Config validation tests
-- **Tools**: Request/response transformation tests
-- **API routes**: Auth, validation, response format
-- **UI**: Component rendering + interaction (if using Testing Library)
-
-## Common Test Issues
-1. **Async leaks**: Always `await` async operations, use `vi.waitFor()` for eventual assertions
-2. **Mock pollution**: Use `beforeEach(() => vi.clearAllMocks())`
-3. **Path aliases**: Ensure `@/` alias works (configured in vitest.config.ts)
-4. **Drizzle mocks**: Mock the query builder chain, not individual methods
-5. **Streaming tests**: Use `ReadableStream` mocks for SSE/streaming tests
+1. Changing implementation without updating corresponding tests.
+2. Running no tests (or only unrelated tests) after behavior changes.
+3. Importing route handlers before setting `vi.doMock` dependencies.
+4. Forgetting environment override for DOM-dependent tests.
+5. Over-mocking internal logic instead of testing real behavior boundaries.
+6. Leaving flaky assertions tied to unstable timestamps or ordering.
+7. Assuming one global response schema across all API route families.
+8. Treating coverage command output as mandatory threshold enforcement (no strict global threshold is configured).
