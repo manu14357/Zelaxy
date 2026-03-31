@@ -11,6 +11,7 @@
     "dev": "next dev --turbo --port 3000 --hostname localhost",
     "dev:classic": "next dev --hostname localhost",
     "dev:sockets": "bun run socket-server/index.ts",
+    "start:sockets": "NODE_ENV=production bun run socket-server/index.ts",
     "dev:full": "concurrently -n \"NextJS,Realtime\" -c \"cyan,magenta\" \"bun run dev\" \"bun run dev:sockets\"",
     "build": "next build --turbopack",
     "start": "next start --port ${PORT:-3000} --hostname 0.0.0.0",
