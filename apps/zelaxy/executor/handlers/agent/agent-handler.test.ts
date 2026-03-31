@@ -234,7 +234,7 @@ describe('AgentBlockHandler', () => {
 
         result.then((tools: any[]) => {
           if (tools?.length) {
-            capturedTools = tools.filter((t) => t !== null)
+            capturedTools = tools.flat().filter((t) => t !== null)
           }
         })
 

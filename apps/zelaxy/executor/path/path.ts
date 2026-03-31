@@ -113,14 +113,19 @@ export class PathTracker {
     connection: SerializedConnection,
     context: ExecutionContext
   ): boolean {
-    if (connection.sourceHandle !== 'true' && connection.sourceHandle !== 'false') {
-      return false
-    }
+    const sourceHandle = connection.sourceHandle
+    if (!sourceHandle) return false
+
+    // Accept simple true/false or multi-condition format (condition-{id})
+    const isConditionHandle =
+      sourceHandle === 'true' || sourceHandle === 'false' || sourceHandle.startsWith('condition-')
+    if (!isConditionHandle) return false
 
     const selectedCondition = context.decisions.condition.get(connection.source)
 
     return (
-      context.executedBlocks.has(connection.source) && connection.sourceHandle === selectedCondition
+      context.executedBlocks.has(connection.source) &&
+      (sourceHandle === selectedCondition || sourceHandle === `condition-${selectedCondition}`)
     )
   }
 
@@ -230,7 +235,10 @@ export class PathTracker {
     context.decisions.condition.set(block.id, selectedConditionId)
 
     const targetConnections = this.workflow.connections.filter(
-      (conn) => conn.source === block.id && conn.sourceHandle === selectedConditionId
+      (conn) =>
+        conn.source === block.id &&
+        (conn.sourceHandle === selectedConditionId ||
+          conn.sourceHandle === `condition-${selectedConditionId}`)
     )
 
     for (const conn of targetConnections) {

@@ -25,7 +25,7 @@ vi.mock('@/lib/auth-client', () => ({
 }))
 
 vi.mock('@/app/(auth)/components/social-login-buttons', () => ({
-  SocialLoginButtons: () => <div>Social Login Buttons</div>,
+  SocialLoginButtons: () => <div data-testid='social-login-buttons'>Social Login Buttons</div>,
 }))
 
 const mockRouter = {
@@ -44,6 +44,26 @@ describe('SignupPage', () => {
     ;(useRouter as any).mockReturnValue(mockRouter)
     ;(useSearchParams as any).mockReturnValue(mockSearchParams)
     mockSearchParams.get.mockReturnValue(null)
+
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: vi.fn(),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
+      },
+      writable: true,
+    })
+
+    Object.defineProperty(window, 'sessionStorage', {
+      value: {
+        getItem: vi.fn(),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
+      },
+      writable: true,
+    })
   })
 
   const defaultProps = {
@@ -56,9 +76,9 @@ describe('SignupPage', () => {
     it('should render signup form with all required elements', () => {
       render(<SignupPage {...defaultProps} />)
 
-      expect(screen.getByPlaceholderText(/enter your name/i)).toBeInTheDocument()
-      expect(screen.getByPlaceholderText(/enter your email/i)).toBeInTheDocument()
-      expect(screen.getByPlaceholderText(/enter your password/i)).toBeInTheDocument()
+      expect(screen.getByLabelText(/full name/i)).toBeInTheDocument()
+      expect(screen.getByLabelText(/email address/i)).toBeInTheDocument()
+      expect(screen.getByPlaceholderText(/min\. 8 characters/i)).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument()
       expect(screen.getByText(/sign in/i)).toBeInTheDocument()
     })
@@ -74,7 +94,7 @@ describe('SignupPage', () => {
     it('should toggle password visibility when button is clicked', () => {
       render(<SignupPage {...defaultProps} />)
 
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
+      const passwordInput = screen.getByPlaceholderText(/min\. 8 characters/i)
       const toggleButton = screen.getByLabelText(/show password/i)
 
       expect(passwordInput).toHaveAttribute('type', 'password')
@@ -91,9 +111,9 @@ describe('SignupPage', () => {
     it('should allow users to type in form fields', () => {
       render(<SignupPage {...defaultProps} />)
 
-      const nameInput = screen.getByPlaceholderText(/enter your name/i)
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
+      const nameInput = screen.getByLabelText(/full name/i)
+      const emailInput = screen.getByLabelText(/email address/i)
+      const passwordInput = screen.getByPlaceholderText(/min\. 8 characters/i)
 
       fireEvent.change(nameInput, { target: { value: 'John Doe' } })
       fireEvent.change(emailInput, { target: { value: 'user@company.com' } })
@@ -112,9 +132,9 @@ describe('SignupPage', () => {
 
       render(<SignupPage {...defaultProps} />)
 
-      const nameInput = screen.getByPlaceholderText(/enter your name/i)
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
+      const nameInput = screen.getByLabelText(/full name/i)
+      const emailInput = screen.getByLabelText(/email address/i)
+      const passwordInput = screen.getByPlaceholderText(/min\. 8 characters/i)
       const submitButton = screen.getByRole('button', { name: /create account/i })
 
       fireEvent.change(nameInput, { target: { value: 'John Doe' } })
@@ -137,9 +157,9 @@ describe('SignupPage', () => {
 
       render(<SignupPage {...defaultProps} />)
 
-      const nameInput = screen.getByPlaceholderText(/enter your name/i)
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
+      const nameInput = screen.getByLabelText(/full name/i)
+      const emailInput = screen.getByLabelText(/email address/i)
+      const passwordInput = screen.getByPlaceholderText(/min\. 8 characters/i)
       const submitButton = screen.getByRole('button', { name: /create account/i })
 
       // Use valid input that passes all validation rules
@@ -167,9 +187,9 @@ describe('SignupPage', () => {
 
       render(<SignupPage {...defaultProps} />)
 
-      const nameInput = screen.getByPlaceholderText(/enter your name/i)
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
+      const nameInput = screen.getByLabelText(/full name/i)
+      const emailInput = screen.getByLabelText(/email address/i)
+      const passwordInput = screen.getByPlaceholderText(/min\. 8 characters/i)
       const submitButton = screen.getByRole('button', { name: /create account/i })
 
       // Use name with leading/trailing spaces which should fail validation
@@ -200,9 +220,9 @@ describe('SignupPage', () => {
 
       render(<SignupPage {...defaultProps} />)
 
-      const nameInput = screen.getByPlaceholderText(/enter your name/i)
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
+      const nameInput = screen.getByLabelText(/full name/i)
+      const emailInput = screen.getByLabelText(/email address/i)
+      const passwordInput = screen.getByPlaceholderText(/min\. 8 characters/i)
       const submitButton = screen.getByRole('button', { name: /create account/i })
 
       fireEvent.change(nameInput, { target: { value: 'John Doe' } })
@@ -236,9 +256,9 @@ describe('SignupPage', () => {
 
       render(<SignupPage {...defaultProps} />)
 
-      const nameInput = screen.getByPlaceholderText(/enter your name/i)
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
+      const nameInput = screen.getByLabelText(/full name/i)
+      const emailInput = screen.getByLabelText(/email address/i)
+      const passwordInput = screen.getByPlaceholderText(/min\. 8 characters/i)
       const submitButton = screen.getByRole('button', { name: /create account/i })
 
       await act(async () => {
@@ -259,9 +279,9 @@ describe('SignupPage', () => {
 
       render(<SignupPage {...defaultProps} />)
 
-      const nameInput = screen.getByPlaceholderText(/enter your name/i)
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
+      const nameInput = screen.getByLabelText(/full name/i)
+      const emailInput = screen.getByLabelText(/email address/i)
+      const passwordInput = screen.getByPlaceholderText(/min\. 8 characters/i)
       const submitButton = screen.getByRole('button', { name: /create account/i })
 
       fireEvent.change(nameInput, { target: { value: longName } })
@@ -287,9 +307,9 @@ describe('SignupPage', () => {
 
       render(<SignupPage {...defaultProps} />)
 
-      const nameInput = screen.getByPlaceholderText(/enter your name/i)
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
+      const nameInput = screen.getByLabelText(/full name/i)
+      const emailInput = screen.getByLabelText(/email address/i)
+      const passwordInput = screen.getByPlaceholderText(/min\. 8 characters/i)
       const submitButton = screen.getByRole('button', { name: /create account/i })
 
       fireEvent.change(nameInput, { target: { value: exactLengthName } })
@@ -334,9 +354,9 @@ describe('SignupPage', () => {
 
       render(<SignupPage {...defaultProps} />)
 
-      const nameInput = screen.getByPlaceholderText(/enter your name/i)
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
+      const nameInput = screen.getByLabelText(/full name/i)
+      const emailInput = screen.getByLabelText(/email address/i)
+      const passwordInput = screen.getByPlaceholderText(/min\. 8 characters/i)
       const submitButton = screen.getByRole('button', { name: /create account/i })
 
       await act(async () => {
@@ -361,7 +381,7 @@ describe('SignupPage', () => {
 
       render(<SignupPage {...defaultProps} />)
 
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
+      const emailInput = screen.getByLabelText(/email address/i)
       expect(emailInput).toHaveValue('prefilled@example.com')
     })
 
@@ -377,9 +397,9 @@ describe('SignupPage', () => {
 
       render(<SignupPage {...defaultProps} />)
 
-      const nameInput = screen.getByPlaceholderText(/enter your name/i)
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
+      const nameInput = screen.getByLabelText(/full name/i)
+      const emailInput = screen.getByLabelText(/email address/i)
+      const passwordInput = screen.getByPlaceholderText(/min\. 8 characters/i)
       const submitButton = screen.getByRole('button', { name: /create account/i })
 
       fireEvent.change(nameInput, { target: { value: 'John Doe' } })

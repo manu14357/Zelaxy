@@ -64,8 +64,8 @@ describe('PathTracker', () => {
         { source: 'block1', target: 'block2' },
         { source: 'router1', target: 'block1' },
         { source: 'router1', target: 'block2' },
-        { source: 'condition1', target: 'block1', sourceHandle: 'condition-if' },
-        { source: 'condition1', target: 'block2', sourceHandle: 'condition-else' },
+        { source: 'condition1', target: 'block1', sourceHandle: 'true' },
+        { source: 'condition1', target: 'block2', sourceHandle: 'false' },
         { source: 'loop1', target: 'block1', sourceHandle: 'loop-start-source' },
         { source: 'loop1', target: 'block2', sourceHandle: 'loop-end-source' },
       ],
@@ -148,13 +148,13 @@ describe('PathTracker', () => {
     describe('condition blocks', () => {
       it('should return true if condition selected this path', () => {
         mockContext.executedBlocks.add('condition1')
-        mockContext.decisions.condition.set('condition1', 'if')
+        mockContext.decisions.condition.set('condition1', 'true')
         expect(pathTracker.isInActivePath('block1', mockContext)).toBe(true)
       })
 
       it('should return false if condition selected different path', () => {
         mockContext.executedBlocks.add('condition1')
-        mockContext.decisions.condition.set('condition1', 'else')
+        mockContext.decisions.condition.set('condition1', 'false')
         expect(pathTracker.isInActivePath('block1', mockContext)).toBe(false)
       })
 
@@ -201,7 +201,7 @@ describe('PathTracker', () => {
     describe('condition blocks', () => {
       it('should update condition decision and activate selected connection', () => {
         const blockState: BlockState = {
-          output: { selectedConditionId: 'if' },
+          output: { selectedConditionId: 'true' },
           executed: true,
           executionTime: 100,
         }
@@ -209,7 +209,7 @@ describe('PathTracker', () => {
 
         pathTracker.updateExecutionPaths(['condition1'], mockContext)
 
-        expect(mockContext.decisions.condition.get('condition1')).toBe('if')
+        expect(mockContext.decisions.condition.get('condition1')).toBe('true')
         expect(mockContext.activeExecutionPath.has('block1')).toBe(true)
       })
 

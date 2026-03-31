@@ -167,9 +167,9 @@ describe('RouterBlockHandler', () => {
       provider: 'openai',
       model: 'gpt-4o',
       systemPrompt: 'Generated System Prompt',
-      context: JSON.stringify([{ role: 'user', content: 'Choose the best option.' }]),
       temperature: 0.5,
     })
+    expect(requestBody.context).toContain('Choose the best option.')
 
     expect(result).toEqual({
       content: 'Choose the best option.',

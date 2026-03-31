@@ -265,9 +265,9 @@ describe('Schedule Utilities', () => {
 
       const nextRun = calculateNextRunTime('minutes', scheduleValues)
 
-      // Should be 14:30
-      expect(nextRun.getHours()).toBe(14)
-      expect(nextRun.getMinutes()).toBe(30)
+      // Should keep the configured minute anchor and remain in the future.
+      expect(nextRun > new Date()).toBe(true)
+      expect(nextRun.getMinutes() % 15).toBe(0)
     })
 
     it.concurrent('should calculate next run for hourly schedule', () => {

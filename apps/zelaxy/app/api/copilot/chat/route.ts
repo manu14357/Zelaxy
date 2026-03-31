@@ -418,6 +418,14 @@ export async function POST(req: NextRequest) {
       }
     )
 
+    if (!zelaxyAgentResponse.ok) {
+      const errorText = await zelaxyAgentResponse
+        .text()
+        .catch(() => `HTTP ${zelaxyAgentResponse.status}`)
+
+      throw new Error(`Zelaxy agent API error: ${errorText}`)
+    }
+
     // If streaming is requested, forward the stream and update chat later
     if (stream && zelaxyAgentResponse.body) {
       logger.info(`[${tracker.requestId}] Streaming response from zelaxy agent`)
