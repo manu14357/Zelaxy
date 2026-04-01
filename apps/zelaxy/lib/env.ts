@@ -106,9 +106,11 @@ export const env = createEnv({
     JOB_RETENTION_DAYS:                   z.string().optional().default('1'),     // Days to retain job logs/data
 
     // Monitoring & Telemetry
+    SENTRY_DSN:                           z.string().url().optional(),             // Sentry DSN for server-side error tracking
     SENTRY_ORG:                           z.string().optional(),                  // Sentry organization slug
     SENTRY_PROJECT:                       z.string().optional(),                  // Sentry project name
     SENTRY_AUTH_TOKEN:                    z.string().optional(),                  // Sentry auth token for source map uploads
+    ENABLE_CONSOLE_LOGS:                  z.string().optional(),                  // Enable console logger in production (set to 'true')
 
     // Cloud Storage - AWS S3
     AWS_REGION:                           z.string().optional(),                  // AWS region for S3 buckets
@@ -193,7 +195,7 @@ export const env = createEnv({
     NEXT_PUBLIC_VERCEL_URL:               z.string().optional(),                  // Vercel deployment URL for preview/production
 
     // Client-side Services
-    // REMOVED FOR PRIVACY - Client-side error tracking
+    NEXT_PUBLIC_SENTRY_DSN:               z.string().url().optional(),             // Sentry DSN for client-side error tracking (opt-in)
     NEXT_PUBLIC_SOCKET_URL:               z.string().url().optional(),            // WebSocket server URL for real-time features
 
     // Asset Storage
@@ -202,8 +204,6 @@ export const env = createEnv({
     // Google Services - For client-side Google integrations
     NEXT_PUBLIC_GOOGLE_CLIENT_ID:         z.string().optional(),                  // Google OAuth client ID for browser auth
     
-    // REMOVED FOR PRIVACY - Analytics & Tracking
-    // NEXT_PUBLIC_RB2B_KEY:              z.string().optional(),                  // RB2B tracking key for B2B analytics
     NEXT_PUBLIC_GOOGLE_API_KEY:           z.string().optional(),                  // Google API key for client-side API calls
     NEXT_PUBLIC_GOOGLE_PROJECT_NUMBER:    z.string().optional(),                  // Google project number for Drive picker
 
@@ -233,6 +233,7 @@ export const env = createEnv({
   experimental__runtimeEnv: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_VERCEL_URL: process.env.NEXT_PUBLIC_VERCEL_URL,
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     NEXT_PUBLIC_BLOB_BASE_URL: process.env.NEXT_PUBLIC_BLOB_BASE_URL,
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
     // NEXT_PUBLIC_RB2B_KEY: process.env.NEXT_PUBLIC_RB2B_KEY, // REMOVED FOR PRIVACY

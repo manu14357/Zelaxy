@@ -241,15 +241,16 @@ const nextConfig: NextConfig = {
 }
 
 const sentryConfig = {
-  silent: true,
+  silent: !process.env.CI,
   org: env.SENTRY_ORG || '',
   project: env.SENTRY_PROJECT || '',
   authToken: env.SENTRY_AUTH_TOKEN || undefined,
   disableSourceMapUpload: !isProd,
   autoInstrumentServerFunctions: isProd,
+  widenClientFileUpload: true,
+  tunnelRoute: '/monitoring',
   bundleSizeOptimizations: {
     excludeDebugStatements: true,
-    excludePerformanceMonitoring: true,
     excludeReplayIframe: true,
     excludeReplayShadowDom: true,
     excludeReplayWorker: true,
