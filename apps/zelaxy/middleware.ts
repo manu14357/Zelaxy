@@ -229,6 +229,6 @@ export const config = {
     '/login',
     '/signup',
     '/invite/:path*', // Match invitation routes
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!monitoring|_next/static|_next/image|favicon.ico).*)',
   ],
 }

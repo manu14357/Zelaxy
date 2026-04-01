@@ -44,7 +44,7 @@ const LOG_CONFIG = {
     colorize: true,
   },
   production: {
-    enabled: false, // Disable all console logs in production
+    enabled: typeof process !== 'undefined' && process.env?.ENABLE_CONSOLE_LOGS === 'true',
     minLevel: LogLevel.ERROR,
     colorize: false,
   },
