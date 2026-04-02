@@ -429,45 +429,6 @@ export function DeployModal({
         </DialogHeader>
 
         <div className='flex flex-1 flex-col overflow-hidden'>
-          {/* Tab Switcher */}
-          <div className='flex flex-none items-center px-6 pt-5 pb-4'>
-            <div className='relative flex w-full rounded-xl bg-muted/50 p-1 dark:bg-muted/30'>
-              {/* Sliding indicator */}
-              <div
-                className={cn(
-                  'absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg bg-background shadow-sm ring-1 ring-border/50 transition-transform duration-300 [transition-timing-function:cubic-bezier(0.645,0.045,0.355,1)]',
-                  activeTab === 'chat' && 'translate-x-[calc(100%+4px)]'
-                )}
-              />
-              <button
-                onClick={() => setActiveTab('api')}
-                className={cn(
-                  'relative z-10 flex flex-1 items-center justify-center gap-2 rounded-lg py-2 font-medium text-[13px] transition-colors duration-200',
-                  activeTab === 'api'
-                    ? 'text-foreground'
-                    : 'text-muted-foreground hover:text-foreground/70'
-                )}
-              >
-                <Globe className='h-4 w-4' />
-                REST API
-              </button>
-              <button
-                onClick={() => setActiveTab('chat')}
-                className={cn(
-                  'relative z-10 flex flex-1 items-center justify-center gap-2 rounded-lg py-2 font-medium text-[13px] transition-colors duration-200',
-                  activeTab === 'chat'
-                    ? 'text-foreground'
-                    : 'text-muted-foreground hover:text-foreground/70'
-                )}
-              >
-                <MessageSquare className='h-4 w-4' />
-                Chat Interface
-              </button>
-            </div>
-          </div>
-
-          {/* Separator */}
-          <div className='mx-6 h-px bg-border/50' />
 
           {/* Content */}
           <div className='flex-1 overflow-y-auto'>

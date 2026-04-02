@@ -62,8 +62,8 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     id: 'openai',
     name: 'OpenAI',
     description: "OpenAI's models",
-    defaultModel: 'gpt-4o',
-    modelPatterns: [/^gpt/, /^o1/],
+    defaultModel: 'gpt-5.4',
+    modelPatterns: [/^gpt/, /^o1/, /^o3/, /^o4/],
     icon: OpenAIIcon,
     models: [
       {
@@ -202,6 +202,45 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
           toolUsageControl: true,
         },
       },
+      {
+        id: 'gpt-5.4',
+        pricing: {
+          input: 2.5,
+          cachedInput: 0.25,
+          output: 15.0,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'gpt-5.4-mini',
+        pricing: {
+          input: 0.75,
+          cachedInput: 0.075,
+          output: 4.5,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'gpt-5.4-nano',
+        pricing: {
+          input: 0.2,
+          cachedInput: 0.02,
+          output: 1.25,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
     ],
   },
   'azure-openai': {
@@ -321,16 +360,81 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
           toolUsageControl: true,
         },
       },
+      {
+        id: 'azure/gpt-5.4',
+        pricing: {
+          input: 2.5,
+          cachedInput: 0.25,
+          output: 15.0,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'azure/gpt-5.4-mini',
+        pricing: {
+          input: 0.75,
+          cachedInput: 0.075,
+          output: 4.5,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
     ],
   },
   anthropic: {
     id: 'anthropic',
     name: 'Anthropic',
     description: "Anthropic's Claude models",
-    defaultModel: 'claude-sonnet-4-0',
+    defaultModel: 'claude-sonnet-4-6',
     modelPatterns: [/^claude/],
     icon: AnthropicIcon,
     models: [
+      {
+        id: 'claude-opus-4-6',
+        pricing: {
+          input: 5.0,
+          cachedInput: 2.5,
+          output: 25.0,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'claude-sonnet-4-6',
+        pricing: {
+          input: 3.0,
+          cachedInput: 1.5,
+          output: 15.0,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'claude-haiku-4-5',
+        pricing: {
+          input: 1.0,
+          cachedInput: 0.5,
+          output: 5.0,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
       {
         id: 'claude-sonnet-4-0',
         pricing: {
@@ -396,6 +500,19 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     icon: GeminiIcon,
     models: [
       {
+        id: 'gemini-3-flash',
+        pricing: {
+          input: 0.15,
+          cachedInput: 0.075,
+          output: 0.6,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
         id: 'gemini-2.5-pro',
         pricing: {
           input: 0.15,
@@ -415,6 +532,19 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
           cachedInput: 0.075,
           output: 0.6,
           updatedAt: '2025-06-17',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'gemini-2.5-flash-lite',
+        pricing: {
+          input: 0.075,
+          cachedInput: 0.01875,
+          output: 0.3,
+          updatedAt: '2025-10-25',
         },
         capabilities: {
           temperature: { min: 0, max: 2 },
@@ -468,6 +598,18 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
           toolUsageControl: true,
         },
       },
+      {
+        id: 'deepseek-reasoner',
+        pricing: {
+          input: 0.28,
+          cachedInput: 0.028,
+          output: 0.42,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          toolUsageControl: true,
+        },
+      },
     ],
   },
   xai: {
@@ -478,6 +620,19 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     modelPatterns: [/^grok/],
     icon: xAIIcon,
     models: [
+      {
+        id: 'grok-4.20-latest',
+        pricing: {
+          input: 5.0,
+          cachedInput: 2.5,
+          output: 25.0,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
       {
         id: 'grok-4-latest',
         pricing: {
@@ -534,6 +689,30 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
           cachedInput: 0.47,
           output: 0.94,
           updatedAt: '2025-03-21',
+        },
+        capabilities: {
+          toolUsageControl: false,
+        },
+      },
+      {
+        id: 'cerebras/llama3.1-8b',
+        pricing: {
+          input: 0.1,
+          cachedInput: 0.05,
+          output: 0.1,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          toolUsageControl: false,
+        },
+      },
+      {
+        id: 'cerebras/gpt-oss-120b',
+        pricing: {
+          input: 0.6,
+          cachedInput: 0.3,
+          output: 0.6,
+          updatedAt: '2025-10-25',
         },
         capabilities: {
           toolUsageControl: false,
@@ -640,6 +819,30 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
           cachedInput: 0.1,
           output: 0.6,
           updatedAt: '2025-08-05',
+        },
+        capabilities: {
+          toolUsageControl: false,
+        },
+      },
+      {
+        id: 'groq/meta-llama/llama-4-scout-17b-16e-instruct',
+        pricing: {
+          input: 0.11,
+          cachedInput: 0.055,
+          output: 0.34,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          toolUsageControl: false,
+        },
+      },
+      {
+        id: 'groq/qwen/qwen3-32b',
+        pricing: {
+          input: 0.29,
+          cachedInput: 0.145,
+          output: 0.59,
+          updatedAt: '2025-10-25',
         },
         capabilities: {
           toolUsageControl: false,
@@ -822,6 +1025,18 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         },
       },
       // Anthropic Claude on Bedrock
+      {
+        id: 'anthropic.claude-sonnet-4-6',
+        pricing: {
+          input: 3.0,
+          output: 15.0,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
       {
         id: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
         pricing: {

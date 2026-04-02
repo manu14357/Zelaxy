@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { createLogger } from '@/lib/logs/console/logger'
+import { useEnvironmentStore } from '@/stores/settings/environment/store'
 import type { GenerationType } from '@/blocks/types'
 
 const logger = createLogger('useWand')
@@ -164,6 +165,10 @@ export function useWand({
         // Keep track of the current prompt for history
         const currentPrompt = prompt
 
+        // Get user's API key and model from environment variables
+        const userApiKey = useEnvironmentStore.getState().getVariable('AGIE_API_KEY')
+        const userModel = useEnvironmentStore.getState().getVariable('AGIE_MODEL')
+
         const response = await fetch('/api/wand-generate', {
           method: 'POST',
           headers: {
@@ -175,6 +180,8 @@ export function useWand({
             systemPrompt: systemPrompt, // Send the processed system prompt with context
             stream: true,
             history: wandConfig.maintainHistory ? conversationHistory : [], // Include history if enabled
+            ...(userApiKey && { apiKey: userApiKey }),
+            ...(userModel && { model: userModel }),
           }),
           signal: abortControllerRef.current.signal,
           cache: 'no-store',

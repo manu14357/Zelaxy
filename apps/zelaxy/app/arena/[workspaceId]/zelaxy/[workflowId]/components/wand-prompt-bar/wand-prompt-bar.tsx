@@ -1,11 +1,34 @@
-import { useEffect, useRef, useState } from 'react'
-import { SendIcon, XIcon } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { KeyRoundIcon, SendIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ZelaxyLogo } from '@/components/ui/zelaxy-logo'
 import { cn } from '@/lib/utils'
+import { useEnvironmentStore } from '@/stores/settings/environment/store'
+
+const AGIE_API_KEY = 'AGIE_API_KEY'
+const AGIE_MODEL = 'AGIE_MODEL'
+
+const AVAILABLE_MODELS = [
+  { value: 'gpt-5.4', label: 'GPT-5.4' },
+  { value: 'gpt-5.4-mini', label: 'GPT-5.4 Mini' },
+  { value: 'gpt-5.4-nano', label: 'GPT-5.4 Nano' },
+  { value: 'gpt-4o', label: 'GPT-4o' },
+  { value: 'gpt-4.1', label: 'GPT-4.1' },
+  { value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
+  { value: 'gpt-4.1-nano', label: 'GPT-4.1 Nano' },
+  { value: 'o4-mini', label: 'o4 Mini' },
+  { value: 'o3', label: 'o3' },
+] as const
 
 interface WandPromptBarProps {
   isVisible: boolean
@@ -33,6 +56,68 @@ export function WandPromptBar({
   const promptBarRef = useRef<HTMLDivElement>(null)
   const [isExiting, setIsExiting] = useState(false)
   const [portalMounted, setPortalMounted] = useState(false)
+
+  // Setup screen state
+  const [showSetup, setShowSetup] = useState(false)
+  const [setupApiKey, setSetupApiKey] = useState('')
+  const [setupModel, setSetupModel] = useState('gpt-4o')
+  const [setupSaving, setSetupSaving] = useState(false)
+  const [setupChecked, setSetupChecked] = useState(false)
+
+  const { getVariable, loadEnvironmentVariables, variables } = useEnvironmentStore()
+
+  // Check if API key is configured when the dialog becomes visible
+  useEffect(() => {
+    if (isVisible && !setupChecked) {
+      loadEnvironmentVariables().then(() => {
+        setSetupChecked(true)
+      })
+    }
+  }, [isVisible, setupChecked, loadEnvironmentVariables])
+
+  // Determine if we need the setup screen after variables load
+  useEffect(() => {
+    if (isVisible && setupChecked) {
+      const existingKey = getVariable(AGIE_API_KEY)
+      if (!existingKey) {
+        setShowSetup(true)
+      } else {
+        setShowSetup(false)
+      }
+    }
+  }, [isVisible, setupChecked, getVariable, variables])
+
+  // Reset setup state when dialog closes
+  useEffect(() => {
+    if (!isVisible) {
+      setSetupChecked(false)
+      setSetupApiKey('')
+      setSetupModel('gpt-4o')
+      setSetupSaving(false)
+    }
+  }, [isVisible])
+
+  const handleSaveSetup = useCallback(async () => {
+    if (!setupApiKey.trim()) return
+
+    setSetupSaving(true)
+    try {
+      // Get existing variables and add AGIE keys
+      const allVars = useEnvironmentStore.getState().getAllVariables()
+      const flatVars: Record<string, string> = {}
+      for (const [key, envVar] of Object.entries(allVars)) {
+        flatVars[key] = envVar.value
+      }
+      flatVars[AGIE_API_KEY] = setupApiKey.trim()
+      flatVars[AGIE_MODEL] = setupModel
+
+      await useEnvironmentStore.getState().saveEnvironmentVariables(flatVars)
+      await loadEnvironmentVariables()
+      setShowSetup(false)
+    } finally {
+      setSetupSaving(false)
+    }
+  }, [setupApiKey, setupModel, loadEnvironmentVariables])
 
   // Handle the fade-out animation
   const handleCancel = () => {
@@ -140,86 +225,194 @@ export function WandPromptBar({
                 </Tooltip>
               </TooltipProvider>
               <span className='font-medium text-foreground text-sm leading-none'>
-                {isStreaming ? 'Generating Content...' : 'Agie - AI Content Generator'}
+                {showSetup
+                  ? 'Agie - Setup'
+                  : isStreaming
+                    ? 'Generating Content...'
+                    : 'Agie - AI Content Generator'}
               </span>
             </div>
-            <Button
-              variant='ghost'
-              size='icon'
-              onClick={handleCancel}
-              className='h-8 w-8 text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-            >
-              <XIcon className='h-4 w-4' />
-            </Button>
+            <div className='flex items-center gap-1'>
+              {!showSetup && !isStreaming && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        onClick={() => {
+                          const existingKey = getVariable(AGIE_API_KEY)
+                          const existingModel = getVariable(AGIE_MODEL)
+                          if (existingKey) setSetupApiKey(existingKey)
+                          if (existingModel) setSetupModel(existingModel)
+                          setShowSetup(true)
+                        }}
+                        className='h-8 w-8 text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                      >
+                        <Settings2Icon className='h-4 w-4' />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Edit API Key & Model</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <Button
+                variant='ghost'
+                size='icon'
+                onClick={handleCancel}
+                className='h-8 w-8 text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+              >
+                <XIcon className='h-4 w-4' />
+              </Button>
+            </div>
           </div>
 
-          {/* Content */}
-          <div className='p-4'>
-            <div className='relative'>
-              <Input
-                value={isStreaming ? 'Generating amazing content...' : promptValue}
-                onChange={(e) => !isStreaming && onChange(e.target.value)}
-                placeholder={placeholder}
-                className={cn(
-                  'h-12 border-2 text-base placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-primary/20',
-                  isStreaming && 'border-primary/30 text-primary',
-                  (isLoading || isStreaming) && 'loading-placeholder'
-                )}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !isLoading && !isStreaming && promptValue.trim()) {
-                    onSubmit(promptValue)
-                  }
-                }}
-                disabled={isLoading || isStreaming}
-                autoFocus={!isStreaming}
-              />
-              {isStreaming && (
-                <div className='pointer-events-none absolute inset-0 h-full w-full overflow-hidden'>
-                  <div className='shimmer-effect' />
+          {/* Setup Screen */}
+          {showSetup ? (
+            <div className='p-4'>
+              <div className='mb-4 flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 p-3'>
+                <KeyRoundIcon className='h-5 w-5 flex-shrink-0 text-primary' />
+                <p className='text-muted-foreground text-sm'>
+                  Enter your OpenAI API key and select a model to use Agie AI. Your key will be
+                  securely stored in your Environment Variables.
+                </p>
+              </div>
+
+              <div className='space-y-4'>
+                <div>
+                  <label className='mb-1.5 block font-medium text-foreground text-sm'>
+                    API Key <span className='text-destructive'>*</span>
+                  </label>
+                  <Input
+                    type='password'
+                    value={setupApiKey}
+                    onChange={(e) => setSetupApiKey(e.target.value)}
+                    placeholder='sk-...'
+                    className='h-10 border-2 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-primary/20'
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && setupApiKey.trim()) {
+                        handleSaveSetup()
+                      }
+                    }}
+                    autoFocus
+                  />
                 </div>
-              )}
-            </div>
 
-            {/* Action Buttons */}
-            <div className='mt-4 flex justify-end gap-2'>
-              <Button
-                variant='outline'
-                onClick={handleCancel}
-                disabled={isLoading}
-                className='px-4'
-              >
-                {isStreaming ? 'Cancel' : 'Close'}
-              </Button>
+                <div>
+                  <label className='mb-1.5 block font-medium text-foreground text-sm'>Model</label>
+                  <Select value={setupModel} onValueChange={setSetupModel}>
+                    <SelectTrigger className='h-10 border-2'>
+                      <SelectValue placeholder='Select a model' />
+                    </SelectTrigger>
+                    <SelectContent className='z-[100000]'>
+                      {AVAILABLE_MODELS.map((model) => (
+                        <SelectItem key={model.value} value={model.value}>
+                          {model.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-              {!isStreaming && (
+              <div className='mt-4 flex justify-end gap-2'>
+                <Button variant='outline' onClick={handleCancel} className='px-4'>
+                  Cancel
+                </Button>
                 <Button
-                  onClick={() => onSubmit(promptValue)}
-                  disabled={isLoading || !promptValue.trim()}
+                  onClick={handleSaveSetup}
+                  disabled={setupSaving || !setupApiKey.trim()}
                   className='px-6'
                 >
-                  {isLoading ? (
+                  {setupSaving ? (
                     <>
                       <div className='mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent' />
-                      Generating...
+                      Saving...
                     </>
                   ) : (
                     <>
-                      <SendIcon className='mr-2 h-4 w-4' />
-                      Generate
+                      <KeyRoundIcon className='mr-2 h-4 w-4' />
+                      Save & Continue
                     </>
                   )}
                 </Button>
+              </div>
+
+              <p className='mt-2 text-muted-foreground text-xs'>
+                You can update your API key anytime via the <Settings2Icon className='inline h-3 w-3' /> icon or in Settings → Environment Variables.
+              </p>
+            </div>
+          ) : (
+            /* Prompt Content */
+            <div className='p-4'>
+              <div className='relative'>
+                <Input
+                  value={isStreaming ? 'Generating amazing content...' : promptValue}
+                  onChange={(e) => !isStreaming && onChange(e.target.value)}
+                  placeholder={placeholder}
+                  className={cn(
+                    'h-12 border-2 text-base placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-primary/20',
+                    isStreaming && 'border-primary/30 text-primary',
+                    (isLoading || isStreaming) && 'loading-placeholder'
+                  )}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !isLoading && !isStreaming && promptValue.trim()) {
+                      onSubmit(promptValue)
+                    }
+                  }}
+                  disabled={isLoading || isStreaming}
+                  autoFocus={!isStreaming}
+                />
+                {isStreaming && (
+                  <div className='pointer-events-none absolute inset-0 h-full w-full overflow-hidden'>
+                    <div className='shimmer-effect' />
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className='mt-4 flex justify-end gap-2'>
+                <Button
+                  variant='outline'
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                  className='px-4'
+                >
+                  {isStreaming ? 'Cancel' : 'Close'}
+                </Button>
+
+                {!isStreaming && (
+                  <Button
+                    onClick={() => onSubmit(promptValue)}
+                    disabled={isLoading || !promptValue.trim()}
+                    className='px-6'
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className='mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent' />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <SendIcon className='mr-2 h-4 w-4' />
+                        Generate
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              {/* Helper Text */}
+              {!isStreaming && (
+                <p className='mt-2 text-muted-foreground text-xs'>
+                  Press <kbd className='bg-muted px-1 py-0.5 text-xs'>Enter</kbd> to generate or{' '}
+                  <kbd className='bg-muted px-1 py-0.5 text-xs'>Esc</kbd> to close
+                </p>
               )}
             </div>
-
-            {/* Helper Text */}
-            {!isStreaming && (
-              <p className='mt-2 text-muted-foreground text-xs'>
-                Press <kbd className='bg-muted px-1 py-0.5 text-xs'>Enter</kbd> to generate or{' '}
-                <kbd className='bg-muted px-1 py-0.5 text-xs'>Esc</kbd> to close
-              </p>
-            )}
-          </div>
+          )}
         </div>
       </div>
 

@@ -89,6 +89,7 @@
         "@types/three": "0.177.0",
         "@vercel/og": "^0.6.5",
         "@vercel/speed-insights": "^1.2.0",
+        "@xyflow/react": "12.10.2",
         "ai": "^4.3.2",
         "better-auth": "^1.2.9",
         "browser-image-compression": "^2.0.2",
@@ -106,6 +107,7 @@
         "fuse.js": "7.1.0",
         "geist": "1.4.2",
         "groq-sdk": "^0.15.0",
+        "gsap": "3.14.2",
         "input-otp": "^1.4.2",
         "ioredis": "^5.6.0",
         "jose": "6.0.11",
@@ -2160,6 +2162,8 @@
     "graphql": ["graphql@15.10.1", "", {}, "sha512-BL/Xd/T9baO6NFzoMpiMD7YUZ62R6viR5tp/MULVEnbYJXZA//kRNW7J0j1w/wXArgL0sCxhDfK5dczSKn3+cg=="],
 
     "groq-sdk": ["groq-sdk@0.15.0", "", { "dependencies": { "@types/node": "^18.11.18", "@types/node-fetch": "^2.6.4", "abort-controller": "^3.0.0", "agentkeepalive": "^4.2.1", "form-data-encoder": "1.7.2", "formdata-node": "^4.3.2", "node-fetch": "^2.6.7" } }, "sha512-aYDEdr4qczx3cLCRRe+Beb37I7g/9bD5kHF+EEDxcrREWw1vKoRcfP3vHEkJB7Ud/8oOuF0scRwDpwWostTWuQ=="],
+
+    "gsap": ["gsap@3.14.2", "", {}, "sha512-P8/mMxVLU7o4+55+1TCnQrPmgjPKnwkzkXOK1asnR9Jg2lna4tEY5qBJjMmAaOBDDZWtlRjBXjLa0w53G/uBLA=="],
 
     "gtoken": ["gtoken@8.0.0", "", { "dependencies": { "gaxios": "^7.0.0", "jws": "^4.0.0" } }, "sha512-+CqsMbHPiSTdtSO14O51eMNlrp9N79gmeqmXeouJOhfucAedHw9noVe/n5uJk3tbKE6a+6ZCQg3RPhVhHByAIw=="],
 
