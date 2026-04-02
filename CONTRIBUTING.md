@@ -168,6 +168,12 @@ Be respectful, inclusive, and constructive. We're building something together.
 - Open a [GitHub Discussion](https://github.com/manu14357/Zelaxy/discussions)
 - Check the [Documentation](https://docs.zelaxy.in)
 
+## 💖 Support the Project
+
+If you enjoy using Zelaxy, consider [sponsoring the project](https://github.com/sponsors/manu14357). Sponsorships help sustain development, cover infrastructure costs, and keep Zelaxy free and open source.
+
+Every contribution makes a difference — from $5/mo backers to enterprise sponsors. See our [sponsorship tiers](https://docs.zelaxy.in/docs/sponsors) for details.
+
 ---
 
 Thank you for helping make Zelaxy better!

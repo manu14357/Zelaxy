@@ -13,6 +13,7 @@ import { registerStatusCommand } from './commands/status.js'
 import { registerTemplateCommands } from './commands/templates.js'
 import { registerToolsCommands } from './commands/tools.js'
 import { registerWebhookCommands } from './commands/webhooks.js'
+import { registerSponsorCommands } from './commands/sponsors.js'
 import { registerWorkflowCommands } from './commands/workflows.js'
 
 const program = new Command()
@@ -35,5 +36,6 @@ registerOrgCommands(program)
 registerKeyCommands(program)
 registerTemplateCommands(program)
 registerStatusCommand(program)
+registerSponsorCommands(program)
 
 program.parse()
