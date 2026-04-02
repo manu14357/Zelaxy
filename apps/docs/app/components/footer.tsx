@@ -15,7 +15,7 @@ const footerLinks = {
     { name: 'Home', href: 'https://zelaxy.in', external: true },
     { name: 'Blocks Library', href: '/docs/blocks' },
     { name: 'Tools', href: '/docs/tools' },
-    { name: 'Triggers', href: '/docs/triggers' },
+    { name: '❤️ Sponsor', href: 'https://github.com/sponsors/manu14357', external: true },
   ],
   Legal: [
     { name: 'Privacy Policy', href: 'https://zelaxy.in/privacy', external: true },
@@ -41,12 +41,12 @@ function LinkedInIcon({ className }: { className?: string }) {
 
 export function DocsFooter() {
   return (
-    <footer className='mt-12 border-fd-border border-t bg-fd-background'>
-      <div className='px-6 sm:px-8'>
+    <footer className='relative z-10 mt-12 border-fd-border border-t bg-fd-background'>
+      <div className='mx-auto w-full max-w-[var(--fd-page-width)] px-4 sm:px-6 xl:pe-[calc(var(--fd-toc-width)+1rem)]'>
         {/* Main footer content */}
-        <div className='grid grid-cols-1 gap-x-8 gap-y-10 pt-12 pb-10 sm:grid-cols-2 lg:grid-cols-4'>
+        <div className='grid grid-cols-2 gap-x-6 gap-y-8 pt-10 pb-8 sm:grid-cols-3 md:grid-cols-4'>
           {/* Brand column */}
-          <div className='sm:col-span-2 lg:col-span-1'>
+          <div className='col-span-2 sm:col-span-3 md:col-span-1'>
             <Link href='/docs' className='inline-flex items-center gap-2.5'>
               <img
                 src='https://zelaxy.in/Zelaxy.png'
@@ -73,7 +73,7 @@ export function DocsFooter() {
             </p>
 
             {/* Social icons */}
-            <div className='mt-5 flex items-center gap-4'>
+            <div className='mt-4 flex items-center gap-4'>
               <a
                 href='https://github.com/manu14357/Zelaxy'
                 target='_blank'
@@ -131,11 +131,11 @@ export function DocsFooter() {
 
       {/* Bottom bar */}
       <div className='border-fd-border border-t'>
-        <div className='flex flex-col items-center justify-between gap-3 px-6 py-5 sm:flex-row sm:px-8'>
+        <div className='mx-auto flex w-full max-w-[var(--fd-page-width)] flex-col items-center justify-between gap-2 px-4 py-4 sm:flex-row sm:px-6 xl:pe-[calc(var(--fd-toc-width)+1rem)]'>
           <span className='text-[12px] text-fd-muted-foreground'>
             © {new Date().getFullYear()} Zelaxy. All rights reserved.
           </span>
-          <div className='flex items-center gap-5'>
+          <div className='flex flex-wrap items-center justify-center gap-4'>
             <a
               href='https://zelaxy.in/privacy'
               target='_blank'
