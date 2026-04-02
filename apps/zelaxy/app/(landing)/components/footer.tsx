@@ -9,6 +9,7 @@ const footerLinks = {
     { name: 'Blocks Library', href: '/#blocks' },
     { name: 'Features', href: '/#features' },
     { name: 'Self-Host', href: `${getDocsUrl()}/deployment` },
+    { name: '❤️ Sponsor', href: 'https://github.com/sponsors/manu14357' },
   ],
   Resources: [
     { name: 'Documentation', href: getDocsUrl() },
@@ -136,6 +137,25 @@ export function Footer() {
           >
             Zelaxy
           </span>
+        </div>
+      </div>
+
+      {/* Sponsor banner */}
+      <div className='border-white/[0.04] border-t'>
+        <div className='mx-auto flex max-w-6xl flex-col items-center gap-3 px-6 py-8 text-center sm:px-8'>
+          <span className='text-lg'>❤️</span>
+          <p className='max-w-lg text-[13.5px] text-neutral-400 leading-relaxed'>
+            Help us reach full-time open source — I&apos;ll be able to quit my job and work on
+            Zelaxy and other projects full time!
+          </p>
+          <a
+            href='https://github.com/sponsors/manu14357'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='mt-1 inline-flex items-center gap-2 rounded-lg border border-pink-500/20 bg-pink-500/10 px-4 py-2 text-[13px] font-medium text-pink-300 transition-colors hover:border-pink-500/30 hover:bg-pink-500/15'
+          >
+            Become a Sponsor
+          </a>
         </div>
       </div>
 

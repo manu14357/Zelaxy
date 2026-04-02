@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Heart,
   History,
   LayoutDashboard,
   Plus,
@@ -1331,6 +1332,32 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
               <TooltipContent side='right'>
                 <div className='font-medium'>Documentation</div>
                 <div className='text-muted-foreground text-xs'>View guides &amp; references</div>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href='https://github.com/sponsors/manu14357'
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className={cn(
+                    'relative flex w-full items-center rounded-lg transition-all duration-150',
+                    'text-pink-400 hover:bg-pink-500/10 hover:text-pink-300',
+                    activePanel || isCollapsed
+                      ? 'h-10 justify-center'
+                      : 'h-10 justify-start gap-3 px-3'
+                  )}
+                >
+                  <Heart className='h-[18px] w-[18px] flex-shrink-0' />
+                  {!activePanel && !isCollapsed && (
+                    <span className='truncate font-medium text-[13px]'>Sponsors</span>
+                  )}
+                </a>
+              </TooltipTrigger>
+              <TooltipContent side='right'>
+                <div className='font-medium'>Sponsor Zelaxy</div>
+                <div className='text-muted-foreground text-xs'>Support open-source development</div>
               </TooltipContent>
             </Tooltip>
 

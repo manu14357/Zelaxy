@@ -17,6 +17,7 @@
 <p align="center">
   <a href="https://github.com/manu14357/Zelaxy/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
   <a href="https://github.com/manu14357/Zelaxy/stargazers"><img src="https://img.shields.io/github/stars/manu14357/Zelaxy?style=social" alt="GitHub Stars" /></a>
+  <a href="https://github.com/sponsors/manu14357"><img src="https://img.shields.io/badge/sponsor-❤-ea4aaa.svg" alt="Sponsor Zelaxy" /></a>
 </p>
 
 ---
@@ -203,6 +204,39 @@ Zelaxy/
 
 ---
 
+## Sponsors
+
+Zelaxy is free and open source. Sponsors help sustain development and keep the project growing.
+
+<p align="center">
+  <a href="https://github.com/sponsors/manu14357"><img src="https://img.shields.io/badge/Sponsor%20Zelaxy-%E2%9D%A4-ea4aaa?style=for-the-badge&logo=github-sponsors" alt="Sponsor Zelaxy" /></a>
+</p>
+
+### Sponsorship Tiers
+
+| Tier | $/mo | Perks |
+|------|------|-------|
+| 💎 **Diamond** | $1,000 | Co-branding + 1:1 monthly call + all perks below |
+| 🏆 **Platinum** | $500 | Custom block icon in arena + all perks below |
+| 🥇 **Gold** | $250 | Large logo everywhere + priority issue support |
+| 🥈 **Silver** | $100 | Logo on README, website, docs + early feature access |
+| 🥉 **Bronze** | $50 | Logo on README, website, and docs |
+| 🙌 **Supporter** | $15 | Name + link on README, website, and docs |
+| 💜 **Backer** | $5 | Name on README + website |
+
+### 🎯 Goal: $5,000/mo
+
+Help us reach full-time open source — I'll be able to quit my job and work on Zelaxy and other projects full time!
+
+<!-- SPONSORS:START -->
+<!-- Add your sponsors here — they'll appear automatically when you have sponsors -->
+<p align="center">
+  <em>Your logo here — <a href="https://github.com/sponsors/manu14357">become a sponsor</a></em>
+</p>
+<!-- SPONSORS:END -->
+
+---
+
 ## Contributing
 
 We welcome contributions. See how to get started:
@@ -218,6 +252,16 @@ We welcome contributions. See how to get started:
 ## License
 
 MIT © 2025 Zelaxy
+
+---
+
+## 💖 Support the Project
+
+If Zelaxy helps you build better workflows, consider [sponsoring the project](https://github.com/sponsors/manu14357). Every contribution — from $5/mo backers to enterprise sponsors — helps sustain open-source development.
+
+<p align="center">
+  <a href="https://github.com/sponsors/manu14357"><img src="https://img.shields.io/badge/Sponsor%20on%20GitHub-%E2%9D%A4-ea4aaa?style=for-the-badge&logo=github-sponsors" alt="Sponsor" /></a>
+</p>
 
 ---
 
