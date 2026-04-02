@@ -9,11 +9,11 @@ import { registerKnowledgeCommands } from './commands/knowledge.js'
 import { registerMcpCommands } from './commands/mcp.js'
 import { registerOrgCommands } from './commands/orgs.js'
 import { registerScheduleCommands } from './commands/schedules.js'
+import { registerSponsorCommands } from './commands/sponsors.js'
 import { registerStatusCommand } from './commands/status.js'
 import { registerTemplateCommands } from './commands/templates.js'
 import { registerToolsCommands } from './commands/tools.js'
 import { registerWebhookCommands } from './commands/webhooks.js'
-import { registerSponsorCommands } from './commands/sponsors.js'
 import { registerWorkflowCommands } from './commands/workflows.js'
 
 const program = new Command()

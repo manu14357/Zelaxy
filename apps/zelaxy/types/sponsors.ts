@@ -35,30 +35,19 @@ export const SPONSOR_TIERS: Record<
     label: 'Diamond',
     minAmount: 1000,
     color: '#b9f2ff',
-    perks: [
-      'Co-branding opportunity',
-      '1:1 monthly call',
-      'All lower-tier perks',
-    ],
+    perks: ['Co-branding opportunity', '1:1 monthly call', 'All lower-tier perks'],
   },
   platinum: {
     label: 'Platinum',
     minAmount: 500,
     color: '#e5e4e2',
-    perks: [
-      'Custom block icon in arena',
-      'All lower-tier perks',
-    ],
+    perks: ['Custom block icon in arena', 'All lower-tier perks'],
   },
   gold: {
     label: 'Gold',
     minAmount: 250,
     color: '#ffd700',
-    perks: [
-      'Large logo everywhere',
-      'Priority issue support',
-      'All lower-tier perks',
-    ],
+    perks: ['Large logo everywhere', 'Priority issue support', 'All lower-tier perks'],
   },
   silver: {
     label: 'Silver',

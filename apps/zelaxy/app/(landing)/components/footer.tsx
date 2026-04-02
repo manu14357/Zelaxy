@@ -152,7 +152,7 @@ export function Footer() {
             href='https://github.com/sponsors/manu14357'
             target='_blank'
             rel='noopener noreferrer'
-            className='mt-1 inline-flex items-center gap-2 rounded-lg border border-pink-500/20 bg-pink-500/10 px-4 py-2 text-[13px] font-medium text-pink-300 transition-colors hover:border-pink-500/30 hover:bg-pink-500/15'
+            className='mt-1 inline-flex items-center gap-2 rounded-lg border border-pink-500/20 bg-pink-500/10 px-4 py-2 font-medium text-[13px] text-pink-300 transition-colors hover:border-pink-500/30 hover:bg-pink-500/15'
           >
             Become a Sponsor
           </a>

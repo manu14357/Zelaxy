@@ -282,10 +282,14 @@ export function WandPromptBar({
 
               <div className='space-y-4'>
                 <div>
-                  <label className='mb-1.5 block font-medium text-foreground text-sm'>
+                  <label
+                    htmlFor='agie-api-key'
+                    className='mb-1.5 block font-medium text-foreground text-sm'
+                  >
                     API Key <span className='text-destructive'>*</span>
                   </label>
                   <Input
+                    id='agie-api-key'
                     type='password'
                     value={setupApiKey}
                     onChange={(e) => setSetupApiKey(e.target.value)}
@@ -301,9 +305,14 @@ export function WandPromptBar({
                 </div>
 
                 <div>
-                  <label className='mb-1.5 block font-medium text-foreground text-sm'>Model</label>
+                  <label
+                    htmlFor='agie-model'
+                    className='mb-1.5 block font-medium text-foreground text-sm'
+                  >
+                    Model
+                  </label>
                   <Select value={setupModel} onValueChange={setSetupModel}>
-                    <SelectTrigger className='h-10 border-2'>
+                    <SelectTrigger id='agie-model' className='h-10 border-2'>
                       <SelectValue placeholder='Select a model' />
                     </SelectTrigger>
                     <SelectContent className='z-[100000]'>
@@ -341,7 +350,9 @@ export function WandPromptBar({
               </div>
 
               <p className='mt-2 text-muted-foreground text-xs'>
-                You can update your API key anytime via the <Settings2Icon className='inline h-3 w-3' /> icon or in Settings → Environment Variables.
+                You can update your API key anytime via the{' '}
+                <Settings2Icon className='inline h-3 w-3' /> icon or in Settings → Environment
+                Variables.
               </p>
             </div>
           ) : (
