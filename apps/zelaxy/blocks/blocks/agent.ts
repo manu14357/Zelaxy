@@ -179,7 +179,7 @@ export const AgentBlock: BlockConfig<AgentResponse> = {
     'Create next-generation AI agents with advanced reasoning, multi-modal capabilities, adaptive learning, performance monitoring, and enterprise-grade security features. Supports all major LLM providers with intelligent fallback systems.',
   docsLink: 'https://docs.zelaxy.dev/blocks/advanced-agent',
   category: 'blocks',
-  bgColor: '#F97316',
+  bgColor: '#FFFFFF',
   icon: AgentIcon,
   subBlocks: [
     {

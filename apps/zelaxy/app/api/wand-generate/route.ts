@@ -25,11 +25,19 @@ interface ChatMessage {
   content: string
 }
 
+const ALLOWED_MODELS = [
+  'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano',
+  'gpt-4o', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano',
+  'o4-mini', 'o3',
+] as const
+
 interface RequestBody {
   prompt: string
   systemPrompt?: string
   stream?: boolean
   history?: ChatMessage[]
+  apiKey?: string
+  model?: string
 }
 
 // The endpoint is now generic - system prompts come from wand configs
@@ -38,19 +46,32 @@ export async function POST(req: NextRequest) {
   const requestId = crypto.randomUUID().slice(0, 8)
   logger.info(`[${requestId}] Received wand generation request`)
 
-  if (!openai) {
-    logger.error(`[${requestId}] OpenAI client not initialized. Missing API key.`)
-    return NextResponse.json(
-      { success: false, error: 'Wand generation service is not configured.' },
-      { status: 503 }
-    )
-  }
-
   try {
     noStore()
     const body = (await req.json()) as RequestBody
 
-    const { prompt, systemPrompt, stream = false, history = [] } = body
+    const { prompt, systemPrompt, stream = false, history = [], apiKey, model } = body
+
+    // Determine which OpenAI client to use: user-provided key or server default
+    let client: OpenAI | null = null
+    if (apiKey) {
+      client = new OpenAI({ apiKey })
+    } else if (openai) {
+      client = openai
+    }
+
+    if (!client) {
+      logger.error(`[${requestId}] No API key available. Neither user key nor server key configured.`)
+      return NextResponse.json(
+        { success: false, error: 'No API key configured. Please set up your API key in Agie settings.' },
+        { status: 503 }
+      )
+    }
+
+    // Validate and select model
+    const selectedModel = model && ALLOWED_MODELS.includes(model as (typeof ALLOWED_MODELS)[number])
+      ? model
+      : 'gpt-4o'
 
     if (!prompt) {
       logger.warn(`[${requestId}] Invalid request: Missing prompt.`)
@@ -82,8 +103,8 @@ export async function POST(req: NextRequest) {
     // For streaming responses
     if (stream) {
       try {
-        const streamCompletion = await openai?.chat.completions.create({
-          model: 'gpt-4o',
+        const streamCompletion = await client.chat.completions.create({
+          model: selectedModel,
           messages: messages,
           temperature: 0.3,
           max_tokens: 10000,
@@ -141,8 +162,8 @@ export async function POST(req: NextRequest) {
     }
 
     // For non-streaming responses
-    const completion = await openai?.chat.completions.create({
-      model: 'gpt-4o',
+    const completion = await client.chat.completions.create({
+      model: selectedModel,
       messages: messages,
       temperature: 0.3,
       max_tokens: 10000,

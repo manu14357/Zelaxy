@@ -6,6 +6,9 @@ import Image from 'next/image'
 import type { Sponsor, SponsorsByTier } from '@/types/sponsors'
 import { GITHUB_SPONSORS_URL, SPONSORS_GOAL_AMOUNT, SPONSOR_TIERS } from '@/types/sponsors'
 
+/** Toggle to show/hide the Sponsorship Tiers table on the landing page */
+const SHOW_SPONSORSHIP_TIERS = false
+
 interface SponsorsData {
   sponsors: Sponsor[]
   byTier: SponsorsByTier
@@ -214,6 +217,7 @@ export function SponsorsSection() {
         )}
 
         {/* Sponsor Tiers Table */}
+        {SHOW_SPONSORSHIP_TIERS && (
         <div
           className={`mb-16 transition-all delay-400 duration-1000 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
@@ -254,6 +258,7 @@ export function SponsorsSection() {
             })}
           </div>
         </div>
+        )}
 
         {/* CTA */}
         <div
