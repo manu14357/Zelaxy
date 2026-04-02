@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Heart, Sparkles } from 'lucide-react'
 import Image from 'next/image'
 import type { Sponsor, SponsorsByTier } from '@/types/sponsors'
-import { GITHUB_SPONSORS_URL, SPONSORS_GOAL_AMOUNT, SPONSOR_TIERS } from '@/types/sponsors'
+import { GITHUB_SPONSORS_URL, SPONSOR_TIERS, SPONSORS_GOAL_AMOUNT } from '@/types/sponsors'
 
 /** Toggle to show/hide the Sponsorship Tiers table on the landing page */
 const SHOW_SPONSORSHIP_TIERS = false
@@ -85,7 +85,7 @@ export function SponsorsSection() {
           <div className='rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6'>
             <div className='mb-3 flex items-center justify-between'>
               <span className='font-medium text-sm text-white'>Monthly Goal</span>
-              <span className='font-mono text-sm text-neutral-400'>
+              <span className='font-mono text-neutral-400 text-sm'>
                 ${totalMonthly.toLocaleString()} / ${SPONSORS_GOAL_AMOUNT.toLocaleString()}
               </span>
             </div>
@@ -115,7 +115,7 @@ export function SponsorsSection() {
               <div className='text-center'>
                 <div className='mb-6 flex items-center justify-center gap-2'>
                   <Sparkles className='h-4 w-4 text-amber-400' />
-                  <span className='font-semibold text-sm text-neutral-300 uppercase tracking-wider'>
+                  <span className='font-semibold text-neutral-300 text-sm uppercase tracking-wider'>
                     Premium Sponsors
                   </span>
                 </div>
@@ -135,7 +135,7 @@ export function SponsorsSection() {
                     className='inline-block h-2 w-2 rounded-full'
                     style={{ backgroundColor: SPONSOR_TIERS.gold.color }}
                   />
-                  <span className='font-medium text-xs text-neutral-400 uppercase tracking-wider'>
+                  <span className='font-medium text-neutral-400 text-xs uppercase tracking-wider'>
                     Gold Sponsors
                   </span>
                 </div>
@@ -152,7 +152,7 @@ export function SponsorsSection() {
               <div className='text-center'>
                 <div className='mb-4 flex items-center justify-center gap-2'>
                   <span className='inline-block h-2 w-2 rounded-full bg-neutral-400' />
-                  <span className='font-medium text-xs text-neutral-400 uppercase tracking-wider'>
+                  <span className='font-medium text-neutral-400 text-xs uppercase tracking-wider'>
                     Sponsors
                   </span>
                 </div>
@@ -169,7 +169,7 @@ export function SponsorsSection() {
               <div className='text-center'>
                 <div className='mb-4 flex items-center justify-center gap-2'>
                   <Heart className='h-3 w-3 text-pink-400' />
-                  <span className='font-medium text-xs text-neutral-400 uppercase tracking-wider'>
+                  <span className='font-medium text-neutral-400 text-xs uppercase tracking-wider'>
                     Backers & Supporters
                   </span>
                 </div>
@@ -206,10 +206,10 @@ export function SponsorsSection() {
               isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
             }`}
           >
-            <div className='mx-auto max-w-md rounded-2xl border border-dashed border-white/10 p-12'>
+            <div className='mx-auto max-w-md rounded-2xl border border-white/10 border-dashed p-12'>
               <Heart className='mx-auto mb-4 h-10 w-10 text-neutral-600' />
               <p className='mb-2 font-medium text-neutral-300'>Be the first sponsor</p>
-              <p className='text-sm text-neutral-500'>
+              <p className='text-neutral-500 text-sm'>
                 Your logo and name will appear here. Support open-source AI workflow automation.
               </p>
             </div>
@@ -218,46 +218,51 @@ export function SponsorsSection() {
 
         {/* Sponsor Tiers Table */}
         {SHOW_SPONSORSHIP_TIERS && (
-        <div
-          className={`mb-16 transition-all delay-400 duration-1000 ${
-            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-          }`}
-        >
-          <h3 className='mb-8 text-center font-semibold text-2xl text-white'>Sponsorship Tiers</h3>
-          <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-            {(
-              ['diamond', 'platinum', 'gold', 'silver', 'bronze', 'supporter', 'backer'] as const
-            ).map((tier) => {
-              const config = SPONSOR_TIERS[tier]
-              return (
-                <div
-                  key={tier}
-                  className='group rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]'
-                >
-                  <div className='mb-3 flex items-center gap-2'>
-                    <span
-                      className='inline-block h-2.5 w-2.5 rounded-full'
-                      style={{ backgroundColor: config.color }}
-                    />
-                    <span className='font-semibold text-sm text-white'>{config.label}</span>
+          <div
+            className={`mb-16 transition-all delay-400 duration-1000 ${
+              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            }`}
+          >
+            <h3 className='mb-8 text-center font-semibold text-2xl text-white'>
+              Sponsorship Tiers
+            </h3>
+            <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+              {(
+                ['diamond', 'platinum', 'gold', 'silver', 'bronze', 'supporter', 'backer'] as const
+              ).map((tier) => {
+                const config = SPONSOR_TIERS[tier]
+                return (
+                  <div
+                    key={tier}
+                    className='group rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]'
+                  >
+                    <div className='mb-3 flex items-center gap-2'>
+                      <span
+                        className='inline-block h-2.5 w-2.5 rounded-full'
+                        style={{ backgroundColor: config.color }}
+                      />
+                      <span className='font-semibold text-sm text-white'>{config.label}</span>
+                    </div>
+                    <div className='mb-3 font-mono text-2xl text-white'>
+                      ${config.minAmount}
+                      <span className='text-neutral-500 text-sm'>/mo</span>
+                    </div>
+                    <ul className='space-y-1.5'>
+                      {config.perks.map((perk) => (
+                        <li
+                          key={perk}
+                          className='flex items-start gap-2 text-[13px] text-neutral-400'
+                        >
+                          <span className='mt-1.5 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-neutral-600' />
+                          {perk}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <div className='mb-3 font-mono text-2xl text-white'>
-                    ${config.minAmount}
-                    <span className='text-neutral-500 text-sm'>/mo</span>
-                  </div>
-                  <ul className='space-y-1.5'>
-                    {config.perks.map((perk) => (
-                      <li key={perk} className='flex items-start gap-2 text-[13px] text-neutral-400'>
-                        <span className='mt-1.5 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-neutral-600' />
-                        {perk}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
-        </div>
         )}
 
         {/* CTA */}
@@ -270,7 +275,7 @@ export function SponsorsSection() {
             href={GITHUB_SPONSORS_URL}
             target='_blank'
             rel='noopener noreferrer'
-            className='group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 to-orange-500 px-8 py-3.5 font-semibold text-white shadow-lg shadow-pink-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/30'
+            className='group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 to-orange-500 px-8 py-3.5 font-semibold text-white shadow-lg shadow-pink-500/20 transition-all duration-300 hover:shadow-pink-500/30 hover:shadow-xl'
           >
             <Heart className='h-4 w-4 fill-white' />
             Become a Sponsor
@@ -285,21 +290,13 @@ export function SponsorsSection() {
   )
 }
 
-function SponsorCard({
-  sponsor,
-  size,
-}: {
-  sponsor: Sponsor
-  size: 'lg' | 'md' | 'sm'
-}) {
+function SponsorCard({ sponsor, size }: { sponsor: Sponsor; size: 'lg' | 'md' | 'sm' }) {
   const imgSize = size === 'lg' ? 80 : size === 'md' ? 56 : 40
   const tierConfig = SPONSOR_TIERS[sponsor.tier]
 
   return (
     <a
-      href={
-        sponsor.websiteUrl || `https://github.com/${encodeURIComponent(sponsor.login)}`
-      }
+      href={sponsor.websiteUrl || `https://github.com/${encodeURIComponent(sponsor.login)}`}
       target='_blank'
       rel='noopener noreferrer'
       className='group flex flex-col items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]'

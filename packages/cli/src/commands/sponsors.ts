@@ -103,15 +103,19 @@ export function registerSponsorCommands(program: Command): void {
 
         // Sort by amount descending
         const sorted = [...nodes].sort(
-          (a: { tier: { monthlyPriceInDollars: number } }, b: { tier: { monthlyPriceInDollars: number } }) =>
-            b.tier.monthlyPriceInDollars - a.tier.monthlyPriceInDollars
+          (
+            a: { tier: { monthlyPriceInDollars: number } },
+            b: { tier: { monthlyPriceInDollars: number } }
+          ) => b.tier.monthlyPriceInDollars - a.tier.monthlyPriceInDollars
         )
 
         for (const node of sorted) {
           const amount = node.tier.monthlyPriceInDollars
           const name = node.sponsorEntity.name || node.sponsorEntity.login
           const { label, color } = getTierLabel(amount)
-          console.log(`  ${color(`[${label}]`)} ${chalk.white(name)} ${chalk.gray(`$${amount}/mo`)}`)
+          console.log(
+            `  ${color(`[${label}]`)} ${chalk.white(name)} ${chalk.gray(`$${amount}/mo`)}`
+          )
         }
 
         console.log()
@@ -136,7 +140,9 @@ export function registerSponsorCommands(program: Command): void {
 
       console.log(chalk.bold('  Sponsorship Tiers:\n'))
       for (const tier of TIERS) {
-        console.log(`  ${tier.color(`${tier.label.padEnd(12)}`)} ${chalk.gray(`$${tier.minAmount}+/mo`)}`)
+        console.log(
+          `  ${tier.color(`${tier.label.padEnd(12)}`)} ${chalk.gray(`$${tier.minAmount}+/mo`)}`
+        )
       }
 
       console.log()
@@ -153,7 +159,9 @@ export function registerSponsorCommands(program: Command): void {
       try {
         const token = process.env.GITHUB_TOKEN
         if (!token) {
-          console.log(`  Goal: ${chalk.white(`$${GOAL_AMOUNT}/mo`)} — Full-time open source & more projects`)
+          console.log(
+            `  Goal: ${chalk.white(`$${GOAL_AMOUNT}/mo`)} — Full-time open source & more projects`
+          )
           console.log(`  ${progressBar(0, GOAL_AMOUNT)}`)
           console.log()
           info('Set GITHUB_TOKEN to see live progress.')
@@ -184,7 +192,9 @@ export function registerSponsorCommands(program: Command): void {
         })
 
         if (!res.ok) {
-          console.log(`  Goal: ${chalk.white(`$${GOAL_AMOUNT}/mo`)} — Full-time open source & more projects`)
+          console.log(
+            `  Goal: ${chalk.white(`$${GOAL_AMOUNT}/mo`)} — Full-time open source & more projects`
+          )
           console.log(`  ${progressBar(0, GOAL_AMOUNT)}`)
           console.log()
           info(`View at: ${chalk.underline(SPONSORS_URL)}`)
@@ -200,8 +210,12 @@ export function registerSponsorCommands(program: Command): void {
           0
         )
 
-        console.log(`  Goal: ${chalk.white(`$${GOAL_AMOUNT}/mo`)} — Full-time open source & more projects`)
-        console.log(`  Current: ${chalk.green(`$${total}/mo`)} from ${nodes.length} sponsor${nodes.length === 1 ? '' : 's'}`)
+        console.log(
+          `  Goal: ${chalk.white(`$${GOAL_AMOUNT}/mo`)} — Full-time open source & more projects`
+        )
+        console.log(
+          `  Current: ${chalk.green(`$${total}/mo`)} from ${nodes.length} sponsor${nodes.length === 1 ? '' : 's'}`
+        )
         console.log(`  ${progressBar(total, GOAL_AMOUNT)}`)
 
         if (total < GOAL_AMOUNT) {
@@ -212,7 +226,9 @@ export function registerSponsorCommands(program: Command): void {
           console.log(`  ${chalk.green('✓ Goal reached! Thank you to all sponsors!')}`)
         }
       } catch {
-        console.log(`  Goal: ${chalk.white(`$${GOAL_AMOUNT}/mo`)} — Full-time open source & more projects`)
+        console.log(
+          `  Goal: ${chalk.white(`$${GOAL_AMOUNT}/mo`)} — Full-time open source & more projects`
+        )
         console.log(`  ${progressBar(0, GOAL_AMOUNT)}`)
         info('Could not fetch live data.')
       }

@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { createLogger } from '@/lib/logs/console/logger'
-import { useEnvironmentStore } from '@/stores/settings/environment/store'
 import type { GenerationType } from '@/blocks/types'
+import { useEnvironmentStore } from '@/stores/settings/environment/store'
 
 const logger = createLogger('useWand')
 

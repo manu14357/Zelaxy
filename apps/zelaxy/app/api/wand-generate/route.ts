@@ -26,9 +26,15 @@ interface ChatMessage {
 }
 
 const ALLOWED_MODELS = [
-  'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano',
-  'gpt-4o', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano',
-  'o4-mini', 'o3',
+  'gpt-5.4',
+  'gpt-5.4-mini',
+  'gpt-5.4-nano',
+  'gpt-4o',
+  'gpt-4.1',
+  'gpt-4.1-mini',
+  'gpt-4.1-nano',
+  'o4-mini',
+  'o3',
 ] as const
 
 interface RequestBody {
@@ -61,17 +67,21 @@ export async function POST(req: NextRequest) {
     }
 
     if (!client) {
-      logger.error(`[${requestId}] No API key available. Neither user key nor server key configured.`)
+      logger.error(
+        `[${requestId}] No API key available. Neither user key nor server key configured.`
+      )
       return NextResponse.json(
-        { success: false, error: 'No API key configured. Please set up your API key in Agie settings.' },
+        {
+          success: false,
+          error: 'No API key configured. Please set up your API key in Agie settings.',
+        },
         { status: 503 }
       )
     }
 
     // Validate and select model
-    const selectedModel = model && ALLOWED_MODELS.includes(model as (typeof ALLOWED_MODELS)[number])
-      ? model
-      : 'gpt-4o'
+    const selectedModel =
+      model && ALLOWED_MODELS.includes(model as (typeof ALLOWED_MODELS)[number]) ? model : 'gpt-4o'
 
     if (!prompt) {
       logger.warn(`[${requestId}] Invalid request: Missing prompt.`)

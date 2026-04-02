@@ -25,9 +25,7 @@ export function SponsorBadge({ compact = false }: SponsorBadgeProps) {
       .catch(() => {})
   }, [])
 
-  const topSponsors = sponsors
-    .filter((s) => s.monthlyAmount >= 100)
-    .slice(0, 5)
+  const topSponsors = sponsors.filter((s) => s.monthlyAmount >= 100).slice(0, 5)
 
   if (compact) {
     return (
@@ -61,7 +59,7 @@ export function SponsorBadge({ compact = false }: SponsorBadgeProps) {
           <div className='fixed inset-0 z-40' onClick={() => setIsOpen(false)} />
           <div className='absolute bottom-full left-0 z-50 mb-2 w-64 rounded-xl border border-border bg-card p-4 shadow-xl'>
             <div className='mb-3 flex items-center justify-between'>
-              <span className='font-medium text-sm text-foreground'>Sponsors</span>
+              <span className='font-medium text-foreground text-sm'>Sponsors</span>
               <a
                 href={GITHUB_SPONSORS_URL}
                 target='_blank'
@@ -93,7 +91,7 @@ export function SponsorBadge({ compact = false }: SponsorBadgeProps) {
                       className='rounded-full'
                     />
                     <div className='min-w-0 flex-1'>
-                      <div className='truncate text-xs text-foreground'>{sponsor.name}</div>
+                      <div className='truncate text-foreground text-xs'>{sponsor.name}</div>
                       <div className='flex items-center gap-1'>
                         <SponsorTierIcon tier={sponsor.tier} size={10} />
                         <span
@@ -110,14 +108,12 @@ export function SponsorBadge({ compact = false }: SponsorBadgeProps) {
             ) : (
               <div className='py-3 text-center'>
                 <Heart className='mx-auto mb-2 h-6 w-6 text-neutral-600' />
-                <p className='text-xs text-muted-foreground'>
-                  No sponsors yet. Be the first!
-                </p>
+                <p className='text-muted-foreground text-xs'>No sponsors yet. Be the first!</p>
               </div>
             )}
 
             {sponsors.length > 5 && (
-              <div className='mt-2 border-t border-border pt-2 text-center'>
+              <div className='mt-2 border-border border-t pt-2 text-center'>
                 <span className='text-[11px] text-muted-foreground'>
                   +{sponsors.length - 5} more sponsors
                 </span>

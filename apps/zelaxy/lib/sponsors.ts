@@ -1,4 +1,4 @@
-import type { Sponsor, SponsorTier, SponsorsByTier } from '@/types/sponsors'
+import type { Sponsor, SponsorsByTier, SponsorTier } from '@/types/sponsors'
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql'
 const GITHUB_LOGIN = 'manu14357'

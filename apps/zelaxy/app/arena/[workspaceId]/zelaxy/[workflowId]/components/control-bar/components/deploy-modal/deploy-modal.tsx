@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Globe, Loader2, MessageSquare, Rocket, X, Zap } from 'lucide-react'
+import { Loader2, Rocket, X, Zap } from 'lucide-react'
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui'
 import { getEnv } from '@/lib/env'
 import { createLogger } from '@/lib/logs/console/logger'
@@ -429,7 +429,6 @@ export function DeployModal({
         </DialogHeader>
 
         <div className='flex flex-1 flex-col overflow-hidden'>
-
           {/* Content */}
           <div className='flex-1 overflow-y-auto'>
             <div className='p-6'>
