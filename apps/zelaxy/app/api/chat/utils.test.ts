@@ -65,43 +65,35 @@ describe('Chat API Utils', () => {
   })
 
   describe('Auth token utils', () => {
-    it(
-      'should encrypt and validate auth tokens',
-      async () => {
-        const { encryptAuthToken, validateAuthToken } = await import('@/app/api/chat/utils')
+    it('should encrypt and validate auth tokens', async () => {
+      const { encryptAuthToken, validateAuthToken } = await import('@/app/api/chat/utils')
 
-        const subdomainId = 'test-subdomain-id'
-        const type = 'password'
+      const subdomainId = 'test-subdomain-id'
+      const type = 'password'
 
-        const token = encryptAuthToken(subdomainId, type)
-        expect(typeof token).toBe('string')
-        expect(token.length).toBeGreaterThan(0)
+      const token = encryptAuthToken(subdomainId, type)
+      expect(typeof token).toBe('string')
+      expect(token.length).toBeGreaterThan(0)
 
-        const isValid = validateAuthToken(token, subdomainId)
-        expect(isValid).toBe(true)
+      const isValid = validateAuthToken(token, subdomainId)
+      expect(isValid).toBe(true)
 
-        const isInvalidSubdomain = validateAuthToken(token, 'wrong-subdomain-id')
-        expect(isInvalidSubdomain).toBe(false)
-      },
-      15000
-    )
+      const isInvalidSubdomain = validateAuthToken(token, 'wrong-subdomain-id')
+      expect(isInvalidSubdomain).toBe(false)
+    }, 15000)
 
-    it(
-      'should reject expired tokens',
-      async () => {
-        const { validateAuthToken } = await import('@/app/api/chat/utils')
+    it('should reject expired tokens', async () => {
+      const { validateAuthToken } = await import('@/app/api/chat/utils')
 
-        const subdomainId = 'test-subdomain-id'
-        // Create an expired token by directly constructing it with an old timestamp
-        const expiredToken = Buffer.from(
-          `${subdomainId}:password:${Date.now() - 25 * 60 * 60 * 1000}`
-        ).toString('base64')
+      const subdomainId = 'test-subdomain-id'
+      // Create an expired token by directly constructing it with an old timestamp
+      const expiredToken = Buffer.from(
+        `${subdomainId}:password:${Date.now() - 25 * 60 * 60 * 1000}`
+      ).toString('base64')
 
-        const isValid = validateAuthToken(expiredToken, subdomainId)
-        expect(isValid).toBe(false)
-      },
-      15000
-    )
+      const isValid = validateAuthToken(expiredToken, subdomainId)
+      expect(isValid).toBe(false)
+    }, 15000)
   })
 
   describe('Cookie handling', () => {
