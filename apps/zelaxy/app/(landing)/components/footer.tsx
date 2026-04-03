@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { getDocsUrl } from '@/lib/docs-url'
 
@@ -9,10 +10,13 @@ const footerLinks = {
     { name: 'Blocks Library', href: '/#blocks' },
     { name: 'Features', href: '/#features' },
     { name: 'Self-Host', href: `${getDocsUrl()}/deployment` },
-    { name: '❤️ Sponsor', href: 'https://github.com/sponsors/manu14357' },
+  ],
+  'Get Started': [
+    { name: 'Create Free Account', href: '/signup' },
+    { name: 'Sign In', href: '/login' },
+    { name: 'Documentation', href: getDocsUrl() },
   ],
   Resources: [
-    { name: 'Documentation', href: getDocsUrl() },
     { name: 'GitHub', href: 'https://github.com/manu14357/Zelaxy' },
     { name: 'Changelog', href: 'https://github.com/manu14357/Zelaxy/releases' },
     { name: 'Contributing', href: 'https://github.com/manu14357/Zelaxy/blob/main/CONTRIBUTING.md' },
@@ -41,153 +45,159 @@ function LinkedInIcon({ className }: { className?: string }) {
 
 export function Footer() {
   return (
-    <footer className='relative overflow-hidden border-white/[0.05] border-t bg-[#040404]'>
-      {/* Google Font for wordmark */}
-      <link rel='preconnect' href='https://fonts.googleapis.com' />
-      <link rel='preconnect' href='https://fonts.gstatic.com' crossOrigin='anonymous' />
-      <link
-        href='https://fonts.googleapis.com/css2?family=Outfit:wght@900&display=swap'
-        rel='stylesheet'
-      />
-      <div className='mx-auto max-w-6xl px-6 sm:px-8'>
-        {/* Top section: Links + Newsletter */}
-        <div className='grid grid-cols-2 gap-x-8 gap-y-10 pt-16 pb-14 sm:grid-cols-3 lg:grid-cols-4'>
-          {/* Link columns */}
-          {Object.entries(footerLinks).map(([category, links]) => (
-            <div key={category}>
-              <h3 className='mb-5 font-semibold text-[11px] text-neutral-300 uppercase tracking-[0.12em]'>
-                {category}
-              </h3>
-              <ul className='space-y-3.5'>
-                {links.map((link) => (
-                  <li key={link.name}>
-                    <a
-                      href={link.href}
-                      target={link.href.startsWith('http') ? '_blank' : undefined}
-                      rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                      className='text-[13.5px] text-neutral-400 transition-colors duration-150 hover:text-white'
-                    >
-                      {link.name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-
-          {/* Newsletter */}
-          <div className='col-span-2 sm:col-span-3 lg:col-span-1 lg:col-start-4'>
-            <h3 className='mb-1.5 font-semibold text-[11px] text-neutral-300 uppercase tracking-[0.12em]'>
-              Newsletter
-            </h3>
-            <p className='mb-4 text-[13px] text-neutral-500 leading-relaxed'>
-              New features, blocks &amp; updates.
-            </p>
-            <form onSubmit={(e) => e.preventDefault()} className='space-y-2'>
-              <input
-                type='email'
-                placeholder='Your email'
-                className='h-9 w-full rounded-lg border border-white/[0.10] bg-white/[0.04] px-3 text-[13px] text-white placeholder-neutral-600 outline-none transition-colors focus:border-orange-500/50 focus:bg-white/[0.06]'
+    <footer className='relative mt-20 overflow-hidden border-white/[0.06] border-t bg-[#050507] text-neutral-400'>
+      <div className='mx-auto max-w-7xl px-6 py-14 lg:px-8'>
+        <div className='xl:grid xl:grid-cols-3 xl:gap-8'>
+          {/* Logo & description */}
+          <div className='space-y-6 xl:col-span-1'>
+            <Link href='/' className='flex items-center gap-3'>
+              <Image
+                src='/Zelaxy.svg'
+                alt='Zelaxy'
+                width={40}
+                height={40}
+                unoptimized
+                className='h-10 w-10 shrink-0'
               />
-              <button
-                type='submit'
-                className='h-9 w-full rounded-lg bg-white/[0.09] font-medium text-[13px] text-neutral-100 transition-colors hover:bg-white/[0.14] hover:text-white'
-              >
-                Subscribe
-              </button>
-            </form>
-
-            {/* Social icons */}
-            <div className='mt-6 flex items-center gap-4'>
+              <span className='font-bold text-white text-xl tracking-tight'>Zelaxy</span>
+            </Link>
+            <p className='max-w-xs text-neutral-500 text-sm leading-6'>
+              The open-source AI workflow builder. Connect APIs, customize blocks, and build
+              powerful automations with ease.
+            </p>
+            <div className='flex gap-x-5'>
               <a
                 href='https://github.com/manu14357/Zelaxy'
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-neutral-500 transition-colors hover:text-neutral-200'
-                aria-label='GitHub'
+                className='text-neutral-600 transition-colors hover:text-white'
               >
-                <GitHubIcon className='h-[17px] w-[17px]' />
+                <span className='sr-only'>GitHub</span>
+                <GitHubIcon className='h-5 w-5' />
               </a>
               <a
                 href='https://www.linkedin.com/company/zelaxy'
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-neutral-500 transition-colors hover:text-neutral-200'
-                aria-label='LinkedIn'
+                className='text-neutral-600 transition-colors hover:text-white'
               >
-                <LinkedInIcon className='h-[17px] w-[17px]' />
+                <span className='sr-only'>LinkedIn</span>
+                <LinkedInIcon className='h-5 w-5' />
               </a>
+            </div>
+            <a
+              href='https://github.com/sponsors/manu14357'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='inline-flex items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-4 py-1.5 font-medium text-pink-400 text-sm transition-colors hover:border-pink-500/50 hover:bg-pink-500/20 hover:text-pink-300'
+            >
+              ❤️ Sponsor our open-source work
+            </a>
+          </div>
+
+          {/* Link columns */}
+          <div className='mt-14 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0'>
+            <div className='md:grid md:grid-cols-2 md:gap-8'>
+              <div>
+                <h3 className='font-semibold text-neutral-400 text-xs uppercase tracking-widest'>
+                  Product
+                </h3>
+                <ul className='mt-5 space-y-3.5'>
+                  {footerLinks.Product.map((item) => (
+                    <li key={item.name}>
+                      <Link
+                        href={item.href}
+                        className='text-neutral-500 text-sm transition-colors hover:text-white'
+                      >
+                        {item.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className='mt-10 md:mt-0'>
+                <h3 className='font-semibold text-neutral-400 text-xs uppercase tracking-widest'>
+                  Get Started
+                </h3>
+                <ul className='mt-5 space-y-3.5'>
+                  {footerLinks['Get Started'].map((item) => (
+                    <li key={item.name}>
+                      <Link
+                        href={item.href}
+                        className='text-neutral-500 text-sm transition-colors hover:text-white'
+                      >
+                        {item.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className='md:grid md:grid-cols-2 md:gap-8'>
+              <div>
+                <h3 className='font-semibold text-neutral-400 text-xs uppercase tracking-widest'>
+                  Resources
+                </h3>
+                <ul className='mt-5 space-y-3.5'>
+                  {footerLinks.Resources.map((item) => (
+                    <li key={item.name}>
+                      <a
+                        href={item.href}
+                        target={item.href.startsWith('http') ? '_blank' : undefined}
+                        rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                        className='text-neutral-500 text-sm transition-colors hover:text-white'
+                      >
+                        {item.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className='mt-10 md:mt-0'>
+                <h3 className='font-semibold text-neutral-400 text-xs uppercase tracking-widest'>
+                  Legal
+                </h3>
+                <ul className='mt-5 space-y-3.5'>
+                  {footerLinks.Legal.map((item) => (
+                    <li key={item.name}>
+                      <Link
+                        href={item.href}
+                        className='text-neutral-500 text-sm transition-colors hover:text-white'
+                      >
+                        {item.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Large brand wordmark — full-bleed, centered */}
-      <div className='border-white/[0.04] border-t'>
-        <div className='flex select-none items-end justify-center gap-[clamp(0.75rem,3vw,2rem)] px-4 pt-16 pb-10'>
-          <img
-            src='/Zelaxy.png'
-            alt=''
-            aria-hidden='true'
-            className='h-[clamp(4rem,16vw,12rem)] w-auto opacity-[0.55]'
-          />
-          <span
-            className='font-black text-[clamp(4.5rem,18vw,14rem)] text-orange-400/50 uppercase leading-[0.82] tracking-[0.06em]'
-            style={{ fontFamily: '"Outfit", sans-serif' }}
-          >
-            Zelaxy
-          </span>
-        </div>
-      </div>
-
-      {/* Sponsor banner */}
-      <div className='border-white/[0.04] border-t'>
-        <div className='mx-auto flex max-w-6xl flex-col items-center gap-3 px-6 py-8 text-center sm:px-8'>
-          <span className='text-lg'>❤️</span>
-          <p className='max-w-lg text-[13.5px] text-neutral-400 leading-relaxed'>
-            Help us reach full-time open source — I&apos;ll be able to quit my job and work on
-            Zelaxy and other projects full time!
-          </p>
-          <a
-            href='https://github.com/sponsors/manu14357'
-            target='_blank'
-            rel='noopener noreferrer'
-            className='mt-1 inline-flex items-center gap-2 rounded-lg border border-pink-500/20 bg-pink-500/10 px-4 py-2 font-medium text-[13px] text-pink-300 transition-colors hover:border-pink-500/30 hover:bg-pink-500/15'
-          >
-            Become a Sponsor
-          </a>
-        </div>
+      {/* Large brand wordmark */}
+      <div className='select-none overflow-hidden border-white/[0.04] border-t'>
+        <p
+          className='px-4 pt-10 pb-6 text-center font-black text-white/[0.04] uppercase leading-none tracking-[0.04em]'
+          style={{ fontSize: 'clamp(5rem, 20vw, 15rem)' }}
+          aria-hidden='true'
+        >
+          ZELAXY
+        </p>
       </div>
 
       {/* Bottom bar */}
-      <div className='mx-auto max-w-6xl px-6 sm:px-8'>
-        <div className='flex flex-col items-center justify-between gap-3 border-white/[0.04] border-t py-6 sm:flex-row'>
+      <div className='border-white/[0.04] border-t bg-black/20'>
+        <div className='mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-5 md:flex-row lg:px-8'>
+          <p className='text-neutral-600 text-xs'>
+            &copy; {new Date().getFullYear()} Zelaxy. All rights reserved. MIT License.
+          </p>
           <div className='flex items-center gap-2'>
-            <span className='inline-block h-1.5 w-1.5 rounded-full bg-emerald-500' />
-            <span className='text-[12px] text-neutral-500'>All systems operational</span>
-          </div>
-          <div className='flex flex-wrap items-center justify-center gap-x-5 gap-y-2 sm:justify-end'>
-            <a
-              href='https://github.com/manu14357/Zelaxy/blob/main/LICENSE'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-[12px] text-neutral-500 transition-colors hover:text-neutral-300'
-            >
-              MIT License
-            </a>
-            <Link
-              href='/privacy'
-              className='text-[12px] text-neutral-500 transition-colors hover:text-neutral-300'
-            >
-              Privacy policy
-            </Link>
-            <Link
-              href='/terms'
-              className='text-[12px] text-neutral-500 transition-colors hover:text-neutral-300'
-            >
-              Terms of service
-            </Link>
-            <span className='text-[12px] text-neutral-600'>© 2026 Zelaxy</span>
+            <span className='relative flex h-2 w-2'>
+              <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75' />
+              <span className='relative inline-flex h-2 w-2 rounded-full bg-emerald-500' />
+            </span>
+            <span className='text-neutral-600 text-xs'>All systems operational</span>
           </div>
         </div>
       </div>

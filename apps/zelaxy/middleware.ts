@@ -229,6 +229,7 @@ export const config = {
     '/login',
     '/signup',
     '/invite/:path*', // Match invitation routes
-    '/((?!monitoring|_next/static|_next/image|favicon.ico).*)',
+    // Exclude static/image optimisation paths and public static file extensions
+    '/((?!monitoring|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|otf|eot|css|js|map)).*)',
   ],
 }

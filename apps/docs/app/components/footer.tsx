@@ -42,6 +42,33 @@ function LinkedInIcon({ className }: { className?: string }) {
 export function DocsFooter() {
   return (
     <footer className='relative z-10 mt-12 border-fd-border border-t bg-fd-background'>
+      {/* CTA Banner */}
+      <div className='border-fd-border border-b'>
+        <div className='mx-auto flex w-full max-w-[var(--fd-page-width)] flex-col items-center gap-4 px-4 py-10 text-center sm:px-6 xl:pe-[calc(var(--fd-toc-width)+1rem)]'>
+          <h3 className='font-bold text-fd-foreground text-xl tracking-[-0.02em]'>
+            Ready to build AI workflows?
+          </h3>
+          <p className='max-w-md text-[14px] text-fd-muted-foreground'>
+            Create your free account and start building automations in minutes — no credit card
+            required.
+          </p>
+          <div className='flex items-center gap-3'>
+            <a
+              href='https://zelaxy.in/signup'
+              className='inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2 font-semibold text-[13px] text-white shadow-[0_0_20px_rgba(249,115,22,0.3)] transition-all duration-200 hover:bg-orange-600 hover:shadow-[0_0_30px_rgba(249,115,22,0.5)]'
+            >
+              Create Free Account &rarr;
+            </a>
+            <a
+              href='https://zelaxy.in/login'
+              className='inline-flex items-center gap-2 rounded-full border border-fd-border px-5 py-2 font-medium text-[13px] text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-foreground'
+            >
+              Sign In
+            </a>
+          </div>
+        </div>
+      </div>
+
       <div className='mx-auto w-full max-w-[var(--fd-page-width)] px-4 sm:px-6 xl:pe-[calc(var(--fd-toc-width)+1rem)]'>
         {/* Main footer content */}
         <div className='grid grid-cols-2 gap-x-6 gap-y-8 pt-10 pb-8 sm:grid-cols-3 md:grid-cols-4'>

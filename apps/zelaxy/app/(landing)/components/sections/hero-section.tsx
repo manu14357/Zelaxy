@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { ArrowRight, BookOpen } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowRight, BookOpen, Github, Sparkles } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -9,116 +9,203 @@ import { getDocsUrl } from '@/lib/docs-url'
 import themeImage from '@/app/(landing)/assets/theme.png'
 
 export function HeroSection() {
-  const [isVisible, setIsVisible] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    setIsVisible(true)
+    setMounted(true)
+  }, [])
+
+  // Animated particle network on canvas
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    let animId: number
+    const resize = () => {
+      canvas.width = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    type Particle = { x: number; y: number; vx: number; vy: number; r: number; o: number }
+    const particles: Particle[] = Array.from({ length: 55 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 1.5 + 0.5,
+      o: Math.random() * 0.4 + 0.1,
+    }))
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      for (const p of particles) {
+        p.x += p.vx
+        p.y += p.vy
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1
+
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(249,115,22,${p.o})`
+        ctx.fill()
+      }
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x
+          const dy = particles[i].y - particles[j].y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < 120) {
+            ctx.beginPath()
+            ctx.moveTo(particles[i].x, particles[i].y)
+            ctx.lineTo(particles[j].x, particles[j].y)
+            ctx.strokeStyle = `rgba(249,115,22,${0.06 * (1 - dist / 120)})`
+            ctx.lineWidth = 0.8
+            ctx.stroke()
+          }
+        }
+      }
+      animId = requestAnimationFrame(draw)
+    }
+    draw()
+    return () => {
+      cancelAnimationFrame(animId)
+      window.removeEventListener('resize', resize)
+    }
   }, [])
 
   return (
-    <section className='relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden'>
-      {/* Background image */}
+    <section className='relative flex min-h-screen flex-col items-center justify-center overflow-hidden'>
+      {/* Theme bg image */}
       <div className='absolute inset-0 z-0'>
         <Image
           src={themeImage}
           alt=''
           fill
-          className='object-cover object-center'
+          className='object-cover object-center opacity-30'
           priority
           placeholder='blur'
         />
-        {/* Dark overlays for readability */}
-        <div className='absolute inset-0 bg-[#060606]/40' />
-        <div className='absolute inset-0 bg-gradient-to-b from-[#060606]/50 via-transparent to-[#060606]' />
+        <div className='absolute inset-0 bg-gradient-to-b from-[#050507]/70 via-[#050507]/40 to-[#050507]' />
       </div>
 
-      {/* Grid background overlay */}
+      {/* Particle canvas */}
+      <canvas
+        ref={canvasRef}
+        className='pointer-events-none absolute inset-0 z-[1] h-full w-full opacity-60'
+      />
+
+      {/* Mesh grid */}
       <div
-        className='pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]'
+        className='pointer-events-none absolute inset-0 z-[2]'
         style={{
-          maskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 100%)',
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
+          backgroundSize: '80px 80px',
+          maskImage: 'radial-gradient(ellipse 75% 65% at 50% 40%, black 30%, transparent 100%)',
           WebkitMaskImage:
-            'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 100%)',
+            'radial-gradient(ellipse 75% 65% at 50% 40%, black 30%, transparent 100%)',
         }}
       />
 
-      {/* Radial glow */}
-      <div className='-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/3 left-1/2 z-[1] h-[600px] w-[900px] rounded-full bg-gradient-to-b from-primary/20 via-primary/5 to-transparent blur-3xl' />
+      {/* Central radial bloom */}
+      <div className='-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-[30%] left-1/2 z-[2] h-[700px] w-[700px] rounded-full bg-orange-500/[0.07] blur-[140px]' />
+      <div className='-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-[35%] left-1/2 z-[2] h-[300px] w-[500px] rounded-full bg-amber-400/[0.05] blur-[80px]' />
 
-      <div className='relative z-10 mx-auto max-w-4xl px-6 sm:px-8'>
-        <div className='text-center'>
-          {/* Badge */}
+      {/* Content */}
+      <div className='relative z-10 mx-auto w-full max-w-5xl px-6 sm:px-8'>
+        <div className='flex flex-col items-center text-center'>
+          {/* Top badge */}
           <div
-            className={`mb-8 inline-flex items-center rounded-full border border-white/10 bg-black/40 px-4 py-1.5 text-[13px] text-neutral-300 backdrop-blur-md transition-all duration-1000 ease-out ${
-              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+            className={`mb-8 inline-flex items-center gap-2.5 rounded-full border border-orange-500/25 bg-orange-500/[0.08] px-4 py-2 text-[13px] backdrop-blur-md transition-all duration-700 ${
+              mounted ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
           >
-            <span className='mr-2.5 inline-block h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(249,115,22,0.6)]' />
-            Open-Source AI Workflow Platform
-            <span className='ml-2.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-medium text-[11px] text-primary'>
+            <Sparkles className='h-3.5 w-3.5 text-orange-400' />
+            <span className='font-medium text-orange-300'>Open-Source AI Workflow Platform</span>
+            <span className='h-3.5 w-px bg-orange-500/30' />
+            <span className='rounded-full bg-orange-500/20 px-2 py-0.5 font-mono text-[11px] text-orange-400'>
               v0.1.0
             </span>
           </div>
 
-          {/* Main Heading */}
+          {/* Headline */}
           <h1
-            className={`mb-6 font-bold text-[clamp(2.5rem,7vw,5rem)] leading-[1.05] tracking-[-0.04em] transition-all delay-150 duration-1000 ease-out ${
-              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+            className={`mb-6 font-black text-[clamp(2.6rem,8vw,6rem)] leading-[0.95] tracking-[-0.05em] transition-all delay-100 duration-700 ${
+              mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
             }`}
           >
-            <span className='text-white drop-shadow-lg'>Build. Connect.</span>
-            <br />
-            <span className='animate-gradient bg-[length:200%_200%] bg-gradient-to-r from-primary via-orange-400 to-amber-300 bg-clip-text text-transparent'>
+            <span className='block text-white'>Build. Connect.</span>
+            <span className='block animate-gradient bg-[length:300%_300%] bg-gradient-to-r from-orange-400 via-amber-300 to-orange-500 bg-clip-text text-transparent'>
               Automate with AI.
             </span>
           </h1>
 
-          {/* Subtitle — the ONE place numbers live */}
+          {/* Subtitle */}
           <p
-            className={`mx-auto mb-10 max-w-xl text-[clamp(1rem,2vw,1.25rem)] text-neutral-300 leading-relaxed drop-shadow-md transition-all delay-300 duration-1000 ease-out ${
-              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+            className={`mx-auto mb-10 max-w-2xl text-[clamp(1rem,2vw,1.2rem)] text-neutral-400 leading-relaxed transition-all delay-200 duration-700 ${
+              mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
             }`}
           >
             The visual platform to design AI-powered workflows — wire up agents, APIs, databases,
             and logic blocks on a drag-and-drop canvas, then ship automations that run themselves.
           </p>
 
-          {/* CTA Buttons */}
+          {/* CTA row */}
           <div
-            className={`flex flex-col items-center justify-center gap-3 transition-all delay-500 duration-1000 ease-out sm:flex-row sm:gap-4 ${
-              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+            className={`flex flex-wrap items-center justify-center gap-3 transition-all delay-300 duration-700 ${
+              mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
             }`}
           >
-            <Link href='/arena'>
-              <Button
-                size='lg'
-                className='group h-12 rounded-full bg-white px-7 font-medium text-[15px] text-black shadow-[0_0_20px_rgba(255,255,255,0.15)] transition-all duration-300 hover:bg-neutral-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]'
-              >
-                Start Building — It&apos;s Free
-                <ArrowRight className='ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5' />
-              </Button>
+            <Button
+              asChild
+              size='lg'
+              className='group relative h-12 overflow-hidden rounded-full bg-gradient-to-br from-orange-500 to-amber-400 px-8 font-semibold text-[15px] text-white shadow-[0_0_32px_rgba(249,115,22,0.5),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_52px_rgba(249,115,22,0.7),inset_0_1px_0_rgba(255,255,255,0.2)] active:scale-[0.98]'
+            >
+              <Link href='/signup'>
+                Start Building — Free
+                <ArrowRight className='ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1' />
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              variant='ghost'
+              size='lg'
+              className='h-12 rounded-full border border-white/[0.15] bg-white/[0.06] px-7 font-medium text-[15px] text-neutral-200 backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:bg-white/[0.11] hover:text-white active:scale-[0.98]'
+            >
+              <Link href='/login'>Sign In</Link>
+            </Button>
+          </div>
+
+          {/* Secondary links */}
+          <div
+            className={`mt-6 flex flex-wrap items-center justify-center gap-2.5 transition-all delay-500 duration-700 ${
+              mounted ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+            }`}
+          >
+            <Link
+              href='https://github.com/manu14357/Zelaxy'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='group flex h-9 items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.04] px-4 font-medium text-[13px] text-neutral-400 transition-all duration-200 hover:border-orange-500/50 hover:bg-orange-500/[0.08] hover:text-orange-300'
+            >
+              <Github className='h-3.5 w-3.5 transition-all duration-200 group-hover:scale-110 group-hover:text-orange-400' />
+              Star on GitHub
             </Link>
-            <Link href='https://github.com/manu14357/Zelaxy' target='_blank'>
-              <Button
-                variant='ghost'
-                size='lg'
-                className='h-12 rounded-full border border-white/15 bg-black/30 px-7 font-medium text-[15px] text-neutral-200 backdrop-blur-md transition-all duration-300 hover:border-white/25 hover:bg-black/50 hover:text-white'
-              >
-                <svg className='mr-2 h-4 w-4' viewBox='0 0 24 24' fill='currentColor'>
-                  <path d='M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z' />
-                </svg>
-                Star on GitHub
-              </Button>
-            </Link>
-            <Link href={getDocsUrl()} target='_blank'>
-              <Button
-                variant='ghost'
-                size='lg'
-                className='h-12 rounded-full border border-white/15 bg-black/30 px-7 font-medium text-[15px] text-neutral-200 backdrop-blur-md transition-all duration-300 hover:border-white/25 hover:bg-black/50 hover:text-white'
-              >
-                <BookOpen className='mr-2 h-4 w-4' />
-                Read the Docs
-              </Button>
+            <span className='h-3.5 w-px bg-white/[0.10]' />
+            <Link
+              href={getDocsUrl()}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='group flex h-9 items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.04] px-4 font-medium text-[13px] text-neutral-400 transition-all duration-200 hover:border-white/25 hover:bg-white/[0.08] hover:text-white'
+            >
+              <BookOpen className='h-3.5 w-3.5 transition-all duration-200 group-hover:scale-110' />
+              Read the Docs
             </Link>
           </div>
         </div>
