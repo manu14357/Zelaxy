@@ -19,7 +19,7 @@ import { useEnvironmentStore } from '@/stores/settings/environment/store'
 import type { EnvironmentVariable as StoreEnvironmentVariable } from '@/stores/settings/environment/types'
 
 // Constants
-const GRID_COLS = 'grid grid-cols-[minmax(0,1fr),minmax(0,1fr),40px] gap-4'
+const GRID_COLS = 'grid grid-cols-[minmax(0,1fr),minmax(0,1fr),40px] gap-2 sm:gap-4'
 const INITIAL_ENV_VAR: UIEnvironmentVariable = { key: '', value: '' }
 
 interface UIEnvironmentVariable extends StoreEnvironmentVariable {
@@ -260,7 +260,7 @@ export function EnvironmentVariables({ onOpenChange }: EnvironmentVariablesProps
     <div className='flex h-full flex-col'>
       {/* Fixed Header */}
       <div className='w-full px-3 pt-6'>
-        <div className='flex items-start justify-between gap-4'>
+        <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4'>
           <div className='min-w-0'>
             <h2 className='font-semibold text-foreground text-lg tracking-tight'>
               Environment Variables
@@ -275,7 +275,7 @@ export function EnvironmentVariables({ onOpenChange }: EnvironmentVariablesProps
               placeholder='Search variables…'
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className='h-8 w-48 rounded-lg pl-8 text-[13px]'
+              className='h-8 w-full rounded-lg pl-8 text-[13px] sm:w-48'
             />
           </div>
         </div>
@@ -311,7 +311,7 @@ export function EnvironmentVariables({ onOpenChange }: EnvironmentVariablesProps
       {/* Fixed Footer */}
       <div className='mt-auto border-border/40 border-t'>
         <div className='flex flex-col gap-3 px-3 py-4'>
-          <div className='flex items-center justify-between'>
+          <div className='flex flex-wrap items-center justify-between gap-2'>
             <Button
               variant='outline'
               size='sm'

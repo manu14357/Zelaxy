@@ -324,8 +324,8 @@ export default function Templates({ initialTemplates, currentUserId }: Templates
         </div>
 
         {/* Cards Grid */}
-        <div className={`rounded-xl border ${config.border} bg-card/30 p-4`}>
-          <div className='grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+        <div className={`rounded-xl border ${config.border} bg-card/30 p-2 sm:p-4`}>
+          <div className='grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4'>
             {loading ? (
               renderSkeletonCards()
             ) : items.length > 0 ? (
@@ -345,8 +345,8 @@ export default function Templates({ initialTemplates, currentUserId }: Templates
   return (
     <div className='flex h-full flex-col'>
       {/* Compact Header */}
-      <div className='border-border/50 border-b bg-card/30 px-6 py-4'>
-        <div className='flex items-center gap-3'>
+      <div className='border-border/50 border-b bg-card/30 px-3 py-3 sm:px-6 sm:py-4'>
+        <div className='flex items-center gap-2 sm:gap-3'>
           <div className='flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10'>
             <Shapes className='h-4 w-4 text-primary' />
           </div>
@@ -354,7 +354,7 @@ export default function Templates({ initialTemplates, currentUserId }: Templates
             <h1 className='font-semibold text-[15px] text-foreground leading-none'>
               Blueprint Gallery
             </h1>
-            <p className='mt-1 text-[12px] text-muted-foreground'>
+            <p className='mt-1 hidden text-[12px] text-muted-foreground sm:block'>
               Discover powerful workflow blueprints to accelerate your projects
             </p>
           </div>
@@ -363,10 +363,10 @@ export default function Templates({ initialTemplates, currentUserId }: Templates
 
       {/* Main Content */}
       <div className='flex-1 overflow-auto'>
-        <div className='px-6 py-5'>
+        <div className='px-3 py-4 sm:px-6 sm:py-5'>
           {/* Stats Strip */}
           {!loading && totalTemplates > 0 && (
-            <div className='mb-5 grid grid-cols-3 gap-3'>
+            <div className='mb-5 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3'>
               <div className='rounded-xl border border-border/40 bg-card/50 p-3 transition-all duration-200 hover:border-border/60 hover:shadow-sm'>
                 <div className='flex items-center gap-2.5'>
                   <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10'>

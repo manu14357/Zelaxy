@@ -28,7 +28,7 @@ export function SettingSection({
 }: SettingSectionProps) {
   return (
     <div className={cn('rounded-xl border border-border/60 bg-card/50', className)}>
-      <div className='px-5 pt-5 pb-1'>
+      <div className='px-3 pt-4 pb-1 sm:px-5 sm:pt-5'>
         <div className='flex items-center gap-2.5'>
           {icon && (
             <span className='flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/70 text-muted-foreground'>
@@ -43,7 +43,7 @@ export function SettingSection({
           </div>
         </div>
       </div>
-      <div className='px-5 pt-3 pb-4'>{children}</div>
+      <div className='px-3 pt-3 pb-4 sm:px-5'>{children}</div>
     </div>
   )
 }

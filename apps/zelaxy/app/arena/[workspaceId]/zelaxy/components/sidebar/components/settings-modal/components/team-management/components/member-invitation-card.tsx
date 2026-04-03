@@ -98,7 +98,7 @@ export function MemberInvitationCard({
 
   return (
     <div className='rounded-xl border border-border/60 bg-card/50'>
-      <div className='px-4 pt-4 pb-1'>
+      <div className='px-3 pt-3 pb-1 sm:px-4 sm:pt-4'>
         <div className='flex items-center gap-2.5'>
           <span className='flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/70 text-muted-foreground'>
             <Mail className='h-4 w-4' />
@@ -113,9 +113,9 @@ export function MemberInvitationCard({
           </div>
         </div>
       </div>
-      <div className='space-y-4 px-4 pt-3 pb-4'>
-        <div className='flex items-center gap-2'>
-          <div className='flex-1'>
+      <div className='space-y-3 px-3 pt-3 pb-3 sm:space-y-4 sm:px-4 sm:pb-4'>
+        <div className='flex flex-wrap items-center gap-2'>
+          <div className='min-w-0 flex-1 basis-full sm:basis-0'>
             <Input
               placeholder='Enter email address'
               value={inviteEmail}
@@ -196,7 +196,7 @@ export function MemberInvitationCard({
                     <div
                       key={workspace.id}
                       className={cn(
-                        'flex items-center justify-between rounded-lg border bg-background p-2.5 transition-all',
+                        'flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-background p-2 transition-all sm:p-2.5',
                         isSelected
                           ? 'border-primary/20 bg-primary/5'
                           : 'border-border/40 hover:border-border hover:bg-muted/50'

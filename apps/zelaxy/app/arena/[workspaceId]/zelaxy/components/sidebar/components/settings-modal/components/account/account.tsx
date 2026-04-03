@@ -606,7 +606,7 @@ export function Account({ onOpenChange }: AccountProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align='start'
-                className='max-h-[350px] w-[280px] overflow-y-auto rounded-xl'
+                className='max-h-[350px] w-[min(280px,calc(100vw-4rem))] overflow-y-auto rounded-xl'
                 sideOffset={6}
               >
                 {userData.isLoggedIn ? (

@@ -263,17 +263,35 @@ export function Sidebar({
   hasNext = false,
   hasPrev = false,
 }: LogSidebarProps) {
-  const MIN_WIDTH = 400
-  const DEFAULT_WIDTH = 600
-  const EXPANDED_WIDTH = 800
+  const [windowWidth, setWindowWidth] = useState(0)
 
-  const [width, setWidth] = useState(DEFAULT_WIDTH) // Start with default width
+  useEffect(() => {
+    const updateWidth = () => setWindowWidth(window.innerWidth)
+    updateWidth()
+    window.addEventListener('resize', updateWidth)
+    return () => window.removeEventListener('resize', updateWidth)
+  }, [])
+
+  // Responsive sidebar widths - use full width on mobile
+  const isMobile = windowWidth > 0 && windowWidth < 640
+  const MIN_WIDTH = isMobile ? windowWidth : 400
+  const DEFAULT_WIDTH = isMobile ? windowWidth : 600
+  const EXPANDED_WIDTH = isMobile ? windowWidth : 800
+
+  const [width, setWidth] = useState(0) // Will be set after mount
   const [isDragging, setIsDragging] = useState(false)
   const [_currentLogId, setCurrentLogId] = useState<string | null>(null)
   const [isTraceExpanded, setIsTraceExpanded] = useState(false)
   const [isModelsExpanded, setIsModelsExpanded] = useState(false)
   const [isFrozenCanvasExpanded, setIsFrozenCanvasExpanded] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  // Initialize width after mount
+  useEffect(() => {
+    if (windowWidth > 0 && width === 0) {
+      setWidth(DEFAULT_WIDTH)
+    }
+  }, [windowWidth, DEFAULT_WIDTH, width])
 
   // Update currentLogId when log changes
   useEffect(() => {
@@ -426,7 +444,10 @@ export function Sidebar({
       className={`fixed top-0 right-0 bottom-0 transform border-border/50 border-l bg-background/95 backdrop-blur-md ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       } ${isDragging ? '' : 'transition-all duration-300 ease-in-out'} z-50 flex flex-col`}
-      style={{ width: `${width}px`, minWidth: `${MIN_WIDTH}px` }}
+      style={{
+        width: isMobile ? '100%' : `${width}px`,
+        minWidth: isMobile ? '100%' : `${MIN_WIDTH}px`,
+      }}
     >
       <div
         className='absolute top-0 bottom-0 left-0 z-50 w-1 cursor-ew-resize transition-colors hover:bg-primary/20'

@@ -39,14 +39,14 @@ export function NoOrganizationView({
 
   if (canCreateOrg) {
     return (
-      <div className='space-y-4 py-2'>
+      <div className='space-y-4 px-3 py-4 sm:px-5 sm:py-6'>
         <div className='rounded-xl border border-border/60 bg-card/50'>
-          <div className='px-4 pt-4 pb-1'>
+          <div className='px-3 pt-3 pb-1 sm:px-4 sm:pt-4'>
             <h3 className='font-semibold text-[13px] text-foreground tracking-tight'>
               Create Your Team Workspace
             </h3>
           </div>
-          <div className='space-y-4 px-4 pt-3 pb-4'>
+          <div className='space-y-4 px-3 pt-3 pb-3 sm:px-4 sm:pb-4'>
             <p className='text-[12px] text-muted-foreground leading-relaxed'>
               {hasEnterprisePlan
                 ? "You're subscribed to an enterprise plan. Create your workspace to start collaborating with your team."
@@ -120,9 +120,9 @@ export function NoOrganizationView({
   }
 
   return (
-    <div className='py-2'>
+    <div className='px-3 py-4 sm:px-5 sm:py-6'>
       <div className='rounded-xl border border-border/60 bg-card/50'>
-        <div className='space-y-4 px-4 py-8 text-center'>
+        <div className='space-y-4 px-3 py-6 text-center sm:px-4 sm:py-8'>
           <div className='mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-muted/70'>
             <Building2 className='h-5 w-5 text-muted-foreground' />
           </div>

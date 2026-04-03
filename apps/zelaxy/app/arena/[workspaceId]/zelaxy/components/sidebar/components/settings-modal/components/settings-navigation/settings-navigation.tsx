@@ -12,6 +12,7 @@ import {
   Users,
 } from 'lucide-react'
 import { McpIcon } from '@/components/icons'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { isBillingEnabled } from '@/lib/environment'
 import { cn } from '@/lib/utils'
 import { useSubscriptionStore } from '@/stores/subscription/store'
@@ -114,44 +115,55 @@ export function SettingsNavigation({
   }, [subscription.isTeam, subscription.isEnterprise])
 
   return (
-    <nav className='flex flex-col gap-5 px-3 py-4' aria-label='Settings navigation'>
-      {visibleGroups.map((group) => (
-        <div key={group.label} role='group' aria-label={group.label}>
-          <span className='mb-1.5 block select-none px-2 font-medium text-[11px] text-muted-foreground/70 uppercase tracking-wider'>
-            {group.label}
-          </span>
-          <div className='space-y-0.5'>
-            {group.items.map((item) => {
-              const isActive = activeSection === item.id
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onSectionChange(item.id)}
-                  className={cn(
-                    'group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] font-medium text-[13px]',
-                    'transition-all duration-150 ease-out',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-                    isActive
-                      ? 'bg-primary/10 text-primary dark:bg-primary/15'
-                      : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                  )}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  <item.icon
-                    className={cn(
-                      'h-[15px] w-[15px] shrink-0 transition-colors duration-150',
-                      isActive
-                        ? 'text-primary'
-                        : 'text-muted-foreground/70 group-hover:text-foreground/70'
-                    )}
-                  />
-                  <span className='truncate'>{item.label}</span>
-                </button>
-              )
-            })}
+    <TooltipProvider delayDuration={0}>
+      <nav
+        className='flex flex-col gap-2 px-1.5 py-2 sm:gap-5 sm:px-3 sm:py-4'
+        aria-label='Settings navigation'
+      >
+        {visibleGroups.map((group) => (
+          <div key={group.label} role='group' aria-label={group.label}>
+            <span className='mb-1.5 hidden select-none px-2 font-medium text-[11px] text-muted-foreground/70 uppercase tracking-wider sm:block'>
+              {group.label}
+            </span>
+            <div className='flex flex-col space-y-0.5'>
+              {group.items.map((item) => {
+                const isActive = activeSection === item.id
+                return (
+                  <Tooltip key={item.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => onSectionChange(item.id)}
+                        className={cn(
+                          'group flex w-full items-center justify-center gap-0 rounded-lg px-0 py-2 font-medium text-[12px] sm:justify-start sm:gap-2.5 sm:px-2.5 sm:py-[7px] sm:text-[13px]',
+                          'transition-all duration-150 ease-out',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+                          isActive
+                            ? 'bg-primary/10 text-primary dark:bg-primary/15'
+                            : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                        )}
+                        aria-current={isActive ? 'page' : undefined}
+                      >
+                        <item.icon
+                          className={cn(
+                            'h-4 w-4 shrink-0 transition-colors duration-150 sm:h-[15px] sm:w-[15px]',
+                            isActive
+                              ? 'text-primary'
+                              : 'text-muted-foreground/70 group-hover:text-foreground/70'
+                          )}
+                        />
+                        <span className='hidden truncate sm:inline'>{item.label}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side='right' className='sm:hidden'>
+                      {item.label}
+                    </TooltipContent>
+                  </Tooltip>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      ))}
-    </nav>
+        ))}
+      </nav>
+    </TooltipProvider>
   )
 }

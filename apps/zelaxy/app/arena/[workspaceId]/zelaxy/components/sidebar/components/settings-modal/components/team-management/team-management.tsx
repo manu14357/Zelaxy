@@ -267,7 +267,7 @@ export function TeamManagement() {
 
   if (isLoading && !activeOrganization && !(hasTeamPlan || hasEnterprisePlan)) {
     return (
-      <div className='space-y-4 px-3 py-6'>
+      <div className='space-y-4 px-3 py-4 sm:px-5 sm:py-6'>
         <Skeleton className='h-5 w-40 rounded-md' />
         <Skeleton className='h-20 w-full rounded-xl' />
         <Skeleton className='h-16 w-full rounded-xl' />
@@ -295,7 +295,7 @@ export function TeamManagement() {
   }
 
   return (
-    <div className='space-y-6 px-3 py-6'>
+    <div className='space-y-5 px-3 py-4 sm:px-5 sm:py-6'>
       <SettingPageHeader
         title='Team Management'
         description='Manage members, usage, and organization settings.'

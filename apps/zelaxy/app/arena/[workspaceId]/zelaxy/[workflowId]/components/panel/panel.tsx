@@ -28,6 +28,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useChatStore } from '@/stores/panel/chat/store'
 import { useConsoleStore } from '@/stores/panel/console/store'
 import { usePanelStore } from '@/stores/panel/store'
@@ -43,6 +44,7 @@ export function Panel() {
   const [resizeStartX, setResizeStartX] = useState(0)
   const [resizeStartWidth, setResizeStartWidth] = useState(0)
   const lastLoadedWorkflowRef = useRef<string | null>(null)
+  const isMobile = useIsMobile()
 
   const isOpen = usePanelStore((state) => state.isOpen)
   const togglePanel = usePanelStore((state) => state.togglePanel)
@@ -166,12 +168,19 @@ export function Panel() {
     }
   }, [isResizing, handleResize, handleResizeEnd])
 
+  // On mobile, panel takes full viewport width
+  const effectivePanelWidth = isMobile
+    ? typeof window !== 'undefined'
+      ? window.innerWidth
+      : 320
+    : panelWidth
+
   return (
-    <div style={{ '--panel-width': `${panelWidth}px` } as React.CSSProperties}>
-      {/* Right Sidebar with vertical icon stack */}
+    <div style={{ '--panel-width': `${effectivePanelWidth}px` } as React.CSSProperties}>
+      {/* Right Sidebar with vertical icon stack - hidden on mobile when panel is open */}
       <div
         className={`fixed top-0 bottom-0 z-30 flex w-[60px] flex-col bg-transparent transition-all duration-300 ease-in-out ${
-          isOpen ? 'right-[var(--panel-width)]' : 'right-0'
+          isMobile && isOpen ? 'hidden' : isOpen ? 'right-[var(--panel-width)]' : 'right-0'
         }`}
       >
         {/* ...existing sidebar content... */}
@@ -368,22 +377,24 @@ export function Panel() {
 
       {/* Full-height Right Panel that slides in from right */}
       <div
-        className={`fixed top-0 right-0 bottom-0 z-20 flex transform flex-col border-border/60 border-l bg-background/95 shadow-xl backdrop-blur-sm transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 bottom-0 flex transform flex-col border-border/60 border-l bg-background/95 shadow-xl backdrop-blur-sm transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-        style={{ width: `${panelWidth}px` }}
+        } ${isMobile ? 'z-[60]' : 'z-20'}`}
+        style={{ width: isMobile ? '100vw' : `${panelWidth}px` }}
       >
-        {/* FIXED: Improved resize handle with better visibility and larger hit area */}
-        <div
-          className={`absolute top-0 bottom-0 left-0 z-50 w-1 cursor-col-resize bg-border transition-colors hover:bg-primary/100 ${
-            isResizing ? 'bg-primary/100' : ''
-          }`}
-          onMouseDown={handleResizeStart}
-          style={{ touchAction: 'none' }}
-        >
-          {/* Invisible wider hit area for easier grabbing */}
-          <div className='-left-2 absolute top-0 bottom-0 w-5' />
-        </div>
+        {/* Resize handle - hidden on mobile */}
+        {!isMobile && (
+          <div
+            className={`absolute top-0 bottom-0 left-0 z-50 w-1 cursor-col-resize bg-border transition-colors hover:bg-primary/100 ${
+              isResizing ? 'bg-primary/100' : ''
+            }`}
+            onMouseDown={handleResizeStart}
+            style={{ touchAction: 'none' }}
+          >
+            {/* Invisible wider hit area for easier grabbing */}
+            <div className='-left-2 absolute top-0 bottom-0 w-5' />
+          </div>
+        )}
 
         {/* Header - Fixed at top */}
         <div className='flex items-center justify-between border-border/40 border-b bg-muted/20 px-3.5 py-2.5'>
@@ -456,7 +467,7 @@ export function Panel() {
             className={`h-full ${activeTab === 'chat' ? 'flex' : 'hidden'} min-w-0 flex-col overflow-hidden px-3`}
           >
             <Chat
-              panelWidth={panelWidth}
+              panelWidth={effectivePanelWidth}
               chatMessage={chatMessage}
               setChatMessage={setChatMessage}
             />
@@ -466,7 +477,10 @@ export function Panel() {
 
       {/* Overlay when panel is open on mobile */}
       {isOpen && (
-        <div className='fixed inset-0 z-10 bg-black/20 sm:hidden' onClick={handleClosePanel} />
+        <div
+          className='fixed inset-0 z-[55] bg-black/40 backdrop-blur-[2px] sm:hidden'
+          onClick={handleClosePanel}
+        />
       )}
     </div>
   )

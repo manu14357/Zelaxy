@@ -31,7 +31,7 @@ export function SettingRow({
   return (
     <div
       className={cn(
-        'flex items-center justify-between gap-4 py-3',
+        'flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4',
         bordered && 'border-border/40 border-b last:border-b-0',
         className
       )}

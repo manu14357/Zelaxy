@@ -65,9 +65,9 @@ export function Knowledge() {
     <>
       <div className='flex h-full flex-col'>
         {/* Compact Header Bar */}
-        <div className='border-border/50 border-b bg-card/30 px-6 py-4'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-3'>
+        <div className='border-border/50 border-b bg-card/30 px-3 py-3 sm:px-6 sm:py-4'>
+          <div className='flex items-center justify-between gap-2'>
+            <div className='flex items-center gap-2 sm:gap-3'>
               <div className='flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10'>
                 <BookOpen className='h-4 w-4 text-primary' />
               </div>
@@ -75,7 +75,7 @@ export function Knowledge() {
                 <h1 className='font-semibold text-[15px] text-foreground leading-none'>
                   Knowledge Hub
                 </h1>
-                <p className='mt-1 text-[12px] text-muted-foreground'>
+                <p className='mt-1 hidden text-[12px] text-muted-foreground sm:block'>
                   Transform documents into intelligent knowledge for your AI agents
                 </p>
               </div>
@@ -89,7 +89,8 @@ export function Knowledge() {
                   className='gap-1.5 rounded-lg bg-primary px-4 py-2 font-medium text-[12px] text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary/90 hover:shadow-md'
                 >
                   <Plus className='h-3.5 w-3.5' />
-                  <span>New Knowledge Base</span>
+                  <span className='hidden sm:inline'>New Knowledge Base</span>
+                  <span className='inline sm:hidden'>New</span>
                 </PrimaryButton>
               </TooltipTrigger>
               {userPermissions.canEdit !== true && (
@@ -101,10 +102,10 @@ export function Knowledge() {
 
         {/* Main Content */}
         <div className='flex-1 overflow-auto'>
-          <div className='px-6 py-5'>
+          <div className='px-3 py-4 sm:px-6 sm:py-5'>
             {/* Stats Strip */}
             {!isLoading && knowledgeBases.length > 0 && (
-              <div className='mb-5 grid grid-cols-3 gap-3'>
+              <div className='mb-5 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3'>
                 <div className='rounded-xl border border-border/40 bg-card/50 p-3 transition-all duration-200 hover:border-border/60 hover:shadow-sm'>
                   <div className='flex items-center gap-2.5'>
                     <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10'>

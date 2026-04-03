@@ -30,6 +30,7 @@ import {
   getKeyboardShortcutText,
   useGlobalShortcuts,
 } from '@/app/arena/[workspaceId]/zelaxy/hooks/use-keyboard-shortcuts'
+import { useSidebarStore } from '@/stores/sidebar/store'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import type { WorkflowMetadata } from '@/stores/workflows/registry/types'
 
@@ -206,6 +207,61 @@ export function Sidebar() {
   const workflowId = params.workflowId as string
   const pathname = usePathname()
   const router = useRouter()
+
+  // Sidebar resize state
+  const sidebarWidth = useSidebarStore((s) => s.sidebarWidth)
+  const setSidebarWidth = useSidebarStore((s) => s.setSidebarWidth)
+  const [isSidebarResizing, setIsSidebarResizing] = useState(false)
+  const [sidebarResizeStartX, setSidebarResizeStartX] = useState(0)
+  const [sidebarResizeStartWidth, setSidebarResizeStartWidth] = useState(0)
+
+  // Sidebar resize handlers
+  const handleSidebarResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      if (isSidebarCollapsed) return
+      e.preventDefault()
+      e.stopPropagation()
+      setIsSidebarResizing(true)
+      setSidebarResizeStartX(e.clientX)
+      setSidebarResizeStartWidth(sidebarWidth)
+    },
+    [isSidebarCollapsed, sidebarWidth]
+  )
+
+  const handleSidebarResize = useCallback(
+    (e: MouseEvent) => {
+      if (!isSidebarResizing) return
+      e.preventDefault()
+      const deltaX = e.clientX - sidebarResizeStartX
+      const newWidth = sidebarResizeStartWidth + deltaX
+      setSidebarWidth(newWidth)
+    },
+    [isSidebarResizing, sidebarResizeStartX, sidebarResizeStartWidth, setSidebarWidth]
+  )
+
+  const handleSidebarResizeEnd = useCallback(() => {
+    setIsSidebarResizing(false)
+  }, [])
+
+  // Global mouse listeners for sidebar resize
+  useEffect(() => {
+    if (isSidebarResizing) {
+      document.addEventListener('mousemove', handleSidebarResize)
+      document.addEventListener('mouseup', handleSidebarResizeEnd)
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+
+      return () => {
+        document.removeEventListener('mousemove', handleSidebarResize)
+        document.removeEventListener('mouseup', handleSidebarResizeEnd)
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
+    }
+  }, [isSidebarResizing, handleSidebarResize, handleSidebarResizeEnd])
+
+  // Derived sidebar values: content width is sidebar minus padding (p-4 = 16px each side)
+  const sidebarContentWidth = sidebarWidth - 32
 
   // Template data for search modal
   const [templates, setTemplates] = useState<TemplateData[]>([])
@@ -946,7 +1002,10 @@ export function Sidebar() {
   return (
     <>
       {/* Main Sidebar - Overlay */}
-      <aside className='pointer-events-none fixed inset-y-0 left-0 z-10 w-64'>
+      <aside
+        className='pointer-events-none fixed inset-y-0 left-0 z-10'
+        style={{ width: `${sidebarWidth}px` }}
+      >
         <div
           className='pointer-events-none flex h-full flex-col p-4'
           style={{ gap: `${SIDEBAR_GAP}px` }}
@@ -1027,14 +1086,29 @@ export function Sidebar() {
             )}
           </div>
         </div>
+
+        {/* Resize handle on right edge */}
+        {!isSidebarCollapsed && (
+          <div
+            className={cn(
+              'pointer-events-auto absolute top-0 right-0 bottom-0 z-50 w-1 cursor-col-resize transition-colors hover:bg-primary/60',
+              isSidebarResizing ? 'bg-primary/60' : 'bg-transparent'
+            )}
+            onMouseDown={handleSidebarResizeStart}
+          >
+            {/* Invisible wider hit area for easier grabbing */}
+            <div className='-right-2 absolute top-0 bottom-0 w-5' />
+          </div>
+        )}
       </aside>
 
       {/* Floating Toolbar - Only on workflow pages */}
       <div
-        className={`pointer-events-auto fixed left-4 z-50 w-56 overflow-hidden rounded-xl border border-border/60 bg-card/50 shadow-sm backdrop-blur-sm ${
+        className={`pointer-events-auto fixed left-4 z-50 overflow-hidden rounded-xl border border-border/60 bg-card/50 shadow-sm backdrop-blur-sm ${
           !isOnWorkflowPage || isSidebarCollapsed ? 'hidden' : ''
         }`}
         style={{
+          width: `${sidebarContentWidth}px`,
           top: `${toolbarTop}px`,
           bottom: `${navigationBottom + SIDEBAR_HEIGHTS.NAVIGATION + SIDEBAR_GAP + (isBillingEnabled ? SIDEBAR_HEIGHTS.USAGE_INDICATOR + SIDEBAR_GAP : 0)}px`,
         }}
@@ -1047,10 +1121,11 @@ export function Sidebar() {
 
       {/* Floating Logs Filters - Only on logs page */}
       <div
-        className={`pointer-events-auto fixed left-4 z-50 w-56 overflow-hidden rounded-xl border border-border/60 bg-card/50 shadow-sm backdrop-blur-sm ${
+        className={`pointer-events-auto fixed left-4 z-50 overflow-hidden rounded-xl border border-border/60 bg-card/50 shadow-sm backdrop-blur-sm ${
           !isOnLogsPage || isSidebarCollapsed ? 'hidden' : ''
         }`}
         style={{
+          width: `${sidebarContentWidth}px`,
           top: `${toolbarTop}px`,
           bottom: `${navigationBottom + SIDEBAR_HEIGHTS.NAVIGATION + SIDEBAR_GAP + (isBillingEnabled ? SIDEBAR_HEIGHTS.USAGE_INDICATOR + SIDEBAR_GAP : 0)}px`,
         }}
@@ -1060,10 +1135,11 @@ export function Sidebar() {
 
       {/* Floating Knowledge Tags - Only on knowledge pages */}
       <div
-        className={`pointer-events-auto fixed left-4 z-50 w-56 overflow-hidden rounded-xl border border-border/60 bg-card/50 shadow-sm backdrop-blur-sm ${
+        className={`pointer-events-auto fixed left-4 z-50 overflow-hidden rounded-xl border border-border/60 bg-card/50 shadow-sm backdrop-blur-sm ${
           !isOnKnowledgePage || isSidebarCollapsed || !knowledgeBaseId ? 'hidden' : ''
         }`}
         style={{
+          width: `${sidebarContentWidth}px`,
           top: `${toolbarTop}px`,
           bottom: `${navigationBottom + SIDEBAR_HEIGHTS.NAVIGATION + SIDEBAR_GAP + (isBillingEnabled ? SIDEBAR_HEIGHTS.USAGE_INDICATOR + SIDEBAR_GAP : 0)}px`,
         }}
@@ -1077,8 +1153,11 @@ export function Sidebar() {
       {/* Floating Usage Indicator - Only shown when billing enabled */}
       {isBillingEnabled && (
         <div
-          className='pointer-events-auto fixed left-4 z-50 w-56'
-          style={{ bottom: `${navigationBottom + SIDEBAR_HEIGHTS.NAVIGATION + SIDEBAR_GAP}px` }} // Navigation height + gap
+          className='pointer-events-auto fixed left-4 z-50'
+          style={{
+            width: `${sidebarContentWidth}px`,
+            bottom: `${navigationBottom + SIDEBAR_HEIGHTS.NAVIGATION + SIDEBAR_GAP}px`,
+          }} // Navigation height + gap
         >
           <UsageIndicator
             onClick={(badgeType) => {
@@ -1100,8 +1179,8 @@ export function Sidebar() {
 
       {/* Floating Navigation - Always visible */}
       <div
-        className='pointer-events-auto fixed left-4 z-50 w-56'
-        style={{ bottom: `${navigationBottom}px` }}
+        className='pointer-events-auto fixed left-4 z-50'
+        style={{ width: `${sidebarContentWidth}px`, bottom: `${navigationBottom}px` }}
       >
         <div className='flex items-center gap-1 rounded-xl border border-border/60 bg-card/50 p-1 shadow-sm backdrop-blur-sm'>
           {navigationItems.map((item) => (

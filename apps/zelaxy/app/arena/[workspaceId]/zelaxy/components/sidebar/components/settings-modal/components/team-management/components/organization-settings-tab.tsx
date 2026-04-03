@@ -52,7 +52,7 @@ export function OrganizationSettingsTab({
       )}
 
       <div className='rounded-xl border border-border/60 bg-card/50'>
-        <div className='px-4 pt-4 pb-1'>
+        <div className='px-3 pt-3 pb-1 sm:px-4 sm:pt-4'>
           <h3 className='font-semibold text-[13px] text-foreground tracking-tight'>
             Basic Information
           </h3>
@@ -60,7 +60,7 @@ export function OrganizationSettingsTab({
             Update your team&apos;s basic information and branding
           </p>
         </div>
-        <div className='space-y-4 px-4 pt-3 pb-4'>
+        <div className='space-y-4 px-3 pt-3 pb-3 sm:px-4 sm:pb-4'>
           <div className='space-y-1.5'>
             <Label htmlFor='team-name' className='font-medium text-[12px]'>
               Team Name
@@ -125,12 +125,12 @@ export function OrganizationSettingsTab({
       </div>
 
       <div className='rounded-xl border border-border/60 bg-card/50'>
-        <div className='px-4 pt-4 pb-1'>
+        <div className='px-3 pt-3 pb-1 sm:px-4 sm:pt-4'>
           <h3 className='font-semibold text-[13px] text-foreground tracking-tight'>
             Team Information
           </h3>
         </div>
-        <div className='divide-y divide-border/40 px-4 pt-3 pb-4'>
+        <div className='divide-y divide-border/40 px-3 pt-3 pb-3 sm:px-4 sm:pb-4'>
           <div className='flex justify-between py-2.5 first:pt-0 last:pb-0'>
             <span className='text-[12px] text-muted-foreground'>Team ID</span>
             <span className='font-mono text-[12px] text-foreground'>{organization.id}</span>
