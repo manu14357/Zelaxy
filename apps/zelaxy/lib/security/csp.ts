@@ -18,6 +18,7 @@ export interface CSPDirectives {
   'form-action'?: string[]
   'base-uri'?: string[]
   'object-src'?: string[]
+  'worker-src'?: string[]
 }
 
 // Build-time CSP directives (for next.config.ts)
@@ -111,6 +112,7 @@ export const buildTimeCSPDirectives: CSPDirectives = {
   'form-action': ["'self'"],
   'base-uri': ["'self'"],
   'object-src': ["'none'"],
+  'worker-src': ['blob:', "'self'"],
 }
 
 /**
@@ -153,6 +155,7 @@ export function generateRuntimeCSP(): string {
     form-action 'self';
     base-uri 'self';
     object-src 'none';
+    worker-src blob: 'self';
   `
     .replace(/\s{2,}/g, ' ')
     .trim()
