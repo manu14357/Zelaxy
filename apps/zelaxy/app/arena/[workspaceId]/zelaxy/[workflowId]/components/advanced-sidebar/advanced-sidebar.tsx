@@ -23,7 +23,9 @@ import { useParams, usePathname, useRouter } from 'next/navigation'
 import { client, useSession } from '@/lib/auth-client'
 import { getDefaultAvatarUrl, isMultiavatarUrl } from '@/lib/multiavatar'
 import { cn } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useFolderStore } from '@/stores/folders/store'
+import { useSidebarStore } from '@/stores/sidebar/store'
 import { useAvatarStore } from '@/stores/user/avatar-store'
 
 // Utility function to get icon text color based on background color
@@ -183,7 +185,6 @@ import { getAllBlocks } from '@/blocks'
 import type { BlockConfig } from '@/blocks/types'
 import { useCopilotStore } from '@/stores/copilot/store'
 import { useConsoleStore } from '@/stores/panel/console/store'
-import { usePanelStore } from '@/stores/panel/store'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import type { WorkflowMetadata } from '@/stores/workflows/registry/types'
 import { Console } from '../panel/components/console/console'
@@ -401,6 +402,7 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
   const [showSearchModal, setShowSearchModal] = useState(false)
   const [nodesSearchQuery, setNodesSearchQuery] = useState('')
   const [mounted, setMounted] = useState(false)
+  const isMobile = useIsMobile()
 
   const params = useParams()
   const router = useRouter()
@@ -473,10 +475,6 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
   const currentWorkflow = workflows[workflowId]
   const workflowName = currentWorkflow?.name || 'Untitled Workflow'
 
-  // Get right panel state for responsive layout
-  const isRightPanelOpen = usePanelStore((state) => state.isOpen)
-  const rightPanelWidth = usePanelStore((state) => state.panelWidth)
-
   const handleIconClick = useCallback(
     (panelId: SidebarPanel) => {
       if (activePanel === panelId) {
@@ -501,21 +499,57 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
     }
   }, [isCollapsed])
 
-  // Calculate responsive panel width
-  const calculatePanelWidth = useCallback(() => {
-    if (!mounted) return 320 // Default for SSR
-    const availableWidth = window.innerWidth - (isRightPanelOpen ? rightPanelWidth : 0) - 60 - 100 // sidebar icon width + margin
-    return Math.min(320, Math.max(280, availableWidth))
-  }, [mounted, isRightPanelOpen, rightPanelWidth])
+  // Panel resize state from store
+  const advancedPanelWidth = useSidebarStore((s) => s.advancedPanelWidth)
+  const setAdvancedPanelWidth = useSidebarStore((s) => s.setAdvancedPanelWidth)
+  const [isPanelResizing, setIsPanelResizing] = useState(false)
+  const [panelResizeStartX, setPanelResizeStartX] = useState(0)
+  const [panelResizeStartWidth, setPanelResizeStartWidth] = useState(0)
 
-  // Use responsive width classes — always returns consistent 'w-80' during SSR
-  const panelWidthClass = useMemo(() => {
-    if (!mounted) return 'w-80' // Consistent SSR default
-    const width = calculatePanelWidth()
-    if (width <= 280) return 'w-70' // Custom width
-    if (width <= 300) return 'w-75' // Custom width
-    return 'w-80' // Default 320px
-  }, [mounted, calculatePanelWidth])
+  // Panel resize handlers
+  const handlePanelResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      if (!activePanel) return
+      e.preventDefault()
+      e.stopPropagation()
+      setIsPanelResizing(true)
+      setPanelResizeStartX(e.clientX)
+      setPanelResizeStartWidth(advancedPanelWidth)
+    },
+    [activePanel, advancedPanelWidth]
+  )
+
+  const handlePanelResize = useCallback(
+    (e: MouseEvent) => {
+      if (!isPanelResizing) return
+      e.preventDefault()
+      const deltaX = e.clientX - panelResizeStartX
+      const newWidth = panelResizeStartWidth + deltaX
+      setAdvancedPanelWidth(newWidth)
+    },
+    [isPanelResizing, panelResizeStartX, panelResizeStartWidth, setAdvancedPanelWidth]
+  )
+
+  const handlePanelResizeEnd = useCallback(() => {
+    setIsPanelResizing(false)
+  }, [])
+
+  // Global mouse listeners for panel resize
+  useEffect(() => {
+    if (isPanelResizing) {
+      document.addEventListener('mousemove', handlePanelResize)
+      document.addEventListener('mouseup', handlePanelResizeEnd)
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+
+      return () => {
+        document.removeEventListener('mousemove', handlePanelResize)
+        document.removeEventListener('mouseup', handlePanelResizeEnd)
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
+    }
+  }, [isPanelResizing, handlePanelResize, handlePanelResizeEnd])
 
   // Get all available blocks from registry
   const allBlocks = useMemo(() => getAllBlocks(), [])
@@ -788,7 +822,7 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
             </div>
             {/* Console Content */}
             <div className='flex-1 overflow-hidden'>
-              <Console panelWidth={320} />
+              <Console panelWidth={effectivePanelWidth} />
             </div>
           </div>
         )
@@ -1143,7 +1177,7 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
             </div>
             {/* Copilot Content */}
             <div className='flex-1 overflow-hidden px-1'>
-              <Copilot panelWidth={calculatePanelWidth()} />
+              <Copilot panelWidth={effectivePanelWidth} />
             </div>
           </div>
         )
@@ -1153,23 +1187,49 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
     }
   }
 
+  // On mobile, panel takes full viewport width minus the icon column
+  const mobilePanelWidth = typeof window !== 'undefined' ? window.innerWidth - 60 : 320
+  const effectivePanelWidth = isMobile ? mobilePanelWidth : advancedPanelWidth
+
+  // On mobile, always show collapsed icon column (never expand labels)
+  const showExpanded = !activePanel && !isCollapsed && !isMobile
+
   return (
     <>
+      {/* Mobile backdrop overlay when panel is open */}
+      {isMobile && activePanel && (
+        <div
+          className='fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]'
+          onClick={handleClosePanel}
+        />
+      )}
       <div
-        className={cn('fixed relative top-0 bottom-0 left-0 z-50 flex h-screen', className)}
+        className={cn(
+          'fixed relative top-0 bottom-0 left-0 z-50 flex h-screen',
+          isMobile && activePanel && 'fixed inset-y-0 left-0 z-50',
+          className
+        )}
         data-sidebar-width={
-          activePanel ? `${60 + calculatePanelWidth()}px` : isCollapsed ? '60px' : '220px'
+          activePanel
+            ? isMobile
+              ? '100vw'
+              : `${60 + advancedPanelWidth}px`
+            : isCollapsed
+              ? '60px'
+              : isMobile
+                ? '60px'
+                : '220px'
         }
       >
         {/* Always-open Sidebar with Icons + Names */}
         <div
           className={cn(
             'group relative flex h-screen flex-col border-border/60 border-r bg-card/80 backdrop-blur-md transition-all duration-300 ease-out',
-            activePanel || isCollapsed ? 'w-[60px]' : 'w-[220px]'
+            activePanel || isCollapsed || isMobile ? 'w-[60px]' : 'w-[220px]'
           )}
         >
-          {/* Toggle Button - Only visible when no panel is open */}
-          {!activePanel && (
+          {/* Toggle Button - Only visible when no panel is open and not on mobile */}
+          {!activePanel && !isMobile && (
             <button
               onClick={toggleSidebarCollapse}
               className='-right-3 -translate-y-1/2 absolute top-1/2 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-border/60 bg-background shadow-md transition-all duration-200 hover:scale-110 hover:border-primary/40 hover:shadow-lg'
@@ -1183,7 +1243,7 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
             </button>
           )}
           {/* Company Logo and Brand */}
-          {!activePanel && !isCollapsed ? (
+          {showExpanded ? (
             // Expanded: Show logo + name
             <div className='flex h-12 items-center border-border/40 border-b px-3'>
               <div className='flex items-center gap-2.5'>
@@ -1205,18 +1265,16 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
           )}
 
           {/* Workflow Name (only shown when expanded, no panel is open, and on workflow page) */}
-          {!activePanel &&
-            !isCollapsed &&
-            pathname.match(/^\/workspace\/[^/]+\/zelaxy\/[^/]+$/) && (
-              <div className='flex items-center justify-between border-border/40 border-b px-4 py-2.5'>
-                <h2
-                  className='flex-1 truncate font-medium text-[13px] text-foreground/90'
-                  title={workflowName}
-                >
-                  {workflowName}
-                </h2>
-              </div>
-            )}
+          {showExpanded && pathname.match(/^\/workspace\/[^/]+\/zelaxy\/[^/]+$/) && (
+            <div className='flex items-center justify-between border-border/40 border-b px-4 py-2.5'>
+              <h2
+                className='flex-1 truncate font-medium text-[13px] text-foreground/90'
+                title={workflowName}
+              >
+                {workflowName}
+              </h2>
+            </div>
+          )}
 
           {/* Icon List */}
           <div className='flex-1 space-y-1 px-2 py-3'>
@@ -1230,7 +1288,7 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
                       activePanel === item.id
                         ? 'bg-primary/10 text-primary shadow-sm dark:bg-primary/100/15 dark:text-primary/80'
                         : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
-                      activePanel || isCollapsed
+                      activePanel || isCollapsed || isMobile
                         ? 'h-10 justify-center'
                         : 'h-10 justify-start gap-3 px-3'
                     )}
@@ -1243,7 +1301,7 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
                           : 'text-primary/80 group-hover:text-primary'
                       )}
                     />
-                    {!activePanel && !isCollapsed && (
+                    {showExpanded && (
                       <span className='truncate font-medium text-[13px]'>{item.label}</span>
                     )}
                     {activePanel === item.id && (
@@ -1270,15 +1328,13 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
                   className={cn(
                     'relative flex w-full items-center rounded-lg transition-all duration-150',
                     'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
-                    activePanel || isCollapsed
+                    activePanel || isCollapsed || isMobile
                       ? 'h-10 justify-center'
                       : 'h-10 justify-start gap-3 px-3'
                   )}
                 >
                   <LayoutDashboard className='h-[18px] w-[18px] flex-shrink-0 text-primary/80' />
-                  {!activePanel && !isCollapsed && (
-                    <span className='truncate font-medium text-[13px]'>Hub</span>
-                  )}
+                  {showExpanded && <span className='truncate font-medium text-[13px]'>Hub</span>}
                 </button>
               </TooltipTrigger>
               <TooltipContent side='right'>
@@ -1293,13 +1349,13 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
                   className={cn(
                     'relative flex w-full items-center rounded-lg transition-all duration-150',
                     'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
-                    activePanel || isCollapsed
+                    activePanel || isCollapsed || isMobile
                       ? 'h-10 justify-center'
                       : 'h-10 justify-start gap-3 px-3'
                   )}
                 >
                   <Settings className='h-[18px] w-[18px] flex-shrink-0 text-primary/80' />
-                  {!activePanel && !isCollapsed && (
+                  {showExpanded && (
                     <span className='truncate font-medium text-[13px]'>Settings</span>
                   )}
                 </button>
@@ -1318,15 +1374,13 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
                   className={cn(
                     'relative flex w-full items-center rounded-lg transition-all duration-150',
                     'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
-                    activePanel || isCollapsed
+                    activePanel || isCollapsed || isMobile
                       ? 'h-10 justify-center'
                       : 'h-10 justify-start gap-3 px-3'
                   )}
                 >
                   <BookOpen className='h-[18px] w-[18px] flex-shrink-0 text-primary/80' />
-                  {!activePanel && !isCollapsed && (
-                    <span className='truncate font-medium text-[13px]'>Docs</span>
-                  )}
+                  {showExpanded && <span className='truncate font-medium text-[13px]'>Docs</span>}
                 </a>
               </TooltipTrigger>
               <TooltipContent side='right'>
@@ -1344,13 +1398,13 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
                   className={cn(
                     'relative flex w-full items-center rounded-lg transition-all duration-150',
                     'text-pink-400 hover:bg-pink-500/10 hover:text-pink-300',
-                    activePanel || isCollapsed
+                    activePanel || isCollapsed || isMobile
                       ? 'h-10 justify-center'
                       : 'h-10 justify-start gap-3 px-3'
                   )}
                 >
                   <Heart className='h-[18px] w-[18px] flex-shrink-0' />
-                  {!activePanel && !isCollapsed && (
+                  {showExpanded && (
                     <span className='truncate font-medium text-[13px]'>Sponsors</span>
                   )}
                 </a>
@@ -1396,7 +1450,7 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
 
           {/* User Profile Section */}
           <ProfileDropdown
-            expanded={!activePanel && !isCollapsed}
+            expanded={showExpanded}
             avatarUrl={userAvatarUrl}
             userName={sessionData?.user?.name}
             userEmail={sessionData?.user?.email}
@@ -1407,14 +1461,29 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
         {activePanel && (
           <div
             className={cn(
-              'relative z-40 flex h-screen flex-col border-border/60 border-r bg-background/95 shadow-xl backdrop-blur-sm transition-all duration-300 ease-out',
-              panelWidthClass
+              'relative z-40 flex h-screen flex-col border-border/60 border-r bg-background/95 shadow-xl backdrop-blur-sm',
+              isMobile && 'flex-1'
             )}
+            style={isMobile ? undefined : { width: `${advancedPanelWidth}px` }}
           >
             {/* Panel Content */}
             <div className='relative z-40 min-h-0 flex-1 overflow-hidden'>
               {renderPanelContent()}
             </div>
+
+            {/* Resize handle on right edge - hidden on mobile */}
+            {!isMobile && (
+              <div
+                className={cn(
+                  'absolute top-0 right-0 bottom-0 z-50 w-1 cursor-col-resize transition-colors hover:bg-primary/60',
+                  isPanelResizing ? 'bg-primary/60' : 'bg-transparent'
+                )}
+                onMouseDown={handlePanelResizeStart}
+              >
+                {/* Invisible wider hit area for easier grabbing */}
+                <div className='-right-2 absolute top-0 bottom-0 w-5' />
+              </div>
+            )}
           </div>
         )}
       </div>

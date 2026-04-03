@@ -23,7 +23,12 @@ export function SettingPageHeader({
   className,
 }: SettingPageHeaderProps) {
   return (
-    <div className={cn('flex items-start justify-between gap-4 pb-1', className)}>
+    <div
+      className={cn(
+        'flex flex-col gap-3 pb-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4',
+        className
+      )}
+    >
       <div className='min-w-0'>
         <h2 className='font-semibold text-foreground text-lg tracking-tight'>{title}</h2>
         {description && (

@@ -34,10 +34,10 @@ export function TeamMembersList({
   if (!organization.members || organization.members.length === 0) {
     return (
       <div className='rounded-xl border border-border/60 bg-card/50'>
-        <h4 className='border-border/40 border-b px-4 py-3 font-semibold text-[13px] text-foreground'>
+        <h4 className='border-border/40 border-b px-3 py-3 font-semibold text-[13px] text-foreground sm:px-4'>
           Team Members
         </h4>
-        <div className='px-4 py-6 text-center text-[13px] text-muted-foreground'>
+        <div className='px-3 py-6 text-center text-[13px] text-muted-foreground sm:px-4'>
           No members in this organization yet.
         </div>
       </div>
@@ -66,7 +66,10 @@ export function TeamMembersList({
           const isUpdating = updatingRoleFor === m.user?.id
 
           return (
-            <div key={m.id} className='flex items-center justify-between px-4 py-3'>
+            <div
+              key={m.id}
+              className='flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-3'
+            >
               <div className='flex-1'>
                 <div className='flex items-center gap-3'>
                   <div className='flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 font-semibold text-[12px] text-primary'>

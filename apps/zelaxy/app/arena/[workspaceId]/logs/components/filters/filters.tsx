@@ -30,7 +30,7 @@ export function Filters() {
   }
 
   return (
-    <div className='h-full w-60 overflow-auto p-4'>
+    <div className='h-full w-full overflow-auto p-3 sm:w-60 sm:p-4'>
       {/* Show retention policy for free users in production only */}
       {!isLoading && !isPaid && isProd && (
         <div className='mb-4 overflow-hidden rounded-xl border border-border/40'>

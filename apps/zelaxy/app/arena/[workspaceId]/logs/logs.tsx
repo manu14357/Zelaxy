@@ -917,13 +917,13 @@ export default function Logs() {
   const activeFilters = getActiveFiltersCount()
 
   return (
-    <div className='flex h-[100vh] min-w-0 flex-col bg-background'>
+    <div className='flex h-full min-w-0 flex-col bg-background'>
       <div className='flex min-w-0 flex-1 overflow-hidden'>
         {/* ── Filter Sidebar ────────────────────────────────────────────────── */}
         <div
           className={cn(
             'border-border/40 border-r bg-background/95 backdrop-blur transition-all duration-300 ease-in-out',
-            isFiltersOpen ? 'w-64 opacity-100' : 'w-0 overflow-hidden opacity-0'
+            isFiltersOpen ? 'w-52 opacity-100 sm:w-64' : 'w-0 overflow-hidden opacity-0'
           )}
         >
           {isFiltersOpen && (
@@ -961,11 +961,11 @@ export default function Logs() {
         <div className='flex flex-1 flex-col overflow-auto'>
           {/* ── Header ── */}
           <div className='sticky top-0 z-10 border-border/40 border-b bg-background/95 backdrop-blur-xl'>
-            <div className='px-6 py-4'>
+            <div className='px-3 py-3 sm:px-6 sm:py-4'>
               {/* Title Row */}
               <div className='flex items-center justify-between'>
-                <div className='flex items-center gap-3'>
-                  <h1 className='font-semibold text-[22px] text-foreground tracking-tight'>
+                <div className='flex items-center gap-2 sm:gap-3'>
+                  <h1 className='font-semibold text-foreground text-lg tracking-tight sm:text-[22px]'>
                     Workflow Logs
                   </h1>
                   {isLive && (
@@ -980,11 +980,11 @@ export default function Logs() {
                     </div>
                   )}
                 </div>
-                <div className='flex items-center gap-2'>
+                <div className='flex items-center gap-1 sm:gap-2'>
                   <button
                     type='button'
                     onClick={() => setShowStats((s) => !s)}
-                    className='rounded-lg px-2.5 py-1 text-[11px] text-muted-foreground/60 transition-colors hover:bg-muted/50 hover:text-muted-foreground'
+                    className='hidden rounded-lg px-2.5 py-1 text-[11px] text-muted-foreground/60 transition-colors hover:bg-muted/50 hover:text-muted-foreground sm:inline-flex'
                   >
                     <ChevronDown
                       className={cn(
@@ -1010,7 +1010,7 @@ export default function Logs() {
           </div>
 
           {/* ── Search & Controls ── */}
-          <div className='border-border/40 border-b bg-background px-6 py-3'>
+          <div className='border-border/40 border-b bg-background px-3 py-2 sm:px-6 sm:py-3'>
             {/* Active filter pills */}
             {activeFilters > 0 && (
               <div className='mb-3 flex items-center gap-2'>
@@ -1066,7 +1066,7 @@ export default function Logs() {
             )}
 
             <div className='flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center'>
-              <div className='relative max-w-md flex-1'>
+              <div className='relative max-w-full flex-1 sm:max-w-md'>
                 <div className='pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3'>
                   <Search className='h-3.5 w-3.5 text-muted-foreground/60' />
                 </div>
@@ -1104,8 +1104,8 @@ export default function Logs() {
                           : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                       )}
                     >
-                      <Filter className='mr-1.5 h-3.5 w-3.5' />
-                      Filters
+                      <Filter className='h-3.5 w-3.5 sm:mr-1.5' />
+                      <span className='hidden sm:inline'>Filters</span>
                       {activeFilters > 0 && (
                         <span className='ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 font-medium text-[10px] text-primary-foreground'>
                           {activeFilters}
@@ -1164,8 +1164,8 @@ export default function Logs() {
                         </>
                       ) : (
                         <>
-                          <Play className='mr-1.5 h-3.5 w-3.5' />
-                          <span>Go Live</span>
+                          <Play className='h-3.5 w-3.5 sm:mr-1.5' />
+                          <span className='hidden sm:inline'>Go Live</span>
                         </>
                       )}
                     </Button>
@@ -1253,11 +1253,11 @@ export default function Logs() {
               </div>
             ) : (
               /* ── Timeline Cards ── */
-              <div className='px-6 pt-4 pb-6'>
+              <div className='px-3 pt-4 pb-6 sm:px-6'>
                 {groupedLogs.map((group) => (
                   <div key={group.label} className='mb-2'>
                     {/* Time group label */}
-                    <div className='-mx-6 sticky top-0 z-[5] mb-2 flex items-center gap-3 bg-background/95 px-6 py-2 backdrop-blur-sm'>
+                    <div className='-mx-3 sm:-mx-6 sticky top-0 z-[5] mb-2 flex items-center gap-3 bg-background/95 px-3 py-2 backdrop-blur-sm sm:px-6'>
                       <span className='font-semibold text-[11px] text-foreground/60 uppercase tracking-wider'>
                         {group.label}
                       </span>

@@ -47,7 +47,7 @@ export function TeamSeatsOverview({
   if (isLoadingSubscription) {
     return (
       <div className='rounded-xl border border-border/60 bg-card/50'>
-        <div className='px-4 pt-4 pb-1'>
+        <div className='px-3 pt-3 pb-1 sm:px-4 sm:pt-4'>
           <h3 className='font-semibold text-[13px] text-foreground tracking-tight'>
             Team Seats Overview
           </h3>
@@ -55,7 +55,7 @@ export function TeamSeatsOverview({
             Manage your team&apos;s seat allocation and billing
           </p>
         </div>
-        <div className='px-4 pt-3 pb-4'>
+        <div className='px-3 pt-3 pb-3 sm:px-4 sm:pb-4'>
           <TeamSeatsSkeleton />
         </div>
       </div>
@@ -65,7 +65,7 @@ export function TeamSeatsOverview({
   if (!subscriptionData) {
     return (
       <div className='rounded-xl border border-border/60 bg-card/50'>
-        <div className='px-4 pt-4 pb-1'>
+        <div className='px-3 pt-3 pb-1 sm:px-4 sm:pt-4'>
           <h3 className='font-semibold text-[13px] text-foreground tracking-tight'>
             Team Seats Overview
           </h3>
@@ -73,7 +73,7 @@ export function TeamSeatsOverview({
             Manage your team&apos;s seat allocation and billing
           </p>
         </div>
-        <div className='px-4 pt-3 pb-4'>
+        <div className='px-3 pt-3 pb-3 sm:px-4 sm:pb-4'>
           <div className='space-y-4 py-4 text-center'>
             <div className='mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-amber-100/80 dark:bg-amber-900/30'>
               <Building2 className='h-5 w-5 text-amber-600 dark:text-amber-400' />
@@ -100,7 +100,7 @@ export function TeamSeatsOverview({
 
   return (
     <div className='rounded-xl border border-border/60 bg-card/50'>
-      <div className='px-4 pt-4 pb-1'>
+      <div className='px-3 pt-3 pb-1 sm:px-4 sm:pt-4'>
         <h3 className='font-semibold text-[13px] text-foreground tracking-tight'>
           Team Seats Overview
         </h3>
@@ -108,8 +108,8 @@ export function TeamSeatsOverview({
           Manage your team&apos;s seat allocation and billing
         </p>
       </div>
-      <div className='space-y-4 px-4 pt-3 pb-4'>
-        <div className='grid grid-cols-3 gap-3 text-center'>
+      <div className='space-y-3 px-3 pt-3 pb-3 sm:space-y-4 sm:px-4 sm:pb-4'>
+        <div className='grid grid-cols-3 gap-2 text-center sm:gap-3'>
           <div className='rounded-lg bg-muted/40 p-3'>
             <p className='font-bold text-foreground text-lg tabular-nums'>
               {subscriptionData.seats || 0}

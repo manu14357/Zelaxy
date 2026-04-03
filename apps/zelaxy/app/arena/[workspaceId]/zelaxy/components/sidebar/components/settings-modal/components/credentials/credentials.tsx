@@ -294,7 +294,7 @@ export function Credentials({ onOpenChange }: CredentialsProps) {
 
   return (
     <div className='space-y-6 px-3 py-6'>
-      <div className='flex items-start justify-between gap-4'>
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4'>
         <div className='min-w-0'>
           <h2 className='font-semibold text-foreground text-lg tracking-tight'>Credentials</h2>
           <p className='mt-1 text-[13px] text-muted-foreground leading-relaxed'>
@@ -308,7 +308,7 @@ export function Credentials({ onOpenChange }: CredentialsProps) {
             placeholder='Search services…'
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className='h-8 w-44 rounded-lg pl-8 text-[13px]'
+            className='h-8 w-full rounded-lg pl-8 text-[13px] sm:w-44'
           />
         </div>
       </div>
@@ -366,18 +366,18 @@ export function Credentials({ onOpenChange }: CredentialsProps) {
                     key={service.id}
                     ref={pendingService === service.id ? pendingServiceRef : undefined}
                     className={cn(
-                      'rounded-xl border border-border/60 bg-card/50 p-4 transition-colors',
+                      'rounded-xl border border-border/60 bg-card/50 p-3 transition-colors sm:p-4',
                       pendingService === service.id && 'border-primary/40 bg-primary/5'
                     )}
                   >
-                    <div className='flex items-start gap-3.5'>
-                      <div className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/70'>
+                    <div className='flex items-start gap-2.5 sm:gap-3.5'>
+                      <div className='flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/70 sm:h-9 sm:w-9'>
                         {typeof service.icon === 'function'
                           ? service.icon({ className: 'h-4 w-4' })
                           : service.icon}
                       </div>
                       <div className='min-w-0 flex-1'>
-                        <div className='flex items-start justify-between gap-3'>
+                        <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3'>
                           <div className='min-w-0'>
                             <p className='font-medium text-[13px] text-foreground'>
                               {service.name}
@@ -411,7 +411,7 @@ export function Credentials({ onOpenChange }: CredentialsProps) {
                             {service.accounts.map((account) => (
                               <div
                                 key={account.id}
-                                className='flex items-center justify-between gap-2 rounded-lg border border-border/40 bg-background px-3 py-2'
+                                className='flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/40 bg-background px-2 py-1.5 sm:px-3 sm:py-2'
                               >
                                 <div className='flex items-center gap-2'>
                                   <span className='flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/60'>

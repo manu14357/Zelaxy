@@ -395,7 +395,7 @@ export function MCPServers() {
           title='MCP Servers'
           description='Manage Model Context Protocol server connections.'
           action={
-            <div className='flex items-center gap-2'>
+            <div className='flex flex-wrap items-center gap-2'>
               <Button
                 variant='outline'
                 size='sm'
@@ -1031,7 +1031,7 @@ function EditServerForm({ server, onSuccess }: { server: MCPServer; onSuccess: (
           <AlertDescription className='text-[13px]'>{error}</AlertDescription>
         </Alert>
       )}
-      <div className='grid grid-cols-2 gap-4'>
+      <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
         <div className='space-y-1.5'>
           <Label htmlFor='edit-name' className='font-medium text-[12px]'>
             Server Name
@@ -1077,7 +1077,7 @@ function EditServerForm({ server, onSuccess }: { server: MCPServer; onSuccess: (
         </Label>
       </div>
 
-      <div className='grid grid-cols-2 gap-4'>
+      <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
         <div className='space-y-1.5'>
           <Label htmlFor='edit-timeout' className='font-medium text-[12px]'>
             Timeout (seconds)
@@ -1138,8 +1138,8 @@ function ToolsView({ server }: { server: MCPServer }) {
 
   return (
     <div className='space-y-4'>
-      <div className='flex items-center gap-3'>
-        <div className='relative flex-1'>
+      <div className='flex flex-wrap items-center gap-3'>
+        <div className='relative min-w-0 flex-1'>
           <Search className='-translate-y-1/2 absolute top-1/2 left-3 h-3.5 w-3.5 text-muted-foreground' />
           <Input
             placeholder='Search tools...'
@@ -1149,7 +1149,7 @@ function ToolsView({ server }: { server: MCPServer }) {
           />
         </div>
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className='h-8 w-40 rounded-lg text-[13px]'>
+          <SelectTrigger className='h-8 w-full rounded-lg text-[13px] sm:w-40'>
             <SelectValue placeholder='Category' />
           </SelectTrigger>
           <SelectContent className='rounded-lg'>

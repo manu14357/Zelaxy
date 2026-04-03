@@ -165,14 +165,14 @@ export function Hub({ initialTemplates, currentUserId }: HubProps) {
   return (
     <div className='flex h-screen flex-col bg-background'>
       {/* Header */}
-      <div className='flex-shrink-0 border-border/40 border-b bg-background/80 px-6 py-4 backdrop-blur-sm'>
-        <div className='flex items-center gap-3'>
+      <div className='flex-shrink-0 border-border/40 border-b bg-background/80 px-3 py-3 backdrop-blur-sm sm:px-6 sm:py-4'>
+        <div className='flex items-center gap-2 sm:gap-3'>
           <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10'>
             <LayoutDashboard className='h-4 w-4 text-primary' />
           </div>
           <div>
-            <h1 className='font-semibold text-lg tracking-tight'>Hub</h1>
-            <p className='text-muted-foreground text-xs'>
+            <h1 className='font-semibold text-base tracking-tight sm:text-lg'>Hub</h1>
+            <p className='hidden text-muted-foreground text-xs sm:block'>
               Manage your workspace logs, knowledge, templates, and settings
             </p>
           </div>
@@ -185,8 +185,8 @@ export function Hub({ initialTemplates, currentUserId }: HubProps) {
         onValueChange={(v) => handleTabChange(v as TabId)}
         className='flex min-h-0 flex-1 flex-col'
       >
-        <div className='flex-shrink-0 border-border/40 border-b bg-background/60 px-6'>
-          <TabsList className='h-auto gap-1 rounded-none border-none bg-transparent p-0'>
+        <div className='flex-shrink-0 border-border/40 border-b bg-background/60 px-3 sm:px-6'>
+          <TabsList className='h-auto w-full gap-0.5 rounded-none border-none bg-transparent p-0 sm:w-auto sm:gap-1'>
             {tabs.map((tab) => {
               const Icon = tab.icon
               return (
@@ -194,12 +194,12 @@ export function Hub({ initialTemplates, currentUserId }: HubProps) {
                   key={tab.id}
                   value={tab.id}
                   className={cn(
-                    'relative gap-2 rounded-none border-transparent border-b-2 px-4 py-2.5 font-medium text-sm shadow-none transition-all',
+                    'relative gap-1.5 rounded-none border-transparent border-b-2 px-2 py-2 font-medium text-xs shadow-none transition-all sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm',
                     'text-muted-foreground hover:text-foreground',
                     'data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none'
                   )}
                 >
-                  <Icon className='h-4 w-4' />
+                  <Icon className='h-3.5 w-3.5 sm:h-4 sm:w-4' />
                   {tab.label}
                 </TabsTrigger>
               )
@@ -223,8 +223,8 @@ export function Hub({ initialTemplates, currentUserId }: HubProps) {
         <TabsContent value='settings' className='mt-0 min-h-0 flex-1'>
           <div className='flex h-full min-h-0'>
             {/* Settings Sidebar */}
-            <aside className='hidden w-[200px] flex-shrink-0 flex-col border-border/40 border-r bg-muted/30 sm:flex lg:w-[220px]'>
-              <div className='flex-1 overflow-y-auto'>
+            <aside className='w-[52px] flex-shrink-0 border-border/40 border-r bg-muted/30 sm:w-[200px] lg:w-[220px]'>
+              <div className='overflow-y-auto'>
                 <SettingsNavigation
                   activeSection={activeSettingsSection}
                   onSectionChange={handleSettingsChange}
@@ -234,7 +234,7 @@ export function Hub({ initialTemplates, currentUserId }: HubProps) {
             </aside>
 
             {/* Settings Content */}
-            <main className='flex-1 overflow-y-auto bg-background'>
+            <main className='min-h-0 flex-1 overflow-y-auto bg-background'>
               <div className='min-h-full'>
                 {visibleSettingsSections.map(({ id, component: SectionComponent }) => (
                   <div

@@ -133,9 +133,11 @@ export function Shortcuts({ onOpenChange }: ShortcutsProps) {
             {group.shortcuts.map((shortcut, idx) => (
               <div
                 key={`${group.title}-${idx}`}
-                className='flex items-center justify-between px-4 py-2.5'
+                className='flex items-center justify-between gap-3 px-2 py-2.5 sm:px-4'
               >
-                <span className='text-[13px] text-foreground'>{shortcut.description}</span>
+                <span className='min-w-0 flex-1 text-[13px] text-foreground'>
+                  {shortcut.description}
+                </span>
                 <div className='flex items-center gap-1'>
                   {shortcut.keys.map((key, keyIdx) => (
                     <span key={keyIdx} className='flex items-center gap-1'>

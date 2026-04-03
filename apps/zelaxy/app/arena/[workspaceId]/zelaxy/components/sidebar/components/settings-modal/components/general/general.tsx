@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Monitor, Moon, Palette, Sun } from 'lucide-react'
+import { AlertTriangle, Check, Monitor, Moon, Palette, Sun } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -113,15 +113,13 @@ export function General() {
         icon={<Palette className='h-4 w-4' />}
       >
         {isLoading ? (
-          <SettingRowSkeleton />
+          <ThemeCardsSkeleton />
         ) : (
-          <SettingRow label='Theme' bordered={false}>
-            <ThemeSegmentedControl
-              value={theme}
-              onChange={handleThemeChange}
-              disabled={isLoading || isThemeLoading}
-            />
-          </SettingRow>
+          <ThemeSegmentedControl
+            value={theme}
+            onChange={handleThemeChange}
+            disabled={isLoading || isThemeLoading}
+          />
         )}
       </SettingSection>
 
@@ -129,7 +127,10 @@ export function General() {
       <SettingSection title='Timezone' description='Used for scheduled workflows and timestamps.'>
         <SettingRow label='Timezone' htmlFor='timezone-select' bordered={false}>
           <Select value={timezone} onValueChange={setTimezone}>
-            <SelectTrigger id='timezone-select' className='h-8 w-[220px] rounded-lg text-[13px]'>
+            <SelectTrigger
+              id='timezone-select'
+              className='h-8 w-full rounded-lg text-[13px] sm:w-[220px]'
+            >
               <SelectValue placeholder='Select timezone' />
             </SelectTrigger>
             <SelectContent className='rounded-lg'>
@@ -233,13 +234,112 @@ function SettingRowSkeleton() {
   )
 }
 
-// ── Theme Segmented Control ──────────────────────────────────────────────────
+function ThemeCardsSkeleton() {
+  return (
+    <div className='grid w-full grid-cols-3 gap-2.5 pb-1'>
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className='flex flex-col items-center gap-2 rounded-xl border-2 border-border/40 bg-muted/20 p-2'
+        >
+          <Skeleton className='h-12 w-full rounded-md' />
+          <Skeleton className='h-3 w-10 rounded-full' />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Theme Card Control ────────────────────────────────────────────────────────
 
 const THEME_OPTIONS = [
   { value: 'system' as const, icon: Monitor, label: 'System' },
   { value: 'light' as const, icon: Sun, label: 'Light' },
   { value: 'dark' as const, icon: Moon, label: 'Dark' },
 ]
+
+function ThemePreview({ theme }: { theme: 'system' | 'light' | 'dark' }) {
+  if (theme === 'light') {
+    return (
+      <div className='h-full w-full overflow-hidden bg-white'>
+        {/* Titlebar */}
+        <div className='flex h-2 items-center gap-0.5 border-slate-100 border-b bg-slate-50 px-1.5'>
+          <div className='h-0.5 w-0.5 rounded-full bg-slate-300' />
+          <div className='h-0.5 w-0.5 rounded-full bg-slate-300' />
+          <div className='h-0.5 w-0.5 rounded-full bg-slate-300' />
+          <div className='ml-1 h-0.5 w-5 rounded-full bg-slate-200' />
+        </div>
+        {/* Sidebar + content */}
+        <div className='flex h-[calc(100%-8px)]'>
+          <div className='w-4 shrink-0 border-slate-100 border-r bg-slate-50'>
+            <div className='mx-0.5 mt-0.5 h-0.5 w-2 rounded-full bg-orange-300' />
+            <div className='mx-0.5 mt-0.5 h-0.5 w-2 rounded-full bg-slate-200' />
+            <div className='mx-0.5 mt-0.5 h-0.5 w-2 rounded-full bg-slate-200' />
+          </div>
+          <div className='flex-1 space-y-0.5 p-1'>
+            <div className='h-0.5 w-9 rounded-full bg-slate-200' />
+            <div className='h-0.5 w-6 rounded-full bg-slate-100' />
+            <div className='mt-0.5 h-0.5 w-11 rounded-full bg-slate-200' />
+            <div className='h-0.5 w-7 rounded-full bg-slate-100' />
+          </div>
+        </div>
+      </div>
+    )
+  }
+  if (theme === 'dark') {
+    return (
+      <div className='h-full w-full overflow-hidden bg-zinc-950'>
+        {/* Titlebar */}
+        <div className='flex h-2 items-center gap-0.5 border-zinc-700/60 border-b bg-zinc-900 px-1.5'>
+          <div className='h-0.5 w-0.5 rounded-full bg-zinc-600' />
+          <div className='h-0.5 w-0.5 rounded-full bg-zinc-600' />
+          <div className='h-0.5 w-0.5 rounded-full bg-zinc-600' />
+          <div className='ml-1 h-0.5 w-5 rounded-full bg-zinc-700' />
+        </div>
+        {/* Sidebar + content */}
+        <div className='flex h-[calc(100%-8px)]'>
+          <div className='w-4 shrink-0 border-zinc-700/60 border-r bg-zinc-900'>
+            <div className='mx-0.5 mt-0.5 h-0.5 w-2 rounded-full bg-orange-500/70' />
+            <div className='mx-0.5 mt-0.5 h-0.5 w-2 rounded-full bg-zinc-700' />
+            <div className='mx-0.5 mt-0.5 h-0.5 w-2 rounded-full bg-zinc-700' />
+          </div>
+          <div className='flex-1 space-y-0.5 p-1'>
+            <div className='h-0.5 w-9 rounded-full bg-zinc-700' />
+            <div className='h-0.5 w-6 rounded-full bg-zinc-800' />
+            <div className='mt-0.5 h-0.5 w-11 rounded-full bg-zinc-700' />
+            <div className='h-0.5 w-7 rounded-full bg-zinc-800' />
+          </div>
+        </div>
+      </div>
+    )
+  }
+  // System: vertically split light / dark
+  return (
+    <div className='relative h-full w-full overflow-hidden'>
+      <div className='absolute inset-0 bg-white' />
+      <div className='absolute inset-y-0 right-0 w-[49%] bg-zinc-950' />
+      <div className='absolute inset-y-0 left-1/2 z-10 w-px bg-border/80' />
+      {/* Titlebar */}
+      <div className='relative z-20 flex h-2 items-center gap-0.5 px-1.5'>
+        <div className='h-0.5 w-0.5 rounded-full bg-slate-300' />
+        <div className='h-0.5 w-0.5 rounded-full bg-zinc-600' />
+      </div>
+      {/* Content rows — left half (light) and right half (dark) */}
+      <div className='relative z-20 h-[calc(100%-8px)]'>
+        <div className='absolute inset-y-0 left-0 w-1/2 space-y-0.5 p-1'>
+          <div className='h-0.5 rounded-full bg-slate-200' />
+          <div className='h-0.5 rounded-full bg-slate-100' />
+          <div className='h-0.5 rounded-full bg-slate-200' />
+        </div>
+        <div className='absolute inset-y-0 right-0 w-1/2 space-y-0.5 p-1'>
+          <div className='h-0.5 rounded-full bg-zinc-700' />
+          <div className='h-0.5 rounded-full bg-zinc-800' />
+          <div className='h-0.5 rounded-full bg-zinc-700' />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function ThemeSegmentedControl({
   value,
@@ -250,28 +350,13 @@ function ThemeSegmentedControl({
   onChange: (value: 'system' | 'light' | 'dark') => void
   disabled?: boolean
 }) {
-  const activeIndex = THEME_OPTIONS.findIndex((o) => o.value === value)
-
   return (
     <div
       className={cn(
-        'relative inline-flex h-9 items-center rounded-lg bg-muted/60 p-0.5',
+        'grid w-full grid-cols-3 gap-2.5 pb-1',
         disabled && 'pointer-events-none opacity-50'
       )}
     >
-      {/* Animated pill background */}
-      {/* eslint-disable-next-line jsx-a11y/prefer-tag-over-role */}
-      <div
-        role='presentation'
-        className={cn(
-          'absolute inset-y-0.5 rounded-md bg-background shadow-sm transition-all duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]',
-          'w-[calc(33.333%-2px)]',
-          activeIndex === 0 && 'left-[1px]',
-          activeIndex === 1 && 'left-[calc(33.333%+1px)]',
-          activeIndex === 2 && 'left-[calc(66.666%+1px)]'
-        )}
-      />
-
       {THEME_OPTIONS.map((option) => {
         const Icon = option.icon
         const isActive = value === option.value
@@ -281,24 +366,48 @@ function ThemeSegmentedControl({
             type='button'
             onClick={() => onChange(option.value)}
             disabled={disabled}
+            aria-label={`Set ${option.label} theme`}
             className={cn(
-              'relative z-10 flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium text-[12px] transition-colors duration-200',
-              isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/70'
+              'group relative flex flex-col items-center gap-2 rounded-xl border-2 p-2 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+              isActive
+                ? 'border-primary/60 bg-primary/5 shadow-sm'
+                : 'border-border/50 bg-muted/30 hover:border-border hover:bg-muted/60'
             )}
-            aria-label={option.label}
           >
-            <Icon
-              className={cn(
-                'h-3.5 w-3.5 transition-all duration-300',
-                isActive && option.value === 'light' && 'rotate-0 scale-100 text-amber-500',
-                !isActive && option.value === 'light' && '-rotate-90 scale-75',
-                isActive && option.value === 'dark' && 'rotate-0 scale-100 text-primary/80',
-                !isActive && option.value === 'dark' && 'rotate-90 scale-75',
-                isActive && option.value === 'system' && 'scale-100 text-foreground',
-                !isActive && option.value === 'system' && 'scale-90'
-              )}
-            />
-            <span>{option.label}</span>
+            {/* Mini app preview */}
+            <div className='h-12 w-full overflow-hidden rounded-md border border-border/40 shadow-sm'>
+              <ThemePreview theme={option.value} />
+            </div>
+
+            {/* Icon + label */}
+            <div className='flex items-center gap-1'>
+              <Icon
+                className={cn(
+                  'h-3 w-3 transition-colors duration-200',
+                  isActive && option.value === 'light' && 'text-amber-500',
+                  isActive && option.value === 'dark' && 'text-indigo-400',
+                  isActive && option.value === 'system' && 'text-foreground',
+                  !isActive && 'text-muted-foreground group-hover:text-foreground/60'
+                )}
+              />
+              <span
+                className={cn(
+                  'font-medium text-[11px] transition-colors duration-200',
+                  isActive
+                    ? 'text-foreground'
+                    : 'text-muted-foreground group-hover:text-foreground/60'
+                )}
+              >
+                {option.label}
+              </span>
+            </div>
+
+            {/* Active checkmark badge */}
+            {isActive && (
+              <div className='-right-1 -top-1 absolute flex h-4 w-4 items-center justify-center rounded-full bg-primary shadow-sm'>
+                <Check className='h-2.5 w-2.5 text-primary-foreground' />
+              </div>
+            )}
           </button>
         )
       })}

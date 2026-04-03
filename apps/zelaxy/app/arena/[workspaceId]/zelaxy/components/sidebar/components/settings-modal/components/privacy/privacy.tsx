@@ -148,7 +148,7 @@ export function Privacy() {
       </SettingSection>
 
       {/* ── Privacy Info ───────────────────────────────────────────── */}
-      <div className='rounded-xl border border-border/40 bg-muted/20 px-5 py-4'>
+      <div className='rounded-xl border border-border/40 bg-muted/20 px-3 py-4 sm:px-5'>
         <ul className='space-y-2'>
           {[
             'We never sell your personal information to third parties.',

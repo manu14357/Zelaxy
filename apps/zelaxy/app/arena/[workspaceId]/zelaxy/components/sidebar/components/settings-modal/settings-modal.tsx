@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Menu, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui'
 import { isBillingEnabled } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
@@ -74,7 +74,6 @@ const SECTIONS: SectionEntry[] = [
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
   const [isLoading, setIsLoading] = useState(true)
-  const [showMobileNav, setShowMobileNav] = useState(false)
   const loadSettings = useGeneralStore((state) => state.loadSettings)
   const { activeOrganization } = useOrganizationStore()
   const hasLoadedInitialData = useRef(false)
@@ -125,7 +124,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
   const handleSectionChange = useCallback((section: SettingsSection) => {
     setActiveSection(section)
-    setShowMobileNav(false)
   }, [])
 
   const handleClose = useCallback(() => onOpenChange(false), [onOpenChange])
@@ -140,31 +138,19 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          'flex flex-col gap-0 overflow-hidden rounded-2xl border-border/50 p-0 shadow-2xl',
-          'h-[95vh] max-h-[95vh] w-[95vw] max-w-[95vw]',
-          'sm:h-[85vh] sm:w-[90vw] sm:max-w-[900px] sm:rounded-2xl',
+          'flex flex-col gap-0 overflow-hidden border-border/50 p-0 shadow-2xl',
+          'h-[100dvh] max-h-[100dvh] w-[100vw] max-w-[100vw] rounded-none',
+          'sm:h-[85vh] sm:max-h-[85vh] sm:w-[90vw] sm:max-w-[900px] sm:rounded-2xl',
           'lg:h-[80vh] lg:max-w-[1000px]'
         )}
         hideCloseButton
       >
         {/* ── Header ──────────────────────────────────────────────────── */}
-        <DialogHeader className='flex-shrink-0 border-border/40 border-b bg-background/80 px-5 py-3.5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 sm:px-6'>
+        <DialogHeader className='flex-shrink-0 border-border/40 border-b bg-background/80 px-3 py-3 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 sm:px-6 sm:py-3.5'>
           <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-3'>
-              {/* Mobile hamburger */}
-              <Button
-                variant='ghost'
-                size='icon'
-                className='h-7 w-7 rounded-md sm:hidden'
-                onClick={() => setShowMobileNav(!showMobileNav)}
-                aria-label='Toggle navigation'
-              >
-                <Menu className='h-4 w-4 text-muted-foreground' />
-              </Button>
-              <DialogTitle className='font-semibold text-[15px] text-foreground tracking-tight'>
-                Settings
-              </DialogTitle>
-            </div>
+            <DialogTitle className='font-semibold text-[14px] text-foreground tracking-tight sm:text-[15px]'>
+              Settings
+            </DialogTitle>
 
             <Button
               variant='ghost'
@@ -180,8 +166,8 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
         {/* ── Body ────────────────────────────────────────────────────── */}
         <div className='relative flex min-h-0 flex-1'>
-          {/* Desktop Sidebar */}
-          <aside className='hidden w-[200px] flex-col border-border/40 border-r bg-muted/30 sm:flex lg:w-[220px]'>
+          {/* Sidebar — always visible */}
+          <aside className='flex w-[52px] flex-shrink-0 flex-col border-border/40 border-r bg-muted/30 sm:w-[200px] lg:w-[220px]'>
             <div className='flex-1 overflow-y-auto'>
               <SettingsNavigation
                 activeSection={activeSection}
@@ -191,26 +177,8 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             </div>
           </aside>
 
-          {/* Mobile Navigation Overlay */}
-          {showMobileNav && (
-            <div className='absolute inset-0 z-50 flex sm:hidden'>
-              <div className='w-[260px] border-border/40 border-r bg-background/95 shadow-2xl backdrop-blur-xl'>
-                <SettingsNavigation
-                  activeSection={activeSection}
-                  onSectionChange={handleSectionChange}
-                  hasOrganization={!!activeOrganization?.id}
-                />
-              </div>
-              <div
-                className='flex-1 bg-black/10 backdrop-blur-[2px]'
-                onClick={() => setShowMobileNav(false)}
-                aria-hidden
-              />
-            </div>
-          )}
-
           {/* Content Area */}
-          <main className='flex-1 overflow-y-auto bg-background'>
+          <main className='min-h-0 flex-1 overflow-y-auto bg-background'>
             <div className='min-h-full'>
               {visibleSections.map(({ id, component: SectionComponent }) => (
                 <div key={id} className={cn('h-full', activeSection === id ? 'block' : 'hidden')}>
