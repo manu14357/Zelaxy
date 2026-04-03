@@ -52,7 +52,7 @@ export function Footer() {
           <div className='space-y-6 xl:col-span-1'>
             <Link href='/' className='flex items-center gap-3'>
               <Image
-                src='/Zelaxy.svg'
+                src='/zelaxy.svg'
                 alt='Zelaxy'
                 width={40}
                 height={40}
