@@ -9,6 +9,7 @@ import { arxivGetAuthorPapersTool, arxivGetPaperTool, arxivSearchTool } from '@/
 import { browserUseRunTaskTool } from '@/tools/browser_use'
 import { clayPopulateTool } from '@/tools/clay'
 import { confluenceRetrieveTool, confluenceUpdateTool } from '@/tools/confluence'
+import { delayTool } from '@/tools/delay'
 import {
   discordGetMessagesTool,
   discordGetServerTool,
@@ -283,6 +284,7 @@ export const tools: Record<string, ToolConfig> = {
   s3_get_object: s3GetObjectTool,
   telegram_message: telegramMessageTool,
   clay_populate: clayPopulateTool,
+  delay_wait: delayTool,
   discord_send_message: discordSendMessageTool,
   discord_get_messages: discordGetMessagesTool,
   discord_get_server: discordGetServerTool,

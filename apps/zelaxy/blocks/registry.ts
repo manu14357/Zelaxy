@@ -11,6 +11,7 @@ import { BrowserUseBlock } from '@/blocks/blocks/browser_use'
 import { ClayBlock } from '@/blocks/blocks/clay'
 import { ConditionBlock } from '@/blocks/blocks/condition'
 import { ConfluenceBlock } from '@/blocks/blocks/confluence'
+import { DelayBlock } from '@/blocks/blocks/delay'
 import { DiscordBlock } from '@/blocks/blocks/discord'
 import { ElevenLabsBlock } from '@/blocks/blocks/elevenlabs'
 import { EvaluatorBlock } from '@/blocks/blocks/evaluator'
@@ -93,6 +94,7 @@ export const registry: Record<string, BlockConfig> = {
   clay: ClayBlock,
   condition: ConditionBlock,
   confluence: ConfluenceBlock,
+  delay: DelayBlock,
   discord: DiscordBlock,
   elevenlabs: ElevenLabsBlock,
   evaluator: EvaluatorBlock,
