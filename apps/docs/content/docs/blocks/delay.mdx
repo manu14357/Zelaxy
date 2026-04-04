@@ -1,0 +1,100 @@
+---
+title: Wait / Delay
+description: Pause workflow execution for a configurable duration
+icon: Clock
+---
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `delay` |
+| **Category** | Core Block |
+| **Color** | `#6366F1` (Indigo) |
+
+The Wait / Delay block pauses workflow execution for a configurable amount of time. It's a fundamental flow-control primitive for building production-grade automations that need timing control.
+
+## When to Use
+
+- **Rate limiting** — Add a pause between API calls to respect provider rate limits
+- **Polling patterns** — Wait before checking an external system for status changes
+- **Timed sequences** — Space out messages, emails, or notifications over time
+- **Cooldown periods** — Add a buffer between retries or repeated operations
+- **External process waits** — Give time for a webhook delivery, file processing, or third-party job to complete
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| Duration | Short input | Yes | How long to wait (positive number) |
+| Unit | Dropdown | Yes | Time unit: `Seconds`, `Minutes`, or `Hours` |
+
+### Limits
+
+- **Maximum delay**: 1 hour (3,600 seconds)
+- **Minimum delay**: Any positive number (e.g., `0.5` seconds)
+
+## Inputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `duration` | `number` | The delay length (supports decimals) |
+| `unit` | `string` | `seconds`, `minutes`, or `hours` |
+
+Both inputs support variable references, so you can use dynamic values:
+
+```text
+Duration: {{starter.delaySeconds}}
+Unit: seconds
+```
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `delayed` | `boolean` | `true` when the delay completed successfully |
+| `duration` | `number` | The requested delay value |
+| `unit` | `string` | The time unit used |
+| `delayMs` | `number` | Actual delay in milliseconds |
+| `startedAt` | `string` | ISO timestamp when the delay started |
+| `completedAt` | `string` | ISO timestamp when the delay finished |
+
+## Examples
+
+### Basic Rate-Limited API Calls
+
+**Goal:** Call an external API three times with a 2-second pause between each call.
+
+```text
+[Starter] → [API Call 1] → [Wait: 2s] → [API Call 2] → [Wait: 2s] → [API Call 3] → [Response]
+```
+
+### Polling for Completion
+
+**Goal:** Trigger an async job, wait 30 seconds, then check its status.
+
+```text
+[Starter] → [API: Start Job] → [Wait: 30s] → [API: Check Status] → [Condition] → [Response]
+```
+
+### Timed Email Sequence
+
+**Goal:** Send a welcome email, wait 5 minutes, then send a follow-up.
+
+```text
+[Starter] → [Gmail: Welcome] → [Wait: 5 min] → [Gmail: Follow-up] → [Response]
+```
+
+### Dynamic Delay
+
+**Goal:** Use a variable from the starter block to control the wait time.
+
+Set the Duration field to `{{starter.waitSeconds}}` and the Unit to `seconds`.
+
+## Tips
+
+- **Use the smallest unit that makes sense** — `5` seconds is clearer than `0.083` minutes
+- **Keep delays short in development** — use 1-second delays while testing, then increase for production
+- **Combine with loops** — place a Wait block inside a Loop to create polling patterns with retries
+- **Maximum is 1 hour** — for longer waits, use the Schedule trigger to fire a new workflow at a later time
+- **Outputs include timestamps** — use `startedAt` and `completedAt` for audit logging or duration tracking
