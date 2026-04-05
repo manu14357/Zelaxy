@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Handle, type Node, type NodeProps, Position, useUpdateNodeInternals } from '@xyflow/react'
 import { useParams } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
@@ -148,6 +148,20 @@ export function WorkflowBlock({ id, data }: NodeProps<WorkflowBlockNode>) {
     (state) => state.workflowValues[activeWorkflowId || '']?.[id]?.webhookPath
   )
   const blockWebhookStatus = !!(hasWebhookProvider && hasWebhookPath)
+
+  // Read switch cases from sub-block store for rendering dynamic handles
+  const switchCasesRaw = useSubBlockStore((state) =>
+    type === 'switch' ? state.workflowValues[activeWorkflowId || '']?.[id]?.cases : null
+  )
+  const switchCases = useMemo(() => {
+    if (!switchCasesRaw || typeof switchCasesRaw !== 'string') return []
+    try {
+      const parsed = JSON.parse(switchCasesRaw)
+      if (Array.isArray(parsed) && parsed.length > 0 && 'id' in parsed[0])
+        return parsed as { id: string; title: string; value: string }[]
+    } catch {}
+    return []
+  }, [switchCasesRaw])
 
   const blockAdvancedMode = useWorkflowStore((state) => state.blocks[id]?.advancedMode ?? false)
   const blockTriggerMode = useWorkflowStore((state) => state.blocks[id]?.triggerMode ?? false)
@@ -331,7 +345,7 @@ export function WorkflowBlock({ id, data }: NodeProps<WorkflowBlockNode>) {
   // Update node internals when handles change
   useEffect(() => {
     updateNodeInternals(id)
-  }, [id, horizontalHandles, updateNodeInternals])
+  }, [id, horizontalHandles, updateNodeInternals, switchCases])
 
   const debounce = (func: (...args: any[]) => void, wait: number) => {
     let timeout: NodeJS.Timeout
@@ -581,7 +595,7 @@ export function WorkflowBlock({ id, data }: NodeProps<WorkflowBlockNode>) {
           'relative cursor-pointer select-none',
           'transition-all duration-200 ease-out',
           isWide ? 'w-[240px]' : 'w-[180px]',
-          'h-[80px]',
+          type !== 'switch' && 'h-[80px]',
           !isEnabled && 'opacity-50 grayscale-[30%]',
           isActive && 'shadow-[0_0_12px_-2px_rgba(249,115,22,0.25)] ring-[2px] ring-primary/80',
           isPending && 'shadow-[0_0_12px_-2px_rgba(245,158,11,0.25)] ring-[2px] ring-amber-400/80',
@@ -598,6 +612,11 @@ export function WorkflowBlock({ id, data }: NodeProps<WorkflowBlockNode>) {
           'hover:border-[hsl(var(--block-border-hover))] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.1),0_4px_8px_-2px_rgba(0,0,0,0.05)]',
           'hover:-translate-y-[1px]'
         )}
+        style={
+          type === 'switch'
+            ? { height: `${Math.max(80, 40 + switchCases.length * 28)}px` }
+            : undefined
+        }
       >
         {/* Show debug indicator for pending blocks */}
         {isPending && (
@@ -764,8 +783,57 @@ export function WorkflowBlock({ id, data }: NodeProps<WorkflowBlockNode>) {
         {/* Output Handle */}
         {type !== 'response' && (
           <>
-            {/* Condition blocks have special true/false handles */}
-            {type === 'condition' ? (
+            {/* Switch blocks have dynamic case handles */}
+            {type === 'switch' ? (
+              <>
+                {switchCases.map((c, index) => {
+                  const isDefault = c.title?.toLowerCase() === 'default'
+                  const total = switchCases.length
+                  const handleTopPercent = total <= 1 ? 50 : 15 + (index / (total - 1)) * 70
+                  return (
+                    <Handle
+                      key={`case-${c.id}`}
+                      type='source'
+                      position={horizontalHandles ? Position.Right : Position.Bottom}
+                      id={`case-${c.id}`}
+                      className={cn(
+                        horizontalHandles ? '!w-3 !h-5' : '!w-5 !h-3',
+                        isDefault
+                          ? '!bg-slate-500 dark:!bg-slate-400'
+                          : '!bg-violet-500 dark:!bg-violet-400',
+                        '!rounded-full !border-2 !border-background !shadow-[0_1px_4px_rgba(0,0,0,0.12)]',
+                        '!z-[30]',
+                        '!pointer-events-auto',
+                        isDefault
+                          ? 'group-hover:!bg-slate-600 group-hover:!shadow-[0_0_8px_rgba(100,116,139,0.35)]'
+                          : 'group-hover:!bg-violet-600 group-hover:!shadow-[0_0_8px_rgba(139,92,246,0.35)]',
+                        horizontalHandles ? 'hover:!w-3.5 hover:!h-6' : 'hover:!w-6 hover:!h-3.5',
+                        '!cursor-crosshair',
+                        'transition-all duration-150 ease-out'
+                      )}
+                      style={{
+                        ...(horizontalHandles
+                          ? {
+                              right: '-6px',
+                              top: `${handleTopPercent}%`,
+                              transform: 'translateY(-50%)',
+                            }
+                          : {
+                              bottom: '-6px',
+                              left: `${handleTopPercent}%`,
+                              transform: 'translateX(-50%)',
+                            }),
+                      }}
+                      data-nodeid={id}
+                      data-handleid={`case-${c.id}`}
+                      isConnectableStart={true}
+                      isConnectableEnd={false}
+                      isValidConnection={(connection) => connection.target !== id}
+                    />
+                  )
+                })}
+              </>
+            ) : type === 'condition' ? (
               <>
                 {/* True Handle */}
                 <Handle

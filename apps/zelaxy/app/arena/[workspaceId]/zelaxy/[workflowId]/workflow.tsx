@@ -442,6 +442,18 @@ const WorkflowContent = React.memo(() => {
         }
       }
     }
+    // For switch blocks, use the first case handle
+    else if (block.type === 'switch') {
+      const switchHandles = document.querySelectorAll(
+        `[data-nodeid^="${block.id}"][data-handleid^="case-"]`
+      )
+      if (switchHandles.length > 0) {
+        const handleId = switchHandles[0].getAttribute('data-handleid')
+        if (handleId) {
+          sourceHandle = handleId
+        }
+      }
+    }
     // For loop and parallel nodes, use their end source handle
     else if (block.type === 'loop') {
       sourceHandle = 'loop-end-source'

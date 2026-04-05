@@ -83,6 +83,7 @@ export class Routing {
     // Routing blocks
     [BlockType.ROUTER]: BlockCategory.ROUTING_BLOCK,
     [BlockType.CONDITION]: BlockCategory.ROUTING_BLOCK,
+    [BlockType.SWITCH]: BlockCategory.ROUTING_BLOCK,
 
     // Regular blocks (default category)
     [BlockType.FUNCTION]: BlockCategory.REGULAR_BLOCK,
@@ -148,6 +149,12 @@ export class Routing {
     // Skip condition-specific connections during selective activation
     // These should only be activated when the condition makes a specific decision
     if (sourceHandle?.startsWith('condition-')) {
+      return true
+    }
+
+    // Skip switch case connections during selective activation
+    // These should only be activated when the switch makes a specific decision
+    if (sourceHandle?.startsWith('case-')) {
       return true
     }
 

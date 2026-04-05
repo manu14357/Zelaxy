@@ -209,6 +209,12 @@ export class InputResolver {
       }
       // *** End of early check ***
 
+      // *** Skip resolver for Switch Block's 'cases' key — handler resolves individually ***
+      if (block.metadata?.id === 'switch' && key === 'cases' && typeof value === 'string') {
+        result[key] = value
+        continue
+      }
+
       // Handle string values that may contain references
       if (typeof value === 'string') {
         const trimmedValue = value.trim()

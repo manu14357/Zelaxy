@@ -16,6 +16,7 @@ export enum BlockType {
   STARTER = 'starter',
   SCHEDULE = 'schedule',
   WEBHOOK_TRIGGER = 'webhook_trigger',
+  SWITCH = 'switch',
 }
 
 /**

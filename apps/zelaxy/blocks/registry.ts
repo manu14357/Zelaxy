@@ -11,6 +11,7 @@ import { BrowserUseBlock } from '@/blocks/blocks/browser_use'
 import { ClayBlock } from '@/blocks/blocks/clay'
 import { ConditionBlock } from '@/blocks/blocks/condition'
 import { ConfluenceBlock } from '@/blocks/blocks/confluence'
+import { DelayBlock } from '@/blocks/blocks/delay'
 import { DiscordBlock } from '@/blocks/blocks/discord'
 import { ElevenLabsBlock } from '@/blocks/blocks/elevenlabs'
 import { EvaluatorBlock } from '@/blocks/blocks/evaluator'
@@ -52,6 +53,7 @@ import { OutlookBlock } from '@/blocks/blocks/outlook'
 import { ParallelBlock } from '@/blocks/blocks/parallel'
 import { PerplexityBlock } from '@/blocks/blocks/perplexity'
 import { PineconeBlock } from '@/blocks/blocks/pinecone'
+import { PostgreSQLBlock } from '@/blocks/blocks/postgresql'
 import { QdrantBlock } from '@/blocks/blocks/qdrant'
 import { RedditBlock } from '@/blocks/blocks/reddit'
 import { ResponseBlock } from '@/blocks/blocks/response'
@@ -67,6 +69,7 @@ import { StagehandBlock } from '@/blocks/blocks/stagehand'
 import { StagehandAgentBlock } from '@/blocks/blocks/stagehand_agent'
 import { StarterBlock } from '@/blocks/blocks/starter'
 import { SupabaseBlock } from '@/blocks/blocks/supabase'
+import { SwitchBlock } from '@/blocks/blocks/switch'
 import { TavilyBlock } from '@/blocks/blocks/tavily'
 import { TelegramBlock } from '@/blocks/blocks/telegram'
 import { ThinkingBlock } from '@/blocks/blocks/thinking'
@@ -93,6 +96,7 @@ export const registry: Record<string, BlockConfig> = {
   clay: ClayBlock,
   condition: ConditionBlock,
   confluence: ConfluenceBlock,
+  delay: DelayBlock,
   discord: DiscordBlock,
   elevenlabs: ElevenLabsBlock,
   evaluator: EvaluatorBlock,
@@ -133,6 +137,7 @@ export const registry: Record<string, BlockConfig> = {
   parallel: ParallelBlock,
   perplexity: PerplexityBlock,
   pinecone: PineconeBlock,
+  postgresql: PostgreSQLBlock,
   qdrant: QdrantBlock,
   memory: MemoryBlock,
   reddit: RedditBlock,
@@ -149,6 +154,7 @@ export const registry: Record<string, BlockConfig> = {
   snowflake: SnowflakeBlock,
   starter: StarterBlock,
   supabase: SupabaseBlock,
+  switch: SwitchBlock,
   tavily: TavilyBlock,
   telegram: TelegramBlock,
   thinking: ThinkingBlock,

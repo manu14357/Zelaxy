@@ -26,6 +26,7 @@ import {
   ShortInput,
   SliderInput,
   Switch,
+  SwitchCaseInput,
   Table,
   TimeInput,
   ToolInput,
@@ -290,6 +291,17 @@ export function SubBlock({
       case 'condition-input':
         return (
           <ConditionInput
+            blockId={blockId}
+            subBlockId={config.id}
+            isConnecting={isConnecting}
+            isPreview={isPreview}
+            previewValue={previewValue}
+            disabled={isDisabled}
+          />
+        )
+      case 'switch-case-input':
+        return (
+          <SwitchCaseInput
             blockId={blockId}
             subBlockId={config.id}
             isConnecting={isConnecting}
