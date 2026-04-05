@@ -59,7 +59,9 @@ export function Footer() {
                 unoptimized
                 className='h-10 w-10 shrink-0'
               />
-              <span className='font-bold text-neutral-900 text-xl tracking-tight dark:text-white'>Zelaxy</span>
+              <span className='font-bold text-neutral-900 text-xl tracking-tight dark:text-white'>
+                Zelaxy
+              </span>
             </Link>
             <p className='max-w-xs text-neutral-500 text-sm leading-6'>
               The open-source AI workflow builder. Connect APIs, customize blocks, and build
@@ -197,7 +199,9 @@ export function Footer() {
               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75' />
               <span className='relative inline-flex h-2 w-2 rounded-full bg-emerald-500' />
             </span>
-            <span className='text-neutral-400 text-xs dark:text-neutral-600'>All systems operational</span>
+            <span className='text-neutral-400 text-xs dark:text-neutral-600'>
+              All systems operational
+            </span>
           </div>
         </div>
       </div>

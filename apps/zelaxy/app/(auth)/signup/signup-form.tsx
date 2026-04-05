@@ -1,8 +1,8 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import Image from 'next/image'
 import { Eye, EyeOff } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -387,10 +387,10 @@ function SignupFormContent({
             />
           </Link>
           <div>
-            <h1 className='font-bold text-2xl tracking-tight text-neutral-900 dark:text-white'>
+            <h1 className='font-bold text-2xl text-neutral-900 tracking-tight dark:text-white'>
               Create your account
             </h1>
-            <p className='mt-1 text-sm text-neutral-500 dark:text-neutral-400'>
+            <p className='mt-1 text-neutral-500 text-sm dark:text-neutral-400'>
               Start building intelligent workflows today
             </p>
           </div>
@@ -407,7 +407,9 @@ function SignupFormContent({
         {/* Divider */}
         <div className='flex items-center gap-4'>
           <div className='h-px flex-1 bg-neutral-200 dark:bg-white/10' />
-          <span className='text-neutral-400 dark:text-neutral-500 text-xs uppercase tracking-wider'>or</span>
+          <span className='text-neutral-400 text-xs uppercase tracking-wider dark:text-neutral-500'>
+            or
+          </span>
           <div className='h-px flex-1 bg-neutral-200 dark:bg-white/10' />
         </div>
 
@@ -416,7 +418,10 @@ function SignupFormContent({
           <div className='space-y-4'>
             {/* Name */}
             <div className='space-y-2'>
-              <Label htmlFor='name' className='font-medium text-neutral-700 dark:text-neutral-300 text-sm'>
+              <Label
+                htmlFor='name'
+                className='font-medium text-neutral-700 text-sm dark:text-neutral-300'
+              >
                 Full Name
               </Label>
               <Input
@@ -430,7 +435,7 @@ function SignupFormContent({
                 value={name}
                 onChange={handleNameChange}
                 className={cn(
-                  'h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 text-neutral-900 shadow-sm placeholder:text-neutral-400 transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-neutral-500 dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20',
+                  'h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20 dark:placeholder:text-neutral-500',
                   showNameValidationError &&
                     nameErrors.length > 0 &&
                     'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20'
@@ -449,7 +454,10 @@ function SignupFormContent({
 
             {/* Email */}
             <div className='space-y-2'>
-              <Label htmlFor='email' className='font-medium text-neutral-700 dark:text-neutral-300 text-sm'>
+              <Label
+                htmlFor='email'
+                className='font-medium text-neutral-700 text-sm dark:text-neutral-300'
+              >
                 Email Address
               </Label>
               <Input
@@ -462,7 +470,7 @@ function SignupFormContent({
                 value={email}
                 onChange={handleEmailChange}
                 className={cn(
-                  'h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 text-neutral-900 shadow-sm placeholder:text-neutral-400 transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-neutral-500 dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20',
+                  'h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20 dark:placeholder:text-neutral-500',
                   (emailError || (showEmailValidationError && emailErrors.length > 0)) &&
                     'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20'
                 )}
@@ -483,7 +491,10 @@ function SignupFormContent({
 
             {/* Password */}
             <div className='space-y-2'>
-              <Label htmlFor='password' className='font-medium text-neutral-700 dark:text-neutral-300 text-sm'>
+              <Label
+                htmlFor='password'
+                className='font-medium text-neutral-700 text-sm dark:text-neutral-300'
+              >
                 Password
               </Label>
               <div className='relative'>
@@ -497,7 +508,7 @@ function SignupFormContent({
                   autoCorrect='off'
                   value={password}
                   onChange={handlePasswordChange}
-                  className='h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 pr-12 text-neutral-900 shadow-sm placeholder:text-neutral-400 transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-neutral-500 dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20'
+                  className='h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 pr-12 text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20 dark:placeholder:text-neutral-500'
                 />
                 <button
                   type='button'

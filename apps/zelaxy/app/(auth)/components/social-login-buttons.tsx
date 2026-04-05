@@ -128,7 +128,7 @@ export function SocialLoginButtons({
               GitHub login requires OAuth credentials to be configured. Add the following
               environment variables:
             </p>
-            <ul className='mt-2 space-y-1 text-neutral-500 dark:text-neutral-300 text-xs'>
+            <ul className='mt-2 space-y-1 text-neutral-500 text-xs dark:text-neutral-300'>
               <li>• GITHUB_CLIENT_ID</li>
               <li>• GITHUB_CLIENT_SECRET</li>
             </ul>
@@ -152,7 +152,7 @@ export function SocialLoginButtons({
               Google login requires OAuth credentials to be configured. Add the following
               environment variables:
             </p>
-            <ul className='mt-2 space-y-1 text-neutral-500 dark:text-neutral-300 text-xs'>
+            <ul className='mt-2 space-y-1 text-neutral-500 text-xs dark:text-neutral-300'>
               <li>• GOOGLE_CLIENT_ID</li>
               <li>• GOOGLE_CLIENT_SECRET</li>
             </ul>

@@ -3,11 +3,35 @@
 import { useEffect, useRef, useState } from 'react'
 
 const integrations = [
-  'OpenAI', 'Claude', 'Gemini', 'DeepSeek', 'Grok', 'Groq', 'Cerebras',
-  'Slack', 'GitHub', 'Gmail', 'Notion', 'Jira', 'Stripe',
-  'Google Drive', 'Microsoft 365', 'Supabase', 'Pinecone', 'Snowflake',
-  'S3', 'Twilio', 'Telegram', 'Discord', 'Airtable', 'HubSpot',
-  'Ollama', 'Azure OpenAI', 'OpenRouter', 'PostgreSQL', 'Redis',
+  'OpenAI',
+  'Claude',
+  'Gemini',
+  'DeepSeek',
+  'Grok',
+  'Groq',
+  'Cerebras',
+  'Slack',
+  'GitHub',
+  'Gmail',
+  'Notion',
+  'Jira',
+  'Stripe',
+  'Google Drive',
+  'Microsoft 365',
+  'Supabase',
+  'Pinecone',
+  'Snowflake',
+  'S3',
+  'Twilio',
+  'Telegram',
+  'Discord',
+  'Airtable',
+  'HubSpot',
+  'Ollama',
+  'Azure OpenAI',
+  'OpenRouter',
+  'PostgreSQL',
+  'Redis',
 ]
 
 // Split into two rows for marquee
@@ -21,8 +45,8 @@ function MarqueeRow({ items, reverse = false }: { items: string[]; reverse?: boo
   return (
     <div className='relative overflow-hidden'>
       {/* Edge fades */}
-      <div className='pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white to-transparent dark:from-[#060606] sm:w-40' />
-      <div className='pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white to-transparent dark:from-[#060606] sm:w-40' />
+      <div className='pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white to-transparent sm:w-40 dark:from-[#060606]' />
+      <div className='pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white to-transparent sm:w-40 dark:from-[#060606]' />
 
       <div
         className={`flex gap-3 sm:gap-4 ${reverse ? 'animate-marquee-reverse' : 'animate-marquee'}`}
@@ -31,7 +55,7 @@ function MarqueeRow({ items, reverse = false }: { items: string[]; reverse?: boo
         {tripled.map((name, i) => (
           <div
             key={`${name}-${i}`}
-            className='flex h-10 shrink-0 items-center rounded-full border border-neutral-200 bg-neutral-50 px-5 text-[13px] text-neutral-500 transition-colors duration-300 hover:border-neutral-300 hover:text-neutral-700 dark:border-white/[0.06] dark:bg-white/[0.02] dark:hover:border-white/[0.12] dark:hover:text-neutral-300 sm:h-11 sm:px-6 sm:text-sm'
+            className='flex h-10 shrink-0 items-center rounded-full border border-neutral-200 bg-neutral-50 px-5 text-[13px] text-neutral-500 transition-colors duration-300 hover:border-neutral-300 hover:text-neutral-700 sm:h-11 sm:px-6 sm:text-sm dark:border-white/[0.06] dark:bg-white/[0.02] dark:hover:border-white/[0.12] dark:hover:text-neutral-300'
           >
             {name}
           </div>
@@ -59,7 +83,11 @@ export function IntegrationsSection() {
   }, [])
 
   return (
-    <section ref={sectionRef} id='integrations' className='relative bg-white py-28 dark:bg-[#060606] sm:py-36'>
+    <section
+      ref={sectionRef}
+      id='integrations'
+      className='relative bg-white py-28 sm:py-36 dark:bg-[#060606]'
+    >
       {/* Top divider */}
       <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/[0.06]' />
 

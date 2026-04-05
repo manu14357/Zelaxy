@@ -47,7 +47,11 @@ export function HowItWorksSection() {
   }, [])
 
   return (
-    <section ref={sectionRef} id='how-it-works' className='relative bg-white py-28 dark:bg-[#060606] sm:py-36'>
+    <section
+      ref={sectionRef}
+      id='how-it-works'
+      className='relative bg-white py-28 sm:py-36 dark:bg-[#060606]'
+    >
       {/* Top divider */}
       <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/[0.06]' />
 
@@ -73,25 +77,27 @@ export function HowItWorksSection() {
         {/* Steps - Vertical timeline, not cards */}
         <div className='relative'>
           {/* Vertical line */}
-          <div className='absolute top-0 bottom-0 left-[23px] w-px bg-gradient-to-b from-orange-500/30 via-neutral-200 to-transparent dark:via-white/[0.06] sm:left-[31px]' />
+          <div className='absolute top-0 bottom-0 left-[23px] w-px bg-gradient-to-b from-orange-500/30 via-neutral-200 to-transparent sm:left-[31px] dark:via-white/[0.06]' />
 
           <div className='space-y-16 sm:space-y-20'>
             {steps.map((step, index) => (
               <div
                 key={step.number}
-                className={`relative flex gap-8 sm:gap-12 transition-all duration-700 ${
+                className={`relative flex gap-8 transition-all duration-700 sm:gap-12 ${
                   isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
                 }`}
                 style={{ transitionDelay: `${200 + index * 150}ms` }}
               >
                 {/* Number circle */}
-                <div className='relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 dark:border-white/[0.08] dark:bg-[#0a0a0b] sm:h-16 sm:w-16'>
-                  <span className='font-mono text-[13px] text-neutral-500 sm:text-sm'>{step.number}</span>
+                <div className='relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 sm:h-16 sm:w-16 dark:border-white/[0.08] dark:bg-[#0a0a0b]'>
+                  <span className='font-mono text-[13px] text-neutral-500 sm:text-sm'>
+                    {step.number}
+                  </span>
                 </div>
 
                 {/* Content */}
                 <div className='pt-1 sm:pt-3'>
-                  <h3 className='mb-2 font-semibold text-lg text-neutral-900 tracking-[-0.01em] dark:text-white sm:text-xl'>
+                  <h3 className='mb-2 font-semibold text-lg text-neutral-900 tracking-[-0.01em] sm:text-xl dark:text-white'>
                     {step.title}
                   </h3>
                   <p className='max-w-md text-[15px] text-neutral-500 leading-relaxed sm:text-base'>

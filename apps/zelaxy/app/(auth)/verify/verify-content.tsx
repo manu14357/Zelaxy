@@ -66,10 +66,10 @@ function VerificationForm({
             priority
           />
         </Link>
-        <h2 className='font-semibold text-2xl text-neutral-900 dark:text-white tracking-tight'>
+        <h2 className='font-semibold text-2xl text-neutral-900 tracking-tight dark:text-white'>
           {isVerified ? 'Email Verified!' : 'Verify Your Email'}
         </h2>
-        <p className='text-neutral-500 dark:text-neutral-400 text-sm'>
+        <p className='text-neutral-500 text-sm dark:text-neutral-400'>
           {isVerified
             ? 'Your email has been verified. Redirecting to dashboard...'
             : hasResendKey
@@ -83,7 +83,7 @@ function VerificationForm({
       {!isVerified && (
         <div className='flex flex-col gap-6'>
           <div className='rounded-xl border border-neutral-200 bg-neutral-50/50 p-6 dark:border-neutral-700/40 dark:bg-neutral-800/50 dark:backdrop-blur-sm'>
-            <p className='mb-4 text-neutral-500 dark:text-neutral-400 text-sm'>
+            <p className='mb-4 text-neutral-500 text-sm dark:text-neutral-400'>
               Enter the 6-digit code to verify your account.
               {hasResendKey ? " If you don't see it in your inbox, check your spam folder." : ''}
             </p>
@@ -144,11 +144,14 @@ function VerificationForm({
 
             {hasResendKey && (
               <div className='mt-4 text-center'>
-                <p className='text-neutral-500 dark:text-neutral-400 text-sm'>
+                <p className='text-neutral-500 text-sm dark:text-neutral-400'>
                   Didn't receive a code?{' '}
                   {countdown > 0 ? (
                     <span>
-                      Resend in <span className='font-medium text-neutral-700 dark:text-neutral-300'>{countdown}s</span>
+                      Resend in{' '}
+                      <span className='font-medium text-neutral-700 dark:text-neutral-300'>
+                        {countdown}s
+                      </span>
                     </span>
                   ) : (
                     <button
