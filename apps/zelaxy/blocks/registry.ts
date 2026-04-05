@@ -68,6 +68,7 @@ import { StagehandBlock } from '@/blocks/blocks/stagehand'
 import { StagehandAgentBlock } from '@/blocks/blocks/stagehand_agent'
 import { StarterBlock } from '@/blocks/blocks/starter'
 import { SupabaseBlock } from '@/blocks/blocks/supabase'
+import { SwitchBlock } from '@/blocks/blocks/switch'
 import { TavilyBlock } from '@/blocks/blocks/tavily'
 import { TelegramBlock } from '@/blocks/blocks/telegram'
 import { ThinkingBlock } from '@/blocks/blocks/thinking'
@@ -151,6 +152,7 @@ export const registry: Record<string, BlockConfig> = {
   snowflake: SnowflakeBlock,
   starter: StarterBlock,
   supabase: SupabaseBlock,
+  switch: SwitchBlock,
   tavily: TavilyBlock,
   telegram: TelegramBlock,
   thinking: ThinkingBlock,

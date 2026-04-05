@@ -7,6 +7,7 @@
     "agent",
     "condition",
     "router",
+    "switch",
     "evaluator",
     "---Code & API---",
     "function",

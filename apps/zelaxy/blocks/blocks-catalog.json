@@ -1014,6 +1014,19 @@
     "specialFeatures": ["AI-powered route selection", "multiple LLM provider support"]
   },
   {
+    "id": "switch",
+    "name": "Switch",
+    "description": "Deterministic multi-branch routing based on exact value matching",
+    "category": "blocks",
+    "bgColor": "#8B5CF6",
+    "subBlocks": ["value", "cases"],
+    "outputs": ["matchedValue", "selectedCaseId", "selectedPath", "inputValue"],
+    "tools": [],
+    "requiresAuth": false,
+    "authType": "none",
+    "specialFeatures": ["dynamic case handles", "exact string matching", "default fallback"]
+  },
+  {
     "id": "s3",
     "name": "S3",
     "description": "Get objects from Amazon S3",
