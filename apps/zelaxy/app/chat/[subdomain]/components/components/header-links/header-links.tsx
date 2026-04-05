@@ -1,12 +1,13 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { getBaseUrl } from '@/lib/urls/utils'
 
 export default function HeaderLinks() {
   return (
     <div className='flex items-center'>
       <motion.a
-        href='http://localhost:3000/'
+        href={`${getBaseUrl()}/`}
         className='flex items-center gap-1.5 rounded-md p-1 text-foreground/80 transition-colors duration-200 hover:text-foreground/100'
         title='Powered by Zelaxy'
         target='_blank'

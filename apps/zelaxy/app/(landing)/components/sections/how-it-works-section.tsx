@@ -1,40 +1,31 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { GitBranch, MousePointerClick, Play, Zap } from 'lucide-react'
 
 const steps = [
   {
     number: '01',
-    icon: MousePointerClick,
-    title: 'Drag & drop blocks',
+    title: 'Drag blocks onto the canvas',
     description:
-      'Choose from a massive library of blocks — AI agents, tool integrations, databases, and logic — then place them on the canvas.',
-    color: 'orange',
+      'Choose from AI agents, integrations, databases, and logic blocks. Place them on an infinite canvas.',
   },
   {
     number: '02',
-    icon: GitBranch,
-    title: 'Connect the flow',
+    title: 'Wire the connections',
     description:
-      'Wire blocks together to define your workflow. Add conditions, loops (forEach & for), AI-powered routers, and parallel branches — all visually.',
-    color: 'orange',
+      'Connect blocks visually to define data flow. Add conditions, loops, routers, and parallel branches.',
   },
   {
     number: '03',
-    icon: Play,
-    title: 'Execute & monitor',
+    title: 'Execute in real-time',
     description:
-      'Run with one click. Watch token-by-token streaming in real-time, inspect outputs at every block, or trigger via webhooks and cron schedules.',
-    color: 'orange',
+      'Run with one click. Watch token-by-token streaming, inspect every output, and debug live.',
   },
   {
     number: '04',
-    icon: Zap,
-    title: 'Scale & automate',
+    title: 'Automate everything',
     description:
-      'Trigger workflows from webhooks, schedule with cron, compose sub-workflows, and let your AI agents decide which tools to call.',
-    color: 'orange',
+      'Trigger via webhooks, cron schedules, or API calls. Your workflows run autonomously.',
   },
 ]
 
@@ -56,78 +47,65 @@ export function HowItWorksSection() {
   }, [])
 
   return (
-    <section ref={sectionRef} id='how-it-works' className='relative bg-[#050505] py-28 sm:py-36'>
-      {/* Orange accent line at top */}
-      <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent' />
+    <section
+      ref={sectionRef}
+      id='how-it-works'
+      className='relative bg-white py-28 sm:py-36 dark:bg-[#060606]'
+    >
+      {/* Top divider */}
+      <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/[0.06]' />
 
-      {/* Ambient background glow */}
-      <div className='-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/2 left-1/2 h-[500px] w-[800px] rounded-full bg-orange-500/[0.03] blur-[120px]' />
-
-      <div className='mx-auto max-w-6xl px-6 sm:px-8'>
+      <div className='mx-auto max-w-5xl px-6 lg:px-8'>
         {/* Header */}
-        <div className='mb-20 text-center'>
+        <div className='mb-20'>
           <p
-            className={`mb-5 font-semibold text-[13px] text-orange-500 uppercase tracking-[0.2em] transition-all duration-1000 ease-out ${
+            className={`mb-4 font-mono text-[13px] text-orange-400/80 uppercase tracking-widest transition-all duration-700 ${
               isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
           >
-            How It Works
+            How it works
           </p>
           <h2
-            className={`mb-5 font-bold text-[clamp(1.75rem,4vw,3rem)] text-white leading-[1.15] tracking-[-0.03em] transition-all delay-100 duration-1000 ease-out ${
-              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            className={`max-w-md font-bold text-[clamp(1.75rem,4vw,3rem)] text-neutral-900 leading-[1.1] tracking-[-0.03em] transition-all delay-100 duration-700 dark:text-white ${
+              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
             }`}
           >
-            Four steps to <span className='text-gradient-apple'>infinite automations.</span>
+            From idea to automation in minutes.
           </h2>
-          <p
-            className={`mx-auto max-w-lg text-[17px] text-neutral-400 leading-relaxed transition-all delay-200 duration-1000 ease-out ${
-              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-            }`}
-          >
-            Go from idea to running workflow in minutes — no code required.
-          </p>
         </div>
 
-        {/* Steps */}
+        {/* Steps - Vertical timeline, not cards */}
         <div className='relative'>
-          <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5'>
-            {steps.map((step, index) => {
-              const Icon = step.icon
-              return (
-                <div
-                  key={step.number}
-                  className={`group relative transition-all duration-1000 ease-out ${
-                    isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
-                  }`}
-                  style={{ transitionDelay: `${300 + index * 150}ms` }}
-                >
-                  {/* Card */}
-                  <div className='hover:-translate-y-1.5 relative overflow-hidden rounded-2xl border border-orange-500/[0.08] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-8 transition-all duration-500 hover:border-orange-500/20 hover:shadow-[0_8px_40px_rgba(249,115,22,0.08)]'>
-                    {/* Top orange glow on hover */}
-                    <div className='-top-20 pointer-events-none absolute inset-x-0 h-40 rounded-full bg-orange-500/[0.00] blur-3xl transition-all duration-700 group-hover:bg-orange-500/[0.06]' />
+          {/* Vertical line */}
+          <div className='absolute top-0 bottom-0 left-[23px] w-px bg-gradient-to-b from-orange-500/30 via-neutral-200 to-transparent sm:left-[31px] dark:via-white/[0.06]' />
 
-                    {/* Step number */}
-                    <span className='relative mb-6 block font-bold text-[52px] text-orange-500/[0.08] leading-none tracking-tight transition-colors duration-500 group-hover:text-orange-500/[0.15]'>
-                      {step.number}
-                    </span>
-
-                    {/* Icon badge */}
-                    <div className='mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 transition-all duration-500 group-hover:bg-orange-500/15 group-hover:shadow-[0_0_20px_rgba(249,115,22,0.15)] group-hover:ring-orange-500/30'>
-                      <Icon className='h-5 w-5 text-orange-400' />
-                    </div>
-
-                    {/* Text */}
-                    <h3 className='mb-3 font-semibold text-lg text-white tracking-[-0.01em]'>
-                      {step.title}
-                    </h3>
-                    <p className='text-[15px] text-neutral-500 leading-relaxed'>
-                      {step.description}
-                    </p>
-                  </div>
+          <div className='space-y-16 sm:space-y-20'>
+            {steps.map((step, index) => (
+              <div
+                key={step.number}
+                className={`relative flex gap-8 transition-all duration-700 sm:gap-12 ${
+                  isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+                }`}
+                style={{ transitionDelay: `${200 + index * 150}ms` }}
+              >
+                {/* Number circle */}
+                <div className='relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 sm:h-16 sm:w-16 dark:border-white/[0.08] dark:bg-[#0a0a0b]'>
+                  <span className='font-mono text-[13px] text-neutral-500 sm:text-sm'>
+                    {step.number}
+                  </span>
                 </div>
-              )
-            })}
+
+                {/* Content */}
+                <div className='pt-1 sm:pt-3'>
+                  <h3 className='mb-2 font-semibold text-lg text-neutral-900 tracking-[-0.01em] sm:text-xl dark:text-white'>
+                    {step.title}
+                  </h3>
+                  <p className='max-w-md text-[15px] text-neutral-500 leading-relaxed sm:text-base'>
+                    {step.description}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
