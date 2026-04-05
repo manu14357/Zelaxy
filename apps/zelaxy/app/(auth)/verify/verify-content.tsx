@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
@@ -54,18 +55,21 @@ function VerificationForm({
 
   return (
     <div className='space-y-6'>
-      <div className='space-y-3 text-center'>
+      <div className='flex flex-col items-center space-y-3 text-center'>
         <Link href='/' className='inline-block'>
-          <h1 className='font-bold text-5xl tracking-[-0.04em]'>
-            <span className='animate-gradient bg-[length:200%_200%] bg-gradient-to-r from-primary via-orange-400 to-amber-300 bg-clip-text text-transparent'>
-              Zelaxy
-            </span>
-          </h1>
+          <Image
+            src='/Zelaxy.png'
+            alt='Zelaxy'
+            width={48}
+            height={48}
+            className='h-12 w-12 rounded-xl'
+            priority
+          />
         </Link>
-        <h2 className='font-semibold text-2xl text-white tracking-tight'>
+        <h2 className='font-semibold text-2xl text-neutral-900 dark:text-white tracking-tight'>
           {isVerified ? 'Email Verified!' : 'Verify Your Email'}
         </h2>
-        <p className='text-neutral-400 text-sm'>
+        <p className='text-neutral-500 dark:text-neutral-400 text-sm'>
           {isVerified
             ? 'Your email has been verified. Redirecting to dashboard...'
             : hasResendKey
@@ -78,8 +82,8 @@ function VerificationForm({
 
       {!isVerified && (
         <div className='flex flex-col gap-6'>
-          <div className='rounded-xl border border-neutral-700/40 bg-neutral-800/50 p-6 backdrop-blur-sm'>
-            <p className='mb-4 text-neutral-400 text-sm'>
+          <div className='rounded-xl border border-neutral-200 bg-neutral-50/50 p-6 dark:border-neutral-700/40 dark:bg-neutral-800/50 dark:backdrop-blur-sm'>
+            <p className='mb-4 text-neutral-500 dark:text-neutral-400 text-sm'>
               Enter the 6-digit code to verify your account.
               {hasResendKey ? " If you don't see it in your inbox, check your spam folder." : ''}
             </p>
@@ -97,27 +101,27 @@ function VerificationForm({
                 <InputOTPGroup>
                   <InputOTPSlot
                     index={0}
-                    className='border-neutral-700 bg-neutral-900 text-white'
+                    className='border-neutral-300 bg-white text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white'
                   />
                   <InputOTPSlot
                     index={1}
-                    className='border-neutral-700 bg-neutral-900 text-white'
+                    className='border-neutral-300 bg-white text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white'
                   />
                   <InputOTPSlot
                     index={2}
-                    className='border-neutral-700 bg-neutral-900 text-white'
+                    className='border-neutral-300 bg-white text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white'
                   />
                   <InputOTPSlot
                     index={3}
-                    className='border-neutral-700 bg-neutral-900 text-white'
+                    className='border-neutral-300 bg-white text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white'
                   />
                   <InputOTPSlot
                     index={4}
-                    className='border-neutral-700 bg-neutral-900 text-white'
+                    className='border-neutral-300 bg-white text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white'
                   />
                   <InputOTPSlot
                     index={5}
-                    className='border-neutral-700 bg-neutral-900 text-white'
+                    className='border-neutral-300 bg-white text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white'
                   />
                 </InputOTPGroup>
               </InputOTP>
@@ -140,11 +144,11 @@ function VerificationForm({
 
             {hasResendKey && (
               <div className='mt-4 text-center'>
-                <p className='text-neutral-400 text-sm'>
+                <p className='text-neutral-500 dark:text-neutral-400 text-sm'>
                   Didn't receive a code?{' '}
                   {countdown > 0 ? (
                     <span>
-                      Resend in <span className='font-medium text-neutral-300'>{countdown}s</span>
+                      Resend in <span className='font-medium text-neutral-700 dark:text-neutral-300'>{countdown}s</span>
                     </span>
                   ) : (
                     <button
@@ -170,8 +174,8 @@ function VerificationFormFallback() {
   return (
     <div className='p-8 text-center'>
       <div className='animate-pulse'>
-        <div className='mx-auto mb-4 h-8 w-48 rounded bg-neutral-800' />
-        <div className='mx-auto h-4 w-64 rounded bg-neutral-800' />
+        <div className='mx-auto mb-4 h-8 w-48 rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='mx-auto h-4 w-64 rounded bg-neutral-200 dark:bg-neutral-800' />
       </div>
     </div>
   )

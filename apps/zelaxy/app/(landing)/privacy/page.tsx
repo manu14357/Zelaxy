@@ -33,22 +33,22 @@ export default async function PrivacyPolicy() {
   const source = readFileSync(join(process.cwd(), 'app/(landing)/privacy/privacy.mdx'), 'utf8')
 
   return (
-    <main className='relative min-h-screen bg-[#060606] text-white'>
+    <main className='relative min-h-screen bg-white text-neutral-900 dark:bg-[#060606] dark:text-white'>
       {/* Ambient glow */}
       <div className='pointer-events-none fixed inset-0 overflow-hidden'>
-        <div className='-translate-x-1/2 absolute top-0 left-1/2 h-[600px] w-[900px] rounded-full bg-orange-500/[0.04] blur-[120px]' />
+        <div className='-translate-x-1/2 absolute top-0 left-1/2 h-[600px] w-[900px] rounded-full bg-orange-500/[0.03] blur-[120px] dark:bg-orange-500/[0.04]' />
       </div>
 
       {/* Minimal top bar */}
-      <header className='fixed top-0 right-0 left-0 z-50 border-white/[0.05] border-b bg-[#060606]/80 backdrop-blur-xl'>
+      <header className='fixed top-0 right-0 left-0 z-50 border-neutral-200 border-b bg-white/80 backdrop-blur-xl dark:border-white/[0.05] dark:bg-[#060606]/80'>
         <div className='mx-auto flex h-14 max-w-5xl items-center justify-between px-6 sm:px-8'>
           <Link href='/' className='flex items-center gap-2.5'>
             <img src='/Zelaxy.png' alt='Zelaxy' width={24} height={24} className='h-6 w-6' />
-            <span className='font-semibold text-[15px] text-white'>Zelaxy</span>
+            <span className='font-semibold text-[15px] text-neutral-900 dark:text-white'>Zelaxy</span>
           </Link>
           <Link
             href='/'
-            className='inline-flex items-center gap-1.5 font-mono text-[12px] text-neutral-500 transition-colors hover:text-white'
+            className='inline-flex items-center gap-1.5 font-mono text-[12px] text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-white'
           >
             <ArrowLeft className='h-3 w-3' />
             Back to home
@@ -57,7 +57,7 @@ export default async function PrivacyPolicy() {
       </header>
 
       {/* Hero header */}
-      <div className='border-white/[0.06] border-b'>
+      <div className='border-neutral-200 border-b dark:border-white/[0.06]'>
         <div className='mx-auto max-w-5xl px-6 pt-28 pb-12 sm:px-8'>
           <div className='mb-5 inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/10 px-3.5 py-1.5'>
             <Shield className='h-3.5 w-3.5 text-orange-400' />
@@ -74,8 +74,8 @@ export default async function PrivacyPolicy() {
           {/* Main content */}
           <div className='min-w-0'>
             {/* Intro */}
-            <div className='mb-10 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent p-6'>
-              <p className='text-neutral-400 leading-relaxed'>
+            <div className='mb-10 rounded-2xl border border-neutral-200 bg-neutral-50 p-6 dark:border-white/[0.06] dark:bg-gradient-to-br dark:from-white/[0.03] dark:to-transparent'>
+              <p className='text-neutral-600 leading-relaxed dark:text-neutral-400'>
                 This Privacy Policy describes how your personal information is collected, used, and
                 shared when you visit or use Zelaxy (&ldquo;the Service&rdquo;, &ldquo;we&rdquo;,
                 &ldquo;us&rdquo;, or &ldquo;our&rdquo;). By using the Service, you agree to the
@@ -84,8 +84,8 @@ export default async function PrivacyPolicy() {
             </div>
 
             {/* Mobile TOC */}
-            <div className='mb-10 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent p-6 lg:hidden'>
-              <h2 className='mb-4 font-semibold text-[13px] text-white uppercase tracking-wide'>
+            <div className='mb-10 rounded-2xl border border-neutral-200 bg-neutral-50 p-6 lg:hidden dark:border-white/[0.06] dark:bg-gradient-to-br dark:from-white/[0.03] dark:to-transparent'>
+              <h2 className='mb-4 font-semibold text-[13px] text-neutral-900 uppercase tracking-wide dark:text-white'>
                 Table of Contents
               </h2>
               <nav className='columns-2 gap-x-6'>

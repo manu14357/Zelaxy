@@ -45,7 +45,7 @@ function LinkedInIcon({ className }: { className?: string }) {
 
 export function Footer() {
   return (
-    <footer className='relative mt-20 overflow-hidden border-white/[0.06] border-t bg-[#050507] text-neutral-400'>
+    <footer className='relative mt-20 overflow-hidden border-neutral-200 border-t bg-neutral-50 text-neutral-500 dark:border-white/[0.06] dark:bg-[#050507] dark:text-neutral-400'>
       <div className='mx-auto max-w-7xl px-6 py-14 lg:px-8'>
         <div className='xl:grid xl:grid-cols-3 xl:gap-8'>
           {/* Logo & description */}
@@ -59,7 +59,7 @@ export function Footer() {
                 unoptimized
                 className='h-10 w-10 shrink-0'
               />
-              <span className='font-bold text-white text-xl tracking-tight'>Zelaxy</span>
+              <span className='font-bold text-neutral-900 text-xl tracking-tight dark:text-white'>Zelaxy</span>
             </Link>
             <p className='max-w-xs text-neutral-500 text-sm leading-6'>
               The open-source AI workflow builder. Connect APIs, customize blocks, and build
@@ -70,7 +70,7 @@ export function Footer() {
                 href='https://github.com/manu14357/Zelaxy'
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-neutral-600 transition-colors hover:text-white'
+                className='text-neutral-400 transition-colors hover:text-neutral-900 dark:text-neutral-600 dark:hover:text-white'
               >
                 <span className='sr-only'>GitHub</span>
                 <GitHubIcon className='h-5 w-5' />
@@ -79,7 +79,7 @@ export function Footer() {
                 href='https://www.linkedin.com/company/zelaxy'
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-neutral-600 transition-colors hover:text-white'
+                className='text-neutral-400 transition-colors hover:text-neutral-900 dark:text-neutral-600 dark:hover:text-white'
               >
                 <span className='sr-only'>LinkedIn</span>
                 <LinkedInIcon className='h-5 w-5' />
@@ -107,7 +107,7 @@ export function Footer() {
                     <li key={item.name}>
                       <Link
                         href={item.href}
-                        className='text-neutral-500 text-sm transition-colors hover:text-white'
+                        className='text-neutral-500 text-sm transition-colors hover:text-neutral-900 dark:hover:text-white'
                       >
                         {item.name}
                       </Link>
@@ -124,7 +124,7 @@ export function Footer() {
                     <li key={item.name}>
                       <Link
                         href={item.href}
-                        className='text-neutral-500 text-sm transition-colors hover:text-white'
+                        className='text-neutral-500 text-sm transition-colors hover:text-neutral-900 dark:hover:text-white'
                       >
                         {item.name}
                       </Link>
@@ -145,7 +145,7 @@ export function Footer() {
                         href={item.href}
                         target={item.href.startsWith('http') ? '_blank' : undefined}
                         rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                        className='text-neutral-500 text-sm transition-colors hover:text-white'
+                        className='text-neutral-500 text-sm transition-colors hover:text-neutral-900 dark:hover:text-white'
                       >
                         {item.name}
                       </a>
@@ -162,7 +162,7 @@ export function Footer() {
                     <li key={item.name}>
                       <Link
                         href={item.href}
-                        className='text-neutral-500 text-sm transition-colors hover:text-white'
+                        className='text-neutral-500 text-sm transition-colors hover:text-neutral-900 dark:hover:text-white'
                       >
                         {item.name}
                       </Link>
@@ -176,9 +176,9 @@ export function Footer() {
       </div>
 
       {/* Large brand wordmark */}
-      <div className='select-none overflow-hidden border-white/[0.04] border-t'>
+      <div className='select-none overflow-hidden border-neutral-200 border-t dark:border-white/[0.04]'>
         <p
-          className='px-4 pt-10 pb-6 text-center font-black text-white/[0.04] uppercase leading-none tracking-[0.04em]'
+          className='px-4 pt-10 pb-6 text-center font-black text-neutral-100 uppercase leading-none tracking-[0.04em] dark:text-white/[0.04]'
           style={{ fontSize: 'clamp(5rem, 20vw, 15rem)' }}
           aria-hidden='true'
         >
@@ -187,9 +187,9 @@ export function Footer() {
       </div>
 
       {/* Bottom bar */}
-      <div className='border-white/[0.04] border-t bg-black/20'>
+      <div className='border-neutral-200 border-t bg-neutral-100/50 dark:border-white/[0.04] dark:bg-black/20'>
         <div className='mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-5 md:flex-row lg:px-8'>
-          <p className='text-neutral-600 text-xs'>
+          <p className='text-neutral-400 text-xs dark:text-neutral-600'>
             &copy; {new Date().getFullYear()} Zelaxy. All rights reserved. MIT License.
           </p>
           <div className='flex items-center gap-2'>
@@ -197,7 +197,7 @@ export function Footer() {
               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75' />
               <span className='relative inline-flex h-2 w-2 rounded-full bg-emerald-500' />
             </span>
-            <span className='text-neutral-600 text-xs'>All systems operational</span>
+            <span className='text-neutral-400 text-xs dark:text-neutral-600'>All systems operational</span>
           </div>
         </div>
       </div>

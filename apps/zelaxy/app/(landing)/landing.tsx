@@ -1,32 +1,27 @@
 'use client'
 
-import {
-  BlocksScrollSection,
-  CTASection,
-  FeaturesSection,
-  Footer,
-  HeroSection,
-  HowItWorksSection,
-  SponsorsSection,
-} from '@/app/(landing)/components'
-import { GitHubStarsBanner } from '@/app/(landing)/components/github-stars-banner'
-import { ThemeProvider } from '@/app/(landing)/components/theme-provider'
+import '@/app/(landing)/components/animations.css'
+
+import { Footer } from '@/app/(landing)/components'
+import { Navigation } from '@/app/(landing)/components/navigation'
+import { HeroSection } from '@/app/(landing)/components/sections/hero-section'
+import { HowItWorksSection } from '@/app/(landing)/components/sections/how-it-works-section'
+import { FeaturesSection } from '@/app/(landing)/components/sections/features-section'
+import { IntegrationsSection } from '@/app/(landing)/components/sections/integrations-section'
+import { CTASection } from '@/app/(landing)/components/sections/cta-section'
 
 export default function Landing() {
   return (
-    <ThemeProvider defaultTheme='dark' storageKey='zelaxy-theme'>
-      <main className='relative min-h-screen overflow-x-hidden bg-[#060606] text-white'>
-        <GitHubStarsBanner />
+    <main className='relative min-h-screen overflow-x-hidden bg-white text-neutral-900 dark:bg-[#060606] dark:text-white'>
+      <Navigation />
 
-        <HeroSection />
-        <BlocksScrollSection />
-        <HowItWorksSection />
-        <FeaturesSection />
-        <SponsorsSection />
-        <CTASection />
+      <HeroSection />
+      <HowItWorksSection />
+      <FeaturesSection />
+      <IntegrationsSection />
+      <CTASection />
 
-        <Footer />
-      </main>
-    </ThemeProvider>
+      <Footer />
+    </main>
   )
 }

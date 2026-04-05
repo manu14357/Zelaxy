@@ -20,9 +20,9 @@ export function Navigation() {
   }, [])
 
   const navItems = [
-    { href: '#blocks', label: 'Blocks' },
     { href: '#how-it-works', label: 'How It Works' },
     { href: '#features', label: 'Features' },
+    { href: '#integrations', label: 'Integrations' },
     { href: getDocsUrl(), label: 'Docs' },
   ]
 
@@ -30,7 +30,7 @@ export function Navigation() {
     <nav
       className={`fixed top-0 right-0 left-0 z-50 transition-all duration-500 ${
         isScrolled
-          ? 'border-white/[0.06] border-b bg-[#060606]/80 shadow-[0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-xl backdrop-saturate-150'
+          ? 'border-neutral-200 border-b bg-white/80 shadow-sm backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.06] dark:bg-[#060606]/80 dark:shadow-[0_1px_0_rgba(255,255,255,0.03)]'
           : 'bg-transparent'
       }`}
     >
@@ -50,7 +50,7 @@ export function Navigation() {
               <a
                 key={item.href}
                 href={item.href}
-                className='font-medium text-[13px] text-neutral-500 transition-colors duration-300 hover:text-white'
+                className='font-medium text-[13px] text-neutral-500 transition-colors duration-300 hover:text-neutral-900 dark:hover:text-white'
               >
                 {item.label}
               </a>
@@ -63,13 +63,13 @@ export function Navigation() {
             <Link href='/login'>
               <Button
                 variant='ghost'
-                className='h-8 px-3 font-medium text-[13px] text-neutral-400 hover:text-white'
+                className='h-8 px-3 font-medium text-[13px] text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
               >
                 Sign In
               </Button>
             </Link>
             <Link href='/arena'>
-              <Button className='h-8 rounded-full bg-white px-5 font-medium text-[13px] text-black transition-all duration-300 hover:bg-neutral-200'>
+              <Button className='h-8 rounded-full bg-neutral-900 px-5 font-medium text-[13px] text-white transition-all duration-300 hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200'>
                 Get Started
               </Button>
             </Link>
@@ -80,7 +80,7 @@ export function Navigation() {
             <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className='rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-white/5 hover:text-white'
+              className='rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-white'
             >
               {isOpen ? <X className='h-5 w-5' /> : <Menu className='h-5 w-5' />}
             </button>
@@ -89,29 +89,29 @@ export function Navigation() {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className='absolute top-14 right-0 left-0 border-white/[0.06] border-b bg-[#060606]/95 backdrop-blur-xl backdrop-saturate-150 md:hidden'>
+          <div className='absolute top-14 right-0 left-0 border-neutral-200 border-b bg-white/95 backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.06] dark:bg-[#060606]/95 md:hidden'>
             <div className='space-y-1 px-6 py-5'>
               {navItems.map((item) => (
                 <a
                   key={item.href}
                   href={item.href}
-                  className='block py-2.5 font-medium text-[15px] text-neutral-400 transition-colors hover:text-white'
+                  className='block py-2.5 font-medium text-[15px] text-neutral-500 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
                   onClick={() => setIsOpen(false)}
                 >
                   {item.label}
                 </a>
               ))}
-              <div className='flex flex-col gap-2 border-white/[0.06] border-t pt-4'>
+              <div className='flex flex-col gap-2 border-neutral-200 border-t pt-4 dark:border-white/[0.06]'>
                 <Link href='/login'>
                   <Button
                     variant='ghost'
-                    className='w-full text-[15px] text-neutral-400 hover:text-white'
+                    className='w-full text-[15px] text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
                   >
                     Sign In
                   </Button>
                 </Link>
                 <Link href='/arena'>
-                  <Button className='w-full rounded-full bg-white text-[15px] text-black hover:bg-neutral-200'>
+                  <Button className='w-full rounded-full bg-neutral-900 text-[15px] text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200'>
                     Get Started
                   </Button>
                 </Link>

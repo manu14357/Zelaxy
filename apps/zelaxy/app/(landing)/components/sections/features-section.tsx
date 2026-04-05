@@ -1,80 +1,44 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Bot, Brain, Eye, GitBranch, Puzzle, Shield, Sparkles, Workflow, Zap } from 'lucide-react'
+import { Bot, Eye, GitBranch, Brain, Zap, Shield } from 'lucide-react'
 
 const features = [
   {
     icon: Bot,
-    title: 'Multi-Provider AI Agents',
+    title: 'Multi-Provider AI',
     description:
-      'Built-in support for OpenAI, Claude, Gemini, DeepSeek, Grok, Groq, Cerebras, Azure OpenAI, OpenRouter, and Ollama. Tool calling, structured JSON output, and fallback models.',
-    span: 'sm:col-span-2',
-    highlight: true,
+      'OpenAI, Claude, Gemini, DeepSeek, Grok, Groq, Cerebras, Ollama and more. Tool calling, structured output, and fallback models built in.',
   },
   {
-    icon: Workflow,
-    title: 'Visual Flow Builder',
+    icon: Eye,
+    title: 'Real-Time Streaming',
     description:
-      'Drag-and-drop canvas with topological sorting execution. Connect blocks visually, define data flow with {{variables}}, and compose sub-workflows.',
-    span: '',
-    highlight: false,
+      'Watch workflows execute token-by-token. Inspect every block output and debug live as data flows through the pipeline.',
+  },
+  {
+    icon: GitBranch,
+    title: 'Smart Routing',
+    description:
+      'AI-powered routing with up to 4 paths. LLM-as-Judge for subjective decisions. forEach loops and parallel branches.',
+  },
+  {
+    icon: Brain,
+    title: 'Knowledge & RAG',
+    description:
+      'Built-in RAG pipeline with pgvector for document search. Persistent conversation history across workflow sessions.',
   },
   {
     icon: Zap,
     title: 'Event-Driven Triggers',
     description:
       'Webhooks from Gmail, Slack, GitHub, Stripe, Telegram, and more. Plus cron schedules and manual triggers.',
-    span: '',
-    highlight: false,
-  },
-  {
-    icon: Eye,
-    title: 'Real-Time Streaming',
-    description:
-      'Token-by-token LLM streaming. Watch workflows execute live — inspect every block output, monitor state, and debug in real-time.',
-    span: '',
-    highlight: false,
-  },
-  {
-    icon: Brain,
-    title: 'Knowledge & Memory',
-    description:
-      'RAG pipeline with pgvector for document search. Persistent conversation history and key-value storage across workflow sessions.',
-    span: '',
-    highlight: false,
-  },
-  {
-    icon: GitBranch,
-    title: 'Smart Routing & Logic',
-    description:
-      'AI-powered routing with up to 4 paths. LLM-as-Judge conditions for subjective decisions. forEach/for loops and parallel execution branches.',
-    span: 'sm:col-span-2',
-    highlight: true,
   },
   {
     icon: Shield,
-    title: 'Guardrails & Evaluation',
+    title: 'Guardrails',
     description:
-      'Content validation with JSON schema, regex, PII detection, and hallucination checking. Quality gates that score content 1-10 before proceeding.',
-    span: '',
-    highlight: false,
-  },
-  {
-    icon: Sparkles,
-    title: 'Agie AI Copilot',
-    description:
-      'Built-in AI copilot that generates system prompts, code, and JSON schemas from natural language descriptions. Ask and it builds.',
-    span: '',
-    highlight: false,
-  },
-  {
-    icon: Puzzle,
-    title: 'Deep Integrations',
-    description:
-      'Slack, GitHub, Google Workspace, Microsoft 365, Notion, Jira, Supabase, Pinecone, Snowflake, S3, Twilio, and dozens more — out of the box.',
-    span: 'sm:col-span-2',
-    highlight: true,
+      'Content validation with JSON schema, regex, PII detection, and hallucination checking. Quality gates before proceeding.',
   },
 ]
 
@@ -96,68 +60,53 @@ export function FeaturesSection() {
   }, [])
 
   return (
-    <section ref={sectionRef} id='features' className='relative bg-[#060606] py-28 sm:py-36'>
-      {/* Orange accent divider */}
-      <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent' />
+    <section ref={sectionRef} id='features' className='relative bg-white py-28 dark:bg-[#060606] sm:py-36'>
+      {/* Top divider */}
+      <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/[0.06]' />
 
-      {/* Ambient glow */}
-      <div className='-translate-x-1/2 pointer-events-none absolute top-0 left-1/2 h-[400px] w-[600px] rounded-full bg-orange-500/[0.03] blur-[120px]' />
-
-      <div className='mx-auto max-w-6xl px-6 sm:px-8'>
+      <div className='mx-auto max-w-5xl px-6 lg:px-8'>
         {/* Header */}
-        <div className='mb-20 text-center'>
+        <div className='mb-20'>
           <p
-            className={`mb-5 font-semibold text-[13px] text-orange-500 uppercase tracking-[0.2em] transition-all duration-1000 ease-out ${
+            className={`mb-4 font-mono text-[13px] text-orange-400/80 uppercase tracking-widest transition-all duration-700 ${
               isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
           >
             Features
           </p>
           <h2
-            className={`mb-5 font-bold text-[clamp(1.75rem,4vw,3rem)] text-white leading-[1.15] tracking-[-0.03em] transition-all delay-100 duration-1000 ease-out ${
-              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            className={`max-w-lg font-bold text-[clamp(1.75rem,4vw,3rem)] text-neutral-900 leading-[1.1] tracking-[-0.03em] transition-all delay-100 duration-700 dark:text-white ${
+              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
             }`}
           >
-            Everything to <span className='text-gradient-apple'>automate anything.</span>
+            Everything to{' '}
+            <span className='text-gradient-apple'>automate anything.</span>
           </h2>
-          <p
-            className={`mx-auto max-w-lg text-[17px] text-neutral-400 leading-relaxed transition-all delay-200 duration-1000 ease-out ${
-              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-            }`}
-          >
-            From simple automations to complex AI-driven pipelines — every building block you need.
-          </p>
         </div>
 
-        {/* Bento-style Features Grid */}
-        <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+        {/* Features list - Alternating full-width rows, not cards */}
+        <div className='space-y-0'>
           {features.map((feature, index) => {
             const Icon = feature.icon
             return (
               <div
-                key={index}
-                className={`group hover:-translate-y-1 relative overflow-hidden rounded-2xl border p-8 transition-all duration-700 ease-out ${feature.span} ${
-                  feature.highlight
-                    ? 'border-orange-500/[0.12] bg-gradient-to-br from-orange-500/[0.06] via-white/[0.02] to-transparent hover:border-orange-500/25 hover:shadow-[0_8px_40px_rgba(249,115,22,0.1)]'
-                    : 'border-orange-500/[0.06] bg-gradient-to-b from-white/[0.03] to-white/[0.01] hover:border-orange-500/15 hover:shadow-[0_8px_30px_rgba(249,115,22,0.06)]'
-                } ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                style={{ transitionDelay: `${300 + index * 80}ms` }}
+                key={feature.title}
+                className={`group flex items-start gap-6 border-neutral-200 border-t py-10 transition-all duration-700 first:border-t-0 dark:border-white/[0.04] sm:gap-10 sm:py-12 ${
+                  isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+                }`}
+                style={{ transitionDelay: `${200 + index * 100}ms` }}
               >
-                {/* Hover glow */}
-                <div className='pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100'>
-                  <div className='-top-16 -right-16 absolute h-40 w-40 rounded-full bg-orange-500/[0.06] blur-3xl' />
+                {/* Icon */}
+                <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 transition-colors duration-300 group-hover:border-orange-500/20 group-hover:bg-orange-500/[0.06] dark:border-white/[0.06] dark:bg-white/[0.02] sm:h-12 sm:w-12'>
+                  <Icon className='h-4 w-4 text-neutral-500 transition-colors duration-300 group-hover:text-orange-400 sm:h-5 sm:w-5' />
                 </div>
 
-                <div className='relative'>
-                  {/* Icon */}
-                  <div className='mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 transition-all duration-500 group-hover:bg-orange-500/15 group-hover:shadow-[0_0_20px_rgba(249,115,22,0.15)] group-hover:ring-orange-500/30'>
-                    <Icon className='h-5 w-5 text-orange-400' />
-                  </div>
-
-                  <h3 className='mb-2.5 font-semibold text-[17px] text-white tracking-[-0.01em]'>
+                {/* Text */}
+                <div className='min-w-0'>
+                  <h3 className='mb-1.5 font-semibold text-neutral-900 tracking-[-0.01em] dark:text-white sm:text-lg'>
                     {feature.title}
                   </h3>
-                  <p className='text-[15px] text-neutral-500 leading-relaxed'>
+                  <p className='max-w-xl text-[15px] text-neutral-500 leading-relaxed'>
                     {feature.description}
                   </p>
                 </div>
