@@ -127,6 +127,7 @@ import {
   pineconeSearchVectorTool,
   pineconeUpsertTextTool,
 } from '@/tools/pinecone'
+import { postgresqlTool } from '@/tools/postgresql'
 import { qdrantFetchTool, qdrantSearchTool, qdrantUpsertTool } from '@/tools/qdrant'
 import { redditGetCommentsTool, redditGetPostsTool, redditHotPostsTool } from '@/tools/reddit'
 import { s3GetObjectTool } from '@/tools/s3'
@@ -280,6 +281,7 @@ export const tools: Record<string, ToolConfig> = {
   knowledge_upload_chunk: knowledgeUploadChunkTool,
   knowledge_create_document: knowledgeCreateDocumentTool,
   mssql_database: mssqlTool,
+  postgresql_database: postgresqlTool,
   elevenlabs_tts: elevenLabsTtsTool,
   s3_get_object: s3GetObjectTool,
   telegram_message: telegramMessageTool,

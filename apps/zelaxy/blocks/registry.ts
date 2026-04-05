@@ -53,6 +53,7 @@ import { OutlookBlock } from '@/blocks/blocks/outlook'
 import { ParallelBlock } from '@/blocks/blocks/parallel'
 import { PerplexityBlock } from '@/blocks/blocks/perplexity'
 import { PineconeBlock } from '@/blocks/blocks/pinecone'
+import { PostgreSQLBlock } from '@/blocks/blocks/postgresql'
 import { QdrantBlock } from '@/blocks/blocks/qdrant'
 import { RedditBlock } from '@/blocks/blocks/reddit'
 import { ResponseBlock } from '@/blocks/blocks/response'
@@ -136,6 +137,7 @@ export const registry: Record<string, BlockConfig> = {
   parallel: ParallelBlock,
   perplexity: PerplexityBlock,
   pinecone: PineconeBlock,
+  postgresql: PostgreSQLBlock,
   qdrant: QdrantBlock,
   memory: MemoryBlock,
   reddit: RedditBlock,
