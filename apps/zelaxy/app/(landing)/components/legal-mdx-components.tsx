@@ -17,7 +17,11 @@ function H3({ children }: { children?: React.ReactNode }) {
 }
 
 function P({ children }: { children?: React.ReactNode }) {
-  return <p className='mb-4 text-neutral-600 leading-relaxed last:mb-0 dark:text-neutral-400'>{children}</p>
+  return (
+    <p className='mb-4 text-neutral-600 leading-relaxed last:mb-0 dark:text-neutral-400'>
+      {children}
+    </p>
+  )
 }
 
 function UL({ children }: { children?: React.ReactNode }) {
@@ -73,7 +77,9 @@ function Def({ term, children }: { term: string; children?: React.ReactNode }) {
 function Highlight({ children }: { children?: React.ReactNode }) {
   return (
     <div className='my-4 rounded-xl border border-orange-400/20 bg-orange-400/5 p-5'>
-      <div className='text-[14px] text-neutral-700 leading-relaxed dark:text-neutral-300'>{children}</div>
+      <div className='text-[14px] text-neutral-700 leading-relaxed dark:text-neutral-300'>
+        {children}
+      </div>
     </div>
   )
 }
@@ -95,7 +101,8 @@ function PaymentBadge({ processor }: { processor: string }) {
   return (
     <div className='my-4 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-4 py-2 text-[13px] text-neutral-600 dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-neutral-400'>
       <span className='h-1.5 w-1.5 rounded-full bg-orange-400' />
-      Payment processor: <span className='font-medium text-neutral-900 dark:text-white'>{processor}</span>
+      Payment processor:{' '}
+      <span className='font-medium text-neutral-900 dark:text-white'>{processor}</span>
     </div>
   )
 }

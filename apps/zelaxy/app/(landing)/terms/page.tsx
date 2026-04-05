@@ -37,7 +37,9 @@ export default async function TermsOfService() {
         <div className='mx-auto flex h-14 max-w-5xl items-center justify-between px-6 sm:px-8'>
           <Link href='/' className='flex items-center gap-2.5'>
             <img src='/Zelaxy.png' alt='Zelaxy' width={24} height={24} className='h-6 w-6' />
-            <span className='font-semibold text-[15px] text-neutral-900 dark:text-white'>Zelaxy</span>
+            <span className='font-semibold text-[15px] text-neutral-900 dark:text-white'>
+              Zelaxy
+            </span>
           </Link>
           <Link
             href='/'

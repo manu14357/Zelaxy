@@ -89,7 +89,7 @@ export function Navigation() {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className='absolute top-14 right-0 left-0 border-neutral-200 border-b bg-white/95 backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.06] dark:bg-[#060606]/95 md:hidden'>
+          <div className='absolute top-14 right-0 left-0 border-neutral-200 border-b bg-white/95 backdrop-blur-xl backdrop-saturate-150 md:hidden dark:border-white/[0.06] dark:bg-[#060606]/95'>
             <div className='space-y-1 px-6 py-5'>
               {navItems.map((item) => (
                 <a

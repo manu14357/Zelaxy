@@ -1,8 +1,8 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createLogger } from '@/lib/logs/console/logger'
@@ -91,10 +91,10 @@ function ResetPasswordContent() {
             />
           </Link>
           <div>
-            <h1 className='font-bold text-2xl tracking-tight text-neutral-900 dark:text-white'>
+            <h1 className='font-bold text-2xl text-neutral-900 tracking-tight dark:text-white'>
               Reset Password
             </h1>
-            <p className='mt-1 text-sm text-neutral-500 dark:text-neutral-400'>
+            <p className='mt-1 text-neutral-500 text-sm dark:text-neutral-400'>
               Create a new secure password for your account
             </p>
           </div>

@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Star } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import * as THREE from 'three'
+import { Button } from '@/components/ui/button'
 
 const GITHUB_REPO = 'manu14357/Zelaxy'
 
@@ -16,7 +16,12 @@ function FloatingMesh({ className }: { className?: string }) {
     if (!container) return
 
     const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(45, container.offsetWidth / container.offsetHeight, 0.1, 100)
+    const camera = new THREE.PerspectiveCamera(
+      45,
+      container.offsetWidth / container.offsetHeight,
+      0.1,
+      100
+    )
     camera.position.z = 4
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
@@ -124,20 +129,32 @@ export function HeroSection() {
     <section className='relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-white dark:bg-[#060606]'>
       {/* Subtle dot grid */}
       <div
-        className='pointer-events-none absolute inset-0 dark:opacity-100 opacity-100'
+        className='pointer-events-none absolute inset-0 opacity-100 dark:opacity-100'
         style={{
           backgroundSize: '32px 32px',
           maskImage: 'radial-gradient(ellipse 80% 60% at 50% 50%, black, transparent)',
           WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 50%, black, transparent)',
         }}
       >
-        <div className='hidden h-full w-full dark:block' style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-        <div className='block h-full w-full dark:hidden' style={{ backgroundImage: 'radial-gradient(rgba(0,0,0,0.06) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        <div
+          className='hidden h-full w-full dark:block'
+          style={{
+            backgroundImage: 'radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+          }}
+        />
+        <div
+          className='block h-full w-full dark:hidden'
+          style={{
+            backgroundImage: 'radial-gradient(rgba(0,0,0,0.06) 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+          }}
+        />
       </div>
 
       {/* Ambient orbs */}
-      <div className='pointer-events-none absolute top-1/4 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/[0.06] blur-[160px]' />
-      <div className='pointer-events-none absolute bottom-1/4 right-1/4 h-[300px] w-[300px] rounded-full bg-amber-400/[0.04] blur-[100px]' />
+      <div className='-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/4 left-1/2 h-[600px] w-[600px] rounded-full bg-orange-500/[0.06] blur-[160px]' />
+      <div className='pointer-events-none absolute right-1/4 bottom-1/4 h-[300px] w-[300px] rounded-full bg-amber-400/[0.04] blur-[100px]' />
 
       <div className='relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8'>
         {/* Text */}
@@ -157,7 +174,7 @@ export function HeroSection() {
                 href={`https://github.com/${GITHUB_REPO}`}
                 target='_blank'
                 rel='noopener noreferrer'
-                className='inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-[13px] font-medium text-amber-600 transition-all duration-200 hover:border-amber-500/40 hover:bg-amber-500/15 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300 dark:hover:border-amber-400/40 dark:hover:bg-amber-400/15'
+                className='inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 font-medium text-[13px] text-amber-600 transition-all duration-200 hover:border-amber-500/40 hover:bg-amber-500/15 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300 dark:hover:border-amber-400/40 dark:hover:bg-amber-400/15'
               >
                 <Star className='h-3 w-3 fill-amber-400 text-amber-400' />
                 {stars.toLocaleString()}
@@ -167,12 +184,11 @@ export function HeroSection() {
 
           {/* Headline */}
           <h1
-            className={`mb-6 font-bold text-[clamp(2.5rem,6vw,4.5rem)] leading-[1.05] tracking-[-0.04em] text-neutral-900 transition-all delay-100 duration-700 dark:text-white ${
+            className={`mb-6 font-bold text-[clamp(2.5rem,6vw,4.5rem)] text-neutral-900 leading-[1.05] tracking-[-0.04em] transition-all delay-100 duration-700 dark:text-white ${
               mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
             }`}
           >
-            Build AI workflows{' '}
-            <span className='text-gradient-apple'>visually.</span>
+            Build AI workflows <span className='text-gradient-apple'>visually.</span>
           </h1>
 
           {/* Subtitle */}
@@ -181,8 +197,8 @@ export function HeroSection() {
               mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
             } mx-auto lg:mx-0`}
           >
-            Wire up AI agents, APIs, and logic on a drag-and-drop canvas.
-            Ship automations that run themselves.
+            Wire up AI agents, APIs, and logic on a drag-and-drop canvas. Ship automations that run
+            themselves.
           </p>
 
           {/* Tagline */}
@@ -217,7 +233,11 @@ export function HeroSection() {
               size='lg'
               className='h-12 rounded-full border border-neutral-300 bg-transparent px-7 font-medium text-[15px] text-neutral-600 transition-all duration-300 hover:border-neutral-400 hover:bg-neutral-100 hover:text-neutral-900 active:scale-[0.98] dark:border-white/[0.1] dark:text-neutral-300 dark:hover:border-white/[0.2] dark:hover:bg-white/[0.05] dark:hover:text-white'
             >
-              <Link href='https://github.com/manu14357/Zelaxy' target='_blank' rel='noopener noreferrer'>
+              <Link
+                href='https://github.com/manu14357/Zelaxy'
+                target='_blank'
+                rel='noopener noreferrer'
+              >
                 View on GitHub
               </Link>
             </Button>
@@ -236,7 +256,7 @@ export function HeroSection() {
 
       {/* Scroll indicator */}
       <div
-        className={`absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 transition-all delay-700 duration-700 ${
+        className={`-translate-x-1/2 absolute bottom-8 left-1/2 flex flex-col items-center gap-2 transition-all delay-700 duration-700 ${
           mounted ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
         }`}
       >

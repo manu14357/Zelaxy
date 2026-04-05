@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Bot, Eye, GitBranch, Brain, Zap, Shield } from 'lucide-react'
+import { Bot, Brain, Eye, GitBranch, Shield, Zap } from 'lucide-react'
 
 const features = [
   {
@@ -60,7 +60,11 @@ export function FeaturesSection() {
   }, [])
 
   return (
-    <section ref={sectionRef} id='features' className='relative bg-white py-28 dark:bg-[#060606] sm:py-36'>
+    <section
+      ref={sectionRef}
+      id='features'
+      className='relative bg-white py-28 sm:py-36 dark:bg-[#060606]'
+    >
       {/* Top divider */}
       <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-white/[0.06]' />
 
@@ -79,8 +83,7 @@ export function FeaturesSection() {
               isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
             }`}
           >
-            Everything to{' '}
-            <span className='text-gradient-apple'>automate anything.</span>
+            Everything to <span className='text-gradient-apple'>automate anything.</span>
           </h2>
         </div>
 
@@ -91,19 +94,19 @@ export function FeaturesSection() {
             return (
               <div
                 key={feature.title}
-                className={`group flex items-start gap-6 border-neutral-200 border-t py-10 transition-all duration-700 first:border-t-0 dark:border-white/[0.04] sm:gap-10 sm:py-12 ${
+                className={`group flex items-start gap-6 border-neutral-200 border-t py-10 transition-all duration-700 first:border-t-0 sm:gap-10 sm:py-12 dark:border-white/[0.04] ${
                   isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
                 }`}
                 style={{ transitionDelay: `${200 + index * 100}ms` }}
               >
                 {/* Icon */}
-                <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 transition-colors duration-300 group-hover:border-orange-500/20 group-hover:bg-orange-500/[0.06] dark:border-white/[0.06] dark:bg-white/[0.02] sm:h-12 sm:w-12'>
+                <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 transition-colors duration-300 group-hover:border-orange-500/20 group-hover:bg-orange-500/[0.06] sm:h-12 sm:w-12 dark:border-white/[0.06] dark:bg-white/[0.02]'>
                   <Icon className='h-4 w-4 text-neutral-500 transition-colors duration-300 group-hover:text-orange-400 sm:h-5 sm:w-5' />
                 </div>
 
                 {/* Text */}
                 <div className='min-w-0'>
-                  <h3 className='mb-1.5 font-semibold text-neutral-900 tracking-[-0.01em] dark:text-white sm:text-lg'>
+                  <h3 className='mb-1.5 font-semibold text-neutral-900 tracking-[-0.01em] sm:text-lg dark:text-white'>
                     {feature.title}
                   </h3>
                   <p className='max-w-xl text-[15px] text-neutral-500 leading-relaxed'>

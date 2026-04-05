@@ -35,7 +35,10 @@ export function RequestResetForm({
     <form onSubmit={handleSubmit} className={className}>
       <div className='grid gap-4'>
         <div className='grid gap-2'>
-          <Label htmlFor='reset-email' className='font-medium text-neutral-700 dark:text-neutral-300 text-sm'>
+          <Label
+            htmlFor='reset-email'
+            className='font-medium text-neutral-700 text-sm dark:text-neutral-300'
+          >
             Email
           </Label>
           <Input
@@ -46,7 +49,7 @@ export function RequestResetForm({
             type='email'
             disabled={isSubmitting}
             required
-            className='h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 text-neutral-900 shadow-sm placeholder:text-neutral-400 transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-neutral-500 dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20'
+            className='h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20 dark:placeholder:text-neutral-500'
           />
           <p className='text-neutral-500 text-sm'>
             We'll send a password reset link to this email address.
@@ -132,7 +135,10 @@ export function SetNewPasswordForm({
       <div className='space-y-5'>
         <div className='space-y-4'>
           <div className='space-y-2'>
-            <Label htmlFor='password' className='font-medium text-neutral-700 dark:text-neutral-300 text-sm'>
+            <Label
+              htmlFor='password'
+              className='font-medium text-neutral-700 text-sm dark:text-neutral-300'
+            >
               New Password
             </Label>
             <div className='relative'>
@@ -148,7 +154,7 @@ export function SetNewPasswordForm({
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder='Enter new password'
-                className='h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 pr-12 pl-11 text-neutral-900 shadow-sm placeholder:text-neutral-400 transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-neutral-500 dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20'
+                className='h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 pr-12 pl-11 text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20 dark:placeholder:text-neutral-500'
               />
               <button
                 type='button'
@@ -162,7 +168,10 @@ export function SetNewPasswordForm({
           </div>
 
           <div className='space-y-2'>
-            <Label htmlFor='confirmPassword' className='font-medium text-neutral-700 dark:text-neutral-300 text-sm'>
+            <Label
+              htmlFor='confirmPassword'
+              className='font-medium text-neutral-700 text-sm dark:text-neutral-300'
+            >
               Confirm Password
             </Label>
             <div className='relative'>
@@ -178,7 +187,7 @@ export function SetNewPasswordForm({
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 placeholder='Confirm new password'
-                className='h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 pr-12 pl-11 text-neutral-900 shadow-sm placeholder:text-neutral-400 transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-neutral-500 dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20'
+                className='h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 pr-12 pl-11 text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20 dark:placeholder:text-neutral-500'
               />
               <button
                 type='button'
