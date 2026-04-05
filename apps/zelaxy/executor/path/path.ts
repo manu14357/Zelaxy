@@ -87,9 +87,13 @@ export class PathTracker {
     // Use routing strategy to determine connection checking method
     switch (category) {
       case 'routing':
-        return blockType === BlockType.ROUTER
-          ? this.isRouterConnectionActive(connection, context)
-          : this.isConditionConnectionActive(connection, context)
+        if (blockType === BlockType.ROUTER) {
+          return this.isRouterConnectionActive(connection, context)
+        }
+        if (blockType === BlockType.SWITCH) {
+          return this.isSwitchConnectionActive(connection, context)
+        }
+        return this.isConditionConnectionActive(connection, context)
       default:
         return this.isRegularConnectionActive(connection, context)
     }
@@ -130,6 +134,24 @@ export class PathTracker {
   }
 
   /**
+   * Check if a switch connection is active
+   */
+  private isSwitchConnectionActive(
+    connection: SerializedConnection,
+    context: ExecutionContext
+  ): boolean {
+    const sourceHandle = connection.sourceHandle
+    if (!sourceHandle || !sourceHandle.startsWith('case-')) return false
+
+    const selectedCaseId = context.decisions.condition.get(connection.source)
+    if (!selectedCaseId) return false
+
+    return (
+      context.executedBlocks.has(connection.source) && sourceHandle === `case-${selectedCaseId}`
+    )
+  }
+
+  /**
    * Check if a regular connection is active
    */
   private isRegularConnectionActive(
@@ -153,6 +175,8 @@ export class PathTracker {
       case 'routing':
         if (blockType === BlockType.ROUTER) {
           this.updateRouterPaths(block, context)
+        } else if (blockType === BlockType.SWITCH) {
+          this.updateSwitchPaths(block, context)
         } else {
           this.updateConditionPaths(block, context)
         }
@@ -253,6 +277,35 @@ export class PathTracker {
       // Only activate downstream paths for regular blocks
       // Routing blocks make their own routing decisions when they execute
       // Flow control blocks manage their own path activation
+      if (selectedCategory === 'regular') {
+        this.activateDownstreamPathsSelectively(conn.target, context)
+      }
+    }
+  }
+
+  /**
+   * Update paths for switch blocks
+   */
+  private updateSwitchPaths(block: SerializedBlock, context: ExecutionContext): void {
+    const switchOutput = context.blockStates.get(block.id)?.output
+    const selectedCaseId = switchOutput?.selectedConditionId || switchOutput?.selectedCaseId
+
+    if (!selectedCaseId) return
+
+    context.decisions.condition.set(block.id, selectedCaseId)
+
+    const targetConnections = this.workflow.connections.filter(
+      (conn) => conn.source === block.id && conn.sourceHandle === `case-${selectedCaseId}`
+    )
+
+    for (const conn of targetConnections) {
+      context.activeExecutionPath.add(conn.target)
+      logger.debug(`Switch ${block.id} activated path to: ${conn.target}`)
+
+      const selectedBlock = this.getBlock(conn.target)
+      const selectedBlockType = selectedBlock?.metadata?.id || ''
+      const selectedCategory = Routing.getCategory(selectedBlockType)
+
       if (selectedCategory === 'regular') {
         this.activateDownstreamPathsSelectively(conn.target, context)
       }

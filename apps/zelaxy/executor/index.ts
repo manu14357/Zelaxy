@@ -13,6 +13,7 @@ import {
   ParallelBlockHandler,
   ResponseBlockHandler,
   RouterBlockHandler,
+  SwitchBlockHandler,
   TriggerBlockHandler,
   WorkflowBlockHandler,
 } from '@/executor/handlers'
@@ -162,6 +163,7 @@ export class Executor {
       new AgentBlockHandler(),
       new RouterBlockHandler(this.pathTracker),
       new ConditionBlockHandler(this.pathTracker, this.resolver),
+      new SwitchBlockHandler(this.pathTracker, this.resolver),
       new EvaluatorBlockHandler(),
       new FunctionBlockHandler(),
       new ApiBlockHandler(),
@@ -1321,6 +1323,22 @@ export class Executor {
 
           // This dependency is met only if source is executed and this is the selected path
           return sourceExecuted && conn.sourceHandle === selectedCondition
+        }
+      }
+
+      // For switch blocks, check if this is the selected case path
+      if (conn.sourceHandle?.startsWith('case-')) {
+        const sourceBlock = this.actualWorkflow.blocks.find((b) => b.id === conn.source)
+        if (sourceBlock?.metadata?.id === BlockType.SWITCH) {
+          const selectedCaseId = context.decisions.condition.get(conn.source)
+          const expectedHandle = selectedCaseId ? `case-${selectedCaseId}` : null
+
+          // If source is executed and this is not the selected case, treat as "not applicable"
+          if (sourceExecuted && expectedHandle && conn.sourceHandle !== expectedHandle) {
+            return true
+          }
+
+          return sourceExecuted && conn.sourceHandle === expectedHandle
         }
       }
 

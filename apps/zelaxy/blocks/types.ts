@@ -49,6 +49,7 @@ export type SubBlockType =
   | 'input-format' // Input structure format
   | 'response-format' // Response structure format
   | 'file-upload' // File uploader
+  | 'switch-case-input' // Switch/Case dynamic routing inputs
 
 // Component width setting
 export type SubBlockLayout = 'full' | 'half'
