@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { OTPInputForm } from '@/components/ui/input-otp-form'
+import { getBaseUrl } from '@/lib/urls/utils'
 
 interface EmailAuthProps {
   subdomain: string
@@ -141,7 +142,7 @@ export default function EmailAuth({
         <DialogHeader className='border-b px-6 py-4'>
           <div className='flex items-center justify-center'>
             <a
-              href='http://localhost:3000/'
+              href={`${getBaseUrl()}/`}
               target='_blank'
               rel='noopener noreferrer'
               className='mb-2'

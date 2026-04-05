@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createLogger } from '@/lib/logs/console/logger'
@@ -75,20 +76,28 @@ function ResetPasswordContent() {
   }
 
   return (
-    <div className='flex min-h-screen items-center justify-center px-4 py-12'>
-      <div className='w-full max-w-md space-y-8'>
+    <div className='flex min-h-screen items-center justify-center px-5 py-10 sm:px-6 sm:py-12'>
+      <div className='w-full max-w-[420px] space-y-7'>
         {/* Header */}
-        <div className='space-y-3 text-center'>
+        <div className='flex flex-col items-center space-y-3 text-center'>
           <Link href='/' className='inline-block'>
-            <h1 className='font-bold text-5xl tracking-[-0.04em]'>
-              <span className='animate-gradient bg-[length:200%_200%] bg-gradient-to-r from-primary via-orange-400 to-amber-300 bg-clip-text text-transparent'>
-                Zelaxy
-              </span>
-            </h1>
+            <Image
+              src='/Zelaxy.png'
+              alt='Zelaxy'
+              width={48}
+              height={48}
+              className='h-12 w-12 rounded-xl'
+              priority
+            />
           </Link>
-          <p className='text-base text-neutral-400'>
-            Create a new secure password for your account
-          </p>
+          <div>
+            <h1 className='font-bold text-2xl text-neutral-900 tracking-tight dark:text-white'>
+              Reset Password
+            </h1>
+            <p className='mt-1 text-neutral-500 text-sm dark:text-neutral-400'>
+              Create a new secure password for your account
+            </p>
+          </div>
         </div>
 
         {/* Reset Password Form */}
@@ -104,7 +113,7 @@ function ResetPasswordContent() {
         <p className='text-center text-neutral-500 text-sm'>
           <Link
             href='/login'
-            className='inline-flex items-center gap-1.5 font-medium text-primary/80 transition-colors hover:text-primary'
+            className='inline-flex items-center gap-1.5 font-medium text-primary transition-colors hover:text-primary/80'
           >
             <ArrowLeft className='h-3.5 w-3.5' />
             Back to login

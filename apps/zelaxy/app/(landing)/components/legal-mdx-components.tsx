@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 function H2({ children }: { children?: React.ReactNode }) {
   return (
-    <h2 className='mb-6 flex items-center gap-3 border-white/[0.06] border-b pb-3 font-semibold text-white text-xl'>
+    <h2 className='mb-6 flex items-center gap-3 border-neutral-200 border-b pb-3 font-semibold text-neutral-900 text-xl dark:border-white/[0.06] dark:text-white'>
       <span className='h-5 w-0.5 shrink-0 rounded-full bg-orange-400' />
       {children}
     </h2>
@@ -17,7 +17,11 @@ function H3({ children }: { children?: React.ReactNode }) {
 }
 
 function P({ children }: { children?: React.ReactNode }) {
-  return <p className='mb-4 text-neutral-400 leading-relaxed last:mb-0'>{children}</p>
+  return (
+    <p className='mb-4 text-neutral-600 leading-relaxed last:mb-0 dark:text-neutral-400'>
+      {children}
+    </p>
+  )
 }
 
 function UL({ children }: { children?: React.ReactNode }) {
@@ -26,7 +30,7 @@ function UL({ children }: { children?: React.ReactNode }) {
 
 function LI({ children }: { children?: React.ReactNode }) {
   return (
-    <li className='flex items-start gap-3 text-neutral-400'>
+    <li className='flex items-start gap-3 text-neutral-600 dark:text-neutral-400'>
       <span className='mt-[0.45em] h-1 w-1 shrink-0 rounded-full bg-orange-400' />
       <span>{children}</span>
     </li>
@@ -34,7 +38,7 @@ function LI({ children }: { children?: React.ReactNode }) {
 }
 
 function Strong({ children }: { children?: React.ReactNode }) {
-  return <strong className='font-medium text-neutral-200'>{children}</strong>
+  return <strong className='font-medium text-neutral-900 dark:text-neutral-200'>{children}</strong>
 }
 
 function A({ href, children }: { href?: string; children?: React.ReactNode }) {
@@ -63,7 +67,7 @@ function Definitions({ children }: { children?: React.ReactNode }) {
 
 function Def({ term, children }: { term: string; children?: React.ReactNode }) {
   return (
-    <div className='flex gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] px-4 py-3'>
+    <div className='flex gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 dark:border-white/[0.05] dark:bg-white/[0.02]'>
       <span className='min-w-[110px] shrink-0 font-medium text-orange-400'>{term}</span>
       <span className='text-[13.5px] text-neutral-500 leading-relaxed'>{children}</span>
     </div>
@@ -73,7 +77,9 @@ function Def({ term, children }: { term: string; children?: React.ReactNode }) {
 function Highlight({ children }: { children?: React.ReactNode }) {
   return (
     <div className='my-4 rounded-xl border border-orange-400/20 bg-orange-400/5 p-5'>
-      <div className='text-[14px] text-neutral-300 leading-relaxed'>{children}</div>
+      <div className='text-[14px] text-neutral-700 leading-relaxed dark:text-neutral-300'>
+        {children}
+      </div>
     </div>
   )
 }
@@ -84,7 +90,7 @@ function ServiceCards({ children }: { children?: React.ReactNode }) {
 
 function ServiceCard({ name, children }: { name: string; children?: React.ReactNode }) {
   return (
-    <div className='rounded-xl border border-white/[0.05] bg-white/[0.02] p-4'>
+    <div className='rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-white/[0.05] dark:bg-white/[0.02]'>
       <h3 className='mb-1 font-medium text-orange-400'>{name}</h3>
       <p className='text-[13.5px] text-neutral-500 leading-relaxed'>{children}</p>
     </div>
@@ -93,9 +99,10 @@ function ServiceCard({ name, children }: { name: string; children?: React.ReactN
 
 function PaymentBadge({ processor }: { processor: string }) {
   return (
-    <div className='my-4 inline-flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.03] px-4 py-2 text-[13px] text-neutral-400'>
+    <div className='my-4 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-4 py-2 text-[13px] text-neutral-600 dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-neutral-400'>
       <span className='h-1.5 w-1.5 rounded-full bg-orange-400' />
-      Payment processor: <span className='font-medium text-white'>{processor}</span>
+      Payment processor:{' '}
+      <span className='font-medium text-neutral-900 dark:text-white'>{processor}</span>
     </div>
   )
 }
@@ -110,7 +117,7 @@ function ScopeBadges(props: Record<string, string>) {
       {items.map((item) => (
         <span
           key={item}
-          className='rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1 text-[13px] text-neutral-400'
+          className='rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[13px] text-neutral-600 dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-neutral-400'
         >
           {item}
         </span>

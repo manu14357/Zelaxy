@@ -40,8 +40,8 @@ export function TocSidebar({ items }: { items: TocItem[] }) {
 
   return (
     <aside className='hidden lg:block'>
-      <div className='sticky top-24 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.02] to-transparent p-5'>
-        <h4 className='mb-4 font-semibold text-[10px] text-neutral-600 uppercase tracking-widest'>
+      <div className='sticky top-24 rounded-2xl border border-neutral-200 bg-neutral-50 p-5 dark:border-white/[0.06] dark:bg-gradient-to-b dark:from-white/[0.02] dark:to-transparent'>
+        <h4 className='mb-4 font-semibold text-[10px] text-neutral-400 uppercase tracking-widest dark:text-neutral-600'>
           On this page
         </h4>
         <nav className='space-y-0.5'>
@@ -55,7 +55,7 @@ export function TocSidebar({ items }: { items: TocItem[] }) {
                   'flex items-center gap-2 rounded-md px-2 py-1 font-mono text-[12px] transition-all duration-150',
                   isActive
                     ? 'bg-orange-400/10 text-orange-400'
-                    : 'text-neutral-600 hover:bg-white/[0.04] hover:text-neutral-300',
+                    : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-600 dark:hover:bg-white/[0.04] dark:hover:text-neutral-300',
                 ].join(' ')}
               >
                 {isActive && <span className='h-3.5 w-0.5 shrink-0 rounded-full bg-orange-400' />}

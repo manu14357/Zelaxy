@@ -35,7 +35,10 @@ export function RequestResetForm({
     <form onSubmit={handleSubmit} className={className}>
       <div className='grid gap-4'>
         <div className='grid gap-2'>
-          <Label htmlFor='reset-email' className='font-medium text-neutral-300 text-sm'>
+          <Label
+            htmlFor='reset-email'
+            className='font-medium text-neutral-700 text-sm dark:text-neutral-300'
+          >
             Email
           </Label>
           <Input
@@ -46,7 +49,7 @@ export function RequestResetForm({
             type='email'
             disabled={isSubmitting}
             required
-            className='h-12 rounded-xl border border-white/10 bg-white/5 text-white placeholder:text-neutral-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/20'
+            className='h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20 dark:placeholder:text-neutral-500'
           />
           <p className='text-neutral-500 text-sm'>
             We'll send a password reset link to this email address.
@@ -70,7 +73,7 @@ export function RequestResetForm({
         <Button
           type='submit'
           disabled={isSubmitting}
-          className='h-12 w-full rounded-xl bg-white font-semibold text-black transition-all hover:bg-neutral-100'
+          className='h-11 w-full rounded-xl bg-neutral-900 font-semibold text-sm text-white transition-all hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-100'
         >
           {isSubmitting ? (
             <>
@@ -132,11 +135,14 @@ export function SetNewPasswordForm({
       <div className='space-y-5'>
         <div className='space-y-4'>
           <div className='space-y-2'>
-            <Label htmlFor='password' className='font-medium text-neutral-300 text-sm'>
+            <Label
+              htmlFor='password'
+              className='font-medium text-neutral-700 text-sm dark:text-neutral-300'
+            >
               New Password
             </Label>
             <div className='relative'>
-              <Lock className='-translate-y-1/2 absolute top-1/2 left-3.5 h-4 w-4 text-neutral-500' />
+              <Lock className='-translate-y-1/2 absolute top-1/2 left-3.5 h-4 w-4 text-neutral-400 dark:text-neutral-500' />
               <Input
                 id='password'
                 type={showPassword ? 'text' : 'password'}
@@ -148,12 +154,12 @@ export function SetNewPasswordForm({
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder='Enter new password'
-                className='h-12 rounded-xl border border-white/10 bg-white/5 pr-12 pl-11 text-white placeholder:text-neutral-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/20'
+                className='h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 pr-12 pl-11 text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20 dark:placeholder:text-neutral-500'
               />
               <button
                 type='button'
                 onClick={() => setShowPassword(!showPassword)}
-                className='-translate-y-1/2 absolute top-1/2 right-3.5 text-neutral-500 transition-colors hover:text-neutral-300'
+                className='-translate-y-1/2 absolute top-1/2 right-3.5 text-neutral-400 transition-colors hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300'
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -162,11 +168,14 @@ export function SetNewPasswordForm({
           </div>
 
           <div className='space-y-2'>
-            <Label htmlFor='confirmPassword' className='font-medium text-neutral-300 text-sm'>
+            <Label
+              htmlFor='confirmPassword'
+              className='font-medium text-neutral-700 text-sm dark:text-neutral-300'
+            >
               Confirm Password
             </Label>
             <div className='relative'>
-              <Lock className='-translate-y-1/2 absolute top-1/2 left-3.5 h-4 w-4 text-neutral-500' />
+              <Lock className='-translate-y-1/2 absolute top-1/2 left-3.5 h-4 w-4 text-neutral-400 dark:text-neutral-500' />
               <Input
                 id='confirmPassword'
                 type={showConfirmPassword ? 'text' : 'password'}
@@ -178,12 +187,12 @@ export function SetNewPasswordForm({
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 placeholder='Confirm new password'
-                className='h-12 rounded-xl border border-white/10 bg-white/5 pr-12 pl-11 text-white placeholder:text-neutral-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/20'
+                className='h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 pr-12 pl-11 text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20 dark:placeholder:text-neutral-500'
               />
               <button
                 type='button'
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className='-translate-y-1/2 absolute top-1/2 right-3.5 text-neutral-500 transition-colors hover:text-neutral-300'
+                className='-translate-y-1/2 absolute top-1/2 right-3.5 text-neutral-400 transition-colors hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300'
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
                 {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -214,7 +223,7 @@ export function SetNewPasswordForm({
         <Button
           disabled={isSubmitting || !token}
           type='submit'
-          className='h-12 w-full rounded-xl bg-white font-semibold text-[15px] text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300 hover:bg-neutral-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]'
+          className='h-11 w-full rounded-xl bg-neutral-900 font-semibold text-sm text-white shadow-sm transition-all duration-200 hover:bg-neutral-800 dark:bg-white dark:text-black dark:shadow-[0_0_20px_rgba(255,255,255,0.1)] dark:hover:bg-neutral-100'
         >
           {isSubmitting ? (
             <span className='flex items-center gap-2'>

@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { getBaseUrl } from '@/lib/urls/utils'
 
 interface PasswordAuthProps {
   subdomain: string
@@ -83,7 +84,7 @@ export default function PasswordAuth({
         <DialogHeader className='border-b px-6 py-4'>
           <div className='flex items-center justify-center'>
             <a
-              href='https://zelaxy.in/'
+              href={`${getBaseUrl()}/`}
               target='_blank'
               rel='noopener noreferrer'
               className='mb-2'
