@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 
 type Theme = 'dark' | 'light' | 'system'
 
@@ -24,56 +24,65 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
+function resolveTheme(theme: Theme): 'dark' | 'light' {
+  if (theme === 'system') {
+    if (typeof window === 'undefined') return 'light'
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+  return theme
+}
+
+function applyThemeToDOM(resolved: 'dark' | 'light') {
+  const root = document.documentElement
+  root.classList.remove('light', 'dark')
+  root.classList.add(resolved)
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
   storageKey = 'zelaxy-theme',
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(defaultTheme)
+  const [theme, setThemeState] = useState<Theme>(defaultTheme)
   const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>('light')
-  const [mounted, setMounted] = useState(false)
+  const initialized = useRef(false)
 
+  // Single effect: read stored preference on mount, then apply theme to DOM
   useEffect(() => {
-    setMounted(true)
-    const storedTheme = localStorage?.getItem(storageKey) as Theme
-    if (storedTheme) {
-      setTheme(storedTheme)
-    }
-  }, [storageKey])
+    let activeTheme = theme
 
-  useEffect(() => {
-    if (!mounted) return
-
-    const root = window.document.documentElement
-    root.classList.remove('light', 'dark')
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
-
-      root.classList.add(systemTheme)
-      setResolvedTheme(systemTheme)
-      return
+    if (!initialized.current) {
+      initialized.current = true
+      try {
+        const stored = localStorage.getItem(storageKey) as Theme | null
+        if (stored && (stored === 'dark' || stored === 'light' || stored === 'system')) {
+          activeTheme = stored
+          setThemeState(stored)
+        }
+      } catch {}
     }
 
-    root.classList.add(theme)
-    setResolvedTheme(theme)
-  }, [theme, mounted])
+    const resolved = resolveTheme(activeTheme)
+    applyThemeToDOM(resolved)
+    setResolvedTheme(resolved)
+  }, [theme, storageKey])
 
-  const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      localStorage?.setItem(storageKey, theme)
-      setTheme(theme)
+  const setTheme = useCallback(
+    (newTheme: Theme) => {
+      try {
+        localStorage.setItem(storageKey, newTheme)
+      } catch {}
+      // Apply immediately to DOM so there's zero delay
+      const resolved = resolveTheme(newTheme)
+      applyThemeToDOM(resolved)
+      setResolvedTheme(resolved)
+      setThemeState(newTheme)
     },
-    resolvedTheme,
-  }
+    [storageKey]
+  )
 
-  if (!mounted) {
-    return <div className='bg-white'>{children}</div>
-  }
+  const value = { theme, setTheme, resolvedTheme }
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
@@ -84,8 +93,6 @@ export function ThemeProvider({
 
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext)
-
   if (context === undefined) throw new Error('useTheme must be used within a ThemeProvider')
-
   return context
 }
