@@ -1505,6 +1505,35 @@
     ]
   },
   {
+    "id": "linkedin",
+    "name": "LinkedIn",
+    "description": "Interact with LinkedIn",
+    "category": "tools",
+    "bgColor": "#0A66C2",
+    "subBlocks": [
+      "operation",
+      "credential",
+      "text",
+      "visibility",
+      "mediaUrl",
+      "mediaTitle",
+      "mediaDescription",
+      "organizationId",
+      "companyOrganizationId",
+      "postId"
+    ],
+    "outputs": ["post", "profile", "organization", "deleted"],
+    "tools": [
+      "linkedin_create_post",
+      "linkedin_get_profile",
+      "linkedin_get_company",
+      "linkedin_delete_post"
+    ],
+    "requiresAuth": true,
+    "authType": "oauth (provider: linkedin)",
+    "specialFeatures": []
+  },
+  {
     "id": "x",
     "name": "X",
     "description": "Interact with X (Twitter)",

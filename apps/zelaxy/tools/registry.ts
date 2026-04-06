@@ -172,6 +172,12 @@ import {
 } from '@/tools/wikipedia'
 import { workflowExecutorTool } from '@/tools/workflow'
 import { xReadTool, xSearchTool, xUserTool, xWriteTool } from '@/tools/x'
+import {
+  linkedinCreatePostTool,
+  linkedinDeletePostTool,
+  linkedinGetCompanyTool,
+  linkedinGetProfileTool,
+} from '@/tools/linkedin'
 import { youtubeSearchTool } from '@/tools/youtube'
 
 // Registry of all available tools
@@ -232,6 +238,10 @@ export const tools: Record<string, ToolConfig> = {
   x_read: xReadTool,
   x_search: xSearchTool,
   x_user: xUserTool,
+  linkedin_create_post: linkedinCreatePostTool,
+  linkedin_get_profile: linkedinGetProfileTool,
+  linkedin_get_company: linkedinGetCompanyTool,
+  linkedin_delete_post: linkedinDeletePostTool,
   pinecone_fetch: pineconeFetchTool,
   pinecone_generate_embeddings: pineconeGenerateEmbeddingsTool,
   pinecone_search_text: pineconeSearchTextTool,

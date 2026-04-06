@@ -36,6 +36,7 @@ import { JinaBlock } from '@/blocks/blocks/jina'
 import { JiraBlock } from '@/blocks/blocks/jira'
 import { KnowledgeBlock } from '@/blocks/blocks/knowledge'
 import { LinearBlock } from '@/blocks/blocks/linear'
+import { LinkedInBlock } from '@/blocks/blocks/linkedin'
 import { LinkupBlock } from '@/blocks/blocks/linkup'
 import { LoopBlock } from '@/blocks/blocks/loop'
 import { MCPBlock } from '@/blocks/blocks/mcp'
@@ -121,6 +122,7 @@ export const registry: Record<string, BlockConfig> = {
   jira: JiraBlock,
   knowledge: KnowledgeBlock,
   linear: LinearBlock,
+  linkedin: LinkedInBlock,
   linkup: LinkupBlock,
   loop: LoopBlock,
   mem0: Mem0Block,

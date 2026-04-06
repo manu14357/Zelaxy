@@ -24,6 +24,7 @@ import {
   SlackIcon,
   SupabaseIcon,
   WealthboxIcon,
+  LinkedInIcon,
   xIcon,
 } from '@/components/icons'
 import { env } from '@/lib/env'
@@ -46,6 +47,7 @@ export type OAuthProvider =
   | 'slack'
   | 'reddit'
   | 'wealthbox'
+  | 'linkedin'
   | string
 
 export type OAuthService =
@@ -73,6 +75,7 @@ export type OAuthService =
   | 'reddit'
   | 'wealthbox'
   | 'onedrive'
+  | 'linkedin'
 export interface OAuthProviderConfig {
   id: OAuthProvider
   name: string
@@ -284,6 +287,23 @@ export const OAUTH_PROVIDERS: Record<string, OAuthProviderConfig> = {
       },
     },
     defaultService: 'x',
+  },
+  linkedin: {
+    id: 'linkedin',
+    name: 'LinkedIn',
+    icon: (props) => LinkedInIcon(props),
+    services: {
+      linkedin: {
+        id: 'linkedin',
+        name: 'LinkedIn',
+        description: 'Create posts, manage company pages, and build B2B workflows.',
+        providerId: 'linkedin',
+        icon: (props) => LinkedInIcon(props),
+        baseProviderIcon: (props) => LinkedInIcon(props),
+        scopes: ['openid', 'profile', 'email', 'w_member_social'],
+      },
+    },
+    defaultService: 'linkedin',
   },
   supabase: {
     id: 'supabase',
@@ -679,6 +699,18 @@ function getProviderAuthConfig(provider: string): ProviderAuthConfig {
         clientId,
         clientSecret,
         useBasicAuth: true,
+      }
+    }
+    case 'linkedin': {
+      const { clientId, clientSecret } = getCredentials(
+        env.LINKEDIN_CLIENT_ID,
+        env.LINKEDIN_CLIENT_SECRET
+      )
+      return {
+        tokenEndpoint: 'https://www.linkedin.com/oauth/v2/accessToken',
+        clientId,
+        clientSecret,
+        useBasicAuth: false,
       }
     }
     case 'confluence': {
