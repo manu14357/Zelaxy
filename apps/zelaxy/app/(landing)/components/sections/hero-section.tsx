@@ -156,12 +156,12 @@ export function HeroSection() {
       <div className='-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/4 left-1/2 h-[600px] w-[600px] rounded-full bg-orange-500/[0.06] blur-[160px]' />
       <div className='pointer-events-none absolute right-1/4 bottom-1/4 h-[300px] w-[300px] rounded-full bg-amber-400/[0.04] blur-[100px]' />
 
-      <div className='relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8'>
+      <div className='relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center px-6 pt-16 sm:pt-0 lg:flex-row lg:items-center lg:justify-between lg:px-8'>
         {/* Text */}
         <div className='max-w-2xl text-center lg:text-left'>
           {/* Badge row */}
           <div
-            className={`mb-8 flex flex-wrap items-center justify-center gap-2 transition-all duration-700 lg:justify-start ${
+            className={`mb-6 flex flex-wrap items-center justify-center gap-2 transition-all duration-700 sm:mb-8 lg:justify-start ${
               mounted ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
           >
@@ -184,7 +184,7 @@ export function HeroSection() {
 
           {/* Headline */}
           <h1
-            className={`mb-6 font-bold text-[clamp(2.5rem,6vw,4.5rem)] text-neutral-900 leading-[1.05] tracking-[-0.04em] transition-all delay-100 duration-700 dark:text-white ${
+            className={`mb-4 font-bold text-[clamp(2rem,6vw,4.5rem)] text-neutral-900 leading-[1.05] tracking-[-0.04em] transition-all delay-100 duration-700 sm:mb-6 dark:text-white ${
               mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
             }`}
           >
@@ -193,7 +193,7 @@ export function HeroSection() {
 
           {/* Subtitle */}
           <p
-            className={`mb-2 max-w-lg text-lg text-neutral-600 leading-relaxed transition-all delay-200 duration-700 dark:text-neutral-400 ${
+            className={`mb-2 max-w-lg text-base text-neutral-600 leading-relaxed transition-all delay-200 duration-700 sm:text-lg dark:text-neutral-400 ${
               mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
             } mx-auto lg:mx-0`}
           >
@@ -203,7 +203,7 @@ export function HeroSection() {
 
           {/* Tagline */}
           <p
-            className={`mb-10 max-w-lg text-[15px] text-neutral-400 leading-relaxed transition-all delay-[250ms] duration-700 dark:text-neutral-600 ${
+            className={`mb-6 max-w-lg text-[14px] text-neutral-400 leading-relaxed transition-all delay-[250ms] duration-700 sm:mb-10 sm:text-[15px] dark:text-neutral-600 ${
               mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
             } mx-auto lg:mx-0`}
           >
@@ -246,7 +246,7 @@ export function HeroSection() {
 
         {/* 3D mesh */}
         <div
-          className={`mt-16 h-[340px] w-[340px] shrink-0 transition-all delay-500 duration-1000 sm:h-[420px] sm:w-[420px] lg:mt-0 lg:h-[480px] lg:w-[480px] ${
+          className={`mt-8 h-[240px] w-[240px] shrink-0 transition-all delay-500 duration-1000 sm:mt-16 sm:h-[340px] sm:w-[340px] md:h-[420px] md:w-[420px] lg:mt-0 lg:h-[480px] lg:w-[480px] ${
             mounted ? 'scale-100 opacity-100' : 'scale-90 opacity-0'
           }`}
         >
