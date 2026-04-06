@@ -69,6 +69,21 @@ export const guardrailsTool: ToolConfig<GuardrailsValidateParams, GuardrailsResp
       required: false,
       description: 'Language for PII detection (default: en)',
     },
+    customPiiPatterns: {
+      type: 'json',
+      required: false,
+      description: 'Custom PII patterns as JSON: {"TYPE_NAME": "regex_pattern"}',
+    },
+    azureEndpoint: {
+      type: 'string',
+      required: false,
+      description: 'Azure OpenAI endpoint URL',
+    },
+    azureApiVersion: {
+      type: 'string',
+      required: false,
+      description: 'Azure API version',
+    },
   },
 
   outputs: {

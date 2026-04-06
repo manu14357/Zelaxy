@@ -3,11 +3,11 @@
  *
  * @vitest-environment node
  */
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { linkedinCreatePostTool } from '@/tools/linkedin/create-post'
-import { linkedinGetProfileTool } from '@/tools/linkedin/get-profile'
-import { linkedinGetCompanyTool } from '@/tools/linkedin/get-company'
 import { linkedinDeletePostTool } from '@/tools/linkedin/delete-post'
+import { linkedinGetCompanyTool } from '@/tools/linkedin/get-company'
+import { linkedinGetProfileTool } from '@/tools/linkedin/get-profile'
 
 describe('LinkedIn Create Post Tool', () => {
   it('should have correct tool id', () => {
@@ -34,14 +34,18 @@ describe('LinkedIn Create Post Tool', () => {
   })
 
   it('should set Authorization header from accessToken', () => {
-    const headersFn = linkedinCreatePostTool.request.headers as Function
+    const headersFn = linkedinCreatePostTool.request.headers as unknown as (
+      params: Record<string, unknown>
+    ) => Record<string, string>
     const headers = headersFn({ accessToken: 'test-token' })
     expect(headers.Authorization).toBe('Bearer test-token')
     expect(headers['X-Restli-Protocol-Version']).toBe('2.0.0')
   })
 
   it('should build body with personal author when no organizationId', () => {
-    const bodyFn = linkedinCreatePostTool.request.body as Function
+    const bodyFn = linkedinCreatePostTool.request.body as unknown as (
+      params: Record<string, unknown>
+    ) => Record<string, any>
     const body = bodyFn({ text: 'Hello LinkedIn', accessToken: 'tok' })
     expect(body.author).toBe('urn:li:person:{owner}')
     expect(body.specificContent['com.linkedin.ugc.ShareContent'].shareCommentary.text).toBe(
@@ -51,13 +55,17 @@ describe('LinkedIn Create Post Tool', () => {
   })
 
   it('should build body with organization author when organizationId provided', () => {
-    const bodyFn = linkedinCreatePostTool.request.body as Function
+    const bodyFn = linkedinCreatePostTool.request.body as unknown as (
+      params: Record<string, unknown>
+    ) => Record<string, any>
     const body = bodyFn({ text: 'Company post', accessToken: 'tok', organizationId: '12345' })
     expect(body.author).toBe('urn:li:organization:12345')
   })
 
   it('should include media when mediaUrl provided', () => {
-    const bodyFn = linkedinCreatePostTool.request.body as Function
+    const bodyFn = linkedinCreatePostTool.request.body as unknown as (
+      params: Record<string, unknown>
+    ) => Record<string, any>
     const body = bodyFn({
       text: 'Check this out',
       accessToken: 'tok',
@@ -65,9 +73,7 @@ describe('LinkedIn Create Post Tool', () => {
       mediaTitle: 'Example',
       mediaDescription: 'A description',
     })
-    expect(body.specificContent['com.linkedin.ugc.ShareContent'].shareMediaCategory).toBe(
-      'ARTICLE'
-    )
+    expect(body.specificContent['com.linkedin.ugc.ShareContent'].shareMediaCategory).toBe('ARTICLE')
     const media = body.specificContent['com.linkedin.ugc.ShareContent'].media
     expect(media).toHaveLength(1)
     expect(media[0].originalUrl).toBe('https://example.com')
@@ -75,7 +81,9 @@ describe('LinkedIn Create Post Tool', () => {
   })
 
   it('should set CONNECTIONS visibility when specified', () => {
-    const bodyFn = linkedinCreatePostTool.request.body as Function
+    const bodyFn = linkedinCreatePostTool.request.body as unknown as (
+      params: Record<string, unknown>
+    ) => Record<string, any>
     const body = bodyFn({ text: 'Test', accessToken: 'tok', visibility: 'CONNECTIONS' })
     expect(body.visibility['com.linkedin.ugc.MemberNetworkVisibility']).toBe('CONNECTIONS')
   })
@@ -161,13 +169,17 @@ describe('LinkedIn Get Company Tool', () => {
   })
 
   it('should build URL with organization ID', () => {
-    const urlFn = linkedinGetCompanyTool.request.url as Function
+    const urlFn = linkedinGetCompanyTool.request.url as unknown as (
+      params: Record<string, unknown>
+    ) => string
     const url = urlFn({ organizationId: '98765', accessToken: 'tok' })
     expect(url).toBe('https://api.linkedin.com/rest/organizations/98765')
   })
 
   it('should set correct headers', () => {
-    const headersFn = linkedinGetCompanyTool.request.headers as Function
+    const headersFn = linkedinGetCompanyTool.request.headers as unknown as (
+      params: Record<string, unknown>
+    ) => Record<string, string>
     const headers = headersFn({ accessToken: 'test-token' })
     expect(headers.Authorization).toBe('Bearer test-token')
     expect(headers['X-Restli-Protocol-Version']).toBe('2.0.0')
@@ -207,7 +219,9 @@ describe('LinkedIn Delete Post Tool', () => {
   })
 
   it('should build URL with encoded post ID', () => {
-    const urlFn = linkedinDeletePostTool.request.url as Function
+    const urlFn = linkedinDeletePostTool.request.url as unknown as (
+      params: Record<string, unknown>
+    ) => string
     const url = urlFn({ postId: 'urn:li:share:123456', accessToken: 'tok' })
     expect(url).toContain('urn%3Ali%3Ashare%3A123456')
   })
@@ -221,10 +235,10 @@ describe('LinkedIn Delete Post Tool', () => {
       ok: true,
       json: () => Promise.resolve({}),
     } as Response
-    const result = await linkedinDeletePostTool.transformResponse!(
-      mockResponse,
-      { postId: 'urn:li:share:123456', accessToken: 'tok' }
-    )
+    const result = await linkedinDeletePostTool.transformResponse!(mockResponse, {
+      postId: 'urn:li:share:123456',
+      accessToken: 'tok',
+    })
     expect(result.success).toBe(true)
     expect(result.output.deleted).toBe(true)
     expect(result.output.postId).toBe('urn:li:share:123456')

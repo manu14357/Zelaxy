@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
       piiMode = 'block',
       piiLanguage = 'en',
       customPiiPatterns,
+      azureEndpoint,
+      azureApiVersion,
     } = allParams
 
     // Parse custom PII patterns if provided as JSON string
@@ -204,6 +206,8 @@ export async function POST(request: NextRequest) {
           apiKey,
           workflowId,
           requestId,
+          azureEndpoint,
+          azureApiVersion,
         })
         break
 
