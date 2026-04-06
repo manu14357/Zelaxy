@@ -1,5 +1,7 @@
 'use client'
 
+import { getBaseUrl } from '@/lib/urls/utils'
+
 interface ChatHeaderProps {
   chatConfig: {
     title?: string
@@ -38,7 +40,7 @@ export function ChatHeader({ chatConfig }: ChatHeaderProps) {
       </div>
       <div className='flex items-center gap-2'>
         <a
-          href='http://localhost:3000/'
+          href={`${getBaseUrl()}/`}
           target='_blank'
           rel='noopener noreferrer'
           className='flex items-center rounded-md p-1 text-foreground/80 transition-colors duration-200 hover:text-foreground/100'

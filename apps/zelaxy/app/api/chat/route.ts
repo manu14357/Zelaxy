@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
         if (isDev) {
           chatUrl = `http://${subdomain}.localhost:3000`
         } else {
-          chatUrl = `https://${subdomain}.zelaxy.ai`
+          chatUrl = `https://${subdomain}.zelaxy.in`
         }
       }
 

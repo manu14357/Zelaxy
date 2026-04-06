@@ -1,10 +1,11 @@
-import { ThemeProvider } from '@/app/(landing)/components/theme-provider'
-import Landing from '@/app/(landing)/landing'
+'use client'
 
-export default function Page() {
+import { ThemeProvider } from '@/app/(landing)/components/theme-provider'
+
+export default function LandingLayout({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider defaultTheme='light' storageKey='zelaxy-theme'>
-      <Landing />
+      {children}
     </ThemeProvider>
   )
 }
