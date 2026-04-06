@@ -80,6 +80,12 @@ import {
   knowledgeUploadChunkTool,
 } from '@/tools/knowledge'
 import { linearCreateIssueTool, linearReadIssuesTool } from '@/tools/linear'
+import {
+  linkedinCreatePostTool,
+  linkedinDeletePostTool,
+  linkedinGetCompanyTool,
+  linkedinGetProfileTool,
+} from '@/tools/linkedin'
 import { linkupSearchTool } from '@/tools/linkup'
 import {
   mcpConnectTool,
@@ -172,12 +178,6 @@ import {
 } from '@/tools/wikipedia'
 import { workflowExecutorTool } from '@/tools/workflow'
 import { xReadTool, xSearchTool, xUserTool, xWriteTool } from '@/tools/x'
-import {
-  linkedinCreatePostTool,
-  linkedinDeletePostTool,
-  linkedinGetCompanyTool,
-  linkedinGetProfileTool,
-} from '@/tools/linkedin'
 import { youtubeSearchTool } from '@/tools/youtube'
 
 // Registry of all available tools

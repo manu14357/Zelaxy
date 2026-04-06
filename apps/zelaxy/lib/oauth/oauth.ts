@@ -12,6 +12,7 @@ import {
   GoogleSheetsIcon,
   JiraIcon,
   LinearIcon,
+  LinkedInIcon,
   MicrosoftExcelIcon,
   MicrosoftIcon,
   MicrosoftOneDriveIcon,
@@ -24,7 +25,6 @@ import {
   SlackIcon,
   SupabaseIcon,
   WealthboxIcon,
-  LinkedInIcon,
   xIcon,
 } from '@/components/icons'
 import { env } from '@/lib/env'

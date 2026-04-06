@@ -98,9 +98,7 @@ export const linkedinCreatePostTool: ToolConfig<
             status: 'READY',
             originalUrl: params.mediaUrl,
             title: params.mediaTitle ? { text: params.mediaTitle } : undefined,
-            description: params.mediaDescription
-              ? { text: params.mediaDescription }
-              : undefined,
+            description: params.mediaDescription ? { text: params.mediaDescription } : undefined,
           },
         ]
       }

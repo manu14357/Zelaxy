@@ -122,8 +122,9 @@ async function simulatePIIDetection(
   const detectedEntities: DetectedPIIEntity[] = []
 
   // Check for PII based on selected entity types
-  // If no types are selected, don't check any types (empty array means no PII validation)
-  let typesToCheck = entityTypes && entityTypes.length > 0 ? entityTypes : []
+  // If no types are selected, check ALL built-in types (detect all PII)
+  let typesToCheck =
+    entityTypes && entityTypes.length > 0 ? entityTypes : Object.keys(builtInPatterns)
 
   // Automatically include custom pattern types when custom patterns are defined
   // This allows users to use custom patterns without manually adding them to entity types
