@@ -740,6 +740,65 @@ export const auth = betterAuth({
           },
         },
 
+        // LinkedIn provider
+        {
+          providerId: 'linkedin',
+          clientId: env.LINKEDIN_CLIENT_ID as string,
+          clientSecret: env.LINKEDIN_CLIENT_SECRET as string,
+          authorizationUrl: 'https://www.linkedin.com/oauth/v2/authorization',
+          tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
+          userInfoUrl: 'https://api.linkedin.com/v2/userinfo',
+          scopes: ['openid', 'profile', 'email', 'w_member_social'],
+          responseType: 'code',
+          pkce: false,
+          accessType: 'offline',
+          authentication: 'post',
+          prompt: 'consent',
+          redirectURI: `${env.NEXT_PUBLIC_APP_URL}/api/auth/oauth2/callback/linkedin`,
+          getUserInfo: async (tokens) => {
+            try {
+              const response = await fetch('https://api.linkedin.com/v2/userinfo', {
+                headers: {
+                  Authorization: `Bearer ${tokens.accessToken}`,
+                },
+              })
+
+              if (!response.ok) {
+                logger.error('Error fetching LinkedIn user info:', {
+                  status: response.status,
+                  statusText: response.statusText,
+                })
+                return null
+              }
+
+              const profile = await response.json()
+
+              if (!profile.sub) {
+                logger.error('Invalid LinkedIn profile response:', profile)
+                return null
+              }
+
+              const now = new Date()
+
+              return {
+                id: profile.sub,
+                name:
+                  profile.name ||
+                  `${profile.given_name || ''} ${profile.family_name || ''}`.trim() ||
+                  'LinkedIn User',
+                email: profile.email || `${profile.sub}@linkedin.com`,
+                image: profile.picture,
+                emailVerified: profile.email_verified || false,
+                createdAt: now,
+                updatedAt: now,
+              }
+            } catch (error) {
+              logger.error('Error in LinkedIn getUserInfo:', { error })
+              return null
+            }
+          },
+        },
+
         // Confluence provider
         {
           providerId: 'confluence',

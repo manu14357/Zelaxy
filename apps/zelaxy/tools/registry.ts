@@ -80,6 +80,12 @@ import {
   knowledgeUploadChunkTool,
 } from '@/tools/knowledge'
 import { linearCreateIssueTool, linearReadIssuesTool } from '@/tools/linear'
+import {
+  linkedinCreatePostTool,
+  linkedinDeletePostTool,
+  linkedinGetCompanyTool,
+  linkedinGetProfileTool,
+} from '@/tools/linkedin'
 import { linkupSearchTool } from '@/tools/linkup'
 import {
   mcpConnectTool,
@@ -232,6 +238,10 @@ export const tools: Record<string, ToolConfig> = {
   x_read: xReadTool,
   x_search: xSearchTool,
   x_user: xUserTool,
+  linkedin_create_post: linkedinCreatePostTool,
+  linkedin_get_profile: linkedinGetProfileTool,
+  linkedin_get_company: linkedinGetCompanyTool,
+  linkedin_delete_post: linkedinDeletePostTool,
   pinecone_fetch: pineconeFetchTool,
   pinecone_generate_embeddings: pineconeGenerateEmbeddingsTool,
   pinecone_search_text: pineconeSearchTextTool,

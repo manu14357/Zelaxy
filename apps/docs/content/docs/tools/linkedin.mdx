@@ -1,0 +1,119 @@
+---
+title: LinkedIn
+description: Create posts, manage company pages, and build B2B workflows on LinkedIn
+icon: Linkedin
+---
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `linkedin` |
+| **Category** | Tool — Social Media |
+| **Auth** | OAuth 2.0 |
+
+Connect with LinkedIn to publish content, retrieve profiles, manage company pages, and automate B2B social media workflows.
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Create Post** | Publish a new post on a personal profile or company page |
+| **Get Profile** | Retrieve the authenticated user's LinkedIn profile |
+| **Get Company** | Fetch company/organization page details |
+| **Delete Post** | Remove an existing post |
+
+## Configuration
+
+### Create Post
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| LinkedIn Account | OAuth | Yes | Connect your LinkedIn account |
+| Post Content | Long text | Yes | The text content of the post |
+| Visibility | Dropdown | No | `Public` (default) or `Connections Only` |
+| Link URL | Short input | No | URL of an article or link to share |
+| Link Title | Short input | No | Title for the shared link |
+| Link Description | Short input | No | Description for the shared link |
+| Organization ID | Short input | No | Company page ID (leave empty for personal post) |
+
+### Get Profile
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| LinkedIn Account | OAuth | Yes | Connect your LinkedIn account |
+
+Returns the authenticated user's profile including name, email, and profile picture.
+
+### Get Company
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| LinkedIn Account | OAuth | Yes | Connect your LinkedIn account |
+| Organization ID | Short input | Yes | The LinkedIn company/organization ID |
+
+### Delete Post
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| LinkedIn Account | OAuth | Yes | Connect your LinkedIn account |
+| Post ID | Short input | Yes | Post URN (e.g., `urn:li:share:123456`) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `post` | `json` | Created post data (ID and status) |
+| `profile` | `json` | User profile (name, email, picture) |
+| `organization` | `json` | Company data (name, description, followers, website) |
+| `deleted` | `json` | Deletion confirmation |
+
+## Setup
+
+1. Go to [LinkedIn Developer Portal](https://www.linkedin.com/developers/apps) and create an app
+2. Under **Auth**, add the redirect URL: `{YOUR_APP_URL}/api/auth/oauth2/callback/linkedin`
+3. Request the required products: **Share on LinkedIn**, **Sign In with LinkedIn using OpenID Connect**
+4. Copy your **Client ID** and **Client Secret** into your `.env`:
+
+```bash
+LINKEDIN_CLIENT_ID=your_client_id
+LINKEDIN_CLIENT_SECRET=your_client_secret
+```
+
+## Required Scopes
+
+| Scope | Description |
+|-------|-------------|
+| `openid` | OpenID Connect authentication |
+| `profile` | Access user profile data |
+| `email` | Access user email |
+| `w_member_social` | Create/delete posts on behalf of the user |
+
+For company page management, additional scopes may be needed:
+- `r_organization_social` — Read organization posts
+- `rw_organization_admin` — Manage organization pages
+
+## Example: B2B Content Distribution
+
+**Workflow:**
+```
+[Starter] → [Agent: Write Post] → [LinkedIn: Create Post] → [Slack: Notify Team]
+```
+
+Use an AI agent to draft a LinkedIn post from a content brief, automatically publish it, and notify the marketing team on Slack.
+
+## Example: Company Page Monitor
+
+**Workflow:**
+```
+[Starter (schedule: daily)] → [LinkedIn: Get Company] → [Agent: Analyze] → [Google Sheets: Log]
+```
+
+Track company page follower growth daily, analyze trends, and log the data to a spreadsheet.
+
+## Tips
+
+- **Personal vs Company posts** — Leave Organization ID empty for personal posts; provide the company ID to post on behalf of a company page
+- **LinkedIn API rate limits** — LinkedIn has strict daily limits on post creation; schedule posts accordingly
+- **Post visibility** — `Public` posts reach the broadest audience; `Connections` limits to your network
+- **Link previews** — Adding a Link URL generates a rich preview card in the post

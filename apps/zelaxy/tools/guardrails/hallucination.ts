@@ -9,6 +9,8 @@ export interface HallucinationValidationInput {
   apiKey?: string
   workflowId?: string
   requestId: string
+  azureEndpoint?: string
+  azureApiVersion?: string
 }
 
 /**
@@ -132,7 +134,9 @@ async function scoreHallucinationWithLLM(
   ragContext: string[],
   model: string,
   apiKey: string,
-  requestId: string
+  requestId: string,
+  azureEndpoint?: string,
+  azureApiVersion?: string
 ): Promise<{ score: number; reasoning: string }> {
   try {
     const contextText = ragContext.join('\n\n---\n\n')
@@ -215,6 +219,8 @@ Evaluate the consistency and provide your score and reasoning in JSON format.`
       ],
       temperature: 0.1, // Low temperature for consistent scoring
       maxTokens: 500,
+      ...(azureEndpoint && { azureEndpoint }),
+      ...(azureApiVersion && { azureApiVersion }),
     }
 
     console.log(`[${requestId}] Making LLM request to ${providerName} provider`)
@@ -269,8 +275,18 @@ Evaluate the consistency and provide your score and reasoning in JSON format.`
 export async function validateHallucination(
   input: HallucinationValidationInput
 ): Promise<ValidationResult> {
-  const { userInput, knowledgeBaseId, threshold, topK, model, apiKey, workflowId, requestId } =
-    input
+  const {
+    userInput,
+    knowledgeBaseId,
+    threshold,
+    topK,
+    model,
+    apiKey,
+    workflowId,
+    requestId,
+    azureEndpoint,
+    azureApiVersion,
+  } = input
 
   try {
     if (!userInput || userInput.trim().length === 0) {
@@ -325,7 +341,9 @@ export async function validateHallucination(
       contextToUse,
       model,
       apiKey || '',
-      requestId
+      requestId,
+      azureEndpoint,
+      azureApiVersion
     )
 
     console.log(`[${requestId}] Confidence score: ${score}, threshold: ${threshold}`)

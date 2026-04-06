@@ -163,6 +163,8 @@ export const env = createEnv({
     GITHUB_REPO_CLIENT_SECRET:            z.string().optional(),                  // GitHub OAuth client secret for repo access
     X_CLIENT_ID:                          z.string().optional(),                  // X (Twitter) OAuth client ID
     X_CLIENT_SECRET:                      z.string().optional(),                  // X (Twitter) OAuth client secret
+    LINKEDIN_CLIENT_ID:                   z.string().optional(),                  // LinkedIn OAuth client ID
+    LINKEDIN_CLIENT_SECRET:               z.string().optional(),                  // LinkedIn OAuth client secret
     CONFLUENCE_CLIENT_ID:                 z.string().optional(),                  // Atlassian Confluence OAuth client ID
     CONFLUENCE_CLIENT_SECRET:             z.string().optional(),                  // Atlassian Confluence OAuth client secret
     JIRA_CLIENT_ID:                       z.string().optional(),                  // Atlassian Jira OAuth client ID

@@ -21,6 +21,8 @@ export interface GuardrailsValidateParams {
   piiLanguage?: string
   customPiiPatterns?: Record<string, string> // Legacy format: {"TYPE": "pattern"}
   customPiiTypes?: CustomPiiType[] // New advanced format with names and descriptions
+  azureEndpoint?: string
+  azureApiVersion?: string
 }
 
 export interface GuardrailsResponse extends ToolResponse {
