@@ -39,11 +39,6 @@ describe('AgentBlock', () => {
 
       const result = paramsFunction(params)
       expect(result).toMatchObject(params)
-      expect(result.metadata).toBeDefined()
-      expect(result.generation).toBeDefined()
-      expect(result.performance).toBeDefined()
-      expect(result.safety).toBeDefined()
-      expect(result.context).toBeDefined()
     })
 
     it('should filter out tools with usageControl set to "none"', () => {

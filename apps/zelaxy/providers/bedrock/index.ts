@@ -499,6 +499,7 @@ export const bedrockProvider: ProviderConfig = {
           system,
           inferenceConfig: {
             ...(request.temperature !== undefined && { temperature: request.temperature }),
+            ...(request.topP !== undefined && { topP: request.topP }),
             maxTokens: safeMaxTokens,
           },
         })
@@ -553,6 +554,7 @@ export const bedrockProvider: ProviderConfig = {
         ...(toolConfig ? { toolConfig } : {}),
         inferenceConfig: {
           ...(request.temperature !== undefined && { temperature: request.temperature }),
+          ...(request.topP !== undefined && { topP: request.topP }),
           maxTokens: safeMaxTokens,
         },
       }

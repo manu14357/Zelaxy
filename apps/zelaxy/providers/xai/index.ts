@@ -112,6 +112,10 @@ export const xAIProvider: ProviderConfig = {
     if (request.temperature !== undefined) basePayload.temperature = request.temperature
     if (request.maxTokens !== undefined && request.maxTokens >= 1)
       basePayload.max_tokens = request.maxTokens
+    if (request.topP !== undefined) basePayload.top_p = request.topP
+    if (request.presencePenalty !== undefined) basePayload.presence_penalty = request.presencePenalty
+    if (request.frequencyPenalty !== undefined)
+      basePayload.frequency_penalty = request.frequencyPenalty
 
     // Function to create response format configuration
     const createResponseFormatPayload = (messages: any[] = allMessages) => {

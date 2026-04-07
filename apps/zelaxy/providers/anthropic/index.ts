@@ -251,6 +251,10 @@ ${fieldDescriptions}
       temperature: Number.parseFloat(String(request.temperature ?? 0.7)),
     }
 
+    // Add optional generation parameters
+    if (request.topP !== undefined) payload.top_p = request.topP
+    if (request.topK !== undefined) payload.top_k = request.topK
+
     // Use the tools in the payload
     if (anthropicTools?.length) {
       payload.tools = anthropicTools

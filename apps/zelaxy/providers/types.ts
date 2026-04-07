@@ -140,6 +140,10 @@ export interface ProviderRequest {
   tools?: ProviderToolConfig[]
   temperature?: number
   maxTokens?: number
+  topP?: number
+  topK?: number
+  presencePenalty?: number
+  frequencyPenalty?: number
   apiKey: string
   messages?: Message[]
   responseFormat?: {

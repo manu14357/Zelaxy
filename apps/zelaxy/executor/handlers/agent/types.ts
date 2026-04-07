@@ -7,6 +7,12 @@ export interface AgentInputs {
   memories?: any
   temperature?: number
   maxTokens?: number
+  topP?: number
+  topK?: number
+  presencePenalty?: number
+  frequencyPenalty?: number
+  timeout?: number
+  customInstructions?: string
   apiKey?: string
   azureEndpoint?: string
   azureApiVersion?: string

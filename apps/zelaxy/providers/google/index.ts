@@ -259,6 +259,14 @@ export const googleProvider: ProviderConfig = {
         payload.generationConfig.maxOutputTokens = request.maxTokens
       }
 
+      // Add optional generation parameters
+      if (request.topP !== undefined) {
+        payload.generationConfig.topP = request.topP
+      }
+      if (request.topK !== undefined) {
+        payload.generationConfig.topK = request.topK
+      }
+
       // Add system instruction if provided
       if (systemInstruction) {
         payload.systemInstruction = systemInstruction

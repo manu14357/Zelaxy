@@ -19,164 +19,29 @@ const getCurrentOllamaModels = () => {
 }
 
 import { useOllamaStore } from '@/stores/ollama/store'
-import type { ToolResponse } from '@/tools/types'
 
-const logger = createLogger('AdvancedAgentBlock')
+const logger = createLogger('AgentBlock')
 
-// Enhanced performance metrics interface
-interface PerformanceMetrics {
-  responseTime: number
-  tokenEfficiency: number
-  toolCallSuccess: number
-  errorRate: number
-  contextUtilization: number
-}
-
-// Advanced conversation context interface
-interface ConversationContext {
-  sessionId: string
-  turnCount: number
-  cumulativeTokens: number
-  previousOutputs: Array<{
-    timestamp: number
-    content: string
-    tokens: number
-    satisfaction?: number
-  }>
-  adaptiveSettings: {
-    dynamicTemperature: number
-    preferredModel: string
-    learningRate: number
-  }
-}
-
-// Enhanced interface for advanced agent response
-interface AgentResponse extends ToolResponse {
-  output: {
-    content: string
-    model: string
-    confidence?: number
-    reasoning?: string
-    sentiment?: 'positive' | 'neutral' | 'negative'
-    tokens?: {
-      prompt?: number
-      completion?: number
-      total?: number
-      efficiency?: number
-    }
-    toolCalls?: {
-      list: Array<{
-        name: string
-        arguments: Record<string, any>
-        success: boolean
-        latency?: number
-        retryCount?: number
-      }>
-      count: number
-      successRate?: number
-    }
-    performance?: PerformanceMetrics
-    context?: ConversationContext
-    safety?: {
-      filtered: boolean
-      categories: string[]
-      severity?: 'low' | 'medium' | 'high'
-    }
-    metadata?: {
-      processingTime: number
-      modelVersion: string
-      responseId: string
-      timestamp: number
-    }
-  }
-}
-
-// Advanced tool configuration with retry logic and fallbacks
 const getToolIdFromBlock = (blockType: string): string | undefined => {
-  const maxRetries = 3
-  let attempt = 0
-
-  while (attempt < maxRetries) {
-    try {
-      const { getAllBlocks } = require('@/blocks/registry')
-      const blocks = getAllBlocks()
-      const block = blocks.find(
-        (b: { type: string; tools?: { access?: string[] } }) => b.type === blockType
-      )
-
-      if (block?.tools?.access?.[0]) {
-        logger.debug('Successfully retrieved tool ID', {
-          blockType,
-          toolId: block.tools.access[0],
-          attempt: attempt + 1,
-        })
-        return block.tools.access[0]
-      }
-
-      logger.warn('No tool ID found for block type', { blockType, attempt: attempt + 1 })
-      return undefined
-    } catch (error) {
-      attempt++
-      logger.error(`Error getting tool ID from block (attempt ${attempt}/${maxRetries})`, {
-        error,
-        blockType,
-        stack: error instanceof Error ? error.stack : 'Unknown stack',
-      })
-
-      if (attempt >= maxRetries) {
-        logger.error('Max retries exceeded for tool ID retrieval', { blockType })
-        return undefined
-      }
-
-      // Exponential backoff for retries
-      const delay = 2 ** (attempt - 1) * 100
-      setTimeout(() => {}, delay)
-    }
-  }
-  return undefined
-}
-
-// Advanced model performance analyzer
-const analyzeModelPerformance = (
-  model: string
-): {
-  reliability: number
-  speed: number
-  costEfficiency: number
-  recommendation: string
-} => {
-  const performanceMap: Record<string, any> = {
-    'gpt-4o': { reliability: 0.95, speed: 0.8, costEfficiency: 0.7, tier: 'premium' },
-    'gpt-4o-mini': { reliability: 0.9, speed: 0.9, costEfficiency: 0.9, tier: 'balanced' },
-    'claude-3-5-sonnet': { reliability: 0.93, speed: 0.85, costEfficiency: 0.75, tier: 'premium' },
-    'gemini-pro': { reliability: 0.88, speed: 0.9, costEfficiency: 0.85, tier: 'balanced' },
-    'deepseek-chat': { reliability: 0.85, speed: 0.95, costEfficiency: 0.95, tier: 'efficient' },
-  }
-
-  const defaultPerf = { reliability: 0.8, speed: 0.8, costEfficiency: 0.8, tier: 'standard' }
-  const perf = performanceMap[model] || defaultPerf
-
-  const recommendations = {
-    premium: 'Optimal for complex reasoning and critical tasks',
-    balanced: 'Great balance of performance and cost',
-    efficient: 'Best for high-volume, cost-sensitive applications',
-    standard: 'Suitable for general-purpose tasks',
-  }
-
-  return {
-    reliability: perf.reliability,
-    speed: perf.speed,
-    costEfficiency: perf.costEfficiency,
-    recommendation: recommendations[perf.tier as keyof typeof recommendations],
+  try {
+    const { getAllBlocks } = require('@/blocks/registry')
+    const blocks = getAllBlocks()
+    const block = blocks.find(
+      (b: { type: string; tools?: { access?: string[] } }) => b.type === blockType
+    )
+    return block?.tools?.access?.[0]
+  } catch (error) {
+    logger.error('Error getting tool ID from block', { error, blockType })
+    return undefined
   }
 }
 
-export const AgentBlock: BlockConfig<AgentResponse> = {
+export const AgentBlock: BlockConfig = {
   type: 'agent',
   name: 'Agent',
-  description: 'Build sophisticated AI agents with advanced capabilities',
+  description: 'Build AI agents with LLM capabilities and tool use',
   longDescription:
-    'Create next-generation AI agents with advanced reasoning, multi-modal capabilities, adaptive learning, performance monitoring, and enterprise-grade security features. Supports all major LLM providers with intelligent fallback systems.',
+    'Create AI agents powered by LLMs with support for tools, structured output, file processing, and all major providers (OpenAI, Anthropic, Google, and more).',
   docsLink: 'https://docs.zelaxy.dev/blocks/advanced-agent',
   category: 'blocks',
   bgColor: '#FFFFFF',
@@ -187,118 +52,27 @@ export const AgentBlock: BlockConfig<AgentResponse> = {
       title: 'System Prompt',
       type: 'long-input',
       layout: 'full',
-      placeholder: 'Enter sophisticated system prompt with reasoning frameworks...',
+      placeholder: 'Enter system prompt...',
       rows: 8,
       wandConfig: {
         enabled: true,
         maintainHistory: true,
-        prompt: `You are an expert AI prompt engineer specializing in creating sophisticated system prompts for advanced AI agents. Create a comprehensive system prompt based on the user's requirements.
+        prompt: `You are an expert prompt engineer. Create a clear, effective system prompt based on the user's requirements.
 
 ### CONTEXT
 {context}
 
-### ADVANCED PROMPT ENGINEERING PRINCIPLES
-
-#### 1. **ROLE & IDENTITY ARCHITECTURE**
-- **Primary Role**: Clear, specific identity with domain expertise
-- **Cognitive Profile**: Define reasoning style, decision-making approach
-- **Personality Traits**: Professional demeanor, communication style
-- **Authority Level**: Establish expertise boundaries and confidence
-
-#### 2. **COGNITIVE FRAMEWORKS**
-- **Reasoning Patterns**: Step-by-step analysis, critical thinking methods
-- **Problem-Solving Approach**: Systematic methodologies for complex tasks
-- **Learning Adaptation**: How to improve from feedback and context
-- **Meta-Cognition**: Self-awareness of capabilities and limitations
-
-#### 3. **ADVANCED BEHAVIORAL DIRECTIVES**
-- **Quality Standards**: Specific metrics for output excellence
-- **Error Handling**: Graceful failure recovery and uncertainty management
-- **Context Awareness**: Situational adaptation and cultural sensitivity
-- **Ethical Guidelines**: Safety, bias prevention, responsible AI practices
-
-#### 4. **TOOL ORCHESTRATION**
-- **Multi-Tool Workflows**: Coordinated tool usage patterns
-- **Fallback Strategies**: Alternative approaches when tools fail
-- **Performance Optimization**: Efficient tool selection and usage
-- **Security Protocols**: Safe handling of sensitive operations
-
-#### 5. **OUTPUT SPECIFICATIONS**
-- **Format Standards**: Structured, consistent response patterns
-- **Confidence Indicators**: Uncertainty quantification methods
-- **Citation Requirements**: Source attribution and verification
-- **Personalization**: Adaptive responses based on user context
-
-### SPECIALIZED TEMPLATES
-
-**🔬 RESEARCH AGENT**:
-You are an advanced research analyst with expertise in [DOMAIN]. Your cognitive architecture emphasizes systematic inquiry, evidence evaluation, and insight synthesis.
-
-**Core Competencies:**
-- Multi-source information gathering and cross-verification
-- Statistical analysis and trend identification
-- Hypothesis formulation and testing methodologies
-- Executive-level reporting with actionable insights
-
-**Reasoning Framework:**
-1. **Scope Definition**: Clarify research parameters and success criteria
-2. **Source Strategy**: Identify authoritative, diverse information sources
-3. **Data Collection**: Systematic gathering with quality filters
-4. **Analysis Pipeline**: Statistical validation, pattern recognition, bias detection
-5. **Synthesis**: Integration of findings into coherent insights
-6. **Recommendations**: Actionable conclusions with confidence levels
-
-**Tool Integration:**
-- Use Exa for academic and industry source discovery
-- Leverage databases for quantitative analysis
-- Apply visualization tools for data presentation
-- Employ fact-checking mechanisms for accuracy
-
-**Quality Assurance:**
-- Cite all sources with credibility assessment
-- Quantify confidence levels (High/Medium/Low)
-- Flag potential biases or limitations
-- Provide alternative perspectives when relevant
-
-**🎨 CREATIVE AGENT**:
-You are an advanced creative AI with expertise in [CREATIVE_DOMAIN]. Your architecture balances structured creativity with innovative thinking.
-
-**Creative Framework:**
-- **Inspiration Phase**: Broad ideation and concept exploration
-- **Development Phase**: Structured creative development
-- **Refinement Phase**: Quality enhancement and optimization
-- **Presentation Phase**: Compelling delivery and explanation
-
-**Innovation Protocols:**
-- Generate multiple creative alternatives
-- Apply design thinking methodologies
-- Incorporate diverse cultural perspectives
-- Balance originality with practical constraints
-
-### IMPLEMENTATION GUIDELINES
-
-**For Complex Agents:**
-Include multi-step reasoning frameworks, advanced error handling, and sophisticated tool orchestration patterns.
-
-**For Specialized Agents:**
-Focus on domain-specific expertise, industry best practices, and specialized tool integration.
-
-**For Adaptive Agents:**
-Implement learning mechanisms, feedback integration, and performance optimization strategies.
-
-### FINAL INSTRUCTION
-Create a sophisticated system prompt that implements advanced AI capabilities while maintaining clarity and practical effectiveness. Include specific frameworks, quality standards, and tool integration patterns relevant to the agent's purpose.`,
-        placeholder:
-          'Describe the advanced AI agent you want to create with specific capabilities and requirements...',
+Create a system prompt that defines the agent's role, behavior, and constraints. Be specific and practical.`,
+        placeholder: 'Describe the AI agent you want to create...',
         generationType: 'system-prompt',
       },
     },
     {
       id: 'userPrompt',
-      title: 'User Message / Context',
+      title: 'User Message',
       type: 'long-input',
       layout: 'full',
-      placeholder: 'Enter user message, context, or specific instructions...',
+      placeholder: 'Enter user message or instructions...',
       rows: 4,
       wandConfig: {
         enabled: true,
@@ -315,28 +89,6 @@ Create a sophisticated system prompt that implements advanced AI capabilities wh
       mode: 'advanced',
     },
     {
-      id: 'contextLength',
-      title: 'Context Window Size',
-      type: 'slider',
-      layout: 'half',
-      min: 1000,
-      max: 200000,
-      step: 1000,
-      mode: 'advanced',
-    },
-    {
-      id: 'contextPriority',
-      title: 'Context Priority Strategy',
-      type: 'dropdown',
-      layout: 'half',
-      mode: 'advanced',
-      options: [
-        { label: 'Recent First', id: 'recent' },
-        { label: 'Relevant First', id: 'relevant' },
-        { label: 'Balanced', id: 'balanced' },
-      ],
-    },
-    {
       id: 'model',
       title: 'AI Model',
       type: 'combobox',
@@ -350,43 +102,9 @@ Create a sophisticated system prompt that implements advanced AI capabilities wh
 
         return allModels.map((model) => {
           const icon = getProviderIcon(model)
-          const performance = analyzeModelPerformance(model)
-          return {
-            label: model,
-            id: model,
-            description: performance.recommendation,
-            ...(icon && { icon }),
-          }
-        })
-      },
-    },
-    {
-      id: 'fallbackModel',
-      title: 'Fallback Model',
-      type: 'combobox',
-      layout: 'half',
-      placeholder: 'Select backup model...',
-      mode: 'advanced',
-      options: () => {
-        const ollamaModels = useOllamaStore.getState().models
-        const baseModels = Object.keys(getBaseModelProviders())
-        const allModels = [...baseModels, ...ollamaModels]
-
-        return allModels.map((model) => {
-          const icon = getProviderIcon(model)
           return { label: model, id: model, ...(icon && { icon }) }
         })
       },
-    },
-    {
-      id: 'maxRetries',
-      title: 'Max Retries',
-      type: 'slider',
-      layout: 'half',
-      min: 0,
-      max: 5,
-      step: 1,
-      mode: 'advanced',
     },
     {
       id: 'timeout',
@@ -549,28 +267,6 @@ Create a sophisticated system prompt that implements advanced AI capabilities wh
       layout: 'full',
     },
     {
-      id: 'safetyLevel',
-      title: 'Safety Level',
-      type: 'dropdown',
-      layout: 'half',
-      mode: 'advanced',
-      options: [
-        { label: 'Strict', id: 'strict' },
-        { label: 'Moderate', id: 'moderate' },
-        { label: 'Permissive', id: 'permissive' },
-      ],
-    },
-    {
-      id: 'confidenceThreshold',
-      title: 'Confidence Threshold',
-      type: 'slider',
-      layout: 'half',
-      min: 0.1,
-      max: 1,
-      step: 0.1,
-      mode: 'advanced',
-    },
-    {
       id: 'enableOcr',
       title: 'Enable OCR (Extract Text)',
       type: 'switch',
@@ -581,13 +277,6 @@ Create a sophisticated system prompt that implements advanced AI capabilities wh
     {
       id: 'enableStreaming',
       title: 'Enable Streaming',
-      type: 'switch',
-      layout: 'half',
-      mode: 'advanced',
-    },
-    {
-      id: 'enableCaching',
-      title: 'Enable Response Caching',
       type: 'switch',
       layout: 'half',
       mode: 'advanced',
@@ -716,376 +405,127 @@ Example 3 (Array Input):
     config: {
       tool: (params: Record<string, any>) => {
         const model = params.model || 'gpt-4o'
-        const fallbackModel = params.fallbackModel
 
         if (!model) {
           throw new Error('No model selected')
         }
 
-        let selectedTool = getAllModelProviders()[model]
-
-        // If primary model fails and fallback is specified, try fallback
-        if (!selectedTool && fallbackModel) {
-          logger.warn(`Primary model ${model} not available, falling back to ${fallbackModel}`)
-          selectedTool = getAllModelProviders()[fallbackModel]
-        }
+        const selectedTool = getAllModelProviders()[model]
 
         if (!selectedTool) {
           const availableModels = Object.keys(getAllModelProviders()).join(', ')
           throw new Error(`Invalid model selected: ${model}. Available models: ${availableModels}`)
         }
 
-        logger.info('Model selected successfully', {
-          model,
-          fallback: fallbackModel,
-          provider: typeof selectedTool === 'string' ? selectedTool : 'unknown',
-        })
-
         return selectedTool
       },
       params: (params: Record<string, any>) => {
-        const startTime = Date.now()
-
-        // Sanitize parameters to ensure correct data types
         const sanitizedParams = sanitizeParameters(params)
 
-        // Log parameter sanitization results for debugging
-        const changedParams = Object.keys(params).filter(
-          (key) => params[key] !== sanitizedParams[key]
-        )
-
-        if (changedParams.length > 0) {
-          logger.info('Parameters sanitized', {
-            changes: changedParams.map((key) => ({
-              field: key,
-              original: params[key],
-              sanitized: sanitizedParams[key],
-              type: typeof sanitizedParams[key],
-            })),
-          })
-        }
-
-        // Enhanced parameter processing with validation
         const processedParams: any = {
           ...sanitizedParams,
-          // Add metadata for tracking
-          metadata: {
-            processingTime: Date.now() - startTime,
-            timestamp: Date.now(),
-            responseId: `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            version: '1.0.0',
-          },
-          // Enhanced safety and performance settings
-          safety: {
-            level: sanitizedParams.safetyLevel || 'moderate',
-            confidenceThreshold: sanitizedParams.confidenceThreshold || 0.7,
-            enableFiltering: true,
-          },
-          performance: {
-            maxRetries: sanitizedParams.maxRetries || 3,
-            timeout: (sanitizedParams.timeout || 60) * 1000, // Already sanitized to integer
-            enableStreaming: sanitizedParams.enableStreaming || false,
-            enableCaching: sanitizedParams.enableCaching || true,
-          },
-          // Advanced generation parameters
-          generation: {
-            temperature: sanitizedParams.temperature || 0.7,
-            topP: sanitizedParams.topP || 0.9,
-            topK: sanitizedParams.topK || 40, // Already sanitized to integer
-            maxTokens:
-              sanitizedParams.maxTokens != null && sanitizedParams.maxTokens >= 1
-                ? sanitizedParams.maxTokens
-                : 2048,
-            presencePenalty: sanitizedParams.presencePenalty || 0,
-            frequencyPenalty: sanitizedParams.frequencyPenalty || 0,
-          },
-          // Context management
-          context: {
-            maxLength: sanitizedParams.contextLength || 8000, // Already sanitized to integer
-            priority: sanitizedParams.contextPriority || 'balanced',
-            enableMemory: Boolean(sanitizedParams.memories),
-          },
         }
 
-        // Enhanced tool processing with advanced filtering and validation
+        // Tool processing
         if (sanitizedParams.tools && Array.isArray(sanitizedParams.tools)) {
-          const transformedTools = sanitizedParams.tools
+          processedParams.tools = sanitizedParams.tools
             .filter((tool: any) => {
               const usageControl = tool.usageControl || 'auto'
-              const isValid = usageControl !== 'none' && tool.title && tool.type
-
-              if (!isValid) {
-                logger.debug('Filtering out invalid tool', {
-                  title: tool.title,
-                  type: tool.type,
-                  usageControl,
-                })
-              }
-
-              return isValid
+              return usageControl !== 'none' && tool.title && tool.type
             })
-            .map((tool: any, index: number) => {
-              const toolConfig = {
-                id:
-                  tool.type === 'custom-tool'
-                    ? tool.schema?.function?.name
-                    : tool.operation || getToolIdFromBlock(tool.type),
-                name: tool.title,
-                description:
-                  tool.type === 'custom-tool'
-                    ? tool.schema?.function?.description
-                    : tool.description || `Tool for ${tool.title}`,
-                params: tool.params || {},
-                parameters: tool.type === 'custom-tool' ? tool.schema?.function?.parameters : {},
-                usageControl: tool.usageControl || 'auto',
-                priority: tool.priority || index + 1,
-                retryCount: 0,
-                maxRetries: 3,
-                timeout: 30000,
-                metadata: {
-                  type: tool.type,
-                  addedAt: Date.now(),
-                  version: tool.version || '1.0.0',
-                },
-              }
-
-              logger.debug('Transformed tool configuration', {
-                original: tool.title,
-                transformed: toolConfig.name,
-                id: toolConfig.id,
-              })
-
-              return toolConfig
-            })
-
-          // Advanced logging and validation
-          const filteredOutTools = sanitizedParams.tools
-            .filter((tool: any) => (tool.usageControl || 'auto') === 'none')
-            .map((tool: any) => tool.title)
-
-          if (filteredOutTools.length > 0) {
-            logger.info('Tools filtered out due to usage control', {
-              tools: filteredOutTools,
-              count: filteredOutTools.length,
-            })
-          }
-
-          logger.info('Tool processing completed', {
-            originalCount: sanitizedParams.tools.length,
-            processedCount: transformedTools.length,
-            filtered: filteredOutTools.length,
-            tools: transformedTools.map((t: any) => ({
-              name: t.name,
-              id: t.id,
-              priority: t.priority,
-            })),
-          })
-
-          if (transformedTools.length === 0) {
-            logger.warn('No valid tools available after processing')
-          } else {
-            logger.info(`${transformedTools.length} tools configured for agent`, {
-              tools: transformedTools.map((t: any) => t.name),
-            })
-          }
-
-          processedParams.tools = transformedTools
+            .map((tool: any) => ({
+              id:
+                tool.type === 'custom-tool'
+                  ? tool.schema?.function?.name
+                  : tool.operation || getToolIdFromBlock(tool.type),
+              name: tool.title,
+              description:
+                tool.type === 'custom-tool'
+                  ? tool.schema?.function?.description
+                  : tool.description || `Tool for ${tool.title}`,
+              params: tool.params || {},
+              parameters: tool.type === 'custom-tool' ? tool.schema?.function?.parameters : {},
+              usageControl: tool.usageControl || 'auto',
+            }))
         }
-
-        // Performance monitoring
-        const processingTime = Date.now() - startTime
-        logger.info('Parameter processing completed', {
-          processingTime,
-          parametersCount: Object.keys(processedParams).length,
-          hasTools: Boolean(processedParams.tools?.length),
-          model: sanitizedParams.model,
-          agentType: 'general',
-        })
 
         return processedParams
       },
     },
   },
   inputs: {
-    // Core Prompts
-    systemPrompt: {
-      type: 'string',
-      description: 'Advanced system instructions with reasoning frameworks',
-    },
-    userPrompt: { type: 'string', description: 'User message or context for processing' },
-    customInstructions: {
-      type: 'string',
-      description: 'Additional behavioral constraints and preferences',
-    },
-
-    // Context Management
-    memories: {
-      type: 'json',
-      description: 'Persistent agent memory data for conversation continuity',
-    },
-    contextLength: { type: 'number', description: 'Maximum context window size in tokens' },
-    contextPriority: { type: 'string', description: 'Strategy for context prioritization' },
-
-    // Model Configuration
-    model: { type: 'string', description: 'Primary AI model to use for generation' },
-    fallbackModel: { type: 'string', description: 'Backup model for failover scenarios' },
-    apiKey: { type: 'string', description: 'Provider API key for authentication' },
+    systemPrompt: { type: 'string', description: 'System instructions for the agent' },
+    userPrompt: { type: 'string', description: 'User message or context' },
+    customInstructions: { type: 'string', description: 'Additional instructions appended to system prompt' },
+    memories: { type: 'json', description: 'Conversation history for continuity' },
+    model: { type: 'string', description: 'AI model to use' },
+    apiKey: { type: 'string', description: 'Provider API key' },
     azureEndpoint: { type: 'string', description: 'Azure OpenAI endpoint URL' },
-    azureApiVersion: { type: 'string', description: 'Azure API version specification' },
-
-    // Advanced Generation Parameters
-    temperature: { type: 'number', description: 'Response creativity and randomness (0.0-2.0)' },
-    topP: { type: 'number', description: 'Nucleus sampling parameter for token selection' },
-    topK: { type: 'number', description: 'Top-K sampling for vocabulary restriction' },
-    maxTokens: { type: 'number', description: 'Maximum tokens to generate in response' },
-    presencePenalty: {
-      type: 'number',
-      description: 'Penalty for token presence to encourage diversity',
-    },
-    frequencyPenalty: {
-      type: 'number',
-      description: 'Penalty for token frequency to reduce repetition',
-    },
-
-    // OCR Processing
-    enableOcr: {
-      type: 'boolean',
-      description:
-        'Enable OCR text extraction from images and PDFs instead of sending base64 to LLM',
-    },
-
-    // Performance & Reliability
-    maxRetries: { type: 'number', description: 'Maximum retry attempts for failed requests' },
+    azureApiVersion: { type: 'string', description: 'Azure API version' },
+    temperature: { type: 'number', description: 'Controls randomness (0.0-2.0)' },
+    topP: { type: 'number', description: 'Nucleus sampling (0.0-1.0)' },
+    topK: { type: 'number', description: 'Top-K token sampling (1-100)' },
+    maxTokens: { type: 'number', description: 'Maximum output tokens' },
+    presencePenalty: { type: 'number', description: 'Penalizes repeated topics (-2.0 to 2.0)' },
+    frequencyPenalty: { type: 'number', description: 'Penalizes repeated tokens (-2.0 to 2.0)' },
     timeout: { type: 'number', description: 'Request timeout in seconds' },
-    enableStreaming: { type: 'boolean', description: 'Enable real-time response streaming' },
-    enableCaching: { type: 'boolean', description: 'Enable response caching for performance' },
-
-    // Safety & Quality
-    safetyLevel: { type: 'string', description: 'Content safety filtering level' },
-    confidenceThreshold: {
-      type: 'number',
-      description: 'Minimum confidence threshold for responses',
-    },
-
-    // Tool Integration
-    tools: { type: 'json', description: 'Advanced tool configuration with orchestration rules' },
+    enableOcr: { type: 'boolean', description: 'Extract text from images/PDFs via OCR' },
+    enableStreaming: { type: 'boolean', description: 'Enable real-time streaming' },
+    tools: { type: 'json', description: 'Tools available to the agent' },
     responseFormat: {
       type: 'json',
-      description: 'Structured response format schema for consistent outputs',
+      description: 'JSON schema for structured output',
       schema: {
         type: 'object',
         properties: {
-          name: {
-            type: 'string',
-            description: 'Schema name for identification',
-          },
-          description: {
-            type: 'string',
-            description: 'Schema description and purpose',
-          },
+          name: { type: 'string', description: 'Schema name' },
+          description: { type: 'string', description: 'Schema description' },
           schema: {
             type: 'object',
-            description: 'JSON Schema definition for response structure',
+            description: 'JSON Schema definition',
             properties: {
-              type: {
-                type: 'string',
-                enum: ['object'],
-                description: 'Must be "object" for valid JSON Schema',
-              },
-              properties: {
-                type: 'object',
-                description: 'Object containing property definitions',
-              },
-              required: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Array of required property names',
-              },
-              additionalProperties: {
-                type: 'boolean',
-                description: 'Whether additional properties are allowed',
-              },
+              type: { type: 'string', enum: ['object'] },
+              properties: { type: 'object', description: 'Property definitions' },
+              required: { type: 'array', items: { type: 'string' } },
+              additionalProperties: { type: 'boolean' },
             },
             required: ['type', 'properties'],
           },
-          strict: {
-            type: 'boolean',
-            description: 'Whether to enforce strict schema validation',
-            default: true,
-          },
+          strict: { type: 'boolean', default: true },
         },
         required: ['schema'],
       },
     },
   },
   outputs: {
-    // Primary Response Content
-    content: { type: 'string', description: 'Generated response content from the agent' },
-    model: { type: 'string', description: 'Model used for generation with version info' },
-
-    // Token Usage Statistics
-    tokens: {
-      type: 'any',
-      description: 'Comprehensive token usage statistics including efficiency metrics',
-    },
-
-    // Tool Usage Analytics
-    toolCalls: {
-      type: 'any',
-      description: 'Advanced tool call analytics with success rates and performance data',
-    },
-
-    // Context & Session Management
-    context: {
-      type: 'any',
-      description: 'Conversation context and session management data',
-    },
+    content: { type: 'string', description: 'Generated response content' },
+    model: { type: 'string', description: 'Model used for generation' },
+    tokens: { type: 'any', description: 'Token usage statistics' },
+    toolCalls: { type: 'any', description: 'Tool call results' },
+    context: { type: 'any', description: 'Conversation context data' },
   },
 }
 
 // Parameter sanitization to ensure correct data types
 const sanitizeParameters = (params: Record<string, any>): Record<string, any> => {
-  const integerFields = ['maxRetries', 'timeout', 'topK', 'maxTokens', 'contextLength']
-
-  const floatFields = [
-    'temperature',
-    'topP',
-    'presencePenalty',
-    'frequencyPenalty',
-    'confidenceThreshold',
-  ]
+  const integerFields = ['timeout', 'topK', 'maxTokens']
+  const floatFields = ['temperature', 'topP', 'presencePenalty', 'frequencyPenalty']
 
   const sanitized = { ...params }
 
-  // Convert integer fields
-  integerFields.forEach((field) => {
-    if (sanitized[field] !== undefined && sanitized[field] !== null) {
+  for (const field of integerFields) {
+    if (sanitized[field] != null) {
       const value = Number(sanitized[field])
-      if (!Number.isNaN(value)) {
-        sanitized[field] = Math.round(value)
-        logger.debug(`Sanitized ${field} to integer`, {
-          original: params[field],
-          sanitized: sanitized[field],
-        })
-      }
+      if (!Number.isNaN(value)) sanitized[field] = Math.round(value)
     }
-  })
+  }
 
-  // Ensure float fields are numbers but allow decimals
-  floatFields.forEach((field) => {
-    if (sanitized[field] !== undefined && sanitized[field] !== null) {
+  for (const field of floatFields) {
+    if (sanitized[field] != null) {
       const value = Number(sanitized[field])
-      if (!Number.isNaN(value)) {
-        sanitized[field] = value
-        if (params[field] !== value) {
-          logger.debug(`Sanitized ${field} to number`, {
-            original: params[field],
-            sanitized: sanitized[field],
-          })
-        }
-      }
+      if (!Number.isNaN(value)) sanitized[field] = value
     }
-  })
+  }
 
   return sanitized
 }

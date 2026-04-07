@@ -107,6 +107,10 @@ export const deepseekProvider: ProviderConfig = {
       if (request.temperature !== undefined) payload.temperature = request.temperature
       if (request.maxTokens !== undefined && request.maxTokens >= 1)
         payload.max_tokens = request.maxTokens
+      if (request.topP !== undefined) payload.top_p = request.topP
+      if (request.presencePenalty !== undefined) payload.presence_penalty = request.presencePenalty
+      if (request.frequencyPenalty !== undefined)
+        payload.frequency_penalty = request.frequencyPenalty
 
       // Handle tools and tool usage control
       let preparedTools: ReturnType<typeof prepareToolsWithUsageControl> | null = null

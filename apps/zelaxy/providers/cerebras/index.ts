@@ -108,6 +108,9 @@ export const cerebrasProvider: ProviderConfig = {
       if (request.temperature !== undefined) payload.temperature = request.temperature
       if (request.maxTokens !== undefined && request.maxTokens >= 1)
         payload.max_tokens = request.maxTokens
+      if (request.topP !== undefined) payload.top_p = request.topP
+      if (request.frequencyPenalty !== undefined)
+        payload.frequency_penalty = request.frequencyPenalty
 
       // Add response format for structured output if specified
       if (request.responseFormat) {

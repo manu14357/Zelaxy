@@ -6,7 +6,7 @@ icon: Bot
 
 # Agent Block
 
-The Agent block is the most powerful block in Zelaxy. It connects to any major LLM provider, supports tool calling, structured JSON outputs, conversation memory, and intelligent fallback systems. Use it whenever you need AI reasoning, text generation, classification, summarization, or any language task.
+The Agent block is the most powerful block in Zelaxy. It connects to any major LLM provider, supports tool calling, structured JSON outputs, conversation memory, and file/image processing. Use it whenever you need AI reasoning, text generation, classification, summarization, or any language task.
 
 ## Overview
 
@@ -53,20 +53,20 @@ Searchable dropdown with all supported providers. Each model shows its provider 
 | Setting | Type | Range | Description |
 |---------|------|-------|-------------|
 | Temperature | Slider | 0–2 | Controls randomness. 0 = deterministic, 1 = balanced, 2 = creative |
-| Top-P | Slider | 0.1–1 | Nucleus sampling — limits token selection pool |
-| Top-K | Slider | 1–100 | Restricts vocabulary to top K tokens |
+| Top-P | Slider | 0.1–1 | Nucleus sampling — limits token selection pool. Supported by OpenAI, Anthropic, and Google. |
+| Top-K | Slider | 1–100 | Restricts vocabulary to top K tokens. Supported by Anthropic and Google. |
 | Max Output Tokens | Slider | 100–8192 | Caps response length |
-| Presence Penalty | Slider | -2 to 2 | Encourages topic diversity |
-| Frequency Penalty | Slider | -2 to 2 | Reduces word repetition |
-| Fallback Model | Dropdown | — | Backup model if primary fails |
-| Max Retries | Slider | 0–5 | Retry attempts on failure |
-| Timeout | Slider | 10–300s | Request timeout |
-| Context Window | Slider | 1K–200K | Max context tokens |
-| Context Priority | Dropdown | Recent/Relevant/Balanced | How to prioritize context |
-| Safety Level | Dropdown | Strict/Moderate/Permissive | Content filtering |
-| Confidence Threshold | Slider | 0.1–1 | Minimum confidence score |
+| Presence Penalty | Slider | -2 to 2 | Encourages topic diversity. Supported by OpenAI. |
+| Frequency Penalty | Slider | -2 to 2 | Reduces word repetition. Supported by OpenAI. |
+| Timeout | Slider | 10–300s | Request timeout (defaults to 120s if not set) |
 | Enable Streaming | Toggle | — | Real-time token streaming |
-| Enable Caching | Toggle | — | Cache responses for performance |
+| Custom Instructions | Text | — | Additional instructions appended to the system prompt |
+
+### Persistent Memory
+Connect a Memory block's output to maintain conversation history across executions.
+
+### Enable OCR
+When enabled, images and PDFs attached to the input are processed through OCR to extract text, rather than being sent as base64 to the LLM. Supports PNG, JPG, WEBP, TIFF, BMP, GIF, and PDF files.
 
 ### Response Format (Structured Output)
 Define a JSON schema to get typed, predictable responses. The AI Wand can generate schemas from natural language descriptions.
@@ -140,5 +140,7 @@ Connect tool blocks (Slack, Gmail, Search, etc.) to the Agent. The agent automat
 - **Use structured output** for pipelines — downstream blocks can reliably parse JSON fields
 - **Set low temperature (0.1–0.3)** for factual/classification tasks
 - **Set high temperature (0.7–1.0)** for creative writing
-- **Enable fallback model** for production workflows — prevents failures if primary model is down
+- **Use Top-P alongside temperature** for fine-grained control over output diversity
 - **Connect memory blocks** for multi-turn chatbot experiences
+- **Use Custom Instructions** to add extra constraints without modifying the main system prompt
+- **Set a timeout** for production workflows to prevent hanging requests

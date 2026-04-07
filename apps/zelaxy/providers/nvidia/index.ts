@@ -89,6 +89,9 @@ export const nvidiaProvider: ProviderConfig = {
         temperature: request.temperature ?? 0.7,
         max_tokens: request.maxTokens && request.maxTokens >= 1 ? request.maxTokens : 4096,
         stream: request.stream ?? false,
+        ...(request.topP !== undefined && { top_p: request.topP }),
+        ...(request.presencePenalty !== undefined && { presence_penalty: request.presencePenalty }),
+        ...(request.frequencyPenalty !== undefined && { frequency_penalty: request.frequencyPenalty }),
       }
 
       logger.debug('NVIDIA API request params', {

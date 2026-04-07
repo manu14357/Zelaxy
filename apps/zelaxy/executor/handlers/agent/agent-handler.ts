@@ -994,8 +994,16 @@ export class AgentBlockHandler implements BlockHandler {
       messages.push(...this.processMemories(inputs.memories))
     }
 
-    if (inputs.systemPrompt) {
-      this.addSystemPrompt(messages, inputs.systemPrompt)
+    // Combine system prompt with custom instructions
+    let systemPrompt = inputs.systemPrompt
+    if (inputs.customInstructions) {
+      systemPrompt = systemPrompt
+        ? `${systemPrompt}\n\n${inputs.customInstructions}`
+        : inputs.customInstructions
+    }
+
+    if (systemPrompt) {
+      this.addSystemPrompt(messages, systemPrompt)
     }
 
     if (inputs.userPrompt) {
@@ -1118,6 +1126,11 @@ export class AgentBlockHandler implements BlockHandler {
       temperature: inputs.temperature,
       maxTokens:
         inputs.maxTokens !== undefined && inputs.maxTokens >= 1 ? inputs.maxTokens : undefined,
+      topP: inputs.topP,
+      topK: inputs.topK,
+      presencePenalty: inputs.presencePenalty,
+      frequencyPenalty: inputs.frequencyPenalty,
+      timeout: inputs.timeout,
       apiKey: inputs.apiKey,
       azureEndpoint: inputs.azureEndpoint,
       azureApiVersion: inputs.azureApiVersion,
@@ -1221,6 +1234,10 @@ export class AgentBlockHandler implements BlockHandler {
       tools: providerRequest.tools,
       temperature: providerRequest.temperature,
       maxTokens: providerRequest.maxTokens,
+      topP: providerRequest.topP,
+      topK: providerRequest.topK,
+      presencePenalty: providerRequest.presencePenalty,
+      frequencyPenalty: providerRequest.frequencyPenalty,
       apiKey: finalApiKey,
       azureEndpoint: providerRequest.azureEndpoint,
       azureApiVersion: providerRequest.azureApiVersion,
@@ -1248,7 +1265,9 @@ export class AgentBlockHandler implements BlockHandler {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(providerRequest),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+      signal: AbortSignal.timeout(
+        providerRequest.timeout ? providerRequest.timeout * 1000 : REQUEST_TIMEOUT
+      ),
     })
 
     if (!response.ok) {
