@@ -12,6 +12,7 @@ import {
   getInvalidCharacters,
   getTimezoneAbbreviation,
   isValidName,
+  maskSensitiveValue,
   redactApiKeys,
   validateName,
 } from '@/lib/utils'
@@ -237,8 +238,27 @@ describe('getTimezoneAbbreviation', () => {
   })
 })
 
+describe('maskSensitiveValue', () => {
+  it.concurrent('should mask long strings showing first 6 and last 4 chars', () => {
+    expect(maskSensitiveValue('sk-ant-api03-abcdefghijk')).toBe('sk-ant***...***hijk')
+  })
+
+  it.concurrent('should fully mask short strings (<=8 chars)', () => {
+    expect(maskSensitiveValue('short')).toBe('***')
+    expect(maskSensitiveValue('12345678')).toBe('***')
+  })
+
+  it.concurrent('should mask strings with exactly 9 chars', () => {
+    expect(maskSensitiveValue('123456789')).toBe('123456***...***6789')
+  })
+
+  it.concurrent('should return empty string as-is', () => {
+    expect(maskSensitiveValue('')).toBe('')
+  })
+})
+
 describe('redactApiKeys', () => {
-  it.concurrent('should redact API keys in objects', () => {
+  it.concurrent('should mask API keys in objects with partial visibility', () => {
     const obj = {
       apiKey: 'secret-key',
       api_key: 'another-secret',
@@ -250,15 +270,15 @@ describe('redactApiKeys', () => {
 
     const result = redactApiKeys(obj)
 
-    expect(result.apiKey).toBe('***REDACTED***')
-    expect(result.api_key).toBe('***REDACTED***')
-    expect(result.access_token).toBe('***REDACTED***')
-    expect(result.secret).toBe('***REDACTED***')
-    expect(result.password).toBe('***REDACTED***')
+    expect(result.apiKey).toBe('secret***...***-key')
+    expect(result.api_key).toBe('anothe***...***cret')
+    expect(result.access_token).toBe('token-***...***alue')
+    expect(result.secret).toBe('secret***...***alue')
+    expect(result.password).toBe('passwo***...***alue')
     expect(result.normalField).toBe('normal-value')
   })
 
-  it.concurrent('should redact API keys in nested objects', () => {
+  it.concurrent('should mask API keys in nested objects', () => {
     const obj = {
       config: {
         apiKey: 'secret-key',
@@ -268,17 +288,17 @@ describe('redactApiKeys', () => {
 
     const result = redactApiKeys(obj)
 
-    expect(result.config.apiKey).toBe('***REDACTED***')
+    expect(result.config.apiKey).toBe('secret***...***-key')
     expect(result.config.normalField).toBe('normal-value')
   })
 
-  it.concurrent('should redact API keys in arrays', () => {
+  it.concurrent('should mask API keys in arrays', () => {
     const arr = [{ apiKey: 'secret-key-1' }, { apiKey: 'secret-key-2' }]
 
     const result = redactApiKeys(arr)
 
-    expect(result[0].apiKey).toBe('***REDACTED***')
-    expect(result[1].apiKey).toBe('***REDACTED***')
+    expect(result[0].apiKey).toBe('secret***...***ey-1')
+    expect(result[1].apiKey).toBe('secret***...***ey-2')
   })
 
   it.concurrent('should handle primitive values', () => {
@@ -286,6 +306,12 @@ describe('redactApiKeys', () => {
     expect(redactApiKeys(123)).toBe(123)
     expect(redactApiKeys(null)).toBe(null)
     expect(redactApiKeys(undefined)).toBe(undefined)
+  })
+
+  it.concurrent('should handle non-string sensitive values with full redaction', () => {
+    const obj = { apiKey: 12345 }
+    const result = redactApiKeys(obj)
+    expect(result.apiKey).toBe('***REDACTED***')
   })
 
   it.concurrent('should handle complex nested structures', () => {
@@ -310,9 +336,9 @@ describe('redactApiKeys', () => {
     const result = redactApiKeys(obj)
 
     expect(result.users[0].name).toBe('John')
-    expect(result.users[0].credentials.apiKey).toBe('***REDACTED***')
+    expect(result.users[0].credentials.apiKey).toBe('secret***...***-key')
     expect(result.users[0].credentials.username).toBe('john_doe')
-    expect(result.config.database.password).toBe('***REDACTED***')
+    expect(result.config.database.password).toBe('db-pas***...***word')
     expect(result.config.database.host).toBe('localhost')
   })
 })
