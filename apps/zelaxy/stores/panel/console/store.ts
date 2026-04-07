@@ -151,6 +151,11 @@ export const useConsoleStore = create<ConsoleStore>()(
             // Create a new entry with redacted API keys (if not a stream)
             const redactedEntry = { ...entry }
 
+            // Redact input API keys
+            if (redactedEntry.input && typeof redactedEntry.input === 'object') {
+              redactedEntry.input = redactApiKeys(redactedEntry.input)
+            }
+
             // If output is a stream, we skip redaction (it's not an object we want to recurse into)
             if (
               !isStreamingOutput &&
