@@ -652,17 +652,17 @@ export function getApiKey(provider: string, model: string, userProvidedKey?: str
   const isClaudeModel = provider === 'anthropic'
 
   if (isHosted && (isOpenAIModel || isClaudeModel)) {
+    // If user provided their own key, prefer it over rotation keys
+    if (hasUserKey) {
+      return userProvidedKey!
+    }
+
     try {
       // Import the key rotation function
       const { getRotatingApiKey } = require('@/lib/utils')
       const serverKey = getRotatingApiKey(provider)
       return serverKey
     } catch (_error) {
-      // If server key fails and we have a user key, fallback to that
-      if (hasUserKey) {
-        return userProvidedKey!
-      }
-
       // Otherwise, throw an error
       throw new Error(`No API key available for ${provider} ${model}`)
     }

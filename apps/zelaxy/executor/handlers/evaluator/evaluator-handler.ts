@@ -1,9 +1,10 @@
+import { getEnv } from '@/lib/env'
 import { createLogger } from '@/lib/logs/console/logger'
-import { getBaseUrl } from '@/lib/urls/utils'
 import type { BlockOutput } from '@/blocks/types'
 import { BlockType } from '@/executor/consts'
 import type { BlockHandler, ExecutionContext } from '@/executor/types'
-import { calculateCost, getProviderFromModel } from '@/providers/utils'
+import { executeProviderRequest } from '@/providers'
+import { calculateCost, getApiKey, getProviderFromModel } from '@/providers/utils'
 import type { SerializedBlock } from '@/serializer/types'
 
 const logger = createLogger('EvaluatorBlockHandler')
@@ -104,8 +105,6 @@ export class EvaluatorBlockHandler implements BlockHandler {
     }
 
     try {
-      const url = new URL('/api/providers', getBaseUrl())
-
       // Make sure we force JSON output in the request
       const providerRequest = {
         provider: providerId,
@@ -122,31 +121,60 @@ export class EvaluatorBlockHandler implements BlockHandler {
         temperature: inputs.temperature || 0,
         apiKey: inputs.apiKey,
         workflowId: context.workflowId,
+        environmentVariables: context.environmentVariables || {},
       }
 
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(providerRequest),
-      })
+      const isBrowser = typeof window !== 'undefined'
+      let result: any
 
-      if (!response.ok) {
-        // Try to extract a helpful error message
-        let errorMessage = `Provider API request failed with status ${response.status}`
-        try {
-          const errorData = await response.json()
-          if (errorData.error) {
-            errorMessage = errorData.error
+      if (isBrowser) {
+        // Use HTTP request in browser environment
+        logger.info('Using HTTP provider request (browser environment)')
+        const url = new URL('/api/providers', getEnv('NEXT_PUBLIC_APP_URL') || '')
+        const response = await fetch(url.toString(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(providerRequest),
+        })
+
+        if (!response.ok) {
+          let errorMessage = `Provider API request failed with status ${response.status}`
+          try {
+            const errorData = await response.json()
+            if (errorData.error) {
+              errorMessage = errorData.error
+            }
+          } catch (_e) {
+            // If JSON parsing fails, use the original error message
           }
-        } catch (_e) {
-          // If JSON parsing fails, use the original error message
+          throw new Error(errorMessage)
         }
-        throw new Error(errorMessage)
-      }
 
-      const result = await response.json()
+        result = await response.json()
+      } else {
+        // Use direct provider execution in server environment
+        logger.info('Using direct provider execution (server environment)')
+        const finalApiKey = getApiKey(providerId, model, inputs.apiKey)
+
+        const response = await executeProviderRequest(providerId, {
+          model: model,
+          systemPrompt: systemPromptObj.systemPrompt,
+          responseFormat: systemPromptObj.responseFormat,
+          context: JSON.stringify([
+            {
+              role: 'user',
+              content:
+                'Please evaluate the content provided in the system prompt. Return ONLY a valid JSON with metric scores.',
+            },
+          ]),
+          temperature: inputs.temperature || 0,
+          apiKey: finalApiKey,
+          workflowId: context.workflowId,
+          environmentVariables: context.environmentVariables || {},
+        })
+
+        result = response
+      }
 
       // Parse response content with robust error handling
       let parsedContent: Record<string, any> = {}

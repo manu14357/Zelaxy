@@ -49,6 +49,7 @@ vi.mock('@/providers/utils', async (importOriginal) => {
     // @ts-ignore
     ...actual,
     getProviderFromModel: vi.fn(),
+    getApiKey: vi.fn().mockReturnValue('mock-api-key'),
     transformBlockTool: vi.fn(),
     // Ensure getBaseModelProviders returns an object
     getBaseModelProviders: vi.fn(() => ({})),

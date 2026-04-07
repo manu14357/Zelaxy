@@ -1,4 +1,4 @@
-import { env } from '@/lib/env'
+import { getEnv } from '@/lib/env'
 import { createLogger } from '@/lib/logs/console/logger'
 import { toonEncodeForLLM } from '@/lib/toon/encoder'
 import { generateRouterPrompt } from '@/blocks/blocks/router'
@@ -6,7 +6,8 @@ import type { BlockOutput } from '@/blocks/types'
 import { BlockType } from '@/executor/consts'
 import type { PathTracker } from '@/executor/path/path'
 import type { BlockHandler, ExecutionContext } from '@/executor/types'
-import { calculateCost, getProviderFromModel } from '@/providers/utils'
+import { executeProviderRequest } from '@/providers'
+import { calculateCost, getApiKey, getProviderFromModel } from '@/providers/utils'
 import type { SerializedBlock } from '@/serializer/types'
 
 const logger = createLogger('RouterBlockHandler')
@@ -41,9 +42,6 @@ export class RouterBlockHandler implements BlockHandler {
     const providerId = getProviderFromModel(routerConfig.model)
 
     try {
-      const baseUrl = env.NEXT_PUBLIC_APP_URL || ''
-      const url = new URL('/api/providers', baseUrl)
-
       // Create the provider request with proper message formatting
       const messages = [{ role: 'user', content: routerConfig.prompt }]
       const systemPrompt = generateRouterPrompt(routerConfig.prompt, targetBlocks)
@@ -55,31 +53,53 @@ export class RouterBlockHandler implements BlockHandler {
         temperature: routerConfig.temperature,
         apiKey: routerConfig.apiKey,
         workflowId: context.workflowId,
+        environmentVariables: context.environmentVariables || {},
       }
 
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(providerRequest),
-      })
+      const isBrowser = typeof window !== 'undefined'
+      let result: any
 
-      if (!response.ok) {
-        // Try to extract a helpful error message
-        let errorMessage = `Provider API request failed with status ${response.status}`
-        try {
-          const errorData = await response.json()
-          if (errorData.error) {
-            errorMessage = errorData.error
+      if (isBrowser) {
+        // Use HTTP request in browser environment
+        logger.info('Using HTTP provider request (browser environment)')
+        const url = new URL('/api/providers', getEnv('NEXT_PUBLIC_APP_URL') || '')
+        const response = await fetch(url.toString(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(providerRequest),
+        })
+
+        if (!response.ok) {
+          let errorMessage = `Provider API request failed with status ${response.status}`
+          try {
+            const errorData = await response.json()
+            if (errorData.error) {
+              errorMessage = errorData.error
+            }
+          } catch (_e) {
+            // If JSON parsing fails, use the original error message
           }
-        } catch (_e) {
-          // If JSON parsing fails, use the original error message
+          throw new Error(errorMessage)
         }
-        throw new Error(errorMessage)
-      }
 
-      const result = await response.json()
+        result = await response.json()
+      } else {
+        // Use direct provider execution in server environment
+        logger.info('Using direct provider execution (server environment)')
+        const finalApiKey = getApiKey(providerId, routerConfig.model, routerConfig.apiKey)
+
+        const response = await executeProviderRequest(providerId, {
+          model: routerConfig.model,
+          systemPrompt: systemPrompt,
+          context: toonEncodeForLLM(messages),
+          temperature: routerConfig.temperature,
+          apiKey: finalApiKey,
+          workflowId: context.workflowId,
+          environmentVariables: context.environmentVariables || {},
+        })
+
+        result = response
+      }
 
       const chosenBlockId = result.content.trim().toLowerCase()
       const chosenBlock = targetBlocks?.find((b) => b.id === chosenBlockId)
