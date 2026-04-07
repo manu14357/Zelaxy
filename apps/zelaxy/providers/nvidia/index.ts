@@ -91,7 +91,9 @@ export const nvidiaProvider: ProviderConfig = {
         stream: request.stream ?? false,
         ...(request.topP !== undefined && { top_p: request.topP }),
         ...(request.presencePenalty !== undefined && { presence_penalty: request.presencePenalty }),
-        ...(request.frequencyPenalty !== undefined && { frequency_penalty: request.frequencyPenalty }),
+        ...(request.frequencyPenalty !== undefined && {
+          frequency_penalty: request.frequencyPenalty,
+        }),
       }
 
       logger.debug('NVIDIA API request params', {

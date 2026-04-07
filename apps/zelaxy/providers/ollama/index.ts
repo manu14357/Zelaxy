@@ -160,8 +160,7 @@ export const ollamaProvider: ProviderConfig = {
       payload.max_tokens = request.maxTokens
     if (request.topP !== undefined) payload.top_p = request.topP
     if (request.presencePenalty !== undefined) payload.presence_penalty = request.presencePenalty
-    if (request.frequencyPenalty !== undefined)
-      payload.frequency_penalty = request.frequencyPenalty
+    if (request.frequencyPenalty !== undefined) payload.frequency_penalty = request.frequencyPenalty
 
     // Add response format for structured output if specified
     if (request.responseFormat) {

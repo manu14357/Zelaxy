@@ -456,7 +456,10 @@ Example 3 (Array Input):
   inputs: {
     systemPrompt: { type: 'string', description: 'System instructions for the agent' },
     userPrompt: { type: 'string', description: 'User message or context' },
-    customInstructions: { type: 'string', description: 'Additional instructions appended to system prompt' },
+    customInstructions: {
+      type: 'string',
+      description: 'Additional instructions appended to system prompt',
+    },
     memories: { type: 'json', description: 'Conversation history for continuity' },
     model: { type: 'string', description: 'AI model to use' },
     apiKey: { type: 'string', description: 'Provider API key' },
