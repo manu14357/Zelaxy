@@ -311,9 +311,24 @@ export function getRotatingApiKey(provider: string): string {
 }
 
 /**
- * Recursively redacts API keys in an object
+ * Masks a sensitive string value, showing only the first and last few characters.
+ * For short values (<=8 chars), the entire value is masked.
+ * @param value The string value to mask
+ * @returns The masked string
+ */
+export const maskSensitiveValue = (value: string): string => {
+  if (typeof value !== 'string' || value.length === 0) return value
+  if (value.length <= 8) return '***'
+  const visiblePrefix = value.slice(0, 6)
+  const visibleSuffix = value.slice(-4)
+  return `${visiblePrefix}***...***${visibleSuffix}`
+}
+
+/**
+ * Recursively redacts API keys in an object by masking them
+ * (showing first 6 and last 4 characters, middle masked).
  * @param obj The object to redact API keys from
- * @returns A new object with API keys redacted
+ * @returns A new object with API keys masked
  */
 export const redactApiKeys = (obj: any): any => {
   if (!obj || typeof obj !== 'object') {
@@ -334,7 +349,7 @@ export const redactApiKeys = (obj: any): any => {
       /\bsecret\b/i.test(key.toLowerCase()) ||
       /\bpassword\b/i.test(key.toLowerCase())
     ) {
-      result[key] = '***REDACTED***'
+      result[key] = typeof value === 'string' ? maskSensitiveValue(value) : '***REDACTED***'
     } else if (typeof value === 'object' && value !== null) {
       result[key] = redactApiKeys(value)
     } else {
