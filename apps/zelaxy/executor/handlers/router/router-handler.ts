@@ -1,4 +1,3 @@
-import { getEnv } from '@/lib/env'
 import { createLogger } from '@/lib/logs/console/logger'
 import { toonEncodeForLLM } from '@/lib/toon/encoder'
 import { generateRouterPrompt } from '@/blocks/blocks/router'
@@ -62,8 +61,7 @@ export class RouterBlockHandler implements BlockHandler {
       if (isBrowser) {
         // Use HTTP request in browser environment
         logger.info('Using HTTP provider request (browser environment)')
-        const url = new URL('/api/providers', getEnv('NEXT_PUBLIC_APP_URL') || '')
-        const response = await fetch(url.toString(), {
+        const response = await fetch('/api/providers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(providerRequest),

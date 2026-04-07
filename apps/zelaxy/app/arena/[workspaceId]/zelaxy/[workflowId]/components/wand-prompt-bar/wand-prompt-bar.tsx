@@ -166,17 +166,8 @@ export function WandPromptBar({
   }, [])
 
   if (!isVisible && !isStreaming && !isExiting) {
-    console.log('Not rendering (not visible)', { isVisible, isStreaming, isExiting })
     return null
   }
-
-  console.log('Rendering', {
-    isVisible,
-    isStreaming,
-    isExiting,
-    isLoading,
-    promptValue,
-  })
 
   const modalContent = (
     <>

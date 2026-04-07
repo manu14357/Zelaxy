@@ -1,4 +1,3 @@
-import { getEnv } from '@/lib/env'
 import { createLogger } from '@/lib/logs/console/logger'
 import { tryParseThenEncode } from '@/lib/toon/encoder'
 import type { BlockOutput } from '@/blocks/types'
@@ -278,8 +277,7 @@ ${tryParseThenEncode(resolvedContext || 'No context provided')}`
         // Use HTTP request in browser environment (same as agent block)
         logger.info('Using HTTP provider request (browser environment)')
 
-        const url = new URL('/api/providers', getEnv('NEXT_PUBLIC_APP_URL') || '')
-        const httpResponse = await fetch(url.toString(), {
+        const httpResponse = await fetch('/api/providers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(providerRequest),
