@@ -1126,11 +1126,12 @@ export class AgentBlockHandler implements BlockHandler {
       temperature: inputs.temperature,
       maxTokens:
         inputs.maxTokens !== undefined && inputs.maxTokens >= 1 ? inputs.maxTokens : undefined,
-      topP: inputs.topP,
-      topK: inputs.topK,
-      presencePenalty: inputs.presencePenalty,
-      frequencyPenalty: inputs.frequencyPenalty,
-      timeout: inputs.timeout,
+      topP: inputs.topP != null ? Number(inputs.topP) : undefined,
+      topK: inputs.topK != null ? Math.round(Number(inputs.topK)) : undefined,
+      presencePenalty: inputs.presencePenalty != null ? Number(inputs.presencePenalty) : undefined,
+      frequencyPenalty:
+        inputs.frequencyPenalty != null ? Number(inputs.frequencyPenalty) : undefined,
+      timeout: inputs.timeout != null ? Math.round(Number(inputs.timeout)) : undefined,
       apiKey: inputs.apiKey,
       azureEndpoint: inputs.azureEndpoint,
       azureApiVersion: inputs.azureApiVersion,

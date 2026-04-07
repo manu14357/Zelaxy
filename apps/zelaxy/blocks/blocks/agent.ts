@@ -420,7 +420,36 @@ Example 3 (Array Input):
         return selectedTool
       },
       params: (params: Record<string, any>) => {
-        const sanitizedParams = sanitizeParameters(params)
+        // Only pass through known valid keys — strips stale params from old workflows
+        const validKeys = new Set([
+          'systemPrompt',
+          'userPrompt',
+          'customInstructions',
+          'memories',
+          'model',
+          'apiKey',
+          'azureEndpoint',
+          'azureApiVersion',
+          'temperature',
+          'topP',
+          'topK',
+          'maxTokens',
+          'presencePenalty',
+          'frequencyPenalty',
+          'timeout',
+          'enableOcr',
+          'enableStreaming',
+          'tools',
+          'responseFormat',
+        ])
+        const filteredParams: Record<string, any> = {}
+        for (const key of Object.keys(params)) {
+          if (validKeys.has(key)) {
+            filteredParams[key] = params[key]
+          }
+        }
+
+        const sanitizedParams = sanitizeParameters(filteredParams)
 
         const processedParams: any = {
           ...sanitizedParams,

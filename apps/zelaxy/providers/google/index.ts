@@ -264,7 +264,7 @@ export const googleProvider: ProviderConfig = {
         payload.generationConfig.topP = request.topP
       }
       if (request.topK !== undefined) {
-        payload.generationConfig.topK = request.topK
+        payload.generationConfig.topK = Math.round(Number(request.topK))
       }
 
       // Add system instruction if provided

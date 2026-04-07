@@ -253,7 +253,7 @@ ${fieldDescriptions}
 
     // Add optional generation parameters
     if (request.topP !== undefined) payload.top_p = request.topP
-    if (request.topK !== undefined) payload.top_k = request.topK
+    if (request.topK !== undefined) payload.top_k = Math.round(Number(request.topK))
 
     // Use the tools in the payload
     if (anthropicTools?.length) {
