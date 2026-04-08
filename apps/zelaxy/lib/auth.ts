@@ -243,12 +243,18 @@ export const auth = betterAuth({
     }),
   },
   advanced: {
-    crossSubDomainCookies: isProd
-      ? {
-          enabled: true,
-          domain: `.${new URL(env.NEXT_PUBLIC_APP_URL).hostname.replace(/^www\./, '')}`, // e.g. .zelaxy.in
-        }
-      : undefined,
+    crossSubDomainCookies: (() => {
+      if (!isProd) return undefined
+      try {
+        const appUrl = env.NEXT_PUBLIC_APP_URL
+        if (!appUrl) return undefined
+        const hostname = new URL(appUrl).hostname.replace(/^www\./, '')
+        if (!hostname || hostname === 'localhost') return undefined
+        return { enabled: true, domain: `.${hostname}` } // e.g. .zelaxy.in
+      } catch {
+        return undefined
+      }
+    })(),
   },
   plugins: [
     nextCookies(),
