@@ -42,12 +42,17 @@ export function SliderInput({
 
   const displayValue = normalizedValue ?? computedDefaultValue
 
-  // Ensure the normalized value is set if it differs from the current value
+  // Persist the computed default to the store when the value is null/undefined,
+  // so that the displayed value matches what gets used during execution.
+  // Also clamp out-of-range values that may come from config changes.
   useEffect(() => {
-    if (!isPreview && value !== null && value !== undefined && value !== normalizedValue) {
+    if (isPreview) return
+    if (value === null || value === undefined) {
+      setStoreValue(computedDefaultValue)
+    } else if (value !== normalizedValue) {
       setStoreValue(normalizedValue)
     }
-  }, [normalizedValue, value, setStoreValue, isPreview])
+  }, [normalizedValue, value, setStoreValue, isPreview, computedDefaultValue])
 
   const handleValueChange = (newValue: number[]) => {
     if (!isPreview && !disabled) {

@@ -248,11 +248,17 @@ ${fieldDescriptions}
       messages,
       system: systemPrompt,
       max_tokens: Math.max(1, Number.parseInt(String(request.maxTokens)) || 1024),
-      temperature: Number.parseFloat(String(request.temperature ?? 0.7)),
+    }
+
+    // Anthropic does not allow both temperature and top_p simultaneously.
+    // When both are provided, prefer temperature (the more commonly used param).
+    if (request.topP != null && request.temperature == null) {
+      payload.top_p = Number.parseFloat(String(request.topP))
+    } else {
+      payload.temperature = Number.parseFloat(String(request.temperature ?? 0.7))
     }
 
     // Add optional generation parameters
-    if (request.topP !== undefined) payload.top_p = request.topP
     if (request.topK !== undefined) payload.top_k = Math.round(Number(request.topK))
 
     // Use the tools in the payload

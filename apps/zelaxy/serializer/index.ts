@@ -205,9 +205,15 @@ export class Serializer {
 
     const params: Record<string, any> = {}
 
+    // Build set of valid subBlock IDs from the current block definition
+    // so stale keys from old workflow state are excluded.
+    const validSubBlockIds = new Set(blockConfig.subBlocks.map((sb) => sb.id))
+
     // First collect all current values from subBlocks
     Object.entries(block.subBlocks).forEach(([id, subBlock]) => {
-      params[id] = subBlock.value
+      if (validSubBlockIds.has(id)) {
+        params[id] = subBlock.value
+      }
     })
 
     // Then check for any subBlocks with default values
@@ -216,6 +222,13 @@ export class Serializer {
       if (params[id] === null && subBlockConfig.value) {
         // If the value is null and there's a default value function, use it
         params[id] = subBlockConfig.value(params)
+      }
+      // For slider subBlocks with no value function, compute the same default
+      // the UI shows so execution matches the displayed value
+      if (params[id] === null && subBlockConfig.type === 'slider') {
+        const min = subBlockConfig.min ?? 0
+        const max = subBlockConfig.max ?? 100
+        params[id] = min + (max - min) / 2
       }
     })
 
