@@ -41,6 +41,7 @@ export function FrozenCanvasModal({
             : 'h-[90vh] max-h-[90vh] overflow-hidden sm:max-w-[1100px]'
         )}
         hideCloseButton={true}
+        aria-describedby={undefined}
       >
         {/* Header */}
         <DialogHeader className='flex flex-row items-center justify-between border-b bg-background p-4'>

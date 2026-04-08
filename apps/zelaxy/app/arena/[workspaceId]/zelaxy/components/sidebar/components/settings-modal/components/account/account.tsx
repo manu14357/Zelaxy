@@ -683,7 +683,7 @@ export function Account({ onOpenChange }: AccountProps) {
 
       {/* ── Reset Password Dialog ──────────────────────────────────── */}
       <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
-        <DialogContent className='rounded-xl sm:max-w-[425px]'>
+        <DialogContent className='rounded-xl sm:max-w-[425px]' aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle className='font-semibold text-[15px]'>Reset Password</DialogTitle>
           </DialogHeader>

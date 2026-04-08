@@ -240,7 +240,10 @@ export function UploadModal({ isOpen, onClose, knowledgeId }: UploadModalProps) 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className='max-h-[90vh] max-w-4xl overflow-y-auto'>
+      <DialogContent
+        className='max-h-[90vh] max-w-4xl overflow-y-auto'
+        aria-describedby={undefined}
+      >
         <DialogHeader>
           <DialogTitle>Upload Documents</DialogTitle>
         </DialogHeader>

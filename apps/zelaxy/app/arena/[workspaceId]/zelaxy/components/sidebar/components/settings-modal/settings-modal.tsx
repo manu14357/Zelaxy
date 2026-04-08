@@ -144,6 +144,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           'lg:h-[80vh] lg:max-w-[1000px]'
         )}
         hideCloseButton
+        aria-describedby={undefined}
       >
         {/* ── Header ──────────────────────────────────────────────────── */}
         <DialogHeader className='flex-shrink-0 border-border/40 border-b bg-background/80 px-3 py-3 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 sm:px-6 sm:py-3.5'>
