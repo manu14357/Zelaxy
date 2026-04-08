@@ -138,6 +138,7 @@ export default function EmailAuth({
       <DialogContent
         className='flex flex-col gap-0 overflow-hidden p-0 sm:max-w-[450px]'
         hideCloseButton
+        aria-describedby={undefined}
       >
         <DialogHeader className='border-b px-6 py-4'>
           <div className='flex items-center justify-center'>

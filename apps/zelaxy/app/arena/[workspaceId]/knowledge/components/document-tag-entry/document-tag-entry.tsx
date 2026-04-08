@@ -331,7 +331,7 @@ export function DocumentTagEntry({
 
       {/* Tag Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className='sm:max-w-md'>
+        <DialogContent className='sm:max-w-md' aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{editingTagIndex !== null ? 'Edit Tag' : 'Add New Tag'}</DialogTitle>
           </DialogHeader>

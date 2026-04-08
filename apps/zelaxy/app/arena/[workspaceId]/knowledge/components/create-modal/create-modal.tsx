@@ -333,6 +333,7 @@ export function CreateModal({ open, onOpenChange, onKnowledgeBaseCreated }: Crea
       <DialogContent
         className='flex h-[74vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[600px]'
         hideCloseButton
+        aria-describedby={undefined}
       >
         <DialogHeader className='flex-shrink-0 border-b px-6 py-4'>
           <div className='flex items-center justify-between'>
