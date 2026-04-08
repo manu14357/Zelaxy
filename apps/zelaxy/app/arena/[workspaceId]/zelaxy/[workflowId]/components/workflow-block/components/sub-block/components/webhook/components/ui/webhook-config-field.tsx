@@ -46,7 +46,7 @@ export function WebhookConfigField({
   }
 
   return (
-    <div className={cn('mb-4 space-y-1', className)}>
+    <div className={cn('mb-4 space-y-1.5', className)}>
       <div className='flex items-center gap-2'>
         <Label htmlFor={id} className='font-medium text-sm'>
           {label}
@@ -57,10 +57,10 @@ export function WebhookConfigField({
               <Button
                 variant='ghost'
                 size='sm'
-                className='h-6 w-6 p-1 text-gray-500'
+                className='h-5 w-5 p-0.5 text-muted-foreground'
                 aria-label={`Learn more about ${label}`}
               >
-                <Info className='h-4 w-4' />
+                <Info className='h-3.5 w-3.5' />
               </Button>
             </TooltipTrigger>
             <TooltipContent
@@ -69,7 +69,7 @@ export function WebhookConfigField({
               className='z-[100] max-w-[300px] p-3'
               role='tooltip'
             >
-              <p className='text-sm'>{description}</p>
+              <p className='text-sm leading-relaxed'>{description}</p>
             </TooltipContent>
           </Tooltip>
         )}
@@ -113,15 +113,16 @@ export function WebhookConfigField({
           type='button'
           size='icon'
           variant='outline'
-          className={cn('ml-2 h-10 w-10', 'hover:bg-primary/5', 'transition-colors')}
+          className={cn(
+            'ml-2 h-10 w-10 rounded-lg transition-all',
+            copied === copyType
+              ? 'border-green-500/30 bg-green-500/10 text-green-500'
+              : 'hover:bg-primary/5'
+          )}
           onClick={() => copyToClipboard(value, copyType)}
           disabled={isLoading || !value}
         >
-          {copied === copyType ? (
-            <Check className='h-4 w-4 text-green-500' />
-          ) : (
-            <Copy className='h-4 w-4' />
-          )}
+          {copied === copyType ? <Check className='h-4 w-4' /> : <Copy className='h-4 w-4' />}
         </Button>
       </div>
     </div>

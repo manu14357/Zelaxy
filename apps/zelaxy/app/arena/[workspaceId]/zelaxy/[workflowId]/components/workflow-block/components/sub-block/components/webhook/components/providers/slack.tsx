@@ -87,10 +87,10 @@ export function SlackConfig({
         showCurlCommand={true}
       />
 
-      <InstructionsSection>
+      <InstructionsSection tip='After setup, mention your bot with @YourBotName in any channel to test the webhook trigger.'>
         <ol className='list-inside list-decimal space-y-2'>
           <li>
-            Go to{' '}
+            Go to the{' '}
             <a
               href='https://api.slack.com/apps'
               target='_blank'
@@ -103,45 +103,40 @@ export function SlackConfig({
               }}
             >
               Slack Apps page
-            </a>
+            </a>{' '}
+            and create a new app (or select an existing one).
           </li>
           <li>
-            If you don't have an app:
-            <ol className='mt-1 ml-5 list-disc'>
-              <li>Create an app from scratch</li>
-              <li>Give it a name and select your workspace</li>
-            </ol>
+            Navigate to <strong>Basic Information</strong> and copy the{' '}
+            <strong>Signing Secret</strong> — paste it above.
           </li>
           <li>
-            Go to "Basic Information", find the "Signing Secret", and paste it in the field above.
-          </li>
-          <li>
-            Go to "OAuth & Permissions" and add bot token scopes:
-            <ol className='mt-1 ml-5 list-disc'>
+            Go to <strong>OAuth &amp; Permissions</strong> and add these bot token scopes:
+            <ul className='mt-1.5 ml-5 list-disc space-y-1'>
               <li>
-                <code>app_mentions:read</code> - For viewing messages that tag your bot with an @
+                <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>app_mentions:read</code> —
+                read messages that @mention your bot
               </li>
               <li>
-                <code>chat:write</code> - To send messages to channels your bot is a part of
+                <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>chat:write</code> — send
+                messages to channels
               </li>
-            </ol>
+            </ul>
           </li>
           <li>
-            Go to "Event Subscriptions":
-            <ol className='mt-1 ml-5 list-disc'>
-              <li>Enable events</li>
-              <li>
-                Under "Subscribe to Bot Events", add <code>app_mention</code> to listen to messages
-                that mention your bot
-              </li>
-              <li>Paste the Webhook URL (from above) into the "Request URL" field</li>
-            </ol>
+            Go to <strong>Event Subscriptions</strong>, enable events, and paste the{' '}
+            <strong>Webhook URL</strong> into the "Request URL" field.
           </li>
           <li>
-            Go to <strong>Install App</strong> in the left sidebar and install the app into your
-            desired Slack workspace and channel.
+            Under <strong>Subscribe to Bot Events</strong>, add{' '}
+            <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>app_mention</code>.
           </li>
-          <li>Save changes in both Slack and here.</li>
+          <li>
+            Go to <strong>Install App</strong> and install to your workspace.
+          </li>
+          <li>
+            Click <strong>Save Changes</strong> here and in Slack.
+          </li>
         </ol>
       </InstructionsSection>
 

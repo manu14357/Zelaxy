@@ -106,24 +106,37 @@ export function GithubConfig({
         showCurlCommand={true} // GitHub webhooks can be tested
       />
 
-      <InstructionsSection tip='GitHub will send a ping event to verify after you add the webhook.'>
-        <ol className='list-inside list-decimal space-y-1'>
+      <InstructionsSection tip='GitHub sends a ping event to verify your endpoint — you should see it in the test results after saving.'>
+        <ol className='list-inside list-decimal space-y-2'>
           <li>
-            Go to your GitHub Repository {'>'} Settings {'>'} Webhooks.
+            Go to your GitHub repository → <strong>Settings</strong> → <strong>Webhooks</strong> →{' '}
+            <strong>Add webhook</strong>.
           </li>
-          <li>Click "Add webhook".</li>
           <li>
-            Paste the <strong>Webhook URL</strong> (from above) into the "Payload URL" field.
+            Paste the <strong>Webhook URL</strong> (from above) into the{' '}
+            <strong>Payload URL</strong> field.
           </li>
-          <li>Select "{contentType}" as the Content type.</li>
+          <li>
+            Set Content type to{' '}
+            <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>{contentType}</code>.
+          </li>
           {webhookSecret && (
             <li>
-              Enter the <strong>Webhook Secret</strong> (from above) into the "Secret" field.
+              Paste the <strong>Webhook Secret</strong> into the <strong>Secret</strong> field for
+              signature verification.
             </li>
           )}
-          <li>Set SSL verification according to your selection above.</li>
-          <li>Choose which events should trigger this webhook.</li>
-          <li>Ensure "Active" is checked and click "Add webhook".</li>
+          <li>Set SSL verification to match your selection above.</li>
+          <li>
+            Under <strong>"Which events would you like to trigger?"</strong>, choose the events
+            relevant to your workflow (e.g.,{' '}
+            <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>push</code>,{' '}
+            <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>pull_request</code>,{' '}
+            <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>issues</code>).
+          </li>
+          <li>
+            Ensure <strong>Active</strong> is checked and click <strong>Add webhook</strong>.
+          </li>
         </ol>
       </InstructionsSection>
     </div>

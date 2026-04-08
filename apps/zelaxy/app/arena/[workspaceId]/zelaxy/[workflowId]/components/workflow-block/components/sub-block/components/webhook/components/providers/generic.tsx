@@ -110,19 +110,40 @@ export function GenericConfig({
         showCurlCommand={true}
       />
 
-      <InstructionsSection tip='The webhook receives HTTP POST requests and passes the data to your workflow.'>
-        <ol className='list-inside list-decimal space-y-1'>
-          <li>Copy the Webhook URL provided above.</li>
-          <li>Configure your external service to send HTTP POST requests to this URL.</li>
+      <InstructionsSection tip='Send an HTTP POST request with a JSON body to your webhook URL to trigger the workflow.'>
+        <ol className='list-inside list-decimal space-y-2'>
+          <li>
+            Copy the <strong>Webhook URL</strong> shown above.
+          </li>
+          <li>
+            Configure your external service to send{' '}
+            <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>HTTP POST</code> requests to
+            this URL with a JSON body.
+          </li>
           {requireAuth && (
             <li>
-              Include your authentication token in requests using either the
-              {secretHeaderName
-                ? ` "${secretHeaderName}" header`
-                : ' "Authorization: Bearer YOUR_TOKEN" header'}
-              .
+              Include your authentication token in the{' '}
+              {secretHeaderName ? (
+                <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>
+                  {secretHeaderName}: YOUR_TOKEN
+                </code>
+              ) : (
+                <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>
+                  Authorization: Bearer YOUR_TOKEN
+                </code>
+              )}{' '}
+              header.
             </li>
           )}
+          <li>
+            Example using curl:
+            <pre className='mt-2 overflow-x-auto rounded-md bg-muted/50 p-3 font-mono text-xs leading-relaxed'>
+              {`curl -X POST ${requireAuth ? `\\\n  -H "${secretHeaderName || 'Authorization'}: ${secretHeaderName ? 'YOUR_TOKEN' : 'Bearer YOUR_TOKEN'}" \\\n  ` : '\\'}
+  -H "Content-Type: application/json" \\
+  -d '{"message": "Hello from webhook!"}' \\
+  YOUR_WEBHOOK_URL`}
+            </pre>
+          </li>
         </ol>
       </InstructionsSection>
     </div>

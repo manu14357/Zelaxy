@@ -10,8 +10,12 @@ interface ConfigSectionProps {
 export function ConfigSection({ title, children, className }: ConfigSectionProps) {
   return (
     <div
-      className={cn('space-y-4 rounded-md border border-border bg-card p-4 shadow-sm', className)}
+      className={cn(
+        'space-y-4 rounded-lg border border-border/60 bg-card/80 p-5 shadow-sm backdrop-blur-sm',
+        className
+      )}
     >
+      {title && <h4 className='font-semibold text-foreground text-sm tracking-tight'>{title}</h4>}
       {children}
     </div>
   )

@@ -113,33 +113,31 @@ export function ActionBar({ blockId, blockType, disabled = false }: ActionBarPro
         </Tooltip>
       )}
 
-      {!isStarterBlock && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={() => {
-                if (!disabled) {
-                  collaborativeRemoveBlock(blockId)
-                }
-              }}
-              className={cn(
-                'h-8 w-8 rounded-full p-0 transition-all duration-200',
-                'border border-white/20 bg-white/10 shadow-lg backdrop-blur-sm',
-                'text-red-500 hover:border-red-400/30 hover:bg-red-500/20 hover:text-red-400',
-                disabled && 'cursor-not-allowed opacity-50'
-              )}
-              disabled={disabled}
-            >
-              <Trash2 className='h-4 w-4' />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side='bottom' className='font-medium text-xs'>
-            {getTooltipMessage('Delete Block')}
-          </TooltipContent>
-        </Tooltip>
-      )}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={() => {
+              if (!disabled) {
+                collaborativeRemoveBlock(blockId)
+              }
+            }}
+            className={cn(
+              'h-8 w-8 rounded-full p-0 transition-all duration-200',
+              'border border-white/20 bg-white/10 shadow-lg backdrop-blur-sm',
+              'text-red-500 hover:border-red-400/30 hover:bg-red-500/20 hover:text-red-400',
+              disabled && 'cursor-not-allowed opacity-50'
+            )}
+            disabled={disabled}
+          >
+            <Trash2 className='h-4 w-4' />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side='bottom' className='font-medium text-xs'>
+          {getTooltipMessage('Delete Block')}
+        </TooltipContent>
+      </Tooltip>
     </div>
   )
 }

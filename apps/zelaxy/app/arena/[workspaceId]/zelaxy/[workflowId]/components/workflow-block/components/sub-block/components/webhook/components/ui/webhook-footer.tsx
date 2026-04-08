@@ -30,7 +30,7 @@ export function WebhookDialogFooter({
   onClose,
 }: WebhookDialogFooterProps) {
   return (
-    <div className='flex w-full justify-between'>
+    <div className='flex w-full items-center justify-between'>
       <div>
         {webhookId && (
           <Button
@@ -39,7 +39,7 @@ export function WebhookDialogFooter({
             onClick={onDelete}
             disabled={isDeleting || isSaving || isLoadingToken}
             size='default'
-            className='h-10'
+            className='h-9 rounded-lg text-sm'
           >
             {isDeleting ? (
               <div className='mr-2 h-4 w-4 animate-spin rounded-full border-[1.5px] border-current border-t-transparent' />
@@ -57,7 +57,7 @@ export function WebhookDialogFooter({
             variant='outline'
             onClick={onTest}
             disabled={isTesting || isSaving || isDeleting || isLoadingToken || !webhookId}
-            className='h-10'
+            className='h-9 rounded-lg border-border/60 text-sm'
           >
             {isTesting && (
               <div className='mr-2 h-4 w-4 animate-spin rounded-full border-[1.5px] border-current border-t-transparent' />
@@ -65,14 +65,19 @@ export function WebhookDialogFooter({
             {isTesting ? 'Testing...' : 'Test Webhook'}
           </Button>
         )}
-        <Button variant='outline' onClick={onClose} size='default' className='h-10'>
+        <Button
+          variant='outline'
+          onClick={onClose}
+          size='default'
+          className='h-9 rounded-lg border-border/60 text-sm'
+        >
           Cancel
         </Button>
         <Button
           onClick={onSave}
           disabled={isLoadingToken || isSaving || !isCurrentConfigValid}
           className={cn(
-            'h-10',
+            'h-9 rounded-lg text-sm',
             !isLoadingToken && isCurrentConfigValid ? 'bg-primary hover:bg-primary/90' : '',
             isSaving &&
               'relative after:absolute after:inset-0 after:animate-pulse after:bg-white/20'

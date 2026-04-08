@@ -201,18 +201,17 @@ export function OutlookConfig({
 
   return (
     <div className='space-y-6'>
-      <ConfigSection>
+      <ConfigSection title='Email Folders to Monitor'>
         <div className='mb-3 flex items-center gap-2'>
-          <h3 className='font-medium text-sm'>Email Folders to Monitor</h3>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant='ghost'
                 size='sm'
-                className='h-6 w-6 p-1 text-gray-500'
+                className='h-5 w-5 p-0.5 text-muted-foreground'
                 aria-label='Learn more about email folders'
               >
-                <Info className='h-4 w-4' />
+                <Info className='h-3.5 w-3.5' />
               </Button>
             </TooltipTrigger>
             <TooltipContent
@@ -221,7 +220,7 @@ export function OutlookConfig({
               className='z-[100] max-w-[300px] p-3'
               role='tooltip'
             >
-              <p className='text-sm'>{TOOLTIPS.folders}</p>
+              <p className='text-sm leading-relaxed'>{TOOLTIPS.folders}</p>
             </TooltipContent>
           </Tooltip>
         </div>
@@ -283,14 +282,14 @@ export function OutlookConfig({
                   <Button
                     variant='ghost'
                     size='sm'
-                    className='h-6 w-6 p-1 text-gray-500'
+                    className='h-5 w-5 p-0.5 text-muted-foreground'
                     aria-label='Learn more about folder filter behavior'
                   >
-                    <Info className='h-4 w-4' />
+                    <Info className='h-3.5 w-3.5' />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side='top' align='center' className='z-[100] max-w-[300px] p-3'>
-                  <p className='text-sm'>{TOOLTIPS.folderFilterBehavior}</p>
+                  <p className='text-sm leading-relaxed'>{TOOLTIPS.folderFilterBehavior}</p>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -307,11 +306,7 @@ export function OutlookConfig({
         </div>
       </ConfigSection>
 
-      <ConfigSection>
-        <div className='mb-3'>
-          <h3 className='font-medium text-sm'>Email Processing Options</h3>
-        </div>
-
+      <ConfigSection title='Email Processing Options'>
         <div className='space-y-4'>
           <div className='flex items-center'>
             <div className='flex flex-1 items-center gap-2'>
@@ -328,14 +323,14 @@ export function OutlookConfig({
                   <Button
                     variant='ghost'
                     size='sm'
-                    className='h-6 w-6 p-1 text-gray-500'
+                    className='h-5 w-5 p-0.5 text-muted-foreground'
                     aria-label='Learn more about marking emails as read'
                   >
-                    <Info className='h-4 w-4' />
+                    <Info className='h-3.5 w-3.5' />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side='top' align='center' className='z-[100] max-w-[300px] p-3'>
-                  <p className='text-sm'>{TOOLTIPS.markAsRead}</p>
+                  <p className='text-sm leading-relaxed'>{TOOLTIPS.markAsRead}</p>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -356,14 +351,14 @@ export function OutlookConfig({
                   <Button
                     variant='ghost'
                     size='sm'
-                    className='h-6 w-6 p-1 text-gray-500'
+                    className='h-5 w-5 p-0.5 text-muted-foreground'
                     aria-label='Learn more about raw email data'
                   >
-                    <Info className='h-4 w-4' />
+                    <Info className='h-3.5 w-3.5' />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side='top' align='center' className='z-[100] max-w-[300px] p-3'>
-                  <p className='text-sm'>{TOOLTIPS.includeRawEmail}</p>
+                  <p className='text-sm leading-relaxed'>{TOOLTIPS.includeRawEmail}</p>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -371,12 +366,11 @@ export function OutlookConfig({
         </div>
       </ConfigSection>
 
-      <ConfigSection>
+      <ConfigSection title='Outlook Event Payload Example'>
         <div className='mb-3 flex items-center gap-2'>
           <OutlookIcon className='h-4 w-4' />
-          <h3 className='font-medium text-sm'>Outlook Event Payload Example</h3>
         </div>
-        <div className='rounded-md border bg-muted/50 p-3'>
+        <div className='rounded-lg border border-border/60 bg-muted/30 p-3'>
           <JSONView data={generateOutlookExamplePayload(includeRawEmail)} />
         </div>
       </ConfigSection>

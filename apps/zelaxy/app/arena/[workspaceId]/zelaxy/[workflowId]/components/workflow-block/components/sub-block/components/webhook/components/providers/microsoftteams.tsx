@@ -79,46 +79,67 @@ export function MicrosoftTeamsConfig({
 
       <InstructionsSection
         title='Setting up Outgoing Webhook in Microsoft Teams'
-        tip='Create an outgoing webhook in Teams to receive messages from Teams in Zelaxy.'
+        tip='After creating the webhook, Teams gives you an HMAC token — paste it above to verify request authenticity.'
       >
-        <ol className='list-inside list-decimal space-y-1'>
-          <li>Open Microsoft Teams and go to the team where you want to add the webhook.</li>
-          <li>Click the three dots (•••) next to the team name and select "Manage team".</li>
-          <li>Go to the "Apps" tab and click "Create an outgoing webhook".</li>
-          <li>Provide a name, description, and optionally a profile picture.</li>
-          <li>Set the callback URL to your Zelaxy webhook URL (shown above).</li>
-          <li>Copy the HMAC security token and paste it into the "HMAC Secret" field above.</li>
-          <li>Click "Create" to finish setup.</li>
+        <ol className='list-inside list-decimal space-y-2'>
+          <li>
+            Open <strong>Microsoft Teams</strong> and go to the team where you want to add the
+            webhook.
+          </li>
+          <li>
+            Click the three dots (<strong>•••</strong>) next to the team name →{' '}
+            <strong>Manage team</strong>.
+          </li>
+          <li>
+            Go to the <strong>Apps</strong> tab → <strong>Create an outgoing webhook</strong>.
+          </li>
+          <li>Provide a name and description for the webhook.</li>
+          <li>
+            Set the <strong>Callback URL</strong> to your Zelaxy webhook URL (shown above).
+          </li>
+          <li>
+            Copy the <strong>HMAC security token</strong> that Teams provides and paste it into the{' '}
+            <strong>HMAC Secret</strong> field above.
+          </li>
+          <li>
+            Click <strong>Create</strong> to finish setup.
+          </li>
         </ol>
       </InstructionsSection>
 
-      <InstructionsSection title='Receiving Messages from Teams'>
-        <p>
-          When users mention your webhook in Teams (using @mention), Teams will send a POST request
-          to your Zelaxy webhook URL with a payload like this:
+      <InstructionsSection title='How Messages Are Received'>
+        <p className='leading-relaxed'>
+          When users <strong>@mention</strong> your webhook in a Teams channel, Teams sends a POST
+          request to your Zelaxy webhook URL. The payload looks like this:
         </p>
-        <CodeBlock language='json' code={teamsWebhookExample} className='mt-2 text-sm' />
+        <CodeBlock language='json' code={teamsWebhookExample} className='mt-3 text-sm' />
         <ul className='mt-3 list-outside list-disc space-y-1 pl-4'>
-          <li>Messages are triggered by @mentioning the webhook name in Teams.</li>
-          <li>Requests include HMAC signature for authentication.</li>
-          <li>You have 5 seconds to respond to the webhook request.</li>
+          <li>
+            Messages are triggered by{' '}
+            <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>@mentioning</code> the webhook
+            name in Teams.
+          </li>
+          <li>Requests include HMAC signature for authentication verification.</li>
+          <li>
+            You have <strong>5 seconds</strong> to respond to the webhook request.
+          </li>
         </ul>
       </InstructionsSection>
 
-      <Alert>
+      <Alert className='rounded-lg border-border/60'>
         <Shield className='h-4 w-4' />
-        <AlertTitle>Security</AlertTitle>
+        <AlertTitle className='font-semibold text-sm'>Security</AlertTitle>
         <AlertDescription>
-          The HMAC secret is used to verify that requests are actually coming from Microsoft Teams.
-          Keep it secure and never share it publicly.
+          The HMAC secret verifies that requests are from Microsoft Teams. Keep it secure and never
+          share it publicly.
         </AlertDescription>
       </Alert>
 
-      <Alert>
+      <Alert className='rounded-lg border-border/60'>
         <Terminal className='h-4 w-4' />
-        <AlertTitle>Requirements</AlertTitle>
+        <AlertTitle className='font-semibold text-sm'>Requirements</AlertTitle>
         <AlertDescription>
-          <ul className='mt-1 list-outside list-disc space-y-1 pl-4'>
+          <ul className='mt-1.5 list-outside list-disc space-y-1 pl-4'>
             <li>Your Zelaxy webhook URL must use HTTPS and be publicly accessible.</li>
             <li>Self-signed SSL certificates are not supported by Microsoft Teams.</li>
             <li>For local testing, use a tunneling service like ngrok or Cloudflare Tunnel.</li>

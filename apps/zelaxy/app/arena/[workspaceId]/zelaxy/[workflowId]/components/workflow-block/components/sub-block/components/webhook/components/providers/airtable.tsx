@@ -148,16 +148,29 @@ export function AirtableConfig({
         />
       )}
 
-      <InstructionsSection tip='Airtable webhooks monitor changes in your base/table and trigger your workflow.'>
-        <ol className='list-inside list-decimal space-y-1'>
-          <li>Ensure you have provided the correct Base ID and Table ID above.</li>
+      <InstructionsSection tip='Find your Base ID and Table ID in the Airtable URL: airtable.com/appXXXX/tblXXXX/...'>
+        <ol className='list-inside list-decimal space-y-2'>
           <li>
-            Zelaxy will automatically configure the webhook in your Airtable account when you save.
+            Open your Airtable base — the URL will look like{' '}
+            <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>
+              airtable.com/<strong>appXXXXXX</strong>/<strong>tblXXXXXX</strong>/...
+            </code>
           </li>
-          <li>Any changes made to records in the specified table will trigger this workflow.</li>
           <li>
-            If 'Include Full Record Data' is enabled, the entire record will be sent; otherwise,
-            only the changed fields are sent.
+            Copy the <strong>Base ID</strong> (starts with{' '}
+            <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>app</code>) and{' '}
+            <strong>Table ID</strong> (starts with{' '}
+            <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>tbl</code>) from the URL.
+          </li>
+          <li>Paste them into the fields above.</li>
+          <li>
+            Click <strong>Save Changes</strong> — Zelaxy will automatically register the webhook
+            with Airtable.
+          </li>
+          <li>
+            Any changes to records in the specified table will trigger this workflow. If{' '}
+            <strong>Include Full Record Data</strong> is enabled, the entire record is sent;
+            otherwise, only changed fields.
           </li>
         </ol>
       </InstructionsSection>

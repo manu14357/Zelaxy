@@ -1,4 +1,4 @@
-import { CheckCheck, Copy, Info } from 'lucide-react'
+import { CheckCheck, Copy, Globe, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,9 +19,10 @@ export function WebhookUrlField({
   copyToClipboard,
 }: WebhookUrlFieldProps) {
   return (
-    <div className='mb-4 space-y-1'>
+    <div className='mb-5 space-y-2 rounded-lg border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur-sm'>
       <div className='flex items-center gap-2'>
-        <Label htmlFor='webhook-url' className='font-medium text-sm'>
+        <Globe className='h-4 w-4 text-primary' />
+        <Label htmlFor='webhook-url' className='font-semibold text-sm tracking-tight'>
           Webhook URL
         </Label>
         <Tooltip>
@@ -29,10 +30,10 @@ export function WebhookUrlField({
             <Button
               variant='ghost'
               size='sm'
-              className='h-6 w-6 p-1 text-gray-500'
+              className='h-5 w-5 p-0.5 text-muted-foreground hover:text-foreground'
               aria-label='Learn more about webhook URL'
             >
-              <Info className='h-4 w-4' />
+              <Info className='h-3.5 w-3.5' />
             </Button>
           </TooltipTrigger>
           <TooltipContent
@@ -41,17 +42,19 @@ export function WebhookUrlField({
             className='z-[100] max-w-[300px] p-3'
             role='tooltip'
           >
-            <p className='text-sm'>URL that will receive webhook requests</p>
+            <p className='text-sm'>
+              Copy this URL and paste it into your external service&apos;s webhook configuration.
+            </p>
           </TooltipContent>
         </Tooltip>
       </div>
-      <div className='flex'>
+      <div className='flex gap-2'>
         <Input
           id='webhook-url'
           readOnly
           value={webhookUrl}
           className={cn(
-            'h-10 flex-1 cursor-text font-mono text-xs',
+            'h-10 flex-1 cursor-text rounded-md border-border/50 bg-muted/50 font-mono text-xs',
             'focus-visible:ring-2 focus-visible:ring-primary/20'
           )}
           onClick={(e) => (e.target as HTMLInputElement).select()}
@@ -61,15 +64,16 @@ export function WebhookUrlField({
           type='button'
           size='icon'
           variant='outline'
-          className={cn('ml-2 h-10 w-10', 'hover:bg-primary/5', 'transition-colors')}
+          className={cn(
+            'h-10 w-10 shrink-0 transition-all',
+            copied === 'url'
+              ? 'border-green-500/30 bg-green-500/10 text-green-500'
+              : 'hover:border-primary/30 hover:bg-primary/5'
+          )}
           onClick={() => copyToClipboard(webhookUrl, 'url')}
           disabled={isLoadingToken}
         >
-          {copied === 'url' ? (
-            <CheckCheck className='h-4 w-4 text-green-500' />
-          ) : (
-            <Copy className='h-4 w-4' />
-          )}
+          {copied === 'url' ? <CheckCheck className='h-4 w-4' /> : <Copy className='h-4 w-4' />}
         </Button>
       </div>
     </div>

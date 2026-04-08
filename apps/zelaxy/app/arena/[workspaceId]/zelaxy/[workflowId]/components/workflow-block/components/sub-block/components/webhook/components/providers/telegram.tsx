@@ -62,10 +62,10 @@ export function TelegramConfig({
         />
       )}
 
-      <InstructionsSection>
+      <InstructionsSection tip='After saving, send any message to your bot in Telegram to test the webhook trigger.'>
         <ol className='list-inside list-decimal space-y-2'>
           <li>
-            Message "/newbot" to{' '}
+            Open Telegram and search for{' '}
             <a
               href='https://t.me/BotFather'
               target='_blank'
@@ -78,11 +78,23 @@ export function TelegramConfig({
               }}
             >
               @BotFather
-            </a>{' '}
-            in Telegram to create a bot and copy its token.
+            </a>
+            .
           </li>
-          <li>Enter your Bot Token above.</li>
-          <li>Save settings and any message sent to your bot will trigger the workflow.</li>
+          <li>
+            Send <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>/newbot</code> and follow
+            the prompts to name your bot.
+          </li>
+          <li>
+            BotFather will give you a token like{' '}
+            <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>123456789:ABCdefGHI...</code> —
+            paste it in the <strong>Bot Token</strong> field above.
+          </li>
+          <li>
+            Click <strong>Save Changes</strong> — Zelaxy automatically registers the webhook with
+            Telegram.
+          </li>
+          <li>Send a message to your bot. The workflow will trigger with the message payload.</li>
         </ol>
       </InstructionsSection>
     </div>

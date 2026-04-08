@@ -807,22 +807,27 @@ export function WebhookModal({
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent
-          className='flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[600px]'
+          className='flex max-h-[90vh] flex-col gap-0 overflow-hidden rounded-xl border-border/60 p-0 shadow-xl sm:max-w-[620px]'
           hideCloseButton
         >
-          <DialogHeader className='border-b px-6 py-4'>
+          <DialogHeader className='border-border/60 border-b bg-card/50 px-6 py-5'>
             <div className='flex items-center justify-between'>
-              <DialogTitle className='font-medium text-lg'>
+              <DialogTitle className='font-semibold text-lg tracking-tight'>
                 {webhookId ? 'Edit' : 'Configure'} {getProviderTitle()} Webhook
               </DialogTitle>
-              <Button variant='ghost' size='icon' className='h-8 w-8 p-0' onClick={handleClose}>
+              <Button
+                variant='ghost'
+                size='icon'
+                className='h-8 w-8 rounded-full p-0 text-muted-foreground hover:text-foreground'
+                onClick={handleClose}
+              >
                 <X className='h-4 w-4' />
                 <span className='sr-only'>Close</span>
               </Button>
             </div>
           </DialogHeader>
 
-          <div className='flex-grow overflow-y-auto px-6 pt-4 pb-6'>
+          <div className='flex-grow overflow-y-auto px-6 pt-5 pb-6'>
             {webhookProvider !== 'slack' && webhookProvider !== 'airtable' && (
               <WebhookUrlField
                 webhookUrl={webhookUrl}
@@ -835,7 +840,7 @@ export function WebhookModal({
             {renderProviderContent()}
           </div>
 
-          <DialogFooter className='w-full border-t px-6 pt-0 pt-4 pb-6'>
+          <DialogFooter className='w-full border-border/60 border-t bg-card/30 px-6 pt-4 pb-5'>
             <WebhookDialogFooter
               webhookId={webhookId}
               webhookProvider={webhookProvider}

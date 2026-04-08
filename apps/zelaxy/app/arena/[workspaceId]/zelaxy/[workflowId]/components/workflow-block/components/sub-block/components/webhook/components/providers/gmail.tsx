@@ -211,18 +211,17 @@ export function GmailConfig({
 
   return (
     <div className='space-y-6'>
-      <ConfigSection>
+      <ConfigSection title='Email Labels to Monitor'>
         <div className='mb-3 flex items-center gap-2'>
-          <h3 className='font-medium text-sm'>Email Labels to Monitor</h3>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant='ghost'
                 size='sm'
-                className='h-6 w-6 p-1 text-gray-500'
+                className='h-5 w-5 p-0.5 text-muted-foreground'
                 aria-label='Learn more about email labels'
               >
-                <Info className='h-4 w-4' />
+                <Info className='h-3.5 w-3.5' />
               </Button>
             </TooltipTrigger>
             <TooltipContent
@@ -231,7 +230,7 @@ export function GmailConfig({
               className='z-[100] max-w-[300px] p-3'
               role='tooltip'
             >
-              <p className='text-sm'>{TOOLTIPS.labels}</p>
+              <p className='text-sm leading-relaxed'>{TOOLTIPS.labels}</p>
             </TooltipContent>
           </Tooltip>
         </div>
@@ -275,10 +274,10 @@ export function GmailConfig({
                 <Button
                   variant='ghost'
                   size='sm'
-                  className='h-6 w-6 p-1 text-gray-500'
+                  className='h-5 w-5 p-0.5 text-muted-foreground'
                   aria-label='Learn more about label filter behavior'
                 >
-                  <Info className='h-4 w-4' />
+                  <Info className='h-3.5 w-3.5' />
                 </Button>
               </TooltipTrigger>
               <TooltipContent
@@ -287,7 +286,7 @@ export function GmailConfig({
                 className='z-[100] max-w-[300px] p-3'
                 role='tooltip'
               >
-                <p className='text-sm'>{TOOLTIPS.labelFilter}</p>
+                <p className='text-sm leading-relaxed'>{TOOLTIPS.labelFilter}</p>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -305,9 +304,7 @@ export function GmailConfig({
         </div>
       </ConfigSection>
 
-      <ConfigSection>
-        <h3 className='mb-3 font-medium text-sm'>Email Processing Options</h3>
-
+      <ConfigSection title='Email Processing Options'>
         <div className='space-y-3'>
           <div className='flex items-center'>
             <div className='flex flex-1 items-center gap-2'>
@@ -324,14 +321,14 @@ export function GmailConfig({
                   <Button
                     variant='ghost'
                     size='sm'
-                    className='h-6 w-6 p-1 text-gray-500'
+                    className='h-5 w-5 p-0.5 text-muted-foreground'
                     aria-label='Learn more about marking emails as read'
                   >
-                    <Info className='h-4 w-4' />
+                    <Info className='h-3.5 w-3.5' />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side='top' align='center' className='z-[100] max-w-[300px] p-3'>
-                  <p className='text-sm'>{TOOLTIPS.markAsRead}</p>
+                  <p className='text-sm leading-relaxed'>{TOOLTIPS.markAsRead}</p>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -352,14 +349,14 @@ export function GmailConfig({
                   <Button
                     variant='ghost'
                     size='sm'
-                    className='h-6 w-6 p-1 text-gray-500'
+                    className='h-5 w-5 p-0.5 text-muted-foreground'
                     aria-label='Learn more about raw email data'
                   >
-                    <Info className='h-4 w-4' />
+                    <Info className='h-3.5 w-3.5' />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side='top' align='center' className='z-[100] max-w-[300px] p-3'>
-                  <p className='text-sm'>{TOOLTIPS.includeRawEmail}</p>
+                  <p className='text-sm leading-relaxed'>{TOOLTIPS.includeRawEmail}</p>
                 </TooltipContent>
               </Tooltip>
             </div>

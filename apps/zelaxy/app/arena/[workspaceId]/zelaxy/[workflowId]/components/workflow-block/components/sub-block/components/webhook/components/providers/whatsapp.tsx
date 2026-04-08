@@ -58,39 +58,59 @@ export function WhatsAppConfig({
         showCurlCommand={false} // WhatsApp uses GET for verification, not simple POST
       />
 
-      <InstructionsSection tip="After saving, click 'Verify and save' in WhatsApp and subscribe to the 'messages' webhook field.">
-        <ol className='list-inside list-decimal space-y-1'>
+      <InstructionsSection tip='After clicking "Verify and save" in Meta, subscribe to the "messages" webhook field to start receiving message events.'>
+        <ol className='list-inside list-decimal space-y-2'>
           <li>
             Go to your{' '}
             <a
               href='https://developers.facebook.com/apps/'
               target='_blank'
               rel='noopener noreferrer'
-              className='link'
+              className='link text-primary underline transition-colors hover:text-primary/80'
+              onClick={(e) => {
+                e.stopPropagation()
+                window.open(
+                  'https://developers.facebook.com/apps/',
+                  '_blank',
+                  'noopener,noreferrer'
+                )
+                e.preventDefault()
+              }}
             >
-              Meta for Developers Apps
+              Meta for Developers
             </a>{' '}
-            page.
-          </li>
-          <li>Select your App, then navigate to WhatsApp {'>'} Configuration.</li>
-          <li>Find the Webhooks section and click "Edit".</li>
-          <li>
-            Paste the <strong>Webhook URL</strong> (from above) into the "Callback URL" field.
+            dashboard and select your app.
           </li>
           <li>
-            Paste the <strong>Verification Token</strong> (from above) into the "Verify token"
-            field.
+            Navigate to <strong>WhatsApp</strong> → <strong>Configuration</strong> in the sidebar.
           </li>
-          <li>Click "Verify and save".</li>
-          <li>Click "Manage" next to Webhook fields and subscribe to `messages`.</li>
+          <li>
+            In the <strong>Webhooks</strong> section, click <strong>Edit</strong>.
+          </li>
+          <li>
+            Paste the <strong>Webhook URL</strong> (from above) into the{' '}
+            <strong>Callback URL</strong> field.
+          </li>
+          <li>
+            Paste the <strong>Verification Token</strong> (from above) into the{' '}
+            <strong>Verify Token</strong> field.
+          </li>
+          <li>
+            Click <strong>Verify and Save</strong> — Meta will send a verification request to your
+            webhook.
+          </li>
+          <li>
+            Click <strong>Manage</strong> next to Webhook fields and subscribe to{' '}
+            <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>messages</code>.
+          </li>
         </ol>
       </InstructionsSection>
 
-      <Alert>
+      <Alert className='rounded-lg border-border/60'>
         <Network className='h-4 w-4' />
-        <AlertTitle>Requirements</AlertTitle>
+        <AlertTitle className='font-semibold text-sm'>Requirements</AlertTitle>
         <AlertDescription>
-          <ul className='mt-1 list-outside list-disc space-y-1 pl-4'>
+          <ul className='mt-1.5 list-outside list-disc space-y-1 pl-4'>
             <li>Your Zelaxy webhook URL must use HTTPS and be publicly accessible.</li>
             <li>Self-signed SSL certificates are not supported by WhatsApp.</li>
             <li>For local testing, use a tunneling service like ngrok or Cloudflare Tunnel.</li>
