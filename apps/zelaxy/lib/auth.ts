@@ -242,6 +242,14 @@ export const auth = betterAuth({
       return
     }),
   },
+  advanced: {
+    crossSubDomainCookies: isProd
+      ? {
+          enabled: true,
+          domain: `.${new URL(env.NEXT_PUBLIC_APP_URL).hostname.replace(/^www\./, '')}`, // e.g. .zelaxy.in
+        }
+      : undefined,
+  },
   plugins: [
     nextCookies(),
     oneTimeToken({

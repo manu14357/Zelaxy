@@ -18,12 +18,23 @@ const SUSPICIOUS_UA_PATTERNS = [
 const BASE_DOMAIN = getBaseDomain()
 
 export async function middleware(request: NextRequest) {
+  const url = request.nextUrl
+  const hostname = request.headers.get('host') || ''
+
+  // Redirect apex domain to www for consistent cookie handling
+  // e.g., zelaxy.in → www.zelaxy.in
+  if (BASE_DOMAIN.startsWith('www.') && !hostname.startsWith('www.')) {
+    const apexOfBase = BASE_DOMAIN.replace('www.', '')
+    if (hostname === apexOfBase || hostname.startsWith(`${apexOfBase}:`)) {
+      const redirectUrl = new URL(request.url)
+      redirectUrl.host = BASE_DOMAIN
+      return NextResponse.redirect(redirectUrl, 301)
+    }
+  }
+
   // Check for active session
   const sessionCookie = getSessionCookie(request)
   const hasActiveSession = !!sessionCookie
-
-  const url = request.nextUrl
-  const hostname = request.headers.get('host') || ''
 
   // Extract subdomain - handle nested subdomains for any domain
   const isCustomDomain = (() => {
