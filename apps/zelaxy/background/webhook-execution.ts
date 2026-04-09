@@ -40,20 +40,13 @@ export const webhookExecution = task({
     const executionId = uuidv4()
     const requestId = executionId.slice(0, 8)
 
-    // Diagnostic: verify critical env vars are available in Trigger.dev worker
-    logger.info(`[${requestId}] Trigger.dev worker env check`, {
-      hasPostgresUrl: !!process.env.POSTGRES_URL,
-      hasDatabaseUrl: !!process.env.DATABASE_URL,
-      hasEncryptionKey: !!process.env.ENCRYPTION_KEY,
-      nodeEnv: process.env.NODE_ENV,
-    })
-
     logger.info(`[${requestId}] Starting webhook execution via trigger.dev`, {
       webhookId: payload.webhookId,
       workflowId: payload.workflowId,
       provider: payload.provider,
       userId: payload.userId,
       executionId,
+      triggerKeyPrefix: process.env.TRIGGER_SECRET_KEY?.slice(0, 7) || 'MISSING',
     })
 
     // Initialize logging session outside try block so it's available in catch
