@@ -558,6 +558,23 @@ export async function POST(
         }
 
         // Rate limit passed - trigger the task
+        // Hard-fail: verify the exact key prefix before queuing any task.
+        const triggerKey = process.env.TRIGGER_SECRET_KEY
+        const keyPrefix = triggerKey?.slice(0, 10) || 'MISSING'
+        const vercelEnv = process.env.VERCEL_ENV || 'unknown'
+
+        logger.info(`[${requestId}] Trigger.dev key check: prefix=${keyPrefix}, VERCEL_ENV=${vercelEnv}`)
+
+        if (vercelEnv === 'production' && triggerKey && !triggerKey.startsWith('tr_prod_')) {
+          logger.error(
+            `[${requestId}] FATAL: Production deployment is using a non-production Trigger.dev key (${keyPrefix}).`
+          )
+          return new Response(
+            JSON.stringify({ error: 'Misconfigured Trigger.dev environment' }),
+            { status: 503, headers: { 'Content-Type': 'application/json' } }
+          )
+        }
+
         const triggerDiagnostics = assertValidTriggerEnvironmentForProduction(request)
         logger.info(`[${requestId}] Trigger.dev environment diagnostics`, triggerDiagnostics)
 
