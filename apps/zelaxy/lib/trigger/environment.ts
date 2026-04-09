@@ -1,4 +1,3 @@
-import type { NextRequest } from 'next/server'
 import { env } from '@/lib/env'
 
 type TriggerKeyType = 'prod' | 'dev' | 'missing' | 'unknown'
@@ -10,7 +9,7 @@ function getTriggerKeyType(secretKey?: string): TriggerKeyType {
   return 'unknown'
 }
 
-export function getTriggerEnvironmentDiagnostics(request?: NextRequest) {
+export function getTriggerEnvironmentDiagnostics(request?: Request) {
   const secretKey = process.env.TRIGGER_SECRET_KEY
   const keyType = getTriggerKeyType(secretKey)
 
@@ -23,7 +22,7 @@ export function getTriggerEnvironmentDiagnostics(request?: NextRequest) {
   }
 }
 
-export function assertValidTriggerEnvironmentForProduction(request?: NextRequest) {
+export function assertValidTriggerEnvironmentForProduction(request?: Request) {
   const diagnostics = getTriggerEnvironmentDiagnostics(request)
 
   if (diagnostics.vercelEnv === 'production' && diagnostics.keyType !== 'prod') {
