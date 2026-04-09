@@ -247,6 +247,10 @@ export async function POST(
 
   // --- PHASE 4: Queue webhook execution via trigger.dev ---
   try {
+    // Log which Trigger.dev environment we're queuing to
+    const triggerKeyType = process.env.TRIGGER_SECRET_KEY?.startsWith('tr_prod_') ? 'PROD' : 'DEV'
+    logger.info(`[${requestId}] Trigger.dev environment: ${triggerKeyType}`)
+
     // Queue the webhook execution task
     const handle = await tasks.trigger('webhook-execution', {
       webhookId: foundWebhook.id,
@@ -260,7 +264,7 @@ export async function POST(
     })
 
     logger.info(
-      `[${requestId}] Queued webhook execution task ${handle.id} for ${foundWebhook.provider} webhook`
+      `[${requestId}] Queued webhook execution task ${handle.id} for ${foundWebhook.provider} webhook (env: ${triggerKeyType})`
     )
 
     // Return immediate acknowledgment with provider-specific format
