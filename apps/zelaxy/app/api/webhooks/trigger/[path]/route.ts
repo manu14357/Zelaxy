@@ -3,6 +3,10 @@ import { and, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logs/console/logger'
 import {
+  assertValidTriggerEnvironmentForProduction,
+  getTriggerEnvironmentDiagnostics,
+} from '@/lib/trigger/environment'
+import {
   handleSlackChallenge,
   handleWhatsAppVerification,
   validateMicrosoftTeamsSignature,
@@ -247,9 +251,8 @@ export async function POST(
 
   // --- PHASE 4: Queue webhook execution via trigger.dev ---
   try {
-    // Log which Trigger.dev environment we're queuing to
-    const triggerKeyType = process.env.TRIGGER_SECRET_KEY?.startsWith('tr_prod_') ? 'PROD' : 'DEV'
-    logger.info(`[${requestId}] Trigger.dev environment: ${triggerKeyType}`)
+    const triggerDiagnostics = assertValidTriggerEnvironmentForProduction(request)
+    logger.info(`[${requestId}] Trigger.dev environment diagnostics`, triggerDiagnostics)
 
     // Queue the webhook execution task
     const handle = await tasks.trigger('webhook-execution', {
@@ -264,7 +267,8 @@ export async function POST(
     })
 
     logger.info(
-      `[${requestId}] Queued webhook execution task ${handle.id} for ${foundWebhook.provider} webhook (env: ${triggerKeyType})`
+      `[${requestId}] Queued webhook execution task ${handle.id} for ${foundWebhook.provider} webhook`,
+      getTriggerEnvironmentDiagnostics(request)
     )
 
     // Return immediate acknowledgment with provider-specific format

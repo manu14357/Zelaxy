@@ -9,6 +9,10 @@ import { createLogger } from '@/lib/logs/console/logger'
 import { LoggingSession } from '@/lib/logs/execution/logging-session'
 import { buildTraceSpans } from '@/lib/logs/execution/trace-spans/trace-spans'
 import { registerMCPService } from '@/lib/mcp-service-registry'
+import {
+  assertValidTriggerEnvironmentForProduction,
+  getTriggerEnvironmentDiagnostics,
+} from '@/lib/trigger/environment'
 import { decryptSecret } from '@/lib/utils'
 import { loadDeployedWorkflowState } from '@/lib/workflows/db-helpers'
 import {
@@ -554,6 +558,9 @@ export async function POST(
         }
 
         // Rate limit passed - trigger the task
+        const triggerDiagnostics = assertValidTriggerEnvironmentForProduction(request)
+        logger.info(`[${requestId}] Trigger.dev environment diagnostics`, triggerDiagnostics)
+
         const handle = await tasks.trigger('workflow-execution', {
           workflowId,
           userId: authenticatedUserId,
@@ -563,7 +570,8 @@ export async function POST(
         })
 
         logger.info(
-          `[${requestId}] Created Trigger.dev task ${handle.id} for workflow ${workflowId}`
+          `[${requestId}] Created Trigger.dev task ${handle.id} for workflow ${workflowId}`,
+          getTriggerEnvironmentDiagnostics(request)
         )
 
         return new Response(
