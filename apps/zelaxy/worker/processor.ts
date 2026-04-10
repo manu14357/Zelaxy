@@ -168,6 +168,20 @@ export async function processWorkflowExecution(
       executionId,
     })
 
+    if (!executionResult.success) {
+      workflowLogger.error(`[${requestId}] Workflow execution returned success:false`, {
+        workflowId,
+        error: executionResult.error,
+        failedBlocks: executionResult.logs
+          ?.filter((l: any) => l.success === false)
+          .map((l: any) => ({
+            blockId: l.blockId,
+            blockName: l.blockName || l.blockType,
+            error: l.error,
+          })),
+      })
+    }
+
     if (executionResult.success) {
       await updateWorkflowRunCounts(workflowId)
 
@@ -444,6 +458,21 @@ export async function processWebhookExecution(
       workflowId: payload.workflowId,
       provider: payload.provider,
     })
+
+    if (!executionResult.success) {
+      webhookLogger.error(`[${requestId}] Webhook workflow execution returned success:false`, {
+        workflowId: payload.workflowId,
+        provider: payload.provider,
+        error: executionResult.error,
+        failedBlocks: executionResult.logs
+          ?.filter((l: any) => l.success === false)
+          .map((l: any) => ({
+            blockId: l.blockId,
+            blockName: l.blockName || l.blockType,
+            error: l.error,
+          })),
+      })
+    }
 
     if (executionResult.success) {
       await updateWorkflowRunCounts(payload.workflowId)
