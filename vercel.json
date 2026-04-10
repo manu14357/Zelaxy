@@ -1,6 +1,4 @@
-{
-  "alias": ["zelaxy.in", "www.zelaxy.in"],
-  "git": {
+{  "git": {
     "deploymentEnabled": {
       "main": true,
       "*": false
