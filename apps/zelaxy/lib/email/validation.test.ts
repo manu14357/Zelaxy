@@ -1,3 +1,4 @@
+/// <reference types="vitest/globals" />
 vi.mock('dns', () => ({
   resolveMx: (domain: string, callback: (error: Error | null, records?: any[]) => void) => {
     callback(null, [{ exchange: `mx.${domain}`, priority: 10 }])
