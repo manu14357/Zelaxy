@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { logger } from '@trigger.dev/sdk/v3'
 import { PlusIcon, WrenchIcon, XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -715,7 +714,7 @@ export function ToolInput({
 
   const handleOperationChange = (toolIndex: number, operation: string) => {
     if (isPreview || disabled) {
-      logger.info('❌ Early return: preview or disabled')
+      console.info('❌ Early return: preview or disabled')
       return
     }
 
@@ -724,7 +723,7 @@ export function ToolInput({
     const newToolId = getToolIdForOperation(tool.type, operation)
 
     if (!newToolId) {
-      logger.info('❌ Early return: no newToolId')
+      console.info('❌ Early return: no newToolId')
       return
     }
 
@@ -732,7 +731,7 @@ export function ToolInput({
     const toolParams = getToolParametersConfig(newToolId, tool.type)
 
     if (!toolParams) {
-      logger.info('❌ Early return: no toolParams')
+      console.info('❌ Early return: no toolParams')
       return
     }
 

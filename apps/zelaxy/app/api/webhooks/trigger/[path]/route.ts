@@ -1,11 +1,7 @@
-import { tasks } from '@trigger.dev/sdk/v3'
 import { and, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
+import { addWebhookJob } from '@/lib/bullmq/producer'
 import { createLogger } from '@/lib/logs/console/logger'
-import {
-  assertValidTriggerEnvironmentForProduction,
-  getTriggerEnvironmentDiagnostics,
-} from '@/lib/trigger/environment'
 import {
   handleSlackChallenge,
   handleWhatsAppVerification,
@@ -249,32 +245,9 @@ export async function POST(
     // Continue processing - better to risk rate limit bypass than fail webhook
   }
 
-  // --- PHASE 4: Queue webhook execution via trigger.dev ---
+  // --- PHASE 4: Queue webhook execution via BullMQ ---
   try {
-    // Hard-fail: verify the exact key prefix before queuing any task.
-    // This prevents tasks from silently routing to the wrong Trigger.dev environment.
-    const triggerKey = process.env.TRIGGER_SECRET_KEY
-    const keyPrefix = triggerKey?.slice(0, 10) || 'MISSING'
-    const vercelEnv = process.env.VERCEL_ENV || 'unknown'
-
-    logger.info(`[${requestId}] Trigger.dev key check: prefix=${keyPrefix}, VERCEL_ENV=${vercelEnv}`)
-
-    if (vercelEnv === 'production' && triggerKey && !triggerKey.startsWith('tr_prod_')) {
-      logger.error(
-        `[${requestId}] FATAL: Production deployment is using a non-production Trigger.dev key (${keyPrefix}). ` +
-          'Update TRIGGER_SECRET_KEY in Vercel env vars to tr_prod_xxx and REDEPLOY.'
-      )
-      return NextResponse.json(
-        { error: 'Webhook execution blocked: misconfigured Trigger.dev environment' },
-        { status: 503 }
-      )
-    }
-
-    const triggerDiagnostics = assertValidTriggerEnvironmentForProduction(request)
-    logger.info(`[${requestId}] Trigger.dev environment diagnostics`, triggerDiagnostics)
-
-    // Queue the webhook execution task
-    const handle = await tasks.trigger('webhook-execution', {
+    const { jobId } = await addWebhookJob({
       webhookId: foundWebhook.id,
       workflowId: foundWorkflow.id,
       userId: foundWorkflow.userId,
@@ -285,10 +258,7 @@ export async function POST(
       blockId: foundWebhook.blockId,
     })
 
-    logger.info(
-      `[${requestId}] Queued webhook execution task ${handle.id} for ${foundWebhook.provider} webhook`,
-      getTriggerEnvironmentDiagnostics(request)
-    )
+    logger.info(`[${requestId}] Queued webhook job ${jobId} for ${foundWebhook.provider} webhook`)
 
     // Return immediate acknowledgment with provider-specific format
     if (foundWebhook.provider === 'microsoftteams') {

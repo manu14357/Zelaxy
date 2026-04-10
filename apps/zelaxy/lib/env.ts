@@ -101,7 +101,6 @@ export const env = createEnv({
     DOCKER_BUILD:                         z.boolean().optional(),                 // Flag indicating Docker build environment
 
     // Background Jobs & Scheduling
-    TRIGGER_SECRET_KEY:                   z.string().min(1).optional(),           // Trigger.dev secret key for background jobs
     CRON_SECRET:                          z.string().optional(),                  // Secret for authenticating cron job requests
     JOB_RETENTION_DAYS:                   z.string().optional().default('1'),     // Days to retain job logs/data
 

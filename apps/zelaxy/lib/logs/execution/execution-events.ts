@@ -8,7 +8,7 @@ const logger = createLogger('ExecutionEvents')
  * Falls back to localhost:3002 in development.
  */
 function getSocketServerUrl(): string {
-  // In Trigger.dev background tasks, process.env is available
+  // In BullMQ background workers, process.env is available
   return (
     process.env.SOCKET_SERVER_URL || process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3002'
   )
@@ -41,7 +41,7 @@ export interface ExecutionCompleteEvent {
 
 /**
  * Emits an execution event to the Socket.IO server via HTTP bridge.
- * This works from both the main Next.js app and Trigger.dev background tasks.
+ * This works from both the main Next.js app and BullMQ background workers.
  * Failures are silently logged — never blocks workflow execution.
  */
 async function emitToSocketServer(endpoint: string, payload: Record<string, any>): Promise<void> {

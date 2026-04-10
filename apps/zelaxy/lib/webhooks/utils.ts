@@ -1188,7 +1188,7 @@ export async function fetchAndProcessAirtablePayloads(
           }
         )
 
-        // Return the processed input for the trigger.dev task to handle
+        // Return the processed input for the BullMQ job to handle
         logger.info(`[${requestId}] CRITICAL_TRACE: Airtable changes processed, returning input`, {
           workflowId: workflowData.id,
           recordCount: finalConsolidatedChanges.length,

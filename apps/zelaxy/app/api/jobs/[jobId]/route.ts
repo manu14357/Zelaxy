@@ -1,7 +1,7 @@
-import { runs } from '@trigger.dev/sdk/v3'
 import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
+import { getJobStatus } from '@/lib/bullmq/producer'
 import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
 
@@ -45,69 +45,52 @@ export async function GET(
       return createErrorResponse('Authentication required', 401)
     }
 
-    // Fetch task status from Trigger.dev
-    const run = await runs.retrieve(taskId)
+    // Fetch job status from BullMQ
+    const jobStatus = await getJobStatus(taskId)
 
-    logger.debug(`[${requestId}] Task ${taskId} status: ${run.status}`)
+    if (!jobStatus) {
+      return createErrorResponse('Task not found', 404)
+    }
 
-    // Map Trigger.dev status to our format
-    const statusMap = {
-      QUEUED: 'queued',
-      WAITING_FOR_DEPLOY: 'queued',
-      EXECUTING: 'processing',
-      RESCHEDULED: 'processing',
-      FROZEN: 'processing',
-      COMPLETED: 'completed',
-      CANCELED: 'cancelled',
-      FAILED: 'failed',
-      CRASHED: 'failed',
-      INTERRUPTED: 'failed',
-      SYSTEM_FAILURE: 'failed',
-      EXPIRED: 'failed',
-    } as const
+    logger.debug(`[${requestId}] Task ${taskId} status: ${jobStatus.status}`)
 
-    const mappedStatus = statusMap[run.status as keyof typeof statusMap] || 'unknown'
-
-    // Build response based on status
+    // Build response matching the existing API format
     const response: any = {
       success: true,
       taskId,
-      status: mappedStatus,
+      status: jobStatus.status,
       metadata: {
-        startedAt: run.startedAt,
+        startedAt: jobStatus.startedAt || null,
       },
     }
 
     // Add completion details if finished
-    if (mappedStatus === 'completed') {
-      response.output = run.output // This contains the workflow execution results
-      response.metadata.completedAt = run.finishedAt
-      response.metadata.duration = run.durationMs
+    if (jobStatus.status === 'completed') {
+      response.output = jobStatus.output
+      response.metadata.completedAt = jobStatus.completedAt
+        ? new Date(jobStatus.completedAt).toISOString()
+        : null
+      response.metadata.duration = jobStatus.duration
     }
 
     // Add error details if failed
-    if (mappedStatus === 'failed') {
-      response.error = run.error
-      response.metadata.completedAt = run.finishedAt
-      response.metadata.duration = run.durationMs
+    if (jobStatus.status === 'failed') {
+      response.error = jobStatus.error
+      response.metadata.completedAt = jobStatus.completedAt
+        ? new Date(jobStatus.completedAt).toISOString()
+        : null
+      response.metadata.duration = jobStatus.duration
     }
 
     // Add progress info if still processing
-    if (mappedStatus === 'processing' || mappedStatus === 'queued') {
-      response.estimatedDuration = 180000 // 3 minutes max from our config
+    if (jobStatus.status === 'processing' || jobStatus.status === 'queued') {
+      response.estimatedDuration = 180000 // 3 minutes max
     }
 
     return NextResponse.json(response)
   } catch (error: any) {
     logger.error(`[${requestId}] Error fetching task status:`, error)
 
-    if (error.message?.includes('not found') || error.status === 404) {
-      return createErrorResponse('Task not found', 404)
-    }
-
     return createErrorResponse('Failed to fetch task status', 500)
   }
 }
-
-// TODO: Implement task cancellation via Trigger.dev API if needed
-// export async function DELETE() { ... }

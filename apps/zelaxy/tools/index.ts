@@ -343,7 +343,7 @@ export async function executeTool(
     // The proxy already processes file outputs via its own executeTool call
     // (with the execution context we passed). Re-processing would download files
     // from S3 again, re-upload, and re-parse — wasting memory and causing OOM
-    // in memory-constrained environments like trigger.dev workers.
+    // in memory-constrained environments like BullMQ workers.
 
     // Add timing data to the result
     const endTime = new Date()

@@ -1,18 +1,14 @@
-import { tasks } from '@trigger.dev/sdk/v3'
 import { eq, sql } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth'
 import { checkServerSideUsageLimits } from '@/lib/billing'
+import { addWorkflowJob } from '@/lib/bullmq/producer'
 import { createLogger } from '@/lib/logs/console/logger'
 import { LoggingSession } from '@/lib/logs/execution/logging-session'
 import { buildTraceSpans } from '@/lib/logs/execution/trace-spans/trace-spans'
 import { registerMCPService } from '@/lib/mcp-service-registry'
-import {
-  assertValidTriggerEnvironmentForProduction,
-  getTriggerEnvironmentDiagnostics,
-} from '@/lib/trigger/environment'
 import { decryptSecret } from '@/lib/utils'
 import { loadDeployedWorkflowState } from '@/lib/workflows/db-helpers'
 import {
@@ -557,28 +553,8 @@ export async function POST(
           )
         }
 
-        // Rate limit passed - trigger the task
-        // Hard-fail: verify the exact key prefix before queuing any task.
-        const triggerKey = process.env.TRIGGER_SECRET_KEY
-        const keyPrefix = triggerKey?.slice(0, 10) || 'MISSING'
-        const vercelEnv = process.env.VERCEL_ENV || 'unknown'
-
-        logger.info(`[${requestId}] Trigger.dev key check: prefix=${keyPrefix}, VERCEL_ENV=${vercelEnv}`)
-
-        if (vercelEnv === 'production' && triggerKey && !triggerKey.startsWith('tr_prod_')) {
-          logger.error(
-            `[${requestId}] FATAL: Production deployment is using a non-production Trigger.dev key (${keyPrefix}).`
-          )
-          return new Response(
-            JSON.stringify({ error: 'Misconfigured Trigger.dev environment' }),
-            { status: 503, headers: { 'Content-Type': 'application/json' } }
-          )
-        }
-
-        const triggerDiagnostics = assertValidTriggerEnvironmentForProduction(request)
-        logger.info(`[${requestId}] Trigger.dev environment diagnostics`, triggerDiagnostics)
-
-        const handle = await tasks.trigger('workflow-execution', {
+        // Rate limit passed - queue the job via BullMQ
+        const { jobId } = await addWorkflowJob({
           workflowId,
           userId: authenticatedUserId,
           input,
@@ -586,19 +562,16 @@ export async function POST(
           metadata: { triggerType: 'api' },
         })
 
-        logger.info(
-          `[${requestId}] Created Trigger.dev task ${handle.id} for workflow ${workflowId}`,
-          getTriggerEnvironmentDiagnostics(request)
-        )
+        logger.info(`[${requestId}] Queued workflow job ${jobId} for workflow ${workflowId}`)
 
         return new Response(
           JSON.stringify({
             success: true,
-            taskId: handle.id,
+            taskId: jobId,
             status: 'queued',
             createdAt: new Date().toISOString(),
             links: {
-              status: `/api/jobs/${handle.id}`,
+              status: `/api/jobs/${jobId}`,
             },
           }),
           {
@@ -607,7 +580,7 @@ export async function POST(
           }
         )
       } catch (error: any) {
-        logger.error(`[${requestId}] Failed to create Trigger.dev task:`, error)
+        logger.error(`[${requestId}] Failed to queue workflow job:`, error)
         return createErrorResponse('Failed to queue workflow execution', 500)
       }
     }
