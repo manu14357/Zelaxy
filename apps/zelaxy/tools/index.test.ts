@@ -542,6 +542,53 @@ describe('Automatic Internal Route Detection', () => {
       Object.assign(tools, originalTools)
     }
   )
+
+  it.concurrent('should call external URLs directly during server-side execution', async () => {
+    const originalWindow = global.window
+
+    const mockTool = {
+      id: 'test_server_side_external',
+      name: 'Test Server Side External Tool',
+      description: 'A test tool to verify server-side external execution bypasses the proxy',
+      version: '1.0.0',
+      params: {},
+      request: {
+        url: 'https://api.example.com/server-endpoint',
+        method: 'GET',
+        headers: () => ({ 'Content-Type': 'application/json' }),
+      },
+      transformResponse: vi.fn().mockResolvedValue({
+        success: true,
+        output: { result: 'Server-side direct external call' },
+      }),
+    }
+
+    const originalTools = { ...tools }
+    ;(tools as any).test_server_side_external = mockTool
+
+    global.window = undefined as any
+    global.fetch = Object.assign(
+      vi.fn().mockImplementation(async (url) => {
+        expect(url).toBe('https://api.example.com/server-endpoint')
+        return {
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ success: true, data: 'test' }),
+          clone: vi.fn().mockReturnThis(),
+        }
+      }),
+      { preconnect: vi.fn() }
+    ) as typeof fetch
+
+    const result = await executeTool('test_server_side_external', {}, false)
+
+    expect(result.success).toBe(true)
+    expect(result.output.result).toBe('Server-side direct external call')
+    expect(mockTool.transformResponse).toHaveBeenCalled()
+
+    global.window = originalWindow
+    Object.assign(tools, originalTools)
+  })
 })
 
 describe('Centralized Error Handling', () => {

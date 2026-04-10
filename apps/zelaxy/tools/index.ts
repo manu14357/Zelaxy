@@ -212,6 +212,7 @@ export async function executeTool(
 
     // Ensure context is preserved if it exists
     const contextParams = { ...params }
+    const isServerSide = typeof window === 'undefined'
 
     // Validate the tool and its parameters
     validateRequiredParametersAfterMerge(toolId, tool, contextParams)
@@ -228,8 +229,6 @@ export async function executeTool(
       )
       try {
         const baseUrl = getBaseUrl()
-
-        const isServerSide = typeof window === 'undefined'
 
         // Prepare the token payload
         const tokenPayload: OAuthTokenPayload = {
@@ -283,13 +282,14 @@ export async function executeTool(
       }
     }
 
-    // For internal routes or when skipProxy is true, call the API directly
-    // Internal routes are automatically detected by checking if URL starts with /api/
+    // For server-side execution, internal routes, or explicit skipProxy, call the API directly.
+    // The worker/runtime does not need the Next.js proxy for external APIs because it can reach
+    // those URLs without browser CORS limitations.
     const endpointUrl =
       typeof tool.request.url === 'function' ? tool.request.url(contextParams) : tool.request.url
     const isInternalRoute = endpointUrl.startsWith('/api/')
 
-    if (isInternalRoute || skipProxy) {
+    if (isInternalRoute || skipProxy || isServerSide) {
       const result = await handleInternalRequest(toolId, tool, contextParams)
 
       // Apply post-processing if available and not skipped
