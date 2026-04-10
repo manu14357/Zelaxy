@@ -21,42 +21,16 @@ export const telegramWebhookTrigger: TriggerConfig = {
   },
 
   outputs: {
+    // Top-level text input from the message
+    input: {
+      type: 'string',
+      description: 'Message text content (primary input for AI blocks)',
+    },
+    // Message metadata
     message: {
-      update_id: {
-        type: 'number',
-        description: 'Unique identifier for the update',
-      },
-      message_id: {
+      id: {
         type: 'number',
         description: 'Unique message identifier',
-      },
-      from_id: {
-        type: 'number',
-        description: 'User ID who sent the message',
-      },
-      from_username: {
-        type: 'string',
-        description: 'Username of the sender',
-      },
-      from_first_name: {
-        type: 'string',
-        description: 'First name of the sender',
-      },
-      from_last_name: {
-        type: 'string',
-        description: 'Last name of the sender',
-      },
-      chat_id: {
-        type: 'number',
-        description: 'Unique identifier for the chat',
-      },
-      chat_type: {
-        type: 'string',
-        description: 'Type of chat (private, group, supergroup, channel)',
-      },
-      chat_title: {
-        type: 'string',
-        description: 'Title of the chat (for groups and channels)',
       },
       text: {
         type: 'string',
@@ -66,10 +40,69 @@ export const telegramWebhookTrigger: TriggerConfig = {
         type: 'number',
         description: 'Date the message was sent (Unix timestamp)',
       },
-      entities: {
+      messageType: {
         type: 'string',
-        description: 'Special entities in the message (mentions, hashtags, etc.) as JSON string',
+        description:
+          'Type of message (text, photo, document, audio, video, voice, sticker, location, contact, poll)',
       },
+    },
+    // Sender information (message.from)
+    sender: {
+      id: {
+        type: 'number',
+        description: "Sender's Telegram user account ID",
+      },
+      firstName: {
+        type: 'string',
+        description: 'First name of the sender',
+      },
+      lastName: {
+        type: 'string',
+        description: 'Last name of the sender',
+      },
+      username: {
+        type: 'string',
+        description: 'Username of the sender',
+      },
+      languageCode: {
+        type: 'string',
+        description: 'IETF language code of the sender',
+      },
+      isBot: {
+        type: 'boolean',
+        description: 'Whether the sender is a bot',
+      },
+    },
+    // Chat information (message.chat) — use chat.id to reply
+    chat: {
+      id: {
+        type: 'number',
+        description: 'Chat ID to send replies to (use this as chatId in Telegram blocks)',
+      },
+      title: {
+        type: 'string',
+        description: 'Title of the chat (for groups and channels)',
+      },
+      username: {
+        type: 'string',
+        description: 'Chat username',
+      },
+      firstName: {
+        type: 'string',
+        description: 'First name (for private chats)',
+      },
+      lastName: {
+        type: 'string',
+        description: 'Last name (for private chats)',
+      },
+    },
+    updateId: {
+      type: 'number',
+      description: 'Unique identifier for the Telegram update',
+    },
+    updateType: {
+      type: 'string',
+      description: 'Type of update (message, edited_message, channel_post, edited_channel_post)',
     },
   },
 

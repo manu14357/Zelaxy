@@ -10,7 +10,18 @@ const nextConfig: NextConfig = {
   // Packages that should only be resolved on the server (Node.js), never
   // bundled into the client. Prevents "Module not found: Can't resolve 'fs'"
   // errors when these are dynamically imported inside server-side code paths.
-  serverExternalPackages: ['sharp', 'tesseract.js', 'pdf-parse', 'detect-libc', 'mupdf'],
+  // @sentry/opentelemetry is excluded from bundling so Turbopack's ESM static
+  // analysis doesn't fail on the sdk-trace-base@2.x import of `defaultResource`
+  // from the hoisted @opentelemetry/resources@1.x (which no longer exports it).
+  // Node.js loads it at runtime via CJS, which is lenient about missing exports.
+  serverExternalPackages: [
+    'sharp',
+    'tesseract.js',
+    'pdf-parse',
+    'detect-libc',
+    'mupdf',
+    '@sentry/opentelemetry',
+  ],
   images: {
     remotePatterns: [
       {
