@@ -464,10 +464,21 @@ export async function processWebhookExecution(
     webhookLogger.info(`[${requestId}] DIAG: Creating executor`, {
       blockCount: serializedWorkflow.blocks.length,
       connectionCount: serializedWorkflow.connections.length,
-      blockTypes: serializedWorkflow.blocks.map((b: any) => `${b.metadata?.id || 'unknown'}:${b.metadata?.name || b.id}`),
+      blockTypes: serializedWorkflow.blocks.map(
+        (b: any) => `${b.metadata?.id || 'unknown'}:${b.metadata?.name || b.id}`
+      ),
       hasEnvVars: Object.keys(decryptedEnvVars).length > 0,
       envVarKeys: Object.keys(decryptedEnvVars),
-      processEnvKeys: ['NEXT_PUBLIC_APP_URL', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY_1', 'ANTHROPIC_API_KEY_1', 'BETTER_AUTH_URL', 'BETTER_AUTH_SECRET', 'INTERNAL_API_SECRET'].filter(k => !!process.env[k]),
+      processEnvKeys: [
+        'NEXT_PUBLIC_APP_URL',
+        'OPENAI_API_KEY',
+        'ANTHROPIC_API_KEY',
+        'OPENAI_API_KEY_1',
+        'ANTHROPIC_API_KEY_1',
+        'BETTER_AUTH_URL',
+        'BETTER_AUTH_SECRET',
+        'INTERNAL_API_SECRET',
+      ].filter((k) => !!process.env[k]),
     })
 
     const executor = new Executor({
