@@ -271,10 +271,17 @@ export async function processWebhookExecution(
       )
     }
 
+    webhookLogger.info(`[${requestId}] DIAG: Loading workflow from normalized tables`)
     const workflowData = await loadWorkflowFromNormalizedTables(payload.workflowId)
     if (!workflowData) {
       throw new Error(`Workflow not found: ${payload.workflowId}`)
     }
+    webhookLogger.info(`[${requestId}] DIAG: Workflow loaded`, {
+      blockCount: workflowData.blocks ? Object.keys(workflowData.blocks).length : 0,
+      edgeCount: workflowData.edges?.length || 0,
+      hasLoops: !!workflowData.loops && Object.keys(workflowData.loops).length > 0,
+      hasParallels: !!workflowData.parallels && Object.keys(workflowData.parallels).length > 0,
+    })
 
     const [workflowRecord] = await db
       .select({ workspaceId: workflowTable.workspaceId })
@@ -285,7 +292,12 @@ export async function processWebhookExecution(
 
     const { blocks, edges, loops, parallels } = workflowData
 
+    webhookLogger.info(`[${requestId}] DIAG: Decrypting env vars for user ${payload.userId}`)
     const decryptedEnvVars = await decryptEnvVars(payload.userId, requestId, webhookLogger)
+    webhookLogger.info(`[${requestId}] DIAG: Env vars decrypted`, {
+      count: Object.keys(decryptedEnvVars).length,
+      keys: Object.keys(decryptedEnvVars),
+    })
 
     await loggingSession.safeStart({
       userId: payload.userId,
@@ -416,7 +428,20 @@ export async function processWebhookExecution(
       headers: new Map(Object.entries(payload.headers)),
     } as any
 
+    webhookLogger.info(`[${requestId}] DIAG: formatWebhookInput starting`, {
+      provider: payload.provider,
+      blockId: payload.blockId,
+      bodyKeys: payload.body ? Object.keys(payload.body) : [],
+      headerCount: Object.keys(payload.headers).length,
+    })
+
     const input = formatWebhookInput(mockWebhook, mockWorkflow, payload.body, mockRequest)
+
+    webhookLogger.info(`[${requestId}] DIAG: formatWebhookInput result`, {
+      hasInput: !!input,
+      inputKeys: input ? Object.keys(input) : [],
+      inputPreview: input ? JSON.stringify(input).slice(0, 500) : 'null',
+    })
 
     if (!input && payload.provider === 'whatsapp') {
       webhookLogger.info(`[${requestId}] No messages in WhatsApp payload, skipping execution`)
@@ -436,6 +461,15 @@ export async function processWebhookExecution(
       }
     }
 
+    webhookLogger.info(`[${requestId}] DIAG: Creating executor`, {
+      blockCount: serializedWorkflow.blocks.length,
+      connectionCount: serializedWorkflow.connections.length,
+      blockTypes: serializedWorkflow.blocks.map((b: any) => `${b.metadata?.id || 'unknown'}:${b.metadata?.name || b.id}`),
+      hasEnvVars: Object.keys(decryptedEnvVars).length > 0,
+      envVarKeys: Object.keys(decryptedEnvVars),
+      processEnvKeys: ['NEXT_PUBLIC_APP_URL', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY_1', 'ANTHROPIC_API_KEY_1', 'BETTER_AUTH_URL', 'BETTER_AUTH_SECRET', 'INTERNAL_API_SECRET'].filter(k => !!process.env[k]),
+    })
+
     const executor = new Executor({
       workflow: serializedWorkflow,
       currentBlockStates: processedBlockStates,
@@ -448,7 +482,7 @@ export async function processWebhookExecution(
 
     loggingSession.setupExecutor(executor)
 
-    webhookLogger.info(`[${requestId}] Executing workflow for ${payload.provider} webhook`)
+    webhookLogger.info(`[${requestId}] DIAG: Executor created, starting execution`)
 
     const result = await executor.execute(payload.workflowId, payload.blockId)
     const executionResult = 'stream' in result && 'execution' in result ? result.execution : result
@@ -457,20 +491,25 @@ export async function processWebhookExecution(
       success: executionResult.success,
       workflowId: payload.workflowId,
       provider: payload.provider,
+      error: executionResult.error || undefined,
+      blockLogCount: executionResult.logs?.length || 0,
     })
 
     if (!executionResult.success) {
-      webhookLogger.error(`[${requestId}] Webhook workflow execution returned success:false`, {
+      webhookLogger.error(`[${requestId}] DIAG: Webhook execution FAILED`, {
         workflowId: payload.workflowId,
         provider: payload.provider,
         error: executionResult.error,
-        failedBlocks: executionResult.logs
-          ?.filter((l: any) => l.success === false)
-          .map((l: any) => ({
-            blockId: l.blockId,
-            blockName: l.blockName || l.blockType,
-            error: l.error,
-          })),
+        allBlockLogs: executionResult.logs?.map((l: any) => ({
+          blockId: l.blockId,
+          blockName: l.blockName || l.blockType,
+          blockType: l.blockType,
+          success: l.success,
+          error: l.error,
+          durationMs: l.durationMs,
+          inputPreview: l.input ? JSON.stringify(l.input).slice(0, 300) : undefined,
+          outputPreview: l.output ? JSON.stringify(l.output).slice(0, 300) : undefined,
+        })),
       })
     }
 
