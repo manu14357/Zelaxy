@@ -692,6 +692,14 @@ describe('Centralized Error Handling', () => {
     await testErrorFormat('Notion/Discord', { message: 'Page not found' }, 'Page not found')
   })
 
+  it.concurrent('should extract Telegram description format', async () => {
+    await testErrorFormat(
+      'Telegram',
+      { ok: false, error_code: 400, description: "Bad Request: can't parse entities" },
+      "Bad Request: can't parse entities"
+    )
+  })
+
   it.concurrent('should extract Airtable error object format', async () => {
     await testErrorFormat(
       'Airtable',

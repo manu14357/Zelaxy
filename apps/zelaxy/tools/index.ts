@@ -579,6 +579,8 @@ async function handleInternalRequest(
             : undefined) ||
           // Notion/Discord/GitHub/Twilio pattern
           errorInfo?.data?.message ||
+          // Telegram and other APIs that return a top-level description
+          errorInfo?.data?.description ||
           // SOAP/XML fault patterns
           errorInfo?.data?.fault?.faultstring ||
           errorInfo?.data?.faultstring ||

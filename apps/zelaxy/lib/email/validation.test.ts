@@ -1,3 +1,29 @@
+vi.mock('dns', () => ({
+  resolveMx: (domain: string, callback: (error: Error | null, records?: any[]) => void) => {
+    callback(null, [{ exchange: `mx.${domain}`, priority: 10 }])
+  },
+}))
+
+vi.mock('util', async () => {
+  const actual = await vi.importActual<typeof import('util')>('util')
+
+  return {
+    ...actual,
+    promisify:
+      (fn: (value: string, callback: (error: Error | null, result?: any) => void) => void) =>
+      (value: string) =>
+        new Promise((resolve, reject) => {
+          fn(value, (error, result) => {
+            if (error) {
+              reject(error)
+              return
+            }
+            resolve(result)
+          })
+        }),
+  }
+})
+
 import { quickValidateEmail, validateEmail } from './validation'
 
 describe('Email Validation', () => {

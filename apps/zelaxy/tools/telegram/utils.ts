@@ -1,13 +1,17 @@
+function escapeTelegramHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
 export function convertMarkdownToHTML(text: string): string {
   return (
-    text
+    escapeTelegramHtml(text)
       // Bold: **text** or __text__ -> <b>text</b>
       .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
       .replace(/__(.*?)__/g, '<b>$1</b>')
       // Italic: *text* or _text_ -> <i>text</i>
       .replace(/\*(.*?)\*/g, '<i>$1</i>')
       .replace(/_(.*?)_/g, '<i>$1</i>')
-      // Code: `text` -> <code>text</code>
+      // Code: `text` -> <code>$1</code>
       .replace(/`(.*?)`/g, '<code>$1</code>')
       // Links: [text](url) -> <a href="url">text</a>
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
