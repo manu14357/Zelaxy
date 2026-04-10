@@ -119,6 +119,7 @@ Hosted: **[zelaxy.in](https://zelaxy.in)** · Docs: **[docs.zelaxy.in](https://d
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
+| `REDIS_URL` | Redis connection string (e.g. `rediss://...` from Upstash) |
 | `BETTER_AUTH_URL` | App URL (e.g. `http://localhost:3000`) |
 | `BETTER_AUTH_SECRET` | Auth secret (min 32 chars) |
 | `ENCRYPTION_KEY` | 64-char hex string for AES-256 |
@@ -147,14 +148,23 @@ bun run type-check        # Type check
 ```bash
 cd apps/zelaxy && bunx drizzle-kit studio    # Database GUI
 cd apps/zelaxy && bunx drizzle-kit migrate   # Run migrations
-cd apps/zelaxy && bunx trigger.dev@latest dev # Background jobs
+bun run start:worker                          # Background job worker (requires REDIS_URL)
 ```
 
 ---
 
 ## Deployment
 
-The Next.js app deploys to **Vercel**. The Socket.IO server deploys separately to **Railway** (configured via `railway.json`). Set `NEXT_PUBLIC_SOCKET_URL` and `SOCKET_SERVER_URL` on Vercel to your Railway URL.
+The Next.js app deploys to **Vercel**. Two services run on **Railway**:
+
+| Service | Config file | Start command |
+|---------|-------------|---------------|
+| Socket server | `railway.json` | `bun run start:sockets` |
+| Background worker | `railway-worker.json` | `bun run start:worker` |
+
+Set `NEXT_PUBLIC_SOCKET_URL` and `SOCKET_SERVER_URL` on Vercel to your Railway socket URL.
+
+Background jobs use **BullMQ** backed by **Redis** (Upstash recommended). Set `REDIS_URL` on both Vercel and the Railway worker service.
 
 ---
 
@@ -170,7 +180,7 @@ The Next.js app deploys to **Vercel**. The Socket.IO server deploys separately t
 | **UI** | Tailwind CSS + shadcn/ui (Radix) |
 | **State** | Zustand |
 | **Real-time** | Socket.io |
-| **Background Jobs** | Trigger.dev |
+| **Background Jobs** | BullMQ + ioredis (Redis) |
 | **Monorepo** | Turborepo + Bun workspaces |
 | **Testing** | Vitest |
 | **Linter** | Biome |
