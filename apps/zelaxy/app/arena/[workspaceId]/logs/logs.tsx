@@ -343,12 +343,12 @@ const LogCard = ({ log, isSelected, index, maxDuration, onClick }: LogCardProps)
           {/* Trigger icon */}
           <div
             className={cn(
-              'flex h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0 items-center justify-center rounded-lg border transition-colors duration-200',
+              'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg border transition-colors duration-200 sm:h-7 sm:w-7',
               triggerAccent
             )}
           >
             {isRunning ? (
-              <Loader2 className='h-3 w-3 sm:h-3.5 sm:w-3.5 animate-spin' />
+              <Loader2 className='h-3 w-3 animate-spin sm:h-3.5 sm:w-3.5' />
             ) : (
               <TriggerIcon trigger={log.trigger} className='h-3 w-3 sm:h-3.5 sm:w-3.5' />
             )}
@@ -357,7 +357,7 @@ const LogCard = ({ log, isSelected, index, maxDuration, onClick }: LogCardProps)
           {/* Workflow name badge */}
           {log.workflow && (
             <span
-              className='inline-flex flex-shrink-0 items-center gap-1 sm:gap-1.5 rounded-md border px-1.5 py-0.5 font-medium text-[11px]'
+              className='inline-flex flex-shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 font-medium text-[11px] sm:gap-1.5'
               style={{
                 color: log.workflow.color,
                 backgroundColor: `${log.workflow.color}10`,
@@ -438,11 +438,7 @@ const LogCard = ({ log, isSelected, index, maxDuration, onClick }: LogCardProps)
             {log.message}
           </span>
           <div className='flex shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground/70'>
-            {blockCount > 0 && (
-              <span className='tabular-nums'>
-                {blockCount} blk
-              </span>
-            )}
+            {blockCount > 0 && <span className='tabular-nums'>{blockCount} blk</span>}
             {log.duration && (
               <>
                 {blockCount > 0 && <span className='text-muted-foreground/30'>·</span>}
