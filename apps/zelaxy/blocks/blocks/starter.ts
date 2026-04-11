@@ -3,7 +3,7 @@ import type { BlockConfig } from '@/blocks/types'
 
 export const StarterBlock: BlockConfig = {
   type: 'starter',
-  name: 'Starter',
+  name: 'Start',
   description: 'Start workflow',
   longDescription: 'Initiate your workflow manually with optional structured input for API calls.',
   category: 'blocks',

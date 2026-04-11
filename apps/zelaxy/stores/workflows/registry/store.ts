@@ -652,124 +652,27 @@ export const useWorkflowRegistry = create<WorkflowRegistry>()(
 
             logger.info(`Created workflow from marketplace: ${options.marketplaceId}`)
           } else {
-            // Create starter block for new workflow
-            const starterId = crypto.randomUUID()
-            const starterBlock = {
-              id: starterId,
-              type: 'starter' as const,
-              name: 'Start',
-              position: { x: 100, y: 100 },
-              subBlocks: {
-                startWorkflow: {
-                  id: 'startWorkflow',
-                  type: 'dropdown' as const,
-                  value: 'manual',
-                },
-                webhookPath: {
-                  id: 'webhookPath',
-                  type: 'short-input' as const,
-                  value: '',
-                },
-                webhookSecret: {
-                  id: 'webhookSecret',
-                  type: 'short-input' as const,
-                  value: '',
-                },
-                scheduleType: {
-                  id: 'scheduleType',
-                  type: 'dropdown' as const,
-                  value: 'daily',
-                },
-                minutesInterval: {
-                  id: 'minutesInterval',
-                  type: 'short-input' as const,
-                  value: '',
-                },
-                minutesStartingAt: {
-                  id: 'minutesStartingAt',
-                  type: 'short-input' as const,
-                  value: '',
-                },
-                hourlyMinute: {
-                  id: 'hourlyMinute',
-                  type: 'short-input' as const,
-                  value: '',
-                },
-                dailyTime: {
-                  id: 'dailyTime',
-                  type: 'short-input' as const,
-                  value: '',
-                },
-                weeklyDay: {
-                  id: 'weeklyDay',
-                  type: 'dropdown' as const,
-                  value: 'MON',
-                },
-                weeklyDayTime: {
-                  id: 'weeklyDayTime',
-                  type: 'short-input' as const,
-                  value: '',
-                },
-                monthlyDay: {
-                  id: 'monthlyDay',
-                  type: 'short-input' as const,
-                  value: '',
-                },
-                monthlyTime: {
-                  id: 'monthlyTime',
-                  type: 'short-input' as const,
-                  value: '',
-                },
-                cronExpression: {
-                  id: 'cronExpression',
-                  type: 'short-input' as const,
-                  value: '',
-                },
-                timezone: {
-                  id: 'timezone',
-                  type: 'dropdown' as const,
-                  value: 'UTC',
-                },
-              },
-              outputs: {
-                response: {
-                  type: {
-                    input: 'any',
-                  },
-                },
-              },
-              enabled: true,
-              horizontalHandles: true,
-              isWide: false,
-              advancedMode: false,
-              triggerMode: false,
-              height: 0,
-            }
-
+            // Empty initial state — no default blocks
             initialState = {
-              blocks: {
-                [starterId]: starterBlock,
-              },
+              blocks: {},
               edges: [],
               loops: {},
               parallels: {},
               isDeployed: false,
               deployedAt: undefined,
-              deploymentStatuses: {}, // Initialize empty deployment statuses map
-              workspaceId, // Include workspace ID in the state object
+              deploymentStatuses: {},
+              workspaceId,
               history: {
                 past: [],
                 present: {
                   state: {
-                    blocks: {
-                      [starterId]: starterBlock,
-                    },
+                    blocks: {},
                     edges: [],
                     loops: {},
                     parallels: {},
                     isDeployed: false,
                     deployedAt: undefined,
-                    workspaceId, // Include workspace ID in history
+                    workspaceId,
                   },
                   timestamp: Date.now(),
                   action: 'Initial state',
