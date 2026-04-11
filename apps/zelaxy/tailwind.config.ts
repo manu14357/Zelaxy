@@ -271,6 +271,10 @@ export default {
             boxShadow: '0 0 0 10px rgba(249, 115, 22, 0)',
           },
         },
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(400%)' },
+        },
       },
       animation: {
         'slide-down': 'slide-down 0.3s ease-out',
@@ -289,6 +293,7 @@ export default {
         'float-in-right': 'float-in-right 0.6s ease-out',
         'scale-in': 'scale-in 0.4s ease-out',
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+        shimmer: 'shimmer 1.2s ease-in-out infinite',
       },
       backdropBlur: {
         apple: '20px',

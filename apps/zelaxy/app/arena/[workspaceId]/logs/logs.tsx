@@ -314,7 +314,11 @@ const LogCard = ({ log, isSelected, index, maxDuration, onClick }: LogCardProps)
   const isError = log.level === 'error'
   const isRunning = log.message === 'Running...'
   const triggerAccent = getTriggerAccent(log.trigger)
-  const blockCount = log.metadata?.traceSpans?.length || 0
+  const blockCount =
+    (log.metadata as any)?.blockStats?.total ??
+    log.metadata?.blockExecutions?.length ??
+    log.metadata?.traceSpans?.length ??
+    0
 
   return (
     <div
@@ -323,7 +327,8 @@ const LogCard = ({ log, isSelected, index, maxDuration, onClick }: LogCardProps)
         isSelected
           ? 'border-primary/40 bg-primary/[0.04] shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]'
           : 'border-border/50 bg-card/50 hover:border-border/70 hover:bg-card/80 hover:shadow-sm',
-        isError && !isSelected && 'border-red-500/20 hover:border-red-500/30'
+        isError && !isSelected && 'border-red-500/20 hover:border-red-500/30',
+        isRunning && !isSelected && 'animate-pulse border-blue-500/20'
       )}
       style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
       onClick={onClick}
@@ -1179,9 +1184,15 @@ export default function Logs() {
           </div>
 
           {/* ── Log Cards ──────────────────────────────────────────────────── */}
-          <div className='logs-container flex-1 overflow-auto' ref={scrollContainerRef}>
-            {loading && page === 1 ? (
-              /* Loading State */
+          <div className='logs-container relative flex-1 overflow-auto' ref={scrollContainerRef}>
+            {/* Subtle top progress bar during background refresh */}
+            {(isRefreshing || (loading && logs.length > 0)) && (
+              <div className='pointer-events-none absolute top-0 right-0 left-0 z-20 h-[2px] overflow-hidden bg-primary/10'>
+                <div className='h-full w-1/3 animate-shimmer bg-primary/50' />
+              </div>
+            )}
+            {loading && page === 1 && logs.length === 0 ? (
+              /* Loading State — only on initial empty load */
               <div className='flex h-96 items-center justify-center'>
                 <div className='text-center'>
                   <div className='mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10'>
