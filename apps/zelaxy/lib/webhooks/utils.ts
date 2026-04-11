@@ -249,6 +249,17 @@ export function formatWebhookInput(
                           ? 'poll'
                           : 'text',
         raw: message,
+        // Backward-compatible flat aliases matching original trigger schema
+        // These allow {{webhook1.message.chat_id}} etc. to resolve correctly
+        update_id: body.update_id,
+        message_id: message.message_id,
+        from_id: message.from?.id ?? null,
+        from_username: message.from?.username ?? null,
+        from_first_name: message.from?.first_name ?? null,
+        from_last_name: message.from?.last_name ?? null,
+        chat_id: message.chat?.id ?? null,
+        chat_type: message.chat?.type ?? null,
+        chat_title: message.chat?.title ?? null,
       }
 
       // Create sender object
