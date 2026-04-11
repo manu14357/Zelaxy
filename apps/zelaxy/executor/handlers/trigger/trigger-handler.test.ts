@@ -252,6 +252,78 @@ describe('TriggerBlockHandler', () => {
 
       expect(result).toEqual(complexInputs)
     })
+
+    it.concurrent('should preserve Telegram chat id separately from sender id', async () => {
+      const triggerBlock: SerializedBlock = {
+        id: 'telegram-trigger',
+        metadata: { id: 'telegram', name: 'Telegram 1', category: 'tools' },
+        position: { x: 0, y: 0 },
+        config: { tool: 'telegram_message', params: { triggerMode: true } },
+        inputs: {},
+        outputs: {},
+        enabled: true,
+      }
+
+      mockContext.workflow = {
+        blocks: [
+          {
+            id: 'starter',
+            metadata: { id: 'starter', name: 'Start', category: 'triggers' },
+            position: { x: 0, y: 0 },
+            config: { tool: 'starter', params: {} },
+            inputs: {},
+            outputs: {},
+            enabled: true,
+          },
+          triggerBlock,
+        ],
+        connections: [],
+        loops: {},
+      } as any
+
+      mockContext.blockStates.set('starter', {
+        output: {
+          input: 'hello',
+          chatId: 5550198060,
+          message: {
+            chat_id: 5550198060,
+            from_id: 550198060,
+          },
+          sender: {
+            id: 550198060,
+          },
+          chat: {
+            id: 5550198060,
+          },
+          telegram: {
+            message: {
+              chat_id: 5550198060,
+              from_id: 550198060,
+            },
+            sender: {
+              id: 550198060,
+            },
+            chat: {
+              id: 5550198060,
+            },
+          },
+          webhook: {
+            data: {
+              provider: 'telegram',
+            },
+          },
+        },
+      } as any)
+
+      const result = await handler.execute(triggerBlock, {}, mockContext)
+
+      expect(result.chatId).toBe(5550198060)
+      expect(result.chat.id).toBe(5550198060)
+      expect(result.message.chat_id).toBe(5550198060)
+      expect(result.sender.id).toBe(550198060)
+      expect(result.message.from_id).toBe(550198060)
+      expect(result.telegram.chat.id).toBe(5550198060)
+    })
   })
 
   describe('integration scenarios', () => {

@@ -31,6 +31,14 @@ interface OperationQueueState {
   cancelOperationsForBlock: (blockId: string) => void
   cancelOperationsForVariable: (variableId: string) => void
 
+  /**
+   * Flush all pending/processing subblock-update operations synchronously via HTTP.
+   * Call this before deploying to ensure no in-flight edits are lost if the socket
+   * confirmation hasn't arrived yet.
+   * @param workflowId - The workflow to flush operations for
+   */
+  flushPendingSubblockOperations: (workflowId: string) => Promise<void>
+
   triggerOfflineMode: () => void
   clearError: () => void
 }
@@ -578,6 +586,61 @@ export const useOperationQueueStore = create<OperationQueueState>((set, get) => 
   clearError: () => {
     set({ hasOperationError: false })
   },
+
+  flushPendingSubblockOperations: async (workflowId: string) => {
+    const state = get()
+    const pending = state.operations.filter(
+      (op) =>
+        op.workflowId === workflowId &&
+        op.operation.operation === 'subblock-update' &&
+        op.operation.target === 'subblock' &&
+        (op.status === 'pending' || op.status === 'processing')
+    )
+
+    if (pending.length === 0) return
+
+    logger.info(`Flushing ${pending.length} pending subblock operation(s) via HTTP before deploy`, {
+      workflowId,
+    })
+
+    // Deduplicate: for each blockId+subblockId pair keep only the most-recent value
+    const latest = new Map<string, QueuedOperation>()
+    for (const op of pending) {
+      const key = `${op.operation.payload.blockId}::${op.operation.payload.subblockId}`
+      const existing = latest.get(key)
+      if (!existing || op.timestamp > existing.timestamp) {
+        latest.set(key, op)
+      }
+    }
+
+    await Promise.allSettled(
+      Array.from(latest.values()).map(async (op) => {
+        const { blockId, subblockId, value } = op.operation.payload
+        try {
+          const res = await fetch(`/api/workflows/${workflowId}/subblocks`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ blockId, subblockId, value }),
+          })
+          if (res.ok) {
+            get().confirmOperation(op.id)
+          } else {
+            logger.warn('Pre-deploy subblock flush HTTP call failed', {
+              status: res.status,
+              blockId,
+              subblockId,
+            })
+          }
+        } catch (err: any) {
+          logger.warn('Pre-deploy subblock flush error', {
+            error: err?.message,
+            blockId,
+            subblockId,
+          })
+        }
+      })
+    )
+  },
 }))
 
 export function useOperationQueue() {
@@ -593,6 +656,7 @@ export function useOperationQueue() {
     processNextOperation: store.processNextOperation,
     cancelOperationsForBlock: store.cancelOperationsForBlock,
     cancelOperationsForVariable: store.cancelOperationsForVariable,
+    flushPendingSubblockOperations: store.flushPendingSubblockOperations,
     triggerOfflineMode: store.triggerOfflineMode,
     clearError: store.clearError,
   }

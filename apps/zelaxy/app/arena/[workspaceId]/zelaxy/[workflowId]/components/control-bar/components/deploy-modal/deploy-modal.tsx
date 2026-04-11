@@ -11,6 +11,7 @@ import {
   DeploymentInfo,
 } from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/control-bar/components/deploy-modal/components'
 import { ChatDeploy } from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/control-bar/components/deploy-modal/components/chat-deploy/chat-deploy'
+import { useOperationQueueStore } from '@/stores/operation-queue/store'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import { useSubBlockStore } from '@/stores/workflows/subblock/store'
 import { useWorkflowStore } from '@/stores/workflows/workflow/store'
@@ -230,6 +231,13 @@ export function DeployModal({
     try {
       setIsSubmitting(true)
 
+      // Flush any pending subblock edits to the DB before snapshotting the deploy state.
+      // This prevents a race where the user edits a value but the socket confirmation
+      // hasn't arrived yet when the deploy API reads the DB.
+      if (workflowId) {
+        await useOperationQueueStore.getState().flushPendingSubblockOperations(workflowId)
+      }
+
       const response = await fetch(`/api/workflows/${workflowId}/deploy`, {
         method: 'POST',
         headers: {
@@ -307,6 +315,11 @@ export function DeployModal({
   const handleRedeploy = async () => {
     try {
       setIsSubmitting(true)
+
+      // Flush any pending subblock edits before snapshotting the deployed state.
+      if (workflowId) {
+        await useOperationQueueStore.getState().flushPendingSubblockOperations(workflowId)
+      }
 
       const response = await fetch(`/api/workflows/${workflowId}/deploy`, {
         method: 'POST',

@@ -337,6 +337,89 @@ describe('InputResolver', () => {
       expect(result.nameRef).toBe('Hello World') // Should resolve using block name
     })
 
+    it('should keep Telegram trigger chat id distinct from sender id', () => {
+      sampleWorkflow.blocks.push({
+        id: 'telegram-trigger',
+        metadata: { id: 'telegram', name: 'Telegram 1', category: 'tools' },
+        position: { x: 200, y: 0 },
+        config: { tool: 'telegram_message', params: { triggerMode: true } },
+        inputs: {},
+        outputs: {},
+        enabled: true,
+      })
+
+      sampleWorkflow.connections.push({ source: 'telegram-trigger', target: 'test-block' })
+
+      mockContext.blockStates.set('telegram-trigger', {
+        output: {
+          input: 'hello',
+          chatId: 5550198060,
+          message: {
+            chat_id: 5550198060,
+            from_id: 550198060,
+          },
+          sender: {
+            id: 550198060,
+          },
+          chat: {
+            id: 5550198060,
+          },
+        },
+      })
+      mockContext.activeExecutionPath.add('telegram-trigger')
+      mockContext.executedBlocks.add('telegram-trigger')
+
+      const accessibleBlocksMap = new Map<string, Set<string>>()
+      const allIds = [
+        ...sampleWorkflow.blocks.map((workflowBlock) => workflowBlock.id),
+        'test-block',
+      ]
+      for (const id of allIds) {
+        accessibleBlocksMap.set(id, new Set(allIds))
+      }
+
+      resolver = new InputResolver(
+        sampleWorkflow,
+        mockEnvironmentVars,
+        mockWorkflowVars,
+        undefined,
+        accessibleBlocksMap
+      )
+
+      const block: SerializedBlock = {
+        id: 'test-block',
+        metadata: { id: 'generic', name: 'Test Block' },
+        position: { x: 0, y: 0 },
+        config: {
+          tool: 'generic',
+          params: {
+            directChatId: '{{telegram1.chatId}}',
+            nestedChatId: '{{telegram1.chat.id}}',
+            legacyChatId: '{{telegram1.message.chat_id}}',
+            senderId: '{{telegram1.sender.id}}',
+            legacySenderId: '{{telegram1.message.from_id}}',
+          },
+        },
+        inputs: {
+          directChatId: 'number',
+          nestedChatId: 'number',
+          legacyChatId: 'number',
+          senderId: 'number',
+          legacySenderId: 'number',
+        },
+        outputs: {},
+        enabled: true,
+      }
+
+      const result = resolver.resolveInputs(block, mockContext)
+
+      expect(result.directChatId).toBe('5550198060')
+      expect(result.nestedChatId).toBe('5550198060')
+      expect(result.legacyChatId).toBe('5550198060')
+      expect(result.senderId).toBe('550198060')
+      expect(result.legacySenderId).toBe('550198060')
+    })
+
     it('should handle the special "start" alias for starter block', () => {
       const block: SerializedBlock = {
         id: 'test-block',

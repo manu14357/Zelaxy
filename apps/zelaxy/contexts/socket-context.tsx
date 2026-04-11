@@ -773,10 +773,50 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
           timestamp: Date.now(),
           operationId, // Include operation ID for queue tracking
         })
-      } else {
-        logger.warn('Cannot emit subblock update: no socket connection or workflow room', {
-          hasSocket: !!socket,
+      } else if (currentWorkflowId) {
+        // HTTP fallback: socket unavailable but we know the target workflow.
+        // This ensures edits are never silently lost when the socket is disconnected.
+        logger.warn('Socket unavailable — using HTTP fallback for subblock update', {
+          blockId,
+          subblockId,
           currentWorkflowId,
+        })
+        import('@/stores/operation-queue/store').then(({ useOperationQueueStore }) => {
+          fetch(`/api/workflows/${currentWorkflowId}/subblocks`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ blockId, subblockId, value }),
+          })
+            .then((res) => {
+              if (res.ok) {
+                if (operationId) {
+                  useOperationQueueStore.getState().confirmOperation(operationId)
+                }
+              } else {
+                logger.error('HTTP subblock fallback failed', {
+                  status: res.status,
+                  blockId,
+                  subblockId,
+                })
+                if (operationId) {
+                  useOperationQueueStore.getState().failOperation(operationId)
+                }
+              }
+            })
+            .catch((err) => {
+              logger.error('HTTP subblock fallback error', {
+                error: err?.message,
+                blockId,
+                subblockId,
+              })
+              if (operationId) {
+                useOperationQueueStore.getState().failOperation(operationId)
+              }
+            })
+        })
+      } else {
+        logger.warn('Cannot emit subblock update: no socket connection and no workflow room', {
+          hasSocket: !!socket,
           blockId,
           subblockId,
         })
