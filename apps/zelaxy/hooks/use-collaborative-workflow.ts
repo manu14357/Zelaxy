@@ -813,8 +813,12 @@ export function useCollaborativeWorkflow() {
         return
       }
 
-      if (!currentWorkflowId || activeWorkflowId !== currentWorkflowId) {
-        logger.debug('Skipping subblock update - not in active workflow', {
+      // Only skip if the socket is connected to a DIFFERENT workflow room
+      // (e.g. user is switching workflows). When socket is disconnected
+      // (currentWorkflowId is null) we still queue—flush before deploy
+      // will persist via HTTP.
+      if (currentWorkflowId && activeWorkflowId !== currentWorkflowId) {
+        logger.debug('Skipping subblock update - socket in different workflow room', {
           currentWorkflowId,
           activeWorkflowId,
           blockId,
@@ -822,6 +826,8 @@ export function useCollaborativeWorkflow() {
         })
         return
       }
+
+      if (!activeWorkflowId) return
 
       // Generate operation ID for queue tracking
       const operationId = crypto.randomUUID()
@@ -834,7 +840,7 @@ export function useCollaborativeWorkflow() {
           target: 'subblock',
           payload: { blockId, subblockId, value },
         },
-        workflowId: activeWorkflowId || '',
+        workflowId: activeWorkflowId,
         userId: session?.user?.id || 'unknown',
       })
 
@@ -857,8 +863,8 @@ export function useCollaborativeWorkflow() {
     (blockId: string, subblockId: string, value: any) => {
       if (isApplyingRemoteChange.current) return
 
-      if (!currentWorkflowId || activeWorkflowId !== currentWorkflowId) {
-        logger.debug('Skipping tag selection - not in active workflow', {
+      if (currentWorkflowId && activeWorkflowId !== currentWorkflowId) {
+        logger.debug('Skipping tag selection - socket in different workflow room', {
           currentWorkflowId,
           activeWorkflowId,
           blockId,
@@ -866,6 +872,8 @@ export function useCollaborativeWorkflow() {
         })
         return
       }
+
+      if (!activeWorkflowId) return
 
       // Apply locally first (immediate UI feedback)
       subBlockStore.setValue(blockId, subblockId, value)

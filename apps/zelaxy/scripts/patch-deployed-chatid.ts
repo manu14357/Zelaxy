@@ -30,8 +30,7 @@ if (!block) {
   process.exit(1)
 }
 
-const before =
-  block.subBlocks?.chatId?.value ?? block.subBlocks?.chat_id?.value ?? '(none)'
+const before = block.subBlocks?.chatId?.value ?? block.subBlocks?.chat_id?.value ?? '(none)'
 console.log(`Before: chatId = ${JSON.stringify(before)}`)
 
 if (block.subBlocks?.chatId) {
@@ -51,8 +50,7 @@ const [check] = await db
   .where(eq(workflow.id, WORKFLOW_ID))
   .limit(1)
 
-const after =
-  (check.deployedState as any)?.blocks?.[BLOCK_ID]?.subBlocks?.chatId?.value ?? '(none)'
+const after = (check.deployedState as any)?.blocks?.[BLOCK_ID]?.subBlocks?.chatId?.value ?? '(none)'
 
 console.log(`After:  chatId = ${JSON.stringify(after)}`)
 console.log('✅  deployedState patched. The fix is live immediately — no redeploy needed.')

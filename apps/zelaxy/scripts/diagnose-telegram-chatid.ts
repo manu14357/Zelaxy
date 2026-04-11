@@ -47,7 +47,7 @@ async function main() {
   for (const block of telegramBlocks) {
     if (TARGET_WORKFLOW && block.workflowId !== TARGET_WORKFLOW) continue
     const subs = (block.subBlocks as Record<string, any>) || {}
-    const chatIdSub = subs['chatId'] || subs['chat_id']
+    const chatIdSub = subs.chatId || subs.chat_id
     const liveValue = chatIdSub?.value ?? '(not set)'
 
     console.log(`Block: ${block.name} (${block.id})`)
@@ -78,7 +78,8 @@ async function main() {
     if (FIX) {
       console.log(`\n  ✏️  Applying fix: setting chatId → ${JSON.stringify(FIXED_VALUE)}`)
 
-      const subBlockKey = Object.keys(subs).find((k) => k === 'chatId' || k === 'chat_id') ?? 'chatId'
+      const subBlockKey =
+        Object.keys(subs).find((k) => k === 'chatId' || k === 'chat_id') ?? 'chatId'
       const updated = {
         ...subs,
         [subBlockKey]: {
@@ -90,7 +91,9 @@ async function main() {
       await db
         .update(workflowBlocks)
         .set({ subBlocks: updated, updatedAt: new Date() })
-        .where(and(eq(workflowBlocks.id, block.id), eq(workflowBlocks.workflowId, block.workflowId)))
+        .where(
+          and(eq(workflowBlocks.id, block.id), eq(workflowBlocks.workflowId, block.workflowId))
+        )
 
       console.log(`  ✅  workflowBlocks.subBlocks updated.`)
       console.log(

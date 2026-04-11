@@ -149,8 +149,8 @@ export const env = createEnv({
 
     // Real-time Communication
     SOCKET_SERVER_URL:                    z.string().url().optional(),            // WebSocket server URL for real-time features
-    SOCKET_PORT:                          z.number().optional(),                  // Port for WebSocket server
-    PORT:                                 z.number().optional(),                  // Main application port
+    SOCKET_PORT:                          z.coerce.number().optional(),            // Port for WebSocket server
+    PORT:                                 z.coerce.number().optional(),            // Main application port
     ALLOWED_ORIGINS:                      z.string().optional(),                  // CORS allowed origins
 
     // OAuth Integration Credentials - All optional, enables third-party integrations
