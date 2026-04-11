@@ -26,6 +26,12 @@ export const telegramWebhookTrigger: TriggerConfig = {
       type: 'string',
       description: 'Message text content (primary input for AI blocks)',
     },
+    // Direct chat ID shortcut — always wire this to Telegram block chatId
+    chatId: {
+      type: 'number',
+      description:
+        'Chat ID for sending replies — always use this as chatId in Telegram blocks (equals chat.id)',
+    },
     // Message metadata
     message: {
       id: {
@@ -50,7 +56,8 @@ export const telegramWebhookTrigger: TriggerConfig = {
     sender: {
       id: {
         type: 'number',
-        description: "Sender's Telegram user account ID",
+        description:
+          "Sender's Telegram user account ID (NOT the chat ID — use top-level chatId for replies)",
       },
       firstName: {
         type: 'string',

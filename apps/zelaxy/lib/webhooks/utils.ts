@@ -277,6 +277,7 @@ export function formatWebhookInput(
 
       return {
         input, // Primary workflow input - the message content
+        chatId: chatObj?.id ?? null, // Top-level shortcut — always use this as chatId in Telegram blocks
 
         // NEW: Top-level properties for backward compatibility with <blockName.message> syntax
         message: messageObj,
