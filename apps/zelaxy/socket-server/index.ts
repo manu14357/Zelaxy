@@ -20,7 +20,15 @@ const roomManager = new RoomManager(io)
 io.use(authenticateSocket)
 
 const httpHandler = createHttpHandler(roomManager, logger, io)
-httpServer.on('request', httpHandler)
+httpServer.on('request', (req, res) => {
+  // Log all incoming HTTP requests for diagnostics
+  logger.info(`HTTP ${req.method} ${req.url}`, {
+    host: req.headers.host,
+    origin: req.headers.origin,
+  })
+  // Delegate to the route handler
+  httpHandler(req, res)
+})
 
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception:', error)
@@ -48,32 +56,6 @@ io.on('connection', (socket: AuthenticatedSocket) => {
   logger.info(`New socket connection: ${socket.id}`)
 
   setupAllHandlers(socket, roomManager)
-})
-
-httpServer.on('request', (req, res) => {
-  logger.info(`🌐 HTTP Request: ${req.method} ${req.url}`, {
-    method: req.method,
-    url: req.url,
-    userAgent: req.headers['user-agent'],
-    origin: req.headers.origin,
-    host: req.headers.host,
-    timestamp: new Date().toISOString(),
-  })
-})
-
-io.engine.on('connection_error', (err) => {
-  logger.error('❌ Engine.IO Connection error:', {
-    code: err.code,
-    message: err.message,
-    context: err.context,
-    req: err.req
-      ? {
-          url: err.req.url,
-          method: err.req.method,
-          headers: err.req.headers,
-        }
-      : 'No request object',
-  })
 })
 
 const PORT = Number(env.PORT || env.SOCKET_PORT || 3002)

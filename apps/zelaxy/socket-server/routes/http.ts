@@ -35,12 +35,13 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?:
       res.setHeader('Access-Control-Allow-Origin', req.headers.origin)
     }
 
-    // Handle health check for Railway
-    if (req.method === 'GET' && req.url === '/health') {
+    // Handle root and health check for Railway
+    if (req.method === 'GET' && (req.url === '/' || req.url === '/health')) {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(
         JSON.stringify({
           status: 'ok',
+          service: 'zelaxy-socket-server',
           timestamp: new Date().toISOString(),
           connections: roomManager.getTotalActiveConnections(),
         })

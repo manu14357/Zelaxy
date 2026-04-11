@@ -763,7 +763,15 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
 
   // Emit subblock value updates
   const emitSubblockUpdate = useCallback(
-    (blockId: string, subblockId: string, value: any, operationId?: string) => {
+    (
+      blockId: string,
+      subblockId: string,
+      value: any,
+      operationId?: string,
+      workflowId?: string
+    ) => {
+      // Use the passed workflowId (from the operation) as fallback when socket is disconnected
+      const targetWorkflowId = currentWorkflowId || workflowId
       // Only emit if socket is connected and we're in a valid workflow room
       if (socket && currentWorkflowId) {
         socket.emit('subblock-update', {
@@ -773,16 +781,16 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
           timestamp: Date.now(),
           operationId, // Include operation ID for queue tracking
         })
-      } else if (currentWorkflowId) {
+      } else if (targetWorkflowId) {
         // HTTP fallback: socket unavailable but we know the target workflow.
         // This ensures edits are never silently lost when the socket is disconnected.
         logger.warn('Socket unavailable — using HTTP fallback for subblock update', {
           blockId,
           subblockId,
-          currentWorkflowId,
+          targetWorkflowId,
         })
         import('@/stores/operation-queue/store').then(({ useOperationQueueStore }) => {
-          fetch(`/api/workflows/${currentWorkflowId}/subblocks`, {
+          fetch(`/api/workflows/${targetWorkflowId}/subblocks`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ blockId, subblockId, value }),

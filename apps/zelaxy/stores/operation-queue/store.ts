@@ -48,11 +48,24 @@ const operationTimeouts = new Map<string, NodeJS.Timeout>()
 const subblockDebounceTimeouts = new Map<string, NodeJS.Timeout>()
 const variableDebounceTimeouts = new Map<string, NodeJS.Timeout>()
 
+// Track the latest pending debounced subblock operation data so
+// flushPendingSubblockOperations can fire them immediately if needed.
+const pendingDebouncedSubblocks = new Map<
+  string,
+  Omit<QueuedOperation, 'timestamp' | 'retryCount' | 'status'>
+>()
+
 let emitWorkflowOperation:
   | ((operation: string, target: string, payload: any, operationId?: string) => void)
   | null = null
 let emitSubblockUpdate:
-  | ((blockId: string, subblockId: string, value: any, operationId?: string) => void)
+  | ((
+      blockId: string,
+      subblockId: string,
+      value: any,
+      operationId?: string,
+      workflowId?: string
+    ) => void)
   | null = null
 let emitVariableUpdate:
   | ((variableId: string, field: string, value: any, operationId?: string) => void)
@@ -60,7 +73,13 @@ let emitVariableUpdate:
 
 export function registerEmitFunctions(
   workflowEmit: (operation: string, target: string, payload: any, operationId?: string) => void,
-  subblockEmit: (blockId: string, subblockId: string, value: any, operationId?: string) => void,
+  subblockEmit: (
+    blockId: string,
+    subblockId: string,
+    value: any,
+    operationId?: string,
+    workflowId?: string
+  ) => void,
   variableEmit: (variableId: string, field: string, value: any, operationId?: string) => void,
   workflowId: string | null
 ) {
@@ -102,8 +121,12 @@ export const useOperationQueueStore = create<OperationQueueState>((set, get) => 
         ),
       }))
 
+      // Store the pending operation data so flush can fire it immediately
+      pendingDebouncedSubblocks.set(debounceKey, operation)
+
       const timeoutId = setTimeout(() => {
         subblockDebounceTimeouts.delete(debounceKey)
+        pendingDebouncedSubblocks.delete(debounceKey)
 
         const queuedOp: QueuedOperation = {
           ...operation,
@@ -422,7 +445,13 @@ export const useOperationQueueStore = create<OperationQueueState>((set, get) => 
     const { operation: op, target, payload } = nextOperation.operation
     if (op === 'subblock-update' && target === 'subblock') {
       if (emitSubblockUpdate) {
-        emitSubblockUpdate(payload.blockId, payload.subblockId, payload.value, nextOperation.id)
+        emitSubblockUpdate(
+          payload.blockId,
+          payload.subblockId,
+          payload.value,
+          nextOperation.id,
+          nextOperation.workflowId
+        )
       }
     } else if (op === 'variable-update' && target === 'variable') {
       if (emitVariableUpdate) {
@@ -458,6 +487,7 @@ export const useOperationQueueStore = create<OperationQueueState>((set, get) => 
       }
     }
     keysToDelete.forEach((key) => subblockDebounceTimeouts.delete(key))
+    keysToDelete.forEach((key) => pendingDebouncedSubblocks.delete(key))
 
     // Find and cancel operation timeouts for operations related to this block
     const state = get()
@@ -588,6 +618,29 @@ export const useOperationQueueStore = create<OperationQueueState>((set, get) => 
   },
 
   flushPendingSubblockOperations: async (workflowId: string) => {
+    // First, immediately fire any pending debounce timers for this workflow
+    // so their operations make it into the queue before we collect.
+    for (const [key, op] of pendingDebouncedSubblocks.entries()) {
+      if (op.workflowId === workflowId) {
+        const timeout = subblockDebounceTimeouts.get(key)
+        if (timeout) {
+          clearTimeout(timeout)
+          subblockDebounceTimeouts.delete(key)
+        }
+        pendingDebouncedSubblocks.delete(key)
+
+        const queuedOp: QueuedOperation = {
+          ...op,
+          timestamp: Date.now(),
+          retryCount: 0,
+          status: 'pending',
+        }
+        set((state) => ({
+          operations: [...state.operations, queuedOp],
+        }))
+      }
+    }
+
     const state = get()
     const pending = state.operations.filter(
       (op) =>
