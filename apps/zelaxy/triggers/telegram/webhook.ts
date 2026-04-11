@@ -32,7 +32,7 @@ export const telegramWebhookTrigger: TriggerConfig = {
       description:
         'Chat ID for sending replies — always use this as chatId in Telegram blocks (equals chat.id)',
     },
-    // Message metadata
+    // Message metadata (also includes backward-compat flat aliases for chat/sender fields)
     message: {
       id: {
         type: 'number',
@@ -50,6 +50,43 @@ export const telegramWebhookTrigger: TriggerConfig = {
         type: 'string',
         description:
           'Type of message (text, photo, document, audio, video, voice, sticker, location, contact, poll)',
+      },
+      // Backward-compat flat aliases (prefer top-level chatId or nested chat.id instead)
+      chat_id: {
+        type: 'number',
+        description: 'Chat ID (same as top-level chatId and chat.id)',
+      },
+      from_id: {
+        type: 'number',
+        description: "Sender's user ID (same as sender.id)",
+      },
+      from_username: {
+        type: 'string',
+        description: 'Sender username (same as sender.username)',
+      },
+      from_first_name: {
+        type: 'string',
+        description: 'Sender first name (same as sender.firstName)',
+      },
+      from_last_name: {
+        type: 'string',
+        description: 'Sender last name (same as sender.lastName)',
+      },
+      chat_type: {
+        type: 'string',
+        description: 'Type of chat (private, group, supergroup, channel)',
+      },
+      chat_title: {
+        type: 'string',
+        description: 'Title of the chat (for groups and channels)',
+      },
+      update_id: {
+        type: 'number',
+        description: 'Unique identifier for the update',
+      },
+      message_id: {
+        type: 'number',
+        description: 'Message identifier (same as message.id)',
       },
     },
     // Sender information (message.from)
