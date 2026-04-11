@@ -336,98 +336,126 @@ const LogCard = ({ log, isSelected, index, maxDuration, onClick }: LogCardProps)
       {/* Selection accent line */}
       {isSelected && <div className='absolute inset-y-2 left-0 w-[3px] rounded-full bg-primary' />}
 
-      {/* Single content row */}
-      <div className='flex items-center gap-2.5 px-4 pt-3 pb-2.5'>
-        {/* Trigger icon */}
-        <div
-          className={cn(
-            'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border transition-colors duration-200',
-            triggerAccent
+      {/* Content area */}
+      <div className='px-3 pt-2.5 pb-2 sm:px-4 sm:pt-3 sm:pb-2.5'>
+        {/* Row 1: icon · workflow badge · (desktop: message) · status · (desktop: metadata chips) */}
+        <div className='flex items-center gap-2 sm:gap-2.5'>
+          {/* Trigger icon */}
+          <div
+            className={cn(
+              'flex h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0 items-center justify-center rounded-lg border transition-colors duration-200',
+              triggerAccent
+            )}
+          >
+            {isRunning ? (
+              <Loader2 className='h-3 w-3 sm:h-3.5 sm:w-3.5 animate-spin' />
+            ) : (
+              <TriggerIcon trigger={log.trigger} className='h-3 w-3 sm:h-3.5 sm:w-3.5' />
+            )}
+          </div>
+
+          {/* Workflow name badge */}
+          {log.workflow && (
+            <span
+              className='inline-flex flex-shrink-0 items-center gap-1 sm:gap-1.5 rounded-md border px-1.5 py-0.5 font-medium text-[11px]'
+              style={{
+                color: log.workflow.color,
+                backgroundColor: `${log.workflow.color}10`,
+                borderColor: `${log.workflow.color}20`,
+              }}
+            >
+              <span
+                className='h-1.5 w-1.5 flex-shrink-0 rounded-full'
+                style={{ backgroundColor: log.workflow.color }}
+              />
+              <span className='max-w-[80px] truncate sm:max-w-none'>{log.workflow.name}</span>
+            </span>
           )}
-        >
-          {isRunning ? (
-            <Loader2 className='h-3.5 w-3.5 animate-spin' />
-          ) : (
-            <TriggerIcon trigger={log.trigger} />
+
+          {/* Message text — desktop only, takes remaining flex space */}
+          <span className='hidden min-w-0 flex-1 truncate text-[12px] text-muted-foreground sm:block'>
+            {log.message}
+          </span>
+
+          {/* Mobile spacer */}
+          <div className='flex-1 sm:hidden' />
+
+          {/* Status badge */}
+          {isError && (
+            <span className='inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-red-500/10 px-1.5 py-0.5 font-medium text-[10px] text-red-500'>
+              <AlertCircle className='h-2.5 w-2.5' />
+              <span className='hidden sm:inline'>Error</span>
+            </span>
           )}
+          {!isError && !isRunning && (
+            <span className='hidden flex-shrink-0 items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 font-medium text-[10px] text-emerald-600 sm:inline-flex dark:text-emerald-400'>
+              Completed
+            </span>
+          )}
+          {isRunning && (
+            <span className='inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-blue-500/10 px-1.5 py-0.5 font-medium text-[10px] text-blue-500'>
+              <Loader2 className='h-2.5 w-2.5 animate-spin' />
+              <span className='hidden sm:inline'>Running</span>
+            </span>
+          )}
+
+          {/* Desktop-only right metadata chips */}
+          <div className='hidden flex-shrink-0 items-center gap-2 text-[11px] text-muted-foreground/70 sm:flex'>
+            {blockCount > 0 && (
+              <>
+                <span className='text-muted-foreground/30'>·</span>
+                <span className='tabular-nums'>
+                  {blockCount} block{blockCount !== 1 ? 's' : ''}
+                </span>
+              </>
+            )}
+            {log.duration && (
+              <>
+                <span className='text-muted-foreground/30'>·</span>
+                <span className='font-medium text-foreground/60 tabular-nums'>{log.duration}</span>
+              </>
+            )}
+            <span className='text-muted-foreground/30'>·</span>
+            <span className='tabular-nums'>{formattedDate.relative}</span>
+            <span className='text-muted-foreground/30'>·</span>
+            <span className='font-medium tabular-nums'>{formattedDate.compactTime}</span>
+            <span className='font-mono text-[10px] text-muted-foreground/40'>
+              #{log.id.slice(-4)}
+            </span>
+            <ArrowRight
+              className={cn(
+                'h-3.5 w-3.5 text-muted-foreground/30 transition-all duration-200',
+                'opacity-0 group-hover:opacity-100',
+                isSelected && 'text-primary/50 opacity-100'
+              )}
+            />
+          </div>
         </div>
 
-        {/* Workflow name badge */}
-        {log.workflow && (
-          <span
-            className='inline-flex flex-shrink-0 items-center gap-1.5 rounded-md border px-1.5 py-0.5 font-medium text-[11px]'
-            style={{
-              color: log.workflow.color,
-              backgroundColor: `${log.workflow.color}10`,
-              borderColor: `${log.workflow.color}20`,
-            }}
-          >
-            <span
-              className='h-1.5 w-1.5 rounded-full'
-              style={{ backgroundColor: log.workflow.color }}
-            />
-            {log.workflow.name}
+        {/* Row 2: Mobile only — message + compact stats */}
+        <div className='mt-1.5 flex items-center pl-8 sm:hidden'>
+          <span className='min-w-0 flex-1 truncate text-[11px] text-muted-foreground'>
+            {log.message}
           </span>
-        )}
-
-        {/* Message text */}
-        <span className='min-w-0 flex-1 truncate text-[12px] text-muted-foreground'>
-          {log.message}
-        </span>
-
-        {/* Status badge */}
-        {isError && (
-          <span className='inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-red-500/10 px-1.5 py-0.5 font-medium text-[10px] text-red-500'>
-            <AlertCircle className='h-2.5 w-2.5' />
-            Error
-          </span>
-        )}
-        {!isError && !isRunning && (
-          <span className='inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 font-medium text-[10px] text-emerald-600 dark:text-emerald-400'>
-            Completed
-          </span>
-        )}
-        {isRunning && (
-          <span className='inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-blue-500/10 px-1.5 py-0.5 font-medium text-[10px] text-blue-500'>
-            <Loader2 className='h-2.5 w-2.5 animate-spin' />
-            Running
-          </span>
-        )}
-
-        {/* Right-side metadata chips */}
-        <div className='flex flex-shrink-0 items-center gap-2 text-[11px] text-muted-foreground/70'>
-          {blockCount > 0 && (
-            <>
-              <span className='text-muted-foreground/30'>·</span>
+          <div className='flex shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground/70'>
+            {blockCount > 0 && (
               <span className='tabular-nums'>
-                {blockCount} block{blockCount !== 1 ? 's' : ''}
+                {blockCount} blk
               </span>
-            </>
-          )}
-          {log.duration && (
-            <>
-              <span className='text-muted-foreground/30'>·</span>
-              <span className='font-medium text-foreground/60 tabular-nums'>{log.duration}</span>
-            </>
-          )}
-          <span className='text-muted-foreground/30'>·</span>
-          <span className='tabular-nums'>{formattedDate.relative}</span>
-          <span className='text-muted-foreground/30'>·</span>
-          <span className='font-medium tabular-nums'>{formattedDate.compactTime}</span>
-          <span className='font-mono text-[10px] text-muted-foreground/40'>
-            #{log.id.slice(-4)}
-          </span>
-          <ArrowRight
-            className={cn(
-              'h-3.5 w-3.5 text-muted-foreground/30 transition-all duration-200',
-              'opacity-0 group-hover:opacity-100',
-              isSelected && 'text-primary/50 opacity-100'
             )}
-          />
+            {log.duration && (
+              <>
+                {blockCount > 0 && <span className='text-muted-foreground/30'>·</span>}
+                <span className='font-medium text-foreground/60 tabular-nums'>{log.duration}</span>
+              </>
+            )}
+            <span className='text-muted-foreground/30'>·</span>
+            <span className='font-medium tabular-nums'>{formattedDate.compactTime}</span>
+          </div>
         </div>
       </div>
 
-      {/* Line 2: progress bar */}
+      {/* Bottom: progress bar */}
       <div className='h-[3px] w-full bg-muted/30'>
         {isRunning ? (
           <div className='h-full w-full origin-left animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-emerald-500/0 via-emerald-500/70 to-emerald-500/0' />
