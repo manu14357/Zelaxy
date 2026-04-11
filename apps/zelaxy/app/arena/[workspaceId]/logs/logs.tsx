@@ -315,20 +315,20 @@ const LogCard = ({ log, isSelected, index, maxDuration, onClick }: LogCardProps)
   const isRunning = log.message === 'Running...'
   const triggerAccent = getTriggerAccent(log.trigger)
   const blockCount =
-    (log.metadata as any)?.blockStats?.total ??
-    log.metadata?.blockExecutions?.length ??
-    log.metadata?.traceSpans?.length ??
-    0
+    (log.metadata as any)?.blockStats?.total || (log.metadata as any)?.traceSpans?.length || 0
+
+  const ms = parseDurationMs(log.duration)
+  const barPct = ms && maxDuration ? Math.min((ms / maxDuration) * 100, 100) : isRunning ? 60 : 0
 
   return (
     <div
       className={cn(
-        'log-card group relative cursor-pointer rounded-xl border transition-all duration-200',
+        'log-card group relative cursor-pointer overflow-hidden rounded-xl border transition-all duration-200',
         isSelected
           ? 'border-primary/40 bg-primary/[0.04] shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]'
           : 'border-border/50 bg-card/50 hover:border-border/70 hover:bg-card/80 hover:shadow-sm',
         isError && !isSelected && 'border-red-500/20 hover:border-red-500/30',
-        isRunning && !isSelected && 'animate-pulse border-blue-500/20'
+        isRunning && !isSelected && 'border-blue-500/20'
       )}
       style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
       onClick={onClick}
@@ -336,11 +336,12 @@ const LogCard = ({ log, isSelected, index, maxDuration, onClick }: LogCardProps)
       {/* Selection accent line */}
       {isSelected && <div className='absolute inset-y-2 left-0 w-[3px] rounded-full bg-primary' />}
 
-      <div className='flex items-start gap-3 p-3.5 pl-4'>
-        {/* Left: Trigger icon circle */}
+      {/* Single content row */}
+      <div className='flex items-center gap-2.5 px-4 pt-3 pb-2.5'>
+        {/* Trigger icon */}
         <div
           className={cn(
-            'mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border transition-colors duration-200',
+            'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border transition-colors duration-200',
             triggerAccent
           )}
         >
@@ -351,83 +352,94 @@ const LogCard = ({ log, isSelected, index, maxDuration, onClick }: LogCardProps)
           )}
         </div>
 
-        {/* Center: Content */}
-        <div className='min-w-0 flex-1'>
-          {/* Top row: workflow + status */}
-          <div className='flex items-center gap-2'>
-            {log.workflow && (
-              <span
-                className='inline-flex items-center gap-1.5 truncate rounded-md border px-1.5 py-0.5 font-medium text-[11px]'
-                style={{
-                  color: log.workflow.color,
-                  backgroundColor: `${log.workflow.color}10`,
-                  borderColor: `${log.workflow.color}20`,
-                }}
-              >
-                <span
-                  className='h-1.5 w-1.5 rounded-full'
-                  style={{ backgroundColor: log.workflow.color }}
-                />
-                {log.workflow.name}
+        {/* Workflow name badge */}
+        {log.workflow && (
+          <span
+            className='inline-flex flex-shrink-0 items-center gap-1.5 rounded-md border px-1.5 py-0.5 font-medium text-[11px]'
+            style={{
+              color: log.workflow.color,
+              backgroundColor: `${log.workflow.color}10`,
+              borderColor: `${log.workflow.color}20`,
+            }}
+          >
+            <span
+              className='h-1.5 w-1.5 rounded-full'
+              style={{ backgroundColor: log.workflow.color }}
+            />
+            {log.workflow.name}
+          </span>
+        )}
+
+        {/* Message text */}
+        <span className='min-w-0 flex-1 truncate text-[12px] text-muted-foreground'>
+          {log.message}
+        </span>
+
+        {/* Status badge */}
+        {isError && (
+          <span className='inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-red-500/10 px-1.5 py-0.5 font-medium text-[10px] text-red-500'>
+            <AlertCircle className='h-2.5 w-2.5' />
+            Error
+          </span>
+        )}
+        {!isError && !isRunning && (
+          <span className='inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 font-medium text-[10px] text-emerald-600 dark:text-emerald-400'>
+            Completed
+          </span>
+        )}
+        {isRunning && (
+          <span className='inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-blue-500/10 px-1.5 py-0.5 font-medium text-[10px] text-blue-500'>
+            <Loader2 className='h-2.5 w-2.5 animate-spin' />
+            Running
+          </span>
+        )}
+
+        {/* Right-side metadata chips */}
+        <div className='flex flex-shrink-0 items-center gap-2 text-[11px] text-muted-foreground/70'>
+          {blockCount > 0 && (
+            <>
+              <span className='text-muted-foreground/30'>·</span>
+              <span className='tabular-nums'>
+                {blockCount} block{blockCount !== 1 ? 's' : ''}
               </span>
-            )}
-            {isError && (
-              <span className='inline-flex items-center gap-1 rounded-md bg-red-500/10 px-1.5 py-0.5 font-medium text-[10px] text-red-500'>
-                <AlertCircle className='h-2.5 w-2.5' />
-                Error
-              </span>
-            )}
-            {isRunning && (
-              <span className='inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-1.5 py-0.5 font-medium text-[10px] text-blue-500'>
-                <Loader2 className='h-2.5 w-2.5 animate-spin' />
-                Running
-              </span>
-            )}
-          </div>
-
-          {/* Message */}
-          <p className='mt-1 truncate text-[12px] text-muted-foreground'>{log.message}</p>
-
-          {/* Bottom row: metadata chips */}
-          <div className='mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground/80'>
-            <span className='font-medium text-foreground/70 tabular-nums'>
-              {formattedDate.compactTime}
-            </span>
-            <span className='hidden text-muted-foreground/40 sm:inline'>·</span>
-            <span className='hidden tabular-nums sm:inline'>{formattedDate.relative}</span>
-            {log.duration && (
-              <>
-                <span className='text-muted-foreground/40'>·</span>
-                <span className='font-medium text-foreground/60 tabular-nums'>{log.duration}</span>
-              </>
-            )}
-            {blockCount > 0 && (
-              <>
-                <span className='text-muted-foreground/40'>·</span>
-                <span>
-                  {blockCount} block{blockCount !== 1 ? 's' : ''}
-                </span>
-              </>
-            )}
-            <span className='font-mono text-[10px] text-muted-foreground/50'>
-              #{log.id.slice(-4)}
-            </span>
-          </div>
-
-          {/* Duration visualization bar */}
-          <DurationBar duration={log.duration} maxDuration={maxDuration} />
-        </div>
-
-        {/* Right: Arrow */}
-        <div
-          className={cn(
-            'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground/30 transition-all duration-200',
-            'opacity-0 group-hover:opacity-100',
-            isSelected && 'text-primary/50 opacity-100'
+            </>
           )}
-        >
-          <ArrowRight className='h-3.5 w-3.5' />
+          {log.duration && (
+            <>
+              <span className='text-muted-foreground/30'>·</span>
+              <span className='font-medium text-foreground/60 tabular-nums'>{log.duration}</span>
+            </>
+          )}
+          <span className='text-muted-foreground/30'>·</span>
+          <span className='tabular-nums'>{formattedDate.relative}</span>
+          <span className='text-muted-foreground/30'>·</span>
+          <span className='font-medium tabular-nums'>{formattedDate.compactTime}</span>
+          <span className='font-mono text-[10px] text-muted-foreground/40'>
+            #{log.id.slice(-4)}
+          </span>
+          <ArrowRight
+            className={cn(
+              'h-3.5 w-3.5 text-muted-foreground/30 transition-all duration-200',
+              'opacity-0 group-hover:opacity-100',
+              isSelected && 'text-primary/50 opacity-100'
+            )}
+          />
         </div>
+      </div>
+
+      {/* Line 2: progress bar */}
+      <div className='h-[3px] w-full bg-muted/30'>
+        {isRunning ? (
+          <div className='h-full w-full origin-left animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-emerald-500/0 via-emerald-500/70 to-emerald-500/0' />
+        ) : barPct > 0 ? (
+          <div
+            className={cn(
+              'h-full rounded-r-full transition-all duration-700 ease-out',
+              isError ? 'bg-red-500/60' : ms > 30000 ? 'bg-amber-500/60' : 'bg-emerald-500/60'
+            )}
+            style={{ width: `${barPct}%` }}
+          />
+        ) : null}
       </div>
     </div>
   )
@@ -554,9 +566,7 @@ export default function Logs() {
 
   const fetchLogs = useCallback(async (pageNum: number, append = false) => {
     try {
-      if (pageNum === 1) {
-        setLoading(true)
-      } else {
+      if (pageNum > 1) {
         setIsFetchingMore(true)
       }
 
@@ -576,9 +586,7 @@ export default function Logs() {
       logger.error('Failed to fetch logs:', { err })
       setError(err instanceof Error ? err.message : 'An unknown error occurred')
     } finally {
-      if (pageNum === 1) {
-        setLoading(false)
-      } else {
+      if (pageNum > 1) {
         setIsFetchingMore(false)
       }
     }

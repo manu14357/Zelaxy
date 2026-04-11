@@ -201,6 +201,15 @@ export async function GET(request: NextRequest) {
       // Block executions are now extracted from trace spans instead of separate table
       const blockExecutionsByExecution: Record<string, any[]> = {}
 
+      // Count block-type spans recursively (skips tool/model sub-spans)
+      // Handles both flat (new records) and nested (old records) trace span structures
+      const SPAN_INFRA_TYPES = new Set(['tool', 'model'])
+      const countBlockSpans = (spans: any[]): number =>
+        spans.reduce((sum: number, span: any) => {
+          const isBlock = !SPAN_INFRA_TYPES.has(span.type)
+          return sum + (isBlock ? 1 : 0) + countBlockSpans(span.children || [])
+        }, 0)
+
       // Create clean trace spans from block executions
       const createTraceSpans = (blockExecutions: any[]) => {
         return blockExecutions.map((block, index) => {
@@ -341,7 +350,7 @@ export async function GET(request: NextRequest) {
             totalDuration: log.totalDurationMs,
             cost: costSummary,
             blockStats: {
-              total: log.blockCount,
+              total: log.blockCount || countBlockSpans(storedTraceSpans || []),
               success: log.successCount,
               error: log.errorCount,
               skipped: log.skippedCount,
