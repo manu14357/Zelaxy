@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd apps/zelaxy && bun run build",
+  "buildCommand": "bun run build",
   "outputDirectory": "apps/zelaxy/.next",
   "installCommand": "bun install",
   "framework": "nextjs",
