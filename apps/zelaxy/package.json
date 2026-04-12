@@ -15,7 +15,7 @@
     "dev:worker": "bun run worker/index.ts",
     "start:worker": "NODE_ENV=production bun run worker/index.ts",
     "dev:full": "concurrently -n \"NextJS,Realtime\" -c \"cyan,magenta\" \"bun run dev\" \"bun run dev:sockets\"",
-    "build": "next build",
+    "build": "next build --turbopack",
     "start": "next start --port ${PORT:-3000} --hostname 0.0.0.0",
     "start:prod": "NODE_ENV=production next start --port ${PORT:-3000} --hostname 0.0.0.0",
     "db:push": "bunx drizzle-kit push",

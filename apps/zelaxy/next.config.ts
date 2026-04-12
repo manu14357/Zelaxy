@@ -74,7 +74,6 @@ const nextConfig: NextConfig = {
     resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
   },
   experimental: {
-    optimizeCss: true,
     turbopackSourceMaps: false,
   },
   ...(isDev && {
