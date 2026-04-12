@@ -1,40 +1,22 @@
-/* ═══════════════════════════════════════════════════
-   Zelaxy Logs — Enhanced Timeline UI
-   ═══════════════════════════════════════════════════ */
+/* Zelaxy Logs — Minimal Utility CSS */
 
-/* ── Animations ── */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Scrollbar */
+.logs-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.logs-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.logs-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.12);
+  border-radius: 9999px;
+}
+.logs-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.22);
 }
 
-@keyframes livePulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
-}
-
-@keyframes liveGlow {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-  }
-}
-
-@keyframes shimmer {
+/* Shimmer bar for loading indicator */
+@keyframes logs-shimmer {
   0% {
     transform: translateX(-100%);
   }
@@ -42,75 +24,26 @@
     transform: translateX(400%);
   }
 }
-
-@keyframes slideInLeft {
-  from {
-    transform: translateX(-16px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+.logs-shimmer {
+  animation: logs-shimmer 1.5s ease-in-out infinite;
 }
 
-@keyframes slideOutLeft {
-  from {
-    transform: translateX(0);
-    opacity: 1;
+/* Running bar pulse for in-progress executions */
+@keyframes logs-running {
+  0% {
+    background-position: -200% 0;
   }
-  to {
-    transform: translateX(-16px);
-    opacity: 0;
+  100% {
+    background-position: 200% 0;
   }
 }
-
-/* ── Log Cards ── */
-.log-card {
-  animation: fadeInUp 0.3s ease-out both;
-}
-
-/* ── Custom Scrollbar ── */
-.logs-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.logs-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.logs-container::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.15);
-  border-radius: 100px;
-}
-
-.logs-container::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.25);
-}
-
-/* ── Filter Panel ── */
-.filter-panel {
-  animation: slideInLeft 0.2s ease-out;
-}
-
-.filter-panel.closing {
-  animation: slideOutLeft 0.2s ease-out;
-}
-
-/* ── Dark Mode ── */
-@media (prefers-color-scheme: dark) {
-  .logs-container::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.2);
-  }
-
-  .logs-container::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.3);
-  }
-}
-
-/* ── Mobile ── */
-@media (max-width: 768px) {
-  .log-card {
-    animation-delay: 0ms !important;
-  }
+.logs-running-bar {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--primary) / 0.6) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: logs-running 1.5s ease-in-out infinite;
 }
