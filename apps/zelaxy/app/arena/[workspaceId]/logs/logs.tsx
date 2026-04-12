@@ -237,7 +237,7 @@ function StatsSummary({ logs }: { logs: WorkflowLog[] }) {
             <Zap className='h-4 w-4 text-primary' />
           </div>
           <div>
-            <div className='font-semibold text-lg text-foreground tabular-nums leading-none'>
+            <div className='font-semibold text-foreground text-lg tabular-nums leading-none'>
               {stats.total}
             </div>
             <div className='mt-0.5 text-[10px] text-muted-foreground uppercase tracking-wider'>
@@ -254,7 +254,7 @@ function StatsSummary({ logs }: { logs: WorkflowLog[] }) {
             <Radio className={cn('h-4 w-4', rateColor)} />
           </div>
           <div>
-            <div className='font-semibold text-lg text-foreground tabular-nums leading-none'>
+            <div className='font-semibold text-foreground text-lg tabular-nums leading-none'>
               {stats.successRate}%
             </div>
             <div className='mt-0.5 text-[10px] text-muted-foreground uppercase tracking-wider'>
@@ -263,7 +263,13 @@ function StatsSummary({ logs }: { logs: WorkflowLog[] }) {
           </div>
         </div>
         <div className='mt-2.5 h-1 w-full overflow-hidden rounded-full bg-muted/40'>
-          <div className={cn('h-full rounded-full transition-all duration-700', rateBarBg, rateBarWidth)} />
+          <div
+            className={cn(
+              'h-full rounded-full transition-all duration-700',
+              rateBarBg,
+              rateBarWidth
+            )}
+          />
         </div>
       </div>
 
@@ -274,7 +280,7 @@ function StatsSummary({ logs }: { logs: WorkflowLog[] }) {
             <AlertCircle className='h-4 w-4 text-red-500' />
           </div>
           <div>
-            <div className='font-semibold text-lg text-foreground tabular-nums leading-none'>
+            <div className='font-semibold text-foreground text-lg tabular-nums leading-none'>
               {stats.errors}
             </div>
             <div className='mt-0.5 text-[10px] text-muted-foreground uppercase tracking-wider'>
@@ -291,7 +297,7 @@ function StatsSummary({ logs }: { logs: WorkflowLog[] }) {
             <Clock className='h-4 w-4 text-blue-500' />
           </div>
           <div>
-            <div className='font-semibold text-lg text-foreground tabular-nums leading-none'>
+            <div className='font-semibold text-foreground text-lg tabular-nums leading-none'>
               {formatMs(stats.avgDuration)}
             </div>
             <div className='mt-0.5 text-[10px] text-muted-foreground uppercase tracking-wider'>
@@ -308,7 +314,7 @@ function StatsSummary({ logs }: { logs: WorkflowLog[] }) {
             <TriggerIcon trigger={stats.topTrigger} className='text-violet-500' />
           </div>
           <div>
-            <div className='font-semibold text-sm text-foreground capitalize leading-none'>
+            <div className='font-semibold text-foreground text-sm capitalize leading-none'>
               {stats.topTrigger}
             </div>
             <div className='mt-0.5 text-[10px] text-muted-foreground uppercase tracking-wider'>
@@ -351,9 +357,7 @@ function LogRow({ log, isSelected, maxDuration, onClick }: LogRowProps) {
       )}
       onClick={onClick}
     >
-      {isSelected && (
-        <div className='absolute inset-y-0 left-0 w-[3px] bg-primary' />
-      )}
+      {isSelected && <div className='absolute inset-y-0 left-0 w-[3px] bg-primary' />}
 
       <div className='flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4'>
         {/* Trigger icon */}
@@ -384,7 +388,7 @@ function LogRow({ log, isSelected, maxDuration, onClick }: LogRowProps) {
         )}
 
         {/* Message — desktop */}
-        <span className='hidden min-w-0 flex-1 truncate text-xs text-muted-foreground sm:block'>
+        <span className='hidden min-w-0 flex-1 truncate text-muted-foreground text-xs sm:block'>
           {log.message}
         </span>
 
@@ -1018,7 +1022,7 @@ export default function Logs() {
                     />
                     Stats
                   </button>
-                  <span className='rounded-full bg-muted/50 px-3 py-1 font-medium text-xs text-muted-foreground tabular-nums'>
+                  <span className='rounded-full bg-muted/50 px-3 py-1 font-medium text-muted-foreground text-xs tabular-nums'>
                     {logs.length} {logs.length === 1 ? 'log' : 'logs'}
                   </span>
                 </div>
@@ -1082,7 +1086,7 @@ export default function Logs() {
                   size='sm'
                   variant='ghost'
                   onClick={clearAllFilters}
-                  className='h-6 shrink-0 px-2 text-xs text-muted-foreground hover:text-foreground'
+                  className='h-6 shrink-0 px-2 text-muted-foreground text-xs hover:text-foreground'
                 >
                   Clear all
                 </Button>
@@ -1219,8 +1223,8 @@ export default function Logs() {
                   <div className='mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10'>
                     <Loader2 className='h-5 w-5 animate-spin text-primary' />
                   </div>
-                  <p className='font-medium text-sm text-foreground'>Loading logs...</p>
-                  <p className='mt-1 text-xs text-muted-foreground'>
+                  <p className='font-medium text-foreground text-sm'>Loading logs...</p>
+                  <p className='mt-1 text-muted-foreground text-xs'>
                     Fetching workflow execution data
                   </p>
                 </div>
@@ -1231,8 +1235,8 @@ export default function Logs() {
                   <div className='mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/10'>
                     <AlertCircle className='h-5 w-5 text-destructive' />
                   </div>
-                  <p className='font-medium text-sm text-foreground'>Unable to load logs</p>
-                  <p className='mt-1 mb-4 text-xs text-muted-foreground'>{error}</p>
+                  <p className='font-medium text-foreground text-sm'>Unable to load logs</p>
+                  <p className='mt-1 mb-4 text-muted-foreground text-xs'>{error}</p>
                   <Button
                     variant='outline'
                     size='sm'
@@ -1260,8 +1264,8 @@ export default function Logs() {
                   <div className='mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50'>
                     <Search className='h-5 w-5 text-muted-foreground' />
                   </div>
-                  <p className='font-medium text-sm text-foreground'>No logs found</p>
-                  <p className='mt-1 mb-4 text-xs text-muted-foreground'>
+                  <p className='font-medium text-foreground text-sm'>No logs found</p>
+                  <p className='mt-1 mb-4 text-muted-foreground text-xs'>
                     {searchQuery
                       ? `No results for "${searchQuery}". Try different search terms.`
                       : 'No workflow executions recorded yet. Logs will appear here once workflows run.'}
@@ -1316,10 +1320,10 @@ export default function Logs() {
                       {isFetchingMore ? (
                         <>
                           <Loader2 className='h-3.5 w-3.5 animate-spin text-muted-foreground' />
-                          <span className='text-xs text-muted-foreground'>Loading more...</span>
+                          <span className='text-muted-foreground text-xs'>Loading more...</span>
                         </>
                       ) : (
-                        <span className='text-xs text-muted-foreground/50'>Scroll for more</span>
+                        <span className='text-muted-foreground/50 text-xs'>Scroll for more</span>
                       )}
                     </div>
                   </div>
@@ -1328,7 +1332,7 @@ export default function Logs() {
                 {/* End */}
                 {!hasMore && logs.length > 0 && (
                   <div className='flex items-center justify-center py-6'>
-                    <span className='text-xs text-muted-foreground/40'>
+                    <span className='text-muted-foreground/40 text-xs'>
                       End — {logs.length} logs loaded
                     </span>
                   </div>
