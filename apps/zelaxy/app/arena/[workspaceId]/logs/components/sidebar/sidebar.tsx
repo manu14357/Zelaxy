@@ -167,7 +167,7 @@ const formatJsonContent = (content: string, blockInput?: Record<string, any>): R
   )
 }
 
-const BlockContentDisplay = ({
+export const BlockContentDisplay = ({
   systemComment,
   formatted,
   isJson,
@@ -246,7 +246,9 @@ const BlockContentDisplay = ({
               text={JSON.stringify(redactedBlockInput, null, 2)}
               className='z-10 h-7 w-7'
             />
-            <pre className='w-full overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-all text-[12px]' />
+            <pre className='w-full overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-all text-[12px]'>
+              {JSON.stringify(redactedBlockInput, null, 2)}
+            </pre>
           </>
         )}
       </div>
