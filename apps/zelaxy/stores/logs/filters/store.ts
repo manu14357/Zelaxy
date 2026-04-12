@@ -227,7 +227,14 @@ export const useFilterStore = create<FilterState>((set, get) => ({
 
   syncWithURL: () => {
     const { timeRange, level, workflowIds, folderIds, triggers, searchQuery } = get()
-    const params = new URLSearchParams()
+    // Preserve existing non-filter params (e.g. ?tab= used by Hub)
+    const params = getSearchParams()
+
+    // Filter-managed keys — clear them first, then re-add non-defaults
+    const filterKeys = ['timeRange', 'level', 'workflowIds', 'folderIds', 'triggers', 'search']
+    for (const key of filterKeys) {
+      params.delete(key)
+    }
 
     // Only add non-default values to keep URL clean
     if (timeRange !== 'All time') {

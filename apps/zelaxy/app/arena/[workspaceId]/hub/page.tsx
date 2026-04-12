@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { getSession } from '@/lib/auth'
 import type { Template } from '@/app/arena/[workspaceId]/templates/templates'
@@ -39,9 +40,11 @@ export default async function HubPage() {
     .orderBy(desc(templates.views), desc(templates.createdAt))
 
   return (
-    <Hub
-      initialTemplates={templatesData as unknown as Template[]}
-      currentUserId={session.user.id}
-    />
+    <Suspense>
+      <Hub
+        initialTemplates={templatesData as unknown as Template[]}
+        currentUserId={session.user.id}
+      />
+    </Suspense>
   )
 }

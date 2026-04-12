@@ -216,12 +216,6 @@ const nextConfig: NextConfig = {
         permanent: true,
         has: [{ type: 'host', value: 'zelaxy.in' }],
       },
-      {
-        source: '/((?!api|_next|_vercel|favicon|static|.*\\..*).*)',
-        destination: 'https://www.zelaxy.in/$1',
-        permanent: true,
-        has: [{ type: 'host', value: 'www.zelaxy.in' }],
-      },
     ]
   },
   async rewrites() {
