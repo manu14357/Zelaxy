@@ -3,8 +3,9 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth'
 import { createLogger } from '@/lib/logs/console/logger'
+import { getUserEntityPermissions } from '@/lib/permissions/utils'
 import { db } from '@/db'
-import { permissions, workflow, workflowExecutionLogs } from '@/db/schema'
+import { workflow, workflowExecutionLogs, workspace } from '@/db/schema'
 
 const logger = createLogger('LogsAPI')
 
@@ -74,6 +75,31 @@ export async function GET(request: NextRequest) {
       const { searchParams } = new URL(request.url)
       const params = QueryParamsSchema.parse(Object.fromEntries(searchParams.entries()))
 
+      const workspaceResult = await db
+        .select({ id: workspace.id, ownerId: workspace.ownerId })
+        .from(workspace)
+        .where(eq(workspace.id, params.workspaceId))
+        .limit(1)
+
+      if (workspaceResult.length === 0) {
+        logger.warn(`[${requestId}] Workspace not found for logs request`, {
+          workspaceId: params.workspaceId,
+        })
+        return NextResponse.json({ error: 'Workspace not found' }, { status: 404 })
+      }
+
+      const isOwner = workspaceResult[0].ownerId === userId
+      if (!isOwner) {
+        const permission = await getUserEntityPermissions(userId, 'workspace', params.workspaceId)
+        if (!permission) {
+          logger.warn(`[${requestId}] User does not have workspace access for logs`, {
+            userId,
+            workspaceId: params.workspaceId,
+          })
+          return NextResponse.json({ error: 'Access denied to this workspace' }, { status: 403 })
+        }
+      }
+
       const baseQuery = db
         .select({
           id: workflowExecutionLogs.id,
@@ -108,14 +134,6 @@ export async function GET(request: NextRequest) {
         })
         .from(workflowExecutionLogs)
         .innerJoin(workflow, eq(workflowExecutionLogs.workflowId, workflow.id))
-        .innerJoin(
-          permissions,
-          and(
-            eq(permissions.entityType, 'workspace'),
-            eq(permissions.entityId, workflow.workspaceId),
-            eq(permissions.userId, userId)
-          )
-        )
 
       // Build conditions for the joined query
       let conditions: SQL | undefined = eq(workflow.workspaceId, params.workspaceId)
@@ -184,14 +202,6 @@ export async function GET(request: NextRequest) {
         .select({ count: sql<number>`count(*)` })
         .from(workflowExecutionLogs)
         .innerJoin(workflow, eq(workflowExecutionLogs.workflowId, workflow.id))
-        .innerJoin(
-          permissions,
-          and(
-            eq(permissions.entityType, 'workspace'),
-            eq(permissions.entityId, workflow.workspaceId),
-            eq(permissions.userId, userId)
-          )
-        )
         .where(conditions)
 
       const countResult = await countQuery

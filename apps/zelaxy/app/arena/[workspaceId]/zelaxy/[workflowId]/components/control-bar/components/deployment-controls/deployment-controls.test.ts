@@ -154,10 +154,10 @@ describe('DeploymentControls Change Detection Logic', () => {
     it('should show correct tooltip messages based on state', () => {
       const getTooltipMessage = (isDeployed: boolean, needsRedeployment: boolean) => {
         if (isDeployed && needsRedeployment) {
-          return 'Workflow changes detected'
+          return 'Workflow changes detected. Production and API runs still use the last deployed snapshot until you redeploy.'
         }
         if (isDeployed) {
-          return 'Deployment Settings'
+          return 'Manage deployed snapshot and API settings'
         }
         return 'Deploy as API'
       }
@@ -167,10 +167,12 @@ describe('DeploymentControls Change Detection Logic', () => {
       expect(getTooltipMessage(false, true)).toBe('Deploy as API')
 
       // Deployed, no changes
-      expect(getTooltipMessage(true, false)).toBe('Deployment Settings')
+      expect(getTooltipMessage(true, false)).toBe('Manage deployed snapshot and API settings')
 
       // Deployed, changes detected
-      expect(getTooltipMessage(true, true)).toBe('Workflow changes detected')
+      expect(getTooltipMessage(true, true)).toBe(
+        'Workflow changes detected. Production and API runs still use the last deployed snapshot until you redeploy.'
+      )
     })
   })
 

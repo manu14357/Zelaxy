@@ -72,10 +72,10 @@ export function DeploymentControls({
       return 'Deploying...'
     }
     if (isDeployed && workflowNeedsRedeployment) {
-      return 'Workflow changes detected'
+      return 'Workflow changes detected. Production and API runs still use the last deployed snapshot until you redeploy.'
     }
     if (isDeployed) {
-      return 'Deployment Settings'
+      return 'Manage deployed snapshot and API settings'
     }
     return 'Deploy as API'
   }
