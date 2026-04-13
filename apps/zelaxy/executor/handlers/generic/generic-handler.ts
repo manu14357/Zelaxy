@@ -75,9 +75,9 @@ export class GenericBlockHandler implements BlockHandler {
         context // execution context for file processing
       )
 
-      // Debug logging for MSSQL tool
-      if (block.config.tool === 'mssql_database') {
-        console.log('[GenericBlockHandler] MSSQL Result:', {
+      // Debug logging for MSSQL/MySQL tool
+      if (block.config.tool === 'mssql_database' || block.config.tool === 'mysql_database') {
+        console.log('[GenericBlockHandler] DB Result:', {
           success: result.success,
           hasError: !!result.error,
           hasOutput: !!result.output,

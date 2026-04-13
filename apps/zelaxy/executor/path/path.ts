@@ -388,15 +388,15 @@ export class PathTracker {
 
   /**
    * Check if a block has an error
-   * For MSSQL blocks, always return false so they continue to next node
+   * For MSSQL/MySQL blocks, always return false so they continue to next node
    */
   private blockHasError(blockState: BlockState | undefined, blockType?: string): boolean {
     if (!blockState?.output?.error) {
       return false
     }
 
-    // MSSQL blocks ALWAYS continue to next node, regardless of error
-    if (blockType === 'mssql') {
+    // MSSQL/MySQL blocks ALWAYS continue to next node, regardless of error
+    if (blockType === 'mssql' || blockType === 'mysql') {
       return false
     }
 
