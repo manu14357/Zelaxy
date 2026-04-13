@@ -1213,9 +1213,9 @@ export class Executor {
 
         // Check if there was an actual execution error (not just error field in output)
         // An error exists if: output.error exists AND there's no data/success output
-        // EXCEPT: MSSQL blocks ALWAYS continue to next node regardless of error
+        // EXCEPT: MSSQL/MySQL blocks ALWAYS continue to next node regardless of error
         let hasSourceError = false
-        if (sourceBlockType !== 'mssql') {
+        if (sourceBlockType !== 'mssql' && sourceBlockType !== 'mysql') {
           hasSourceError =
             sourceBlockState?.output?.error !== undefined &&
             (sourceBlockState?.output?.data === undefined ||
@@ -1265,9 +1265,9 @@ export class Executor {
 
       // Check if there was an actual execution error (not just error field in output)
       // An error exists if: output.error exists AND there's no data/success output
-      // EXCEPT: MSSQL blocks ALWAYS continue to next node regardless of error
+      // EXCEPT: MSSQL/MySQL blocks ALWAYS continue to next node regardless of error
       let hasSourceError = false
-      if (sourceBlockType !== 'mssql') {
+      if (sourceBlockType !== 'mssql' && sourceBlockType !== 'mysql') {
         hasSourceError =
           sourceBlockState?.output?.error !== undefined &&
           (sourceBlockState?.output?.data === undefined ||
