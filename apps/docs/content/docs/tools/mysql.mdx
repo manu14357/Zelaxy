@@ -1,0 +1,71 @@
+---
+title: MySQL
+description: Execute SQL queries on MySQL databases
+icon: Database
+---
+
+# MySQL
+
+Execute SQL queries against MySQL databases. Supports SELECT, INSERT, UPDATE, DELETE operations with connection pooling and parameterized queries.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mysql` |
+| **Category** | Tool — Database |
+| **Auth** | Connection Credentials |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Execute Query** | Run a raw SQL query |
+| **Insert** | Insert rows into a table |
+| **Update** | Update rows in a table |
+| **Delete** | Delete rows from a table |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Host | Short input | Server hostname |
+| Port | Short input | Port (default: 3306) |
+| Database | Short input | Database name |
+| Username | Short input | MySQL username |
+| Password | Password | MySQL password |
+| SSL | Toggle | Use SSL/TLS connection |
+| Action | Dropdown | Operation type: Execute Query, Insert, Update, Delete |
+| Query | Code editor | SQL query (Execute Query action) |
+| Table | Short input | Target table (Insert, Update, Delete actions) |
+| Data | Code/JSON editor | Row data as JSON (Insert, Update actions) |
+| Conditions | Code/JSON editor | WHERE conditions as JSON (Update, Delete actions) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | Query result rows or operation confirmation |
+| `affectedRows` | `number` | Number of rows affected |
+| `metadata` | `json` | Column metadata from the query |
+| `error` | `string` | Error message if the query failed |
+| `errorDetails` | `json` | Detailed error information |
+
+## Example: Customer Analytics Workflow
+
+**Workflow:**
+```
+[Starter] → [Agent] → [Response]
+              ↑
+        [MySQL] (connected as tool)
+```
+
+Agent receives natural-language questions, translates them to SQL, queries the MySQL database, and returns formatted results.
+
+## Tips
+
+- **Use parameterized queries** — The Insert, Update, and Delete actions use `?` placeholders automatically for SQL injection prevention
+- **Enable SSL** for production and remote connections
+- **Agent as tool** — Provide table schemas in the system prompt so the AI can write accurate MySQL queries
+- **Backtick quoting** — Table and column names are automatically wrapped in backticks for MySQL compatibility
+- **Connection pooling** — Connections are pooled and reused across executions for better performance

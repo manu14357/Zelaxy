@@ -86,6 +86,9 @@ const getIconBgClass = (bgColor: string) => {
     '#10a37f': 'bg-emerald-600',
     '#FF752F': 'bg-orange-500',
     '#0B0F19': 'bg-slate-900',
+    '#00758F': 'bg-cyan-700', // MySQL
+    '#336791': 'bg-sky-700', // PostgreSQL
+    '#CC2927': 'bg-red-600', // MSSQL
 
     // Legacy blue values (backward compat)
     '#2FB3FF': 'bg-orange-500',
