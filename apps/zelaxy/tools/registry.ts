@@ -113,6 +113,7 @@ import {
 } from '@/tools/microsoft_teams'
 import { mistralParserTool } from '@/tools/mistral'
 import { mssqlTool } from '@/tools/mssql'
+import { mysqlTool } from '@/tools/mysql'
 import {
   notionCreateDatabaseTool,
   notionCreatePageTool,
@@ -291,6 +292,7 @@ export const tools: Record<string, ToolConfig> = {
   knowledge_upload_chunk: knowledgeUploadChunkTool,
   knowledge_create_document: knowledgeCreateDocumentTool,
   mssql_database: mssqlTool,
+  mysql_database: mysqlTool,
   postgresql_database: postgresqlTool,
   elevenlabs_tts: elevenLabsTtsTool,
   s3_get_object: s3GetObjectTool,

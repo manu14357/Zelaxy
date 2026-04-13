@@ -47,6 +47,7 @@ import { MicrosoftPlannerBlock } from '@/blocks/blocks/microsoft_planner'
 import { MicrosoftTeamsBlock } from '@/blocks/blocks/microsoft_teams'
 import { MistralParseBlock } from '@/blocks/blocks/mistral_parse'
 import { MSSQLBlock } from '@/blocks/blocks/mssql'
+import { MySQLBlock } from '@/blocks/blocks/mysql'
 import { NotionBlock } from '@/blocks/blocks/notion'
 import { OneDriveBlock } from '@/blocks/blocks/onedrive'
 import { OpenAIBlock } from '@/blocks/blocks/openai'
@@ -132,6 +133,7 @@ export const registry: Record<string, BlockConfig> = {
   mistral_parse: MistralParseBlock,
   mcp: MCPBlock,
   mssql: MSSQLBlock,
+  mysql: MySQLBlock,
   notion: NotionBlock,
   openai: OpenAIBlock,
   outlook: OutlookBlock,
