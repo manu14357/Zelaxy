@@ -120,7 +120,7 @@
     "recharts": "2.15.3",
     "rehype-highlight": "7.0.2",
     "remark-gfm": "4.0.1",
-    "resend": "^4.1.2",
+    "resend": "6.11.0",
     "rete": "2.0.6",
     "rete-area-plugin": "2.1.5",
     "rete-connection-plugin": "2.0.5",

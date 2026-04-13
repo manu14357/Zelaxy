@@ -58,6 +58,7 @@ import { PineconeBlock } from '@/blocks/blocks/pinecone'
 import { PostgreSQLBlock } from '@/blocks/blocks/postgresql'
 import { QdrantBlock } from '@/blocks/blocks/qdrant'
 import { RedditBlock } from '@/blocks/blocks/reddit'
+import { ResendBlock } from '@/blocks/blocks/resend'
 import { ResponseBlock } from '@/blocks/blocks/response'
 import { RouterBlock } from '@/blocks/blocks/router'
 import { S3Block } from '@/blocks/blocks/s3'
@@ -145,6 +146,7 @@ export const registry: Record<string, BlockConfig> = {
   qdrant: QdrantBlock,
   memory: MemoryBlock,
   reddit: RedditBlock,
+  resend: ResendBlock,
   response: ResponseBlock,
   router: RouterBlock,
   schedule: ScheduleBlock,

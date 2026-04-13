@@ -1,0 +1,226 @@
+---
+title: Resend
+description: Send transactional and marketing emails using the Resend API
+icon: Mail
+---
+
+## Overview
+
+The **Resend** block lets you send emails through the [Resend](https://resend.com/) API directly from your workflows. It supports HTML and plain text content, CC/BCC, reply-to, scheduled delivery, tagging, attachments, batch sending, and email retrieval/cancellation.
+
+## When to Use
+
+- Send transactional emails (welcome, password reset, receipts)
+- Send marketing or notification emails from workflows
+- Batch send personalized emails to multiple recipients
+- Schedule emails for future delivery
+- Retrieve email status or cancel scheduled emails
+
+## Prerequisites
+
+1. Create a Resend account at [resend.com](https://resend.com/)
+2. Add and verify your sending domain at [resend.com/domains](https://resend.com/domains)
+3. Generate an API key at [resend.com/api-keys](https://resend.com/api-keys)
+
+## Add Your Domain (Step by Step)
+
+Use this flow for production email sending.
+
+1. Open [Resend Domains](https://resend.com/domains) and click **Add Domain**.
+2. Enter your domain (example: `yourdomain.com`) and submit.
+3. Copy the DNS records Resend gives you (commonly SPF, DKIM, and optionally DMARC).
+4. Open your DNS provider (Cloudflare, GoDaddy, Namecheap, Route53, etc.) and add those exact records.
+5. Wait for DNS propagation, then click **Verify DNS Records** in Resend.
+6. After verification succeeds, use a sender address from that domain, for example:
+   - `hello@yourdomain.com`
+   - `Acme <notifications@yourdomain.com>`
+
+### Notes About Domain Verification
+
+- If verification is pending, wait a few minutes and re-check DNS record values and host names.
+- For production, always send from your verified domain.
+- `onboarding@resend.dev` is only for testing and evaluation.
+
+## Generate API Key (Step by Step)
+
+1. Open [Resend API Keys](https://resend.com/api-keys).
+2. Click **Create API Key**.
+3. Choose the key permission scope you need.
+4. Name the key clearly (example: `zelaxy-production`).
+5. Copy the key immediately and store it securely (Resend shows it once).
+
+API keys start with `re_`.
+
+## Next.js Integration Reference
+
+Official guide: [Send email with Next.js](https://resend.com/docs/send-with-nextjs)
+
+Minimal Next.js example using an API route:
+
+```ts
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
+
+export async function POST() {
+  const { data, error } = await resend.emails.send({
+    from: 'Acme <notifications@yourdomain.com>',
+    to: ['user@example.com'],
+    subject: 'Hello from Next.js',
+    html: '<p>It works.</p>',
+  })
+
+  return Response.json({ data, error })
+}
+```
+
+Add your environment variable:
+
+```dotenv
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxx
+```
+
+Restart your app after changing `.env` files.
+
+## Use Resend in Zelaxy
+
+1. Add a **Resend** block in your workflow.
+2. Set **API Key** with your `re_...` key.
+3. Set **From** to an address on your verified domain.
+4. Choose action (`Send`, `Batch Send`, `Get Email`, `Cancel Scheduled`).
+5. Fill required fields and run the workflow.
+
+## Configuration
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| API Key | string | Yes | Your Resend API key (starts with `re_`) |
+| Action | dropdown | Yes | Operation: Send, Batch Send, Get Email, Cancel Scheduled |
+
+### Send Email Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| From | string | Yes | Sender address (e.g., `Your Name <you@yourdomain.com>`) |
+| To | string | Yes | Recipient addresses (comma-separated, max 50) |
+| Subject | string | Yes | Email subject line |
+| HTML Body | text | No* | HTML email content |
+| Plain Text Body | text | No* | Plain text fallback (auto-generated from HTML if omitted) |
+
+\* At least one of HTML Body or Plain Text Body is required.
+
+### Advanced Send Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| CC | string | CC recipients (comma-separated) |
+| BCC | string | BCC recipients (comma-separated) |
+| Reply-To | string | Reply-to address(es) |
+| Schedule At | string | Schedule delivery (ISO 8601 or natural language, up to 30 days) |
+| Tags | JSON | Tags for tracking: `[{"name": "category", "value": "welcome"}]` |
+| Custom Headers | JSON | Custom email headers: `{"X-Custom": "value"}` |
+| Attachments | JSON | File attachments: `[{"filename": "file.pdf", "content": "base64..."}]` |
+
+### Batch Send Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| Emails | JSON | Yes | Array of email objects (each with from, to, subject, html/text) |
+
+### Get / Cancel Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| Email ID | string | Yes | The email ID returned from a previous send operation |
+
+## Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `id` | string | Email ID returned by Resend (send action) |
+| `ids` | json | Array of email IDs (batch send action) |
+| `email` | json | Full email details (get action) |
+| `status` | string | Operation status (sent, batch_sent, retrieved, cancelled) |
+| `error` | string | Error message if the operation failed |
+
+## Examples
+
+### Basic Email
+
+Send a simple HTML email:
+
+```text
+[Starter] → [Resend] → [Response]
+```
+
+Configure the Resend block:
+- **API Key**: Your `re_` key
+- **From**: `Acme <notifications@yourdomain.com>`
+- **To**: `{{starter.email}}`
+- **Subject**: `Welcome to Acme!`
+- **HTML Body**: `<h1>Welcome!</h1><p>Thanks for signing up.</p>`
+
+### Development Testing
+
+For quick testing before domain setup:
+
+- **From**: `onboarding@resend.dev`
+- **To**: your own inbox
+
+Then switch to your verified domain sender for production.
+
+### Scheduled Email
+
+Send a reminder email in the future:
+
+- **Schedule At**: `2026-12-25T09:00:00Z` or `in 1 hour`
+
+### Batch Send
+
+Send personalized emails to multiple recipients at once:
+
+```json
+[
+  {
+    "from": "Acme <hello@yourdomain.com>",
+    "to": "alice@example.com",
+    "subject": "Hi Alice",
+    "html": "<p>Hello Alice!</p>"
+  },
+  {
+    "from": "Acme <hello@yourdomain.com>",
+    "to": "bob@example.com",
+    "subject": "Hi Bob",
+    "html": "<p>Hello Bob!</p>"
+  }
+]
+```
+
+### Tags for Tracking
+
+Add tags to categorize and track emails:
+
+```json
+[
+  { "name": "category", "value": "welcome" },
+  { "name": "user_id", "value": "12345" }
+]
+```
+
+### Retrieve Email Status
+
+Use the **Get Email** action with an email ID from a previous send to check its delivery status.
+
+### Cancel a Scheduled Email
+
+Use the **Cancel Scheduled Email** action with the email ID to cancel a previously scheduled email before it's delivered.
+
+## Tips
+
+- Use a **verified domain** in the `from` address for production. The test address `onboarding@resend.dev` only works for testing.
+- Resend provides test addresses for simulating events: `delivered@resend.dev`, `bounced@resend.dev`, `complained@resend.dev`, `suppressed@resend.dev`.
+- The default rate limit is **5 requests/second** per team.
+- Scheduled emails can be sent up to **30 days** in advance.
+- Tags are useful for filtering and analytics in the Resend dashboard.
+- Attachment total size limit is **40 MB** per email (after encoding).
+- For idempotent sends (retry-safe), use a unique idempotency key pattern like `welcome-user/123456789`.

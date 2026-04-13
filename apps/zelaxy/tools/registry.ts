@@ -137,6 +137,7 @@ import {
 import { postgresqlTool } from '@/tools/postgresql'
 import { qdrantFetchTool, qdrantSearchTool, qdrantUpsertTool } from '@/tools/qdrant'
 import { redditGetCommentsTool, redditGetPostsTool, redditHotPostsTool } from '@/tools/reddit'
+import { resendBatchTool, resendCancelTool, resendGetTool, resendSendTool } from '@/tools/resend'
 import { s3GetObjectTool } from '@/tools/s3'
 import { searchTool as serperSearch } from '@/tools/serper'
 import {
@@ -258,6 +259,10 @@ export const tools: Record<string, ToolConfig> = {
   reddit_hot_posts: redditHotPostsTool,
   reddit_get_posts: redditGetPostsTool,
   reddit_get_comments: redditGetCommentsTool,
+  resend_send: resendSendTool,
+  resend_batch: resendBatchTool,
+  resend_get: resendGetTool,
+  resend_cancel: resendCancelTool,
   google_drive_get_content: googleDriveGetContentTool,
   google_drive_list: googleDriveListTool,
   google_drive_upload: googleDriveUploadTool,
