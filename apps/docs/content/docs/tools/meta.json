@@ -52,6 +52,7 @@
     "elevenlabs",
     "---Databases---",
     "supabase",
+    "mysql",
     "mssql",
     "snowflake",
     "---Vector Databases---",

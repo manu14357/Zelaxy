@@ -119,6 +119,9 @@ const getIconBgClass = (bgColor?: string) => {
     '#20808D': 'bg-teal-600', // Perplexity
     '#181C1E': 'bg-gray-900', // ElevenLabs, Thinking, Mem0, Firecrawl, Notion
     '#40916C': 'bg-green-600', // File
+    '#00758F': 'bg-cyan-700', // MySQL
+    '#336791': 'bg-sky-700', // PostgreSQL
+    '#CC2927': 'bg-red-600', // MSSQL
     '#FF752F': 'bg-orange-500', // Condition
     '#7B68EE': 'bg-violet-500', // Schedule
 
