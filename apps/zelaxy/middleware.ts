@@ -16,6 +16,9 @@ const SUSPICIOUS_UA_PATTERNS = [
 ]
 
 const BASE_DOMAIN = getBaseDomain()
+const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === 'true'
+const MAINTENANCE_PASSWORD = process.env.MAINTENANCE_PASSWORD?.trim()
+const MAINTENANCE_COOKIE = 'zelaxy_maintenance_access'
 
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl
@@ -87,6 +90,28 @@ export async function middleware(request: NextRequest) {
 
   if (subdomain === docsSubdomain) {
     return NextResponse.next()
+  }
+
+  // Temporary maintenance gate for private access
+  if (MAINTENANCE_MODE) {
+    const pathname = url.pathname
+    const isAllowedPath =
+      pathname === '/maintenance' || pathname.startsWith('/api/maintenance/unlock')
+    const hasMaintenanceAccess = request.cookies.get(MAINTENANCE_COOKIE)?.value === 'granted'
+
+    if (!hasMaintenanceAccess && !isAllowedPath) {
+      const redirectTarget = `${pathname}${url.search}`
+      const maintenanceUrl = new URL('/maintenance', request.url)
+      maintenanceUrl.searchParams.set('next', redirectTarget)
+      return NextResponse.redirect(maintenanceUrl)
+    }
+
+    // If no password is configured, keep users on the maintenance screen.
+    if (!MAINTENANCE_PASSWORD && pathname.startsWith('/api/maintenance/unlock')) {
+      const maintenanceUrl = new URL('/maintenance', request.url)
+      maintenanceUrl.searchParams.set('error', 'config')
+      return NextResponse.redirect(maintenanceUrl)
+    }
   }
 
   // Handle chat subdomains
