@@ -21,7 +21,7 @@ const requestSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  let stagehand = null
+  let stagehand: any = null
 
   try {
     const body = await request.json()
@@ -85,13 +85,13 @@ export async function POST(request: NextRequest) {
         apiKey: BROWSERBASE_API_KEY,
         projectId: BROWSERBASE_PROJECT_ID,
         verbose: 1,
-        logger: (msg) => logger.info(typeof msg === 'string' ? msg : JSON.stringify(msg)),
+        logger: (msg: any) => logger.info(typeof msg === 'string' ? msg : JSON.stringify(msg)),
         disablePino: true,
         modelName: 'gpt-4o',
         modelClientOptions: {
           apiKey: apiKey,
         },
-      })
+      } as any)
 
       logger.info('Starting stagehand.init()')
       await stagehand.init()

@@ -15,9 +15,20 @@ export interface StagehandExtractResponse extends ToolResponse {
 export interface StagehandAgentParams {
   task: string
   startUrl: string
+  provider?: 'anthropic' | 'openai' | 'google'
+  model?: string
+  mode?: 'dom' | 'cua' | 'hybrid'
+  maxSteps?: number
+  useSearch?: boolean
+  systemPrompt?: string
+  excludeTools?: string[] | string
   outputSchema?: Record<string, any>
   variables?: Record<string, string>
   apiKey: string
+  browserbaseApiKey?: string
+  browserbaseProjectId?: string
+  customTools?: Array<Record<string, any>>
+  mcpServers?: Array<Record<string, any>>
   options?: {
     useTextExtract?: boolean
     selector?: string

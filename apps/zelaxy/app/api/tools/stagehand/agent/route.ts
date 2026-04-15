@@ -14,10 +14,130 @@ const BROWSERBASE_PROJECT_ID = env.BROWSERBASE_PROJECT_ID
 const requestSchema = z.object({
   task: z.string().min(1),
   startUrl: z.string().url(),
-  outputSchema: z.any(),
-  variables: z.any(),
+  outputSchema: z.any().optional(),
+  variables: z.any().optional(),
   apiKey: z.string(),
+  provider: z.enum(['anthropic', 'openai', 'google']).optional().default('anthropic'),
+  model: z.string().optional().default('anthropic/claude-sonnet-4-5'),
+  mode: z.enum(['dom', 'cua', 'hybrid']).optional().default('hybrid'),
+  maxSteps: z.coerce.number().min(1).max(80).optional().default(20),
+  useSearch: z.boolean().optional().default(false),
+  systemPrompt: z.string().optional(),
+  excludeTools: z.union([z.array(z.string()), z.string()]).optional(),
+  browserbaseApiKey: z.string().optional(),
+  browserbaseProjectId: z.string().optional(),
+  customTools: z.array(z.record(z.any())).optional(),
+  mcpServers: z.array(z.record(z.any())).optional(),
 })
+
+const DEFAULT_PROVIDER = 'anthropic' as const
+const DEFAULT_MODELS: Record<'anthropic' | 'openai' | 'google', string> = {
+  anthropic: 'anthropic/claude-sonnet-4-5',
+  openai: 'openai/gpt-4o',
+  google: 'google/gemini-2.5-flash-preview-04-17',
+}
+
+const LEGACY_MODEL_ALIASES: Record<string, string> = {
+  'claude-3-7-sonnet-20250219': 'anthropic/claude-sonnet-4-5',
+  'anthropic/claude-3-7-sonnet-20250219': 'anthropic/claude-sonnet-4-5',
+  'claude-3-5-sonnet-latest': 'anthropic/claude-sonnet-4-5',
+  'anthropic/claude-3-5-sonnet-latest': 'anthropic/claude-sonnet-4-5',
+  'gemini-2.5-pro': 'google/gemini-2.5-pro-preview-03-25',
+  'google/gemini-2.5-pro': 'google/gemini-2.5-pro-preview-03-25',
+}
+
+function normalizeMode(mode?: string): 'dom' | 'cua' | 'hybrid' {
+  if (mode === 'dom' || mode === 'cua' || mode === 'hybrid') {
+    return mode
+  }
+  return 'hybrid'
+}
+
+function normalizeProvider(provider?: string): 'anthropic' | 'openai' | 'google' {
+  if (provider === 'anthropic' || provider === 'openai' || provider === 'google') {
+    return provider
+  }
+  return DEFAULT_PROVIDER
+}
+
+function inferProviderFromModel(model: string): 'anthropic' | 'openai' | 'google' | null {
+  const normalized = model.trim().toLowerCase()
+
+  if (normalized.startsWith('anthropic/')) return 'anthropic'
+  if (normalized.startsWith('openai/')) return 'openai'
+  if (normalized.startsWith('google/')) return 'google'
+
+  if (normalized.startsWith('claude')) return 'anthropic'
+  if (normalized.startsWith('gpt') || normalized.startsWith('o1') || normalized.startsWith('o3')) {
+    return 'openai'
+  }
+  if (normalized.startsWith('gemini')) return 'google'
+
+  return null
+}
+
+function normalizeModel(provider: 'anthropic' | 'openai' | 'google', model?: string): string {
+  const rawModel = (model || '').trim()
+  if (!rawModel) {
+    return DEFAULT_MODELS[provider]
+  }
+
+  const aliasedRaw = LEGACY_MODEL_ALIASES[rawModel.toLowerCase()]
+  if (aliasedRaw) {
+    return aliasedRaw
+  }
+
+  if (rawModel.includes('/')) {
+    return rawModel
+  }
+
+  const inferredProvider = inferProviderFromModel(rawModel) || provider
+  const providerQualified = `${inferredProvider}/${rawModel}`
+
+  const aliasedQualified = LEGACY_MODEL_ALIASES[providerQualified.toLowerCase()]
+  if (aliasedQualified) {
+    return aliasedQualified
+  }
+
+  return providerQualified
+}
+
+function normalizeExcludeTools(excludeTools?: string[] | string): string[] {
+  if (Array.isArray(excludeTools)) {
+    return excludeTools.map((tool) => tool.trim()).filter(Boolean)
+  }
+
+  if (typeof excludeTools === 'string') {
+    return excludeTools
+      .split(',')
+      .map((tool) => tool.trim())
+      .filter(Boolean)
+  }
+
+  return []
+}
+
+async function getActivePage(stagehand: any): Promise<any> {
+  if (!stagehand?.context) {
+    throw new Error('Stagehand context is not available')
+  }
+
+  const activePage = stagehand.context.activePage?.()
+  if (activePage) {
+    return activePage
+  }
+
+  if (typeof stagehand.context.awaitActivePage === 'function') {
+    return await stagehand.context.awaitActivePage(10000)
+  }
+
+  const pages = stagehand.context.pages?.()
+  if (Array.isArray(pages) && pages.length > 0) {
+    return pages[pages.length - 1]
+  }
+
+  throw new Error('No active Stagehand page is available')
+}
 
 function getSchemaObject(outputSchema: Record<string, any>): Record<string, any> {
   if (outputSchema.schema && typeof outputSchema.schema === 'object') {
@@ -91,7 +211,8 @@ function extractActionDirectives(task: string): {
 // Function to process secure actions in a given message
 async function processSecureActions(
   message: string,
-  stagehand: Stagehand,
+  stagehand: any,
+  page: any,
   actionDirectives: Array<{ index: number; action: string }>,
   variables: Record<string, string> | undefined
 ): Promise<{
@@ -121,10 +242,9 @@ async function processSecureActions(
           action: actionDirective.action,
         })
 
-        // Perform the action with variable substitution at runtime
-        // This uses act() directly, which handles variables securely
-        const result = await stagehand.page.act({
-          action: actionDirective.action,
+        // Perform the action with variable substitution at runtime.
+        const result = await stagehand.act(actionDirective.action, {
+          page,
           variables: variables || {},
         })
 
@@ -172,7 +292,8 @@ async function processSecureActions(
 
 // New helper function for direct login attempt
 async function attemptDirectLogin(
-  stagehand: Stagehand,
+  stagehand: any,
+  page: any,
   variables: Record<string, string> | undefined
 ): Promise<{
   attempted: boolean
@@ -210,8 +331,6 @@ async function attemptDirectLogin(
   logger.info('Attempting direct login with provided variables.')
 
   try {
-    const page = stagehand.page
-
     // Common selectors for username/email fields
     const usernameSelectors = [
       'input[type="text"][name*="user"]',
@@ -238,7 +357,13 @@ async function attemptDirectLogin(
     const submitSelectors = [
       'button[type="submit"]',
       'input[type="submit"]',
+      'input[value*="log" i]',
+      'input[value*="sign" i]',
+      'button[aria-label*="log" i]',
+      'button[aria-label*="sign" i]',
       'button:has-text("Login")',
+      'button:has-text("LOG IN")',
+      'button:has-text("Log in")',
       'button:has-text("Sign in")',
       'button[id*="login"]',
       'button[id*="submit"]',
@@ -311,12 +436,30 @@ async function attemptDirectLogin(
     }
 
     if (!submitClicked) {
-      logger.warn('Could not find a visible/enabled submit button for direct login.')
-      return {
-        attempted: true,
-        success: false,
-        message:
-          'Login attempt incomplete: Found and filled form fields but could not find submit button.',
+      logger.warn(
+        'Could not find a visible/enabled submit button via selectors. Trying semantic click fallback.'
+      )
+
+      try {
+        await stagehand.act('Click the login or sign in button to submit the form', {
+          page,
+          variables: variables || {},
+        })
+        await page.waitForTimeout(3000)
+        submitClicked = true
+      } catch (fallbackError) {
+        logger.warn('Semantic submit fallback failed', {
+          error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+        })
+      }
+
+      if (!submitClicked) {
+        return {
+          attempted: true,
+          success: false,
+          message:
+            'Login attempt incomplete: Found and filled form fields but could not find submit button.',
+        }
       }
     }
 
@@ -432,7 +575,7 @@ async function attemptDirectLogin(
 }
 
 export async function POST(request: NextRequest) {
-  let stagehand: Stagehand | null = null
+  let stagehand: any = null
 
   try {
     const body = await request.json()
@@ -441,6 +584,9 @@ export async function POST(request: NextRequest) {
       hasTask: !!body.task,
       hasVariables: !!body.variables,
       hasSchema: !!body.outputSchema,
+      provider: body.provider,
+      model: body.model,
+      mode: body.mode,
     })
 
     const validationResult = requestSchema.safeParse(body)
@@ -502,6 +648,44 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Add common aliases so users can provide keys like wikiEmail/wikiPassword
+      // while prompts still use %email% / %password% placeholders.
+      if (variablesObject && Object.keys(variablesObject).length > 0) {
+        const entries = Object.entries(variablesObject)
+        const emailEntry = entries.find(([key]) => {
+          const lower = key.toLowerCase()
+          return lower.includes('email') || lower.includes('user')
+        })
+        const passwordEntry = entries.find(([key]) => {
+          const lower = key.toLowerCase()
+          return lower.includes('password') || lower.includes('pass') || lower.includes('secret')
+        })
+
+        if (emailEntry) {
+          if (!variablesObject.email) {
+            variablesObject.email = emailEntry[1]
+          }
+          if (!variablesObject.username) {
+            variablesObject.username = emailEntry[1]
+          }
+          if (!variablesObject.user) {
+            variablesObject.user = emailEntry[1]
+          }
+        }
+
+        if (passwordEntry) {
+          if (!variablesObject.password) {
+            variablesObject.password = passwordEntry[1]
+          }
+          if (!variablesObject.pass) {
+            variablesObject.pass = passwordEntry[1]
+          }
+          if (!variablesObject.secret) {
+            variablesObject.secret = passwordEntry[1]
+          }
+        }
+      }
+
       // Log the collected variables (careful not to log actual passwords)
       if (variablesObject) {
         const safeVarKeys = Object.keys(variablesObject).map((key) => {
@@ -517,7 +701,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { task, startUrl: rawStartUrl, outputSchema, apiKey } = params
+    const {
+      task,
+      startUrl: rawStartUrl,
+      outputSchema,
+      apiKey,
+      provider,
+      model,
+      mode,
+      maxSteps,
+      useSearch,
+      systemPrompt,
+      excludeTools,
+      browserbaseApiKey,
+      browserbaseProjectId,
+      customTools,
+      mcpServers,
+    } = params
+
+    const normalizedProvider = normalizeProvider(provider)
+    const normalizedMode = normalizeMode(mode)
+    const normalizedModel = normalizeModel(normalizedProvider, model)
+    const resolvedProvider = inferProviderFromModel(normalizedModel) || normalizedProvider
+    const normalizedMaxSteps = Math.max(1, Math.min(80, Math.round(maxSteps)))
+    const normalizedExcludedTools = normalizeExcludeTools(excludeTools)
+    const resolvedBrowserbaseApiKey = browserbaseApiKey?.trim() || BROWSERBASE_API_KEY
+    const resolvedBrowserbaseProjectId = browserbaseProjectId?.trim() || BROWSERBASE_PROJECT_ID
 
     // Normalize the starting URL - only add https:// if needed
     let startUrl = rawStartUrl
@@ -530,13 +739,19 @@ export async function POST(request: NextRequest) {
       startUrl,
       hasTask: !!task,
       hasVariables: !!variablesObject && Object.keys(variablesObject).length > 0,
+      provider: resolvedProvider,
+      model: normalizedModel,
+      mode: normalizedMode,
+      maxSteps: normalizedMaxSteps,
+      useSearch,
+      excludedToolsCount: normalizedExcludedTools.length,
     })
 
     // Check for required environment variables
-    if (!BROWSERBASE_API_KEY || !BROWSERBASE_PROJECT_ID) {
+    if (!resolvedBrowserbaseApiKey || !resolvedBrowserbaseProjectId) {
       logger.error('Missing required environment variables', {
-        hasBrowserbaseApiKey: !!BROWSERBASE_API_KEY,
-        hasBrowserbaseProjectId: !!BROWSERBASE_PROJECT_ID,
+        hasBrowserbaseApiKey: !!resolvedBrowserbaseApiKey,
+        hasBrowserbaseProjectId: !!resolvedBrowserbaseProjectId,
       })
 
       return NextResponse.json(
@@ -550,50 +765,29 @@ export async function POST(request: NextRequest) {
       logger.info('Initializing Stagehand with Browserbase')
       stagehand = new Stagehand({
         env: 'BROWSERBASE',
-        apiKey: BROWSERBASE_API_KEY,
-        projectId: BROWSERBASE_PROJECT_ID,
+        apiKey: resolvedBrowserbaseApiKey,
+        projectId: resolvedBrowserbaseProjectId,
         verbose: 1,
         // Use a custom logger wrapper that adapts our logger to Stagehand's expected format
-        logger: (msg) => logger.info(typeof msg === 'string' ? msg : JSON.stringify(msg)),
+        logger: (msg: any) => logger.info(typeof msg === 'string' ? msg : JSON.stringify(msg)),
         disablePino: true,
-        modelName: 'claude-3-7-sonnet-20250219',
-        modelClientOptions: {
-          apiKey: apiKey, // User's OpenAI API key
+        model: {
+          modelName: normalizedModel,
+          apiKey: apiKey,
         },
-      })
+      } as any)
 
       // Initialize Stagehand
       logger.info('Starting stagehand.init()')
       await stagehand.init()
       logger.info('Stagehand initialized successfully')
 
-      // Monkey patch the page.act method to automatically apply variables to all actions
-      if (variablesObject && Object.keys(variablesObject).length > 0) {
-        logger.info('Setting up automatic variable substitution for all actions')
-        const originalAct = stagehand.page.act.bind(stagehand.page)
-        stagehand.page.act = async (options: any) => {
-          // If options is a string, convert it to object
-          if (typeof options === 'string') {
-            options = { action: options }
-          }
-
-          // Ensure variables are included
-          options.variables = { ...(options.variables || {}), ...variablesObject }
-
-          logger.info('Executing act with variables', {
-            action: options.action,
-            hasVariables: true,
-            variableCount: Object.keys(options.variables).length,
-          })
-
-          // Call original method
-          return originalAct(options)
-        }
-      }
+      let activePage = await getActivePage(stagehand)
 
       // Navigate to the start URL
       logger.info(`Navigating to ${startUrl}`)
-      await stagehand.page.goto(startUrl, { waitUntil: 'networkidle' })
+      await activePage.goto(startUrl, { waitUntil: 'networkidle' })
+      activePage = await getActivePage(stagehand)
       logger.info('Navigation complete')
 
       // Helper function to detect and navigate to login page if needed
@@ -606,8 +800,10 @@ export async function POST(request: NextRequest) {
         logger.info('Checking if we need to navigate to login page')
 
         try {
+          activePage = await getActivePage(stagehand)
+
           // Check if we're already on a page with login form
-          const loginFormExists = await stagehand.page.evaluate(() => {
+          const loginFormExists = await activePage.evaluate(() => {
             const usernameInput = document.querySelector(
               'input[type="text"], input[type="email"], input[name="username"], input[id="username"]'
             )
@@ -621,8 +817,8 @@ export async function POST(request: NextRequest) {
           }
 
           // Look for common login buttons/links
-          const loginElements = await stagehand.page.observe({
-            instruction: 'Find login buttons or links on this page',
+          const loginElements = await stagehand.observe('Find login buttons or links on this page', {
+            page: activePage,
           })
 
           if (loginElements && loginElements.length > 0) {
@@ -636,15 +832,17 @@ export async function POST(request: NextRequest) {
                 // Click the login button/link
                 if (element.selector) {
                   logger.info(`Clicking login element: ${element.selector}`)
-                  await stagehand.page.act({
-                    action: `Click on the ${element.description}`,
+                  await stagehand.act(`Click on the ${element.description}`, {
+                    page: activePage,
+                    variables: variablesObject,
                   })
 
                   // Wait for navigation or DOM changes
-                  await stagehand.page.waitForTimeout(2000)
+                  await activePage.waitForTimeout(2000)
+                  activePage = await getActivePage(stagehand)
 
                   // Check if we're now on login page
-                  const loginPageAfterClick = await stagehand.page.evaluate(() => {
+                  const loginPageAfterClick = await activePage.evaluate(() => {
                     const usernameInput = document.querySelector(
                       'input[type="text"], input[type="email"], input[name="username"], input[id="username"]'
                     )
@@ -663,13 +861,14 @@ export async function POST(request: NextRequest) {
 
           // Try direct navigation to /login if we couldn't find login elements
           logger.info('Trying direct navigation to /login path')
-          const currentUrl = await stagehand.page.url()
+          const currentUrl = activePage.url()
           const loginUrl = new URL('/login', currentUrl).toString()
 
-          await stagehand.page.goto(loginUrl, { waitUntil: 'networkidle' })
+          await activePage.goto(loginUrl, { waitUntil: 'networkidle' })
+          activePage = await getActivePage(stagehand)
 
           // Check if we're now on login page
-          const loginPageAfterDirectNav = await stagehand.page.evaluate(() => {
+          const loginPageAfterDirectNav = await activePage.evaluate(() => {
             const usernameInput = document.querySelector(
               'input[type="text"], input[type="email"], input[name="username"], input[id="username"]'
             )
@@ -713,7 +912,8 @@ export async function POST(request: NextRequest) {
 
         if (isOnLoginPage && stagehand) {
           logger.info('Attempting direct login before involving the agent.')
-          const loginResult = await attemptDirectLogin(stagehand, variablesObject)
+          activePage = await getActivePage(stagehand)
+          const loginResult = await attemptDirectLogin(stagehand, activePage, variablesObject)
           directLoginAttempted = loginResult.attempted
           directLoginSuccess = loginResult.success
           loginMessage = loginResult.message
@@ -790,31 +990,51 @@ WEBSITE NAVIGATION GUIDANCE:
 ${outputSchema && typeof outputSchema === 'object' && outputSchema !== null ? `\n\nIMPORTANT: You MUST return your final result in the following JSON format exactly:\n${formatSchemaForInstructions(getSchemaObject(outputSchema))}\n\nYour response should consist of valid JSON only, with no additional text. Ensure the data in your response adheres strictly to the schema provided.` : ''}`
       }
 
+      if (systemPrompt?.trim()) {
+        agentInstructions = `${agentInstructions}\n\nAdditional system guidance:\n${systemPrompt.trim()}`
+      }
+
       // Create agent to execute the task
       logger.info('Creating Stagehand agent', {
         directLoginAttempted,
         directLoginSuccess,
         loginMessage,
+        provider: resolvedProvider,
+        model: normalizedModel,
+        mode: normalizedMode,
+        maxSteps,
+        useSearch,
+        excludedToolsCount: normalizedExcludedTools.length,
       })
-      const agent = stagehand.agent({
-        provider: 'anthropic',
-        model: 'claude-3-7-sonnet-20250219',
-        instructions: agentInstructions, // Use the generated instructions
-        options: {
-          apiKey: apiKey,
-          // Conditional additional instructions based on direct login attempt
-          additionalInstructions: directLoginAttempted
-            ? `Login was ${directLoginSuccess ? 'successfully completed' : 'attempted but failed'}. 
-               ${loginMessage}
-               First check the current state of the page. 
-               If login failed, you may need to click the login button again after ensuring fields are properly filled.`
-            : `
-This task may contain placeholder variables like %username% and %password%.
-When you need to fill form fields, use these placeholders directly (e.g., type "%username%").
-The system will substitute actual values when these placeholders are used, keeping sensitive data secure.
-          `.trim(),
-        },
-      })
+      const baseAgentConfig: any = {
+        model: normalizedModel,
+        mode: normalizedMode,
+        systemPrompt: agentInstructions,
+      }
+
+      if (customTools && customTools.length > 0) {
+        baseAgentConfig.tools = customTools
+      }
+
+      if (mcpServers && mcpServers.length > 0) {
+        baseAgentConfig.integrations = mcpServers as any
+      }
+
+      let agent: any
+      try {
+        agent = stagehand.agent(baseAgentConfig)
+      } catch (error) {
+        logger.warn('Failed to create agent with advanced config, retrying with compatibility config', {
+          error: error instanceof Error ? error.message : String(error),
+        })
+
+        const compatibilityAgentConfig: any = {
+          model: normalizedModel,
+          systemPrompt: agentInstructions,
+        }
+
+        agent = stagehand.agent(compatibilityAgentConfig)
+      }
 
       // Since we can't use events directly, we'll need to handle secure actions
       // by running the agent and then processing any EXECUTE SECURE ACTION directives
@@ -822,8 +1042,22 @@ The system will substitute actual values when these placeholders are used, keepi
 
       // Sequence to execute agent with secure action processing
       const runAgentWithSecureActions = async (): Promise<any> => {
+        const executeAgent = async (instruction: string): Promise<any> => {
+          const executionOptions: any = {
+            instruction,
+            maxSteps: normalizedMaxSteps,
+            useSearch,
+          }
+
+          if (normalizedExcludedTools.length > 0) {
+            executionOptions.excludeTools = normalizedExcludedTools
+          }
+
+          return await agent.execute(executionOptions)
+        }
+
         // Use taskForAgent which might have been modified if direct login occurred
-        let currentResult = await agent.execute(taskForAgent)
+        let currentResult = await executeAgent(taskForAgent)
         let allExecutedActions: Array<{
           action: string
           result: { success: boolean; message: string }
@@ -844,9 +1078,11 @@ The system will substitute actual values when these placeholders are used, keepi
           }
 
           // Process secure actions in the message
+          activePage = await getActivePage(stagehand)
           const { modifiedMessage, executedActions } = await processSecureActions(
             currentResult.message,
             stagehand,
+            activePage,
             actionDirectives,
             variablesObject
           )
@@ -881,7 +1117,7 @@ The system will substitute actual values when these placeholders are used, keepi
             // doesn't support continuation easily, we have to create a new prompt
             // that synthesizes what's happened so far
             const continuationPrompt = `${modifiedMessage}\n\nPlease continue with the task.`
-            const nextResult = await agent.execute(continuationPrompt)
+            const nextResult = await executeAgent(continuationPrompt)
 
             // Merge results - keep actions from both iterations but update message
             currentResult = {
@@ -908,6 +1144,11 @@ The system will substitute actual values when these placeholders are used, keepi
         directLoginAttempted,
         directLoginSuccess,
         loginMessage,
+        provider: resolvedProvider,
+        model: normalizedModel,
+        mode: normalizedMode,
+        maxSteps: normalizedMaxSteps,
+        useSearch,
       })
 
       const agentExecutionResult = await runAgentWithSecureActions()
@@ -960,13 +1201,16 @@ The system will substitute actual values when these placeholders are used, keepi
               const schemaObj = getSchemaObject(outputSchema)
               // Use ensureZodObject to get a proper ZodObject instance
               const zodSchema = ensureZodObject(logger, schemaObj)
+              activePage = await getActivePage(stagehand)
 
               // Use the extract API to get structured data from whatever page we ended up on
-              structuredOutput = await stagehand.page.extract({
-                instruction:
-                  'Extract the requested information from this page according to the schema',
-                schema: zodSchema,
-              })
+              structuredOutput = await stagehand.extract(
+                'Extract the requested information from this page according to the schema',
+                zodSchema,
+                {
+                  page: activePage,
+                }
+              )
 
               logger.info('Successfully extracted structured data as fallback', {
                 keys: structuredOutput ? Object.keys(structuredOutput) : [],
@@ -983,6 +1227,14 @@ The system will substitute actual values when these placeholders are used, keepi
         agentResult,
         structuredOutput,
         secureActions: agentExecutionResult.secureActions || [],
+        config: {
+          provider: resolvedProvider,
+          model: normalizedModel,
+          mode: normalizedMode,
+          maxSteps: normalizedMaxSteps,
+          useSearch,
+          excludeTools: normalizedExcludedTools,
+        },
       })
     } catch (error) {
       logger.error('Stagehand agent execution error', {
