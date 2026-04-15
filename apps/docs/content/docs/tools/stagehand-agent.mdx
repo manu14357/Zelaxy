@@ -1,12 +1,12 @@
 ---
 title: Stagehand Agent
-description: Autonomous browser agent for complex multi-step web tasks
+description: Autonomous browser agent for complex multi-step web tasks with model and mode control
 icon: MonitorPlay
 ---
 
 # Stagehand Agent
 
-The Stagehand Agent is an autonomous browser automation agent. Unlike Stagehand (which executes one action at a time), the Agent plans and executes multi-step browser tasks independently — navigating, interacting, and extracting data with minimal guidance.
+The Stagehand Agent is an autonomous browser automation agent built on Stagehand. Unlike the standard Stagehand tool (single actions), this block plans and executes multi-step tasks across pages, forms, and flows.
 
 ## Overview
 
@@ -14,38 +14,72 @@ The Stagehand Agent is an autonomous browser automation agent. Unlike Stagehand 
 |----------|-------|
 | **Type** | `stagehand_agent` |
 | **Category** | Tool — Web Scraping |
-| **Auth** | API Key |
+| **Auth** | Model provider API key + Browserbase server config |
 
 ## Configuration
 
 | Setting | Type | Description |
 |---------|------|-------------|
-| API Key | Password | Stagehand API key |
-| Task | Long text | High-level task description |
-| Start URL | Short input | Starting URL |
-| Max Steps | Slider | Maximum actions to take |
+| Start URL | Short input | First URL to open |
+| Task | Long input | Goal/instructions for the autonomous run |
+| Provider | Dropdown | LLM provider (`anthropic`, `openai`, `google`) |
+| Model | Dropdown | Agent model name |
+| Agent Mode | Dropdown | `hybrid`, `dom`, or `cua` mode |
+| Max Steps | Slider | Max number of steps before stop |
+| Use Web Search | Switch | Enables agent web search capabilities |
+| System Prompt (Optional) | Long input | Extra system-level guidance |
+| Exclude Tools (Optional) | Short input | Comma-separated internal tool names to disable |
+| Variables | Table | Secret/variable placeholders (e.g. `%username%`) |
+| Model Provider API Key | Password | API key for the selected provider |
+| Browserbase API Key (Optional) | Password | Per-run override for Browserbase API key |
+| Browserbase Project ID (Optional) | Short input | Per-run override for Browserbase project |
+| Output Schema | JSON schema | Optional strict structured output target |
+
+## Behavior Notes
+
+- The agent preserves legacy secure placeholder handling, including `%variable%` substitution and `[[ACTION:...]]` secure directives.
+- When credentials are provided in variables, the runtime can attempt direct login before handing off to the autonomous agent loop.
+- If advanced agent options are rejected by the runtime, Zelaxy automatically falls back to a compatibility config to avoid hard failures.
 
 ## Outputs
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `content` | `string` | Task results |
-| `steps` | `json` | Actions taken |
-| `success` | `boolean` | Task completion status |
+| `agentResult` | `json` | Final success/completion/message/actions payload |
+| `structuredOutput` | `json` | Parsed JSON output matching the schema (if available) |
+| `secureActions` | `json[]` | Executed secure directive results |
+| `config` | `json` | Effective provider/model/mode/search settings used |
 
 ## Example: Price Comparison
 
 **Workflow:**
 ```
-[Starter: Product name] → [Stagehand Agent] → [Agent: Compare] → [Response]
+[Starter: Product name] -> [Stagehand Agent] -> [Response]
 ```
 
 **Task:** `Search for "{{starter.input}}" on Amazon and Best Buy. Extract the product name, price, rating, and availability from the first result on each site.`
 
-The Agent autonomously navigates both sites, searches, and extracts pricing data.
+The agent autonomously navigates both sites and can return structured comparison JSON when `Output Schema` is provided.
+
+## Example: Secure Login + Extraction
+
+Use `Variables` for secrets:
+
+| Key | Value |
+|-----|-------|
+| `username` | `my.user@example.com` |
+| `password` | `my-secret-password` |
+
+Task example:
+
+```text
+Log in to the portal, open the billing page, and return invoice id, amount, and due date.
+If needed, execute [[ACTION:type %password% into the password field and submit]].
+```
 
 ## Tips
 
-- **High-level instructions** work best — describe the goal, not individual steps
-- **Set max steps** to prevent infinite loops on complex sites
-- **More expensive** than Stagehand — use for genuinely complex multi-step tasks
+- Use high-level goals, but include explicit success criteria for more reliable completion.
+- Keep `Max Steps` bounded to avoid wandering behavior on dynamic sites.
+- Use `Output Schema` whenever downstream blocks need deterministic JSON fields.
+- Start with `hybrid` mode, then switch to `dom` or `cua` for site-specific reliability tuning.
