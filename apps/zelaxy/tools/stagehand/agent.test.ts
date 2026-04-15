@@ -54,4 +54,47 @@ describe('Stagehand Agent Tool Config', () => {
     expect(body.customTools).toEqual([{ name: 'my-tool' }])
     expect(body.mcpServers).toEqual([{ name: 'my-mcp' }])
   })
+
+  it('should mark transformResponse success when HTTP and agent result are successful', async () => {
+    const response = new Response(
+      JSON.stringify({
+        agentResult: {
+          success: true,
+          completed: true,
+          message: 'done',
+          actions: [],
+        },
+        structuredOutput: { value: 1 },
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    )
+
+    const result = await agentTool.transformResponse!(response)
+
+    expect(result.success).toBe(true)
+    expect(result.error).toBeUndefined()
+    expect(result.output.agentResult.success).toBe(true)
+    expect(result.output.structuredOutput).toEqual({ value: 1 })
+  })
+
+  it('should mark transformResponse as failed when agent result is unsuccessful', async () => {
+    const response = new Response(
+      JSON.stringify({
+        agentResult: {
+          success: false,
+          completed: false,
+          message: 'Failed to execute task: Cannot read properties of null (reading awaitActivePage)',
+          actions: [],
+        },
+        structuredOutput: {},
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    )
+
+    const result = await agentTool.transformResponse!(response)
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('Failed to execute task')
+    expect(result.output.agentResult.success).toBe(false)
+  })
 })

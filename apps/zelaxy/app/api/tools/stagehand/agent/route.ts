@@ -139,6 +139,17 @@ async function getActivePage(stagehand: any): Promise<any> {
   throw new Error('No active Stagehand page is available')
 }
 
+async function tryGetActivePage(stagehand: any): Promise<any | null> {
+  try {
+    return await getActivePage(stagehand)
+  } catch (error) {
+    logger.warn('Unable to resolve active Stagehand page', {
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return null
+  }
+}
+
 function getSchemaObject(outputSchema: Record<string, any>): Record<string, any> {
   if (outputSchema.schema && typeof outputSchema.schema === 'object') {
     return outputSchema.schema
@@ -1043,17 +1054,47 @@ ${outputSchema && typeof outputSchema === 'object' && outputSchema !== null ? `\
       // Sequence to execute agent with secure action processing
       const runAgentWithSecureActions = async (): Promise<any> => {
         const executeAgent = async (instruction: string): Promise<any> => {
+          const pageForExecution = await tryGetActivePage(stagehand)
+
           const executionOptions: any = {
             instruction,
             maxSteps: normalizedMaxSteps,
             useSearch,
           }
 
+          if (pageForExecution) {
+            executionOptions.page = pageForExecution
+          }
+
           if (normalizedExcludedTools.length > 0) {
             executionOptions.excludeTools = normalizedExcludedTools
           }
 
-          return await agent.execute(executionOptions)
+          try {
+            return await agent.execute(executionOptions)
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error)
+            const shouldRetryForPageContext = errorMessage.includes('awaitActivePage')
+
+            if (!shouldRetryForPageContext) {
+              throw error
+            }
+
+            logger.warn('Agent execution failed due to missing active page context, retrying once', {
+              error: errorMessage,
+            })
+
+            const retryPage = await tryGetActivePage(stagehand)
+            const retryOptions: any = { ...executionOptions }
+
+            if (retryPage) {
+              retryOptions.page = retryPage
+            } else {
+              delete retryOptions.page
+            }
+
+            return await agent.execute(retryOptions)
+          }
         }
 
         // Use taskForAgent which might have been modified if direct login occurred

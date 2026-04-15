@@ -151,10 +151,14 @@ export const agentTool: ToolConfig<StagehandAgentParams, StagehandAgentResponse>
 
   transformResponse: async (response) => {
     const data = await response.json()
+    const agentResult = data.agentResult
+    const isAgentSuccess = Boolean(agentResult?.success)
+
     return {
-      success: true,
+      success: response.ok && isAgentSuccess,
+      error: response.ok && !isAgentSuccess ? agentResult?.message || 'Stagehand agent failed' : undefined,
       output: {
-        agentResult: data.agentResult,
+        agentResult,
         structuredOutput: data.structuredOutput || {},
       },
     }
