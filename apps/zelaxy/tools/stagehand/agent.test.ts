@@ -83,7 +83,8 @@ describe('Stagehand Agent Tool Config', () => {
         agentResult: {
           success: false,
           completed: false,
-          message: 'Failed to execute task: Cannot read properties of null (reading awaitActivePage)',
+          message:
+            'Failed to execute task: Cannot read properties of null (reading awaitActivePage)',
           actions: [],
         },
         structuredOutput: {},

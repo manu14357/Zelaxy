@@ -828,9 +828,12 @@ export async function POST(request: NextRequest) {
           }
 
           // Look for common login buttons/links
-          const loginElements = await stagehand.observe('Find login buttons or links on this page', {
-            page: activePage,
-          })
+          const loginElements = await stagehand.observe(
+            'Find login buttons or links on this page',
+            {
+              page: activePage,
+            }
+          )
 
           if (loginElements && loginElements.length > 0) {
             for (const element of loginElements) {
@@ -1035,9 +1038,12 @@ ${outputSchema && typeof outputSchema === 'object' && outputSchema !== null ? `\
       try {
         agent = stagehand.agent(baseAgentConfig)
       } catch (error) {
-        logger.warn('Failed to create agent with advanced config, retrying with compatibility config', {
-          error: error instanceof Error ? error.message : String(error),
-        })
+        logger.warn(
+          'Failed to create agent with advanced config, retrying with compatibility config',
+          {
+            error: error instanceof Error ? error.message : String(error),
+          }
+        )
 
         const compatibilityAgentConfig: any = {
           model: normalizedModel,
@@ -1080,9 +1086,12 @@ ${outputSchema && typeof outputSchema === 'object' && outputSchema !== null ? `\
               throw error
             }
 
-            logger.warn('Agent execution failed due to missing active page context, retrying once', {
-              error: errorMessage,
-            })
+            logger.warn(
+              'Agent execution failed due to missing active page context, retrying once',
+              {
+                error: errorMessage,
+              }
+            )
 
             const retryPage = await tryGetActivePage(stagehand)
             const retryOptions: any = { ...executionOptions }
@@ -1090,7 +1099,7 @@ ${outputSchema && typeof outputSchema === 'object' && outputSchema !== null ? `\
             if (retryPage) {
               retryOptions.page = retryPage
             } else {
-              delete retryOptions.page
+              retryOptions.page = undefined
             }
 
             return await agent.execute(retryOptions)

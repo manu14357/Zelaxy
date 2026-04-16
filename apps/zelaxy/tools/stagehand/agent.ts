@@ -156,7 +156,10 @@ export const agentTool: ToolConfig<StagehandAgentParams, StagehandAgentResponse>
 
     return {
       success: response.ok && isAgentSuccess,
-      error: response.ok && !isAgentSuccess ? agentResult?.message || 'Stagehand agent failed' : undefined,
+      error:
+        response.ok && !isAgentSuccess
+          ? agentResult?.message || 'Stagehand agent failed'
+          : undefined,
       output: {
         agentResult,
         structuredOutput: data.structuredOutput || {},
