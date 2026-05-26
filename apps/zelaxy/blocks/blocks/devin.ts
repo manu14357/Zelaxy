@@ -1,0 +1,113 @@
+import { AgentIcon } from '@/components/icons'
+import type { BlockConfig } from '@/blocks/types'
+
+export const DevinBlock: BlockConfig = {
+  type: 'devin',
+  name: 'Devin',
+  description: 'Launch and monitor AI software engineering sessions in Devin',
+  longDescription:
+    'Integrate Devin AI software engineer into your workflows. Create sessions, send messages, manage secrets, and retrieve session snapshots.',
+  docsLink: '#',
+  category: 'tools',
+  bgColor: '#12141A',
+  icon: AgentIcon,
+  subBlocks: [
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'dropdown',
+      layout: 'full',
+      options: [
+        { label: 'Create Session', id: 'devin_create_session' },
+        { label: 'Get Session', id: 'devin_get_session' },
+        { label: 'List Sessions', id: 'devin_list_sessions' },
+        { label: 'Send Message', id: 'devin_send_message' },
+        { label: 'Add Secret', id: 'devin_add_secret' },
+        { label: 'Delete Secret', id: 'devin_delete_secret' },
+        { label: 'Get Snapshot', id: 'devin_get_snapshot' },
+      ],
+      required: true,
+    },
+    {
+      id: 'apiKey',
+      title: 'API Key',
+      type: 'short-input',
+      layout: 'full',
+      password: true,
+      placeholder: 'Your Devin API key',
+      required: true,
+    },
+    {
+      id: 'prompt',
+      title: 'Task Prompt',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'Describe the task for Devin to complete...',
+      condition: { field: 'operation', value: ['devin_create_session'] },
+    },
+    {
+      id: 'sessionId',
+      title: 'Session ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'session-id',
+      condition: {
+        field: 'operation',
+        value: ['devin_get_session', 'devin_send_message', 'devin_get_snapshot'],
+      },
+    },
+    {
+      id: 'message',
+      title: 'Message',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'Message to send to Devin',
+      condition: { field: 'operation', value: ['devin_send_message'] },
+    },
+    {
+      id: 'secretName',
+      title: 'Secret Name',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'API_KEY',
+      condition: { field: 'operation', value: ['devin_add_secret', 'devin_delete_secret'] },
+    },
+    {
+      id: 'secretValue',
+      title: 'Secret Value',
+      type: 'short-input',
+      layout: 'half',
+      password: true,
+      placeholder: 'secret-value',
+      condition: { field: 'operation', value: ['devin_add_secret'] },
+    },
+  ],
+  tools: {
+    access: [
+      'devin_create_session',
+      'devin_get_session',
+      'devin_list_sessions',
+      'devin_send_message',
+      'devin_add_secret',
+      'devin_delete_secret',
+      'devin_get_snapshot',
+    ],
+    config: {
+      tool: (params) => params.operation || 'devin_create_session',
+    },
+  },
+  inputs: {
+    operation: { type: 'string', description: 'Operation to perform' },
+    apiKey: { type: 'string', description: 'API key' },
+    prompt: { type: 'string', description: 'Task prompt' },
+    sessionId: { type: 'string', description: 'Session ID' },
+    message: { type: 'string', description: 'Message' },
+    secretName: { type: 'string', description: 'Secret name' },
+    secretValue: { type: 'string', description: 'Secret value' },
+  },
+  outputs: {
+    sessionId: { type: 'string', description: 'Session ID' },
+    status: { type: 'string', description: 'Session status' },
+    url: { type: 'string', description: 'Session URL' },
+  },
+}

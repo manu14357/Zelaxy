@@ -7,7 +7,6 @@ import { FunctionBlockHandler } from '@/executor/handlers/function/function-hand
 import { GenericBlockHandler } from '@/executor/handlers/generic/generic-handler'
 import { HumanInTheLoopBlockHandler } from '@/executor/handlers/human-in-the-loop/human-in-the-loop-handler'
 import { LoopBlockHandler } from '@/executor/handlers/loop/loop-handler'
-import { ZelaxyArenaBlockHandler } from '@/executor/handlers/zelaxy-arena/zelaxy-arena-handler'
 import { ParallelBlockHandler } from '@/executor/handlers/parallel/parallel-handler'
 import { ResponseBlockHandler } from '@/executor/handlers/response/response-handler'
 import { RouterBlockHandler } from '@/executor/handlers/router/router-handler'
@@ -16,6 +15,7 @@ import { TriggerBlockHandler } from '@/executor/handlers/trigger/trigger-handler
 import { VariablesBlockHandler } from '@/executor/handlers/variables/variables-handler'
 import { WaitBlockHandler } from '@/executor/handlers/wait/wait-handler'
 import { WorkflowBlockHandler } from '@/executor/handlers/workflow/workflow-handler'
+import { ZelaxyArenaBlockHandler } from '@/executor/handlers/zelaxy-arena/zelaxy-arena-handler'
 
 export {
   AgentBlockHandler,

@@ -1,5 +1,5 @@
+import type { LoopScope } from '@/executor/execution/state'
 import type { BlockState, NormalizedBlockOutput } from '@/executor/types'
-import type { LoopScope, ParallelScope } from '@/executor/execution/state'
 
 /**
  * Serializable form of ExecutionState (for DB persistence / snapshots).

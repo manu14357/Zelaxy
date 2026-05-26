@@ -76,6 +76,13 @@ export type OAuthService =
   | 'wealthbox'
   | 'onedrive'
   | 'linkedin'
+  | 'asana'
+  | 'attio'
+  | 'box'
+  | 'calcom'
+  | 'calendly'
+  | 'docusign'
+  | 'dropbox'
 export interface OAuthProviderConfig {
   id: OAuthProvider
   name: string

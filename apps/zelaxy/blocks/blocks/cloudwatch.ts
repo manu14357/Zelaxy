@@ -1,0 +1,128 @@
+import { ChartBarIcon } from '@/components/icons'
+import type { BlockConfig } from '@/blocks/types'
+
+export const CloudWatchBlock: BlockConfig = {
+  type: 'cloudwatch',
+  name: 'CloudWatch',
+  description: 'Query logs, metrics, and alarms in AWS CloudWatch',
+  longDescription:
+    'Integrate AWS CloudWatch into your workflows. Query log groups, get metric statistics, create alarms, and monitor your AWS infrastructure.',
+  docsLink: '#',
+  category: 'tools',
+  bgColor: '#B0084D',
+  icon: ChartBarIcon,
+  subBlocks: [
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'dropdown',
+      layout: 'full',
+      options: [
+        { label: 'Query Logs', id: 'cloudwatch_query_logs' },
+        { label: 'Describe Log Groups', id: 'cloudwatch_describe_log_groups' },
+        { label: 'Get Log Events', id: 'cloudwatch_get_log_events' },
+        { label: 'List Metrics', id: 'cloudwatch_list_metrics' },
+        { label: 'Get Metric Statistics', id: 'cloudwatch_get_metric_statistics' },
+        { label: 'Put Metric Data', id: 'cloudwatch_put_metric_data' },
+        { label: 'Describe Alarms', id: 'cloudwatch_describe_alarms' },
+      ],
+      required: true,
+    },
+    {
+      id: 'awsRegion',
+      title: 'AWS Region',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'us-east-1',
+      required: true,
+    },
+    {
+      id: 'awsAccessKeyId',
+      title: 'Access Key ID',
+      type: 'short-input',
+      layout: 'half',
+      password: true,
+      placeholder: 'AKIAIOSFODNN7EXAMPLE',
+      required: true,
+    },
+    {
+      id: 'awsSecretAccessKey',
+      title: 'Secret Access Key',
+      type: 'short-input',
+      layout: 'full',
+      password: true,
+      placeholder: 'Secret access key',
+      required: true,
+    },
+    {
+      id: 'logGroupNames',
+      title: 'Log Group Names',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: '/aws/lambda/my-function',
+      condition: {
+        field: 'operation',
+        value: ['cloudwatch_query_logs', 'cloudwatch_get_log_events'],
+      },
+    },
+    {
+      id: 'queryString',
+      title: 'Insights Query',
+      type: 'code',
+      layout: 'full',
+      placeholder: 'fields @timestamp, @message | sort @timestamp desc | limit 20',
+      condition: { field: 'operation', value: ['cloudwatch_query_logs'] },
+    },
+    {
+      id: 'metricName',
+      title: 'Metric Name',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'CPUUtilization',
+      condition: {
+        field: 'operation',
+        value: ['cloudwatch_get_metric_statistics', 'cloudwatch_put_metric_data'],
+      },
+    },
+    {
+      id: 'namespace',
+      title: 'Namespace',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'AWS/EC2',
+      condition: {
+        field: 'operation',
+        value: ['cloudwatch_get_metric_statistics', 'cloudwatch_put_metric_data'],
+      },
+    },
+  ],
+  tools: {
+    access: [
+      'cloudwatch_query_logs',
+      'cloudwatch_describe_log_groups',
+      'cloudwatch_get_log_events',
+      'cloudwatch_list_metrics',
+      'cloudwatch_get_metric_statistics',
+      'cloudwatch_put_metric_data',
+      'cloudwatch_describe_alarms',
+    ],
+    config: {
+      tool: (params) => params.operation || 'cloudwatch_query_logs',
+    },
+  },
+  inputs: {
+    operation: { type: 'string', description: 'Operation to perform' },
+    awsRegion: { type: 'string', description: 'AWS region' },
+    awsAccessKeyId: { type: 'string', description: 'AWS access key ID' },
+    awsSecretAccessKey: { type: 'string', description: 'AWS secret access key' },
+    logGroupNames: { type: 'string', description: 'Log group names' },
+    queryString: { type: 'string', description: 'CloudWatch Insights query' },
+    metricName: { type: 'string', description: 'Metric name' },
+    namespace: { type: 'string', description: 'Metric namespace' },
+  },
+  outputs: {
+    logEvents: { type: 'json', description: 'Log events' },
+    metrics: { type: 'json', description: 'Metrics data' },
+    queryId: { type: 'string', description: 'Query ID' },
+  },
+}

@@ -10,11 +10,7 @@ import { extractBaseBlockId } from '@/executor/utils/subflow-utils'
 const logger = createLogger('NodeExecutionOrchestrator')
 
 export interface BlockExecutionDelegate {
-  execute(
-    ctx: ExecutionContext,
-    node: DAGNode,
-    block: any
-  ): Promise<NormalizedBlockOutput>
+  execute(ctx: ExecutionContext, node: DAGNode, block: any): Promise<NormalizedBlockOutput>
 }
 
 export interface NodeExecutionResult {

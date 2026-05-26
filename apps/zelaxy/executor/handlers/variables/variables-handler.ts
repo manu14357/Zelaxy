@@ -14,7 +14,11 @@ interface VariableAssignment {
 function parseAssignments(raw: any): VariableAssignment[] {
   if (!raw) return []
   if (typeof raw === 'string') {
-    try { return JSON.parse(raw) } catch { return [] }
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return []
+    }
   }
   if (Array.isArray(raw)) return raw
   return []
@@ -39,9 +43,10 @@ export class VariablesBlockHandler implements BlockHandler {
       const { variableId, variableName, value } = assignment
 
       // Find existing variable by ID or name
-      const existingEntry = variableId && Object.prototype.hasOwnProperty.call(ctx.workflowVariables, variableId)
-        ? [variableId, ctx.workflowVariables[variableId]] as [string, any]
-        : Object.entries(ctx.workflowVariables).find(([, v]) => v?.name === variableName)
+      const existingEntry =
+        variableId && Object.hasOwn(ctx.workflowVariables, variableId)
+          ? ([variableId, ctx.workflowVariables[variableId]] as [string, any])
+          : Object.entries(ctx.workflowVariables).find(([, v]) => v?.name === variableName)
 
       if (existingEntry) {
         const [id, variable] = existingEntry

@@ -3,19 +3,64 @@
  *
  */
 
+import { A2ABlock } from '@/blocks/blocks/a2a'
 import { AgentBlock } from '@/blocks/blocks/agent'
+import { AgentMailBlock } from '@/blocks/blocks/agentmail'
+import { AgentPhoneBlock } from '@/blocks/blocks/agentphone'
+import { AgiloftBlock } from '@/blocks/blocks/agiloft'
+import { AhrefsBlock } from '@/blocks/blocks/ahrefs'
 import { AirtableBlock } from '@/blocks/blocks/airtable'
+import { AirweaveBlock } from '@/blocks/blocks/airweave'
+import { AlgoliaBlock } from '@/blocks/blocks/algolia'
+import { AmplitudeBlock } from '@/blocks/blocks/amplitude'
 import { ApiBlock } from '@/blocks/blocks/api'
+import { ApiTriggerBlock } from '@/blocks/blocks/api_trigger'
+import { ApifyBlock } from '@/blocks/blocks/apify'
+import { ApolloBlock } from '@/blocks/blocks/apollo'
 import { ArxivBlock } from '@/blocks/blocks/arxiv'
+import { AsanaBlock } from '@/blocks/blocks/asana'
+import { AshbyBlock } from '@/blocks/blocks/ashby'
+import { AthenaBlock } from '@/blocks/blocks/athena'
+import { AttioBlock } from '@/blocks/blocks/attio'
+import { AzureDevOpsBlock } from '@/blocks/blocks/azure_devops'
+import { BoxBlock } from '@/blocks/blocks/box'
+import { BrandfetchBlock } from '@/blocks/blocks/brandfetch'
+import { BrightDataBlock } from '@/blocks/blocks/brightdata'
 import { BrowserUseBlock } from '@/blocks/blocks/browser_use'
+import { CalcomBlock } from '@/blocks/blocks/calcom'
+import { CalendlyBlock } from '@/blocks/blocks/calendly'
+import { ChatTriggerBlock } from '@/blocks/blocks/chat_trigger'
+import { CirclebackBlock } from '@/blocks/blocks/circleback'
 import { ClayBlock } from '@/blocks/blocks/clay'
+import { ClerkBlock } from '@/blocks/blocks/clerk'
+import { CloudflareBlock } from '@/blocks/blocks/cloudflare'
+import { CloudFormationBlock } from '@/blocks/blocks/cloudformation'
+import { CloudWatchBlock } from '@/blocks/blocks/cloudwatch'
 import { ConditionBlock } from '@/blocks/blocks/condition'
 import { ConfluenceBlock } from '@/blocks/blocks/confluence'
+import { CredentialBlock } from '@/blocks/blocks/credential'
+import { CrowdStrikeBlock } from '@/blocks/blocks/crowdstrike'
+import { CursorBlock } from '@/blocks/blocks/cursor'
+import { DagsterBlock } from '@/blocks/blocks/dagster'
+import { DatabricksBlock } from '@/blocks/blocks/databricks'
+import { DatadogBlock } from '@/blocks/blocks/datadog'
 import { DelayBlock } from '@/blocks/blocks/delay'
+import { DevinBlock } from '@/blocks/blocks/devin'
 import { DiscordBlock } from '@/blocks/blocks/discord'
+import { DocusignBlock } from '@/blocks/blocks/docusign'
+import { DropboxBlock } from '@/blocks/blocks/dropbox'
+import { DSPyBlock } from '@/blocks/blocks/dspy'
+import { DubBlock } from '@/blocks/blocks/dub'
+import { DuckDuckGoBlock } from '@/blocks/blocks/duckduckgo'
+import { DynamoDBBlock } from '@/blocks/blocks/dynamodb'
+import { ElasticsearchBlock } from '@/blocks/blocks/elasticsearch'
 import { ElevenLabsBlock } from '@/blocks/blocks/elevenlabs'
+import { EmailBisonBlock } from '@/blocks/blocks/emailbison'
+import { EnrichBlock } from '@/blocks/blocks/enrich'
 import { EvaluatorBlock } from '@/blocks/blocks/evaluator'
+import { EvernoteBlock } from '@/blocks/blocks/evernote'
 import { ExaBlock } from '@/blocks/blocks/exa'
+import { FathomBlock } from '@/blocks/blocks/fathom'
 import { FileBlock } from '@/blocks/blocks/file'
 import { FirecrawlBlock } from '@/blocks/blocks/firecrawl'
 import { FunctionBlock } from '@/blocks/blocks/function'
@@ -29,6 +74,7 @@ import { GoogleDriveBlock } from '@/blocks/blocks/google_drive'
 import { GoogleSheetsBlock } from '@/blocks/blocks/google_sheets'
 import { GuardrailsBlock } from '@/blocks/blocks/guardrails'
 import { HuggingFaceBlock } from '@/blocks/blocks/huggingface'
+import { HumanInTheLoopBlock } from '@/blocks/blocks/human_in_the_loop'
 import { HunterBlock } from '@/blocks/blocks/hunter'
 import { ImageGeneratorBlock } from '@/blocks/blocks/image_generator'
 import { ImageSearchBlock } from '@/blocks/blocks/image_search'
@@ -48,6 +94,7 @@ import { MicrosoftTeamsBlock } from '@/blocks/blocks/microsoft_teams'
 import { MistralParseBlock } from '@/blocks/blocks/mistral_parse'
 import { MSSQLBlock } from '@/blocks/blocks/mssql'
 import { MySQLBlock } from '@/blocks/blocks/mysql'
+import { NoteBlock } from '@/blocks/blocks/note'
 import { NotionBlock } from '@/blocks/blocks/notion'
 import { OneDriveBlock } from '@/blocks/blocks/onedrive'
 import { OpenAIBlock } from '@/blocks/blocks/openai'
@@ -79,13 +126,9 @@ import { ThinkingBlock } from '@/blocks/blocks/thinking'
 import { TranslateBlock } from '@/blocks/blocks/translate'
 import { TwilioSMSBlock } from '@/blocks/blocks/twilio'
 import { TypeformBlock } from '@/blocks/blocks/typeform'
-import { CredentialBlock } from '@/blocks/blocks/credential'
-import { HumanInTheLoopBlock } from '@/blocks/blocks/human_in_the_loop'
-import { NoteBlock } from '@/blocks/blocks/note'
 import { VariablesBlock } from '@/blocks/blocks/variables'
-import { WaitBlock } from '@/blocks/blocks/wait'
-import { ZelaxyArenaBlock } from '@/blocks/blocks/zelaxy_arena'
 import { VisionBlock } from '@/blocks/blocks/vision'
+import { WaitBlock } from '@/blocks/blocks/wait'
 import { WealthboxBlock } from '@/blocks/blocks/wealthbox'
 import { WebhookBlock } from '@/blocks/blocks/webhook'
 import { WhatsAppBlock } from '@/blocks/blocks/whatsapp'
@@ -93,6 +136,7 @@ import { WikipediaBlock } from '@/blocks/blocks/wikipedia'
 import { WorkflowBlock } from '@/blocks/blocks/workflow'
 import { XBlock } from '@/blocks/blocks/x'
 import { YouTubeBlock } from '@/blocks/blocks/youtube'
+import { ZelaxyArenaBlock } from '@/blocks/blocks/zelaxy_arena'
 import type { BlockConfig } from '@/blocks/types'
 
 // Registry of all available blocks, alphabetically sorted
@@ -187,6 +231,50 @@ export const registry: Record<string, BlockConfig> = {
   workflow: WorkflowBlock,
   x: XBlock,
   youtube: YouTubeBlock,
+  a2a: A2ABlock,
+  agentmail: AgentMailBlock,
+  agentphone: AgentPhoneBlock,
+  agiloft: AgiloftBlock,
+  ahrefs: AhrefsBlock,
+  airweave: AirweaveBlock,
+  algolia: AlgoliaBlock,
+  amplitude: AmplitudeBlock,
+  api_trigger: ApiTriggerBlock,
+  apify: ApifyBlock,
+  apollo: ApolloBlock,
+  asana: AsanaBlock,
+  ashby: AshbyBlock,
+  athena: AthenaBlock,
+  attio: AttioBlock,
+  azure_devops: AzureDevOpsBlock,
+  box: BoxBlock,
+  brandfetch: BrandfetchBlock,
+  brightdata: BrightDataBlock,
+  calcom: CalcomBlock,
+  calendly: CalendlyBlock,
+  chat_trigger: ChatTriggerBlock,
+  circleback: CirclebackBlock,
+  clerk: ClerkBlock,
+  cloudflare: CloudflareBlock,
+  cloudformation: CloudFormationBlock,
+  cloudwatch: CloudWatchBlock,
+  crowdstrike: CrowdStrikeBlock,
+  cursor: CursorBlock,
+  dagster: DagsterBlock,
+  databricks: DatabricksBlock,
+  datadog: DatadogBlock,
+  devin: DevinBlock,
+  docusign: DocusignBlock,
+  dropbox: DropboxBlock,
+  dspy: DSPyBlock,
+  dub: DubBlock,
+  duckduckgo: DuckDuckGoBlock,
+  dynamodb: DynamoDBBlock,
+  elasticsearch: ElasticsearchBlock,
+  emailbison: EmailBisonBlock,
+  enrich: EnrichBlock,
+  evernote: EvernoteBlock,
+  fathom: FathomBlock,
 }
 
 export const getBlock = (type: string): BlockConfig | undefined => registry[type]

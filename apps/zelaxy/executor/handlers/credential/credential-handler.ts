@@ -1,7 +1,7 @@
+import { and, eq } from 'drizzle-orm'
 import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
 import { account } from '@/db/schema'
-import { and, asc, eq } from 'drizzle-orm'
 import { BlockType } from '@/executor/consts'
 import type { BlockHandler, ExecutionContext } from '@/executor/types'
 import type { SerializedBlock } from '@/serializer/types'
@@ -26,10 +26,7 @@ export class CredentialBlockHandler implements BlockHandler {
     return this.selectCredential(ctx.userId, inputs)
   }
 
-  private async selectCredential(
-    userId: string,
-    inputs: Record<string, unknown>
-  ): Promise<any> {
+  private async selectCredential(userId: string, inputs: Record<string, unknown>): Promise<any> {
     const credentialId = typeof inputs.credentialId === 'string' ? inputs.credentialId.trim() : ''
     if (!credentialId) throw new Error('No credential selected')
 
@@ -48,24 +45,22 @@ export class CredentialBlockHandler implements BlockHandler {
     }
   }
 
-  private async listCredentials(
-    userId: string,
-    inputs: Record<string, unknown>
-  ): Promise<any> {
+  private async listCredentials(userId: string, inputs: Record<string, unknown>): Promise<any> {
     const providerFilter = Array.isArray(inputs.providerFilter)
       ? (inputs.providerFilter as string[]).filter(Boolean)
       : []
 
-    let query = db.query.account.findMany({
+    const query = db.query.account.findMany({
       where: eq(account.userId, userId),
       columns: { id: true, providerId: true, accountId: true },
     })
 
     const records = await query
 
-    const filtered = providerFilter.length > 0
-      ? records.filter((r) => providerFilter.includes(r.providerId))
-      : records
+    const filtered =
+      providerFilter.length > 0
+        ? records.filter((r) => providerFilter.includes(r.providerId))
+        : records
 
     const credentials = filtered.map((r) => ({
       credentialId: r.id,

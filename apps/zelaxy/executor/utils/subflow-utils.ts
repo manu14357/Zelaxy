@@ -1,9 +1,7 @@
 import { LOOP, PARALLEL } from '@/executor/consts'
 
 const BRANCH_PATTERN = new RegExp(`${PARALLEL.BRANCH.PREFIX}\\d+${PARALLEL.BRANCH.SUFFIX}$`)
-const BRANCH_INDEX_PATTERN = new RegExp(
-  `${PARALLEL.BRANCH.PREFIX}(\\d+)${PARALLEL.BRANCH.SUFFIX}$`
-)
+const BRANCH_INDEX_PATTERN = new RegExp(`${PARALLEL.BRANCH.PREFIX}(\\d+)${PARALLEL.BRANCH.SUFFIX}$`)
 
 export function buildSentinelStartId(loopId: string): string {
   return `${LOOP.SENTINEL.PREFIX}${loopId}${LOOP.SENTINEL.START_SUFFIX}`
@@ -83,9 +81,7 @@ export function extractParallelIdFromSentinel(sentinelId: string): string | null
   const startPattern = new RegExp(
     `^${PARALLEL.SENTINEL.PREFIX}(.+)${PARALLEL.SENTINEL.START_SUFFIX}$`
   )
-  const endPattern = new RegExp(
-    `^${PARALLEL.SENTINEL.PREFIX}(.+)${PARALLEL.SENTINEL.END_SUFFIX}$`
-  )
+  const endPattern = new RegExp(`^${PARALLEL.SENTINEL.PREFIX}(.+)${PARALLEL.SENTINEL.END_SUFFIX}$`)
   const startMatch = sentinelId.match(startPattern)
   if (startMatch) return startMatch[1]
   const endMatch = sentinelId.match(endPattern)
