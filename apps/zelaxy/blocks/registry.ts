@@ -79,6 +79,12 @@ import { ThinkingBlock } from '@/blocks/blocks/thinking'
 import { TranslateBlock } from '@/blocks/blocks/translate'
 import { TwilioSMSBlock } from '@/blocks/blocks/twilio'
 import { TypeformBlock } from '@/blocks/blocks/typeform'
+import { CredentialBlock } from '@/blocks/blocks/credential'
+import { HumanInTheLoopBlock } from '@/blocks/blocks/human_in_the_loop'
+import { NoteBlock } from '@/blocks/blocks/note'
+import { VariablesBlock } from '@/blocks/blocks/variables'
+import { WaitBlock } from '@/blocks/blocks/wait'
+import { ZelaxyArenaBlock } from '@/blocks/blocks/zelaxy_arena'
 import { VisionBlock } from '@/blocks/blocks/vision'
 import { WealthboxBlock } from '@/blocks/blocks/wealthbox'
 import { WebhookBlock } from '@/blocks/blocks/webhook'
@@ -167,6 +173,12 @@ export const registry: Record<string, BlockConfig> = {
   translate: TranslateBlock,
   twilio_sms: TwilioSMSBlock,
   typeform: TypeformBlock,
+  credential: CredentialBlock,
+  human_in_the_loop: HumanInTheLoopBlock,
+  note: NoteBlock,
+  variables: VariablesBlock,
+  wait: WaitBlock,
+  zelaxy_arena: ZelaxyArenaBlock,
   vision: VisionBlock,
   wealthbox: WealthboxBlock,
   webhook: WebhookBlock,
