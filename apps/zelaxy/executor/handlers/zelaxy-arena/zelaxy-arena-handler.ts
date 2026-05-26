@@ -39,13 +39,13 @@ function parseStreamLine(line: string): ZelaxyArenaStreamEvent | undefined {
   }
 }
 
-function formatOutput(
-  result: ZelaxyArenaExecuteResult,
-  fallbackId: string
-): NormalizedBlockOutput {
+function formatOutput(result: ZelaxyArenaExecuteResult, fallbackId: string): NormalizedBlockOutput {
   const formattedList = (result.toolCalls ?? []).map((tc) => ({
     name: typeof tc.name === 'string' ? tc.name : String(tc.name ?? ''),
-    arguments: (tc.params && typeof tc.params === 'object' ? tc.params : {}) as Record<string, unknown>,
+    arguments: (tc.params && typeof tc.params === 'object' ? tc.params : {}) as Record<
+      string,
+      unknown
+    >,
     result: tc.result as any,
     error: typeof tc.error === 'string' ? tc.error : undefined,
     duration: typeof tc.durationMs === 'number' ? tc.durationMs : 0,
@@ -64,8 +64,8 @@ function formatOutput(
 function isContentSelectedForStreaming(ctx: ExecutionContext, block: SerializedBlock): boolean {
   if (!ctx.stream) return false
   return (
-    ctx.selectedOutputIds?.some((id) =>
-      id === block.id || id === `${block.id}.content` || id === `${block.id}_content`
+    ctx.selectedOutputIds?.some(
+      (id) => id === block.id || id === `${block.id}.content` || id === `${block.id}_content`
     ) ?? false
   )
 }
@@ -82,7 +82,7 @@ async function buildZelaxyArenaHeaders(ctx: ExecutionContext): Promise<Record<st
   if (ctx.userId) {
     // Use internal service token if available
     const serviceToken = process.env.INTERNAL_SERVICE_TOKEN
-    if (serviceToken) headers['Authorization'] = `Bearer ${serviceToken}`
+    if (serviceToken) headers.Authorization = `Bearer ${serviceToken}`
   }
   return headers
 }
@@ -106,7 +106,8 @@ async function readFullResponse(response: Response): Promise<ZelaxyArenaExecuteR
         const event = parseStreamLine(line)
         if (!event) continue
         if (event.type === 'final') result = event.data
-        if (event.type === 'error') throw new Error(`ZelaxyArena error: ${event.error ?? 'Unknown'}`)
+        if (event.type === 'error')
+          throw new Error(`ZelaxyArena error: ${event.error ?? 'Unknown'}`)
       }
     }
     if (buffer.trim()) {

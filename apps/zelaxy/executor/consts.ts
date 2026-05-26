@@ -32,9 +32,17 @@ export enum BlockType {
 
 export type SentinelType = 'start' | 'end'
 
-export const TRIGGER_BLOCK_TYPES = [BlockType.STARTER, BlockType.SCHEDULE, BlockType.WEBHOOK_TRIGGER] as const
+export const TRIGGER_BLOCK_TYPES = [
+  BlockType.STARTER,
+  BlockType.SCHEDULE,
+  BlockType.WEBHOOK_TRIGGER,
+] as const
 
-export const METADATA_ONLY_BLOCK_TYPES = [BlockType.LOOP, BlockType.PARALLEL, BlockType.NOTE] as const
+export const METADATA_ONLY_BLOCK_TYPES = [
+  BlockType.LOOP,
+  BlockType.PARALLEL,
+  BlockType.NOTE,
+] as const
 
 export function isTriggerBlockType(type: string | undefined): boolean {
   return TRIGGER_BLOCK_TYPES.includes(type as any)

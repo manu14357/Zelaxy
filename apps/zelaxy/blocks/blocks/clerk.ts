@@ -1,0 +1,100 @@
+import { ShieldCheckIcon } from '@/components/icons'
+import type { BlockConfig } from '@/blocks/types'
+
+export const ClerkBlock: BlockConfig = {
+  type: 'clerk',
+  name: 'Clerk',
+  description: 'Manage users, organizations, and sessions in Clerk',
+  longDescription:
+    'Integrate Clerk authentication into your workflows. List and manage users, organizations, and sessions programmatically.',
+  docsLink: '#',
+  category: 'tools',
+  bgColor: '#131316',
+  icon: ShieldCheckIcon,
+  subBlocks: [
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'dropdown',
+      layout: 'full',
+      options: [
+        { label: 'List Users', id: 'clerk_list_users' },
+        { label: 'Get User', id: 'clerk_get_user' },
+        { label: 'Create User', id: 'clerk_create_user' },
+        { label: 'Update User', id: 'clerk_update_user' },
+        { label: 'Delete User', id: 'clerk_delete_user' },
+        { label: 'List Organizations', id: 'clerk_list_organizations' },
+        { label: 'Get Organization', id: 'clerk_get_organization' },
+        { label: 'Create Organization', id: 'clerk_create_organization' },
+        { label: 'List Sessions', id: 'clerk_list_sessions' },
+        { label: 'Revoke Session', id: 'clerk_revoke_session' },
+      ],
+      required: true,
+    },
+    {
+      id: 'secretKey',
+      title: 'Secret Key',
+      type: 'short-input',
+      layout: 'full',
+      password: true,
+      placeholder: 'sk_live_...',
+      required: true,
+    },
+    {
+      id: 'userId',
+      title: 'User ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'user_xxx',
+      condition: {
+        field: 'operation',
+        value: ['clerk_get_user', 'clerk_update_user', 'clerk_delete_user'],
+      },
+    },
+    {
+      id: 'emailAddress',
+      title: 'Email Address',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'user@example.com',
+      condition: { field: 'operation', value: ['clerk_create_user'] },
+    },
+    {
+      id: 'query',
+      title: 'Search Query',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'John',
+      condition: { field: 'operation', value: ['clerk_list_users'] },
+    },
+  ],
+  tools: {
+    access: [
+      'clerk_list_users',
+      'clerk_get_user',
+      'clerk_create_user',
+      'clerk_update_user',
+      'clerk_delete_user',
+      'clerk_list_organizations',
+      'clerk_get_organization',
+      'clerk_create_organization',
+      'clerk_list_sessions',
+      'clerk_revoke_session',
+    ],
+    config: {
+      tool: (params) => params.operation || 'clerk_list_users',
+    },
+  },
+  inputs: {
+    operation: { type: 'string', description: 'Operation to perform' },
+    secretKey: { type: 'string', description: 'Secret key' },
+    userId: { type: 'string', description: 'User ID' },
+    emailAddress: { type: 'string', description: 'Email address' },
+    query: { type: 'string', description: 'Search query' },
+  },
+  outputs: {
+    users: { type: 'json', description: 'User list' },
+    user: { type: 'json', description: 'User details' },
+    organizations: { type: 'json', description: 'Organization list' },
+  },
+}

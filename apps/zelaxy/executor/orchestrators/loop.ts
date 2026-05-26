@@ -1,8 +1,7 @@
 import { createLogger } from '@/lib/logs/console/logger'
 import { DEFAULTS, EDGE } from '@/executor/consts'
 import type { DAG } from '@/executor/dag/builder'
-import type { LoopScope } from '@/executor/execution/state'
-import type { BlockStateController } from '@/executor/execution/state'
+import type { BlockStateController, LoopScope } from '@/executor/execution/state'
 import type { ExecutionContext, NormalizedBlockOutput } from '@/executor/types'
 import type { SerializedLoop } from '@/serializer/types'
 
@@ -47,17 +46,20 @@ export class LoopOrchestrator {
 
     switch (loopType) {
       case 'for': {
-        const maxIterations =
-          (loopConfig as any).iterations ?? DEFAULTS.MAX_ITERATIONS
+        const maxIterations = (loopConfig as any).iterations ?? DEFAULTS.MAX_ITERATIONS
         scope.maxIterations = maxIterations
         scope.condition = buildLoopIndexCondition(maxIterations)
         break
       }
       case 'forEach': {
-        let rawItems = (loopConfig as any).forEachItems
+        const rawItems = (loopConfig as any).forEachItems
         let items: any[] = []
         if (typeof rawItems === 'string') {
-          try { items = JSON.parse(rawItems) } catch { items = [] }
+          try {
+            items = JSON.parse(rawItems)
+          } catch {
+            items = []
+          }
         } else if (Array.isArray(rawItems)) {
           items = rawItems
         }

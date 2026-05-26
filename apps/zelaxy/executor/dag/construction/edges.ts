@@ -449,8 +449,7 @@ export class EdgeConstructor {
       let hasOutgoingToLoop = false
       for (const [, edge] of node.outgoingEdges) {
         const isBackEdge =
-          edge.sourceHandle === EDGE.LOOP_CONTINUE ||
-          edge.sourceHandle === EDGE.LOOP_CONTINUE_ALT
+          edge.sourceHandle === EDGE.LOOP_CONTINUE || edge.sourceHandle === EDGE.LOOP_CONTINUE_ALT
         if (isBackEdge) continue
         if (effectiveNodeSet.has(edge.target)) {
           hasOutgoingToLoop = true
@@ -494,8 +493,7 @@ export class EdgeConstructor {
         let hasOutgoingToParallel = false
         for (const [, edge] of endNode.outgoingEdges) {
           const isBackEdge =
-            edge.sourceHandle === EDGE.LOOP_CONTINUE ||
-            edge.sourceHandle === EDGE.LOOP_CONTINUE_ALT
+            edge.sourceHandle === EDGE.LOOP_CONTINUE || edge.sourceHandle === EDGE.LOOP_CONTINUE_ALT
           if (isBackEdge) continue
           const originalTargetId = normalizeNodeId(edge.target)
           if (nodesSet.has(originalTargetId)) {

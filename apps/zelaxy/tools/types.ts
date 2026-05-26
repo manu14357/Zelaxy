@@ -3,9 +3,13 @@ import type { OAuthService } from '@/lib/oauth/oauth'
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD'
 
 export interface OutputProperty {
-  type: string
+  type: 'string' | 'number' | 'boolean' | 'json' | 'file' | 'file[]' | 'array' | 'object'
   description?: string
   optional?: boolean
+  fileConfig?: {
+    mimeType?: string
+    extension?: string
+  }
   properties?: Record<string, OutputProperty>
   items?: {
     type: string
@@ -57,23 +61,7 @@ export interface ToolConfig<P = any, R = any> {
   >
 
   // Output schema - what this tool produces
-  outputs?: Record<
-    string,
-    {
-      type: 'string' | 'number' | 'boolean' | 'json' | 'file' | 'file[]' | 'array' | 'object'
-      description?: string
-      optional?: boolean
-      fileConfig?: {
-        mimeType?: string // Expected MIME type for file outputs
-        extension?: string // Expected file extension
-      }
-      items?: {
-        type: string
-        properties?: Record<string, OutputProperty>
-      }
-      properties?: Record<string, OutputProperty>
-    }
-  >
+  outputs?: Record<string, OutputProperty>
 
   // OAuth configuration for this tool (if it requires authentication)
   oauth?: OAuthConfig
@@ -85,6 +73,9 @@ export interface ToolConfig<P = any, R = any> {
     headers: (params: P) => Record<string, string>
     body?: (params: P) => Record<string, any>
   }
+
+  // Direct execution (optional) - bypasses the standard HTTP request/response cycle
+  directExecution?: (params: P) => Promise<ToolResponse>
 
   // Post-processing (optional) - allows additional processing after the initial request
   postProcess?: (

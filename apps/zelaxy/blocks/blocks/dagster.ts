@@ -1,0 +1,111 @@
+import { WorkflowIcon } from '@/components/icons'
+import type { BlockConfig } from '@/blocks/types'
+
+export const DagsterBlock: BlockConfig = {
+  type: 'dagster',
+  name: 'Dagster',
+  description: 'Launch and manage data pipeline runs in Dagster',
+  longDescription:
+    'Integrate Dagster data orchestration into your workflows. Launch runs, monitor status, manage schedules and sensors, and retrieve run logs.',
+  docsLink: '#',
+  category: 'tools',
+  bgColor: '#333333',
+  icon: WorkflowIcon,
+  subBlocks: [
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'dropdown',
+      layout: 'full',
+      options: [
+        { label: 'Launch Run', id: 'dagster_launch_run' },
+        { label: 'Get Run', id: 'dagster_get_run' },
+        { label: 'Get Run Logs', id: 'dagster_get_run_logs' },
+        { label: 'List Runs', id: 'dagster_list_runs' },
+        { label: 'Terminate Run', id: 'dagster_terminate_run' },
+        { label: 'List Jobs', id: 'dagster_list_jobs' },
+        { label: 'List Schedules', id: 'dagster_list_schedules' },
+      ],
+      required: true,
+    },
+    {
+      id: 'baseUrl',
+      title: 'Dagster URL',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'https://dagster.example.com',
+      required: true,
+    },
+    {
+      id: 'repositoryLocationName',
+      title: 'Repository Location',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'my_repo_location',
+      condition: { field: 'operation', value: ['dagster_launch_run', 'dagster_list_jobs'] },
+    },
+    {
+      id: 'repositoryName',
+      title: 'Repository Name',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: '__repository__',
+      condition: { field: 'operation', value: ['dagster_launch_run', 'dagster_list_jobs'] },
+    },
+    {
+      id: 'jobName',
+      title: 'Job Name',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'my_pipeline',
+      condition: { field: 'operation', value: ['dagster_launch_run'] },
+    },
+    {
+      id: 'runConfigJson',
+      title: 'Run Config (JSON)',
+      type: 'code',
+      layout: 'full',
+      placeholder: '{"ops": {"my_op": {"config": {"param": "value"}}}}',
+      condition: { field: 'operation', value: ['dagster_launch_run'] },
+    },
+    {
+      id: 'runId',
+      title: 'Run ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'run-id',
+      condition: {
+        field: 'operation',
+        value: ['dagster_get_run', 'dagster_get_run_logs', 'dagster_terminate_run'],
+      },
+    },
+  ],
+  tools: {
+    access: [
+      'dagster_launch_run',
+      'dagster_get_run',
+      'dagster_get_run_logs',
+      'dagster_list_runs',
+      'dagster_terminate_run',
+      'dagster_list_jobs',
+      'dagster_list_schedules',
+    ],
+    config: {
+      tool: (params) => params.operation || 'dagster_launch_run',
+    },
+  },
+  inputs: {
+    operation: { type: 'string', description: 'Operation to perform' },
+    baseUrl: { type: 'string', description: 'Dagster URL' },
+    repositoryLocationName: { type: 'string', description: 'Repository location name' },
+    repositoryName: { type: 'string', description: 'Repository name' },
+    jobName: { type: 'string', description: 'Job name' },
+    runConfigJson: { type: 'json', description: 'Run configuration' },
+    runId: { type: 'string', description: 'Run ID' },
+  },
+  outputs: {
+    runId: { type: 'string', description: 'Run ID' },
+    status: { type: 'string', description: 'Run status' },
+    logs: { type: 'json', description: 'Run logs' },
+  },
+}

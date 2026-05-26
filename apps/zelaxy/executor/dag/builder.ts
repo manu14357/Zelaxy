@@ -4,7 +4,7 @@ import { LoopConstructor } from '@/executor/dag/construction/loops'
 import { NodeConstructor } from '@/executor/dag/construction/nodes'
 import { ParallelConstructor } from '@/executor/dag/construction/parallels'
 import { PathConstructor } from '@/executor/dag/construction/paths'
-import type { DAG, DAGBuildOptions, DAGNode, DAGEdge, NodeMetadata } from '@/executor/dag/types'
+import type { DAG, DAGBuildOptions, DAGEdge, DAGNode, NodeMetadata } from '@/executor/dag/types'
 import {
   buildParallelSentinelStartId,
   buildSentinelStartId,

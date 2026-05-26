@@ -1,5 +1,4 @@
 import { createLogger } from '@/lib/logs/console/logger'
-import { EDGE } from '@/executor/consts'
 import type { DAG } from '@/executor/dag/builder'
 import type { ParallelScope } from '@/executor/execution/state'
 import type { BlockStateWriter } from '@/executor/execution/types'
@@ -25,10 +24,7 @@ export class ParallelOrchestrator {
     return ctx.parallelScopes?.get(parallelId)
   }
 
-  async initializeParallelScope(
-    ctx: ExecutionContext,
-    parallelId: string
-  ): Promise<ParallelScope> {
+  async initializeParallelScope(ctx: ExecutionContext, parallelId: string): Promise<ParallelScope> {
     const parallelConfig = this.dag.parallelConfigs.get(parallelId)
     if (!parallelConfig) throw new Error(`Parallel config not found: ${parallelId}`)
 
@@ -128,7 +124,11 @@ export class ParallelOrchestrator {
   private parseItems(rawItems: any): any[] {
     if (Array.isArray(rawItems)) return rawItems
     if (typeof rawItems === 'string') {
-      try { return JSON.parse(rawItems) } catch { return [] }
+      try {
+        return JSON.parse(rawItems)
+      } catch {
+        return []
+      }
     }
     return []
   }

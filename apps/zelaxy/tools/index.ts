@@ -282,6 +282,33 @@ export async function executeTool(
       }
     }
 
+    // Check for direct execution (no HTTP request needed)
+    if (tool.directExecution) {
+      logger.info(`[${requestId}] Using directExecution for ${toolId}`)
+      const result = await tool.directExecution(contextParams)
+      let finalResult = result
+      if (tool.postProcess && result.success && !skipPostProcess) {
+        try {
+          finalResult = await tool.postProcess(result, contextParams, executeTool)
+        } catch (error) {
+          logger.error(`[${requestId}] Post-processing error for ${toolId}:`, {
+            error: error instanceof Error ? error.message : String(error),
+          })
+          finalResult = result
+        }
+      }
+      finalResult = await processFileOutputs(finalResult, tool, executionContext)
+      const endTime = new Date()
+      return {
+        ...finalResult,
+        timing: {
+          startTime: startTimeISO,
+          endTime: endTime.toISOString(),
+          duration: endTime.getTime() - startTime.getTime(),
+        },
+      }
+    }
+
     // For server-side execution, internal routes, or explicit skipProxy, call the API directly.
     // The worker/runtime does not need the Next.js proxy for external APIs because it can reach
     // those URLs without browser CORS limitations.

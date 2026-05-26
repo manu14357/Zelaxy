@@ -1,0 +1,112 @@
+import { ChartBarIcon } from '@/components/icons'
+import type { BlockConfig } from '@/blocks/types'
+
+export const DatadogBlock: BlockConfig = {
+  type: 'datadog',
+  name: 'Datadog',
+  description: 'Query metrics, logs, and manage incidents in Datadog',
+  longDescription:
+    'Integrate Datadog observability into your workflows. Query metrics and logs, create and manage incidents, and monitor your infrastructure.',
+  docsLink: '#',
+  category: 'tools',
+  bgColor: '#632CA6',
+  icon: ChartBarIcon,
+  subBlocks: [
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'dropdown',
+      layout: 'full',
+      options: [
+        { label: 'Query Metrics', id: 'datadog_query_metrics' },
+        { label: 'Query Logs', id: 'datadog_query_logs' },
+        { label: 'List Monitors', id: 'datadog_list_monitors' },
+        { label: 'Create Incident', id: 'datadog_create_incident' },
+        { label: 'List Incidents', id: 'datadog_list_incidents' },
+        { label: 'List Dashboards', id: 'datadog_list_dashboards' },
+      ],
+      required: true,
+    },
+    {
+      id: 'apiKey',
+      title: 'API Key',
+      type: 'short-input',
+      layout: 'half',
+      password: true,
+      placeholder: 'Your Datadog API key',
+      required: true,
+    },
+    {
+      id: 'appKey',
+      title: 'Application Key',
+      type: 'short-input',
+      layout: 'half',
+      password: true,
+      placeholder: 'Your Datadog app key',
+      required: true,
+    },
+    {
+      id: 'site',
+      title: 'Site',
+      type: 'dropdown',
+      layout: 'half',
+      options: [
+        { label: 'US1 (datadoghq.com)', id: 'datadoghq.com' },
+        { label: 'US3 (us3.datadoghq.com)', id: 'us3.datadoghq.com' },
+        { label: 'EU (datadoghq.eu)', id: 'datadoghq.eu' },
+        { label: 'US5 (us5.datadoghq.com)', id: 'us5.datadoghq.com' },
+      ],
+    },
+    {
+      id: 'query',
+      title: 'Query',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'avg:system.cpu.user{*}',
+      condition: { field: 'operation', value: ['datadog_query_metrics', 'datadog_query_logs'] },
+    },
+    {
+      id: 'from',
+      title: 'From (Unix timestamp)',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: '1700000000',
+      condition: { field: 'operation', value: ['datadog_query_metrics', 'datadog_query_logs'] },
+    },
+    {
+      id: 'to',
+      title: 'To (Unix timestamp)',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: '1700003600',
+      condition: { field: 'operation', value: ['datadog_query_metrics', 'datadog_query_logs'] },
+    },
+  ],
+  tools: {
+    access: [
+      'datadog_query_metrics',
+      'datadog_query_logs',
+      'datadog_list_monitors',
+      'datadog_create_incident',
+      'datadog_list_incidents',
+      'datadog_list_dashboards',
+    ],
+    config: {
+      tool: (params) => params.operation || 'datadog_query_metrics',
+    },
+  },
+  inputs: {
+    operation: { type: 'string', description: 'Operation to perform' },
+    apiKey: { type: 'string', description: 'API key' },
+    appKey: { type: 'string', description: 'Application key' },
+    site: { type: 'string', description: 'Datadog site' },
+    query: { type: 'string', description: 'Query expression' },
+    from: { type: 'string', description: 'Start time' },
+    to: { type: 'string', description: 'End time' },
+  },
+  outputs: {
+    series: { type: 'json', description: 'Metrics series' },
+    logs: { type: 'json', description: 'Log events' },
+    monitors: { type: 'json', description: 'Monitor list' },
+  },
+}

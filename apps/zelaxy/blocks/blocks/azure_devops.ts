@@ -1,0 +1,125 @@
+import { MicrosoftIcon } from '@/components/icons'
+import type { BlockConfig } from '@/blocks/types'
+
+export const AzureDevOpsBlock: BlockConfig = {
+  type: 'azure_devops',
+  name: 'Azure DevOps',
+  description: 'Manage pipelines, work items, and repositories in Azure DevOps',
+  longDescription:
+    'Integrate Azure DevOps into your workflows. List and run pipelines, query and create work items, and manage your DevOps projects.',
+  docsLink: '#',
+  category: 'tools',
+  bgColor: '#0078D4',
+  icon: MicrosoftIcon,
+  subBlocks: [
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'dropdown',
+      layout: 'full',
+      options: [
+        { label: 'List Pipelines', id: 'azure_devops_list_pipelines' },
+        { label: 'Run Pipeline', id: 'azure_devops_run_pipeline' },
+        { label: 'Get Pipeline Run', id: 'azure_devops_get_pipeline_run' },
+        { label: 'Query Work Items', id: 'azure_devops_query_work_items' },
+        { label: 'Create Work Item', id: 'azure_devops_create_work_item' },
+        { label: 'Update Work Item', id: 'azure_devops_update_work_item' },
+        { label: 'Get Work Item', id: 'azure_devops_get_work_item' },
+      ],
+      required: true,
+    },
+    {
+      id: 'accessToken',
+      title: 'Personal Access Token',
+      type: 'short-input',
+      layout: 'full',
+      password: true,
+      placeholder: 'Your Azure DevOps PAT',
+      required: true,
+    },
+    {
+      id: 'organization',
+      title: 'Organization',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'my-org',
+      required: true,
+    },
+    {
+      id: 'project',
+      title: 'Project',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'my-project',
+      required: true,
+    },
+    {
+      id: 'pipelineId',
+      title: 'Pipeline ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: '1',
+      condition: {
+        field: 'operation',
+        value: ['azure_devops_run_pipeline', 'azure_devops_get_pipeline_run'],
+      },
+    },
+    {
+      id: 'workItemType',
+      title: 'Work Item Type',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'Task',
+      condition: { field: 'operation', value: ['azure_devops_create_work_item'] },
+    },
+    {
+      id: 'title',
+      title: 'Title',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'Work item title',
+      condition: {
+        field: 'operation',
+        value: ['azure_devops_create_work_item', 'azure_devops_update_work_item'],
+      },
+    },
+    {
+      id: 'wiql',
+      title: 'WIQL Query',
+      type: 'long-input',
+      layout: 'full',
+      placeholder:
+        'SELECT [System.Id], [System.Title] FROM WorkItems WHERE [System.TeamProject] = @project',
+      condition: { field: 'operation', value: ['azure_devops_query_work_items'] },
+    },
+  ],
+  tools: {
+    access: [
+      'azure_devops_list_pipelines',
+      'azure_devops_run_pipeline',
+      'azure_devops_get_pipeline_run',
+      'azure_devops_query_work_items',
+      'azure_devops_create_work_item',
+      'azure_devops_update_work_item',
+      'azure_devops_get_work_item',
+    ],
+    config: {
+      tool: (params) => params.operation || 'azure_devops_list_pipelines',
+    },
+  },
+  inputs: {
+    operation: { type: 'string', description: 'Operation to perform' },
+    accessToken: { type: 'string', description: 'Personal access token' },
+    organization: { type: 'string', description: 'Organization name' },
+    project: { type: 'string', description: 'Project name' },
+    pipelineId: { type: 'string', description: 'Pipeline ID' },
+    workItemType: { type: 'string', description: 'Work item type' },
+    title: { type: 'string', description: 'Work item title' },
+    wiql: { type: 'string', description: 'WIQL query' },
+  },
+  outputs: {
+    pipelines: { type: 'json', description: 'Pipeline list' },
+    workItems: { type: 'json', description: 'Work item list' },
+    run: { type: 'json', description: 'Pipeline run details' },
+  },
+}

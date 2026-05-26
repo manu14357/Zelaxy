@@ -1,0 +1,118 @@
+import { DatabaseIcon } from '@/components/icons'
+import type { BlockConfig } from '@/blocks/types'
+
+export const AthenaBlock: BlockConfig = {
+  type: 'athena',
+  name: 'Athena',
+  description: 'Run SQL queries on data in Amazon S3 with AWS Athena',
+  longDescription:
+    'Integrate Amazon Athena into your workflows. Execute SQL queries on S3 data, retrieve results, and manage query executions.',
+  docsLink: '#',
+  category: 'tools',
+  bgColor: '#8C4FFF',
+  icon: DatabaseIcon,
+  subBlocks: [
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'dropdown',
+      layout: 'full',
+      options: [
+        { label: 'Start Query', id: 'athena_start_query' },
+        { label: 'Get Query Results', id: 'athena_get_query_results' },
+        { label: 'Get Query Execution', id: 'athena_get_query_execution' },
+        { label: 'Stop Query', id: 'athena_stop_query' },
+        { label: 'List Query Executions', id: 'athena_list_query_executions' },
+      ],
+      required: true,
+    },
+    {
+      id: 'awsRegion',
+      title: 'AWS Region',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'us-east-1',
+      required: true,
+    },
+    {
+      id: 'awsAccessKeyId',
+      title: 'Access Key ID',
+      type: 'short-input',
+      layout: 'half',
+      password: true,
+      placeholder: 'AKIAIOSFODNN7EXAMPLE',
+      required: true,
+    },
+    {
+      id: 'awsSecretAccessKey',
+      title: 'Secret Access Key',
+      type: 'short-input',
+      layout: 'full',
+      password: true,
+      placeholder: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+      required: true,
+    },
+    {
+      id: 'queryString',
+      title: 'SQL Query',
+      type: 'code',
+      layout: 'full',
+      placeholder: 'SELECT * FROM my_table LIMIT 10',
+      condition: { field: 'operation', value: ['athena_start_query'] },
+    },
+    {
+      id: 'database',
+      title: 'Database',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'my_database',
+      condition: { field: 'operation', value: ['athena_start_query'] },
+    },
+    {
+      id: 'outputLocation',
+      title: 'Output S3 Location',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 's3://my-bucket/query-results/',
+      condition: { field: 'operation', value: ['athena_start_query'] },
+    },
+    {
+      id: 'queryExecutionId',
+      title: 'Query Execution ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'execution-id',
+      condition: {
+        field: 'operation',
+        value: ['athena_get_query_results', 'athena_get_query_execution', 'athena_stop_query'],
+      },
+    },
+  ],
+  tools: {
+    access: [
+      'athena_start_query',
+      'athena_get_query_results',
+      'athena_get_query_execution',
+      'athena_stop_query',
+      'athena_list_query_executions',
+    ],
+    config: {
+      tool: (params) => params.operation || 'athena_start_query',
+    },
+  },
+  inputs: {
+    operation: { type: 'string', description: 'Operation to perform' },
+    awsRegion: { type: 'string', description: 'AWS region' },
+    awsAccessKeyId: { type: 'string', description: 'AWS access key ID' },
+    awsSecretAccessKey: { type: 'string', description: 'AWS secret access key' },
+    queryString: { type: 'string', description: 'SQL query' },
+    database: { type: 'string', description: 'Database name' },
+    outputLocation: { type: 'string', description: 'S3 output location' },
+    queryExecutionId: { type: 'string', description: 'Query execution ID' },
+  },
+  outputs: {
+    queryExecutionId: { type: 'string', description: 'Query execution ID' },
+    results: { type: 'json', description: 'Query results' },
+    status: { type: 'string', description: 'Query status' },
+  },
+}

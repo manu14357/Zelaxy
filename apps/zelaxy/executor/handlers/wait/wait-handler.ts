@@ -40,9 +40,7 @@ export class WaitBlockHandler implements BlockHandler {
   ): Promise<any> {
     const isAsync = inputs.async === true || inputs.async === 'true'
     const timeValue = Number.parseFloat(inputs.timeValue ?? '10')
-    const timeUnit = isAsync
-      ? (inputs.timeUnitLong ?? 'minutes')
-      : (inputs.timeUnit ?? 'seconds')
+    const timeUnit = isAsync ? (inputs.timeUnitLong ?? 'minutes') : (inputs.timeUnit ?? 'seconds')
 
     if (!Number.isFinite(timeValue) || timeValue <= 0) {
       throw new Error('Wait amount must be a positive number')
@@ -54,7 +52,9 @@ export class WaitBlockHandler implements BlockHandler {
 
     if (!isAsync) {
       if (waitMs > MAX_INPROCESS_WAIT_MS) {
-        throw new Error('Wait time exceeds maximum of 5 minutes; enable async mode for longer waits')
+        throw new Error(
+          'Wait time exceeds maximum of 5 minutes; enable async mode for longer waits'
+        )
       }
       await sleep(waitMs)
       return { waitDuration: waitMs, status: 'completed' }

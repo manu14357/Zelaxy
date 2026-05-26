@@ -1,0 +1,5 @@
+export { algoliaDeleteDocumentTool } from './delete_document'
+export { algoliaGetDocumentTool } from './get_document'
+export { algoliaIndexDocumentTool } from './index_document'
+export { algoliaSearchTool } from './search'
+export { algoliaUpdateDocumentTool } from './update_document'

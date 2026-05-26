@@ -1,5 +1,5 @@
 import { BlockType, isMetadataOnlyBlockType } from '@/executor/consts'
-import type { DAG, DAGNode } from '@/executor/dag/types'
+import type { DAG } from '@/executor/dag/types'
 import { buildBranchNodeId } from '@/executor/utils/subflow-utils'
 import type { SerializedBlock, SerializedWorkflow } from '@/serializer/types'
 
@@ -59,11 +59,7 @@ export class NodeConstructor {
     }
   }
 
-  private createParallelTemplateNode(
-    block: SerializedBlock,
-    parallelId: string,
-    dag: DAG
-  ): void {
+  private createParallelTemplateNode(block: SerializedBlock, parallelId: string, dag: DAG): void {
     const templateNodeId = buildBranchNodeId(block.id, 0)
     const blockClone: SerializedBlock = { ...block, id: templateNodeId }
 
