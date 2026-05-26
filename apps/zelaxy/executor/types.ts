@@ -1,4 +1,5 @@
 import type { BlockOutput } from '@/blocks/types'
+import type { LoopScope, ParallelScope } from '@/executor/execution/state'
 import type { SerializedBlock, SerializedWorkflow } from '@/serializer/types'
 
 /**
@@ -197,6 +198,42 @@ export interface ExecutionContext {
    * sent to the provider (e.g., userPrompt with file content appended).
    */
   enrichedBlockInputs?: Map<string, Record<string, any>>
+
+  // Variables block support: workflow-level variables store
+  // Each key is a variableId, each value is { id, name, value, type? }
+  workflowVariables?: Record<string, any>
+
+  // DAG-based execution: per-loop and per-parallel scope data
+  loopScopes?: Map<string, LoopScope>
+  parallelScopes?: Map<string, ParallelScope>
+
+  // Pause/resume support
+  pauseExecution?: (metadata: PauseMetadata) => Promise<void>
+  resumeContext?: ResumeContext
+}
+
+/**
+ * Metadata used when pausing a workflow execution.
+ */
+export interface PauseMetadata {
+  pauseKind: 'human-in-the-loop' | 'time' | 'approval'
+  /** ISO timestamp for when the pause should auto-resume */
+  resumeAt?: string
+  /** Public link(s) sent to humans for approval/response */
+  resumeLinks?: string[]
+  /** Contextual ID for identifying the paused step */
+  contextId?: string
+  blockId?: string
+}
+
+/**
+ * Context passed when resuming a paused workflow execution.
+ */
+export interface ResumeContext {
+  resumeToken: string
+  response?: any
+  approvedBy?: string
+  resumedAt?: string
 }
 
 /**
