@@ -1,0 +1,1197 @@
+/**
+ * Table utilities module for Zelaxy.
+ *
+ * Provides types, constants, service functions, and CSV import helpers for
+ * user-defined tables built on top of the userTableDefinitions / userTableRows schema.
+ */
+
+import crypto from 'crypto'
+import { and, asc, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { db } from '@/db'
+import { userTableDefinitions, userTableRows } from '@/db/schema'
+import { createLogger } from '@/lib/logs/console/logger'
+
+const logger = createLogger('TableService')
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+export const COLUMN_TYPES = ['string', 'number', 'boolean', 'date', 'json'] as const
+
+export const NAME_PATTERN = /^[a-z_][a-z0-9_]*$/i
+
+export const TABLE_LIMITS = {
+  MAX_TABLES_PER_WORKSPACE: 100,
+  MAX_ROWS_PER_TABLE: 10000,
+  MAX_ROW_SIZE_BYTES: 100 * 1024,
+  MAX_COLUMNS_PER_TABLE: 50,
+  MAX_TABLE_NAME_LENGTH: 128,
+  MAX_COLUMN_NAME_LENGTH: 50,
+  MAX_STRING_VALUE_LENGTH: 10000,
+  MAX_DESCRIPTION_LENGTH: 500,
+  DEFAULT_QUERY_LIMIT: 100,
+  MAX_QUERY_LIMIT: 1000,
+  MAX_BATCH_INSERT_SIZE: 1000,
+  MAX_BULK_OPERATION_SIZE: 1000,
+} as const
+
+/** Number of CSV rows sampled when inferring column types. */
+export const CSV_SCHEMA_SAMPLE_SIZE = 100
+
+/** Maximum rows inserted per batchInsertRows call during import. */
+export const CSV_MAX_BATCH_SIZE = 1000
+
+/** Maximum CSV/TSV file size accepted by import routes (25 MB). */
+export const CSV_MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export type ColumnType = (typeof COLUMN_TYPES)[number]
+export type ColumnValue = string | number | boolean | null
+export type JsonValue = ColumnValue | JsonValue[] | { [key: string]: JsonValue }
+export type RowData = Record<string, JsonValue>
+
+export type SortDirection = 'asc' | 'desc'
+
+/** Sort specification mapping column names to direction. */
+export type Sort = Record<string, SortDirection>
+
+export interface ConditionOperators {
+  $eq?: ColumnValue
+  $ne?: ColumnValue
+  $gt?: ColumnValue
+  $gte?: ColumnValue
+  $lt?: ColumnValue
+  $lte?: ColumnValue
+  $in?: ColumnValue[]
+  $nin?: ColumnValue[]
+  $contains?: string
+}
+
+/** Filter object for querying table rows. */
+export interface Filter {
+  $or?: Filter[]
+  $and?: Filter[]
+  [key: string]: ColumnValue | ConditionOperators | Filter[] | undefined
+}
+
+export interface ColumnDefinition {
+  name: string
+  type: ColumnType
+  required?: boolean
+  unique?: boolean
+  workflowGroupId?: string
+}
+
+export interface TableSchema {
+  columns: ColumnDefinition[]
+}
+
+export interface TableMetadata {
+  columnWidths?: Record<string, number>
+  columnOrder?: string[]
+}
+
+export interface TableDefinition {
+  id: string
+  name: string
+  description: string | null
+  schema: TableSchema
+  metadata: TableMetadata | null
+  rowCount: number
+  maxRows: number
+  workspaceId: string
+  createdBy: string | null
+  archivedAt: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+}
+
+export interface TableRow {
+  id: string
+  data: RowData
+  position: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface TablePlanLimits {
+  maxTables: number
+  maxRowsPerTable: number
+}
+
+export type TableScope = 'active' | 'archived' | 'all'
+
+export interface CreateTableData {
+  name: string
+  description?: string | null
+  schema: TableSchema
+  workspaceId: string
+  userId: string
+  maxRows?: number
+  maxTables?: number
+  initialRowCount?: number
+}
+
+export interface BatchInsertData {
+  tableId: string
+  rows: RowData[]
+  workspaceId: string
+  userId?: string
+}
+
+export interface ValidationResult {
+  valid: boolean
+  errors: string[]
+}
+
+export class TableConflictError extends Error {
+  readonly code = 'TABLE_EXISTS' as const
+  constructor(name: string) {
+    super(`A table named "${name}" already exists in this workspace`)
+  }
+}
+
+// ─── Validation ──────────────────────────────────────────────────────────────
+
+export function validateTableName(name: string): ValidationResult {
+  const errors: string[] = []
+
+  if (!name || typeof name !== 'string') {
+    errors.push('Table name is required')
+    return { valid: false, errors }
+  }
+
+  if (name.length > TABLE_LIMITS.MAX_TABLE_NAME_LENGTH) {
+    errors.push(
+      `Table name exceeds maximum length (${TABLE_LIMITS.MAX_TABLE_NAME_LENGTH} characters)`
+    )
+  }
+
+  if (!NAME_PATTERN.test(name)) {
+    errors.push(
+      'Table name must start with letter or underscore, followed by alphanumeric or underscore'
+    )
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
+export function validateTableSchema(schema: TableSchema): ValidationResult {
+  const errors: string[] = []
+
+  if (!schema || typeof schema !== 'object') {
+    errors.push('Schema is required')
+    return { valid: false, errors }
+  }
+
+  if (!Array.isArray(schema.columns)) {
+    errors.push('Schema must have columns array')
+    return { valid: false, errors }
+  }
+
+  if (schema.columns.length === 0) {
+    errors.push('Schema must have at least one column')
+  }
+
+  if (schema.columns.length > TABLE_LIMITS.MAX_COLUMNS_PER_TABLE) {
+    errors.push(`Schema exceeds maximum columns (${TABLE_LIMITS.MAX_COLUMNS_PER_TABLE})`)
+  }
+
+  for (const column of schema.columns) {
+    if (!column.name || !NAME_PATTERN.test(column.name)) {
+      errors.push(
+        `Invalid column name "${column.name}". Must start with letter/underscore, alphanumeric/underscore only.`
+      )
+    }
+    if (!COLUMN_TYPES.includes(column.type)) {
+      errors.push(
+        `Invalid column type "${column.type}". Must be one of: ${COLUMN_TYPES.join(', ')}`
+      )
+    }
+  }
+
+  const columnNames = schema.columns.map((c) => c.name.toLowerCase())
+  if (new Set(columnNames).size !== columnNames.length) {
+    errors.push('Duplicate column names found')
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
+// ─── Billing / Limits ────────────────────────────────────────────────────────
+
+/**
+ * Returns table limits for a workspace.
+ * Zelaxy currently applies generous defaults without per-plan billing.
+ */
+export async function getWorkspaceTableLimits(
+  _workspaceId: string
+): Promise<TablePlanLimits> {
+  return {
+    maxTables: TABLE_LIMITS.MAX_TABLES_PER_WORKSPACE,
+    maxRowsPerTable: TABLE_LIMITS.MAX_ROWS_PER_TABLE,
+  }
+}
+
+// ─── Service ─────────────────────────────────────────────────────────────────
+
+function generateTableId(): string {
+  return `tbl_${crypto.randomUUID().replace(/-/g, '')}`
+}
+
+function generateRowId(): string {
+  return `row_${crypto.randomUUID().replace(/-/g, '')}`
+}
+
+export async function getTableById(
+  tableId: string,
+  options?: { includeArchived?: boolean }
+): Promise<TableDefinition | null> {
+  const { includeArchived = false } = options ?? {}
+
+  const results = await db
+    .select({
+      id: userTableDefinitions.id,
+      name: userTableDefinitions.name,
+      description: userTableDefinitions.description,
+      schema: userTableDefinitions.schema,
+      metadata: userTableDefinitions.metadata,
+      maxRows: userTableDefinitions.maxRows,
+      workspaceId: userTableDefinitions.workspaceId,
+      createdBy: userTableDefinitions.createdBy,
+      archivedAt: userTableDefinitions.archivedAt,
+      createdAt: userTableDefinitions.createdAt,
+      updatedAt: userTableDefinitions.updatedAt,
+      rowCount: userTableDefinitions.rowCount,
+    })
+    .from(userTableDefinitions)
+    .where(
+      includeArchived
+        ? eq(userTableDefinitions.id, tableId)
+        : and(eq(userTableDefinitions.id, tableId), isNull(userTableDefinitions.archivedAt))
+    )
+    .limit(1)
+
+  if (results.length === 0) return null
+
+  const t = results[0]
+  return {
+    id: t.id,
+    name: t.name,
+    description: t.description,
+    schema: t.schema as TableSchema,
+    metadata: (t.metadata as Record<string, unknown>) ?? null,
+    rowCount: t.rowCount,
+    maxRows: t.maxRows,
+    workspaceId: t.workspaceId,
+    createdBy: t.createdBy,
+    archivedAt: t.archivedAt,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+  }
+}
+
+export async function listTables(
+  workspaceId: string,
+  options?: { scope?: TableScope }
+): Promise<TableDefinition[]> {
+  const { scope = 'active' } = options ?? {}
+
+  const tables = await db
+    .select({
+      id: userTableDefinitions.id,
+      name: userTableDefinitions.name,
+      description: userTableDefinitions.description,
+      schema: userTableDefinitions.schema,
+      metadata: userTableDefinitions.metadata,
+      maxRows: userTableDefinitions.maxRows,
+      workspaceId: userTableDefinitions.workspaceId,
+      createdBy: userTableDefinitions.createdBy,
+      archivedAt: userTableDefinitions.archivedAt,
+      createdAt: userTableDefinitions.createdAt,
+      updatedAt: userTableDefinitions.updatedAt,
+      rowCount: userTableDefinitions.rowCount,
+    })
+    .from(userTableDefinitions)
+    .where(
+      scope === 'all'
+        ? eq(userTableDefinitions.workspaceId, workspaceId)
+        : scope === 'archived'
+          ? and(
+              eq(userTableDefinitions.workspaceId, workspaceId),
+              sql`${userTableDefinitions.archivedAt} IS NOT NULL`
+            )
+          : and(
+              eq(userTableDefinitions.workspaceId, workspaceId),
+              isNull(userTableDefinitions.archivedAt)
+            )
+    )
+    .orderBy(userTableDefinitions.createdAt)
+
+  return tables.map((t) => ({
+    id: t.id,
+    name: t.name,
+    description: t.description,
+    schema: t.schema as TableSchema,
+    metadata: (t.metadata as Record<string, unknown>) ?? null,
+    rowCount: t.rowCount,
+    maxRows: t.maxRows,
+    workspaceId: t.workspaceId,
+    createdBy: t.createdBy,
+    archivedAt: t.archivedAt,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+  }))
+}
+
+export async function createTable(
+  data: CreateTableData,
+  requestId: string
+): Promise<TableDefinition> {
+  const nameValidation = validateTableName(data.name)
+  if (!nameValidation.valid) {
+    throw new Error(`Invalid table name: ${nameValidation.errors.join(', ')}`)
+  }
+
+  const schemaValidation = validateTableSchema(data.schema)
+  if (!schemaValidation.valid) {
+    throw new Error(`Invalid schema: ${schemaValidation.errors.join(', ')}`)
+  }
+
+  const tableId = generateTableId()
+  const now = new Date()
+
+  const maxRows = data.maxRows ?? TABLE_LIMITS.MAX_ROWS_PER_TABLE
+  const maxTables = data.maxTables ?? TABLE_LIMITS.MAX_TABLES_PER_WORKSPACE
+
+  const newTable = {
+    id: tableId,
+    name: data.name,
+    description: data.description ?? null,
+    schema: data.schema,
+    workspaceId: data.workspaceId,
+    createdBy: data.userId,
+    maxRows,
+    rowCount: 0,
+    archivedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  try {
+    await db.transaction(async (trx) => {
+      const [{ existingCount }] = await trx
+        .select({ existingCount: count() })
+        .from(userTableDefinitions)
+        .where(
+          and(
+            eq(userTableDefinitions.workspaceId, data.workspaceId),
+            isNull(userTableDefinitions.archivedAt)
+          )
+        )
+
+      if (Number(existingCount) >= maxTables) {
+        throw new Error(`Workspace has reached maximum table limit (${maxTables})`)
+      }
+
+      const duplicateName = await trx
+        .select({ id: userTableDefinitions.id })
+        .from(userTableDefinitions)
+        .where(
+          and(
+            eq(userTableDefinitions.workspaceId, data.workspaceId),
+            eq(userTableDefinitions.name, data.name),
+            isNull(userTableDefinitions.archivedAt)
+          )
+        )
+        .limit(1)
+
+      if (duplicateName.length > 0) {
+        throw new TableConflictError(data.name)
+      }
+
+      await trx.insert(userTableDefinitions).values(newTable)
+
+      const initialRowCount = data.initialRowCount ?? 0
+      if (initialRowCount > 0) {
+        const rowsToInsert = Array.from({ length: initialRowCount }, (_, i) => ({
+          id: generateRowId(),
+          tableId,
+          data: {},
+          position: i,
+          workspaceId: data.workspaceId,
+          createdAt: now,
+          updatedAt: now,
+        }))
+        await trx.insert(userTableRows).values(rowsToInsert)
+      }
+    })
+  } catch (error: unknown) {
+    if (error instanceof TableConflictError) throw error
+    // Postgres unique violation
+    if (
+      error instanceof Error &&
+      'code' in (error as NodeJS.ErrnoException) &&
+      (error as NodeJS.ErrnoException).code === '23505'
+    ) {
+      throw new TableConflictError(data.name)
+    }
+    throw error
+  }
+
+  logger.info(`[${requestId}] Created table ${tableId} in workspace ${data.workspaceId}`)
+
+  return {
+    id: newTable.id,
+    name: newTable.name,
+    description: newTable.description,
+    schema: newTable.schema as TableSchema,
+    metadata: null,
+    rowCount: data.initialRowCount ?? 0,
+    maxRows: newTable.maxRows,
+    workspaceId: newTable.workspaceId,
+    createdBy: newTable.createdBy,
+    archivedAt: newTable.archivedAt,
+    createdAt: newTable.createdAt,
+    updatedAt: newTable.updatedAt,
+  }
+}
+
+export async function renameTable(
+  tableId: string,
+  newName: string,
+  requestId: string
+): Promise<{ id: string; name: string }> {
+  const nameValidation = validateTableName(newName)
+  if (!nameValidation.valid) {
+    throw new Error(nameValidation.errors.join(', '))
+  }
+
+  const now = new Date()
+  try {
+    const result = await db
+      .update(userTableDefinitions)
+      .set({ name: newName, updatedAt: now })
+      .where(eq(userTableDefinitions.id, tableId))
+      .returning({ id: userTableDefinitions.id })
+
+    if (result.length === 0) {
+      throw new Error(`Table ${tableId} not found`)
+    }
+
+    logger.info(`[${requestId}] Renamed table ${tableId} to "${newName}"`)
+    return { id: tableId, name: newName }
+  } catch (error: unknown) {
+    if (
+      error instanceof Error &&
+      'code' in (error as NodeJS.ErrnoException) &&
+      (error as NodeJS.ErrnoException).code === '23505'
+    ) {
+      throw new TableConflictError(newName)
+    }
+    throw error
+  }
+}
+
+export async function deleteTable(tableId: string, requestId: string): Promise<void> {
+  await db
+    .update(userTableDefinitions)
+    .set({ archivedAt: new Date(), updatedAt: new Date() })
+    .where(eq(userTableDefinitions.id, tableId))
+
+  logger.info(`[${requestId}] Archived table ${tableId}`)
+}
+
+export async function batchInsertRows(
+  data: BatchInsertData,
+  _table: TableDefinition,
+  requestId: string
+): Promise<TableRow[]> {
+  const now = new Date()
+
+  const inserted = await db.transaction(async (trx) => {
+    // Get the current max position for auto-assignment
+    const [{ maxPos }] = await trx
+      .select({
+        maxPos: sql<number>`coalesce(max(${userTableRows.position}), -1)`.mapWith(Number),
+      })
+      .from(userTableRows)
+      .where(eq(userTableRows.tableId, data.tableId))
+
+    const startPos = maxPos + 1
+
+    const rowsToInsert = data.rows.map((rowData, i) => ({
+      id: generateRowId(),
+      tableId: data.tableId,
+      workspaceId: data.workspaceId,
+      data: rowData,
+      position: startPos + i,
+      createdAt: now,
+      updatedAt: now,
+      ...(data.userId ? { createdBy: data.userId } : {}),
+    }))
+
+    return trx.insert(userTableRows).values(rowsToInsert).returning()
+  })
+
+  logger.info(`[${requestId}] Batch inserted ${data.rows.length} rows into table ${data.tableId}`)
+
+  return inserted.map((r) => ({
+    id: r.id,
+    data: r.data as RowData,
+    position: r.position,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  }))
+}
+
+// ─── Single Row Operations ────────────────────────────────────────────────────
+
+export async function insertRow(
+  data: { tableId: string; workspaceId: string; userId?: string; data: RowData; position?: number },
+  requestId: string
+): Promise<TableRow> {
+  const now = new Date()
+  const id = crypto.randomUUID()
+
+  const position = await db.transaction(async (trx) => {
+    if (data.position !== undefined) return data.position
+    const [{ maxPos }] = await trx
+      .select({ maxPos: sql<number>`coalesce(max(${userTableRows.position}), -1)`.mapWith(Number) })
+      .from(userTableRows)
+      .where(eq(userTableRows.tableId, data.tableId))
+    return maxPos + 1
+  })
+
+  const [row] = await db
+    .insert(userTableRows)
+    .values({
+      id,
+      tableId: data.tableId,
+      workspaceId: data.workspaceId,
+      data: data.data,
+      position,
+      createdAt: now,
+      updatedAt: now,
+      ...(data.userId ? { createdBy: data.userId } : {}),
+    })
+    .returning()
+
+  // Increment row count
+  await db
+    .update(userTableDefinitions)
+    .set({ rowCount: sql`${userTableDefinitions.rowCount} + 1`, updatedAt: now })
+    .where(eq(userTableDefinitions.id, data.tableId))
+
+  logger.info(`[${requestId}] Inserted row ${id} into table ${data.tableId}`)
+  return { id: row.id, data: row.data as RowData, position: row.position, createdAt: row.createdAt, updatedAt: row.updatedAt }
+}
+
+export interface ListRowsOptions {
+  tableId: string
+  limit?: number
+  offset?: number
+  filter?: Filter | null
+  sort?: Sort | null
+}
+
+export interface ListRowsResult {
+  rows: TableRow[]
+  totalCount: number
+  hasMore: boolean
+}
+
+export async function listRows(options: ListRowsOptions): Promise<ListRowsResult> {
+  const { tableId, limit = 100, offset = 0, sort } = options
+
+  const whereClause = eq(userTableRows.tableId, tableId)
+
+  const orderClauses = sort
+    ? Object.entries(sort).map(([col, dir]) =>
+        dir === 'desc'
+          ? desc(sql.raw(`data->>'${col}'`))
+          : asc(sql.raw(`data->>'${col}'`))
+      )
+    : [asc(userTableRows.position)]
+
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select()
+      .from(userTableRows)
+      .where(whereClause)
+      .orderBy(...orderClauses)
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ total: count() })
+      .from(userTableRows)
+      .where(whereClause),
+  ])
+
+  const totalCount = Number(total)
+  return {
+    rows: rows.map((r) => ({
+      id: r.id,
+      data: r.data as RowData,
+      position: r.position,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    })),
+    totalCount,
+    hasMore: offset + rows.length < totalCount,
+  }
+}
+
+export async function getRowById(tableId: string, rowId: string): Promise<TableRow | null> {
+  const [row] = await db
+    .select()
+    .from(userTableRows)
+    .where(and(eq(userTableRows.id, rowId), eq(userTableRows.tableId, tableId)))
+    .limit(1)
+
+  if (!row) return null
+  return { id: row.id, data: row.data as RowData, position: row.position, createdAt: row.createdAt, updatedAt: row.updatedAt }
+}
+
+export async function updateRow(
+  tableId: string,
+  rowId: string,
+  data: RowData,
+  requestId: string
+): Promise<TableRow> {
+  const now = new Date()
+  const [row] = await db
+    .update(userTableRows)
+    .set({ data, updatedAt: now })
+    .where(and(eq(userTableRows.id, rowId), eq(userTableRows.tableId, tableId)))
+    .returning()
+
+  if (!row) throw new Error(`Row ${rowId} not found in table ${tableId}`)
+  logger.info(`[${requestId}] Updated row ${rowId} in table ${tableId}`)
+  return { id: row.id, data: row.data as RowData, position: row.position, createdAt: row.createdAt, updatedAt: row.updatedAt }
+}
+
+export async function deleteRow(tableId: string, rowId: string, requestId: string): Promise<void> {
+  const now = new Date()
+  await db.transaction(async (trx) => {
+    await trx.delete(userTableRows).where(and(eq(userTableRows.id, rowId), eq(userTableRows.tableId, tableId)))
+    await trx
+      .update(userTableDefinitions)
+      .set({ rowCount: sql`greatest(${userTableDefinitions.rowCount} - 1, 0)`, updatedAt: now })
+      .where(eq(userTableDefinitions.id, tableId))
+  })
+  logger.info(`[${requestId}] Deleted row ${rowId} from table ${tableId}`)
+}
+
+export async function deleteRows(tableId: string, rowIds: string[], requestId: string): Promise<number> {
+  if (rowIds.length === 0) return 0
+  const now = new Date()
+  let deletedCount = 0
+  await db.transaction(async (trx) => {
+    const result = await trx
+      .delete(userTableRows)
+      .where(and(eq(userTableRows.tableId, tableId), inArray(userTableRows.id, rowIds)))
+      .returning({ id: userTableRows.id })
+    deletedCount = result.length
+    if (deletedCount > 0) {
+      await trx
+        .update(userTableDefinitions)
+        .set({
+          rowCount: sql`greatest(${userTableDefinitions.rowCount} - ${deletedCount}, 0)`,
+          updatedAt: now,
+        })
+        .where(eq(userTableDefinitions.id, tableId))
+    }
+  })
+  logger.info(`[${requestId}] Deleted ${deletedCount} rows from table ${tableId}`)
+  return deletedCount
+}
+
+export async function batchUpdateRows(
+  tableId: string,
+  updates: Array<{ rowId: string; data: RowData }>,
+  requestId: string
+): Promise<void> {
+  if (updates.length === 0) return
+  const now = new Date()
+  await db.transaction(async (trx) => {
+    for (const { rowId, data } of updates) {
+      await trx
+        .update(userTableRows)
+        .set({ data, updatedAt: now })
+        .where(and(eq(userTableRows.id, rowId), eq(userTableRows.tableId, tableId)))
+    }
+  })
+  logger.info(`[${requestId}] Batch updated ${updates.length} rows in table ${tableId}`)
+}
+
+// ─── Column Management ────────────────────────────────────────────────────────
+
+export async function addColumn(
+  tableId: string,
+  column: ColumnDefinition,
+  requestId: string
+): Promise<TableDefinition> {
+  const now = new Date()
+  const [updated] = await db
+    .update(userTableDefinitions)
+    .set({
+      schema: sql`jsonb_set(${userTableDefinitions.schema}, '{columns}', (${userTableDefinitions.schema}->'columns') || ${JSON.stringify([column])}::jsonb)`,
+      updatedAt: now,
+    })
+    .where(eq(userTableDefinitions.id, tableId))
+    .returning()
+
+  if (!updated) throw new Error(`Table ${tableId} not found`)
+  logger.info(`[${requestId}] Added column "${column.name}" to table ${tableId}`)
+
+  return {
+    id: updated.id,
+    name: updated.name,
+    description: updated.description,
+    schema: updated.schema as TableSchema,
+    metadata: (updated.metadata as TableMetadata) ?? null,
+    rowCount: updated.rowCount,
+    maxRows: updated.maxRows,
+    workspaceId: updated.workspaceId,
+    createdBy: updated.createdBy,
+    archivedAt: updated.archivedAt,
+    createdAt: updated.createdAt,
+    updatedAt: updated.updatedAt,
+  }
+}
+
+export async function updateColumn(
+  tableId: string,
+  columnName: string,
+  updates: Partial<Pick<ColumnDefinition, 'name' | 'type' | 'required' | 'unique'>>,
+  requestId: string
+): Promise<TableDefinition> {
+  const now = new Date()
+
+  const table = await getTableById(tableId)
+  if (!table) throw new Error(`Table ${tableId} not found`)
+
+  const schema = table.schema as TableSchema
+  const colIdx = schema.columns.findIndex((c) => c.name === columnName)
+  if (colIdx === -1) throw new Error(`Column "${columnName}" not found`)
+
+  const updatedColumns = schema.columns.map((c) =>
+    c.name === columnName ? { ...c, ...updates } : c
+  )
+  const updatedSchema: TableSchema = { ...schema, columns: updatedColumns }
+
+  const [updated] = await db
+    .update(userTableDefinitions)
+    .set({ schema: updatedSchema, updatedAt: now })
+    .where(eq(userTableDefinitions.id, tableId))
+    .returning()
+
+  if (!updated) throw new Error(`Table ${tableId} not found`)
+  logger.info(`[${requestId}] Updated column "${columnName}" in table ${tableId}`)
+
+  return {
+    id: updated.id,
+    name: updated.name,
+    description: updated.description,
+    schema: updated.schema as TableSchema,
+    metadata: (updated.metadata as TableMetadata) ?? null,
+    rowCount: updated.rowCount,
+    maxRows: updated.maxRows,
+    workspaceId: updated.workspaceId,
+    createdBy: updated.createdBy,
+    archivedAt: updated.archivedAt,
+    createdAt: updated.createdAt,
+    updatedAt: updated.updatedAt,
+  }
+}
+
+export async function deleteColumn(
+  tableId: string,
+  columnName: string,
+  requestId: string
+): Promise<TableDefinition> {
+  const now = new Date()
+
+  const table = await getTableById(tableId)
+  if (!table) throw new Error(`Table ${tableId} not found`)
+
+  const schema = table.schema as TableSchema
+  const updatedColumns = schema.columns.filter((c) => c.name !== columnName)
+  const updatedSchema: TableSchema = { ...schema, columns: updatedColumns }
+
+  // Remove column data from all rows
+  await db.transaction(async (trx) => {
+    await trx
+      .update(userTableDefinitions)
+      .set({ schema: updatedSchema, updatedAt: now })
+      .where(eq(userTableDefinitions.id, tableId))
+
+    // Remove column key from all row data
+    await trx
+      .update(userTableRows)
+      .set({
+        data: sql`${userTableRows.data} - ${columnName}`,
+        updatedAt: now,
+      })
+      .where(eq(userTableRows.tableId, tableId))
+  })
+
+  const [updated] = await db
+    .select()
+    .from(userTableDefinitions)
+    .where(eq(userTableDefinitions.id, tableId))
+    .limit(1)
+
+  if (!updated) throw new Error(`Table ${tableId} not found`)
+  logger.info(`[${requestId}] Deleted column "${columnName}" from table ${tableId}`)
+
+  return {
+    id: updated.id,
+    name: updated.name,
+    description: updated.description,
+    schema: updated.schema as TableSchema,
+    metadata: (updated.metadata as TableMetadata) ?? null,
+    rowCount: updated.rowCount,
+    maxRows: updated.maxRows,
+    workspaceId: updated.workspaceId,
+    createdBy: updated.createdBy,
+    archivedAt: updated.archivedAt,
+    createdAt: updated.createdAt,
+    updatedAt: updated.updatedAt,
+  }
+}
+
+export async function updateTableMetadata(
+  tableId: string,
+  metadata: Partial<TableMetadata>,
+  requestId: string
+): Promise<void> {
+  const now = new Date()
+  const table = await getTableById(tableId)
+  if (!table) throw new Error(`Table ${tableId} not found`)
+
+  const current = (table.metadata ?? {}) as TableMetadata
+  const merged: TableMetadata = { ...current, ...metadata }
+
+  await db
+    .update(userTableDefinitions)
+    .set({ metadata: merged as Record<string, unknown>, updatedAt: now })
+    .where(eq(userTableDefinitions.id, tableId))
+
+  logger.info(`[${requestId}] Updated metadata for table ${tableId}`)
+}
+
+// ─── CSV Import Helpers ───────────────────────────────────────────────────────
+
+export type CsvColumnType = 'string' | 'number' | 'boolean' | 'date' | 'json'
+
+/**
+ * Parses a CSV/TSV payload. Strips a leading UTF-8 BOM.
+ */
+export async function parseCsvBuffer(
+  input: Buffer | Uint8Array | string,
+  delimiter = ','
+): Promise<{ headers: string[]; rows: Record<string, unknown>[] }> {
+  const { parse } = await import('csv-parse/sync')
+
+  let text: string
+  if (typeof input === 'string') {
+    text = input
+  } else if (Buffer.isBuffer(input)) {
+    text = input.toString('utf-8')
+  } else {
+    text = new TextDecoder('utf-8').decode(input as Uint8Array)
+  }
+  text = text.replace(/^\uFEFF/, '')
+
+  const parsed = parse(text, {
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+    relax_column_count: true,
+    relax_quotes: true,
+    skip_records_with_error: true,
+    cast: false,
+    delimiter,
+  }) as Record<string, unknown>[]
+
+  if (parsed.length === 0) {
+    throw new Error('CSV file has no data rows')
+  }
+
+  const headers = Object.keys(parsed[0])
+  if (headers.length === 0) {
+    throw new Error('CSV file has no headers')
+  }
+
+  return { headers, rows: parsed }
+}
+
+export function inferColumnType(values: unknown[]): Exclude<CsvColumnType, 'json'> {
+  const nonEmpty = values.filter((v) => v !== null && v !== undefined && v !== '')
+  if (nonEmpty.length === 0) return 'string'
+
+  if (
+    nonEmpty.every((v) => {
+      const n = Number(v)
+      return !Number.isNaN(n) && String(v).trim() !== ''
+    })
+  ) {
+    return 'number'
+  }
+
+  if (
+    nonEmpty.every((v) => {
+      const s = String(v).toLowerCase()
+      return s === 'true' || s === 'false'
+    })
+  ) {
+    return 'boolean'
+  }
+
+  const isoDatePattern = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?/
+  if (
+    nonEmpty.every((v) => {
+      const s = String(v)
+      return isoDatePattern.test(s) && !Number.isNaN(Date.parse(s))
+    })
+  ) {
+    return 'date'
+  }
+
+  return 'string'
+}
+
+export function sanitizeName(raw: string, fallbackPrefix = 'col'): string {
+  let name = raw
+    .trim()
+    .replace(/[^a-zA-Z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+
+  if (!name || /^\d/.test(name)) {
+    name = `${fallbackPrefix}_${name}`
+  }
+
+  return name
+}
+
+export function inferSchemaFromCsv(
+  headers: string[],
+  rows: Record<string, unknown>[]
+): { columns: ColumnDefinition[]; headerToColumn: Map<string, string> } {
+  const sample = rows.slice(0, CSV_SCHEMA_SAMPLE_SIZE)
+  const seen = new Set<string>()
+  const headerToColumn = new Map<string, string>()
+
+  const columns = headers.map((header) => {
+    const base = sanitizeName(header)
+    let colName = base
+    let suffix = 2
+    while (seen.has(colName.toLowerCase())) {
+      colName = `${base}_${suffix}`
+      suffix++
+    }
+    seen.add(colName.toLowerCase())
+    headerToColumn.set(header, colName)
+
+    return {
+      name: colName,
+      type: inferColumnType(sample.map((r) => r[header])),
+    } satisfies ColumnDefinition
+  })
+
+  return { columns, headerToColumn }
+}
+
+export function coerceValue(
+  value: unknown,
+  colType: CsvColumnType
+): string | number | boolean | null | Record<string, unknown> | unknown[] {
+  if (value === null || value === undefined || value === '') return null
+  switch (colType) {
+    case 'number': {
+      const n = Number(value)
+      return Number.isNaN(n) ? null : n
+    }
+    case 'boolean': {
+      const s = String(value).toLowerCase()
+      if (s === 'true') return true
+      if (s === 'false') return false
+      return null
+    }
+    case 'date': {
+      const d = new Date(String(value))
+      return Number.isNaN(d.getTime()) ? String(value) : d.toISOString()
+    }
+    case 'json': {
+      if (typeof value === 'object') return value as Record<string, unknown> | unknown[]
+      try {
+        return JSON.parse(String(value))
+      } catch {
+        return String(value)
+      }
+    }
+    default:
+      return String(value)
+  }
+}
+
+export function coerceRowsForTable(
+  rows: Record<string, unknown>[],
+  tableSchema: TableSchema,
+  headerToColumn: Map<string, string>
+): RowData[] {
+  const typeByName = new Map(tableSchema.columns.map((c) => [c.name, c.type as CsvColumnType]))
+
+  return rows.map((row) => {
+    const coerced: RowData = {}
+    for (const [header, value] of Object.entries(row)) {
+      const colName = headerToColumn.get(header)
+      if (!colName) continue
+      const colType = typeByName.get(colName) ?? 'string'
+      coerced[colName] = coerceValue(value, colType) as RowData[string]
+    }
+    return coerced
+  })
+}
+
+// ─── CSV Mapping ─────────────────────────────────────────────────────────────
+
+/**
+ * Mapping from raw CSV header to target column name, with `null` indicating
+ * "do not import this column".
+ */
+export type CsvHeaderMapping = Record<string, string | null>
+
+export interface CsvMappingValidationResult {
+  mappedHeaders: string[]
+  skippedHeaders: string[]
+  unmappedColumns: string[]
+  effectiveMap: Map<string, string>
+}
+
+export class CsvImportValidationError extends Error {
+  readonly code = 'CSV_IMPORT_VALIDATION' as const
+  readonly details: {
+    missingRequired?: string[]
+    duplicateTargets?: string[]
+    unknownColumns?: string[]
+    unknownHeaders?: string[]
+  }
+  constructor(
+    message: string,
+    details: {
+      missingRequired?: string[]
+      duplicateTargets?: string[]
+      unknownColumns?: string[]
+      unknownHeaders?: string[]
+    } = {}
+  ) {
+    super(message)
+    this.name = 'CsvImportValidationError'
+    this.details = details
+  }
+}
+
+export function validateMapping(params: {
+  csvHeaders: string[]
+  mapping: CsvHeaderMapping
+  tableSchema: TableSchema
+}): CsvMappingValidationResult {
+  const { csvHeaders, mapping, tableSchema } = params
+  const columnByName = new Map(tableSchema.columns.map((c) => [c.name, c]))
+
+  const unknownHeaders = Object.keys(mapping).filter((h) => !csvHeaders.includes(h))
+  if (unknownHeaders.length > 0) {
+    throw new CsvImportValidationError(
+      `Mapping references unknown CSV headers: ${unknownHeaders.join(', ')}`,
+      { unknownHeaders }
+    )
+  }
+
+  const targetsSeen = new Map<string, string[]>()
+  const unknownColumns: string[] = []
+  const effectiveMap = new Map<string, string>()
+  const skippedHeaders: string[] = []
+
+  for (const header of csvHeaders) {
+    const target = header in mapping ? mapping[header] : undefined
+    if (target === null || target === undefined) {
+      skippedHeaders.push(header)
+      continue
+    }
+    if (!columnByName.has(target)) {
+      unknownColumns.push(target)
+      continue
+    }
+    const existing = targetsSeen.get(target) ?? []
+    existing.push(header)
+    targetsSeen.set(target, existing)
+    effectiveMap.set(header, target)
+  }
+
+  if (unknownColumns.length > 0) {
+    throw new CsvImportValidationError(
+      `Mapping references columns that do not exist on the table: ${unknownColumns.join(', ')}`,
+      { unknownColumns }
+    )
+  }
+
+  const duplicateTargets = [...targetsSeen.entries()]
+    .filter(([, headers]) => headers.length > 1)
+    .map(([col]) => col)
+  if (duplicateTargets.length > 0) {
+    throw new CsvImportValidationError(
+      `Multiple CSV headers map to the same column(s): ${duplicateTargets.join(', ')}`,
+      { duplicateTargets }
+    )
+  }
+
+  const mappedTargets = new Set(effectiveMap.values())
+  const unmappedColumns = tableSchema.columns
+    .filter((c) => !mappedTargets.has(c.name))
+    .map((c) => c.name)
+
+  const missingRequired = tableSchema.columns
+    .filter((c) => c.required && !mappedTargets.has(c.name))
+    .map((c) => c.name)
+  if (missingRequired.length > 0) {
+    throw new CsvImportValidationError(
+      `CSV is missing required columns: ${missingRequired.join(', ')}`,
+      { missingRequired }
+    )
+  }
+
+  return { mappedHeaders: [...effectiveMap.keys()], skippedHeaders, unmappedColumns, effectiveMap }
+}
+
+export function buildAutoMapping(csvHeaders: string[], tableSchema: TableSchema): CsvHeaderMapping {
+  const mapping: CsvHeaderMapping = {}
+  const columns = tableSchema.columns
+  const exactByName = new Map(columns.map((c) => [c.name, c.name]))
+  const loose = new Map<string, string>()
+  for (const col of columns) {
+    loose.set(col.name.toLowerCase().replace(/[^a-z0-9]/g, ''), col.name)
+  }
+  const usedTargets = new Set<string>()
+  for (const header of csvHeaders) {
+    const san = sanitizeName(header)
+    const exact = exactByName.get(san)
+    if (exact && !usedTargets.has(exact)) {
+      mapping[header] = exact
+      usedTargets.add(exact)
+      continue
+    }
+    const key = header.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const fuzzy = loose.get(key)
+    if (fuzzy && !usedTargets.has(fuzzy)) {
+      mapping[header] = fuzzy
+      usedTargets.add(fuzzy)
+      continue
+    }
+    mapping[header] = null
+  }
+  return mapping
+}

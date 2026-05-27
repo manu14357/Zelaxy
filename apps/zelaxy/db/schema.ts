@@ -10,6 +10,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -1730,5 +1731,115 @@ export const orgEnvironment = pgTable(
   },
   (table) => ({
     orgIdIdx: uniqueIndex('org_environment_org_id_idx').on(table.organizationId),
+  })
+)
+
+// ============================================================================
+// User Tables — spreadsheet-like data tables per workspace
+// ============================================================================
+export const userTableDefinitions = pgTable(
+  'user_table_definitions',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    /**
+     * @remarks
+     * Stores the table schema definition.
+     * Example: { columns: [{ name: string, type: string, required: boolean }] }
+     */
+    schema: jsonb('schema').notNull(),
+    /**
+     * @remarks
+     * Stores UI-specific metadata separate from the data schema.
+     * Example: { columnWidths: { name: 200, age: 100 } }
+     */
+    metadata: jsonb('metadata'),
+    maxRows: integer('max_rows').notNull().default(10000),
+    rowCount: integer('row_count').notNull().default(0),
+    archivedAt: timestamp('archived_at'),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdIdx: index('user_table_def_workspace_id_idx').on(table.workspaceId),
+    workspaceNameUnique: uniqueIndex('user_table_def_workspace_name_unique')
+      .on(table.workspaceId, table.name)
+      .where(sql`${table.archivedAt} IS NULL`),
+    archivedAtIdx: index('user_table_def_archived_at_idx').on(table.archivedAt),
+    workspaceArchivedAtPartialIdx: index('user_table_def_workspace_archived_partial_idx')
+      .on(table.workspaceId, table.archivedAt)
+      .where(sql`${table.archivedAt} IS NOT NULL`),
+  })
+)
+
+export const userTableRows = pgTable(
+  'user_table_rows',
+  {
+    id: text('id').primaryKey(),
+    tableId: text('table_id')
+      .notNull()
+      .references(() => userTableDefinitions.id, { onDelete: 'cascade' }),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    data: jsonb('data').notNull(),
+    position: integer('position').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+  },
+  (table) => ({
+    tableIdIdx: index('user_table_rows_table_id_idx').on(table.tableId),
+    dataGinIdx: index('user_table_rows_data_gin_idx').using('gin', table.data),
+    workspaceTableIdx: index('user_table_rows_workspace_table_idx').on(
+      table.workspaceId,
+      table.tableId
+    ),
+    tablePositionIdx: index('user_table_rows_table_position_idx').on(
+      table.tableId,
+      table.position
+    ),
+  })
+)
+
+export const tableRowExecutions = pgTable(
+  'table_row_executions',
+  {
+    tableId: text('table_id')
+      .notNull()
+      .references(() => userTableDefinitions.id, { onDelete: 'cascade' }),
+    rowId: text('row_id')
+      .notNull()
+      .references(() => userTableRows.id, { onDelete: 'cascade' }),
+    groupId: text('group_id').notNull(),
+    status: text('status').notNull(),
+    executionId: text('execution_id'),
+    jobId: text('job_id'),
+    workflowId: text('workflow_id').notNull(),
+    error: text('error'),
+    runningBlockIds: text('running_block_ids').array().notNull().default(sql`'{}'::text[]`),
+    blockErrors: jsonb('block_errors').notNull().default({}),
+    cancelledAt: timestamp('cancelled_at'),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.rowId, table.groupId] }),
+    tableStatusInFlightIdx: index('table_row_executions_table_status_idx')
+      .on(table.tableId, table.status)
+      .where(sql`${table.status} IN ('queued', 'running', 'pending')`),
+    executionIdIdx: index('table_row_executions_execution_id_idx')
+      .on(table.executionId)
+      .where(sql`${table.executionId} IS NOT NULL`),
+    tableGroupIdx: index('table_row_executions_table_group_idx').on(
+      table.tableId,
+      table.groupId
+    ),
   })
 )

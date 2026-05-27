@@ -57,6 +57,13 @@
       "when": 1772284725220,
       "tag": "0007_cynical_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779898521955,
+      "tag": "0008_nebulous_pandemic",
+      "breakpoints": true
     }
   ]
 }

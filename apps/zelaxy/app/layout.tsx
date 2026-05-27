@@ -13,6 +13,7 @@ import { getAssetUrl } from '@/lib/utils'
 import '@/app/globals.css'
 
 import { ZoomPrevention } from '@/app/zoom-prevention'
+import { Toaster } from 'sonner'
 
 const logger = createLogger('RootLayout')
 
@@ -110,6 +111,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <BrandedLayout>
           <ZoomPrevention />
           {children}
+          <Toaster richColors position='bottom-right' />
         </BrandedLayout>
       </body>
     </html>
