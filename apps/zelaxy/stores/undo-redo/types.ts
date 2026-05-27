@@ -1,0 +1,218 @@
+import type { Edge } from '@xyflow/react'
+import type { BlockState } from '@/stores/workflows/workflow/types'
+
+export const UNDO_REDO_OPERATIONS = {
+  BATCH_ADD_BLOCKS: 'batch-add-blocks',
+  BATCH_REMOVE_BLOCKS: 'batch-remove-blocks',
+  BATCH_ADD_EDGES: 'batch-add-edges',
+  BATCH_REMOVE_EDGES: 'batch-remove-edges',
+  BATCH_MOVE_BLOCKS: 'batch-move-blocks',
+  UPDATE_PARENT: 'update-parent',
+  BATCH_UPDATE_PARENT: 'batch-update-parent',
+  BATCH_TOGGLE_ENABLED: 'batch-toggle-enabled',
+  BATCH_TOGGLE_HANDLES: 'batch-toggle-handles',
+  BATCH_TOGGLE_LOCKED: 'batch-toggle-locked',
+  BATCH_UPDATE_SUBBLOCKS: 'batch-update-subblocks',
+  APPLY_DIFF: 'apply-diff',
+  ACCEPT_DIFF: 'accept-diff',
+  REJECT_DIFF: 'reject-diff',
+} as const
+
+export type UndoRedoOperation = (typeof UNDO_REDO_OPERATIONS)[keyof typeof UNDO_REDO_OPERATIONS]
+export type OperationType = UndoRedoOperation
+
+interface BaseOperation {
+  id: string
+  type: OperationType
+  timestamp: number
+  workflowId: string
+  userId: string
+}
+
+export interface BatchAddBlocksOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.BATCH_ADD_BLOCKS
+  data: {
+    blockSnapshots: BlockState[]
+    edgeSnapshots: Edge[]
+    subBlockValues: Record<string, Record<string, unknown>>
+  }
+}
+
+export interface BatchRemoveBlocksOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.BATCH_REMOVE_BLOCKS
+  data: {
+    blockSnapshots: BlockState[]
+    edgeSnapshots: Edge[]
+    subBlockValues: Record<string, Record<string, unknown>>
+  }
+}
+
+export interface BatchAddEdgesOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.BATCH_ADD_EDGES
+  data: {
+    edgeSnapshots: Edge[]
+  }
+}
+
+export interface BatchRemoveEdgesOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.BATCH_REMOVE_EDGES
+  data: {
+    edgeSnapshots: Edge[]
+  }
+}
+
+export interface BatchMoveBlocksOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.BATCH_MOVE_BLOCKS
+  data: {
+    moves: Array<{
+      blockId: string
+      before: { x: number; y: number; parentId?: string }
+      after: { x: number; y: number; parentId?: string }
+    }>
+  }
+}
+
+export interface UpdateParentOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.UPDATE_PARENT
+  data: {
+    blockId: string
+    oldParentId?: string
+    newParentId?: string
+    oldPosition: { x: number; y: number }
+    newPosition: { x: number; y: number }
+    affectedEdges?: Edge[]
+  }
+}
+
+export interface BatchUpdateParentOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.BATCH_UPDATE_PARENT
+  data: {
+    updates: Array<{
+      blockId: string
+      oldParentId?: string
+      newParentId?: string
+      oldPosition: { x: number; y: number }
+      newPosition: { x: number; y: number }
+      affectedEdges?: Edge[]
+    }>
+  }
+}
+
+export interface BatchToggleEnabledOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.BATCH_TOGGLE_ENABLED
+  data: {
+    blockIds: string[]
+    previousStates: Record<string, boolean>
+  }
+}
+
+export interface BatchToggleHandlesOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.BATCH_TOGGLE_HANDLES
+  data: {
+    blockIds: string[]
+    previousStates: Record<string, boolean>
+  }
+}
+
+export interface BatchToggleLockedOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.BATCH_TOGGLE_LOCKED
+  data: {
+    blockIds: string[]
+    previousStates: Record<string, boolean>
+  }
+}
+
+export interface BatchUpdateSubblocksOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.BATCH_UPDATE_SUBBLOCKS
+  data: {
+    updates: Array<{
+      blockId: string
+      subBlockId: string
+      before: unknown
+      after: unknown
+    }>
+    subflowUpdates?: Array<{
+      blockId: string
+      blockType: 'loop' | 'parallel'
+      fieldId: string
+      before: unknown
+      after: unknown
+    }>
+  }
+}
+
+interface ApplyDiffOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.APPLY_DIFF
+  data: {
+    baselineSnapshot: any // WorkflowState snapshot before diff
+    proposedState: any // WorkflowState with diff applied
+    diffAnalysis: any // DiffAnalysis for re-applying markers
+  }
+}
+
+interface AcceptDiffOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.ACCEPT_DIFF
+  data: {
+    beforeAccept: any // WorkflowState with diff markers
+    afterAccept: any // WorkflowState without diff markers
+    diffAnalysis: any // DiffAnalysis to restore markers on undo
+    baselineSnapshot: any // Baseline workflow state
+  }
+}
+
+interface RejectDiffOperation extends BaseOperation {
+  type: typeof UNDO_REDO_OPERATIONS.REJECT_DIFF
+  data: {
+    beforeReject: any // WorkflowState with diff markers
+    afterReject: any // WorkflowState baseline (after reject)
+    diffAnalysis: any // DiffAnalysis to restore markers on undo
+    baselineSnapshot: any // Baseline workflow state
+  }
+}
+
+export type Operation =
+  | BatchAddBlocksOperation
+  | BatchRemoveBlocksOperation
+  | BatchAddEdgesOperation
+  | BatchRemoveEdgesOperation
+  | BatchMoveBlocksOperation
+  | UpdateParentOperation
+  | BatchUpdateParentOperation
+  | BatchToggleEnabledOperation
+  | BatchToggleHandlesOperation
+  | BatchToggleLockedOperation
+  | BatchUpdateSubblocksOperation
+  | ApplyDiffOperation
+  | AcceptDiffOperation
+  | RejectDiffOperation
+
+export interface OperationEntry {
+  id: string
+  operation: Operation
+  inverse: Operation
+  createdAt: number
+}
+
+export interface UndoRedoState {
+  stacks: Record<
+    string,
+    {
+      undo: OperationEntry[]
+      redo: OperationEntry[]
+      lastUpdated?: number
+    }
+  >
+  capacity: number
+  push: (workflowId: string, userId: string, entry: OperationEntry) => void
+  undo: (workflowId: string, userId: string) => OperationEntry | null
+  redo: (workflowId: string, userId: string) => OperationEntry | null
+  clear: (workflowId: string, userId: string) => void
+  clearRedo: (workflowId: string, userId: string) => void
+  getStackSizes: (workflowId: string, userId: string) => { undoSize: number; redoSize: number }
+  setCapacity: (capacity: number) => void
+  pruneInvalidEntries: (
+    workflowId: string,
+    userId: string,
+    graph: { blocksById: Record<string, BlockState>; edgesById: Record<string, Edge> }
+  ) => void
+}

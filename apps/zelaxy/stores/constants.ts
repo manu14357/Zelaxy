@@ -64,3 +64,13 @@ export const COPILOT_TOOL_ERROR_NAMES: Record<string, string> = {
 } as const
 
 export type CopilotToolId = keyof typeof COPILOT_TOOL_DISPLAY_NAMES
+
+export const TERMINAL_HEIGHT = {
+  DEFAULT: 206,
+  MIN: 30,
+} as const
+
+export const OUTPUT_PANEL_WIDTH = {
+  DEFAULT: 560,
+  MIN: 280,
+} as const
