@@ -1,0 +1,1 @@
+export { wordpressWebhookTrigger } from './webhook'

@@ -1,0 +1,1 @@
+export { salesforceWebhookTrigger } from './webhook'

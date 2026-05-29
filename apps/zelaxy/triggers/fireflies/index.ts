@@ -1,0 +1,1 @@
+export { firefliesWebhookTrigger } from './webhook'

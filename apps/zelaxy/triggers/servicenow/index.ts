@@ -1,0 +1,1 @@
+export { servicenowWebhookTrigger } from './webhook'

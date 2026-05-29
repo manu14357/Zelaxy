@@ -1,0 +1,1 @@
+export { linearWebhookTrigger } from './webhook'

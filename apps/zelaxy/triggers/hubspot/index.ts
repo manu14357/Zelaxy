@@ -1,0 +1,1 @@
+export { hubspotPollingTrigger } from './poller'

@@ -1,4 +1,4 @@
-import { TABLE_LIMITS } from '@/lib/table'
+import { TABLE_LIMITS } from '@/lib/table/constants'
 import type { TableBatchInsertParams, TableBatchInsertResponse } from '@/tools/table/types'
 import type { ToolConfig } from '@/tools/types'
 

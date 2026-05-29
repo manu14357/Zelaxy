@@ -1,0 +1,1 @@
+export { webflowWebhookTrigger } from './webhook'

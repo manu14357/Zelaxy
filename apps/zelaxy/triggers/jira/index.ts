@@ -1,0 +1,1 @@
+export { jiraWebhookTrigger } from './webhook'
