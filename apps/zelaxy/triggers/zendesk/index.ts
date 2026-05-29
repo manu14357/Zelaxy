@@ -1,0 +1,1 @@
+export { zendeskWebhookTrigger } from './webhook'

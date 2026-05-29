@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getSession } from '@/lib/auth'
 import {
+  authenticateCopilotRequest,
   createBadRequestResponse,
   createInternalServerErrorResponse,
   createRequestTracker,
@@ -51,13 +51,11 @@ export async function POST(req: NextRequest) {
   const tracker = createRequestTracker()
 
   try {
-    const session = await getSession()
+    const { userId: authenticatedUserId, isAuthenticated } = await authenticateCopilotRequest(req)
 
-    if (!session?.user?.id) {
+    if (!isAuthenticated || !authenticatedUserId) {
       return createUnauthorizedResponse()
     }
-
-    const authenticatedUserId = session.user.id
 
     const body = await req.json()
     const {

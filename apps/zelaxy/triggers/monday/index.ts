@@ -1,0 +1,1 @@
+export { mondayWebhookTrigger } from './webhook'

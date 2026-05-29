@@ -1,0 +1,1 @@
+export { notionWebhookTrigger } from './webhook'

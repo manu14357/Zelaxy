@@ -1,7 +1,5 @@
 import { and, eq } from 'drizzle-orm'
 import { createLogger } from '@/lib/logs/console/logger'
-import { db } from '@/db'
-import { account } from '@/db/schema'
 import { BlockType } from '@/executor/consts'
 import type { BlockHandler, ExecutionContext } from '@/executor/types'
 import type { SerializedBlock } from '@/serializer/types'
@@ -30,6 +28,10 @@ export class CredentialBlockHandler implements BlockHandler {
     const credentialId = typeof inputs.credentialId === 'string' ? inputs.credentialId.trim() : ''
     if (!credentialId) throw new Error('No credential selected')
 
+    // turbopackIgnore: @/db uses postgres (fs/net/tls) — must not be bundled for browser
+    const { db } = await import(/* turbopackIgnore: true */ '@/db')
+    const { account } = await import('@/db/schema')
+
     const record = await db.query.account.findFirst({
       where: and(eq(account.id, credentialId), eq(account.userId, userId)),
       columns: { id: true, providerId: true, accountId: true },
@@ -49,6 +51,10 @@ export class CredentialBlockHandler implements BlockHandler {
     const providerFilter = Array.isArray(inputs.providerFilter)
       ? (inputs.providerFilter as string[]).filter(Boolean)
       : []
+
+    // turbopackIgnore: @/db uses postgres (fs/net/tls) — must not be bundled for browser
+    const { db } = await import(/* turbopackIgnore: true */ '@/db')
+    const { account } = await import('@/db/schema')
 
     const query = db.query.account.findMany({
       where: eq(account.userId, userId),

@@ -1,5 +1,5 @@
 import { TableIcon } from '@/components/icons'
-import { TABLE_LIMITS } from '@/lib/table'
+import { TABLE_LIMITS } from '@/lib/table/constants'
 import type { BlockConfig } from '@/blocks/types'
 import type { TableQueryResponse } from '@/tools/table/types'
 

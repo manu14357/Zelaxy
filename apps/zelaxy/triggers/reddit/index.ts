@@ -1,0 +1,1 @@
+export { redditWebhookTrigger } from './webhook'

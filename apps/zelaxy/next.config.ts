@@ -21,6 +21,11 @@ const nextConfig: NextConfig = {
     'detect-libc',
     'mupdf',
     '@sentry/opentelemetry',
+    // postgres uses Node.js built-ins (fs, net, tls, perf_hooks) — keep it
+    // out of all bundles. Server loads it at runtime via CJS require();
+    // browser code that reaches @/db dynamically will fail gracefully at
+    // runtime rather than breaking the build.
+    'postgres',
   ],
   images: {
     remotePatterns: [
@@ -72,6 +77,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname, '../../'),
     resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
+    resolveAlias: {
+      // In browser builds, replace the real `postgres` package with a no-op stub.
+      // `postgres` imports Node.js built-ins (fs, net, tls, perf_hooks) which are
+      // not available in the browser. `serverExternalPackages` above handles the
+      // server side; this alias handles the browser/client bundle side.
+      // The stub returns a proxy that throws at query time with a clear message.
+      postgres: { browser: path.join(__dirname, 'lib/stubs/postgres-browser.js') },
+    },
   },
   experimental: {
     optimizeCss: true,

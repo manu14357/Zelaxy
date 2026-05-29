@@ -1,0 +1,1 @@
+export { asanaWebhookTrigger } from './webhook'

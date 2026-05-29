@@ -1,0 +1,1 @@
+export { obsidianWebhookTrigger } from './webhook'
