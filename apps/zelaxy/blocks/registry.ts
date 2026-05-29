@@ -138,6 +138,24 @@ import { WorkflowBlock } from '@/blocks/blocks/workflow'
 import { XBlock } from '@/blocks/blocks/x'
 import { YouTubeBlock } from '@/blocks/blocks/youtube'
 import { ZelaxyArenaBlock } from '@/blocks/blocks/zelaxy_arena'
+import { GammaBlock } from '@/blocks/blocks/gamma'
+import { GrainBlock } from '@/blocks/blocks/grain'
+import { GranolaBlock } from '@/blocks/blocks/granola'
+import { HexBlock } from '@/blocks/blocks/hex'
+import { InputTriggerBlock } from '@/blocks/blocks/input_trigger'
+import { KalshiBlock } from '@/blocks/blocks/kalshi'
+import { LogsBlock } from '@/blocks/blocks/logs'
+import { LumaBlock } from '@/blocks/blocks/luma'
+import { ManualTriggerBlock } from '@/blocks/blocks/manual_trigger'
+import { PolymarketBlock } from '@/blocks/blocks/polymarket'
+import { ProfoundBlock } from '@/blocks/blocks/profound'
+import { PulseBlock } from '@/blocks/blocks/pulse'
+import { QuiverBlock } from '@/blocks/blocks/quiver'
+import { SearchBlock } from '@/blocks/blocks/search'
+import { SixtyfourBlock } from '@/blocks/blocks/sixtyfour'
+import { StartTriggerBlock } from '@/blocks/blocks/start_trigger'
+import { VideoGeneratorBlock } from '@/blocks/blocks/video_generator'
+import { WorkflowInputBlock } from '@/blocks/blocks/workflow_input'
 import type { BlockConfig } from '@/blocks/types'
 
 // Registry of all available blocks, alphabetically sorted
@@ -277,6 +295,24 @@ export const registry: Record<string, BlockConfig> = {
   enrich: EnrichBlock,
   evernote: EvernoteBlock,
   fathom: FathomBlock,
+  gamma: GammaBlock,
+  grain: GrainBlock,
+  granola: GranolaBlock,
+  hex: HexBlock,
+  input_trigger: InputTriggerBlock,
+  kalshi: KalshiBlock,
+  logs: LogsBlock,
+  luma: LumaBlock,
+  manual_trigger: ManualTriggerBlock,
+  polymarket: PolymarketBlock,
+  profound: ProfoundBlock,
+  pulse: PulseBlock,
+  quiver: QuiverBlock,
+  search: SearchBlock,
+  sixtyfour: SixtyfourBlock,
+  start_trigger: StartTriggerBlock,
+  video_generator: VideoGeneratorBlock,
+  workflow_input: WorkflowInputBlock,
 }
 
 export const getBlock = (type: string): BlockConfig | undefined => registry[type]

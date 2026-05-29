@@ -329,6 +329,28 @@ import { fileParseTool } from '@/tools/file'
 import { crawlTool, scrapeTool, searchTool } from '@/tools/firecrawl'
 import { functionExecuteTool } from '@/tools/function'
 import {
+  gammaCheckStatusTool,
+  gammaGenerateFromTemplateTool,
+  gammaGenerateTool,
+  gammaListFoldersTool,
+  gammaListThemesTool,
+} from '@/tools/gamma'
+import {
+  grainCreateHookTool,
+  grainDeleteHookTool,
+  grainGetRecordingTool,
+  grainGetTranscriptTool,
+  grainListHooksTool,
+  grainListMeetingTypesTool,
+  grainListRecordingsTool,
+  grainListTeamsTool,
+  grainListViewsTool,
+} from '@/tools/grain'
+import {
+  granolaGetNoteTool,
+  granolaListNotesTool,
+} from '@/tools/granola'
+import {
   githubCommentTool,
   githubLatestCommitTool,
   githubPrTool,
@@ -357,6 +379,24 @@ import {
   googleSheetsWriteTool,
 } from '@/tools/google_sheets'
 import { guardrailsTool } from '@/tools/guardrails'
+import {
+  hexCancelRunTool,
+  hexCreateCollectionTool,
+  hexGetCollectionTool,
+  hexGetDataConnectionTool,
+  hexGetGroupTool,
+  hexGetProjectTool,
+  hexGetProjectRunsTool,
+  hexGetQueriedTablesTool,
+  hexGetRunStatusTool,
+  hexListCollectionsTool,
+  hexListDataConnectionsTool,
+  hexListGroupsTool,
+  hexListProjectsTool,
+  hexListUsersTool,
+  hexRunProjectTool,
+  hexUpdateProjectTool,
+} from '@/tools/hex'
 import { requestTool as httpRequest } from '@/tools/http'
 import { huggingfaceChatTool } from '@/tools/huggingface'
 import {
@@ -375,6 +415,25 @@ import {
 } from '@/tools/image_search'
 import { readUrlTool } from '@/tools/jina'
 import { jiraBulkRetrieveTool, jiraRetrieveTool, jiraUpdateTool, jiraWriteTool } from '@/tools/jira'
+import {
+  kalshiAmendOrderTool,
+  kalshiCancelOrderTool,
+  kalshiCreateOrderTool,
+  kalshiGetBalanceTool,
+  kalshiGetCandlesticksTool,
+  kalshiGetEventsTool,
+  kalshiGetEventTool,
+  kalshiGetExchangeStatusTool,
+  kalshiGetFillsTool,
+  kalshiGetMarketsTool,
+  kalshiGetMarketTool,
+  kalshiGetOrderbookTool,
+  kalshiGetOrdersTool,
+  kalshiGetOrderTool,
+  kalshiGetPositionsTool,
+  kalshiGetSeriesByTickerTool,
+  kalshiGetTradesTool,
+} from '@/tools/kalshi'
 import {
   knowledgeCreateDocumentTool,
   knowledgeSearchTool,
@@ -402,6 +461,19 @@ import {
   linkedinGetProfileTool,
 } from '@/tools/linkedin'
 import { linkupSearchTool } from '@/tools/linkup'
+import {
+  logsGetExecutionTool,
+  logsGetTool,
+  logsQueryTool,
+} from '@/tools/logs'
+import {
+  lumaAddGuestsTool,
+  lumaCreateEventTool,
+  lumaGetEventTool,
+  lumaGetGuestsTool,
+  lumaListEventsTool,
+  lumaUpdateEventTool,
+} from '@/tools/luma'
 import {
   mcpConnectTool,
   mcpCreateServerTool,
@@ -450,16 +522,77 @@ import {
   pineconeUpsertTextTool,
 } from '@/tools/pinecone'
 import { postgresqlTool } from '@/tools/postgresql'
+import {
+  polymarketGetActivityTool,
+  polymarketGetEventsTool,
+  polymarketGetEventTool,
+  polymarketGetHoldersTool,
+  polymarketGetLastTradePriceTool,
+  polymarketGetLeaderboardTool,
+  polymarketGetMarketsTool,
+  polymarketGetMarketTool,
+  polymarketGetMidpointTool,
+  polymarketGetOrderbookTool,
+  polymarketGetPositionsTool,
+  polymarketGetPriceHistoryTool,
+  polymarketGetPriceTool,
+  polymarketGetSeriesTool,
+  polymarketGetSeriesByIdTool,
+  polymarketGetSpreadTool,
+  polymarketGetTagsTool,
+  polymarketGetTickSizeTool,
+  polymarketGetTradesTool,
+  polymarketSearchTool,
+} from '@/tools/polymarket'
+import {
+  profoundBotLogsTool,
+  profoundBotsReportTool,
+  profoundCategoryAssetsTool,
+  profoundCategoryPersonasTool,
+  profoundCategoryPromptsTool,
+  profoundCategoryTagsTool,
+  profoundCategoryTopicsTool,
+  profoundCitationPromptsTool,
+  profoundCitationsReportTool,
+  profoundListAssetsTool,
+  profoundListCategoriesTool,
+  profoundListDomainsTool,
+  profoundListModelsTool,
+  profoundListOptimizationsTool,
+  profoundListPersonasTool,
+  profoundListRegionsTool,
+  profoundOptimizationAnalysisTool,
+  profoundPromptAnswersTool,
+  profoundPromptVolumeTool,
+  profoundQueryFanoutsTool,
+  profoundRawLogsTool,
+  profoundReferralsReportTool,
+  profoundSentimentReportTool,
+  profoundVisibilityReportTool,
+} from '@/tools/profound'
+import { pulseParserTool } from '@/tools/pulse'
 import { qdrantFetchTool, qdrantSearchTool, qdrantUpsertTool } from '@/tools/qdrant'
+import {
+  quiverImageToSvgTool,
+  quiverListModelsTool,
+  quiverTextToSvgTool,
+} from '@/tools/quiver'
 import { redditGetCommentsTool, redditGetPostsTool, redditHotPostsTool } from '@/tools/reddit'
 import { resendBatchTool, resendCancelTool, resendGetTool, resendSendTool } from '@/tools/resend'
 import { s3GetObjectTool } from '@/tools/s3'
+import { searchTool as zelaxySearchTool } from '@/tools/search'
 import { searchTool as serperSearch } from '@/tools/serper'
 import {
   sharepointCreatePageTool,
   sharepointListSitesTool,
   sharepointReadPageTool,
 } from '@/tools/sharepoint'
+import {
+  sixtyfourEnrichCompanyTool,
+  sixtyfourEnrichLeadTool,
+  sixtyfourFindEmailTool,
+  sixtyfourFindPhoneTool,
+} from '@/tools/sixtyfour'
 import { slackCanvasTool, slackMessageReaderTool, slackMessageTool } from '@/tools/slack'
 import { smtpSendTool } from '@/tools/smtp'
 import { snowflakeTool } from '@/tools/snowflake'
@@ -478,6 +611,13 @@ import { sendSMSTool } from '@/tools/twilio'
 import { typeformFilesTool, typeformInsightsTool, typeformResponsesTool } from '@/tools/typeform'
 import type { ToolConfig } from '@/tools/types'
 import { visionTool } from '@/tools/vision'
+import {
+  falaiGenerateVideoTool,
+  lumaGenerateVideoTool,
+  minimaxGenerateVideoTool,
+  runwayGenerateVideoTool,
+  veoGenerateVideoTool,
+} from '@/tools/video_generator'
 import {
   wealthboxReadContactTool,
   wealthboxReadNoteTool,
@@ -917,6 +1057,136 @@ export const tools: Record<string, ToolConfig> = {
   fathom_get_transcript: fathomGetTranscriptTool,
   fathom_list_team_members: fathomListTeamMembersTool,
   fathom_list_teams: fathomListTeamsTool,
+  // Gamma tools
+  gamma_generate: gammaGenerateTool,
+  gamma_generate_from_template: gammaGenerateFromTemplateTool,
+  gamma_check_status: gammaCheckStatusTool,
+  gamma_list_themes: gammaListThemesTool,
+  gamma_list_folders: gammaListFoldersTool,
+  // Grain tools
+  grain_list_recordings: grainListRecordingsTool,
+  grain_get_recording: grainGetRecordingTool,
+  grain_get_transcript: grainGetTranscriptTool,
+  grain_list_views: grainListViewsTool,
+  grain_list_teams: grainListTeamsTool,
+  grain_list_meeting_types: grainListMeetingTypesTool,
+  grain_create_hook: grainCreateHookTool,
+  grain_list_hooks: grainListHooksTool,
+  grain_delete_hook: grainDeleteHookTool,
+  // Granola tools
+  granola_list_notes: granolaListNotesTool,
+  granola_get_note: granolaGetNoteTool,
+  // Hex tools
+  hex_cancel_run: hexCancelRunTool,
+  hex_create_collection: hexCreateCollectionTool,
+  hex_get_collection: hexGetCollectionTool,
+  hex_get_data_connection: hexGetDataConnectionTool,
+  hex_get_group: hexGetGroupTool,
+  hex_get_project: hexGetProjectTool,
+  hex_get_project_runs: hexGetProjectRunsTool,
+  hex_get_queried_tables: hexGetQueriedTablesTool,
+  hex_get_run_status: hexGetRunStatusTool,
+  hex_list_collections: hexListCollectionsTool,
+  hex_list_data_connections: hexListDataConnectionsTool,
+  hex_list_groups: hexListGroupsTool,
+  hex_list_projects: hexListProjectsTool,
+  hex_list_users: hexListUsersTool,
+  hex_run_project: hexRunProjectTool,
+  hex_update_project: hexUpdateProjectTool,
+  // Kalshi tools
+  kalshi_get_markets: kalshiGetMarketsTool,
+  kalshi_get_market: kalshiGetMarketTool,
+  kalshi_get_events: kalshiGetEventsTool,
+  kalshi_get_event: kalshiGetEventTool,
+  kalshi_get_orderbook: kalshiGetOrderbookTool,
+  kalshi_get_trades: kalshiGetTradesTool,
+  kalshi_get_candlesticks: kalshiGetCandlesticksTool,
+  kalshi_get_series_by_ticker: kalshiGetSeriesByTickerTool,
+  kalshi_get_exchange_status: kalshiGetExchangeStatusTool,
+  kalshi_get_balance: kalshiGetBalanceTool,
+  kalshi_get_positions: kalshiGetPositionsTool,
+  kalshi_get_orders: kalshiGetOrdersTool,
+  kalshi_get_order: kalshiGetOrderTool,
+  kalshi_get_fills: kalshiGetFillsTool,
+  kalshi_create_order: kalshiCreateOrderTool,
+  kalshi_cancel_order: kalshiCancelOrderTool,
+  kalshi_amend_order: kalshiAmendOrderTool,
+  // Logs tools
+  logs_query: logsQueryTool,
+  logs_get: logsGetTool,
+  logs_get_execution: logsGetExecutionTool,
+  // Luma (events) tools
+  luma_get_event: lumaGetEventTool,
+  luma_create_event: lumaCreateEventTool,
+  luma_update_event: lumaUpdateEventTool,
+  luma_list_events: lumaListEventsTool,
+  luma_get_guests: lumaGetGuestsTool,
+  luma_add_guests: lumaAddGuestsTool,
+  // Polymarket tools
+  polymarket_get_markets: polymarketGetMarketsTool,
+  polymarket_get_market: polymarketGetMarketTool,
+  polymarket_get_events: polymarketGetEventsTool,
+  polymarket_get_event: polymarketGetEventTool,
+  polymarket_get_series: polymarketGetSeriesTool,
+  polymarket_get_series_by_id: polymarketGetSeriesByIdTool,
+  polymarket_get_tags: polymarketGetTagsTool,
+  polymarket_search: polymarketSearchTool,
+  polymarket_get_orderbook: polymarketGetOrderbookTool,
+  polymarket_get_price: polymarketGetPriceTool,
+  polymarket_get_midpoint: polymarketGetMidpointTool,
+  polymarket_get_spread: polymarketGetSpreadTool,
+  polymarket_get_tick_size: polymarketGetTickSizeTool,
+  polymarket_get_last_trade_price: polymarketGetLastTradePriceTool,
+  polymarket_get_price_history: polymarketGetPriceHistoryTool,
+  polymarket_get_positions: polymarketGetPositionsTool,
+  polymarket_get_trades: polymarketGetTradesTool,
+  polymarket_get_activity: polymarketGetActivityTool,
+  polymarket_get_leaderboard: polymarketGetLeaderboardTool,
+  polymarket_get_holders: polymarketGetHoldersTool,
+  // Profound tools
+  profound_list_categories: profoundListCategoriesTool,
+  profound_list_assets: profoundListAssetsTool,
+  profound_list_domains: profoundListDomainsTool,
+  profound_list_models: profoundListModelsTool,
+  profound_list_personas: profoundListPersonasTool,
+  profound_list_regions: profoundListRegionsTool,
+  profound_category_assets: profoundCategoryAssetsTool,
+  profound_category_personas: profoundCategoryPersonasTool,
+  profound_category_prompts: profoundCategoryPromptsTool,
+  profound_category_tags: profoundCategoryTagsTool,
+  profound_category_topics: profoundCategoryTopicsTool,
+  profound_list_optimizations: profoundListOptimizationsTool,
+  profound_optimization_analysis: profoundOptimizationAnalysisTool,
+  profound_citation_prompts: profoundCitationPromptsTool,
+  profound_visibility_report: profoundVisibilityReportTool,
+  profound_citations_report: profoundCitationsReportTool,
+  profound_sentiment_report: profoundSentimentReportTool,
+  profound_query_fanouts: profoundQueryFanoutsTool,
+  profound_prompt_answers: profoundPromptAnswersTool,
+  profound_prompt_volume: profoundPromptVolumeTool,
+  profound_bots_report: profoundBotsReportTool,
+  profound_referrals_report: profoundReferralsReportTool,
+  profound_bot_logs: profoundBotLogsTool,
+  profound_raw_logs: profoundRawLogsTool,
+  // Pulse tools
+  pulse_parser: pulseParserTool,
+  // Quiver tools
+  quiver_text_to_svg: quiverTextToSvgTool,
+  quiver_image_to_svg: quiverImageToSvgTool,
+  quiver_list_models: quiverListModelsTool,
+  // Search tool
+  search_tool: zelaxySearchTool,
+  // Sixtyfour tools
+  sixtyfour_find_phone: sixtyfourFindPhoneTool,
+  sixtyfour_find_email: sixtyfourFindEmailTool,
+  sixtyfour_enrich_lead: sixtyfourEnrichLeadTool,
+  sixtyfour_enrich_company: sixtyfourEnrichCompanyTool,
+  // Video generator tools
+  runway_generate_video: runwayGenerateVideoTool,
+  luma_generate_video: lumaGenerateVideoTool,
+  minimax_generate_video: minimaxGenerateVideoTool,
+  falai_generate_video: falaiGenerateVideoTool,
+  veo_generate_video: veoGenerateVideoTool,
   // Provider chat tools
   // Provider chat tools - handled separately in agent blocks
 }
