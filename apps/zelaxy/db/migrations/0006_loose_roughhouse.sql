@@ -1,4 +1,4 @@
-CREATE TABLE "platform_settings" (
+CREATE TABLE IF NOT EXISTS "platform_settings" (
 	"id" text PRIMARY KEY DEFAULT 'default' NOT NULL,
 	"allowed_signup_domains" text,
 	"disable_registration" boolean DEFAULT false,
@@ -9,4 +9,4 @@ CREATE TABLE "platform_settings" (
 	"updated_by" text
 );
 --> statement-breakpoint
-ALTER TABLE "platform_settings" ADD CONSTRAINT "platform_settings_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'platform_settings_updated_by_user_id_fk') THEN ALTER TABLE "platform_settings" ADD CONSTRAINT "platform_settings_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action; END IF; END $$;

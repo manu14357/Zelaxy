@@ -1,5 +1,5 @@
-ALTER TYPE "public"."mcp_server_type" ADD VALUE 'streamable-http';--> statement-breakpoint
-CREATE TABLE "audit_log" (
+ALTER TYPE "public"."mcp_server_type" ADD VALUE IF NOT EXISTS 'streamable-http';--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "audit_log" (
 	"id" text PRIMARY KEY NOT NULL,
 	"user_id" text,
 	"organization_id" text,
@@ -12,7 +12,7 @@ CREATE TABLE "audit_log" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "custom_oauth_provider" (
+CREATE TABLE IF NOT EXISTS "custom_oauth_provider" (
 	"id" text PRIMARY KEY NOT NULL,
 	"user_id" text NOT NULL,
 	"name" text NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE "custom_oauth_provider" (
 	"updated_at" timestamp NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "org_environment" (
+CREATE TABLE IF NOT EXISTS "org_environment" (
 	"id" text PRIMARY KEY NOT NULL,
 	"organization_id" text NOT NULL,
 	"variables" json NOT NULL,
@@ -33,25 +33,25 @@ CREATE TABLE "org_environment" (
 	"updated_by" text
 );
 --> statement-breakpoint
-ALTER TABLE "api_key" ADD COLUMN "organization_id" text;--> statement-breakpoint
-ALTER TABLE "workspace" ADD COLUMN "organization_id" text;--> statement-breakpoint
-ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "custom_oauth_provider" ADD CONSTRAINT "custom_oauth_provider_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "org_environment" ADD CONSTRAINT "org_environment_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "org_environment" ADD CONSTRAINT "org_environment_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "audit_log_user_id_idx" ON "audit_log" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "audit_log_organization_id_idx" ON "audit_log" USING btree ("organization_id");--> statement-breakpoint
-CREATE INDEX "audit_log_action_idx" ON "audit_log" USING btree ("action");--> statement-breakpoint
-CREATE INDEX "audit_log_entity_idx" ON "audit_log" USING btree ("entity_type","entity_id");--> statement-breakpoint
-CREATE INDEX "audit_log_created_at_idx" ON "audit_log" USING btree ("created_at");--> statement-breakpoint
-CREATE INDEX "audit_log_org_created_at_idx" ON "audit_log" USING btree ("organization_id","created_at");--> statement-breakpoint
-CREATE INDEX "custom_oauth_provider_user_id_idx" ON "custom_oauth_provider" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "custom_oauth_provider_service_type_idx" ON "custom_oauth_provider" USING btree ("service_type");--> statement-breakpoint
-CREATE UNIQUE INDEX "org_environment_org_id_idx" ON "org_environment" USING btree ("organization_id");--> statement-breakpoint
-ALTER TABLE "api_key" ADD CONSTRAINT "api_key_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "workspace" ADD CONSTRAINT "workspace_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "api_key_user_id_idx" ON "api_key" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "api_key_organization_id_idx" ON "api_key" USING btree ("organization_id");--> statement-breakpoint
-CREATE INDEX "workspace_owner_id_idx" ON "workspace" USING btree ("owner_id");--> statement-breakpoint
-CREATE INDEX "workspace_organization_id_idx" ON "workspace" USING btree ("organization_id");
+ALTER TABLE "api_key" ADD COLUMN IF NOT EXISTS "organization_id" text;--> statement-breakpoint
+ALTER TABLE "workspace" ADD COLUMN IF NOT EXISTS "organization_id" text;--> statement-breakpoint
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_log_user_id_user_id_fk') THEN ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action; END IF; END $$;--> statement-breakpoint
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_log_organization_id_organization_id_fk') THEN ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE set null ON UPDATE no action; END IF; END $$;--> statement-breakpoint
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'custom_oauth_provider_user_id_user_id_fk') THEN ALTER TABLE "custom_oauth_provider" ADD CONSTRAINT "custom_oauth_provider_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action; END IF; END $$;--> statement-breakpoint
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'org_environment_organization_id_organization_id_fk') THEN ALTER TABLE "org_environment" ADD CONSTRAINT "org_environment_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action; END IF; END $$;--> statement-breakpoint
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'org_environment_updated_by_user_id_fk') THEN ALTER TABLE "org_environment" ADD CONSTRAINT "org_environment_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action; END IF; END $$;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "audit_log_user_id_idx" ON "audit_log" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "audit_log_organization_id_idx" ON "audit_log" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "audit_log_action_idx" ON "audit_log" USING btree ("action");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "audit_log_entity_idx" ON "audit_log" USING btree ("entity_type","entity_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "audit_log_created_at_idx" ON "audit_log" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "audit_log_org_created_at_idx" ON "audit_log" USING btree ("organization_id","created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "custom_oauth_provider_user_id_idx" ON "custom_oauth_provider" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "custom_oauth_provider_service_type_idx" ON "custom_oauth_provider" USING btree ("service_type");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "org_environment_org_id_idx" ON "org_environment" USING btree ("organization_id");--> statement-breakpoint
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'api_key_organization_id_organization_id_fk') THEN ALTER TABLE "api_key" ADD CONSTRAINT "api_key_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE set null ON UPDATE no action; END IF; END $$;--> statement-breakpoint
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'workspace_organization_id_organization_id_fk') THEN ALTER TABLE "workspace" ADD CONSTRAINT "workspace_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE set null ON UPDATE no action; END IF; END $$;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "api_key_user_id_idx" ON "api_key" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "api_key_organization_id_idx" ON "api_key" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "workspace_owner_id_idx" ON "workspace" USING btree ("owner_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "workspace_organization_id_idx" ON "workspace" USING btree ("organization_id");
