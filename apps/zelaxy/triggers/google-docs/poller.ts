@@ -5,8 +5,7 @@ export const googleDocsPollingTrigger: TriggerConfig = {
   id: 'google_docs_poller',
   name: 'Google Docs Trigger',
   provider: 'google-docs',
-  description:
-    'Triggers when a Google Doc is created or updated (requires Google credentials)',
+  description: 'Triggers when a Google Doc is created or updated (requires Google credentials)',
   version: '1.0.0',
   icon: GoogleDocsIcon,
 

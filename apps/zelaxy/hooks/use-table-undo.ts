@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import { createLogger } from '@/lib/logs/console/logger'
+import type { RowData, TableRow } from '@/lib/table'
 import { TABLE_LIMITS } from '@/lib/table'
 import {
   useAddTableColumn,
@@ -18,7 +19,6 @@ import {
 } from '@/hooks/queries/tables'
 import { runWithoutRecording, useTableUndoStore } from '@/stores/table/store'
 import type { TableUndoAction } from '@/stores/table/types'
-import type { TableRow, RowData } from '@/lib/table'
 
 const logger = createLogger('useTableUndo')
 
@@ -99,11 +99,14 @@ export function useTableUndo({
               data:
                 direction === 'undo'
                   ? cell.data
-                  : Object.fromEntries(Object.keys(cell.data).map((k) => [k, null])) as RowData,
+                  : (Object.fromEntries(Object.keys(cell.data).map((k) => [k, null])) as RowData),
             }))
             for (let i = 0; i < updates.length; i += TABLE_LIMITS.MAX_BULK_OPERATION_SIZE) {
               await batchUpdateRowsMutation.mutateAsync(
-                updates.slice(i, i + TABLE_LIMITS.MAX_BULK_OPERATION_SIZE) as Array<{ rowId: string; data: RowData }>
+                updates.slice(i, i + TABLE_LIMITS.MAX_BULK_OPERATION_SIZE) as Array<{
+                  rowId: string
+                  data: RowData
+                }>
               )
             }
             break
@@ -116,7 +119,10 @@ export function useTableUndo({
             }))
             for (let i = 0; i < updates.length; i += TABLE_LIMITS.MAX_BULK_OPERATION_SIZE) {
               await batchUpdateRowsMutation.mutateAsync(
-                updates.slice(i, i + TABLE_LIMITS.MAX_BULK_OPERATION_SIZE) as Array<{ rowId: string; data: RowData }>
+                updates.slice(i, i + TABLE_LIMITS.MAX_BULK_OPERATION_SIZE) as Array<{
+                  rowId: string
+                  data: RowData
+                }>
               )
             }
             break
@@ -127,7 +133,7 @@ export function useTableUndo({
               deleteRowMutation.mutate(action.rowId)
             } else {
               createRowMutation.mutate(
-                { data: action.data ?? {} as RowData, workspaceId, position: action.position },
+                { data: action.data ?? ({} as RowData), workspaceId, position: action.position },
                 {
                   onSuccess: (row: TableRow) => {
                     if (row.id && row.id !== action.rowId) {
@@ -239,9 +245,16 @@ export function useTableUndo({
                       }))
                       void (async () => {
                         try {
-                          for (let i = 0; i < updates.length; i += TABLE_LIMITS.MAX_BULK_OPERATION_SIZE) {
+                          for (
+                            let i = 0;
+                            i < updates.length;
+                            i += TABLE_LIMITS.MAX_BULK_OPERATION_SIZE
+                          ) {
                             await batchUpdateRowsMutation.mutateAsync(
-                              updates.slice(i, i + TABLE_LIMITS.MAX_BULK_OPERATION_SIZE) as Array<{ rowId: string; data: RowData }>
+                              updates.slice(i, i + TABLE_LIMITS.MAX_BULK_OPERATION_SIZE) as Array<{
+                                rowId: string
+                                data: RowData
+                              }>
                             )
                           }
                         } catch (error) {
@@ -252,7 +265,10 @@ export function useTableUndo({
                         }
                       })()
                     }
-                    const metadata: Partial<{ columnOrder: string[]; columnWidths: Record<string, number> }> = {}
+                    const metadata: Partial<{
+                      columnOrder: string[]
+                      columnWidths: Record<string, number>
+                    }> = {}
                     if (action.previousOrder) {
                       onColumnOrderChangeRef.current?.(action.previousOrder)
                       metadata.columnOrder = action.previousOrder
@@ -274,7 +290,10 @@ export function useTableUndo({
             } else {
               deleteColumnMutation.mutate(action.columnName, {
                 onSuccess: () => {
-                  const metadata: Partial<{ columnOrder: string[]; columnWidths: Record<string, number> }> = {}
+                  const metadata: Partial<{
+                    columnOrder: string[]
+                    columnWidths: Record<string, number>
+                  }> = {}
                   if (action.previousOrder) {
                     const newOrder = action.previousOrder.filter((n) => n !== action.columnName)
                     onColumnOrderChangeRef.current?.(newOrder)

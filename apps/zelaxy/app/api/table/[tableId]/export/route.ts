@@ -2,8 +2,8 @@ import crypto from 'crypto'
 import { type NextRequest, NextResponse } from 'next/server'
 import { checkHybridAuth } from '@/lib/auth/hybrid'
 import { createLogger } from '@/lib/logs/console/logger'
-import { listRows } from '@/lib/table'
 import type { ColumnDefinition, TableSchema } from '@/lib/table'
+import { listRows } from '@/lib/table'
 import { accessError, checkAccess } from '@/app/api/table/utils'
 
 export const dynamic = 'force-dynamic'
@@ -20,10 +20,7 @@ function escapeCsvValue(value: unknown): string {
 }
 
 /** GET /api/table/[tableId]/export — export table as CSV */
-export async function GET(
-  req: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function GET(req: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 

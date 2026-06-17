@@ -1,19 +1,15 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logs/console/logger'
+import { getUserEntityPermissions } from '@/lib/permissions/utils'
 import {
   deleteTable,
   getTableById,
   renameTable,
-  updateTableMetadata,
   TableConflictError,
-  type TableSchema,
+  updateTableMetadata,
 } from '@/lib/table'
-import { getUserEntityPermissions } from '@/lib/permissions/utils'
-import {
-  checkRateLimit,
-  createRateLimitResponse,
-} from '@/app/api/v1/middleware'
+import { checkRateLimit, createRateLimitResponse } from '@/app/api/v1/middleware'
 
 const logger = createLogger('V1TableDetailAPI')
 
@@ -26,10 +22,7 @@ const PatchSchema = z.object({
 })
 
 /** GET /api/v1/tables/[tableId] — Get a table's definition. */
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 
@@ -122,7 +115,11 @@ export async function PATCH(
     }
 
     if (metadata) {
-      await updateTableMetadata(tableId, metadata as Parameters<typeof updateTableMetadata>[1], requestId)
+      await updateTableMetadata(
+        tableId,
+        metadata as Parameters<typeof updateTableMetadata>[1],
+        requestId
+      )
     }
 
     const updated = await getTableById(tableId)

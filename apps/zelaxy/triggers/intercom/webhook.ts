@@ -14,8 +14,7 @@ export const intercomWebhookTrigger: TriggerConfig = {
       type: 'string',
       label: 'Client Secret',
       placeholder: 'Enter your Intercom app client secret',
-      description:
-        'The client secret from your Intercom app for HMAC signature verification.',
+      description: 'The client secret from your Intercom app for HMAC signature verification.',
       required: false,
       isSecret: true,
     },

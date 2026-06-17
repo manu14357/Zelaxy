@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createLogger } from '@/lib/logs/console/logger'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -15,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { createLogger } from '@/lib/logs/console/logger'
 import type { ColumnDefinition, RowData, TableDefinition, TableRow } from '@/lib/table'
 import {
   useCreateTableRow,
@@ -22,7 +22,7 @@ import {
   useDeleteTableRows,
   useUpdateTableRow,
 } from '@/hooks/queries/tables'
-import { cleanCellValue, storageToDisplay } from '../../utils'
+import { cleanCellValue } from '../../utils'
 
 const logger = createLogger('RowModal')
 
@@ -44,10 +44,7 @@ function createInitialRowData(columns: ColumnDefinition[]): Record<string, unkno
   return initial
 }
 
-function cleanRowData(
-  columns: ColumnDefinition[],
-  rowData: Record<string, unknown>
-): RowData {
+function cleanRowData(columns: ColumnDefinition[], rowData: Record<string, unknown>): RowData {
   const cleanData: RowData = {}
   columns.forEach((col) => {
     const value = rowData[col.name]
@@ -73,7 +70,11 @@ function getInitialRowData(
 function formatValueForInput(value: unknown, type: ColumnDefinition['type']): string {
   if (value === null || value === undefined || value === '') return ''
   if (type === 'json' && typeof value === 'object') {
-    try { return JSON.stringify(value, null, 2) } catch { return '' }
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch {
+      return ''
+    }
   }
   return String(value)
 }
@@ -142,7 +143,12 @@ export function RowModal({ mode, isOpen, onClose, table, row, rowIds, onSuccess 
     const isSingleRow = deleteCount === 1
 
     return (
-      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) handleClose()
+        }}
+      >
         <DialogContent className='sm:max-w-sm'>
           <DialogHeader>
             <DialogTitle>Delete {isSingleRow ? 'Row' : `${deleteCount} Rows`}</DialogTitle>
@@ -153,8 +159,8 @@ export function RowModal({ mode, isOpen, onClose, table, row, rowIds, onSuccess 
             </div>
           )}
           <DialogDescription>
-            Are you sure you want to delete{' '}
-            {isSingleRow ? 'this row' : `these ${deleteCount} rows`}?{' '}
+            Are you sure you want to delete {isSingleRow ? 'this row' : `these ${deleteCount} rows`}
+            ?{' '}
             <span className='text-destructive'>
               This will permanently remove all data in {isSingleRow ? 'this row' : 'these rows'}.
             </span>{' '}
@@ -176,7 +182,12 @@ export function RowModal({ mode, isOpen, onClose, table, row, rowIds, onSuccess 
   const isAddMode = mode === 'add'
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+      }}
+    >
       <DialogContent className='sm:max-w-lg'>
         <DialogHeader>
           <DialogTitle>{isAddMode ? 'Add New Row' : 'Edit Row'}</DialogTitle>

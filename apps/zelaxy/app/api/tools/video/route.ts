@@ -179,8 +179,7 @@ async function generateWithVeo(
         throw new Error(`Veo generation failed: ${statusData.error.message || 'Unknown error'}`)
       }
 
-      const videoUri =
-        statusData.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri
+      const videoUri = statusData.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri
       if (!videoUri) throw new Error('No video URI in Veo response')
 
       return { videoUrl: videoUri, ...dimensions, jobId: operationName, duration }
@@ -325,7 +324,10 @@ async function generateWithMiniMax(
 
     const statusData: any = await statusResponse.json()
 
-    if (statusData.base_resp?.status_code !== 0 && statusData.base_resp?.status_code !== undefined) {
+    if (
+      statusData.base_resp?.status_code !== 0 &&
+      statusData.base_resp?.status_code !== undefined
+    ) {
       throw new Error(
         `MiniMax status error: ${statusData.base_resp?.status_msg || 'Unknown error'}`
       )
@@ -570,9 +572,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     logger.error('Video generation error', { error: error.message })
-    return NextResponse.json(
-      { error: error.message || 'Video generation failed' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: error.message || 'Video generation failed' }, { status: 500 })
   }
 }

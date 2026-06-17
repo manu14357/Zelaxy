@@ -25,8 +25,7 @@ export const confluenceWebhookTrigger: TriggerConfig = {
     event: {
       event_type: {
         type: 'string',
-        description:
-          'Type of Confluence event (e.g., page_created, page_updated, blog_created)',
+        description: 'Type of Confluence event (e.g., page_created, page_updated, blog_created)',
       },
       page: {
         id: {

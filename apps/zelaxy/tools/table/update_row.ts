@@ -30,8 +30,7 @@ export const tableUpdateRowTool: ToolConfig<TableRowUpdateParams, TableRowRespon
   },
 
   request: {
-    url: (params: TableRowUpdateParams) =>
-      `/api/table/${params.tableId}/rows/${params.rowId}`,
+    url: (params: TableRowUpdateParams) => `/api/table/${params.tableId}/rows/${params.rowId}`,
     method: 'PATCH',
     headers: () => ({
       'Content-Type': 'application/json',

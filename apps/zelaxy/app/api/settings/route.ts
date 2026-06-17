@@ -73,7 +73,9 @@ export async function PATCH(request: Request) {
     }
 
     // Settings mutations require admin access — redirect to admin/settings
-    logger.warn(`[${requestId}] Settings mutation attempted by ${session.user.id} — use /api/admin/settings`)
+    logger.warn(
+      `[${requestId}] Settings mutation attempted by ${session.user.id} — use /api/admin/settings`
+    )
 
     return NextResponse.json(
       { error: 'Use /api/admin/settings to update platform settings' },

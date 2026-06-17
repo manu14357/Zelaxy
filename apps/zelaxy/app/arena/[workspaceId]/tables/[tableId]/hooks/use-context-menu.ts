@@ -5,7 +5,11 @@ import type { ContextMenuState } from '../types'
 interface UseContextMenuReturn {
   contextMenu: ContextMenuState
   handleRowContextMenu: (e: React.MouseEvent, row: TableRow, columnName?: string | null) => void
-  handleEmptyCellContextMenu: (e: React.MouseEvent, rowIndex: number, columnName: string | null) => void
+  handleEmptyCellContextMenu: (
+    e: React.MouseEvent,
+    rowIndex: number,
+    columnName: string | null
+  ) => void
   closeContextMenu: () => void
 }
 

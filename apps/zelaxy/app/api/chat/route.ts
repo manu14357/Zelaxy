@@ -6,11 +6,12 @@ import { getSession } from '@/lib/auth'
 import { env } from '@/lib/env'
 import { isDev } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
+import { getUserEntityPermissions } from '@/lib/permissions/utils'
 import { encryptSecret } from '@/lib/utils'
 import { checkWorkflowAccessForChatCreation } from '@/app/api/chat/utils'
 import { createErrorResponse, createSuccessResponse } from '@/app/api/workflows/utils'
 import { db } from '@/db'
-import { chat } from '@/db/schema'
+import { chat, workflow } from '@/db/schema'
 
 const logger = createLogger('ChatAPI')
 
@@ -49,6 +50,26 @@ export async function GET(request: NextRequest) {
 
     if (!session) {
       return createErrorResponse('Unauthorized', 401)
+    }
+
+    const workspaceId = new URL(request.url).searchParams.get('workspaceId')
+
+    // When scoped to a workspace, return all chat deployments whose workflow
+    // belongs to that workspace (requires workspace access). Otherwise return
+    // the current user's own deployments.
+    if (workspaceId) {
+      const permission = await getUserEntityPermissions(session.user.id, 'workspace', workspaceId)
+      if (permission === null) {
+        return createErrorResponse('Not authorized for this workspace', 403)
+      }
+
+      const rows = await db
+        .select({ chat })
+        .from(chat)
+        .innerJoin(workflow, eq(chat.workflowId, workflow.id))
+        .where(eq(workflow.workspaceId, workspaceId))
+
+      return createSuccessResponse({ deployments: rows.map((r) => r.chat) })
     }
 
     // Get the user's chat deployments

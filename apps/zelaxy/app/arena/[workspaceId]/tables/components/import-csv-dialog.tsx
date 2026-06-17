@@ -28,10 +28,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { cn } from '@/lib/utils'
-import { buildAutoMapping, parseCsvBuffer } from '@/lib/table'
-import type { TableDefinition } from '@/lib/table'
 import { createLogger } from '@/lib/logs/console/logger'
+import type { TableDefinition } from '@/lib/table'
+import { buildAutoMapping, parseCsvBuffer } from '@/lib/table'
+import { cn } from '@/lib/utils'
 import { useImportCsvIntoTable } from '@/hooks/queries/tables'
 
 type CsvImportMode = 'append' | 'replace'
@@ -49,7 +49,10 @@ function summarizeImportError(message: string): string {
   if (uniqueMatches.length > 0) {
     const column = uniqueMatches[0][1]
     const values = Array.from(new Set(uniqueMatches.map((m) => m[2])))
-    const preview = values.slice(0, 3).map((v) => `"${v}"`).join(', ')
+    const preview = values
+      .slice(0, 3)
+      .map((v) => `"${v}"`)
+      .join(', ')
     const extra = values.length - 3
     return `${values.length} row${values.length === 1 ? '' : 's'} conflict on unique column "${column}" (${preview}${extra > 0 ? `, +${extra} more` : ''})`
   }
@@ -120,7 +123,12 @@ export function ImportCsvDialog({
       const delimiter = ext === 'tsv' ? '\t' : ','
       const { headers, rows } = await parseCsvBuffer(new Uint8Array(arrayBuffer), delimiter)
       const autoMapping = buildAutoMapping(headers, table.schema)
-      setParsed({ file, headers, sampleRows: rows.slice(0, MAX_SAMPLE_ROWS), totalRows: rows.length })
+      setParsed({
+        file,
+        headers,
+        sampleRows: rows.slice(0, MAX_SAMPLE_ROWS),
+        totalRows: rows.length,
+      })
       setMapping(autoMapping)
     } catch (err) {
       logger.error('CSV parse failed', err)
@@ -133,24 +141,38 @@ export function ImportCsvDialog({
   function handleMappingChange(header: string, value: string) {
     setSubmitError(null)
     if (value === CREATE_VALUE) {
-      setCreateHeaders((prev) => { const next = new Set(prev); next.add(header); return next })
+      setCreateHeaders((prev) => {
+        const next = new Set(prev)
+        next.add(header)
+        return next
+      })
       setMapping((prev) => ({ ...prev, [header]: null }))
       return
     }
     setCreateHeaders((prev) => {
       if (!prev.has(header)) return prev
-      const next = new Set(prev); next.delete(header); return next
+      const next = new Set(prev)
+      next.delete(header)
+      return next
     })
     setMapping((prev) => ({ ...prev, [header]: value === SKIP_VALUE ? null : value }))
   }
 
   const { missingRequired, duplicateTargets, mappedCount, skipCount, createCount } = useMemo(() => {
     const mappedTargets = new Map<string, string[]>()
-    let mapped = 0; let skipped = 0; let creating = 0
+    let mapped = 0
+    let skipped = 0
+    let creating = 0
     for (const header of parsed?.headers ?? []) {
-      if (createHeaders.has(header)) { creating++; continue }
+      if (createHeaders.has(header)) {
+        creating++
+        continue
+      }
       const target = mapping[header]
-      if (!target) { skipped++; continue }
+      if (!target) {
+        skipped++
+        continue
+      }
       mapped++
       const existing = mappedTargets.get(target) ?? []
       existing.push(header)
@@ -158,8 +180,16 @@ export function ImportCsvDialog({
     }
     const dupes = [...mappedTargets.entries()].filter(([, hs]) => hs.length > 1).map(([col]) => col)
     const mappedSet = new Set(mappedTargets.keys())
-    const missing = table.schema.columns.filter((c) => c.required && !mappedSet.has(c.name)).map((c) => c.name)
-    return { missingRequired: missing, duplicateTargets: dupes, mappedCount: mapped, skipCount: skipped, createCount: creating }
+    const missing = table.schema.columns
+      .filter((c) => c.required && !mappedSet.has(c.name))
+      .map((c) => c.name)
+    return {
+      missingRequired: missing,
+      duplicateTargets: dupes,
+      mappedCount: mapped,
+      skipCount: skipped,
+      createCount: creating,
+    }
   }, [mapping, parsed?.headers, table.schema.columns, createHeaders])
 
   const canSubmit =
@@ -181,7 +211,9 @@ export function ImportCsvDialog({
       if (mode === 'append') {
         toast.success(`Imported ${result?.insertedCount ?? 0} rows into "${table.name}"`)
       } else {
-        toast.success(`Replaced rows in "${table.name}": deleted ${result?.deletedCount ?? 0}, inserted ${result?.insertedCount ?? 0}`)
+        toast.success(
+          `Replaced rows in "${table.name}": deleted ${result?.deletedCount ?? 0}, inserted ${result?.insertedCount ?? 0}`
+        )
       }
       onImported?.({ insertedCount: result?.insertedCount, deletedCount: result?.deletedCount })
       onOpenChange(false)
@@ -192,14 +224,17 @@ export function ImportCsvDialog({
     }
   }
 
-  const columnOptions = useMemo(() => [
-    { label: 'Do not import', value: SKIP_VALUE },
-    { label: '+ Create new column', value: CREATE_VALUE },
-    ...table.schema.columns.map((col) => ({
-      label: col.required ? `${col.name} (required)` : col.name,
-      value: col.name,
-    })),
-  ], [table.schema.columns])
+  const columnOptions = useMemo(
+    () => [
+      { label: 'Do not import', value: SKIP_VALUE },
+      { label: '+ Create new column', value: CREATE_VALUE },
+      ...table.schema.columns.map((col) => ({
+        label: col.required ? `${col.name} (required)` : col.name,
+        value: col.name,
+      })),
+    ],
+    [table.schema.columns]
+  )
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -218,13 +253,24 @@ export function ImportCsvDialog({
               <button
                 type='button'
                 onClick={() => fileInputRef.current?.click()}
-                onDragEnter={(e) => { e.preventDefault(); setIsDragging(true) }}
+                onDragEnter={(e) => {
+                  e.preventDefault()
+                  setIsDragging(true)
+                }}
                 onDragOver={(e) => e.preventDefault()}
-                onDragLeave={(e) => { e.preventDefault(); setIsDragging(false) }}
-                onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files?.[0]; if (f) void handleFileSelected(f) }}
+                onDragLeave={(e) => {
+                  e.preventDefault()
+                  setIsDragging(false)
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  setIsDragging(false)
+                  const f = e.dataTransfer.files?.[0]
+                  if (f) void handleFileSelected(f)
+                }}
                 disabled={parsing}
                 className={cn(
-                  'flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-8 transition-colors hover:bg-muted/30',
+                  'flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-border border-dashed py-8 transition-colors hover:bg-muted/30',
                   isDragging && 'border-primary bg-primary/5',
                   parsing && 'cursor-not-allowed opacity-50'
                 )}
@@ -233,32 +279,41 @@ export function ImportCsvDialog({
                   ref={fileInputRef}
                   type='file'
                   accept='.csv,.tsv'
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFileSelected(f) }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) void handleFileSelected(f)
+                  }}
                   className='hidden'
                 />
                 <Upload className='h-8 w-8 text-muted-foreground' />
                 <div className='text-center'>
-                  <p className='font-medium text-sm text-foreground'>
-                    {parsing ? 'Parsing...' : isDragging ? 'Drop file here' : 'Drop CSV or TSV here or click to browse'}
+                  <p className='font-medium text-foreground text-sm'>
+                    {parsing
+                      ? 'Parsing...'
+                      : isDragging
+                        ? 'Drop file here'
+                        : 'Drop CSV or TSV here or click to browse'}
                   </p>
                   <p className='mt-1 text-muted-foreground text-xs'>
                     Map columns to append or replace rows in this table
                   </p>
                 </div>
               </button>
-              {parseError && (
-                <p className='text-destructive text-sm'>{parseError}</p>
-              )}
+              {parseError && <p className='text-destructive text-sm'>{parseError}</p>}
             </div>
           ) : (
             <>
               {/* File info */}
               <div className='flex items-center justify-between rounded-lg border border-border/40 bg-muted/30 p-3'>
-                <div className='flex items-center gap-2 min-w-0'>
+                <div className='flex min-w-0 items-center gap-2'>
                   <FileText className='h-4 w-4 shrink-0 text-muted-foreground' />
                   <div className='min-w-0'>
-                    <p className='truncate font-medium text-sm text-foreground'>{parsed.file.name}</p>
-                    <p className='text-muted-foreground text-xs'>{parsed.totalRows.toLocaleString()} rows · {parsed.headers.length} columns</p>
+                    <p className='truncate font-medium text-foreground text-sm'>
+                      {parsed.file.name}
+                    </p>
+                    <p className='text-muted-foreground text-xs'>
+                      {parsed.totalRows.toLocaleString()} rows · {parsed.headers.length} columns
+                    </p>
                   </div>
                 </div>
                 <Button variant='ghost' size='sm' onClick={resetState}>
@@ -323,17 +378,27 @@ export function ImportCsvDialog({
                     <TableBody>
                       {parsed.headers.map((header) => {
                         const sample = parsed.sampleRows
-                          .map((r) => (r[header] === '' || r[header] == null ? '' : String(r[header])))
+                          .map((r) =>
+                            r[header] === '' || r[header] == null ? '' : String(r[header])
+                          )
                           .filter(Boolean)
                           .slice(0, 2)
                           .join(', ')
-                        const currentValue = createHeaders.has(header) ? CREATE_VALUE : (mapping[header] ?? SKIP_VALUE)
+                        const currentValue = createHeaders.has(header)
+                          ? CREATE_VALUE
+                          : (mapping[header] ?? SKIP_VALUE)
                         return (
                           <TableRow key={header}>
                             <TableCell>
                               <div className='flex flex-col'>
-                                <span className='truncate font-medium text-sm text-foreground'>{header}</span>
-                                {sample && <span className='truncate text-muted-foreground text-xs'>{sample}</span>}
+                                <span className='truncate font-medium text-foreground text-sm'>
+                                  {header}
+                                </span>
+                                {sample && (
+                                  <span className='truncate text-muted-foreground text-xs'>
+                                    {sample}
+                                  </span>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>
@@ -346,7 +411,11 @@ export function ImportCsvDialog({
                                 </SelectTrigger>
                                 <SelectContent>
                                   {columnOptions.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value} className='text-xs'>
+                                    <SelectItem
+                                      key={opt.value}
+                                      value={opt.value}
+                                      className='text-xs'
+                                    >
                                       {opt.label}
                                     </SelectItem>
                                   ))}
@@ -372,20 +441,24 @@ export function ImportCsvDialog({
                   Duplicate mapping to: {duplicateTargets.join(', ')}
                 </p>
               )}
-              {submitError && (
-                <p className='text-destructive text-sm'>{submitError}</p>
-              )}
+              {submitError && <p className='text-destructive text-sm'>{submitError}</p>}
             </>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant='outline' onClick={() => handleOpenChange(false)} disabled={importMutation.isPending}>
+          <Button
+            variant='outline'
+            onClick={() => handleOpenChange(false)}
+            disabled={importMutation.isPending}
+          >
             Cancel
           </Button>
           {parsed && (
             <Button onClick={handleSubmit} disabled={!canSubmit}>
-              {importMutation.isPending ? 'Importing...' : `Import ${parsed.totalRows.toLocaleString()} rows`}
+              {importMutation.isPending
+                ? 'Importing...'
+                : `Import ${parsed.totalRows.toLocaleString()} rows`}
             </Button>
           )}
         </DialogFooter>

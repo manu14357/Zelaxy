@@ -5,10 +5,10 @@ import { createLogger } from '@/lib/logs/console/logger'
 import { getUserEntityPermissions } from '@/lib/permissions/utils'
 import {
   batchInsertRows,
-  coerceRowsForTable,
-  createTable,
   CSV_MAX_BATCH_SIZE,
   CSV_MAX_FILE_SIZE_BYTES,
+  coerceRowsForTable,
+  createTable,
   deleteTable,
   getWorkspaceTableLimits,
   inferSchemaFromCsv,
@@ -76,11 +76,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check workspace access
-    const permission = await getUserEntityPermissions(
-      authResult.userId,
-      'workspace',
-      workspaceId
-    )
+    const permission = await getUserEntityPermissions(authResult.userId, 'workspace', workspaceId)
     if (!permission || !(permission === 'admin' || permission === 'write')) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
@@ -224,13 +220,19 @@ export async function POST(req: NextRequest) {
       }
     } catch (insertError) {
       insertFailed = true
-      logger.error(`[${requestId}] Batch insert failed — rolling back table ${createdTable.id}`, insertError)
+      logger.error(
+        `[${requestId}] Batch insert failed — rolling back table ${createdTable.id}`,
+        insertError
+      )
 
       // Rollback: archive the partially-created table
       try {
         await deleteTable(createdTable.id, requestId)
       } catch (cleanupError) {
-        logger.error(`[${requestId}] Failed to cleanup table ${createdTable.id} after import error`, cleanupError)
+        logger.error(
+          `[${requestId}] Failed to cleanup table ${createdTable.id} after import error`,
+          cleanupError
+        )
       }
 
       return NextResponse.json(

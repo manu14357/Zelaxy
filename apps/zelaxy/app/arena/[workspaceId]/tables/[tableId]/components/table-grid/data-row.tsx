@@ -2,8 +2,8 @@
 
 import React from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
-import { cn } from '@/lib/utils'
 import type { TableRow as TableRowType } from '@/lib/table'
+import { cn } from '@/lib/utils'
 import type { SaveReason } from '../../types'
 import { CellContent } from './cells'
 import {
@@ -148,7 +148,7 @@ export const DataRow = React.memo(function DataRow({
           >
             <span
               className={cn(
-                'text-center text-xs tabular-nums text-muted-foreground',
+                'text-center text-muted-foreground text-xs tabular-nums',
                 isRowChecked ? 'hidden' : 'block group-hover/checkbox:hidden'
               )}
             >

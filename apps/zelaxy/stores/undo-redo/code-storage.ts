@@ -1,6 +1,6 @@
-import { createLogger } from '@/lib/logs/console/logger'
 import { del, get, set } from 'idb-keyval'
 import type { StateStorage } from 'zustand/middleware'
+import { createLogger } from '@/lib/logs/console/logger'
 
 const logger = createLogger('CodeUndoRedoStorage')
 

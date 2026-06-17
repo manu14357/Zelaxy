@@ -7,18 +7,18 @@
 
 import crypto from 'crypto'
 import { and, asc, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
 import { userTableDefinitions, userTableRows } from '@/db/schema'
-import { createLogger } from '@/lib/logs/console/logger'
+import type { ColumnType, ColumnValue, JsonValue } from './constants'
 import {
   COLUMN_TYPES,
-  NAME_PATTERN,
-  TABLE_LIMITS,
-  CSV_SCHEMA_SAMPLE_SIZE,
   CSV_MAX_BATCH_SIZE,
   CSV_MAX_FILE_SIZE_BYTES,
+  CSV_SCHEMA_SAMPLE_SIZE,
+  NAME_PATTERN,
+  TABLE_LIMITS,
 } from './constants'
-import type { ColumnType, ColumnValue, JsonValue } from './constants'
 
 // Re-export pure constants and types — safe for server-side use.
 export {
@@ -208,9 +208,7 @@ export function validateTableSchema(schema: TableSchema): ValidationResult {
  * Returns table limits for a workspace.
  * Zelaxy currently applies generous defaults without per-plan billing.
  */
-export async function getWorkspaceTableLimits(
-  _workspaceId: string
-): Promise<TablePlanLimits> {
+export async function getWorkspaceTableLimits(_workspaceId: string): Promise<TablePlanLimits> {
   return {
     maxTables: TABLE_LIMITS.MAX_TABLES_PER_WORKSPACE,
     maxRowsPerTable: TABLE_LIMITS.MAX_ROWS_PER_TABLE,
@@ -568,7 +566,13 @@ export async function insertRow(
     .where(eq(userTableDefinitions.id, data.tableId))
 
   logger.info(`[${requestId}] Inserted row ${id} into table ${data.tableId}`)
-  return { id: row.id, data: row.data as RowData, position: row.position, createdAt: row.createdAt, updatedAt: row.updatedAt }
+  return {
+    id: row.id,
+    data: row.data as RowData,
+    position: row.position,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  }
 }
 
 export interface ListRowsOptions {
@@ -592,9 +596,7 @@ export async function listRows(options: ListRowsOptions): Promise<ListRowsResult
 
   const orderClauses = sort
     ? Object.entries(sort).map(([col, dir]) =>
-        dir === 'desc'
-          ? desc(sql.raw(`data->>'${col}'`))
-          : asc(sql.raw(`data->>'${col}'`))
+        dir === 'desc' ? desc(sql.raw(`data->>'${col}'`)) : asc(sql.raw(`data->>'${col}'`))
       )
     : [asc(userTableRows.position)]
 
@@ -606,10 +608,7 @@ export async function listRows(options: ListRowsOptions): Promise<ListRowsResult
       .orderBy(...orderClauses)
       .limit(limit)
       .offset(offset),
-    db
-      .select({ total: count() })
-      .from(userTableRows)
-      .where(whereClause),
+    db.select({ total: count() }).from(userTableRows).where(whereClause),
   ])
 
   const totalCount = Number(total)
@@ -634,7 +633,13 @@ export async function getRowById(tableId: string, rowId: string): Promise<TableR
     .limit(1)
 
   if (!row) return null
-  return { id: row.id, data: row.data as RowData, position: row.position, createdAt: row.createdAt, updatedAt: row.updatedAt }
+  return {
+    id: row.id,
+    data: row.data as RowData,
+    position: row.position,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  }
 }
 
 export async function updateRow(
@@ -652,13 +657,21 @@ export async function updateRow(
 
   if (!row) throw new Error(`Row ${rowId} not found in table ${tableId}`)
   logger.info(`[${requestId}] Updated row ${rowId} in table ${tableId}`)
-  return { id: row.id, data: row.data as RowData, position: row.position, createdAt: row.createdAt, updatedAt: row.updatedAt }
+  return {
+    id: row.id,
+    data: row.data as RowData,
+    position: row.position,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  }
 }
 
 export async function deleteRow(tableId: string, rowId: string, requestId: string): Promise<void> {
   const now = new Date()
   await db.transaction(async (trx) => {
-    await trx.delete(userTableRows).where(and(eq(userTableRows.id, rowId), eq(userTableRows.tableId, tableId)))
+    await trx
+      .delete(userTableRows)
+      .where(and(eq(userTableRows.id, rowId), eq(userTableRows.tableId, tableId)))
     await trx
       .update(userTableDefinitions)
       .set({ rowCount: sql`greatest(${userTableDefinitions.rowCount} - 1, 0)`, updatedAt: now })
@@ -667,7 +680,11 @@ export async function deleteRow(tableId: string, rowId: string, requestId: strin
   logger.info(`[${requestId}] Deleted row ${rowId} from table ${tableId}`)
 }
 
-export async function deleteRows(tableId: string, rowIds: string[], requestId: string): Promise<number> {
+export async function deleteRows(
+  tableId: string,
+  rowIds: string[],
+  requestId: string
+): Promise<number> {
   if (rowIds.length === 0) return 0
   const now = new Date()
   let deletedCount = 0

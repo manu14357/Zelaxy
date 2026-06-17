@@ -107,7 +107,9 @@ export const pulseParserTool: ToolConfig = {
           try {
             url = new URL(filePathToValidate)
             if (!['http:', 'https:'].includes(url.protocol)) {
-              throw new Error(`Invalid protocol: ${url.protocol}. URL must use HTTP or HTTPS protocol`)
+              throw new Error(
+                `Invalid protocol: ${url.protocol}. URL must use HTTP or HTTPS protocol`
+              )
             }
           } catch (error: any) {
             throw new Error(

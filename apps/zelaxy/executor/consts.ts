@@ -12,6 +12,7 @@ export enum BlockType {
   AGENT = 'agent',
   API = 'api',
   EVALUATOR = 'evaluator',
+  TRANSLATE = 'translate',
   RESPONSE = 'response',
   WORKFLOW = 'workflow',
   STARTER = 'starter',

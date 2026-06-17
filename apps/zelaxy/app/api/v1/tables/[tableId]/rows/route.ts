@@ -1,18 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logs/console/logger'
-import {
-  batchInsertRows,
-  getTableById,
-  insertRow,
-  listRows,
-  type RowData,
-} from '@/lib/table'
 import { getUserEntityPermissions } from '@/lib/permissions/utils'
-import {
-  checkRateLimit,
-  createRateLimitResponse,
-} from '@/app/api/v1/middleware'
+import { batchInsertRows, getTableById, insertRow, listRows, type RowData } from '@/lib/table'
+import { checkRateLimit, createRateLimitResponse } from '@/app/api/v1/middleware'
 
 const logger = createLogger('V1TableRowsAPI')
 
@@ -36,10 +27,7 @@ const BatchInsertSchema = z.object({
 const InsertBodySchema = z.union([InsertRowSchema, BatchInsertSchema])
 
 /** GET /api/v1/tables/[tableId]/rows — List rows in a table. */
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 

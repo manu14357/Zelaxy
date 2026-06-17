@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, Braces, Hash, ToggleLeft, Type } from 'lucide-react'
+import { Braces, Calendar, Hash, ToggleLeft, Type } from 'lucide-react'
 import type { ColumnDefinition } from '@/lib/table'
 
 export const COLUMN_TYPE_ICONS: Record<string, React.ElementType> = {

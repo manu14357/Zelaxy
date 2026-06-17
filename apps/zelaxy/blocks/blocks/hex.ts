@@ -271,23 +271,40 @@ Example:
     config: {
       tool: (params) => {
         switch (params.operation) {
-          case 'run_project': return 'hex_run_project'
-          case 'get_run_status': return 'hex_get_run_status'
-          case 'get_project_runs': return 'hex_get_project_runs'
-          case 'cancel_run': return 'hex_cancel_run'
-          case 'list_projects': return 'hex_list_projects'
-          case 'get_project': return 'hex_get_project'
-          case 'update_project': return 'hex_update_project'
-          case 'get_queried_tables': return 'hex_get_queried_tables'
-          case 'list_users': return 'hex_list_users'
-          case 'list_groups': return 'hex_list_groups'
-          case 'get_group': return 'hex_get_group'
-          case 'list_collections': return 'hex_list_collections'
-          case 'get_collection': return 'hex_get_collection'
-          case 'create_collection': return 'hex_create_collection'
-          case 'list_data_connections': return 'hex_list_data_connections'
-          case 'get_data_connection': return 'hex_get_data_connection'
-          default: return 'hex_run_project'
+          case 'run_project':
+            return 'hex_run_project'
+          case 'get_run_status':
+            return 'hex_get_run_status'
+          case 'get_project_runs':
+            return 'hex_get_project_runs'
+          case 'cancel_run':
+            return 'hex_cancel_run'
+          case 'list_projects':
+            return 'hex_list_projects'
+          case 'get_project':
+            return 'hex_get_project'
+          case 'update_project':
+            return 'hex_update_project'
+          case 'get_queried_tables':
+            return 'hex_get_queried_tables'
+          case 'list_users':
+            return 'hex_list_users'
+          case 'list_groups':
+            return 'hex_list_groups'
+          case 'get_group':
+            return 'hex_get_group'
+          case 'list_collections':
+            return 'hex_list_collections'
+          case 'get_collection':
+            return 'hex_get_collection'
+          case 'create_collection':
+            return 'hex_create_collection'
+          case 'list_data_connections':
+            return 'hex_list_data_connections'
+          case 'get_data_connection':
+            return 'hex_get_data_connection'
+          default:
+            return 'hex_run_project'
         }
       },
       params: (params) => {
@@ -297,11 +314,13 @@ Example:
         if (params.limit) result.limit = Number(params.limit)
         if (op === 'get_project_runs' && params.offset) result.offset = Number(params.offset)
         if (op === 'update_project' && params.projectStatus) result.status = params.projectStatus
-        if (op === 'get_project_runs' && params.runStatusFilter) result.statusFilter = params.runStatusFilter
+        if (op === 'get_project_runs' && params.runStatusFilter)
+          result.statusFilter = params.runStatusFilter
         if (op === 'get_group' && params.groupIdInput) result.groupId = params.groupIdInput
         if (op === 'list_users' && params.groupId) result.groupId = params.groupId
         if (op === 'create_collection' && params.collectionName) result.name = params.collectionName
-        if (op === 'create_collection' && params.collectionDescription) result.description = params.collectionDescription
+        if (op === 'create_collection' && params.collectionDescription)
+          result.description = params.collectionDescription
 
         return result
       },
@@ -314,9 +333,18 @@ Example:
     runId: { type: 'string', description: 'Run UUID' },
     inputParams: { type: 'json', description: 'Input parameters for project run' },
     dryRun: { type: 'boolean', description: 'Perform a dry run without executing the project' },
-    updateCache: { type: 'boolean', description: '(Deprecated) Update cached results after execution' },
-    updatePublishedResults: { type: 'boolean', description: 'Update published app results after execution' },
-    useCachedSqlResults: { type: 'boolean', description: 'Use cached SQL results instead of re-running queries' },
+    updateCache: {
+      type: 'boolean',
+      description: '(Deprecated) Update cached results after execution',
+    },
+    updatePublishedResults: {
+      type: 'boolean',
+      description: 'Update published app results after execution',
+    },
+    useCachedSqlResults: {
+      type: 'boolean',
+      description: 'Use cached SQL results instead of re-running queries',
+    },
     projectStatus: { type: 'string', description: 'New project status name' },
     limit: { type: 'number', description: 'Max number of results to return' },
     offset: { type: 'number', description: 'Offset for paginated results' },

@@ -1,23 +1,20 @@
 import { and, count, eq, isNull } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logs/console/logger'
-import { db } from '@/db'
-import { document, knowledgeBase } from '@/db/schema'
 import {
   checkRateLimit,
   createRateLimitResponse,
   validateWorkspaceAccess,
 } from '@/app/api/v1/middleware'
+import { db } from '@/db'
+import { document, knowledgeBase } from '@/db/schema'
 
 const logger = createLogger('V1KnowledgeDetailAPI')
 
 export const revalidate = 0
 
 /** GET /api/v1/knowledge/[kbId] — Get knowledge base details. */
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ kbId: string }> }
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ kbId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { kbId } = await context.params
 
@@ -78,10 +75,7 @@ export async function GET(
 }
 
 /** DELETE /api/v1/knowledge/[kbId] — Soft-delete a knowledge base. */
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ kbId: string }> }
-) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ kbId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { kbId } = await context.params
 
@@ -94,7 +88,12 @@ export async function DELETE(
     const userId = rateLimit.userId!
 
     const [kb] = await db
-      .select({ id: knowledgeBase.id, workspaceId: knowledgeBase.workspaceId, userId: knowledgeBase.userId, deletedAt: knowledgeBase.deletedAt })
+      .select({
+        id: knowledgeBase.id,
+        workspaceId: knowledgeBase.workspaceId,
+        userId: knowledgeBase.userId,
+        deletedAt: knowledgeBase.deletedAt,
+      })
       .from(knowledgeBase)
       .where(eq(knowledgeBase.id, kbId))
       .limit(1)
@@ -112,14 +111,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Knowledge base not found' }, { status: 404 })
     }
 
-    await db
-      .update(knowledgeBase)
-      .set({ deletedAt: new Date() })
-      .where(eq(knowledgeBase.id, kbId))
+    await db.update(knowledgeBase).set({ deletedAt: new Date() }).where(eq(knowledgeBase.id, kbId))
 
     logger.info(`[${requestId}] Soft-deleted knowledge base ${kbId}`)
 
-    return NextResponse.json({ success: true, data: { id: kbId, deletedAt: new Date().toISOString() } })
+    return NextResponse.json({
+      success: true,
+      data: { id: kbId, deletedAt: new Date().toISOString() },
+    })
   } catch (error) {
     logger.error(`[${requestId}] Error deleting knowledge base`, { error })
     return NextResponse.json({ error: 'Failed to delete knowledge base' }, { status: 500 })

@@ -535,8 +535,14 @@ export const PolymarketBlock: BlockConfig = {
       condition: {
         field: 'operation',
         value: [
-          'get_markets', 'get_events', 'get_tags', 'get_series', 'get_trades',
-          'get_positions', 'get_activity', 'get_leaderboard',
+          'get_markets',
+          'get_events',
+          'get_tags',
+          'get_series',
+          'get_trades',
+          'get_positions',
+          'get_activity',
+          'get_leaderboard',
         ],
       },
       mode: 'advanced',
@@ -576,27 +582,48 @@ export const PolymarketBlock: BlockConfig = {
     config: {
       tool: (params) => {
         switch (params.operation) {
-          case 'get_markets': return 'polymarket_get_markets'
-          case 'get_market': return 'polymarket_get_market'
-          case 'get_events': return 'polymarket_get_events'
-          case 'get_event': return 'polymarket_get_event'
-          case 'get_tags': return 'polymarket_get_tags'
-          case 'search': return 'polymarket_search'
-          case 'get_series': return 'polymarket_get_series'
-          case 'get_series_by_id': return 'polymarket_get_series_by_id'
-          case 'get_orderbook': return 'polymarket_get_orderbook'
-          case 'get_price': return 'polymarket_get_price'
-          case 'get_midpoint': return 'polymarket_get_midpoint'
-          case 'get_price_history': return 'polymarket_get_price_history'
-          case 'get_last_trade_price': return 'polymarket_get_last_trade_price'
-          case 'get_spread': return 'polymarket_get_spread'
-          case 'get_tick_size': return 'polymarket_get_tick_size'
-          case 'get_positions': return 'polymarket_get_positions'
-          case 'get_trades': return 'polymarket_get_trades'
-          case 'get_activity': return 'polymarket_get_activity'
-          case 'get_leaderboard': return 'polymarket_get_leaderboard'
-          case 'get_holders': return 'polymarket_get_holders'
-          default: return 'polymarket_get_markets'
+          case 'get_markets':
+            return 'polymarket_get_markets'
+          case 'get_market':
+            return 'polymarket_get_market'
+          case 'get_events':
+            return 'polymarket_get_events'
+          case 'get_event':
+            return 'polymarket_get_event'
+          case 'get_tags':
+            return 'polymarket_get_tags'
+          case 'search':
+            return 'polymarket_search'
+          case 'get_series':
+            return 'polymarket_get_series'
+          case 'get_series_by_id':
+            return 'polymarket_get_series_by_id'
+          case 'get_orderbook':
+            return 'polymarket_get_orderbook'
+          case 'get_price':
+            return 'polymarket_get_price'
+          case 'get_midpoint':
+            return 'polymarket_get_midpoint'
+          case 'get_price_history':
+            return 'polymarket_get_price_history'
+          case 'get_last_trade_price':
+            return 'polymarket_get_last_trade_price'
+          case 'get_spread':
+            return 'polymarket_get_spread'
+          case 'get_tick_size':
+            return 'polymarket_get_tick_size'
+          case 'get_positions':
+            return 'polymarket_get_positions'
+          case 'get_trades':
+            return 'polymarket_get_trades'
+          case 'get_activity':
+            return 'polymarket_get_activity'
+          case 'get_leaderboard':
+            return 'polymarket_get_leaderboard'
+          case 'get_holders':
+            return 'polymarket_get_holders'
+          default:
+            return 'polymarket_get_markets'
         }
       },
       params: (params) => {
@@ -635,7 +662,8 @@ export const PolymarketBlock: BlockConfig = {
         if (operation === 'get_event' && eventSlug) cleanParams.slug = eventSlug
         if (operation === 'get_markets' && order) cleanParams.order = order
         else if (operation === 'get_events' && orderEvents) cleanParams.order = orderEvents
-        if (['get_positions', 'get_trades'].includes(operation as string) && positionEventId) cleanParams.eventId = positionEventId
+        if (['get_positions', 'get_trades'].includes(operation as string) && positionEventId)
+          cleanParams.eventId = positionEventId
         if (operation === 'get_trades' && tradeSide) cleanParams.side = tradeSide
         if (operation === 'get_positions') {
           if (positionSortBy) cleanParams.sortBy = positionSortBy
@@ -668,9 +696,9 @@ export const PolymarketBlock: BlockConfig = {
           if (rest.fidelity) cleanParams.fidelity = Number(rest.fidelity)
           if (rest.startTs) cleanParams.startTs = Number(rest.startTs)
           if (rest.endTs) cleanParams.endTs = Number(rest.endTs)
-          delete rest.fidelity
-          delete rest.startTs
-          delete rest.endTs
+          rest.fidelity = undefined
+          rest.startTs = undefined
+          rest.endTs = undefined
         }
 
         for (const [key, value] of Object.entries(rest)) {

@@ -270,9 +270,18 @@ export const GrainBlock: BlockConfig = {
     recordingId: { type: 'string', description: 'Recording UUID' },
     cursor: { type: 'string', description: 'Pagination cursor' },
     viewId: { type: 'string', description: 'Grain view UUID for webhook subscriptions' },
-    beforeDatetime: { type: 'string', description: 'Filter recordings before this ISO8601 timestamp' },
-    afterDatetime: { type: 'string', description: 'Filter recordings after this ISO8601 timestamp' },
-    participantScope: { type: 'string', description: 'Filter by participant scope (internal/external)' },
+    beforeDatetime: {
+      type: 'string',
+      description: 'Filter recordings before this ISO8601 timestamp',
+    },
+    afterDatetime: {
+      type: 'string',
+      description: 'Filter recordings after this ISO8601 timestamp',
+    },
+    participantScope: {
+      type: 'string',
+      description: 'Filter by participant scope (internal/external)',
+    },
     titleSearch: { type: 'string', description: 'Search recordings by title' },
     teamId: { type: 'string', description: 'Filter by team UUID' },
     meetingTypeId: { type: 'string', description: 'Filter by meeting type UUID' },

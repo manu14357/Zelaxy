@@ -1,7 +1,6 @@
 'use client'
 
 import type React from 'react'
-import { useEffect, useRef, useState } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { storageToDisplay } from '../../../utils'
@@ -30,7 +29,12 @@ export function resolveCellRender({ value, column }: ResolveCellRenderInput): Ce
   if (column.type === 'string') {
     const text = stringifyValue(value)
     if (/^https?:\/\//i.test(text.trim())) {
-      try { new URL(text.trim()); return { kind: 'url', text, href: text.trim() } } catch { /* not a URL */ }
+      try {
+        new URL(text.trim())
+        return { kind: 'url', text, href: text.trim() }
+      } catch {
+        /* not a URL */
+      }
     }
     return { kind: 'text', text }
   }
@@ -54,7 +58,10 @@ export function CellRender({ kind, isEditing }: CellRenderProps): React.ReactEle
       return (
         <div
           data-boolean-cell-toggle
-          className={cn('flex min-h-[20px] w-full items-center justify-center', isEditing && 'invisible')}
+          className={cn(
+            'flex min-h-[20px] w-full items-center justify-center',
+            isEditing && 'invisible'
+          )}
         >
           <Checkbox checked={kind.checked} className='pointer-events-none h-3.5 w-3.5' />
         </div>
@@ -62,7 +69,12 @@ export function CellRender({ kind, isEditing }: CellRenderProps): React.ReactEle
 
     case 'json':
       return (
-        <span className={cn('block overflow-clip text-ellipsis text-foreground', isEditing && 'invisible')}>
+        <span
+          className={cn(
+            'block overflow-clip text-ellipsis text-foreground',
+            isEditing && 'invisible'
+          )}
+        >
           {kind.text}
         </span>
       )
@@ -93,7 +105,12 @@ export function CellRender({ kind, isEditing }: CellRenderProps): React.ReactEle
 
     case 'text':
       return (
-        <span className={cn('block overflow-clip text-ellipsis text-foreground', isEditing && 'invisible')}>
+        <span
+          className={cn(
+            'block overflow-clip text-ellipsis text-foreground',
+            isEditing && 'invisible'
+          )}
+        >
           {kind.text}
         </span>
       )

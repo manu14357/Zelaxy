@@ -173,8 +173,14 @@ export const granolaGetNoteTool: ToolConfig<GranolaGetNoteParams, GranolaGetNote
         updatedAt: data.updated_at ?? '',
         summaryText: data.summary_text ?? '',
         summaryMarkdown: data.summary_markdown ?? null,
-        attendees: (data.attendees ?? []).map((a: any) => ({ name: a.name ?? null, email: a.email ?? '' })),
-        folders: (data.folder_membership ?? []).map((f: any) => ({ id: f.id ?? '', name: f.name ?? '' })),
+        attendees: (data.attendees ?? []).map((a: any) => ({
+          name: a.name ?? null,
+          email: a.email ?? '',
+        })),
+        folders: (data.folder_membership ?? []).map((f: any) => ({
+          id: f.id ?? '',
+          name: f.name ?? '',
+        })),
         calendarEventTitle: data.calendar_event?.event_title ?? null,
         calendarOrganiser: data.calendar_event?.organiser ?? null,
         calendarEventId: data.calendar_event?.calendar_event_id ?? null,

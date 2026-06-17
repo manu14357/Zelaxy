@@ -18,12 +18,7 @@
       "knowledgeBase",
       "memoryId"
     ],
-    "outputs": [
-      "content",
-      "model",
-      "tokens",
-      "tool_calls"
-    ],
+    "outputs": ["content", "model", "tokens", "tool_calls"],
     "tools": [
       "openai_chat",
       "anthropic_chat",
@@ -63,11 +58,7 @@
       "sortDirection",
       "maxRecords"
     ],
-    "outputs": [
-      "records",
-      "recordId",
-      "fields"
-    ],
+    "outputs": ["records", "recordId", "fields"],
     "tools": [
       "airtable_list_records",
       "airtable_get_record",
@@ -77,9 +68,7 @@
     ],
     "requiresAuth": true,
     "authType": "oauth (provider: airtable)",
-    "specialFeatures": [
-      "trigger support (airtable_webhook)"
-    ]
+    "specialFeatures": ["trigger support (airtable_webhook)"]
   },
   {
     "id": "api",
@@ -87,26 +76,12 @@
     "description": "Make HTTP requests to external APIs",
     "category": "blocks",
     "bgColor": "#2F55FF",
-    "subBlocks": [
-      "url",
-      "method",
-      "headers",
-      "body",
-      "params"
-    ],
-    "outputs": [
-      "status",
-      "data",
-      "headers"
-    ],
-    "tools": [
-      "http_request"
-    ],
+    "subBlocks": ["url", "method", "headers", "body", "params"],
+    "outputs": ["status", "data", "headers"],
+    "tools": ["http_request"],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "wandConfig AI generation for body"
-    ]
+    "specialFeatures": ["wandConfig AI generation for body"]
   },
   {
     "id": "arxiv",
@@ -123,15 +98,8 @@
       "sortOrder",
       "authorId"
     ],
-    "outputs": [
-      "papers",
-      "totalResults"
-    ],
-    "tools": [
-      "arxiv_search",
-      "arxiv_get_paper",
-      "arxiv_get_author_papers"
-    ],
+    "outputs": ["papers", "totalResults"],
+    "tools": ["arxiv_search", "arxiv_get_paper", "arxiv_get_author_papers"],
     "requiresAuth": false,
     "authType": "none",
     "specialFeatures": []
@@ -142,18 +110,9 @@
     "description": "Automate browser tasks using AI",
     "category": "tools",
     "bgColor": "#FF6B2C",
-    "subBlocks": [
-      "task",
-      "apiKey",
-      "maxSteps"
-    ],
-    "outputs": [
-      "result",
-      "steps"
-    ],
-    "tools": [
-      "browser_use_run_task"
-    ],
+    "subBlocks": ["task", "apiKey", "maxSteps"],
+    "outputs": ["result", "steps"],
+    "tools": ["browser_use_run_task"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -164,17 +123,9 @@
     "description": "Enrich data using Clay tables",
     "category": "tools",
     "bgColor": "#E0E0E0",
-    "subBlocks": [
-      "authToken",
-      "tableId",
-      "data"
-    ],
-    "outputs": [
-      "result"
-    ],
-    "tools": [
-      "clay_populate"
-    ],
+    "subBlocks": ["authToken", "tableId", "data"],
+    "outputs": ["result"],
+    "tools": ["clay_populate"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -185,29 +136,12 @@
     "description": "Boolean expression or LLM-as-Judge conditional branching",
     "category": "blocks",
     "bgColor": "#FF752F",
-    "subBlocks": [
-      "conditionMode",
-      "expression",
-      "context",
-      "instructions",
-      "model",
-      "apiKey"
-    ],
-    "outputs": [
-      "result"
-    ],
-    "tools": [
-      "openai_chat",
-      "anthropic_chat",
-      "google_chat"
-    ],
+    "subBlocks": ["conditionMode", "expression", "context", "instructions", "model", "apiKey"],
+    "outputs": ["result"],
+    "tools": ["openai_chat", "anthropic_chat", "google_chat"],
     "requiresAuth": false,
     "authType": "optional api-key (LLM judge mode)",
-    "specialFeatures": [
-      "boolean evaluation mode",
-      "LLM-as-Judge mode",
-      "wandConfig AI generation"
-    ]
+    "specialFeatures": ["boolean evaluation mode", "LLM-as-Judge mode", "wandConfig AI generation"]
   },
   {
     "id": "confluence",
@@ -224,17 +158,8 @@
       "content",
       "parentPageId"
     ],
-    "outputs": [
-      "pageId",
-      "title",
-      "content",
-      "spaceKey",
-      "version"
-    ],
-    "tools": [
-      "confluence_retrieve",
-      "confluence_update"
-    ],
+    "outputs": ["pageId", "title", "content", "spaceKey", "version"],
+    "tools": ["confluence_retrieve", "confluence_update"],
     "requiresAuth": true,
     "authType": "oauth (provider: confluence)",
     "specialFeatures": []
@@ -257,13 +182,7 @@
       "embedColor",
       "limit"
     ],
-    "outputs": [
-      "messageId",
-      "content",
-      "messages",
-      "serverInfo",
-      "userInfo"
-    ],
+    "outputs": ["messageId", "content", "messages", "serverInfo", "userInfo"],
     "tools": [
       "discord_send_message",
       "discord_get_messages",
@@ -280,19 +199,9 @@
     "description": "Generate speech from text",
     "category": "tools",
     "bgColor": "#181C1E",
-    "subBlocks": [
-      "text",
-      "voiceId",
-      "modelId",
-      "apiKey"
-    ],
-    "outputs": [
-      "audioUrl",
-      "contentType"
-    ],
-    "tools": [
-      "elevenlabs_tts"
-    ],
+    "subBlocks": ["text", "voiceId", "modelId", "apiKey"],
+    "outputs": ["audioUrl", "contentType"],
+    "tools": ["elevenlabs_tts"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -303,28 +212,12 @@
     "description": "Evaluate and score content with AI",
     "category": "tools",
     "bgColor": "#4D5FFF",
-    "subBlocks": [
-      "content",
-      "criteria",
-      "model",
-      "apiKey",
-      "systemPrompt"
-    ],
-    "outputs": [
-      "score",
-      "feedback",
-      "content"
-    ],
-    "tools": [
-      "openai_chat",
-      "anthropic_chat",
-      "google_chat"
-    ],
+    "subBlocks": ["content", "criteria", "model", "apiKey", "systemPrompt"],
+    "outputs": ["score", "feedback", "content"],
+    "tools": ["openai_chat", "anthropic_chat", "google_chat"],
     "requiresAuth": true,
     "authType": "api-key",
-    "specialFeatures": [
-      "uses LLM models for evaluation scoring"
-    ]
+    "specialFeatures": ["uses LLM models for evaluation scoring"]
   },
   {
     "id": "exa",
@@ -342,13 +235,7 @@
       "startPublishedDate",
       "endPublishedDate"
     ],
-    "outputs": [
-      "results",
-      "contents",
-      "links",
-      "answer",
-      "citations"
-    ],
+    "outputs": ["results", "contents", "links", "answer", "citations"],
     "tools": [
       "exa_search",
       "exa_get_contents",
@@ -366,23 +253,12 @@
     "description": "Parse files from URLs or uploads",
     "category": "tools",
     "bgColor": "#E0E0E0",
-    "subBlocks": [
-      "operation",
-      "filePath"
-    ],
-    "outputs": [
-      "content",
-      "fileName",
-      "mimeType"
-    ],
-    "tools": [
-      "file_parser"
-    ],
+    "subBlocks": ["operation", "filePath"],
+    "outputs": ["content", "fileName", "mimeType"],
+    "tools": ["file_parser"],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "supports URL and file upload"
-    ]
+    "specialFeatures": ["supports URL and file upload"]
   },
   {
     "id": "firecrawl",
@@ -390,25 +266,9 @@
     "description": "Scrape, search, and crawl websites",
     "category": "tools",
     "bgColor": "#FF6B2C",
-    "subBlocks": [
-      "operation",
-      "url",
-      "query",
-      "apiKey",
-      "limit",
-      "maxDepth"
-    ],
-    "outputs": [
-      "content",
-      "markdown",
-      "metadata",
-      "results"
-    ],
-    "tools": [
-      "firecrawl_scrape",
-      "firecrawl_search",
-      "firecrawl_crawl"
-    ],
+    "subBlocks": ["operation", "url", "query", "apiKey", "limit", "maxDepth"],
+    "outputs": ["content", "markdown", "metadata", "results"],
+    "tools": ["firecrawl_scrape", "firecrawl_search", "firecrawl_crawl"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -419,20 +279,12 @@
     "description": "Run custom JavaScript code",
     "category": "blocks",
     "bgColor": "#FF402F",
-    "subBlocks": [
-      "code"
-    ],
-    "outputs": [
-      "result"
-    ],
-    "tools": [
-      "function_execute"
-    ],
+    "subBlocks": ["code"],
+    "outputs": ["result"],
+    "tools": ["function_execute"],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "wandConfig AI generation for code"
-    ]
+    "specialFeatures": ["wandConfig AI generation for code"]
   },
   {
     "id": "generic_webhook",
@@ -440,21 +292,12 @@
     "description": "Receive data from external services via webhook",
     "category": "triggers",
     "bgColor": "#10B981",
-    "subBlocks": [
-      "webhookConfig"
-    ],
-    "outputs": [
-      "body",
-      "headers",
-      "method",
-      "query"
-    ],
+    "subBlocks": ["webhookConfig"],
+    "outputs": ["body", "headers", "method", "query"],
     "tools": [],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "trigger block (generic_webhook)"
-    ]
+    "specialFeatures": ["trigger block (generic_webhook)"]
   },
   {
     "id": "github",
@@ -474,24 +317,11 @@
       "issueNumber",
       "commentBody"
     ],
-    "outputs": [
-      "prUrl",
-      "prNumber",
-      "commentId",
-      "repoInfo",
-      "commitInfo"
-    ],
-    "tools": [
-      "github_pr",
-      "github_comment",
-      "github_repo_info",
-      "github_latest_commit"
-    ],
+    "outputs": ["prUrl", "prNumber", "commentId", "repoInfo", "commitInfo"],
+    "tools": ["github_pr", "github_comment", "github_repo_info", "github_latest_commit"],
     "requiresAuth": true,
     "authType": "api-key (GitHub token)",
-    "specialFeatures": [
-      "trigger support (github_webhook)"
-    ]
+    "specialFeatures": ["trigger support (github_webhook)"]
   },
   {
     "id": "gmail",
@@ -511,27 +341,11 @@
       "query",
       "maxResults"
     ],
-    "outputs": [
-      "messageId",
-      "threadId",
-      "labelIds",
-      "messages",
-      "subject",
-      "from",
-      "to",
-      "body"
-    ],
-    "tools": [
-      "gmail_send",
-      "gmail_draft",
-      "gmail_read",
-      "gmail_search"
-    ],
+    "outputs": ["messageId", "threadId", "labelIds", "messages", "subject", "from", "to", "body"],
+    "tools": ["gmail_send", "gmail_draft", "gmail_read", "gmail_search"],
     "requiresAuth": true,
     "authType": "oauth (provider: google-email)",
-    "specialFeatures": [
-      "trigger support (gmail_poller)"
-    ]
+    "specialFeatures": ["trigger support (gmail_poller)"]
   },
   {
     "id": "google_search",
@@ -539,17 +353,9 @@
     "description": "Search the web with Google",
     "category": "tools",
     "bgColor": "#4285F4",
-    "subBlocks": [
-      "query",
-      "apiKey",
-      "maxResults"
-    ],
-    "outputs": [
-      "results"
-    ],
-    "tools": [
-      "google_search"
-    ],
+    "subBlocks": ["query", "apiKey", "maxResults"],
+    "outputs": ["results"],
+    "tools": ["google_search"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -572,13 +378,7 @@
       "eventId",
       "text"
     ],
-    "outputs": [
-      "eventId",
-      "htmlLink",
-      "events",
-      "summary",
-      "status"
-    ],
+    "outputs": ["eventId", "htmlLink", "events", "summary", "status"],
     "tools": [
       "google_calendar_create",
       "google_calendar_list",
@@ -596,30 +396,12 @@
     "description": "Read and write Google Docs",
     "category": "tools",
     "bgColor": "#4285F4",
-    "subBlocks": [
-      "operation",
-      "credential",
-      "documentId",
-      "fileSelector",
-      "title",
-      "body"
-    ],
-    "outputs": [
-      "content",
-      "title",
-      "documentId",
-      "documentUrl"
-    ],
-    "tools": [
-      "google_docs_read",
-      "google_docs_write",
-      "google_docs_create"
-    ],
+    "subBlocks": ["operation", "credential", "documentId", "fileSelector", "title", "body"],
+    "outputs": ["content", "title", "documentId", "documentUrl"],
+    "tools": ["google_docs_read", "google_docs_write", "google_docs_create"],
     "requiresAuth": true,
     "authType": "oauth (provider: google-docs)",
-    "specialFeatures": [
-      "file selector integration"
-    ]
+    "specialFeatures": ["file selector integration"]
   },
   {
     "id": "google_drive",
@@ -638,22 +420,11 @@
       "folderName",
       "parentFolderId"
     ],
-    "outputs": [
-      "fileId",
-      "webViewLink",
-      "mimeType",
-      "files"
-    ],
-    "tools": [
-      "google_drive_upload",
-      "google_drive_create_folder",
-      "google_drive_list"
-    ],
+    "outputs": ["fileId", "webViewLink", "mimeType", "files"],
+    "tools": ["google_drive_upload", "google_drive_create_folder", "google_drive_list"],
     "requiresAuth": true,
     "authType": "oauth (provider: google-drive)",
-    "specialFeatures": [
-      "file selector integration"
-    ]
+    "specialFeatures": ["file selector integration"]
   },
   {
     "id": "google_sheets",
@@ -670,13 +441,7 @@
       "values",
       "valueInputOption"
     ],
-    "outputs": [
-      "values",
-      "updatedRange",
-      "updatedRows",
-      "updatedCells",
-      "spreadsheetId"
-    ],
+    "outputs": ["values", "updatedRange", "updatedRows", "updatedCells", "spreadsheetId"],
     "tools": [
       "google_sheets_read",
       "google_sheets_write",
@@ -685,9 +450,7 @@
     ],
     "requiresAuth": true,
     "authType": "oauth (provider: google-sheets)",
-    "specialFeatures": [
-      "file selector integration"
-    ]
+    "specialFeatures": ["file selector integration"]
   },
   {
     "id": "guardrails",
@@ -706,11 +469,7 @@
       "model",
       "piiEntities"
     ],
-    "outputs": [
-      "isValid",
-      "validationResult",
-      "errors"
-    ],
+    "outputs": ["isValid", "validationResult", "errors"],
     "tools": [],
     "requiresAuth": false,
     "authType": "optional api-key (hallucination check)",
@@ -725,22 +484,9 @@
     "description": "Chat with Hugging Face models",
     "category": "tools",
     "bgColor": "#FFD21E",
-    "subBlocks": [
-      "model",
-      "systemPrompt",
-      "context",
-      "apiKey",
-      "temperature",
-      "maxTokens"
-    ],
-    "outputs": [
-      "content",
-      "model",
-      "tokens"
-    ],
-    "tools": [
-      "huggingface_chat"
-    ],
+    "subBlocks": ["model", "systemPrompt", "context", "apiKey", "temperature", "maxTokens"],
+    "outputs": ["content", "model", "tokens"],
+    "tools": ["huggingface_chat"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -761,13 +507,7 @@
       "company",
       "limit"
     ],
-    "outputs": [
-      "emails",
-      "email",
-      "score",
-      "result",
-      "data"
-    ],
+    "outputs": ["emails", "email", "score", "result", "data"],
     "tools": [
       "hunter_domain_search",
       "hunter_email_finder",
@@ -786,21 +526,9 @@
     "description": "Generate images with AI models",
     "category": "tools",
     "bgColor": "#10A37F",
-    "subBlocks": [
-      "prompt",
-      "apiKey",
-      "model",
-      "size",
-      "quality",
-      "n"
-    ],
-    "outputs": [
-      "imageUrl",
-      "revisedPrompt"
-    ],
-    "tools": [
-      "openai_image"
-    ],
+    "subBlocks": ["prompt", "apiKey", "model", "size", "quality", "n"],
+    "outputs": ["imageUrl", "revisedPrompt"],
+    "tools": ["openai_image"],
     "requiresAuth": true,
     "authType": "api-key (OpenAI)",
     "specialFeatures": []
@@ -811,19 +539,8 @@
     "description": "Search and catalog images",
     "category": "tools",
     "bgColor": "#4D5FFF",
-    "subBlocks": [
-      "operation",
-      "apiKey",
-      "catalogName",
-      "images",
-      "query",
-      "maxResults"
-    ],
-    "outputs": [
-      "results",
-      "catalogId",
-      "status"
-    ],
+    "subBlocks": ["operation", "apiKey", "catalogName", "images", "query", "maxResults"],
+    "outputs": ["results", "catalogId", "status"],
     "tools": [
       "image_search_catalog",
       "image_search_ingest",
@@ -840,18 +557,9 @@
     "description": "Read and extract content from URLs",
     "category": "tools",
     "bgColor": "#FF6B2C",
-    "subBlocks": [
-      "url",
-      "apiKey"
-    ],
-    "outputs": [
-      "content",
-      "title",
-      "url"
-    ],
-    "tools": [
-      "jina_read_url"
-    ],
+    "subBlocks": ["url", "apiKey"],
+    "outputs": ["content", "title", "url"],
+    "tools": ["jina_read_url"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -873,19 +581,8 @@
       "status",
       "jql"
     ],
-    "outputs": [
-      "issueKey",
-      "issueId",
-      "summary",
-      "status",
-      "issues"
-    ],
-    "tools": [
-      "jira_retrieve",
-      "jira_update",
-      "jira_write",
-      "jira_bulk_read"
-    ],
+    "outputs": ["issueKey", "issueId", "summary", "status", "issues"],
+    "tools": ["jira_retrieve", "jira_update", "jira_write", "jira_bulk_read"],
     "requiresAuth": true,
     "authType": "oauth (provider: jira)",
     "specialFeatures": []
@@ -896,29 +593,12 @@
     "description": "Search and manage knowledge base documents",
     "category": "blocks",
     "bgColor": "#00B0B0",
-    "subBlocks": [
-      "operation",
-      "knowledgeBase",
-      "query",
-      "topK",
-      "content",
-      "title"
-    ],
-    "outputs": [
-      "results",
-      "documentId",
-      "chunks"
-    ],
-    "tools": [
-      "knowledge_search",
-      "knowledge_upload_chunk",
-      "knowledge_create_document"
-    ],
+    "subBlocks": ["operation", "knowledgeBase", "query", "topK", "content", "title"],
+    "outputs": ["results", "documentId", "chunks"],
+    "tools": ["knowledge_search", "knowledge_upload_chunk", "knowledge_create_document"],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "knowledge base selector"
-    ]
+    "specialFeatures": ["knowledge base selector"]
   },
   {
     "id": "linear",
@@ -937,21 +617,11 @@
       "priority",
       "assigneeId"
     ],
-    "outputs": [
-      "issueId",
-      "issueUrl",
-      "title",
-      "issues"
-    ],
-    "tools": [
-      "linear_read_issues",
-      "linear_create_issue"
-    ],
+    "outputs": ["issueId", "issueUrl", "title", "issues"],
+    "tools": ["linear_read_issues", "linear_create_issue"],
     "requiresAuth": true,
     "authType": "oauth (provider: linear)",
-    "specialFeatures": [
-      "project selector integration"
-    ]
+    "specialFeatures": ["project selector integration"]
   },
   {
     "id": "linkup",
@@ -959,19 +629,9 @@
     "description": "Search the web with Linkup",
     "category": "tools",
     "bgColor": "#2F55FF",
-    "subBlocks": [
-      "query",
-      "apiKey",
-      "depth",
-      "outputType"
-    ],
-    "outputs": [
-      "results",
-      "answer"
-    ],
-    "tools": [
-      "linkup_search"
-    ],
+    "subBlocks": ["query", "apiKey", "depth", "outputType"],
+    "outputs": ["results", "answer"],
+    "tools": ["linkup_search"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -982,24 +642,12 @@
     "description": "Iterate over items or repeat a fixed number of times",
     "category": "blocks",
     "bgColor": "#2FB3FF",
-    "subBlocks": [
-      "loopType",
-      "iterations",
-      "collection",
-      "loopVariable"
-    ],
-    "outputs": [
-      "currentItem",
-      "currentIndex",
-      "isComplete"
-    ],
+    "subBlocks": ["loopType", "iterations", "collection", "loopVariable"],
+    "outputs": ["currentItem", "currentIndex", "isComplete"],
     "tools": [],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "for/forEach loop types",
-      "nested block execution"
-    ]
+    "specialFeatures": ["for/forEach loop types", "nested block execution"]
   },
   {
     "id": "mcp",
@@ -1018,23 +666,11 @@
       "toolName",
       "toolArgs"
     ],
-    "outputs": [
-      "result",
-      "tools",
-      "resources"
-    ],
-    "tools": [
-      "mcp_call_tool",
-      "mcp_list_tools",
-      "mcp_list_resources",
-      "mcp_read_resource"
-    ],
+    "outputs": ["result", "tools", "resources"],
+    "tools": ["mcp_call_tool", "mcp_list_tools", "mcp_list_resources", "mcp_read_resource"],
     "requiresAuth": false,
     "authType": "configurable (depends on MCP server)",
-    "specialFeatures": [
-      "supports stdio/sse/http transports",
-      "dynamic tool discovery"
-    ]
+    "specialFeatures": ["supports stdio/sse/http transports", "dynamic tool discovery"]
   },
   {
     "id": "mem0",
@@ -1042,24 +678,9 @@
     "description": "AI memory layer for persistent context",
     "category": "tools",
     "bgColor": "#6366f1",
-    "subBlocks": [
-      "operation",
-      "apiKey",
-      "userId",
-      "messages",
-      "query",
-      "memoryId"
-    ],
-    "outputs": [
-      "memories",
-      "results",
-      "memory"
-    ],
-    "tools": [
-      "mem0_add_memories",
-      "mem0_search_memories",
-      "mem0_get_memories"
-    ],
+    "subBlocks": ["operation", "apiKey", "userId", "messages", "query", "memoryId"],
+    "outputs": ["memories", "results", "memory"],
+    "tools": ["mem0_add_memories", "mem0_search_memories", "mem0_get_memories"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -1070,29 +691,12 @@
     "description": "Store and retrieve key-value data across workflows",
     "category": "blocks",
     "bgColor": "#F64F9E",
-    "subBlocks": [
-      "operation",
-      "key",
-      "value",
-      "prefix"
-    ],
-    "outputs": [
-      "value",
-      "success",
-      "keys",
-      "values"
-    ],
-    "tools": [
-      "memory_add",
-      "memory_get",
-      "memory_get_all",
-      "memory_delete"
-    ],
+    "subBlocks": ["operation", "key", "value", "prefix"],
+    "outputs": ["value", "success", "keys", "values"],
+    "tools": ["memory_add", "memory_get", "memory_get_all", "memory_delete"],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "persistent key-value storage"
-    ]
+    "specialFeatures": ["persistent key-value storage"]
   },
   {
     "id": "microsoft_excel",
@@ -1111,12 +715,7 @@
       "tableName",
       "rows"
     ],
-    "outputs": [
-      "values",
-      "updatedRange",
-      "tableId",
-      "rowIndex"
-    ],
+    "outputs": ["values", "updatedRange", "tableId", "rowIndex"],
     "tools": [
       "microsoft_excel_read",
       "microsoft_excel_write",
@@ -1125,9 +724,7 @@
     ],
     "requiresAuth": true,
     "authType": "oauth (provider: microsoft-excel)",
-    "specialFeatures": [
-      "file selector integration"
-    ]
+    "specialFeatures": ["file selector integration"]
   },
   {
     "id": "microsoft_planner",
@@ -1147,20 +744,11 @@
       "assigneeIds",
       "dueDateTime"
     ],
-    "outputs": [
-      "taskId",
-      "title",
-      "tasks"
-    ],
-    "tools": [
-      "microsoft_planner_read_task",
-      "microsoft_planner_create_task"
-    ],
+    "outputs": ["taskId", "title", "tasks"],
+    "tools": ["microsoft_planner_read_task", "microsoft_planner_create_task"],
     "requiresAuth": true,
     "authType": "oauth (provider: microsoft-planner)",
-    "specialFeatures": [
-      "plan and bucket selectors"
-    ]
+    "specialFeatures": ["plan and bucket selectors"]
   },
   {
     "id": "microsoft_teams",
@@ -1168,20 +756,8 @@
     "description": "Read and send messages in Microsoft Teams",
     "category": "tools",
     "bgColor": "#6264A7",
-    "subBlocks": [
-      "operation",
-      "credential",
-      "chatId",
-      "channelId",
-      "teamId",
-      "message",
-      "limit"
-    ],
-    "outputs": [
-      "messageId",
-      "messages",
-      "chatId"
-    ],
+    "subBlocks": ["operation", "credential", "chatId", "channelId", "teamId", "message", "limit"],
+    "outputs": ["messageId", "messages", "chatId"],
     "tools": [
       "microsoft_teams_read_chat",
       "microsoft_teams_write_chat",
@@ -1190,9 +766,7 @@
     ],
     "requiresAuth": true,
     "authType": "oauth (provider: microsoft-teams)",
-    "specialFeatures": [
-      "trigger support (microsoftteams_webhook)"
-    ]
+    "specialFeatures": ["trigger support (microsoftteams_webhook)"]
   },
   {
     "id": "mistral_parse",
@@ -1200,19 +774,9 @@
     "description": "Parse documents with Mistral AI",
     "category": "tools",
     "bgColor": "#FF7000",
-    "subBlocks": [
-      "document",
-      "apiKey",
-      "resultType",
-      "pages"
-    ],
-    "outputs": [
-      "content",
-      "pages"
-    ],
-    "tools": [
-      "mistral_parser"
-    ],
+    "subBlocks": ["document", "apiKey", "resultType", "pages"],
+    "outputs": ["content", "pages"],
+    "tools": ["mistral_parser"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -1235,19 +799,11 @@
       "data",
       "whereClause"
     ],
-    "outputs": [
-      "results",
-      "rowCount",
-      "message"
-    ],
-    "tools": [
-      "mssql_connector"
-    ],
+    "outputs": ["results", "rowCount", "message"],
+    "tools": ["mssql_connector"],
     "requiresAuth": true,
     "authType": "username/password",
-    "specialFeatures": [
-      "wandConfig AI generation for SQL queries"
-    ]
+    "specialFeatures": ["wandConfig AI generation for SQL queries"]
   },
   {
     "id": "notion",
@@ -1266,14 +822,7 @@
       "sorts",
       "query"
     ],
-    "outputs": [
-      "pageId",
-      "title",
-      "content",
-      "pages",
-      "databases",
-      "results"
-    ],
+    "outputs": ["pageId", "title", "content", "pages", "databases", "results"],
     "tools": [
       "notion_read",
       "notion_read_database",
@@ -1303,21 +852,11 @@
       "folderName",
       "parentFolderId"
     ],
-    "outputs": [
-      "fileId",
-      "webUrl",
-      "files"
-    ],
-    "tools": [
-      "onedrive_upload",
-      "onedrive_create_folder",
-      "onedrive_list"
-    ],
+    "outputs": ["fileId", "webUrl", "files"],
+    "tools": ["onedrive_upload", "onedrive_create_folder", "onedrive_list"],
     "requiresAuth": true,
     "authType": "oauth (provider: onedrive)",
-    "specialFeatures": [
-      "file selector integration"
-    ]
+    "specialFeatures": ["file selector integration"]
   },
   {
     "id": "openai",
@@ -1325,18 +864,9 @@
     "description": "Generate text embeddings with OpenAI",
     "category": "tools",
     "bgColor": "#10A37F",
-    "subBlocks": [
-      "input",
-      "apiKey",
-      "model"
-    ],
-    "outputs": [
-      "embedding",
-      "usage"
-    ],
-    "tools": [
-      "openai_embeddings"
-    ],
+    "subBlocks": ["input", "apiKey", "model"],
+    "outputs": ["embedding", "usage"],
+    "tools": ["openai_embeddings"],
     "requiresAuth": true,
     "authType": "api-key (OpenAI)",
     "specialFeatures": []
@@ -1359,24 +889,11 @@
       "folderId",
       "maxResults"
     ],
-    "outputs": [
-      "messageId",
-      "subject",
-      "from",
-      "to",
-      "body",
-      "messages"
-    ],
-    "tools": [
-      "outlook_send",
-      "outlook_draft",
-      "outlook_read"
-    ],
+    "outputs": ["messageId", "subject", "from", "to", "body", "messages"],
+    "tools": ["outlook_send", "outlook_draft", "outlook_read"],
     "requiresAuth": true,
     "authType": "oauth (provider: outlook)",
-    "specialFeatures": [
-      "trigger support (outlook_poller)"
-    ]
+    "specialFeatures": ["trigger support (outlook_poller)"]
   },
   {
     "id": "parallel",
@@ -1384,22 +901,12 @@
     "description": "Execute blocks in parallel",
     "category": "blocks",
     "bgColor": "#FEE12B",
-    "subBlocks": [
-      "parallelType",
-      "count",
-      "collection"
-    ],
-    "outputs": [
-      "results",
-      "isComplete"
-    ],
+    "subBlocks": ["parallelType", "count", "collection"],
+    "outputs": ["results", "isComplete"],
     "tools": [],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "count/collection parallel types",
-      "nested block execution"
-    ]
+    "specialFeatures": ["count/collection parallel types", "nested block execution"]
   },
   {
     "id": "perplexity",
@@ -1407,23 +914,9 @@
     "description": "Chat with Perplexity AI search",
     "category": "tools",
     "bgColor": "#20808D",
-    "subBlocks": [
-      "systemPrompt",
-      "context",
-      "model",
-      "apiKey",
-      "temperature",
-      "maxTokens"
-    ],
-    "outputs": [
-      "content",
-      "model",
-      "tokens",
-      "citations"
-    ],
-    "tools": [
-      "perplexity_chat"
-    ],
+    "subBlocks": ["systemPrompt", "context", "model", "apiKey", "temperature", "maxTokens"],
+    "outputs": ["content", "model", "tokens", "citations"],
+    "tools": ["perplexity_chat"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -1446,11 +939,7 @@
       "filter",
       "ids"
     ],
-    "outputs": [
-      "matches",
-      "vectors",
-      "upsertedCount"
-    ],
+    "outputs": ["matches", "vectors", "upsertedCount"],
     "tools": [
       "pinecone_generate",
       "pinecone_upsert_text",
@@ -1479,15 +968,8 @@
       "filter",
       "ids"
     ],
-    "outputs": [
-      "points",
-      "result"
-    ],
-    "tools": [
-      "qdrant_upsert_points",
-      "qdrant_search_vector",
-      "qdrant_fetch_points"
-    ],
+    "outputs": ["points", "result"],
+    "tools": ["qdrant_upsert_points", "qdrant_search_vector", "qdrant_fetch_points"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -1498,23 +980,9 @@
     "description": "Read posts and comments from Reddit",
     "category": "tools",
     "bgColor": "#FF4500",
-    "subBlocks": [
-      "operation",
-      "credential",
-      "subreddit",
-      "postId",
-      "sort",
-      "time",
-      "limit"
-    ],
-    "outputs": [
-      "posts",
-      "comments"
-    ],
-    "tools": [
-      "reddit_get_posts",
-      "reddit_get_comments"
-    ],
+    "subBlocks": ["operation", "credential", "subreddit", "postId", "sort", "time", "limit"],
+    "outputs": ["posts", "comments"],
+    "tools": ["reddit_get_posts", "reddit_get_comments"],
     "requiresAuth": true,
     "authType": "oauth (provider: reddit)",
     "specialFeatures": []
@@ -1525,24 +993,12 @@
     "description": "Generate structured API response output",
     "category": "blocks",
     "bgColor": "#2F55FF",
-    "subBlocks": [
-      "responseFormat",
-      "statusCode",
-      "body",
-      "headers"
-    ],
-    "outputs": [
-      "status",
-      "body",
-      "headers"
-    ],
+    "subBlocks": ["responseFormat", "statusCode", "body", "headers"],
+    "outputs": ["status", "body", "headers"],
     "tools": [],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "wandConfig AI generation",
-      "structured response builder"
-    ]
+    "specialFeatures": ["wandConfig AI generation", "structured response builder"]
   },
   {
     "id": "router",
@@ -1550,28 +1006,12 @@
     "description": "AI-powered routing to different branches",
     "category": "blocks",
     "bgColor": "#28C43F",
-    "subBlocks": [
-      "context",
-      "instructions",
-      "routes",
-      "model",
-      "apiKey"
-    ],
-    "outputs": [
-      "selectedRoute",
-      "confidence"
-    ],
-    "tools": [
-      "openai_chat",
-      "anthropic_chat",
-      "google_chat"
-    ],
+    "subBlocks": ["context", "instructions", "routes", "model", "apiKey"],
+    "outputs": ["selectedRoute", "confidence"],
+    "tools": ["openai_chat", "anthropic_chat", "google_chat"],
     "requiresAuth": true,
     "authType": "api-key (per model provider)",
-    "specialFeatures": [
-      "AI-powered route selection",
-      "multiple LLM provider support"
-    ]
+    "specialFeatures": ["AI-powered route selection", "multiple LLM provider support"]
   },
   {
     "id": "switch",
@@ -1579,24 +1019,12 @@
     "description": "Deterministic multi-branch routing based on exact value matching",
     "category": "blocks",
     "bgColor": "#8B5CF6",
-    "subBlocks": [
-      "value",
-      "cases"
-    ],
-    "outputs": [
-      "matchedValue",
-      "selectedCaseId",
-      "selectedPath",
-      "inputValue"
-    ],
+    "subBlocks": ["value", "cases"],
+    "outputs": ["matchedValue", "selectedCaseId", "selectedPath", "inputValue"],
     "tools": [],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "dynamic case handles",
-      "exact string matching",
-      "default fallback"
-    ]
+    "specialFeatures": ["dynamic case handles", "exact string matching", "default fallback"]
   },
   {
     "id": "table",
@@ -1655,21 +1083,9 @@
     "description": "Get objects from Amazon S3",
     "category": "tools",
     "bgColor": "#FF9900",
-    "subBlocks": [
-      "accessKeyId",
-      "secretAccessKey",
-      "region",
-      "bucket",
-      "key"
-    ],
-    "outputs": [
-      "content",
-      "contentType",
-      "metadata"
-    ],
-    "tools": [
-      "s3_get_object"
-    ],
+    "subBlocks": ["accessKeyId", "secretAccessKey", "region", "bucket", "key"],
+    "outputs": ["content", "contentType", "metadata"],
+    "tools": ["s3_get_object"],
     "requiresAuth": true,
     "authType": "aws-credentials (accessKeyId/secretAccessKey)",
     "specialFeatures": []
@@ -1680,24 +1096,12 @@
     "description": "Trigger workflow on a schedule",
     "category": "triggers",
     "bgColor": "#7B68EE",
-    "subBlocks": [
-      "scheduleType",
-      "cronExpression",
-      "interval",
-      "timezone"
-    ],
-    "outputs": [
-      "scheduledTime",
-      "executionId"
-    ],
+    "subBlocks": ["scheduleType", "cronExpression", "interval", "timezone"],
+    "outputs": ["scheduledTime", "executionId"],
     "tools": [],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "cron expression support",
-      "interval scheduling",
-      "timezone configuration"
-    ]
+    "specialFeatures": ["cron expression support", "interval scheduling", "timezone configuration"]
   },
   {
     "id": "serper",
@@ -1705,21 +1109,9 @@
     "description": "Search Google with Serper API",
     "category": "tools",
     "bgColor": "#4D5FFF",
-    "subBlocks": [
-      "query",
-      "apiKey",
-      "type",
-      "num"
-    ],
-    "outputs": [
-      "results",
-      "organic",
-      "knowledgeGraph",
-      "answerBox"
-    ],
-    "tools": [
-      "serper_search"
-    ],
+    "subBlocks": ["query", "apiKey", "type", "num"],
+    "outputs": ["results", "organic", "knowledgeGraph", "answerBox"],
+    "tools": ["serper_search"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -1739,19 +1131,11 @@
       "pageContent",
       "manualSiteId"
     ],
-    "outputs": [
-      "sites"
-    ],
-    "tools": [
-      "sharepoint_create_page",
-      "sharepoint_read_page",
-      "sharepoint_list_sites"
-    ],
+    "outputs": ["sites"],
+    "tools": ["sharepoint_create_page", "sharepoint_read_page", "sharepoint_list_sites"],
     "requiresAuth": true,
     "authType": "oauth (provider: sharepoint)",
-    "specialFeatures": [
-      "file selector for site selection"
-    ]
+    "specialFeatures": ["file selector for site selection"]
   },
   {
     "id": "slack",
@@ -1785,11 +1169,7 @@
       "team_id",
       "event_id"
     ],
-    "tools": [
-      "slack_message",
-      "slack_canvas",
-      "slack_message_reader"
-    ],
+    "tools": ["slack_message", "slack_canvas", "slack_message_reader"],
     "requiresAuth": true,
     "authType": "oauth (provider: slack) or bot-token",
     "specialFeatures": [
@@ -1865,9 +1245,7 @@
       "queryLog",
       "loadStatus"
     ],
-    "tools": [
-      "snowflake_connector"
-    ],
+    "tools": ["snowflake_connector"],
     "requiresAuth": true,
     "authType": "credentials/oauth/keypair (multi-mode)",
     "specialFeatures": [
@@ -1890,23 +1268,12 @@
     "description": "Extract data from websites",
     "category": "tools",
     "bgColor": "#FFC83C",
-    "subBlocks": [
-      "url",
-      "instruction",
-      "apiKey",
-      "schema"
-    ],
-    "outputs": [
-      "data"
-    ],
-    "tools": [
-      "stagehand_extract"
-    ],
+    "subBlocks": ["url", "instruction", "apiKey", "schema"],
+    "outputs": ["data"],
+    "tools": ["stagehand_extract"],
     "requiresAuth": true,
     "authType": "api-key (OpenAI)",
-    "specialFeatures": [
-      "JSON schema-driven extraction"
-    ]
+    "specialFeatures": ["JSON schema-driven extraction"]
   },
   {
     "id": "stagehand_agent",
@@ -1914,20 +1281,9 @@
     "description": "Autonomous web browsing agent",
     "category": "tools",
     "bgColor": "#FFC83C",
-    "subBlocks": [
-      "startUrl",
-      "task",
-      "variables",
-      "apiKey",
-      "outputSchema"
-    ],
-    "outputs": [
-      "agentResult",
-      "structuredOutput"
-    ],
-    "tools": [
-      "stagehand_agent"
-    ],
+    "subBlocks": ["startUrl", "task", "variables", "apiKey", "outputSchema"],
+    "outputs": ["agentResult", "structuredOutput"],
+    "tools": ["stagehand_agent"],
     "requiresAuth": true,
     "authType": "api-key (Anthropic)",
     "specialFeatures": [
@@ -1942,18 +1298,12 @@
     "description": "Start workflow",
     "category": "blocks",
     "bgColor": "#2FB3FF",
-    "subBlocks": [
-      "startWorkflow",
-      "inputFormat"
-    ],
+    "subBlocks": ["startWorkflow", "inputFormat"],
     "outputs": [],
     "tools": [],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "manual or chat start modes",
-      "structured input format for API calls"
-    ]
+    "specialFeatures": ["manual or chat start modes", "structured input format for API calls"]
   },
   {
     "id": "supabase",
@@ -1971,10 +1321,7 @@
       "orderBy",
       "limit"
     ],
-    "outputs": [
-      "message",
-      "results"
-    ],
+    "outputs": ["message", "results"],
     "tools": [
       "supabase_query",
       "supabase_insert",
@@ -1984,9 +1331,7 @@
     ],
     "requiresAuth": true,
     "authType": "api-key (service role secret)",
-    "specialFeatures": [
-      "PostgREST filter syntax"
-    ]
+    "specialFeatures": ["PostgREST filter syntax"]
   },
   {
     "id": "tavily",
@@ -1994,26 +1339,9 @@
     "description": "Search and extract information",
     "category": "tools",
     "bgColor": "#0066FF",
-    "subBlocks": [
-      "operation",
-      "query",
-      "maxResults",
-      "urls",
-      "extract_depth",
-      "apiKey"
-    ],
-    "outputs": [
-      "results",
-      "answer",
-      "query",
-      "content",
-      "title",
-      "url"
-    ],
-    "tools": [
-      "tavily_search",
-      "tavily_extract"
-    ],
+    "subBlocks": ["operation", "query", "maxResults", "urls", "extract_depth", "apiKey"],
+    "outputs": ["results", "answer", "query", "content", "title", "url"],
+    "tools": ["tavily_search", "tavily_extract"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []
@@ -2024,12 +1352,7 @@
     "description": "Send messages through Telegram or trigger workflows from Telegram events",
     "category": "tools",
     "bgColor": "#E0E0E0",
-    "subBlocks": [
-      "botToken",
-      "chatId",
-      "text",
-      "triggerConfig"
-    ],
+    "subBlocks": ["botToken", "chatId", "text", "triggerConfig"],
     "outputs": [
       "ok",
       "result",
@@ -2052,14 +1375,10 @@
       "date",
       "entities"
     ],
-    "tools": [
-      "telegram_message"
-    ],
+    "tools": ["telegram_message"],
     "requiresAuth": true,
     "authType": "bot-token",
-    "specialFeatures": [
-      "trigger support (telegram_webhook)"
-    ]
+    "specialFeatures": ["trigger support (telegram_webhook)"]
   },
   {
     "id": "thinking",
@@ -2067,21 +1386,12 @@
     "description": "Forces model to outline its thought process",
     "category": "tools",
     "bgColor": "#181C1E",
-    "subBlocks": [
-      "thought"
-    ],
-    "outputs": [
-      "acknowledgedThought"
-    ],
-    "tools": [
-      "thinking_tool"
-    ],
+    "subBlocks": ["thought"],
+    "outputs": ["acknowledgedThought"],
+    "tools": ["thinking_tool"],
     "requiresAuth": false,
     "authType": "none",
-    "specialFeatures": [
-      "hidden from toolbar (hideFromToolbar: true)",
-      "hidden subBlock"
-    ]
+    "specialFeatures": ["hidden from toolbar (hideFromToolbar: true)", "hidden subBlock"]
   },
   {
     "id": "translate",
@@ -2089,23 +1399,9 @@
     "description": "Translate text to any language",
     "category": "tools",
     "bgColor": "#FF4B4B",
-    "subBlocks": [
-      "context",
-      "targetLanguage",
-      "model",
-      "apiKey",
-      "systemPrompt"
-    ],
-    "outputs": [
-      "content",
-      "model",
-      "tokens"
-    ],
-    "tools": [
-      "openai_chat",
-      "anthropic_chat",
-      "google_chat"
-    ],
+    "subBlocks": ["context", "targetLanguage", "model", "apiKey", "systemPrompt"],
+    "outputs": ["content", "model", "tokens"],
+    "tools": ["openai_chat", "anthropic_chat", "google_chat"],
     "requiresAuth": true,
     "authType": "api-key (per model provider)",
     "specialFeatures": [
@@ -2119,27 +1415,12 @@
     "description": "Send SMS messages",
     "category": "tools",
     "bgColor": "#F22F46",
-    "subBlocks": [
-      "phoneNumbers",
-      "message",
-      "accountSid",
-      "authToken",
-      "fromNumber"
-    ],
-    "outputs": [
-      "success",
-      "messageId",
-      "status",
-      "error"
-    ],
-    "tools": [
-      "twilio_send_sms"
-    ],
+    "subBlocks": ["phoneNumbers", "message", "accountSid", "authToken", "fromNumber"],
+    "outputs": ["success", "messageId", "status", "error"],
+    "tools": ["twilio_send_sms"],
     "requiresAuth": true,
     "authType": "account-sid + auth-token",
-    "specialFeatures": [
-      "multi-recipient support"
-    ]
+    "specialFeatures": ["multi-recipient support"]
   },
   {
     "id": "typeform",
@@ -2160,23 +1441,11 @@
       "filename",
       "inline"
     ],
-    "outputs": [
-      "total_items",
-      "page_count",
-      "items"
-    ],
-    "tools": [
-      "typeform_responses",
-      "typeform_files",
-      "typeform_insights"
-    ],
+    "outputs": ["total_items", "page_count", "items"],
+    "tools": ["typeform_responses", "typeform_files", "typeform_insights"],
     "requiresAuth": true,
     "authType": "api-key (personal access token)",
-    "specialFeatures": [
-      "response retrieval",
-      "file download",
-      "form insights"
-    ]
+    "specialFeatures": ["response retrieval", "file download", "form insights"]
   },
   {
     "id": "vision",
@@ -2184,25 +1453,12 @@
     "description": "Analyze images with vision models",
     "category": "tools",
     "bgColor": "#4D5FFF",
-    "subBlocks": [
-      "imageUrl",
-      "model",
-      "prompt",
-      "apiKey"
-    ],
-    "outputs": [
-      "content",
-      "model",
-      "tokens"
-    ],
-    "tools": [
-      "vision_tool"
-    ],
+    "subBlocks": ["imageUrl", "model", "prompt", "apiKey"],
+    "outputs": ["content", "model", "tokens"],
+    "tools": ["vision_tool"],
     "requiresAuth": true,
     "authType": "api-key",
-    "specialFeatures": [
-      "supports GPT-4o and Claude 3 vision models"
-    ]
+    "specialFeatures": ["supports GPT-4o and Claude 3 vision models"]
   },
   {
     "id": "wealthbox",
@@ -2226,16 +1482,7 @@
       "content",
       "backgroundInformation"
     ],
-    "outputs": [
-      "note",
-      "notes",
-      "contact",
-      "contacts",
-      "task",
-      "tasks",
-      "metadata",
-      "success"
-    ],
+    "outputs": ["note", "notes", "contact", "contacts", "task", "tasks", "metadata", "success"],
     "tools": [
       "wealthbox_read_note",
       "wealthbox_write_note",
@@ -2246,9 +1493,7 @@
     ],
     "requiresAuth": true,
     "authType": "oauth (provider: wealthbox)",
-    "specialFeatures": [
-      "contact selector integration"
-    ]
+    "specialFeatures": ["contact selector integration"]
   },
   {
     "id": "webhook",
@@ -2256,12 +1501,7 @@
     "description": "Trigger workflow execution from external webhooks (legacy)",
     "category": "triggers",
     "bgColor": "#10B981",
-    "subBlocks": [
-      "webhookProvider",
-      "gmailCredential",
-      "outlookCredential",
-      "webhookConfig"
-    ],
+    "subBlocks": ["webhookProvider", "gmailCredential", "outlookCredential", "webhookConfig"],
     "outputs": [],
     "tools": [],
     "requiresAuth": false,
@@ -2278,31 +1518,12 @@
     "description": "Send WhatsApp messages",
     "category": "tools",
     "bgColor": "#25D366",
-    "subBlocks": [
-      "phoneNumber",
-      "message",
-      "phoneNumberId",
-      "accessToken",
-      "triggerConfig"
-    ],
-    "outputs": [
-      "success",
-      "messageId",
-      "error",
-      "from",
-      "to",
-      "text",
-      "timestamp",
-      "type"
-    ],
-    "tools": [
-      "whatsapp_send_message"
-    ],
+    "subBlocks": ["phoneNumber", "message", "phoneNumberId", "accessToken", "triggerConfig"],
+    "outputs": ["success", "messageId", "error", "from", "to", "text", "timestamp", "type"],
+    "tools": ["whatsapp_send_message"],
     "requiresAuth": true,
     "authType": "api-key (WhatsApp Business API access token)",
-    "specialFeatures": [
-      "trigger support (whatsapp_webhook)"
-    ]
+    "specialFeatures": ["trigger support (whatsapp_webhook)"]
   },
   {
     "id": "wikipedia",
@@ -2310,25 +1531,9 @@
     "description": "Search and retrieve content from Wikipedia",
     "category": "tools",
     "bgColor": "#000000",
-    "subBlocks": [
-      "operation",
-      "pageTitle",
-      "query",
-      "searchLimit"
-    ],
-    "outputs": [
-      "summary",
-      "searchResults",
-      "totalHits",
-      "content",
-      "randomPage"
-    ],
-    "tools": [
-      "wikipedia_summary",
-      "wikipedia_search",
-      "wikipedia_content",
-      "wikipedia_random"
-    ],
+    "subBlocks": ["operation", "pageTitle", "query", "searchLimit"],
+    "outputs": ["summary", "searchResults", "totalHits", "content", "randomPage"],
+    "tools": ["wikipedia_summary", "wikipedia_search", "wikipedia_content", "wikipedia_random"],
     "requiresAuth": false,
     "authType": "none",
     "specialFeatures": []
@@ -2339,19 +1544,9 @@
     "description": "Execute another workflow",
     "category": "blocks",
     "bgColor": "#705335",
-    "subBlocks": [
-      "workflowId",
-      "input"
-    ],
-    "outputs": [
-      "success",
-      "childWorkflowName",
-      "result",
-      "error"
-    ],
-    "tools": [
-      "workflow_executor"
-    ],
+    "subBlocks": ["workflowId", "input"],
+    "outputs": ["success", "childWorkflowName", "result", "error"],
+    "tools": ["workflow_executor"],
     "requiresAuth": false,
     "authType": "none",
     "specialFeatures": [
@@ -2378,12 +1573,7 @@
       "companyOrganizationId",
       "postId"
     ],
-    "outputs": [
-      "post",
-      "profile",
-      "organization",
-      "deleted"
-    ],
+    "outputs": ["post", "profile", "organization", "deleted"],
     "tools": [
       "linkedin_create_post",
       "linkedin_get_profile",
@@ -2425,12 +1615,7 @@
       "user",
       "recentTweets"
     ],
-    "tools": [
-      "x_write",
-      "x_read",
-      "x_search",
-      "x_user"
-    ],
+    "tools": ["x_write", "x_read", "x_search", "x_user"],
     "requiresAuth": true,
     "authType": "oauth (provider: x)",
     "specialFeatures": []
@@ -2441,18 +1626,9 @@
     "description": "Search for videos on YouTube",
     "category": "tools",
     "bgColor": "#FF0000",
-    "subBlocks": [
-      "query",
-      "apiKey",
-      "maxResults"
-    ],
-    "outputs": [
-      "items",
-      "totalResults"
-    ],
-    "tools": [
-      "youtube_search"
-    ],
+    "subBlocks": ["query", "apiKey", "maxResults"],
+    "outputs": ["items", "totalResults"],
+    "tools": ["youtube_search"],
     "requiresAuth": true,
     "authType": "api-key",
     "specialFeatures": []

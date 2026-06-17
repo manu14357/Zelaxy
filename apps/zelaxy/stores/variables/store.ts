@@ -1,6 +1,6 @@
-import { createLogger } from '@/lib/logs/console/logger'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { createLogger } from '@/lib/logs/console/logger'
 import { useOperationQueueStore } from '@/stores/operation-queue/store'
 import type { Variable, VariablesStore } from '@/stores/variables/types'
 import { useSubBlockStore } from '@/stores/workflows/subblock/store'

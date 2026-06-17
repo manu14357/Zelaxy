@@ -73,11 +73,10 @@ export async function POST(request: NextRequest) {
 
     if (!tokenResponse.ok) {
       const errText = await tokenResponse.text().catch(() => '')
-      logger.error(`[${requestId}] ElevenLabs token request failed: ${tokenResponse.status} ${errText}`)
-      return NextResponse.json(
-        { error: 'Failed to obtain speech token' },
-        { status: 502 }
+      logger.error(
+        `[${requestId}] ElevenLabs token request failed: ${tokenResponse.status} ${errText}`
       )
+      return NextResponse.json({ error: 'Failed to obtain speech token' }, { status: 502 })
     }
 
     const tokenData = await tokenResponse.json()

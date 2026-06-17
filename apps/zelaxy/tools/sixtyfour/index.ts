@@ -280,7 +280,8 @@ export const sixtyfourEnrichLeadTool: ToolConfig = {
     body: (params: any) => {
       let leadInfo: unknown
       try {
-        leadInfo = typeof params.leadInfo === 'string' ? JSON.parse(params.leadInfo) : params.leadInfo
+        leadInfo =
+          typeof params.leadInfo === 'string' ? JSON.parse(params.leadInfo) : params.leadInfo
       } catch {
         throw new Error('leadInfo must be valid JSON')
       }

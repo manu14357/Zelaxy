@@ -18,10 +18,7 @@ export const revalidate = 0
  * Requires workspaceId query param to verify access.
  * The URL expires in 1 hour by default (pass expiresIn seconds to override).
  */
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ fileId: string }> }
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ fileId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   // fileId is base64url-encoded to safely pass slashes in the key
   const rawFileId = (await context.params).fileId

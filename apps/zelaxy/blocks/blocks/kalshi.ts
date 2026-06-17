@@ -373,7 +373,8 @@ export const KalshiBlock: BlockConfig = {
       mode: 'advanced',
       wandConfig: {
         enabled: true,
-        prompt: 'Generate a Unix timestamp in seconds for order expiration. Return ONLY the number.',
+        prompt:
+          'Generate a Unix timestamp in seconds for order expiration. Return ONLY the number.',
         placeholder: 'Describe when the order should expire...',
       },
     },
@@ -406,7 +407,14 @@ export const KalshiBlock: BlockConfig = {
       placeholder: '1-1000 (default: 100)',
       condition: {
         field: 'operation',
-        value: ['get_markets', 'get_events', 'get_positions', 'get_orders', 'get_trades', 'get_fills'],
+        value: [
+          'get_markets',
+          'get_events',
+          'get_positions',
+          'get_orders',
+          'get_trades',
+          'get_fills',
+        ],
       },
       mode: 'advanced',
     },
@@ -417,7 +425,14 @@ export const KalshiBlock: BlockConfig = {
       placeholder: 'Pagination cursor',
       condition: {
         field: 'operation',
-        value: ['get_markets', 'get_events', 'get_positions', 'get_orders', 'get_trades', 'get_fills'],
+        value: [
+          'get_markets',
+          'get_events',
+          'get_positions',
+          'get_orders',
+          'get_trades',
+          'get_fills',
+        ],
       },
       mode: 'advanced',
     },
@@ -445,24 +460,42 @@ export const KalshiBlock: BlockConfig = {
     config: {
       tool: (params) => {
         switch (params.operation) {
-          case 'get_markets': return 'kalshi_get_markets'
-          case 'get_market': return 'kalshi_get_market'
-          case 'get_events': return 'kalshi_get_events'
-          case 'get_event': return 'kalshi_get_event'
-          case 'get_balance': return 'kalshi_get_balance'
-          case 'get_positions': return 'kalshi_get_positions'
-          case 'get_orders': return 'kalshi_get_orders'
-          case 'get_order': return 'kalshi_get_order'
-          case 'get_orderbook': return 'kalshi_get_orderbook'
-          case 'get_trades': return 'kalshi_get_trades'
-          case 'get_candlesticks': return 'kalshi_get_candlesticks'
-          case 'get_fills': return 'kalshi_get_fills'
-          case 'get_series_by_ticker': return 'kalshi_get_series_by_ticker'
-          case 'get_exchange_status': return 'kalshi_get_exchange_status'
-          case 'create_order': return 'kalshi_create_order'
-          case 'cancel_order': return 'kalshi_cancel_order'
-          case 'amend_order': return 'kalshi_amend_order'
-          default: return 'kalshi_get_markets'
+          case 'get_markets':
+            return 'kalshi_get_markets'
+          case 'get_market':
+            return 'kalshi_get_market'
+          case 'get_events':
+            return 'kalshi_get_events'
+          case 'get_event':
+            return 'kalshi_get_event'
+          case 'get_balance':
+            return 'kalshi_get_balance'
+          case 'get_positions':
+            return 'kalshi_get_positions'
+          case 'get_orders':
+            return 'kalshi_get_orders'
+          case 'get_order':
+            return 'kalshi_get_order'
+          case 'get_orderbook':
+            return 'kalshi_get_orderbook'
+          case 'get_trades':
+            return 'kalshi_get_trades'
+          case 'get_candlesticks':
+            return 'kalshi_get_candlesticks'
+          case 'get_fills':
+            return 'kalshi_get_fills'
+          case 'get_series_by_ticker':
+            return 'kalshi_get_series_by_ticker'
+          case 'get_exchange_status':
+            return 'kalshi_get_exchange_status'
+          case 'create_order':
+            return 'kalshi_create_order'
+          case 'cancel_order':
+            return 'kalshi_cancel_order'
+          case 'amend_order':
+            return 'kalshi_amend_order'
+          default:
+            return 'kalshi_get_markets'
         }
       },
       params: (params) => {
@@ -484,18 +517,26 @@ export const KalshiBlock: BlockConfig = {
         const cleanParams: Record<string, unknown> = {}
 
         if (operation === 'get_orders' && orderStatus) cleanParams.status = orderStatus
-        if ((operation === 'get_orders' || operation === 'get_positions') && tickerFilter) cleanParams.ticker = tickerFilter
+        if ((operation === 'get_orders' || operation === 'get_positions') && tickerFilter)
+          cleanParams.ticker = tickerFilter
         if (operation === 'get_fills' && tickerFills) cleanParams.ticker = tickerFills
         if (operation === 'get_candlesticks') {
           if (seriesTickerCandlesticks) cleanParams.seriesTicker = seriesTickerCandlesticks
           if (tickerCandlesticks) cleanParams.ticker = tickerCandlesticks
         }
-        if (operation === 'get_series_by_ticker' && seriesTickerGet) cleanParams.seriesTicker = seriesTickerGet
-        if (['get_order', 'cancel_order', 'amend_order'].includes(operation as string) && orderIdParam) cleanParams.orderId = orderIdParam
-        if (['create_order', 'amend_order'].includes(operation as string) && tickerOrder) cleanParams.ticker = tickerOrder
+        if (operation === 'get_series_by_ticker' && seriesTickerGet)
+          cleanParams.seriesTicker = seriesTickerGet
+        if (
+          ['get_order', 'cancel_order', 'amend_order'].includes(operation as string) &&
+          orderIdParam
+        )
+          cleanParams.orderId = orderIdParam
+        if (['create_order', 'amend_order'].includes(operation as string) && tickerOrder)
+          cleanParams.ticker = tickerOrder
         if (operation === 'create_order' && orderType) cleanParams.type = orderType
         if (operation === 'amend_order' && countAmend) cleanParams.count = countAmend
-        if (operation === 'amend_order' && clientOrderIdAmend) cleanParams.clientOrderId = clientOrderIdAmend
+        if (operation === 'amend_order' && clientOrderIdAmend)
+          cleanParams.clientOrderId = clientOrderIdAmend
 
         for (const [key, value] of Object.entries(rest)) {
           if (value !== undefined && value !== null && value !== '') {

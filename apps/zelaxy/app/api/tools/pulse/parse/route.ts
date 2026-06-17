@@ -8,7 +8,17 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { apiKey, filePath, file, pages, extractFigure, figureDescription, returnHtml, chunking, chunkSize } = body
+    const {
+      apiKey,
+      filePath,
+      file,
+      pages,
+      extractFigure,
+      figureDescription,
+      returnHtml,
+      chunking,
+      chunkSize,
+    } = body
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 })
@@ -41,7 +51,8 @@ export async function POST(request: NextRequest) {
 
     if (pages) formData.append('pages', pages)
     if (extractFigure !== undefined) formData.append('extract_figure', String(extractFigure))
-    if (figureDescription !== undefined) formData.append('figure_description', String(figureDescription))
+    if (figureDescription !== undefined)
+      formData.append('figure_description', String(figureDescription))
     if (returnHtml !== undefined) formData.append('return_html', String(returnHtml))
     if (chunking) formData.append('chunking', chunking)
     if (chunkSize) formData.append('chunk_size', String(chunkSize))

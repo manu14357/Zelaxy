@@ -861,8 +861,7 @@ export const hexRunProjectTool: ToolConfig = {
       if (params.updateCache != null) body.updateCache = params.updateCache
       if (params.updatePublishedResults != null)
         body.updatePublishedResults = params.updatePublishedResults
-      if (params.useCachedSqlResults != null)
-        body.useCachedSqlResults = params.useCachedSqlResults
+      if (params.useCachedSqlResults != null) body.useCachedSqlResults = params.useCachedSqlResults
       return body
     },
   },

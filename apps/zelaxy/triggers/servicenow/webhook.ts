@@ -5,8 +5,7 @@ export const servicenowWebhookTrigger: TriggerConfig = {
   id: 'servicenow_webhook',
   name: 'ServiceNow Webhook',
   provider: 'servicenow',
-  description:
-    'Trigger workflow from ServiceNow incident, change request, and ticket events',
+  description: 'Trigger workflow from ServiceNow incident, change request, and ticket events',
   version: '1.0.0',
   icon: WebhookIcon,
 

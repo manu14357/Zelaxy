@@ -224,11 +224,16 @@ export const VideoGeneratorBlock: BlockConfig = {
     config: {
       tool: (params) => {
         switch (params.provider) {
-          case 'runway': return 'runway_generate_video'
-          case 'luma': return 'luma_generate_video'
-          case 'minimax': return 'minimax_generate_video'
-          case 'veo': return 'veo_generate_video'
-          default: return 'falai_generate_video'
+          case 'runway':
+            return 'runway_generate_video'
+          case 'luma':
+            return 'luma_generate_video'
+          case 'minimax':
+            return 'minimax_generate_video'
+          case 'veo':
+            return 'veo_generate_video'
+          default:
+            return 'falai_generate_video'
         }
       },
       params: (params) => {

@@ -1,5 +1,5 @@
-import { unstable_noStore as noStore } from 'next/cache'
 import { and, eq } from 'drizzle-orm'
+import { unstable_noStore as noStore } from 'next/cache'
 import { type NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { getSession } from '@/lib/auth'
@@ -14,9 +14,7 @@ export const maxDuration = 60
 
 const logger = createLogger('WandAPI')
 
-const openai = env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: env.OPENAI_API_KEY })
-  : null
+const openai = env.OPENAI_API_KEY ? new OpenAI({ apiKey: env.OPENAI_API_KEY }) : null
 
 const ALLOWED_MODELS = [
   'gpt-5.4',
@@ -70,7 +68,10 @@ export async function POST(req: NextRequest) {
     const { prompt, systemPrompt, stream = false, history = [], apiKey, model, workflowId } = body
 
     if (!prompt) {
-      return NextResponse.json({ success: false, error: 'Missing required field: prompt.' }, { status: 400 })
+      return NextResponse.json(
+        { success: false, error: 'Missing required field: prompt.' },
+        { status: 400 }
+      )
     }
 
     // Verify workflow ownership when workflow context is provided
@@ -82,7 +83,9 @@ export async function POST(req: NextRequest) {
         .limit(1)
 
       if (rows.length === 0) {
-        logger.warn(`[${requestId}] User ${session.user.id} unauthorized for workflow ${workflowId}`)
+        logger.warn(
+          `[${requestId}] User ${session.user.id} unauthorized for workflow ${workflowId}`
+        )
         return NextResponse.json({ error: 'Access denied to this workflow' }, { status: 403 })
       }
     }
@@ -103,7 +106,9 @@ export async function POST(req: NextRequest) {
     }
 
     const selectedModel = selectModel(model)
-    const finalSystemPrompt = systemPrompt || 'You are a helpful AI assistant. Generate content exactly as requested by the user.'
+    const finalSystemPrompt =
+      systemPrompt ||
+      'You are a helpful AI assistant. Generate content exactly as requested by the user.'
 
     const messages: ChatMessage[] = [
       { role: 'system', content: finalSystemPrompt },
@@ -128,7 +133,9 @@ export async function POST(req: NextRequest) {
               for await (const chunk of streamCompletion) {
                 const content = chunk.choices[0]?.delta?.content || ''
                 if (content) {
-                  controller.enqueue(encoder.encode(`${JSON.stringify({ chunk: content, done: false })}\n`))
+                  controller.enqueue(
+                    encoder.encode(`${JSON.stringify({ chunk: content, done: false })}\n`)
+                  )
                 }
               }
               controller.enqueue(encoder.encode(`${JSON.stringify({ chunk: '', done: true })}\n`))
@@ -136,7 +143,9 @@ export async function POST(req: NextRequest) {
               logger.info(`[${requestId}] Wand streaming completed`)
             } catch (streamError: any) {
               logger.error(`[${requestId}] Streaming error`, { error: streamError.message })
-              controller.enqueue(encoder.encode(`${JSON.stringify({ error: 'Streaming failed', done: true })}\n`))
+              controller.enqueue(
+                encoder.encode(`${JSON.stringify({ error: 'Streaming failed', done: true })}\n`)
+              )
               controller.close()
             }
           },
@@ -175,7 +184,8 @@ export async function POST(req: NextRequest) {
       status = error.status || 500
       if (status === 401) message = 'Authentication failed. Please check your API key.'
       else if (status === 429) message = 'Rate limit exceeded. Please try again later.'
-      else if (status >= 500) message = 'The wand service is currently unavailable. Please try again later.'
+      else if (status >= 500)
+        message = 'The wand service is currently unavailable. Please try again later.'
     }
 
     return NextResponse.json({ success: false, error: message }, { status })

@@ -1,4 +1,6 @@
 import type { Edge } from '@xyflow/react'
+import { mergeSubblockState } from '@/stores/workflows/utils'
+import type { BlockState } from '@/stores/workflows/workflow/types'
 import type {
   BatchAddBlocksOperation,
   BatchAddEdgesOperation,
@@ -11,8 +13,6 @@ import type {
   OperationEntry,
 } from './types'
 import { UNDO_REDO_OPERATIONS } from './types'
-import { mergeSubblockState } from '@/stores/workflows/utils'
-import type { BlockState } from '@/stores/workflows/workflow/types'
 
 export function createOperationEntry(operation: Operation, inverse: Operation): OperationEntry {
   return {

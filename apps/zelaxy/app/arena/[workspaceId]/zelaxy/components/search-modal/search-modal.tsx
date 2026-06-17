@@ -6,7 +6,10 @@ import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
 import {
   ArrowRight,
   BookOpen,
+  Brain,
   Building2,
+  CalendarClock,
+  Globe,
   LayoutDashboard,
   LibraryBig,
   RepeatIcon,
@@ -215,11 +218,29 @@ export function SearchModal({
         shortcut: getKeyboardShortcutText('L', true, true),
       },
       {
+        id: 'schedules',
+        name: 'Schedules',
+        icon: CalendarClock,
+        href: `/arena/${workspaceId}/hub?tab=schedules`,
+      },
+      {
+        id: 'deployments',
+        name: 'Deployments',
+        icon: Globe,
+        href: `/arena/${workspaceId}/hub?tab=deployments`,
+      },
+      {
         id: 'knowledge',
         name: 'Knowledge',
         icon: LibraryBig,
         href: `/arena/${workspaceId}/hub?tab=knowledge`,
         shortcut: getKeyboardShortcutText('K', true, true),
+      },
+      {
+        id: 'memory',
+        name: 'Memory',
+        icon: Brain,
+        href: `/arena/${workspaceId}/hub?tab=memory`,
       },
       {
         id: 'templates',

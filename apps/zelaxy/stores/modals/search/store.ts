@@ -68,7 +68,13 @@ export const useSearchModalStore = create<SearchModalState>()(
 
         const specialBlocks: SearchBlockItem[] = [
           { id: 'loop', name: 'Loop', icon: RepeatIcon, bgColor: '#2FB3FF', type: 'loop' },
-          { id: 'parallel', name: 'Parallel', icon: SplitIcon, bgColor: '#FEE12B', type: 'parallel' },
+          {
+            id: 'parallel',
+            name: 'Parallel',
+            icon: SplitIcon,
+            bgColor: '#FEE12B',
+            type: 'parallel',
+          },
         ]
 
         const blocks = [...regularBlocks, ...(filterBlocks(specialBlocks) as SearchBlockItem[])]

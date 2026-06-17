@@ -267,7 +267,8 @@ Return ONLY the JSON array - no explanations, no markdown, no extra text.`,
   outputs: {
     event: {
       type: 'json',
-      description: 'Event details (id, name, startAt, endAt, timezone, createdAt, description, coverUrl, url, visibility, meetingUrl)',
+      description:
+        'Event details (id, name, startAt, endAt, timezone, createdAt, description, coverUrl, url, visibility, meetingUrl)',
     },
     hosts: {
       type: 'json',
@@ -275,11 +276,13 @@ Return ONLY the JSON array - no explanations, no markdown, no extra text.`,
     },
     events: {
       type: 'json',
-      description: 'List of events with id, name, startAt, endAt, timezone, createdAt, description, coverUrl, url, visibility, meetingUrl',
+      description:
+        'List of events with id, name, startAt, endAt, timezone, createdAt, description, coverUrl, url, visibility, meetingUrl',
     },
     guests: {
       type: 'json',
-      description: 'List of guests (id, email, name, firstName, lastName, approvalStatus, registeredAt, invitedAt, joinedAt, checkedInAt)',
+      description:
+        'List of guests (id, email, name, firstName, lastName, approvalStatus, registeredAt, invitedAt, joinedAt, checkedInAt)',
     },
     hasMore: { type: 'boolean', description: 'Whether more results are available' },
     nextCursor: { type: 'string', description: 'Pagination cursor for next page' },

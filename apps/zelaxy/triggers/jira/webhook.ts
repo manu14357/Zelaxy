@@ -93,8 +93,7 @@ export const jiraWebhookTrigger: TriggerConfig = {
         },
         items: {
           type: 'json',
-          description:
-            'Array of changed fields with from/to values',
+          description: 'Array of changed fields with from/to values',
         },
       },
       comment: {

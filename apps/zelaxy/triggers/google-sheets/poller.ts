@@ -103,7 +103,9 @@ export const googleSheetsPollingTrigger: TriggerConfig = {
       'Order Date': '2024-01-15',
     },
     updatedRange: 'Orders!A42:G42',
-    updatedValues: [['ORD-1234', 'John Smith', 'john@example.com', 'Widget Pro', '3', '$149.97', '2024-01-15']],
+    updatedValues: [
+      ['ORD-1234', 'John Smith', 'john@example.com', 'Widget Pro', '3', '$149.97', '2024-01-15'],
+    ],
     updatedRowCount: 1,
     updatedColumnCount: 7,
     modifiedTime: '2024-01-15T10:30:00.000Z',

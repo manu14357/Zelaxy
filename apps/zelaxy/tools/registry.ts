@@ -40,6 +40,7 @@ import {
   airtableCreateRecordsTool,
   airtableGetRecordTool,
   airtableListRecordsTool,
+  airtableUpdateMultipleRecordsTool,
   airtableUpdateRecordTool,
 } from '@/tools/airtable'
 import { airweaveSearchTool } from '@/tools/airweave'
@@ -148,6 +149,7 @@ import {
 } from '@/tools/calendly'
 import { clayPopulateTool } from '@/tools/clay'
 import {
+  clerkCreateOrganizationTool,
   clerkCreateUserTool,
   clerkDeleteUserTool,
   clerkGetOrganizationTool,
@@ -336,21 +338,6 @@ import {
   gammaListThemesTool,
 } from '@/tools/gamma'
 import {
-  grainCreateHookTool,
-  grainDeleteHookTool,
-  grainGetRecordingTool,
-  grainGetTranscriptTool,
-  grainListHooksTool,
-  grainListMeetingTypesTool,
-  grainListRecordingsTool,
-  grainListTeamsTool,
-  grainListViewsTool,
-} from '@/tools/grain'
-import {
-  granolaGetNoteTool,
-  granolaListNotesTool,
-} from '@/tools/granola'
-import {
   githubCommentTool,
   githubLatestCommitTool,
   githubPrTool,
@@ -378,6 +365,18 @@ import {
   googleSheetsUpdateTool,
   googleSheetsWriteTool,
 } from '@/tools/google_sheets'
+import {
+  grainCreateHookTool,
+  grainDeleteHookTool,
+  grainGetRecordingTool,
+  grainGetTranscriptTool,
+  grainListHooksTool,
+  grainListMeetingTypesTool,
+  grainListRecordingsTool,
+  grainListTeamsTool,
+  grainListViewsTool,
+} from '@/tools/grain'
+import { granolaGetNoteTool, granolaListNotesTool } from '@/tools/granola'
 import { guardrailsTool } from '@/tools/guardrails'
 import {
   hexCancelRunTool,
@@ -385,8 +384,8 @@ import {
   hexGetCollectionTool,
   hexGetDataConnectionTool,
   hexGetGroupTool,
-  hexGetProjectTool,
   hexGetProjectRunsTool,
+  hexGetProjectTool,
   hexGetQueriedTablesTool,
   hexGetRunStatusTool,
   hexListCollectionsTool,
@@ -441,31 +440,13 @@ import {
 } from '@/tools/knowledge'
 import { linearCreateIssueTool, linearReadIssuesTool } from '@/tools/linear'
 import {
-  tableBatchInsertRowsTool,
-  tableCreateTool,
-  tableDeleteRowsByFilterTool,
-  tableDeleteRowTool,
-  tableGetRowTool,
-  tableGetSchemaTool,
-  tableInsertRowTool,
-  tableListTool,
-  tableQueryRowsTool,
-  tableUpdateRowsByFilterTool,
-  tableUpdateRowTool,
-  tableUpsertRowTool,
-} from '@/tools/table'
-import {
   linkedinCreatePostTool,
   linkedinDeletePostTool,
   linkedinGetCompanyTool,
   linkedinGetProfileTool,
 } from '@/tools/linkedin'
 import { linkupSearchTool } from '@/tools/linkup'
-import {
-  logsGetExecutionTool,
-  logsGetTool,
-  logsQueryTool,
-} from '@/tools/logs'
+import { logsGetExecutionTool, logsGetTool, logsQueryTool } from '@/tools/logs'
 import {
   lumaAddGuestsTool,
   lumaCreateEventTool,
@@ -521,7 +502,6 @@ import {
   pineconeSearchVectorTool,
   pineconeUpsertTextTool,
 } from '@/tools/pinecone'
-import { postgresqlTool } from '@/tools/postgresql'
 import {
   polymarketGetActivityTool,
   polymarketGetEventsTool,
@@ -536,14 +516,15 @@ import {
   polymarketGetPositionsTool,
   polymarketGetPriceHistoryTool,
   polymarketGetPriceTool,
-  polymarketGetSeriesTool,
   polymarketGetSeriesByIdTool,
+  polymarketGetSeriesTool,
   polymarketGetSpreadTool,
   polymarketGetTagsTool,
   polymarketGetTickSizeTool,
   polymarketGetTradesTool,
   polymarketSearchTool,
 } from '@/tools/polymarket'
+import { postgresqlTool } from '@/tools/postgresql'
 import {
   profoundBotLogsTool,
   profoundBotsReportTool,
@@ -572,11 +553,7 @@ import {
 } from '@/tools/profound'
 import { pulseParserTool } from '@/tools/pulse'
 import { qdrantFetchTool, qdrantSearchTool, qdrantUpsertTool } from '@/tools/qdrant'
-import {
-  quiverImageToSvgTool,
-  quiverListModelsTool,
-  quiverTextToSvgTool,
-} from '@/tools/quiver'
+import { quiverImageToSvgTool, quiverListModelsTool, quiverTextToSvgTool } from '@/tools/quiver'
 import { redditGetCommentsTool, redditGetPostsTool, redditHotPostsTool } from '@/tools/reddit'
 import { resendBatchTool, resendCancelTool, resendGetTool, resendSendTool } from '@/tools/resend'
 import { s3GetObjectTool } from '@/tools/s3'
@@ -604,13 +581,26 @@ import {
   supabaseQueryTool,
   supabaseUpdateTool,
 } from '@/tools/supabase'
+import {
+  tableBatchInsertRowsTool,
+  tableCreateTool,
+  tableDeleteRowsByFilterTool,
+  tableDeleteRowTool,
+  tableGetRowTool,
+  tableGetSchemaTool,
+  tableInsertRowTool,
+  tableListTool,
+  tableQueryRowsTool,
+  tableUpdateRowsByFilterTool,
+  tableUpdateRowTool,
+  tableUpsertRowTool,
+} from '@/tools/table'
 import { tavilyExtractTool, tavilySearchTool } from '@/tools/tavily'
 import { telegramMessageTool } from '@/tools/telegram'
 import { thinkingTool } from '@/tools/thinking'
 import { sendSMSTool } from '@/tools/twilio'
 import { typeformFilesTool, typeformInsightsTool, typeformResponsesTool } from '@/tools/typeform'
 import type { ToolConfig } from '@/tools/types'
-import { visionTool } from '@/tools/vision'
 import {
   falaiGenerateVideoTool,
   lumaGenerateVideoTool,
@@ -618,6 +608,7 @@ import {
   runwayGenerateVideoTool,
   veoGenerateVideoTool,
 } from '@/tools/video_generator'
+import { visionTool } from '@/tools/vision'
 import {
   wealthboxReadContactTool,
   wealthboxReadNoteTool,
@@ -737,6 +728,7 @@ export const tools: Record<string, ToolConfig> = {
   airtable_get_record: airtableGetRecordTool,
   airtable_list_records: airtableListRecordsTool,
   airtable_update_record: airtableUpdateRecordTool,
+  airtable_update_multiple_records: airtableUpdateMultipleRecordsTool,
   mistral_parser: mistralParserTool,
   thinking_tool: thinkingTool,
   stagehand_extract: stagehandExtractTool,
@@ -942,6 +934,7 @@ export const tools: Record<string, ToolConfig> = {
   clerk_delete_user: clerkDeleteUserTool,
   clerk_list_organizations: clerkListOrganizationsTool,
   clerk_get_organization: clerkGetOrganizationTool,
+  clerk_create_organization: clerkCreateOrganizationTool,
   clerk_list_sessions: clerkListSessionsTool,
   clerk_revoke_session: clerkRevokeSessionTool,
   cloudflare_list_zones: cloudflareListZonesTool,
@@ -1031,7 +1024,7 @@ export const tools: Record<string, ToolConfig> = {
   dynamodb_scan: dynamodbScanTool,
   dynamodb_batch_write: dynamodbBatchWriteTool,
   elasticsearch_search: elasticsearchSearchTool,
-  elasticsearch_index_document: elasticsearchIndexTool,
+  elasticsearch_index: elasticsearchIndexTool,
   elasticsearch_get: elasticsearchGetTool,
   elasticsearch_delete: elasticsearchDeleteTool,
   elasticsearch_bulk: elasticsearchBulkTool,

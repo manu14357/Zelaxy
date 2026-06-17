@@ -74,7 +74,10 @@ export function createRateLimitResponse(result: RateLimitResult): NextResponse {
     result.error?.toLowerCase().includes('required') ||
     result.error?.toLowerCase().includes('failed')
 
-  return NextResponse.json({ error: result.error ?? 'Unauthorized' }, { status: isAuthError ? 401 : 429 })
+  return NextResponse.json(
+    { error: result.error ?? 'Unauthorized' },
+    { status: isAuthError ? 401 : 429 }
+  )
 }
 
 /**

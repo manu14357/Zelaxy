@@ -1,6 +1,6 @@
-import { createLogger } from '@/lib/logs/console/logger'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { createLogger } from '@/lib/logs/console/logger'
 import type { AddNotificationParams, Notification } from './types'
 
 const logger = createLogger('NotificationStore')

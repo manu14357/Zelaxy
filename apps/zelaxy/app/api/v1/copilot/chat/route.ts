@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { createLogger } from '@/lib/logs/console/logger'
 import { env } from '@/lib/env'
+import { createLogger } from '@/lib/logs/console/logger'
 import { checkRateLimit, createRateLimitResponse } from '@/app/api/v1/middleware'
 
 const logger = createLogger('V1CopilotChatAPI')
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     // Forward cookie header for session-based callers
     const cookie = request.headers.get('cookie')
     if (cookie) {
-      forwardHeaders['cookie'] = cookie
+      forwardHeaders.cookie = cookie
     }
 
     logger.info(`[${requestId}] Proxying copilot chat to ${targetUrl}`)

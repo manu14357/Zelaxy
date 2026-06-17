@@ -36,14 +36,18 @@ export const TableColGroup = React.memo(function TableColGroup({
   )
 })
 
-export const TableBodySkeleton = React.memo(function TableBodySkeleton({ colCount }: { colCount: number }) {
+export const TableBodySkeleton = React.memo(function TableBodySkeleton({
+  colCount,
+}: {
+  colCount: number
+}) {
   return (
     <>
       {Array.from({ length: SKELETON_ROW_COUNT }).map((_, rowIndex) => (
         <tr key={rowIndex}>
           <td className={cn(CELL_CHECKBOX, 'text-center')}>
             <div className='flex min-h-[20px] items-center justify-center'>
-              <span className='text-xs tabular-nums text-muted-foreground'>{rowIndex + 1}</span>
+              <span className='text-muted-foreground text-xs tabular-nums'>{rowIndex + 1}</span>
             </div>
           </td>
           {Array.from({ length: colCount }).map((_, colIndex) => {
@@ -103,7 +107,7 @@ export const AddRowButton = React.memo(function AddRowButton({ onClick }: { onCl
         onClick={onClick}
       >
         <Plus className='size-[14px] shrink-0 text-muted-foreground' />
-        <span className='text-sm font-medium'>New row</span>
+        <span className='font-medium text-sm'>New row</span>
       </Button>
     </div>
   )

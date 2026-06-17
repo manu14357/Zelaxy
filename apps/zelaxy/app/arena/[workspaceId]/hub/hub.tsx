@@ -1,24 +1,38 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BookOpen, LayoutDashboard, ScrollText, Settings, Shapes } from 'lucide-react'
+import {
+  BookOpen,
+  Brain,
+  CalendarClock,
+  Globe,
+  LayoutDashboard,
+  ScrollText,
+  Settings,
+  Shapes,
+} from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { isBillingEnabled } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
+import { Deployments } from '@/app/arena/[workspaceId]/deployments/deployments'
 import { Knowledge } from '@/app/arena/[workspaceId]/knowledge/knowledge'
 import Logs from '@/app/arena/[workspaceId]/logs/logs'
+import { Memory } from '@/app/arena/[workspaceId]/memory/memory'
+import { Schedules } from '@/app/arena/[workspaceId]/schedules/schedules'
 import type { Template } from '@/app/arena/[workspaceId]/templates/templates'
 import Templates from '@/app/arena/[workspaceId]/templates/templates'
 import {
   Account,
   AdminSettings,
   ApiKeys,
+  AuditLogs,
   Credentials,
   EnvironmentVariables,
   General,
   MCPServers,
+  OrgEnvironment,
   Privacy,
   SettingsNavigation,
   Shortcuts,
@@ -41,6 +55,8 @@ type SettingsSection =
   | 'mcp'
   | 'subscription'
   | 'team'
+  | 'org-environment'
+  | 'audit'
   | 'privacy'
   | 'shortcuts'
   | 'admin'
@@ -61,6 +77,8 @@ const SETTINGS_SECTIONS: SectionEntry[] = [
   { id: 'mcp', component: MCPServers },
   { id: 'subscription', component: Subscription, requiresBilling: true },
   { id: 'team', component: TeamManagement },
+  { id: 'org-environment', component: OrgEnvironment },
+  { id: 'audit', component: AuditLogs },
   { id: 'privacy', component: Privacy },
   { id: 'shortcuts', component: Shortcuts },
   { id: 'admin', component: AdminSettings },
@@ -77,7 +95,10 @@ interface HubProps {
 
 const tabs = [
   { id: 'logs', label: 'Logs', icon: ScrollText },
+  { id: 'schedules', label: 'Schedules', icon: CalendarClock },
+  { id: 'deployments', label: 'Deployments', icon: Globe },
   { id: 'knowledge', label: 'Knowledge', icon: BookOpen },
+  { id: 'memory', label: 'Memory', icon: Brain },
   { id: 'templates', label: 'Templates', icon: Shapes },
   { id: 'settings', label: 'Settings', icon: Settings },
 ] as const
@@ -212,8 +233,20 @@ export function Hub({ initialTemplates, currentUserId }: HubProps) {
           <Logs />
         </TabsContent>
 
+        <TabsContent value='schedules' className='mt-0 min-h-0 flex-1 overflow-auto'>
+          <Schedules />
+        </TabsContent>
+
+        <TabsContent value='deployments' className='mt-0 min-h-0 flex-1 overflow-auto'>
+          <Deployments />
+        </TabsContent>
+
         <TabsContent value='knowledge' className='mt-0 min-h-0 flex-1 overflow-auto'>
           <Knowledge />
+        </TabsContent>
+
+        <TabsContent value='memory' className='mt-0 min-h-0 flex-1 overflow-auto'>
+          <Memory />
         </TabsContent>
 
         <TabsContent value='templates' className='mt-0 min-h-0 flex-1 overflow-auto'>
