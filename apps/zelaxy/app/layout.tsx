@@ -12,8 +12,8 @@ import { getAssetUrl } from '@/lib/utils'
 
 import '@/app/globals.css'
 
-import { ZoomPrevention } from '@/app/zoom-prevention'
 import { Toaster } from 'sonner'
+import { ZoomPrevention } from '@/app/zoom-prevention'
 
 const logger = createLogger('RootLayout')
 

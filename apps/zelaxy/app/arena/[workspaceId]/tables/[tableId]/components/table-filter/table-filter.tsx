@@ -51,7 +51,9 @@ function filterRulesToFilter(rules: FilterRule[]): Filter | null {
   const conditions = rules
     .filter((r) => r.column && r.value)
     .map((r) => ({
-      [r.column]: { [r.operator]: r.operator === '$contains' ? r.value : r.value } as ConditionOperators,
+      [r.column]: {
+        [r.operator]: r.operator === '$contains' ? r.value : r.value,
+      } as ConditionOperators,
     }))
 
   if (conditions.length === 0) return null
@@ -171,12 +173,9 @@ export function TableFilter({ columns, filter, onApply, onClose }: TableFilterPr
     [columns, onApply, onClose]
   )
 
-  const handleUpdate = useCallback(
-    (id: string, field: keyof FilterRule, value: string) => {
-      setRules((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)))
-    },
-    []
-  )
+  const handleUpdate = useCallback((id: string, field: keyof FilterRule, value: string) => {
+    setRules((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)))
+  }, [])
 
   const handleToggleLogical = useCallback((id: string) => {
     setRules((prev) =>
@@ -197,7 +196,7 @@ export function TableFilter({ columns, filter, onApply, onClose }: TableFilterPr
   }, [columns, onApply])
 
   return (
-    <div className='border-b border-border bg-background px-4 py-2'>
+    <div className='border-border border-b bg-background px-4 py-2'>
       <div className='flex flex-col gap-1'>
         {rules.map((rule, index) => (
           <FilterRuleRow

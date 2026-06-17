@@ -5,8 +5,7 @@ export const zendeskWebhookTrigger: TriggerConfig = {
   id: 'zendesk_webhook',
   name: 'Zendesk Webhook',
   provider: 'zendesk',
-  description:
-    'Trigger workflow from Zendesk ticket, user, and organization events',
+  description: 'Trigger workflow from Zendesk ticket, user, and organization events',
   version: '1.0.0',
   icon: WebhookIcon,
 
@@ -105,7 +104,7 @@ export const zendeskWebhookTrigger: TriggerConfig = {
     ticket: {
       id: 42,
       subject: 'My printer is on fire!',
-      description: "My printer is on fire and I need help immediately.",
+      description: 'My printer is on fire and I need help immediately.',
       status: 'new',
       priority: 'urgent',
       type: 'incident',

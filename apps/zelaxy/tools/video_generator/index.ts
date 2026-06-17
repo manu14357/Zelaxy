@@ -75,7 +75,8 @@ export const runwayGenerateVideoTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error || data.message || `Video generation error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error || data.message || `Video generation error: ${response.status}`)
     return { success: true, output: data }
   },
   outputs: {
@@ -171,7 +172,8 @@ export const lumaGenerateVideoTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error || data.message || `Video generation error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error || data.message || `Video generation error: ${response.status}`)
     return { success: true, output: data }
   },
   outputs: {
@@ -261,7 +263,8 @@ export const minimaxGenerateVideoTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error || data.message || `Video generation error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error || data.message || `Video generation error: ${response.status}`)
     return { success: true, output: data }
   },
   outputs: {
@@ -351,7 +354,8 @@ export const falaiGenerateVideoTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error || data.message || `Video generation error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error || data.message || `Video generation error: ${response.status}`)
     return { success: true, output: data }
   },
   outputs: {
@@ -447,7 +451,8 @@ export const veoGenerateVideoTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error || data.message || `Video generation error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error || data.message || `Video generation error: ${response.status}`)
     return { success: true, output: data }
   },
   outputs: {

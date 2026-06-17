@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logs/console/logger'
 import { getUserEntityPermissions } from '@/lib/permissions/utils'
-import { getTableById } from '@/lib/table'
 import type { ColumnDefinition, TableDefinition } from '@/lib/table'
+import { getTableById } from '@/lib/table'
 
 const logger = createLogger('TableUtils')
 

@@ -21,7 +21,10 @@ function parseFilters(filters: string | undefined): unknown[] | undefined {
   }
 }
 
-function buildReportBody(params: any, extra: Record<string, unknown> = {}): Record<string, unknown> {
+function buildReportBody(
+  params: any,
+  extra: Record<string, unknown> = {}
+): Record<string, unknown> {
   const body: Record<string, unknown> = { ...extra }
   if (params.startDate) body.start_date = params.startDate
   if (params.endDate) body.end_date = params.endDate
@@ -39,7 +42,7 @@ function transformReportResponse(data: any) {
     success: true,
     output: {
       totalRows: data.info?.total_rows ?? (Array.isArray(data) ? data.length : 0),
-      data: (Array.isArray(data) ? data : data.data ?? []).map((row: any) => ({
+      data: (Array.isArray(data) ? data : (data.data ?? [])).map((row: any) => ({
         metrics: row.metrics ?? [],
         dimensions: row.dimensions ?? [],
       })),
@@ -67,7 +70,12 @@ export const profoundListCategoriesTool: ToolConfig = {
   description: 'List all organization categories in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/org/categories`,
@@ -80,7 +88,10 @@ export const profoundListCategoriesTool: ToolConfig = {
     return {
       success: true,
       output: {
-        categories: (data ?? []).map((item: any) => ({ id: item.id ?? null, name: item.name ?? null })),
+        categories: (data ?? []).map((item: any) => ({
+          id: item.id ?? null,
+          name: item.name ?? null,
+        })),
       },
     }
   },
@@ -95,7 +106,12 @@ export const profoundListAssetsTool: ToolConfig = {
   description: 'List all assets in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/org/assets`,
@@ -131,7 +147,12 @@ export const profoundListDomainsTool: ToolConfig = {
   description: 'List all domains in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/org/domains`,
@@ -154,7 +175,12 @@ export const profoundListModelsTool: ToolConfig = {
   description: 'List all AI models tracked in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/org/models`,
@@ -177,7 +203,12 @@ export const profoundListPersonasTool: ToolConfig = {
   description: 'List all personas in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/org/personas`,
@@ -200,7 +231,12 @@ export const profoundListRegionsTool: ToolConfig = {
   description: 'List all regions in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/org/regions`,
@@ -225,8 +261,18 @@ export const profoundCategoryAssetsTool: ToolConfig = {
   description: 'List assets for a specific category in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    categoryId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Category ID (UUID)' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    categoryId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Category ID (UUID)',
+    },
   },
   request: {
     url: (params: any) =>
@@ -263,8 +309,18 @@ export const profoundCategoryPersonasTool: ToolConfig = {
   description: 'List personas for a specific category in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    categoryId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Category ID (UUID)' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    categoryId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Category ID (UUID)',
+    },
   },
   request: {
     url: (params: any) =>
@@ -275,7 +331,7 @@ export const profoundCategoryPersonasTool: ToolConfig = {
   transformResponse: async (response: Response) => {
     const data = await response.json()
     if (!response.ok) throw new Error(data.detail?.[0]?.msg || 'Failed to list category personas')
-    return { success: true, output: { personas: (data.data ?? data ?? []) } }
+    return { success: true, output: { personas: data.data ?? data ?? [] } }
   },
   outputs: {
     personas: { type: 'json', description: 'List of personas in the category' },
@@ -288,16 +344,66 @@ export const profoundCategoryPromptsTool: ToolConfig = {
   description: 'List prompts for a specific category in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    categoryId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Category ID (UUID)' },
-    limit: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Max results' },
-    cursor: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Pagination cursor' },
-    orderDir: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Sort direction: asc or desc' },
-    promptType: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated prompt types: visibility, sentiment' },
-    topicId: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated topic IDs' },
-    tagId: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated tag IDs' },
-    regionId: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated region IDs' },
-    platformId: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated platform IDs' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    categoryId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Category ID (UUID)',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Max results',
+    },
+    cursor: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Pagination cursor',
+    },
+    orderDir: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Sort direction: asc or desc',
+    },
+    promptType: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated prompt types: visibility, sentiment',
+    },
+    topicId: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated topic IDs',
+    },
+    tagId: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated tag IDs',
+    },
+    regionId: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated region IDs',
+    },
+    platformId: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated platform IDs',
+    },
   },
   request: {
     url: (params: any) => {
@@ -308,19 +414,27 @@ export const profoundCategoryPromptsTool: ToolConfig = {
       if (params.cursor) url.searchParams.set('cursor', params.cursor)
       if (params.orderDir) url.searchParams.set('order_dir', params.orderDir)
       if (params.promptType) {
-        params.promptType.split(',').forEach((t: string) => url.searchParams.append('prompt_type', t.trim()))
+        params.promptType
+          .split(',')
+          .forEach((t: string) => url.searchParams.append('prompt_type', t.trim()))
       }
       if (params.topicId) {
-        params.topicId.split(',').forEach((t: string) => url.searchParams.append('topic_id', t.trim()))
+        params.topicId
+          .split(',')
+          .forEach((t: string) => url.searchParams.append('topic_id', t.trim()))
       }
       if (params.tagId) {
         params.tagId.split(',').forEach((t: string) => url.searchParams.append('tag_id', t.trim()))
       }
       if (params.regionId) {
-        params.regionId.split(',').forEach((t: string) => url.searchParams.append('region_id', t.trim()))
+        params.regionId
+          .split(',')
+          .forEach((t: string) => url.searchParams.append('region_id', t.trim()))
       }
       if (params.platformId) {
-        params.platformId.split(',').forEach((t: string) => url.searchParams.append('platform_id', t.trim()))
+        params.platformId
+          .split(',')
+          .forEach((t: string) => url.searchParams.append('platform_id', t.trim()))
       }
       return url.toString()
     },
@@ -352,8 +466,18 @@ export const profoundCategoryTagsTool: ToolConfig = {
   description: 'List tags for a specific category in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    categoryId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Category ID (UUID)' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    categoryId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Category ID (UUID)',
+    },
   },
   request: {
     url: (params: any) =>
@@ -382,8 +506,18 @@ export const profoundCategoryTopicsTool: ToolConfig = {
   description: 'List topics for a specific category in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    categoryId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Category ID (UUID)' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    categoryId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Category ID (UUID)',
+    },
   },
   request: {
     url: (params: any) =>
@@ -414,14 +548,36 @@ export const profoundListOptimizationsTool: ToolConfig = {
   description: 'List content optimization entries for an asset in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    assetId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Asset ID (UUID)' },
-    limit: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Max results' },
-    offset: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Offset for pagination' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    assetId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Asset ID (UUID)',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Max results',
+    },
+    offset: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Offset for pagination',
+    },
   },
   request: {
     url: (params: any) => {
-      const url = new URL(`${PROFOUND_API_URL_V1}/content/${encodeURIComponent(params.assetId)}/optimization`)
+      const url = new URL(
+        `${PROFOUND_API_URL_V1}/content/${encodeURIComponent(params.assetId)}/optimization`
+      )
       if (params.limit != null) url.searchParams.set('limit', String(params.limit))
       if (params.offset != null) url.searchParams.set('offset', String(params.offset))
       return url.toString()
@@ -459,9 +615,24 @@ export const profoundOptimizationAnalysisTool: ToolConfig = {
   description: 'Get detailed content optimization analysis for a specific content item in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    assetId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Asset ID (UUID)' },
-    contentId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Content/optimization ID (UUID)' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    assetId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Asset ID (UUID)',
+    },
+    contentId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Content/optimization ID (UUID)',
+    },
   },
   request: {
     url: (params: any) =>
@@ -471,7 +642,8 @@ export const profoundOptimizationAnalysisTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.detail?.[0]?.msg || 'Failed to get optimization analysis')
+    if (!response.ok)
+      throw new Error(data.detail?.[0]?.msg || 'Failed to get optimization analysis')
     return { success: true, output: { analysis: data.data ?? data } }
   },
   outputs: {
@@ -487,8 +659,18 @@ export const profoundCitationPromptsTool: ToolConfig = {
   description: 'Get prompts that cite a specific domain across AI platforms in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    inputDomain: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Domain to look up citations for (e.g. ramp.com)' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    inputDomain: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Domain to look up citations for (e.g. ramp.com)',
+    },
   },
   request: {
     url: (params: any) => {
@@ -517,15 +699,61 @@ export const profoundVisibilityReportTool: ToolConfig = {
   description: 'Query AI visibility report for a category in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    categoryId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Category ID (UUID)' },
-    startDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Start date (YYYY-MM-DD)' },
-    endDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'End date (YYYY-MM-DD)' },
-    metrics: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Comma-separated metrics: share_of_voice, mentions_count, visibility_score, executions, average_position' },
-    dimensions: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated dimensions' },
-    dateInterval: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Date interval: hour, day, week, month, year' },
-    filters: { type: 'string', required: false, visibility: 'user-or-llm', description: 'JSON array of filter objects' },
-    limit: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Max results' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    categoryId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Category ID (UUID)',
+    },
+    startDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Start date (YYYY-MM-DD)',
+    },
+    endDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'End date (YYYY-MM-DD)',
+    },
+    metrics: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description:
+        'Comma-separated metrics: share_of_voice, mentions_count, visibility_score, executions, average_position',
+    },
+    dimensions: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated dimensions',
+    },
+    dateInterval: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Date interval: hour, day, week, month, year',
+    },
+    filters: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'JSON array of filter objects',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Max results',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/reports/visibility`,
@@ -547,15 +775,60 @@ export const profoundCitationsReportTool: ToolConfig = {
   description: 'Query citations report for a category in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    categoryId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Category ID (UUID)' },
-    startDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Start date (YYYY-MM-DD)' },
-    endDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'End date (YYYY-MM-DD)' },
-    metrics: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Comma-separated metrics: count, citation_share' },
-    dimensions: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated dimensions' },
-    dateInterval: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Date interval' },
-    filters: { type: 'string', required: false, visibility: 'user-or-llm', description: 'JSON array of filter objects' },
-    limit: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Max results' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    categoryId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Category ID (UUID)',
+    },
+    startDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Start date (YYYY-MM-DD)',
+    },
+    endDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'End date (YYYY-MM-DD)',
+    },
+    metrics: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated metrics: count, citation_share',
+    },
+    dimensions: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated dimensions',
+    },
+    dateInterval: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Date interval',
+    },
+    filters: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'JSON array of filter objects',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Max results',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/reports/citations`,
@@ -577,15 +850,60 @@ export const profoundSentimentReportTool: ToolConfig = {
   description: 'Query sentiment report for a category in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    categoryId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Category ID (UUID)' },
-    startDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Start date (YYYY-MM-DD)' },
-    endDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'End date (YYYY-MM-DD)' },
-    metrics: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Comma-separated metrics: positive, negative, occurrences' },
-    dimensions: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated dimensions' },
-    dateInterval: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Date interval' },
-    filters: { type: 'string', required: false, visibility: 'user-or-llm', description: 'JSON array of filter objects' },
-    limit: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Max results' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    categoryId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Category ID (UUID)',
+    },
+    startDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Start date (YYYY-MM-DD)',
+    },
+    endDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'End date (YYYY-MM-DD)',
+    },
+    metrics: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated metrics: positive, negative, occurrences',
+    },
+    dimensions: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated dimensions',
+    },
+    dateInterval: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Date interval',
+    },
+    filters: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'JSON array of filter objects',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Max results',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/reports/sentiment`,
@@ -604,18 +922,64 @@ export const profoundSentimentReportTool: ToolConfig = {
 export const profoundQueryFanoutsTool: ToolConfig = {
   id: 'profound_query_fanouts',
   name: 'Profound Query Fanouts',
-  description: 'Query fanout report showing how AI models expand prompts into sub-queries in Profound',
+  description:
+    'Query fanout report showing how AI models expand prompts into sub-queries in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    categoryId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Category ID (UUID)' },
-    startDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Start date (YYYY-MM-DD)' },
-    endDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'End date (YYYY-MM-DD)' },
-    metrics: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Comma-separated metrics: fanouts_per_execution, total_fanouts, share' },
-    dimensions: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated dimensions: prompt, query, model, region, date' },
-    dateInterval: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Date interval' },
-    filters: { type: 'string', required: false, visibility: 'user-or-llm', description: 'JSON array of filter objects' },
-    limit: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Max results' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    categoryId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Category ID (UUID)',
+    },
+    startDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Start date (YYYY-MM-DD)',
+    },
+    endDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'End date (YYYY-MM-DD)',
+    },
+    metrics: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated metrics: fanouts_per_execution, total_fanouts, share',
+    },
+    dimensions: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated dimensions: prompt, query, model, region, date',
+    },
+    dateInterval: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Date interval',
+    },
+    filters: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'JSON array of filter objects',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Max results',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/reports/query-fanouts`,
@@ -637,12 +1001,42 @@ export const profoundPromptAnswersTool: ToolConfig = {
   description: 'Get raw prompt answers data for a category in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    categoryId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Category ID (UUID)' },
-    startDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Start date (YYYY-MM-DD)' },
-    endDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'End date (YYYY-MM-DD)' },
-    filters: { type: 'string', required: false, visibility: 'user-or-llm', description: 'JSON array of filter objects' },
-    limit: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Max results' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    categoryId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Category ID (UUID)',
+    },
+    startDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Start date (YYYY-MM-DD)',
+    },
+    endDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'End date (YYYY-MM-DD)',
+    },
+    filters: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'JSON array of filter objects',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Max results',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/prompts/answers`,
@@ -671,17 +1065,59 @@ export const profoundPromptAnswersTool: ToolConfig = {
 export const profoundPromptVolumeTool: ToolConfig = {
   id: 'profound_prompt_volume',
   name: 'Profound Prompt Volume',
-  description: 'Query prompt volume data to understand search demand across AI platforms in Profound',
+  description:
+    'Query prompt volume data to understand search demand across AI platforms in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    startDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Start date (YYYY-MM-DD)' },
-    endDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'End date (YYYY-MM-DD)' },
-    metrics: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Comma-separated metrics: volume, change' },
-    dimensions: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated dimensions: keyword, date, platform, country_code, matching_type, frequency' },
-    dateInterval: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Date interval' },
-    filters: { type: 'string', required: false, visibility: 'user-or-llm', description: 'JSON array of filter objects' },
-    limit: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Max results' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    startDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Start date (YYYY-MM-DD)',
+    },
+    endDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'End date (YYYY-MM-DD)',
+    },
+    metrics: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated metrics: volume, change',
+    },
+    dimensions: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description:
+        'Comma-separated dimensions: keyword, date, platform, country_code, matching_type, frequency',
+    },
+    dateInterval: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Date interval',
+    },
+    filters: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'JSON array of filter objects',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Max results',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/prompt-volumes/volume`,
@@ -703,15 +1139,60 @@ export const profoundBotsReportTool: ToolConfig = {
   description: 'Query bot traffic report for a domain in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    domain: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Domain (e.g. example.com)' },
-    startDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Start date (YYYY-MM-DD)' },
-    endDate: { type: 'string', required: false, visibility: 'user-or-llm', description: 'End date (YYYY-MM-DD)' },
-    metrics: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Comma-separated metrics: count, citations, indexing, training, last_visit' },
-    dimensions: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated dimensions' },
-    dateInterval: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Date interval' },
-    filters: { type: 'string', required: false, visibility: 'user-or-llm', description: 'JSON array of filter objects' },
-    limit: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Max results' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    domain: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Domain (e.g. example.com)',
+    },
+    startDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Start date (YYYY-MM-DD)',
+    },
+    endDate: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'End date (YYYY-MM-DD)',
+    },
+    metrics: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated metrics: count, citations, indexing, training, last_visit',
+    },
+    dimensions: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated dimensions',
+    },
+    dateInterval: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Date interval',
+    },
+    filters: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'JSON array of filter objects',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Max results',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V2}/reports/bots`,
@@ -733,15 +1214,60 @@ export const profoundReferralsReportTool: ToolConfig = {
   description: 'Query human referral traffic report for a domain in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    domain: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Domain (e.g. example.com)' },
-    startDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Start date (YYYY-MM-DD)' },
-    endDate: { type: 'string', required: false, visibility: 'user-or-llm', description: 'End date (YYYY-MM-DD)' },
-    metrics: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Comma-separated metrics: visits, last_visit' },
-    dimensions: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated dimensions' },
-    dateInterval: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Date interval' },
-    filters: { type: 'string', required: false, visibility: 'user-or-llm', description: 'JSON array of filter objects' },
-    limit: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Max results' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    domain: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Domain (e.g. example.com)',
+    },
+    startDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Start date (YYYY-MM-DD)',
+    },
+    endDate: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'End date (YYYY-MM-DD)',
+    },
+    metrics: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated metrics: visits, last_visit',
+    },
+    dimensions: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated dimensions',
+    },
+    dateInterval: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Date interval',
+    },
+    filters: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'JSON array of filter objects',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Max results',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V2}/reports/referrals`,
@@ -763,13 +1289,49 @@ export const profoundBotLogsTool: ToolConfig = {
   description: 'Get identified bot visit logs with filters for a domain in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    domain: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Domain (e.g. example.com)' },
-    startDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Start date (YYYY-MM-DD)' },
-    endDate: { type: 'string', required: false, visibility: 'user-or-llm', description: 'End date (YYYY-MM-DD)' },
-    dimensions: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated dimensions: timestamp, method, host, path, status_code, ip, user_agent, referer, bytes_sent, duration_ms, query_params, bot_name, bot_provider, bot_types' },
-    filters: { type: 'string', required: false, visibility: 'user-or-llm', description: 'JSON array of filter objects' },
-    limit: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Max results' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    domain: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Domain (e.g. example.com)',
+    },
+    startDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Start date (YYYY-MM-DD)',
+    },
+    endDate: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'End date (YYYY-MM-DD)',
+    },
+    dimensions: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description:
+        'Comma-separated dimensions: timestamp, method, host, path, status_code, ip, user_agent, referer, bytes_sent, duration_ms, query_params, bot_name, bot_provider, bot_types',
+    },
+    filters: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'JSON array of filter objects',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Max results',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/logs/raw/bots`,
@@ -782,7 +1344,8 @@ export const profoundBotLogsTool: ToolConfig = {
         metrics: ['count'],
       }
       if (params.endDate) body.end_date = params.endDate
-      if (params.dimensions) body.dimensions = params.dimensions.split(',').map((d: string) => d.trim())
+      if (params.dimensions)
+        body.dimensions = params.dimensions.split(',').map((d: string) => d.trim())
       const filters = parseFilters(params.filters)
       if (filters) body.filters = filters
       if (params.limit != null) body.pagination = { limit: params.limit }
@@ -803,13 +1366,49 @@ export const profoundRawLogsTool: ToolConfig = {
   description: 'Get raw traffic logs with filters for a domain in Profound',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Profound API Key' },
-    domain: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Domain (e.g. example.com)' },
-    startDate: { type: 'string', required: true, visibility: 'user-or-llm', description: 'Start date (YYYY-MM-DD)' },
-    endDate: { type: 'string', required: false, visibility: 'user-or-llm', description: 'End date (YYYY-MM-DD)' },
-    dimensions: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated dimensions: timestamp, method, host, path, status_code, ip, user_agent, referer, bytes_sent, duration_ms, query_params' },
-    filters: { type: 'string', required: false, visibility: 'user-or-llm', description: 'JSON array of filter objects' },
-    limit: { type: 'number', required: false, visibility: 'user-or-llm', description: 'Max results' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Profound API Key',
+    },
+    domain: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Domain (e.g. example.com)',
+    },
+    startDate: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Start date (YYYY-MM-DD)',
+    },
+    endDate: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'End date (YYYY-MM-DD)',
+    },
+    dimensions: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description:
+        'Comma-separated dimensions: timestamp, method, host, path, status_code, ip, user_agent, referer, bytes_sent, duration_ms, query_params',
+    },
+    filters: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'JSON array of filter objects',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Max results',
+    },
   },
   request: {
     url: `${PROFOUND_API_URL_V1}/logs/raw`,
@@ -822,7 +1421,8 @@ export const profoundRawLogsTool: ToolConfig = {
         metrics: ['count'],
       }
       if (params.endDate) body.end_date = params.endDate
-      if (params.dimensions) body.dimensions = params.dimensions.split(',').map((d: string) => d.trim())
+      if (params.dimensions)
+        body.dimensions = params.dimensions.split(',').map((d: string) => d.trim())
       const filters = parseFilters(params.filters)
       if (filters) body.filters = filters
       if (params.limit != null) body.pagination = { limit: params.limit }

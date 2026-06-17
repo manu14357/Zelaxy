@@ -5,10 +5,10 @@ import {
   createTable,
   getWorkspaceTableLimits,
   listTables,
-  validateTableName,
-  validateTableSchema,
   TableConflictError,
   type TableSchema,
+  validateTableName,
+  validateTableSchema,
 } from '@/lib/table'
 import {
   checkRateLimit,
@@ -80,9 +80,7 @@ export async function GET(request: NextRequest) {
           maxRows: t.maxRows,
           columnCount: (t.schema as TableSchema).columns?.length ?? 0,
           workspaceId: t.workspaceId,
-          archivedAt: t.archivedAt
-            ? new Date(t.archivedAt).toISOString()
-            : null,
+          archivedAt: t.archivedAt ? new Date(t.archivedAt).toISOString() : null,
           createdAt: new Date(t.createdAt).toISOString(),
           updatedAt: new Date(t.updatedAt).toISOString(),
         })),

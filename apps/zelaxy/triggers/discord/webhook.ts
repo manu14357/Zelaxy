@@ -73,7 +73,7 @@ export const discordWebhookTrigger: TriggerConfig = {
   instructions: [
     'In Discord, go to <strong>Server Settings → Integrations → Webhooks</strong>.',
     'Click <strong>New Webhook</strong>, give it a name, and select the channel to post to.',
-    'Copy the webhook URL — this is what you\'ll use to send events to this workflow.',
+    "Copy the webhook URL — this is what you'll use to send events to this workflow.",
     'To receive <em>incoming</em> Discord events (messages, reactions, etc.), you need a Discord Bot or a service like <a href="https://zapier.com" target="_blank" rel="noopener noreferrer" class="text-primary underline transition-colors hover:text-primary/80">Zapier</a> that forwards events to this workflow URL.',
     'Paste the Webhook URL (from above) as the destination for your forwarded Discord events.',
   ],

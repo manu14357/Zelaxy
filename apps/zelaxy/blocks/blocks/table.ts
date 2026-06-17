@@ -429,15 +429,24 @@ Return ONLY the sort JSON:`,
 
   outputs: {
     success: { type: 'boolean', description: 'Operation success status' },
-    row: { type: 'json', description: 'Single row data (get_row, insert_row, upsert_row, update_row)' },
-    operation: { type: 'string', description: 'Operation performed (insert or update) — upsert_row only' },
+    row: {
+      type: 'json',
+      description: 'Single row data (get_row, insert_row, upsert_row, update_row)',
+    },
+    operation: {
+      type: 'string',
+      description: 'Operation performed (insert or update) — upsert_row only',
+    },
     rows: { type: 'json', description: 'Array of rows (query_rows, batch_insert_rows)' },
     rowCount: { type: 'number', description: 'Number of rows returned (query_rows)' },
     totalCount: { type: 'number', description: 'Total rows matching filter (query_rows)' },
     insertedCount: { type: 'number', description: 'Number of rows inserted (batch_insert_rows)' },
     updatedCount: { type: 'number', description: 'Number of rows updated (update_rows_by_filter)' },
     updatedRowIds: { type: 'json', description: 'IDs of updated rows (update_rows_by_filter)' },
-    deletedCount: { type: 'number', description: 'Number of rows deleted (delete_row, delete_rows_by_filter)' },
+    deletedCount: {
+      type: 'number',
+      description: 'Number of rows deleted (delete_row, delete_rows_by_filter)',
+    },
     deletedRowIds: { type: 'json', description: 'IDs of deleted rows (delete_rows_by_filter)' },
     name: { type: 'string', description: 'Table name (get_schema)' },
     columns: { type: 'json', description: 'Column definitions (get_schema)' },

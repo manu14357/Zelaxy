@@ -95,7 +95,8 @@ export const polymarketGetMarketTool: ToolConfig = {
       type: 'string',
       required: false,
       visibility: 'user-or-llm',
-      description: 'The market slug (e.g., "will-trump-win"). Required if marketId is not provided.',
+      description:
+        'The market slug (e.g., "will-trump-win"). Required if marketId is not provided.',
     },
   },
   request: {
@@ -829,7 +830,8 @@ export const polymarketGetTradesTool: ToolConfig = {
 export const polymarketGetActivityTool: ToolConfig = {
   id: 'polymarket_get_activity',
   name: 'Get Activity from Polymarket',
-  description: 'Retrieve on-chain activity for a user (trades, splits, merges, redemptions, rewards)',
+  description:
+    'Retrieve on-chain activity for a user (trades, splits, merges, redemptions, rewards)',
   version: '1.0.0',
   params: {
     user: {

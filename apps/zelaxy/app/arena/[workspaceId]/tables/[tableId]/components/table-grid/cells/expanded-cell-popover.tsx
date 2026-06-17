@@ -66,7 +66,10 @@ export function ExpandedCellPopover({
     setDraftValue(isEditable ? formatValueForInput(target.value, target.column.type) : '')
     const selector = `[data-table-scroll] [data-row-id="${target.row.id}"][data-col="${target.colIndex}"]`
     const el = document.querySelector<HTMLElement>(selector)
-    if (!el) { setRect(null); return }
+    if (!el) {
+      setRect(null)
+      return
+    }
     const r = el.getBoundingClientRect()
     setRect({ top: r.top, left: r.left, width: r.width })
     requestAnimationFrame(() => textareaRef.current?.focus())
@@ -75,7 +78,10 @@ export function ExpandedCellPopover({
   useEffect(() => {
     if (!expandedCell) return
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose() }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+      }
     }
     const handleMouseDown = (e: MouseEvent) => {
       if (!rootRef.current) return
@@ -141,17 +147,21 @@ export function ExpandedCellPopover({
             value={draftValue}
             onChange={(e) => setDraftValue(e.target.value)}
             onKeyDown={handleTextareaKeyDown}
-            className='min-h-0 flex-1 resize-none bg-transparent px-2.5 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground'
+            className='min-h-0 flex-1 resize-none bg-transparent px-2.5 py-2 text-foreground text-sm outline-none placeholder:text-muted-foreground'
             spellCheck={false}
             autoCorrect='off'
           />
-          <div className='flex items-center justify-between border-t border-border bg-muted/30 px-2 py-1.5'>
-            <span className='text-xs text-muted-foreground'>
+          <div className='flex items-center justify-between border-border border-t bg-muted/30 px-2 py-1.5'>
+            <span className='text-muted-foreground text-xs'>
               <kbd className='font-mono'>↵</kbd> save · <kbd className='font-mono'>esc</kbd> cancel
             </span>
             <div className='flex items-center gap-1.5'>
-              <Button variant='ghost' size='sm' onClick={onClose}>Cancel</Button>
-              <Button size='sm' onClick={handleSave}>Save</Button>
+              <Button variant='ghost' size='sm' onClick={onClose}>
+                Cancel
+              </Button>
+              <Button size='sm' onClick={handleSave}>
+                Save
+              </Button>
             </div>
           </div>
         </>
@@ -159,15 +169,17 @@ export function ExpandedCellPopover({
         <>
           <div className='min-h-0 flex-1 overflow-auto px-2.5 py-2'>
             {displayText ? (
-              <pre className='whitespace-pre-wrap break-words text-sm text-foreground'>
+              <pre className='whitespace-pre-wrap break-words text-foreground text-sm'>
                 {displayText}
               </pre>
             ) : (
-              <span className='text-sm text-muted-foreground'>(empty)</span>
+              <span className='text-muted-foreground text-sm'>(empty)</span>
             )}
           </div>
-          <div className='flex items-center justify-end border-t border-border bg-muted/30 px-2 py-1.5'>
-            <Button variant='ghost' size='sm' onClick={onClose}>Close</Button>
+          <div className='flex items-center justify-end border-border border-t bg-muted/30 px-2 py-1.5'>
+            <Button variant='ghost' size='sm' onClick={onClose}>
+              Close
+            </Button>
           </div>
         </>
       )}

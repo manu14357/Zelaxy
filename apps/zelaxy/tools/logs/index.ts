@@ -135,13 +135,20 @@ export const logsQueryTool: ToolConfig<LogsQueryParams, LogsQueryResponse> = {
 
   transformResponse: async (response): Promise<LogsQueryResponse> => {
     const result = await response.json()
-    if (!response.ok) throw new Error(result?.error || `Request failed with status ${response.status}`)
-    return { success: true, output: { logs: result.data || [], nextCursor: result.nextCursor ?? null } }
+    if (!response.ok)
+      throw new Error(result?.error || `Request failed with status ${response.status}`)
+    return {
+      success: true,
+      output: { logs: result.data || [], nextCursor: result.nextCursor ?? null },
+    }
   },
 
   outputs: {
     logs: { type: 'array', description: 'Array of workflow execution log entries' },
-    nextCursor: { type: 'string', description: 'Pagination cursor for the next page; null when no more results' },
+    nextCursor: {
+      type: 'string',
+      description: 'Pagination cursor for the next page; null when no more results',
+    },
   },
 }
 
@@ -173,7 +180,8 @@ export const logsGetTool: ToolConfig<LogsGetParams, LogsGetResponse> = {
 
   transformResponse: async (response): Promise<LogsGetResponse> => {
     const result = await response.json()
-    if (!response.ok) throw new Error(result?.error || `Request failed with status ${response.status}`)
+    if (!response.ok)
+      throw new Error(result?.error || `Request failed with status ${response.status}`)
     return { success: true, output: { log: result.data } }
   },
 
@@ -185,7 +193,8 @@ export const logsGetTool: ToolConfig<LogsGetParams, LogsGetResponse> = {
 export const logsGetExecutionTool: ToolConfig<LogsGetExecutionParams, LogsGetExecutionResponse> = {
   id: 'logs_get_execution',
   name: 'Get Execution Details',
-  description: 'Fetch full execution details for a workflow run, including the per-block state snapshot.',
+  description:
+    'Fetch full execution details for a workflow run, including the per-block state snapshot.',
   version: '1.0.0',
 
   params: {
@@ -205,7 +214,8 @@ export const logsGetExecutionTool: ToolConfig<LogsGetExecutionParams, LogsGetExe
 
   transformResponse: async (response): Promise<LogsGetExecutionResponse> => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data?.error || `Request failed with status ${response.status}`)
+    if (!response.ok)
+      throw new Error(data?.error || `Request failed with status ${response.status}`)
     return { success: true, output: data }
   },
 
@@ -213,6 +223,9 @@ export const logsGetExecutionTool: ToolConfig<LogsGetExecutionParams, LogsGetExe
     executionId: { type: 'string', description: 'Execution ID' },
     workflowId: { type: 'string', description: 'Workflow ID this execution belongs to' },
     workflowState: { type: 'json', description: 'Per-block state snapshot for the execution' },
-    executionMetadata: { type: 'json', description: 'Trigger, timestamps, totalDurationMs, and cost for the run' },
+    executionMetadata: {
+      type: 'json',
+      description: 'Trigger, timestamps, totalDurationMs, and cost for the run',
+    },
   },
 }

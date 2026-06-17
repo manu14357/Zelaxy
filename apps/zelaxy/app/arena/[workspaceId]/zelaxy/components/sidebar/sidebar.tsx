@@ -297,21 +297,21 @@ export function Sidebar() {
   // Check if we're on a workflow page
   const isOnWorkflowPage = useMemo(() => {
     // Pattern: /arena/[workspaceId]/zelaxy/[workflowId]
-    const workflowPageRegex = /^\/workspace\/[^/]+\/zelaxy\/[^/]+$/
+    const workflowPageRegex = /^\/arena\/[^/]+\/zelaxy\/[^/]+$/
     return workflowPageRegex.test(pathname)
   }, [pathname])
 
   // Check if we're on the logs page
   const isOnLogsPage = useMemo(() => {
     // Pattern: /arena/[workspaceId]/logs
-    const logsPageRegex = /^\/workspace\/[^/]+\/logs$/
+    const logsPageRegex = /^\/arena\/[^/]+\/logs$/
     return logsPageRegex.test(pathname)
   }, [pathname])
 
   // Check if we're on any knowledge base page (overview or document)
   const isOnKnowledgePage = useMemo(() => {
     // Pattern: /arena/[workspaceId]/knowledge/[id] or /arena/[workspaceId]/knowledge/[id]/[documentId]
-    const knowledgePageRegex = /^\/workspace\/[^/]+\/knowledge\/[^/]+/
+    const knowledgePageRegex = /^\/arena\/[^/]+\/knowledge\/[^/]+/
     return knowledgePageRegex.test(pathname)
   }, [pathname])
 
@@ -322,8 +322,8 @@ export function Sidebar() {
     }
 
     // Handle both KB overview (/knowledge/[kbId]) and document page (/knowledge/[kbId]/[docId])
-    const kbOverviewMatch = pathname.match(/^\/workspace\/[^/]+\/knowledge\/([^/]+)$/)
-    const docPageMatch = pathname.match(/^\/workspace\/[^/]+\/knowledge\/([^/]+)\/([^/]+)$/)
+    const kbOverviewMatch = pathname.match(/^\/arena\/[^/]+\/knowledge\/([^/]+)$/)
+    const docPageMatch = pathname.match(/^\/arena\/[^/]+\/knowledge\/([^/]+)\/([^/]+)$/)
 
     if (docPageMatch) {
       // Document page - has both kbId and docId

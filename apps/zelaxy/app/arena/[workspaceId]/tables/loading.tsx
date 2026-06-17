@@ -5,7 +5,7 @@ const SKELETON_ROW_COUNT = 6
 export default function TablesLoading() {
   return (
     <div className='flex h-full flex-col'>
-      <div className='border-b border-border/50 bg-card/30 px-6 py-4'>
+      <div className='border-border/50 border-b bg-card/30 px-6 py-4'>
         <div className='flex items-center justify-between'>
           <div className='flex items-center gap-3'>
             <Skeleton className='h-9 w-9 rounded-xl' />
@@ -24,7 +24,7 @@ export default function TablesLoading() {
           <Skeleton className='h-9 w-9 rounded-lg' />
         </div>
         <div className='overflow-hidden rounded-xl border border-border/40'>
-          <div className='border-b border-border/40 bg-muted/30 px-4 py-2.5'>
+          <div className='border-border/40 border-b bg-muted/30 px-4 py-2.5'>
             <div className='grid grid-cols-4 gap-4'>
               {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className='h-3 w-20 rounded' />
@@ -32,7 +32,7 @@ export default function TablesLoading() {
             </div>
           </div>
           {Array.from({ length: SKELETON_ROW_COUNT }).map((_, i) => (
-            <div key={i} className='border-b border-border/30 px-4 py-3 last:border-0'>
+            <div key={i} className='border-border/30 border-b px-4 py-3 last:border-0'>
               <div className='grid grid-cols-4 gap-4'>
                 <div className='flex items-center gap-2'>
                   <Skeleton className='h-4 w-4 rounded' />

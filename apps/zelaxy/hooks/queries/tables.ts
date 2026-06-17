@@ -5,7 +5,6 @@
  * Adapted from sim-main for Zelaxy's API surface.
  */
 
-import { createLogger } from '@/lib/logs/console/logger'
 import {
   type InfiniteData,
   useInfiniteQuery,
@@ -14,6 +13,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { createLogger } from '@/lib/logs/console/logger'
 import type {
   CsvHeaderMapping,
   Filter,
@@ -55,12 +55,17 @@ interface RowsPage {
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
-export function useTables(workspaceId: string | undefined, scope: 'active' | 'archived' | 'all' = 'active') {
+export function useTables(
+  workspaceId: string | undefined,
+  scope: 'active' | 'archived' | 'all' = 'active'
+) {
   return useQuery({
     queryKey: tableKeys.list(workspaceId, scope),
     queryFn: async (): Promise<TableDefinition[]> => {
       if (!workspaceId) return []
-      const res = await fetch(`/api/table?workspaceId=${encodeURIComponent(workspaceId)}&scope=${scope}`)
+      const res = await fetch(
+        `/api/table?workspaceId=${encodeURIComponent(workspaceId)}&scope=${scope}`
+      )
       if (!res.ok) throw new Error('Failed to load tables')
       const json: ApiResponse<{ tables: TableDefinition[] }> = await res.json()
       return json.data?.tables ?? []

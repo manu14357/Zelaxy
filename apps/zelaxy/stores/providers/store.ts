@@ -1,5 +1,5 @@
-import { createLogger } from '@/lib/logs/console/logger'
 import { create } from 'zustand'
+import { createLogger } from '@/lib/logs/console/logger'
 import type { OpenRouterModelInfo, ProvidersStore } from './types'
 
 const logger = createLogger('ProvidersStore')

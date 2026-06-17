@@ -13,10 +13,7 @@ const logger = createLogger('InvitationsAPI')
 const AcceptSchema = z.object({ action: z.enum(['accept', 'decline']) })
 
 // GET /api/invitations/[id] — Get invitation details
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { id } = await params
 
@@ -58,10 +55,7 @@ export async function GET(
 }
 
 // POST /api/invitations/[id] — Accept or decline an organization invitation
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { id } = await params
 
@@ -74,10 +68,7 @@ export async function POST(
     const body = await request.json()
     const validation = AcceptSchema.safeParse(body)
     if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Provide action: "accept" or "decline"' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Provide action: "accept" or "decline"' }, { status: 400 })
     }
 
     const { action } = validation.data
@@ -119,9 +110,7 @@ export async function POST(
     const existingMember = await db
       .select({ id: member.id })
       .from(member)
-      .where(
-        and(eq(member.userId, session.user.id), eq(member.organizationId, inv.organizationId))
-      )
+      .where(and(eq(member.userId, session.user.id), eq(member.organizationId, inv.organizationId)))
       .limit(1)
 
     if (existingMember.length === 0) {
@@ -140,7 +129,11 @@ export async function POST(
       `[${requestId}] User ${session.user.id} accepted invitation ${id} for org ${inv.organizationId}`
     )
 
-    return NextResponse.json({ success: true, status: 'accepted', organizationId: inv.organizationId })
+    return NextResponse.json({
+      success: true,
+      status: 'accepted',
+      organizationId: inv.organizationId,
+    })
   } catch (error) {
     logger.error(`[${requestId}] Error processing invitation ${id}:`, error)
     return NextResponse.json({ error: 'Failed to process invitation' }, { status: 500 })

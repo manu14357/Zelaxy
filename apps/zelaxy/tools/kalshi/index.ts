@@ -1,5 +1,4 @@
 import crypto from 'crypto'
-
 import type { ToolConfig } from '@/tools/types'
 
 const KALSHI_BASE_URL = 'https://api.elections.kalshi.com/trade-api/v2'
@@ -121,7 +120,8 @@ export const kalshiGetMarketsTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return { success: true, output: { markets: data.markets || [], cursor: data.cursor || null } }
   },
   outputs: {
@@ -150,7 +150,8 @@ export const kalshiGetMarketTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return { success: true, output: { market: data.market || data } }
   },
   outputs: {
@@ -204,7 +205,8 @@ export const kalshiGetEventsTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return { success: true, output: { events: data.events || [], cursor: data.cursor || null } }
   },
   outputs: {
@@ -246,7 +248,8 @@ export const kalshiGetEventTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return { success: true, output: { event: data.event || data } }
   },
   outputs: {
@@ -287,7 +290,8 @@ export const kalshiGetOrderbookTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return { success: true, output: { orderbook: data.orderbook || { yes: [], no: [] } } }
   },
   outputs: {
@@ -334,7 +338,8 @@ export const kalshiGetTradesTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return { success: true, output: { trades: data.trades || [], cursor: data.cursor || null } }
   },
   outputs: {
@@ -393,7 +398,8 @@ export const kalshiGetCandlesticksTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return { success: true, output: { candlesticks: data.candlesticks || [] } }
   },
   outputs: {
@@ -421,7 +427,8 @@ export const kalshiGetSeriesByTickerTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return { success: true, output: { series: data.series || data } }
   },
   outputs: {
@@ -442,7 +449,8 @@ export const kalshiGetExchangeStatusTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return {
       success: true,
       output: {
@@ -481,12 +489,22 @@ export const kalshiGetBalanceTool: ToolConfig = {
   request: {
     url: () => `${KALSHI_BASE_URL}/portfolio/balance`,
     method: 'GET',
-    headers: (params: any) => buildKalshiAuthHeaders(params.keyId, params.privateKey, 'GET', '/trade-api/v2/portfolio/balance'),
+    headers: (params: any) =>
+      buildKalshiAuthHeaders(
+        params.keyId,
+        params.privateKey,
+        'GET',
+        '/trade-api/v2/portfolio/balance'
+      ),
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
-    return { success: true, output: { balance: data.balance ?? 0, portfolioValue: data.portfolio_value ?? 0 } }
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    return {
+      success: true,
+      output: { balance: data.balance ?? 0, portfolioValue: data.portfolio_value ?? 0 },
+    }
   },
   outputs: {
     balance: { type: 'number', description: 'Account balance in cents' },
@@ -552,15 +570,23 @@ export const kalshiGetPositionsTool: ToolConfig = {
       if (params.limit) q.append('limit', params.limit)
       if (params.cursor) q.append('cursor', params.cursor)
       const qs = q.toString()
-      return qs ? `${KALSHI_BASE_URL}/portfolio/positions?${qs}` : `${KALSHI_BASE_URL}/portfolio/positions`
+      return qs
+        ? `${KALSHI_BASE_URL}/portfolio/positions?${qs}`
+        : `${KALSHI_BASE_URL}/portfolio/positions`
     },
     method: 'GET',
     headers: (params: any) =>
-      buildKalshiAuthHeaders(params.keyId, params.privateKey, 'GET', '/trade-api/v2/portfolio/positions'),
+      buildKalshiAuthHeaders(
+        params.keyId,
+        params.privateKey,
+        'GET',
+        '/trade-api/v2/portfolio/positions'
+      ),
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return {
       success: true,
       output: {
@@ -633,15 +659,23 @@ export const kalshiGetOrdersTool: ToolConfig = {
       if (params.limit) q.append('limit', params.limit)
       if (params.cursor) q.append('cursor', params.cursor)
       const qs = q.toString()
-      return qs ? `${KALSHI_BASE_URL}/portfolio/orders?${qs}` : `${KALSHI_BASE_URL}/portfolio/orders`
+      return qs
+        ? `${KALSHI_BASE_URL}/portfolio/orders?${qs}`
+        : `${KALSHI_BASE_URL}/portfolio/orders`
     },
     method: 'GET',
     headers: (params: any) =>
-      buildKalshiAuthHeaders(params.keyId, params.privateKey, 'GET', '/trade-api/v2/portfolio/orders'),
+      buildKalshiAuthHeaders(
+        params.keyId,
+        params.privateKey,
+        'GET',
+        '/trade-api/v2/portfolio/orders'
+      ),
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return {
       success: true,
       output: { orders: data.orders || [], cursor: data.cursor || null },
@@ -691,7 +725,8 @@ export const kalshiGetOrderTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return { success: true, output: { order: data.order || data } }
   },
   outputs: {
@@ -701,7 +736,7 @@ export const kalshiGetOrderTool: ToolConfig = {
 
 export const kalshiGetFillsTool: ToolConfig = {
   id: 'kalshi_get_fills',
-  name: "Get Fills from Kalshi",
+  name: 'Get Fills from Kalshi',
   description: "Retrieve your portfolio's fills/trades from Kalshi",
   version: '1.0.0',
   params: {
@@ -768,11 +803,17 @@ export const kalshiGetFillsTool: ToolConfig = {
     },
     method: 'GET',
     headers: (params: any) =>
-      buildKalshiAuthHeaders(params.keyId, params.privateKey, 'GET', '/trade-api/v2/portfolio/fills'),
+      buildKalshiAuthHeaders(
+        params.keyId,
+        params.privateKey,
+        'GET',
+        '/trade-api/v2/portfolio/fills'
+      ),
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return {
       success: true,
       output: { fills: data.fills || [], cursor: data.cursor || null },
@@ -861,25 +902,31 @@ export const kalshiCreateOrderTool: ToolConfig = {
     url: () => `${KALSHI_BASE_URL}/portfolio/orders`,
     method: 'POST',
     headers: (params: any) =>
-      buildKalshiAuthHeaders(params.keyId, params.privateKey, 'POST', '/trade-api/v2/portfolio/orders'),
+      buildKalshiAuthHeaders(
+        params.keyId,
+        params.privateKey,
+        'POST',
+        '/trade-api/v2/portfolio/orders'
+      ),
     body: (params: any) => {
       const body: Record<string, any> = {
         ticker: params.ticker,
         side: params.side,
         action: params.action,
-        count: parseInt(params.count, 10),
+        count: Number.parseInt(params.count, 10),
         type: params.type || 'limit',
       }
-      if (params.yesPrice) body.yes_price = parseInt(params.yesPrice, 10)
-      if (params.noPrice) body.no_price = parseInt(params.noPrice, 10)
+      if (params.yesPrice) body.yes_price = Number.parseInt(params.yesPrice, 10)
+      if (params.noPrice) body.no_price = Number.parseInt(params.noPrice, 10)
       if (params.clientOrderId) body.client_order_id = params.clientOrderId
-      if (params.expirationTs) body.expiration_ts = parseInt(params.expirationTs, 10)
+      if (params.expirationTs) body.expiration_ts = Number.parseInt(params.expirationTs, 10)
       return body
     },
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return { success: true, output: { order: data.order || data } }
   },
   outputs: {
@@ -925,7 +972,8 @@ export const kalshiCancelOrderTool: ToolConfig = {
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return {
       success: true,
       output: { order: data.order || {}, reducedBy: data.reduced_by || 0 },
@@ -998,16 +1046,17 @@ export const kalshiAmendOrderTool: ToolConfig = {
       ),
     body: (params: any) => {
       const body: Record<string, any> = {}
-      if (params.count) body.count = parseInt(params.count, 10)
-      if (params.yesPrice) body.yes_price = parseInt(params.yesPrice, 10)
-      if (params.noPrice) body.no_price = parseInt(params.noPrice, 10)
-      if (params.expirationTs) body.expiration_ts = parseInt(params.expirationTs, 10)
+      if (params.count) body.count = Number.parseInt(params.count, 10)
+      if (params.yesPrice) body.yes_price = Number.parseInt(params.yesPrice, 10)
+      if (params.noPrice) body.no_price = Number.parseInt(params.noPrice, 10)
+      if (params.expirationTs) body.expiration_ts = Number.parseInt(params.expirationTs, 10)
       return body
     },
   },
   transformResponse: async (response: Response) => {
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
+    if (!response.ok)
+      throw new Error(data.error?.message || data.message || `Kalshi error: ${response.status}`)
     return { success: true, output: { order: data.order || data } }
   },
   outputs: {

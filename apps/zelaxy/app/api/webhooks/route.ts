@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const workflowId = searchParams.get('workflowId')
     const blockId = searchParams.get('blockId')
+    const workspaceId = searchParams.get('workspaceId')
 
     if (workflowId && !blockId) {
       // For now, allow the call but return empty results to avoid breaking the UI
@@ -37,10 +38,22 @@ export async function GET(request: NextRequest) {
     logger.debug(`[${requestId}] Fetching webhooks for user ${session.user.id}`, {
       filteredByWorkflow: !!workflowId,
       filteredByBlock: !!blockId,
+      filteredByWorkspace: !!workspaceId,
     })
 
-    // Create where condition
-    const conditions = [eq(workflow.userId, session.user.id)]
+    // When scoped to a workspace, return webhooks for every workflow in the
+    // workspace the user can access. Otherwise fall back to the user's own webhooks.
+    const conditions = []
+
+    if (workspaceId) {
+      const permission = await getUserEntityPermissions(session.user.id, 'workspace', workspaceId)
+      if (permission === null) {
+        return NextResponse.json({ error: 'Not authorized for this workspace' }, { status: 403 })
+      }
+      conditions.push(eq(workflow.workspaceId, workspaceId))
+    } else {
+      conditions.push(eq(workflow.userId, session.user.id))
+    }
 
     if (workflowId) {
       conditions.push(eq(webhook.workflowId, workflowId))

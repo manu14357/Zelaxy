@@ -13,8 +13,7 @@ export const COLUMN_SIDEBAR_WIDTH = 400
 /** Number of skeleton rows shown while the table body is loading. */
 export const SKELETON_ROW_COUNT = 10
 
-export const CELL =
-  'border-border border-r border-b px-2 py-[7px] align-middle select-none'
+export const CELL = 'border-border border-r border-b px-2 py-[7px] align-middle select-none'
 export const CELL_CHECKBOX =
   'sticky left-0 z-[6] border-border border-r border-b bg-background px-1 py-[7px] align-middle select-none'
 export const CELL_HEADER_CHECKBOX =

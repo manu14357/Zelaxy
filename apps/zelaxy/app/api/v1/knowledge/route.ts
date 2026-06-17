@@ -2,13 +2,13 @@ import { and, count, desc, eq, isNull } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logs/console/logger'
-import { db } from '@/db'
-import { document, knowledgeBase } from '@/db/schema'
 import {
   checkRateLimit,
   createRateLimitResponse,
   validateWorkspaceAccess,
 } from '@/app/api/v1/middleware'
+import { db } from '@/db'
+import { document, knowledgeBase } from '@/db/schema'
 
 const logger = createLogger('V1KnowledgeAPI')
 
@@ -65,12 +65,7 @@ export async function GET(request: NextRequest) {
         updatedAt: knowledgeBase.updatedAt,
       })
       .from(knowledgeBase)
-      .where(
-        and(
-          eq(knowledgeBase.workspaceId, workspaceId),
-          isNull(knowledgeBase.deletedAt)
-        )
-      )
+      .where(and(eq(knowledgeBase.workspaceId, workspaceId), isNull(knowledgeBase.deletedAt)))
       .orderBy(desc(knowledgeBase.updatedAt))
       .limit(limit)
       .offset(offset)

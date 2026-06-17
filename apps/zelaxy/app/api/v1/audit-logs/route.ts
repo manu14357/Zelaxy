@@ -1,13 +1,10 @@
-import { and, asc, desc, eq, gte, lte } from 'drizzle-orm'
+import { and, desc, eq, gte, lte } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logs/console/logger'
+import { checkRateLimit, createRateLimitResponse } from '@/app/api/v1/middleware'
 import { db } from '@/db'
 import { auditLog, member } from '@/db/schema'
-import {
-  checkRateLimit,
-  createRateLimitResponse,
-} from '@/app/api/v1/middleware'
 
 const logger = createLogger('V1AuditLogsAPI')
 
@@ -95,10 +92,7 @@ export async function GET(request: NextRequest) {
         .orderBy(desc(auditLog.createdAt))
         .limit(limit)
         .offset(offset),
-      db
-        .select({ count: auditLog.id })
-        .from(auditLog)
-        .where(where),
+      db.select({ count: auditLog.id }).from(auditLog).where(where),
     ])
 
     logger.info(`[${requestId}] Fetched ${logs.length} audit logs for org ${organizationId}`)

@@ -1,4 +1,4 @@
-import type { ToolConfig, ToolResponse } from '@/tools/types'
+import type { ToolConfig } from '@/tools/types'
 
 const BASE = 'https://api.grain.com/_/public-api/v2'
 const API_VERSION = '2025-10-31'
@@ -15,17 +15,72 @@ export const grainListRecordingsTool: ToolConfig = {
   description: 'List recordings from Grain with optional filters and pagination',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Grain API key (Personal Access Token)' },
-    cursor: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Pagination cursor from previous response' },
-    beforeDatetime: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Only recordings before this ISO8601 timestamp' },
-    afterDatetime: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Only recordings after this ISO8601 timestamp' },
-    participantScope: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Filter: "internal" or "external"' },
-    titleSearch: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Search term to filter by recording title' },
-    teamId: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Filter by team UUID' },
-    meetingTypeId: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Filter by meeting type UUID' },
-    includeHighlights: { type: 'boolean', required: false, visibility: 'user-only', description: 'Include highlights/clips in response' },
-    includeParticipants: { type: 'boolean', required: false, visibility: 'user-only', description: 'Include participant list in response' },
-    includeAiSummary: { type: 'boolean', required: false, visibility: 'user-only', description: 'Include AI-generated summary' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Grain API key (Personal Access Token)',
+    },
+    cursor: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Pagination cursor from previous response',
+    },
+    beforeDatetime: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Only recordings before this ISO8601 timestamp',
+    },
+    afterDatetime: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Only recordings after this ISO8601 timestamp',
+    },
+    participantScope: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Filter: "internal" or "external"',
+    },
+    titleSearch: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Search term to filter by recording title',
+    },
+    teamId: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Filter by team UUID',
+    },
+    meetingTypeId: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Filter by meeting type UUID',
+    },
+    includeHighlights: {
+      type: 'boolean',
+      required: false,
+      visibility: 'user-only',
+      description: 'Include highlights/clips in response',
+    },
+    includeParticipants: {
+      type: 'boolean',
+      required: false,
+      visibility: 'user-only',
+      description: 'Include participant list in response',
+    },
+    includeAiSummary: {
+      type: 'boolean',
+      required: false,
+      visibility: 'user-only',
+      description: 'Include AI-generated summary',
+    },
   },
   request: {
     url: `${BASE}/recordings`,
@@ -53,7 +108,10 @@ export const grainListRecordingsTool: ToolConfig = {
   transformResponse: async (response) => {
     const data = await response.json()
     if (!response.ok) throw new Error(data.error || data.message || 'Failed to list recordings')
-    return { success: true, output: { recordings: data.recordings || [], cursor: data.cursor || null } }
+    return {
+      success: true,
+      output: { recordings: data.recordings || [], cursor: data.cursor || null },
+    }
   },
   outputs: {
     recordings: { type: 'array', description: 'Array of recording objects' },
@@ -67,13 +125,48 @@ export const grainGetRecordingTool: ToolConfig = {
   description: 'Get details of a single recording by ID',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Grain API key' },
-    recordingId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'The recording UUID' },
-    includeHighlights: { type: 'boolean', required: false, visibility: 'user-only', description: 'Include highlights/clips' },
-    includeParticipants: { type: 'boolean', required: false, visibility: 'user-only', description: 'Include participant list' },
-    includeAiSummary: { type: 'boolean', required: false, visibility: 'user-only', description: 'Include AI summary' },
-    includeCalendarEvent: { type: 'boolean', required: false, visibility: 'user-only', description: 'Include calendar event data' },
-    includeHubspot: { type: 'boolean', required: false, visibility: 'user-only', description: 'Include HubSpot associations' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Grain API key',
+    },
+    recordingId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'The recording UUID',
+    },
+    includeHighlights: {
+      type: 'boolean',
+      required: false,
+      visibility: 'user-only',
+      description: 'Include highlights/clips',
+    },
+    includeParticipants: {
+      type: 'boolean',
+      required: false,
+      visibility: 'user-only',
+      description: 'Include participant list',
+    },
+    includeAiSummary: {
+      type: 'boolean',
+      required: false,
+      visibility: 'user-only',
+      description: 'Include AI summary',
+    },
+    includeCalendarEvent: {
+      type: 'boolean',
+      required: false,
+      visibility: 'user-only',
+      description: 'Include calendar event data',
+    },
+    includeHubspot: {
+      type: 'boolean',
+      required: false,
+      visibility: 'user-only',
+      description: 'Include HubSpot associations',
+    },
   },
   request: {
     url: (params: any) => `${BASE}/recordings/${params.recordingId}`,
@@ -110,8 +203,18 @@ export const grainGetTranscriptTool: ToolConfig = {
   description: 'Get the full transcript of a recording',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Grain API key' },
-    recordingId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'The recording UUID' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Grain API key',
+    },
+    recordingId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'The recording UUID',
+    },
   },
   request: {
     url: (params: any) => `${BASE}/recordings/${params.recordingId}/transcript`,
@@ -124,7 +227,10 @@ export const grainGetTranscriptTool: ToolConfig = {
     return { success: true, output: { transcript: data.transcript || [] } }
   },
   outputs: {
-    transcript: { type: 'array', description: 'Array of transcript sections with speaker, text, start/end times' },
+    transcript: {
+      type: 'array',
+      description: 'Array of transcript sections with speaker, text, start/end times',
+    },
   },
 }
 
@@ -134,8 +240,18 @@ export const grainListViewsTool: ToolConfig = {
   description: 'List saved views in Grain',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Grain API key' },
-    typeFilter: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Filter by type: recordings, highlights, or stories' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Grain API key',
+    },
+    typeFilter: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Filter by type: recordings, highlights, or stories',
+    },
   },
   request: {
     url: (params: any) => {
@@ -162,7 +278,12 @@ export const grainListTeamsTool: ToolConfig = {
   description: 'List all teams in the Grain workspace',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Grain API key' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Grain API key',
+    },
   },
   request: {
     url: `${BASE}/teams`,
@@ -185,7 +306,12 @@ export const grainListMeetingTypesTool: ToolConfig = {
   description: 'List all meeting types in the Grain workspace',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Grain API key' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Grain API key',
+    },
   },
   request: {
     url: `${BASE}/meeting-types`,
@@ -208,10 +334,30 @@ export const grainCreateHookTool: ToolConfig = {
   description: 'Create a webhook to receive Grain recording events',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Grain API key' },
-    hookUrl: { type: 'string', required: true, visibility: 'user-or-llm', description: 'The URL to send webhook events to' },
-    viewId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'View ID to scope the webhook to' },
-    actions: { type: 'string', required: false, visibility: 'user-or-llm', description: 'Comma-separated actions: added, updated, removed' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Grain API key',
+    },
+    hookUrl: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'The URL to send webhook events to',
+    },
+    viewId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'View ID to scope the webhook to',
+    },
+    actions: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated actions: added, updated, removed',
+    },
   },
   request: {
     url: `${BASE}/hooks`,
@@ -220,7 +366,9 @@ export const grainCreateHookTool: ToolConfig = {
     body: (params: any) => ({
       hook_url: params.hookUrl,
       view_id: params.viewId,
-      actions: params.actions ? params.actions.split(',').map((a: string) => a.trim()) : ['added', 'updated', 'removed'],
+      actions: params.actions
+        ? params.actions.split(',').map((a: string) => a.trim())
+        : ['added', 'updated', 'removed'],
     }),
   },
   transformResponse: async (response) => {
@@ -241,7 +389,12 @@ export const grainListHooksTool: ToolConfig = {
   description: 'List all webhooks in the Grain workspace',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Grain API key' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Grain API key',
+    },
   },
   request: {
     url: `${BASE}/hooks`,
@@ -264,8 +417,18 @@ export const grainDeleteHookTool: ToolConfig = {
   description: 'Delete a webhook from the Grain workspace',
   version: '1.0.0',
   params: {
-    apiKey: { type: 'string', required: true, visibility: 'user-only', description: 'Grain API key' },
-    hookId: { type: 'string', required: true, visibility: 'user-or-llm', description: 'The hook ID to delete' },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Grain API key',
+    },
+    hookId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'The hook ID to delete',
+    },
   },
   request: {
     url: (params: any) => `${BASE}/hooks/${params.hookId}`,

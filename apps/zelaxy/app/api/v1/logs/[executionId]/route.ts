@@ -1,13 +1,13 @@
 import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logs/console/logger'
-import { db } from '@/db'
-import { workflow, workflowExecutionLogs } from '@/db/schema'
 import {
   checkRateLimit,
   createRateLimitResponse,
   validateWorkspaceAccess,
 } from '@/app/api/v1/middleware'
+import { db } from '@/db'
+import { workflow, workflowExecutionLogs } from '@/db/schema'
 
 const logger = createLogger('V1LogDetailAPI')
 

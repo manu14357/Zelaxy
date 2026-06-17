@@ -2,21 +2,7 @@ import { BlockPathCalculator } from '@/lib/block-path-calculator'
 import { createLogger } from '@/lib/logs/console/logger'
 import type { BlockOutput } from '@/blocks/types'
 import { BlockType } from '@/executor/consts'
-import {
-  AgentBlockHandler,
-  ApiBlockHandler,
-  ConditionBlockHandler,
-  EvaluatorBlockHandler,
-  FunctionBlockHandler,
-  GenericBlockHandler,
-  LoopBlockHandler,
-  ParallelBlockHandler,
-  ResponseBlockHandler,
-  RouterBlockHandler,
-  SwitchBlockHandler,
-  TriggerBlockHandler,
-  WorkflowBlockHandler,
-} from '@/executor/handlers'
+import { createBlockHandlers } from '@/executor/handlers/registry'
 import { LoopManager } from '@/executor/loops/loops'
 import { ParallelManager } from '@/executor/parallels/parallels'
 import { PathTracker } from '@/executor/path/path'
@@ -158,21 +144,13 @@ export class Executor {
     )
     this.pathTracker = new PathTracker(this.actualWorkflow)
 
-    this.blockHandlers = [
-      new TriggerBlockHandler(),
-      new AgentBlockHandler(),
-      new RouterBlockHandler(this.pathTracker),
-      new ConditionBlockHandler(this.pathTracker, this.resolver),
-      new SwitchBlockHandler(this.pathTracker, this.resolver),
-      new EvaluatorBlockHandler(),
-      new FunctionBlockHandler(),
-      new ApiBlockHandler(),
-      new LoopBlockHandler(this.resolver, this.pathTracker),
-      new ParallelBlockHandler(this.resolver, this.pathTracker),
-      new ResponseBlockHandler(),
-      new WorkflowBlockHandler(),
-      new GenericBlockHandler(),
-    ]
+    // Single source of truth for handler registration (see handlers/registry.ts).
+    // Keeping this centralized prevents the handler list from drifting and
+    // silently dropping block handlers.
+    this.blockHandlers = createBlockHandlers({
+      pathTracker: this.pathTracker,
+      resolver: this.resolver,
+    })
 
     this.isDebugging = useGeneralStore.getState().isDebugModeEnabled
   }

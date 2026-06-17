@@ -11,6 +11,7 @@ import { ParallelBlockHandler } from '@/executor/handlers/parallel/parallel-hand
 import { ResponseBlockHandler } from '@/executor/handlers/response/response-handler'
 import { RouterBlockHandler } from '@/executor/handlers/router/router-handler'
 import { SwitchBlockHandler } from '@/executor/handlers/switch/switch-handler'
+import { TranslateBlockHandler } from '@/executor/handlers/translate/translate-handler'
 import { TriggerBlockHandler } from '@/executor/handlers/trigger/trigger-handler'
 import { VariablesBlockHandler } from '@/executor/handlers/variables/variables-handler'
 import { WaitBlockHandler } from '@/executor/handlers/wait/wait-handler'
@@ -32,6 +33,7 @@ export {
   ResponseBlockHandler,
   RouterBlockHandler,
   SwitchBlockHandler,
+  TranslateBlockHandler,
   TriggerBlockHandler,
   VariablesBlockHandler,
   WaitBlockHandler,

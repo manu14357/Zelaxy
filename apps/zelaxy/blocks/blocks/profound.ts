@@ -263,7 +263,8 @@ export const ProfoundBlock: BlockConfig = {
       mode: 'advanced',
       wandConfig: {
         enabled: true,
-        prompt: 'Generate a JSON array of filter objects. Each object has "field", "operator", and "value" keys. Return ONLY valid JSON.',
+        prompt:
+          'Generate a JSON array of filter objects. Each object has "field", "operator", and "value" keys. Return ONLY valid JSON.',
         generationType: 'json-object',
       },
     },

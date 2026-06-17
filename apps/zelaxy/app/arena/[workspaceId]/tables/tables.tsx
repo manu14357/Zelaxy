@@ -16,8 +16,6 @@ import {
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,9 +37,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import type { TableDefinition } from '@/lib/table'
 import { createLogger } from '@/lib/logs/console/logger'
-import { cn } from '@/lib/utils'
+import type { TableDefinition } from '@/lib/table'
 import { useUserPermissionsContext } from '@/app/arena/[workspaceId]/providers/workspace-permissions-provider'
 import {
   downloadTableExport,
@@ -98,7 +96,7 @@ export function Tables() {
   const csvInputRef = useRef<HTMLInputElement>(null)
 
   const processedTables = useMemo(() => {
-    let result = debouncedSearchTerm
+    const result = debouncedSearchTerm
       ? tables.filter((t) => t.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
       : tables
 
@@ -125,16 +123,13 @@ export function Tables() {
     })
   }, [tables, debouncedSearchTerm, sort])
 
-  const handleSort = useCallback(
-    (column: SortColumn) => {
-      setSort((prev) =>
-        prev.column === column
-          ? { column, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
-          : { column, direction: 'asc' }
-      )
-    },
-    []
-  )
+  const handleSort = useCallback((column: SortColumn) => {
+    setSort((prev) =>
+      prev.column === column
+        ? { column, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+        : { column, direction: 'asc' }
+    )
+  }, [])
 
   const handleRowClick = useCallback(
     (tableId: string) => {
@@ -232,7 +227,7 @@ export function Tables() {
   return (
     <>
       {/* Header */}
-      <div className='border-b border-border/50 bg-card/30 px-6 py-4'>
+      <div className='border-border/50 border-b bg-card/30 px-6 py-4'>
         <div className='flex items-center justify-between gap-2'>
           <div className='flex items-center gap-3'>
             <div className='flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10'>
@@ -284,20 +279,20 @@ export function Tables() {
       </div>
 
       {/* Search bar */}
-      <div className='border-b border-border/30 px-6 py-3'>
+      <div className='border-border/30 border-b px-6 py-3'>
         <div className='relative max-w-sm'>
-          <Search className='absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
+          <Search className='-translate-y-1/2 absolute top-1/2 left-3 h-3.5 w-3.5 text-muted-foreground' />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder='Search tables...'
-            className='h-8 pl-9 pr-8 text-sm'
+            className='h-8 pr-8 pl-9 text-sm'
           />
           {searchTerm && (
             <button
               type='button'
               onClick={() => setSearchTerm('')}
-              className='absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground'
+              className='-translate-y-1/2 absolute top-1/2 right-2 text-muted-foreground hover:text-foreground'
             >
               <X className='h-3.5 w-3.5' />
             </button>
@@ -318,7 +313,7 @@ export function Tables() {
         ) : (
           <div className='overflow-hidden rounded-xl border border-border/40'>
             {/* Column headers */}
-            <div className='grid grid-cols-[1fr_80px_80px_120px_120px_40px] items-center gap-0 border-b border-border/40 bg-muted/30 px-4 py-2'>
+            <div className='grid grid-cols-[1fr_80px_80px_120px_120px_40px] items-center gap-0 border-border/40 border-b bg-muted/30 px-4 py-2'>
               <button
                 type='button'
                 onClick={() => handleSort('name')}
@@ -367,11 +362,13 @@ export function Tables() {
                 <div
                   key={table.id}
                   onClick={() => handleRowClick(table.id)}
-                  className='grid grid-cols-[1fr_80px_80px_120px_120px_40px] cursor-pointer items-center gap-0 border-b border-border/30 px-4 py-3 transition-colors last:border-0 hover:bg-muted/30'
+                  className='grid cursor-pointer grid-cols-[1fr_80px_80px_120px_120px_40px] items-center gap-0 border-border/30 border-b px-4 py-3 transition-colors last:border-0 hover:bg-muted/30'
                 >
-                  <div className='flex items-center gap-2 min-w-0'>
+                  <div className='flex min-w-0 items-center gap-2'>
                     <TableIcon className='h-4 w-4 shrink-0 text-muted-foreground' />
-                    <span className='truncate font-medium text-sm text-foreground'>{table.name}</span>
+                    <span className='truncate font-medium text-foreground text-sm'>
+                      {table.name}
+                    </span>
                   </div>
                   <div className='flex items-center gap-1.5 text-muted-foreground text-sm'>
                     <Columns3 className='h-3.5 w-3.5 shrink-0' />
@@ -382,10 +379,18 @@ export function Tables() {
                     {table.rowCount ?? 0}
                   </div>
                   <span className='text-muted-foreground text-sm'>
-                    {formatRelativeTime(table.createdAt instanceof Date ? table.createdAt.toISOString() : table.createdAt)}
+                    {formatRelativeTime(
+                      table.createdAt instanceof Date
+                        ? table.createdAt.toISOString()
+                        : table.createdAt
+                    )}
                   </span>
                   <span className='text-muted-foreground text-sm'>
-                    {formatRelativeTime(table.updatedAt instanceof Date ? table.updatedAt.toISOString() : table.updatedAt)}
+                    {formatRelativeTime(
+                      table.updatedAt instanceof Date
+                        ? table.updatedAt.toISOString()
+                        : table.updatedAt
+                    )}
                   </span>
 
                   {/* Row actions */}
@@ -520,7 +525,7 @@ export function Tables() {
 function TablesLoadingSkeleton() {
   return (
     <div className='overflow-hidden rounded-xl border border-border/40'>
-      <div className='border-b border-border/40 bg-muted/30 px-4 py-2'>
+      <div className='border-border/40 border-b bg-muted/30 px-4 py-2'>
         <div className='grid grid-cols-[1fr_80px_80px_120px_120px_40px] gap-0'>
           {['Name', 'Cols', 'Rows', 'Created', 'Updated', ''].map((h, i) => (
             <Skeleton key={i} className='h-3 w-12 rounded' />
@@ -528,7 +533,7 @@ function TablesLoadingSkeleton() {
         </div>
       </div>
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className='border-b border-border/30 px-4 py-3 last:border-0'>
+        <div key={i} className='border-border/30 border-b px-4 py-3 last:border-0'>
           <div className='grid grid-cols-[1fr_80px_80px_120px_120px_40px] items-center gap-0'>
             <div className='flex items-center gap-2'>
               <Skeleton className='h-4 w-4 rounded' />
@@ -556,7 +561,7 @@ function TablesEmptyState({
   canEdit: boolean
 }) {
   return (
-    <div className='flex h-full min-h-[300px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border p-8 text-center'>
+    <div className='flex h-full min-h-[300px] flex-col items-center justify-center gap-4 rounded-xl border border-border border-dashed p-8 text-center'>
       <div className='flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10'>
         <TableIcon className='h-6 w-6 text-primary' />
       </div>

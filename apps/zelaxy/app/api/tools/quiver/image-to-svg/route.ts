@@ -8,7 +8,17 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { apiKey, model, image, temperature, top_p, max_output_tokens, presence_penalty, auto_crop, target_size } = body
+    const {
+      apiKey,
+      model,
+      image,
+      temperature,
+      top_p,
+      max_output_tokens,
+      presence_penalty,
+      auto_crop,
+      target_size,
+    } = body
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 })

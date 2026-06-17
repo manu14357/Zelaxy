@@ -3,8 +3,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { checkHybridAuth } from '@/lib/auth/hybrid'
 import { createLogger } from '@/lib/logs/console/logger'
-import { addColumn, deleteColumn, updateColumn } from '@/lib/table'
 import type { ColumnDefinition } from '@/lib/table'
+import { addColumn, deleteColumn, updateColumn } from '@/lib/table'
 import { accessError, checkAccess } from '@/app/api/table/utils'
 
 export const dynamic = 'force-dynamic'
@@ -34,7 +34,20 @@ const DeleteColumnBody = z.object({
   columnName: z.string(),
 })
 
-function serializeTable(t: { id: string; name: string; description: string | null; schema: unknown; metadata: unknown; rowCount: number; maxRows: number; workspaceId: string; createdBy: string | null; archivedAt: Date | string | null; createdAt: Date | string; updatedAt: Date | string }) {
+function serializeTable(t: {
+  id: string
+  name: string
+  description: string | null
+  schema: unknown
+  metadata: unknown
+  rowCount: number
+  maxRows: number
+  workspaceId: string
+  createdBy: string | null
+  archivedAt: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+}) {
   return {
     id: t.id,
     name: t.name,
@@ -52,10 +65,7 @@ function serializeTable(t: { id: string; name: string; description: string | nul
 }
 
 /** POST /api/table/[tableId]/columns — add a column */
-export async function POST(
-  req: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function POST(req: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 
@@ -89,10 +99,7 @@ export async function POST(
 }
 
 /** PATCH /api/table/[tableId]/columns — update a column */
-export async function PATCH(
-  req: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 
@@ -117,7 +124,12 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const table = await updateColumn(tableId, parsed.data.columnName, parsed.data.updates, requestId)
+    const table = await updateColumn(
+      tableId,
+      parsed.data.columnName,
+      parsed.data.updates,
+      requestId
+    )
     return NextResponse.json({ success: true, data: { table: serializeTable(table) } })
   } catch (error) {
     logger.error(`[${requestId}] Error updating column in table ${tableId}:`, error)
@@ -126,10 +138,7 @@ export async function PATCH(
 }
 
 /** DELETE /api/table/[tableId]/columns — delete a column */
-export async function DELETE(
-  req: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 

@@ -14,26 +14,24 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import type { Filter as FilterType, Sort, TableRow } from '@/lib/table'
+import type { Filter as FilterType, TableRow } from '@/lib/table'
 import { cn } from '@/lib/utils'
 import { useUserPermissionsContext } from '@/app/arena/[workspaceId]/providers/workspace-permissions-provider'
-import { downloadTableExport } from '@/hooks/queries/tables'
+import { downloadTableExport, useDeleteTable, useRenameTable } from '@/hooks/queries/tables'
 import { useInlineRename } from '@/hooks/use-inline-rename'
 import type { DeletedRowSnapshot } from '@/stores/table/types'
 import { ImportCsvDialog } from '../components/import-csv-dialog'
-import type { ColumnConfig } from './components/column-config-sidebar'
 import {
   ColumnConfigSidebar,
-  ContextMenu,
   NewColumnDropdown,
   RowModal,
   TableFilter,
   TableGrid,
 } from './components'
-import type { QueryOptions } from './types'
-import { useDeleteTable, useRenameTable } from '@/hooks/queries/tables'
+import type { ColumnConfig } from './components/column-config-sidebar'
 import { useTable } from './hooks/use-table'
 import { useTableEventStream } from './hooks/use-table-event-stream'
+import type { QueryOptions } from './types'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -105,7 +103,9 @@ export function Table() {
   const columnRenameSinkRef = useRef<((oldName: string, newName: string) => void) | null>(null)
   const afterDeleteRowsSinkRef = useRef<((snapshots: DeletedRowSnapshot[]) => void) | null>(null)
   const confirmDeleteColumnsSinkRef = useRef<((names: string[]) => void) | null>(null)
-  const pushTableRenameUndoSinkRef = useRef<((previousName: string, newName: string) => void) | null>(null)
+  const pushTableRenameUndoSinkRef = useRef<
+    ((previousName: string, newName: string) => void) | null
+  >(null)
 
   // ── Callbacks ──────────────────────────────────────────────────────────────
 
@@ -190,7 +190,7 @@ export function Table() {
   return (
     <div className='relative flex h-full w-full flex-col overflow-hidden'>
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className='flex shrink-0 items-center gap-2 border-b border-border px-4 py-2'>
+      <div className='flex shrink-0 items-center gap-2 border-border border-b px-4 py-2'>
         {/* Table name (inline rename) */}
         <div className='min-w-0 flex-1'>
           {isRenamingTable ? (
@@ -203,7 +203,7 @@ export function Table() {
                 if (e.key === 'Enter') submitRename()
                 if (e.key === 'Escape') cancelRename()
               }}
-              className='h-7 max-w-[240px] px-2 py-0.5 text-sm font-semibold'
+              className='h-7 max-w-[240px] px-2 py-0.5 font-semibold text-sm'
             />
           ) : (
             <button
@@ -251,11 +251,7 @@ export function Table() {
 
           {/* Add Column */}
           {userPermissions.canEdit && (
-            <NewColumnDropdown
-              trigger='header'
-              disabled={false}
-              onPickType={handleNewColumnType}
-            />
+            <NewColumnDropdown trigger='header' disabled={false} onPickType={handleNewColumnType} />
           )}
 
           {/* Delete table */}
@@ -305,7 +301,11 @@ export function Table() {
           onClose={handleCloseColumnSidebar}
           existingColumn={
             slideoutState.kind === 'column' && slideoutState.config.mode === 'edit'
-              ? (columns.find((c) => c.name === (slideoutState.config as { mode: 'edit'; columnName: string }).columnName) ?? null)
+              ? (columns.find(
+                  (c) =>
+                    c.name ===
+                    (slideoutState.config as { mode: 'edit'; columnName: string }).columnName
+                ) ?? null)
               : null
           }
           tableId={tableId}
@@ -317,11 +317,7 @@ export function Table() {
       {tableData && rowModalState.kind !== 'none' && (
         <RowModal
           mode={
-            rowModalState.kind === 'add'
-              ? 'add'
-              : rowModalState.kind === 'edit'
-                ? 'edit'
-                : 'delete'
+            rowModalState.kind === 'add' ? 'add' : rowModalState.kind === 'edit' ? 'edit' : 'delete'
           }
           isOpen={true}
           onClose={() => setRowModalState({ kind: 'none' })}
@@ -353,9 +349,8 @@ export function Table() {
           <DialogHeader>
             <DialogTitle>Delete table</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete{' '}
-              <span className='font-semibold'>{tableName}</span>? This will permanently delete all
-              data in this table and cannot be undone.
+              Are you sure you want to delete <span className='font-semibold'>{tableName}</span>?
+              This will permanently delete all data in this table and cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -380,7 +375,9 @@ export function Table() {
       {/* ── Delete columns confirmation ──────────────────────────────────── */}
       <Dialog
         open={pendingDeleteColumns.length > 0}
-        onOpenChange={(open) => { if (!open) setPendingDeleteColumns([]) }}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteColumns([])
+        }}
       >
         <DialogContent className='sm:max-w-sm'>
           <DialogHeader>

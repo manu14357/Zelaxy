@@ -58,25 +58,34 @@ When execution behavior changes:
 
 ### 3) Handler dispatch order and fallback
 
-The executor registers handlers in fixed order:
+**Single source of truth:** handlers are built by `createBlockHandlers(deps)` in
+`apps/zelaxy/executor/handlers/registry.ts`. The `Executor` constructor calls this function:
 
-1. TriggerBlockHandler
-2. AgentBlockHandler
-3. RouterBlockHandler
-4. ConditionBlockHandler
-5. EvaluatorBlockHandler
-6. FunctionBlockHandler
-7. ApiBlockHandler
-8. LoopBlockHandler
-9. ParallelBlockHandler
-10. ResponseBlockHandler
-11. WorkflowBlockHandler
-12. GenericBlockHandler
+```ts
+this.blockHandlers = createBlockHandlers({ pathTracker: this.pathTracker, resolver: this.resolver })
+```
+
+Do **not** reintroduce a separate inline handler array in `executor/index.ts`. Historically a
+duplicated inline list drifted out of sync and silently dropped 5 handlers (`credential`,
+`human_in_the_loop`, `variables`, `wait`, `zelaxy-arena`) — those block types then fell through
+to `GenericBlockHandler` and crashed at runtime. Always edit the registry function only.
+
+Current handlers (each `canHandle` is an exact `metadata.id` match, so order among them is not
+behavior-critical — except the catch-all):
+
+trigger, function, api, condition, router, switch, response, human-in-the-loop, agent,
+zelaxy-arena, variables, workflow, wait, evaluator, translate, credential, loop, parallel,
+**generic (must remain last)**.
 
 Critical detail:
 
 - `GenericBlockHandler` is catch-all (`canHandle` returns true) and must remain last.
 - Many block types are executed through the generic tool path, not dedicated handlers.
+- LLM blocks (`agent`, `evaluator`, `router`, `translate`) are handled by dedicated handlers
+  that call `executeProviderRequest` (`providers/`); their `config.tool` returns a provider id,
+  not a registry tool id. A block that resolves to a provider id but has **no** dedicated
+  handler will crash in `GenericBlockHandler` (`getTool('openai')` → undefined). Give such a
+  block its own handler (model it on `evaluator-handler.ts`).
 
 ### 4) Execution context contracts
 
@@ -151,9 +160,11 @@ Do not document old placeholder formats such as `<block...>` for this engine.
 
 1. Implement handler class in `apps/zelaxy/executor/handlers/<type>/<type>-handler.ts`.
 2. Export from `apps/zelaxy/executor/handlers/index.ts`.
-3. Register in executor handler list in `apps/zelaxy/executor/index.ts` before generic fallback.
-4. Ensure `canHandle(...)` is specific and deterministic.
-5. Add or update tests for success, failure, and path-control behavior.
+3. Add the block type to `BlockType` in `apps/zelaxy/executor/consts.ts` if new.
+4. Register in `createBlockHandlers(...)` in `apps/zelaxy/executor/handlers/registry.ts`,
+   before the trailing `GenericBlockHandler`. (Do NOT add an inline list to `index.ts`.)
+5. Ensure `canHandle(...)` is specific and deterministic (exact `metadata.id` match).
+6. Add or update tests for success, failure, and path-control behavior.
 
 ### B) Add a tool-backed block without a specialized handler
 

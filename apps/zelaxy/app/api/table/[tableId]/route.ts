@@ -134,10 +134,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ table
 }
 
 /** DELETE /api/table/[tableId] — archive (soft-delete) a table */
-export async function DELETE(
-  req: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 

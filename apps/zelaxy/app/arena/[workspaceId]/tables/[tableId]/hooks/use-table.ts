@@ -1,16 +1,12 @@
 'use client'
 
 import { useCallback, useMemo } from 'react'
+import type { InfiniteData } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import type { ColumnDefinition, TableDefinition, TableRow } from '@/lib/table'
 import { TABLE_LIMITS } from '@/lib/table'
-import {
-  tableKeys,
-  useInfiniteTableRows,
-  useTable as useTableQuery,
-} from '@/hooks/queries/tables'
+import { tableKeys, useInfiniteTableRows, useTable as useTableQuery } from '@/hooks/queries/tables'
 import type { QueryOptions } from '../types'
-import type { InfiniteData } from '@tanstack/react-query'
 
 const EMPTY_COLUMNS: ColumnDefinition[] = []
 
@@ -64,7 +60,9 @@ export function useTable({ tableId, queryOptions }: UseTableParams): UseTableRet
     [rowsData?.pages]
   )
 
-  const refetchRows = useCallback(() => { void refetch() }, [refetch])
+  const refetchRows = useCallback(() => {
+    void refetch()
+  }, [refetch])
 
   const columns = useMemo(
     () => tableData?.schema?.columns ?? EMPTY_COLUMNS,
@@ -88,7 +86,9 @@ export function useTable({ tableId, queryOptions }: UseTableParams): UseTableRet
       if (!lastPage || lastPage.rows.length < TABLE_LIMITS.MAX_QUERY_LIMIT) break
       await rawFetchNextPage()
     }
-    return (queryClient.getQueryData<InfiniteData<RowsPage>>(queryKey)?.pages.flatMap((p) => p.rows)) ?? []
+    return (
+      queryClient.getQueryData<InfiniteData<RowsPage>>(queryKey)?.pages.flatMap((p) => p.rows) ?? []
+    )
   }, [getRowsQueryKey, queryClient, rawFetchNextPage])
 
   const ensureRowsLoadedUpTo = useCallback(
@@ -102,15 +102,22 @@ export function useTable({ tableId, queryOptions }: UseTableParams): UseTableRet
         if (!lastPage || lastPage.rows.length < TABLE_LIMITS.MAX_QUERY_LIMIT) break
         await rawFetchNextPage()
       }
-      const all = (queryClient.getQueryData<InfiniteData<RowsPage>>(queryKey)?.pages.flatMap((p) => p.rows)) ?? []
-      return { rows: all.length > maxRows ? all.slice(0, maxRows) : all, hasMore: all.length > maxRows }
+      const all =
+        queryClient.getQueryData<InfiniteData<RowsPage>>(queryKey)?.pages.flatMap((p) => p.rows) ??
+        []
+      return {
+        rows: all.length > maxRows ? all.slice(0, maxRows) : all,
+        hasMore: all.length > maxRows,
+      }
     },
     [getRowsQueryKey, queryClient, rawFetchNextPage]
   )
 
   const fetchNextPage = useCallback(async (): Promise<FetchNextPageResult> => {
     const result = await rawFetchNextPage()
-    return { hasNextPage: Boolean(result.data?.pages[result.data.pages.length - 1]?.nextOffset !== null) }
+    return {
+      hasNextPage: Boolean(result.data?.pages[result.data.pages.length - 1]?.nextOffset !== null),
+    }
   }, [rawFetchNextPage])
 
   return {

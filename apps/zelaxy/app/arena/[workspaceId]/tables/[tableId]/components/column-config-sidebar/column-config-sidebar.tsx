@@ -12,9 +12,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { useAddTableColumn, useUpdateColumn } from '@/hooks/queries/tables'
 import type { ColumnDefinition } from '@/lib/table'
 import { cn } from '@/lib/utils'
+import { useAddTableColumn, useUpdateColumn } from '@/hooks/queries/tables'
 import { PLAIN_COLUMN_TYPE_OPTIONS } from './column-types'
 
 export type ColumnConfig =
@@ -47,7 +47,7 @@ export function ColumnConfigSidebar({
   return (
     <aside
       className={cn(
-        'absolute top-0 right-0 bottom-0 z-50 flex w-[400px] flex-col border-l border-border bg-background shadow-lg transition-transform duration-200',
+        'absolute top-0 right-0 bottom-0 z-50 flex w-[400px] flex-col border-border border-l bg-background shadow-lg transition-transform duration-200',
         isOpen ? 'translate-x-0' : 'translate-x-full'
       )}
     >
@@ -82,9 +82,7 @@ function ColumnConfigBody({
 }: ColumnConfigBodyProps) {
   const isCreate = config.mode === 'create'
 
-  const [name, setName] = useState(
-    isCreate ? config.proposedName : (existingColumn?.name ?? '')
-  )
+  const [name, setName] = useState(isCreate ? config.proposedName : (existingColumn?.name ?? ''))
   const [type, setType] = useState<ColumnDefinition['type']>(
     isCreate ? config.type : (existingColumn?.type ?? 'string')
   )
@@ -130,7 +128,17 @@ function ColumnConfigBody({
     } finally {
       setIsSaving(false)
     }
-  }, [isCreate, config, type, unique, existingColumn, addColumnMutation, updateColumnMutation, onColumnRename, onClose])
+  }, [
+    isCreate,
+    config,
+    type,
+    unique,
+    existingColumn,
+    addColumnMutation,
+    updateColumnMutation,
+    onColumnRename,
+    onClose,
+  ])
 
   const selectedTypeOption = useMemo(
     () => PLAIN_COLUMN_TYPE_OPTIONS.find((o) => o.type === type),
@@ -140,10 +148,8 @@ function ColumnConfigBody({
   return (
     <>
       {/* Header */}
-      <div className='flex items-center justify-between border-b border-border px-4 py-3'>
-        <h2 className='font-semibold text-sm'>
-          {isCreate ? 'New Column' : 'Edit Column'}
-        </h2>
+      <div className='flex items-center justify-between border-border border-b px-4 py-3'>
+        <h2 className='font-semibold text-sm'>{isCreate ? 'New Column' : 'Edit Column'}</h2>
         <Button variant='ghost' size='sm' className='h-7 w-7 p-0' onClick={onClose}>
           ✕
         </Button>
@@ -172,10 +178,7 @@ function ColumnConfigBody({
             <Label htmlFor='col-type' className='pl-0.5 text-sm'>
               Type
             </Label>
-            <Select
-              value={type}
-              onValueChange={(val) => setType(val as ColumnDefinition['type'])}
-            >
+            <Select value={type} onValueChange={(val) => setType(val as ColumnDefinition['type'])}>
               <SelectTrigger id='col-type' className='h-8 text-sm'>
                 <SelectValue>
                   {selectedTypeOption && (
@@ -219,7 +222,7 @@ function ColumnConfigBody({
       </div>
 
       {/* Footer */}
-      <div className='flex items-center justify-end gap-2 border-t border-border px-4 py-3'>
+      <div className='flex items-center justify-end gap-2 border-border border-t px-4 py-3'>
         <Button variant='outline' size='sm' onClick={onClose} disabled={isSaving}>
           Cancel
         </Button>
@@ -231,15 +234,12 @@ function ColumnConfigBody({
   )
 }
 
-function RequiredLabel({
-  htmlFor,
-  children,
-}: {
-  htmlFor?: string
-  children: React.ReactNode
-}) {
+function RequiredLabel({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
   return (
-    <Label htmlFor={htmlFor} className='flex items-baseline gap-1.5 whitespace-nowrap pl-0.5 text-sm'>
+    <Label
+      htmlFor={htmlFor}
+      className='flex items-baseline gap-1.5 whitespace-nowrap pl-0.5 text-sm'
+    >
       {children}
       <span className='ml-0.5'>*</span>
     </Label>
@@ -251,5 +251,5 @@ function FieldError({ message }: { message: string }) {
 }
 
 function FieldDivider() {
-  return <hr className='border-border my-1' />
+  return <hr className='my-1 border-border' />
 }

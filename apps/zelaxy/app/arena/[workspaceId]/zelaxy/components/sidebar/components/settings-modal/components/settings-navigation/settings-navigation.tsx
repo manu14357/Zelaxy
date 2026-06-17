@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
 import {
+  Building2,
   CreditCard,
   Keyboard,
   KeyRound,
   KeySquare,
   Lock,
+  ScrollText,
   Settings,
   Shield,
   ShieldCheck,
@@ -28,6 +30,8 @@ type SectionId =
   | 'mcp'
   | 'subscription'
   | 'team'
+  | 'org-environment'
+  | 'audit'
   | 'privacy'
   | 'shortcuts'
   | 'admin'
@@ -80,6 +84,8 @@ const NAVIGATION_GROUPS: NavigationGroup[] = [
         hideWhenBillingDisabled: true,
       },
       { id: 'team', label: 'Team', icon: Users },
+      { id: 'org-environment', label: 'Org Environment', icon: Building2 },
+      { id: 'audit', label: 'Audit Logs', icon: ScrollText },
     ],
   },
   {

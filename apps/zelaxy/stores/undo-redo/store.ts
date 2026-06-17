@@ -1,7 +1,8 @@
-import { createLogger } from '@/lib/logs/console/logger'
 import type { Edge } from '@xyflow/react'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { createLogger } from '@/lib/logs/console/logger'
+import type { BlockState } from '@/stores/workflows/workflow/types'
 import type {
   BatchAddBlocksOperation,
   BatchAddEdgesOperation,
@@ -14,7 +15,6 @@ import type {
   UndoRedoState,
 } from './types'
 import { UNDO_REDO_OPERATIONS } from './types'
-import type { BlockState } from '@/stores/workflows/workflow/types'
 
 const logger = createLogger('UndoRedoStore')
 const DEFAULT_CAPACITY = 100

@@ -2,13 +2,13 @@ import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logs/console/logger'
-import { db } from '@/db'
-import { workflow, workflowExecutionLogs } from '@/db/schema'
 import {
   checkRateLimit,
   createRateLimitResponse,
   validateWorkspaceAccess,
 } from '@/app/api/v1/middleware'
+import { db } from '@/db'
+import { workflow, workflowExecutionLogs } from '@/db/schema'
 
 const logger = createLogger('V1LogsAPI')
 
@@ -46,8 +46,16 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const { workspaceId, workflowIds: rawWorkflowIds, level, trigger, startDate, endDate, limit, offset } =
-      parsed.data
+    const {
+      workspaceId,
+      workflowIds: rawWorkflowIds,
+      level,
+      trigger,
+      startDate,
+      endDate,
+      limit,
+      offset,
+    } = parsed.data
 
     const accessError = await validateWorkspaceAccess(rateLimit, userId, workspaceId)
     if (accessError) return accessError
@@ -55,7 +63,10 @@ export async function GET(request: NextRequest) {
     // Resolve workflow IDs in this workspace
     let workflowIdFilter: string[]
     if (rawWorkflowIds) {
-      workflowIdFilter = rawWorkflowIds.split(',').map((id) => id.trim()).filter(Boolean)
+      workflowIdFilter = rawWorkflowIds
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean)
     } else {
       const wfs = await db
         .select({ id: workflow.id })

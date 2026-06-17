@@ -2,14 +2,19 @@
 
 import type React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createLogger } from '@/lib/logs/console/logger'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cn } from '@/lib/utils'
-import type { ColumnDefinition, RowData, TableDefinition, TableRow as TableRowType } from '@/lib/table'
+import { createLogger } from '@/lib/logs/console/logger'
+import type {
+  ColumnDefinition,
+  RowData,
+  TableDefinition,
+  TableRow as TableRowType,
+} from '@/lib/table'
 import { TABLE_LIMITS } from '@/lib/table/index'
+import { cn } from '@/lib/utils'
 import { useUserPermissionsContext } from '@/app/arena/[workspaceId]/providers/workspace-permissions-provider'
 import {
   useAddTableColumn,
@@ -29,13 +34,11 @@ function extractCreatedRowId(response: Record<string, unknown>): string | undefi
   const row = data?.row as Record<string, unknown> | undefined
   return row?.id as string | undefined
 }
+
 import type { DeletedRowSnapshot } from '@/stores/table/types'
 import { useContextMenu, useTable } from '../../hooks'
 import type { EditingCell, QueryOptions, SaveReason } from '../../types'
-import {
-  cleanCellValue,
-  storageToDisplay,
-} from '../../utils'
+import { cleanCellValue, storageToDisplay } from '../../utils'
 import type { ColumnConfig } from '../column-config-sidebar'
 import { ContextMenu } from '../context-menu'
 import { NewColumnDropdown } from '../new-column-dropdown'
@@ -121,7 +124,9 @@ export interface TableGridProps {
   columnRenameSinkRef: React.MutableRefObject<((oldName: string, newName: string) => void) | null>
   afterDeleteRowsSinkRef: React.MutableRefObject<((snapshots: DeletedRowSnapshot[]) => void) | null>
   confirmDeleteColumnsSinkRef: React.MutableRefObject<((names: string[]) => void) | null>
-  pushTableRenameUndoSinkRef: React.MutableRefObject<((previousName: string, newName: string) => void) | null>
+  pushTableRenameUndoSinkRef: React.MutableRefObject<
+    ((previousName: string, newName: string) => void) | null
+  >
 }
 
 export function TableGrid({
@@ -342,7 +347,14 @@ export function TableGrid({
       left += w
     }
     return null
-  }, [dropTargetColumnName, dragColumnName, dropSide, displayColumns, columnWidths, checkboxColWidth])
+  }, [
+    dropTargetColumnName,
+    dragColumnName,
+    dropSide,
+    displayColumns,
+    columnWidths,
+    checkboxColWidth,
+  ])
 
   const isAllRowsSelected = useMemo(
     () => rowSelectionCoversAll(rowSelection, rows),
@@ -390,7 +402,10 @@ export function TableGrid({
   const editingCellRef = useRef(editingCell)
   editingCellRef.current = editingCell
 
-  const [pendingUpdate, setPendingUpdate] = useState<{ rowId: string; data: Record<string, unknown> } | null>(null)
+  const [pendingUpdate, setPendingUpdate] = useState<{
+    rowId: string
+    data: Record<string, unknown>
+  } | null>(null)
 
   const columnRename = useInlineRename({
     onSave: (columnName, newName) => {
@@ -413,7 +428,10 @@ export function TableGrid({
         previousValue: currentValue ?? null,
         newValue,
       })
-      mutateRef.current({ rowId, data: { [columnName]: newValue as import('@/lib/table').JsonValue } })
+      mutateRef.current({
+        rowId,
+        data: { [columnName]: newValue as import('@/lib/table').JsonValue },
+      })
     },
     []
   )
@@ -470,7 +488,9 @@ export function TableGrid({
       if (isInSel && sel) {
         snapshots = collectRowSnapshots(currentRows.slice(sel.startRow, sel.endRow + 1))
       } else {
-        snapshots = [{ rowId: contextRow.id, data: { ...contextRow.data }, position: contextRow.position }]
+        snapshots = [
+          { rowId: contextRow.id, data: { ...contextRow.data }, position: contextRow.position },
+        ]
       }
     }
     if (snapshots.length > 0) onRequestDeleteRows(snapshots)
@@ -507,7 +527,13 @@ export function TableGrid({
       {
         onSuccess: (response: TableRowType) => {
           const newRowId = response?.id
-          if (newRowId) pushUndoRef.current({ type: 'create-row', rowId: newRowId, position, data: rowData as import('@/lib/table').RowData })
+          if (newRowId)
+            pushUndoRef.current({
+              type: 'create-row',
+              rowId: newRowId,
+              position,
+              data: rowData as import('@/lib/table').RowData,
+            })
           const colIndex = selectionAnchorRef.current?.colIndex ?? 0
           if (sourceIdx !== -1) {
             setSelectionAnchor({ rowIndex: sourceIdx + 1, colIndex })
@@ -542,7 +568,9 @@ export function TableGrid({
             pushUndoRef.current({ type: 'create-row', rowId: newRowId, position: maxPosition + 1 })
           }
         },
-        onSettled: () => { isAppendingRowRef.current = false },
+        onSettled: () => {
+          isAppendingRowRef.current = false
+        },
       }
     )
   }, [])
@@ -556,8 +584,12 @@ export function TableGrid({
         const rowIndex = Number.parseInt(td.getAttribute('data-row') || '-1', 10)
         const colIndex = Number.parseInt(td.getAttribute('data-col') || '-1', 10)
         if (rowIndex >= 0 && colIndex >= 0) {
-          columnName = colIndex < columnsRef.current.length ? columnsRef.current[colIndex].name : null
-          const sel = computeNormalizedSelection(selectionAnchorRef.current, selectionFocusRef.current)
+          columnName =
+            colIndex < columnsRef.current.length ? columnsRef.current[colIndex].name : null
+          const sel = computeNormalizedSelection(
+            selectionAnchorRef.current,
+            selectionFocusRef.current
+          )
           const isWithinSel =
             sel !== null &&
             rowIndex >= sel.startRow &&
@@ -677,7 +709,9 @@ export function TableGrid({
     }
   }, [handleClearSelection, handleSelectAllRows])
 
-  const handleColumnResizeStart = useCallback((columnKey: string) => { setResizingColumn(columnKey) }, [])
+  const handleColumnResizeStart = useCallback((columnKey: string) => {
+    setResizingColumn(columnKey)
+  }, [])
   const handleColumnResize = useCallback((columnKey: string, width: number) => {
     setColumnWidths((prev) => ({ ...prev, [columnKey]: Math.max(COL_WIDTH_MIN, width) }))
   }, [])
@@ -764,12 +798,19 @@ export function TableGrid({
         let insertIndex = remaining.indexOf(target)
         if (insertIndex === -1) insertIndex = remaining.length
         if (side === 'right') insertIndex += 1
-        const newOrder = [...remaining.slice(0, insertIndex), dragged, ...remaining.slice(insertIndex)]
+        const newOrder = [
+          ...remaining.slice(0, insertIndex),
+          dragged,
+          ...remaining.slice(insertIndex),
+        ]
         const orderChanged = newOrder.some((name, i) => currentOrder[i] !== name)
         if (orderChanged) {
           pushUndoRef.current({ type: 'reorder-columns', previousOrder: currentOrder, newOrder })
           setColumnOrder(newOrder)
-          updateMetadataRef.current({ columnWidths: columnWidthsRef.current, columnOrder: newOrder })
+          updateMetadataRef.current({
+            columnWidths: columnWidthsRef.current,
+            columnOrder: newOrder,
+          })
         }
       }
     }
@@ -808,7 +849,9 @@ export function TableGrid({
     }
   }
 
-  function handleScrollDrop(e: React.DragEvent) { e.preventDefault() }
+  function handleScrollDrop(e: React.DragEvent) {
+    e.preventDefault()
+  }
 
   // Scroll-based row prefetch
   useEffect(() => {
@@ -820,12 +863,16 @@ export function TableGrid({
       if (!scrollEl) return
       const distanceFromBottom = scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight
       if (distanceFromBottom <= SCROLL_PREFETCH_PX) {
-        fetchNextPageRef.current().catch((error) => { logger.error('Failed to fetch next page', { error }) })
+        fetchNextPageRef.current().catch((error) => {
+          logger.error('Failed to fetch next page', { error })
+        })
       }
     }
     maybeFetchNext()
     scrollEl.addEventListener('scroll', maybeFetchNext, { passive: true })
-    return () => { scrollEl.removeEventListener('scroll', maybeFetchNext) }
+    return () => {
+      scrollEl.removeEventListener('scroll', maybeFetchNext)
+    }
   }, [tableData?.id])
 
   // Seed metadata from server on first load
@@ -843,7 +890,8 @@ export function TableGrid({
       const localOrder = columnOrderRef.current
       const serverSet = new Set(serverOrder)
       const localSet = new Set(localOrder ?? [])
-      const setChanged = !localOrder || serverSet.size !== localSet.size || serverOrder.some((n) => !localSet.has(n))
+      const setChanged =
+        !localOrder || serverSet.size !== localSet.size || serverOrder.some((n) => !localSet.has(n))
       if (setChanged) setColumnOrder(serverOrder)
     }
   }, [tableData?.metadata])
@@ -862,7 +910,9 @@ export function TableGrid({
   }, [isColumnSelection, rows.length, selectionAnchor])
 
   useEffect(() => {
-    const handleMouseUp = () => { isDraggingRef.current = false }
+    const handleMouseUp = () => {
+      isDraggingRef.current = false
+    }
     document.addEventListener('mouseup', handleMouseUp)
     return () => document.removeEventListener('mouseup', handleMouseUp)
   }, [])
@@ -919,7 +969,10 @@ export function TableGrid({
     const handleStop = () => {
       pointerX = null
       pointerY = null
-      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null }
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+        rafId = null
+      }
     }
 
     document.addEventListener('mousemove', handleMove)
@@ -970,7 +1023,10 @@ export function TableGrid({
   // Scroll selected cell into view
   useEffect(() => {
     if (isColumnSelection) return
-    if (suppressFocusScrollRef.current) { suppressFocusScrollRef.current = false; return }
+    if (suppressFocusScrollRef.current) {
+      suppressFocusScrollRef.current = false
+      return
+    }
     const target = selectionFocus ?? selectionAnchor
     if (!target) return
     const { rowIndex, colIndex } = target
@@ -983,13 +1039,17 @@ export function TableGrid({
       const topInset = theadRef.current?.offsetHeight ?? 0
       if (rect.top < view.top + topInset) scrollEl.scrollTop -= view.top + topInset - rect.top
       else if (rect.bottom > view.bottom) scrollEl.scrollTop += rect.bottom - view.bottom
-      if (rect.left < view.left + checkboxColWidth) scrollEl.scrollLeft -= view.left + checkboxColWidth - rect.left
+      if (rect.left < view.left + checkboxColWidth)
+        scrollEl.scrollLeft -= view.left + checkboxColWidth - rect.left
       else if (rect.right > view.right) scrollEl.scrollLeft += rect.right - view.right
     }
     let secondRaf = 0
     const rafId = requestAnimationFrame(() => {
       const cell = document.querySelector(selector) as HTMLElement | null
-      if (cell) { revealCell(cell); return }
+      if (cell) {
+        revealCell(cell)
+        return
+      }
       rowVirtualizer.scrollToIndex(rowIndex, { align: 'auto' })
       secondRaf = requestAnimationFrame(() => {
         const rendered = document.querySelector(selector) as HTMLElement | null
@@ -1015,29 +1075,35 @@ export function TableGrid({
     [toggleBooleanCell]
   )
 
-  const handleCellDoubleClick = useCallback((rowId: string, columnName: string, _columnKey: string) => {
-    if (!canEditRef.current) return
-    const column = columnsRef.current.find((c) => c.name === columnName)
-    if (!column || column.type === 'boolean') return
-    setEditingCell({ rowId, columnName })
-    setInitialCharacter(null)
-  }, [])
+  const handleCellDoubleClick = useCallback(
+    (rowId: string, columnName: string, _columnKey: string) => {
+      if (!canEditRef.current) return
+      const column = columnsRef.current.find((c) => c.name === columnName)
+      if (!column || column.type === 'boolean') return
+      setEditingCell({ rowId, columnName })
+      setInitialCharacter(null)
+    },
+    []
+  )
 
-  const handleCellMouseDown = useCallback((rowIndex: number, colIndex: number, shiftKey: boolean) => {
-    setEditingCell(null)
-    setInitialCharacter(null)
-    setRowSelection((prev) => (prev.kind === 'none' ? prev : ROW_SELECTION_NONE))
-    setIsColumnSelection(false)
-    lastCheckboxRowRef.current = null
-    isDraggingRef.current = true
-    if (shiftKey && selectionAnchorRef.current) {
-      setSelectionFocus({ rowIndex, colIndex })
-    } else {
-      setSelectionAnchor({ rowIndex, colIndex })
-      setSelectionFocus(null)
-    }
-    scrollRef.current?.focus({ preventScroll: true })
-  }, [])
+  const handleCellMouseDown = useCallback(
+    (rowIndex: number, colIndex: number, shiftKey: boolean) => {
+      setEditingCell(null)
+      setInitialCharacter(null)
+      setRowSelection((prev) => (prev.kind === 'none' ? prev : ROW_SELECTION_NONE))
+      setIsColumnSelection(false)
+      lastCheckboxRowRef.current = null
+      isDraggingRef.current = true
+      if (shiftKey && selectionAnchorRef.current) {
+        setSelectionFocus({ rowIndex, colIndex })
+      } else {
+        setSelectionAnchor({ rowIndex, colIndex })
+        setSelectionFocus(null)
+      }
+      scrollRef.current?.focus({ preventScroll: true })
+    },
+    []
+  )
 
   const handleCellMouseEnter = useCallback((rowIndex: number, colIndex: number) => {
     if (!isDraggingRef.current) return
@@ -1053,8 +1119,17 @@ export function TableGrid({
       const col = cols.find((c) => c.name === columnName)
       const cleanedValue = col ? cleanCellValue(value, col) : value
 
-      setPendingUpdate({ rowId, data: { [columnName]: cleanedValue as import('@/lib/table').JsonValue } })
-      pushUndoRef.current({ type: 'update-cell', rowId, columnName, previousValue, newValue: cleanedValue })
+      setPendingUpdate({
+        rowId,
+        data: { [columnName]: cleanedValue as import('@/lib/table').JsonValue },
+      })
+      pushUndoRef.current({
+        type: 'update-cell',
+        rowId,
+        columnName,
+        previousValue,
+        newValue: cleanedValue,
+      })
       mutateRef.current(
         { rowId, data: { [columnName]: cleanedValue as import('@/lib/table').JsonValue } },
         { onSettled: () => setPendingUpdate(null) }
@@ -1112,15 +1187,21 @@ export function TableGrid({
   // Column CRUD
   function handleAddColumnOfType(type: ColumnDefinition['type']) {
     const existingNames = new Set(schemaColumnsRef.current.map((c) => c.name))
-    let baseName = type.charAt(0).toUpperCase() + type.slice(1)
+    const baseName = type.charAt(0).toUpperCase() + type.slice(1)
     let name = baseName
     let suffix = 1
-    while (existingNames.has(name)) { name = `${baseName} ${++suffix}` }
+    while (existingNames.has(name)) {
+      name = `${baseName} ${++suffix}`
+    }
     addColumnMutation.mutate(
       { name, type },
       {
         onSuccess: (_response: TableDefinition) => {
-          pushUndoRef.current({ type: 'create-column', columnName: name, position: schemaColumnsRef.current.length })
+          pushUndoRef.current({
+            type: 'create-column',
+            columnName: name,
+            position: schemaColumnsRef.current.length,
+          })
         },
       }
     )
@@ -1139,8 +1220,10 @@ export function TableGrid({
     const existingNames = new Set(cols.map((c) => c.name))
     let name = 'Column'
     let suffix = 1
-    while (existingNames.has(name)) { name = `Column ${++suffix}` }
-    const position = idx > 0 ? (cols[idx - 1].name + columnName) : columnName
+    while (existingNames.has(name)) {
+      name = `Column ${++suffix}`
+    }
+    const position = idx > 0 ? cols[idx - 1].name + columnName : columnName
     addColumnMutation.mutate({ name, type: 'string' })
   }
 
@@ -1148,7 +1231,9 @@ export function TableGrid({
     const existingNames = new Set(schemaColumnsRef.current.map((c) => c.name))
     let name = 'Column'
     let suffix = 1
-    while (existingNames.has(name)) { name = `Column ${++suffix}` }
+    while (existingNames.has(name)) {
+      name = `Column ${++suffix}`
+    }
     addColumnMutation.mutate({ name, type: 'string' })
   }
 
@@ -1158,14 +1243,26 @@ export function TableGrid({
 
   confirmDeleteColumnsSinkRef.current = (names: string[]) => {
     for (const name of names) {
-    deleteColumnMutation.mutate(name)
+      deleteColumnMutation.mutate(name)
     }
     const updatedOrder = columnOrderRef.current?.filter((n) => !names.includes(n))
     if (updatedOrder) setColumnOrder(updatedOrder)
     const updatedWidths = { ...columnWidthsRef.current }
-    for (const name of names) { delete updatedWidths[name] }
+    for (const name of names) {
+      delete updatedWidths[name]
+    }
     setColumnWidths(updatedWidths)
-    pushUndoRef.current({ type: 'delete-column', columnName: names[0] ?? '', columnType: (schemaColumnsRef.current.find((c) => c.name === names[0])?.type ?? 'string'), columnPosition: 0, columnUnique: false, columnRequired: false, cellData: [], previousOrder: columnOrderRef.current ?? null, previousWidth: null })
+    pushUndoRef.current({
+      type: 'delete-column',
+      columnName: names[0] ?? '',
+      columnType: schemaColumnsRef.current.find((c) => c.name === names[0])?.type ?? 'string',
+      columnPosition: 0,
+      columnUnique: false,
+      columnRequired: false,
+      cellData: [],
+      previousOrder: columnOrderRef.current ?? null,
+      previousWidth: null,
+    })
   }
 
   function handleConfigureColumn(columnName: string) {
@@ -1213,7 +1310,10 @@ export function TableGrid({
       }
 
       if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
-        const sel = computeNormalizedSelection(selectionAnchorRef.current, selectionFocusRef.current)
+        const sel = computeNormalizedSelection(
+          selectionAnchorRef.current,
+          selectionFocusRef.current
+        )
         if (!sel) return
         const rows = rowsRef.current
         const cols = columnsRef.current
@@ -1255,8 +1355,17 @@ export function TableGrid({
             undoCells.push({ rowId: row.id, data: previousData })
             batchUpdates.push({ rowId: row.id, data: updates })
           }
-          if (undoCells.length > 0) pushUndoRef.current({ type: 'clear-cells', cells: undoCells as Array<{ rowId: string; data: RowData }> })
-          await chunkBatchUpdates(batchUpdates as Array<{ rowId: string; data: RowData }>, batchUpdateAsyncRef.current as (args: Array<{ rowId: string; data: RowData }>) => Promise<unknown>)
+          if (undoCells.length > 0)
+            pushUndoRef.current({
+              type: 'clear-cells',
+              cells: undoCells as Array<{ rowId: string; data: RowData }>,
+            })
+          await chunkBatchUpdates(
+            batchUpdates as Array<{ rowId: string; data: RowData }>,
+            batchUpdateAsyncRef.current as (
+              args: Array<{ rowId: string; data: RowData }>
+            ) => Promise<unknown>
+          )
         })().catch((error) => {
           logger.error('Failed to clear selected cells', { error })
           toast.error('Failed to clear cells — please try again')
@@ -1334,10 +1443,18 @@ export function TableGrid({
         let newRow = origin.rowIndex
         let newCol = origin.colIndex
         switch (e.key) {
-          case 'ArrowUp': newRow = jump ? 0 : Math.max(0, newRow - 1); break
-          case 'ArrowDown': newRow = jump ? totalRows - 1 : Math.min(totalRows - 1, newRow + 1); break
-          case 'ArrowLeft': newCol = jump ? 0 : Math.max(0, newCol - 1); break
-          case 'ArrowRight': newCol = jump ? cols.length - 1 : Math.min(cols.length - 1, newCol + 1); break
+          case 'ArrowUp':
+            newRow = jump ? 0 : Math.max(0, newRow - 1)
+            break
+          case 'ArrowDown':
+            newRow = jump ? totalRows - 1 : Math.min(totalRows - 1, newRow + 1)
+            break
+          case 'ArrowLeft':
+            newCol = jump ? 0 : Math.max(0, newCol - 1)
+            break
+          case 'ArrowRight':
+            newCol = jump ? cols.length - 1 : Math.min(cols.length - 1, newCol + 1)
+            break
         }
         if (e.shiftKey) {
           setSelectionFocus({ rowIndex: newRow, colIndex: newCol })
@@ -1368,9 +1485,15 @@ export function TableGrid({
         const jump = e.metaKey || e.ctrlKey
         if (e.shiftKey) {
           const focus = selectionFocusRef.current ?? anchor
-          setSelectionFocus({ rowIndex: jump ? totalRows - 1 : focus.rowIndex, colIndex: cols.length - 1 })
+          setSelectionFocus({
+            rowIndex: jump ? totalRows - 1 : focus.rowIndex,
+            colIndex: cols.length - 1,
+          })
         } else {
-          setSelectionAnchor({ rowIndex: jump ? totalRows - 1 : anchor.rowIndex, colIndex: cols.length - 1 })
+          setSelectionAnchor({
+            rowIndex: jump ? totalRows - 1 : anchor.rowIndex,
+            colIndex: cols.length - 1,
+          })
           setSelectionFocus(null)
         }
         return
@@ -1384,7 +1507,10 @@ export function TableGrid({
         const rowsPerPage = Math.max(1, Math.floor(viewportHeight / ROW_HEIGHT_ESTIMATE))
         const direction = e.key === 'PageUp' ? -1 : 1
         const origin = e.shiftKey ? (selectionFocusRef.current ?? anchor) : anchor
-        const newRow = Math.max(0, Math.min(totalRows - 1, origin.rowIndex + direction * rowsPerPage))
+        const newRow = Math.max(
+          0,
+          Math.min(totalRows - 1, origin.rowIndex + direction * rowsPerPage)
+        )
         if (e.shiftKey) {
           setSelectionFocus({ rowIndex: newRow, colIndex: origin.colIndex })
         } else {
@@ -1418,7 +1544,10 @@ export function TableGrid({
           batchUpdates.push({ rowId: row.id, data: updates })
         }
         if (undoCells.length > 0) {
-          pushUndoRef.current({ type: 'clear-cells', cells: undoCells as Array<{ rowId: string; data: RowData }> })
+          pushUndoRef.current({
+            type: 'clear-cells',
+            cells: undoCells as Array<{ rowId: string; data: RowData }>,
+          })
           batchUpdateRef.current(batchUpdates as Array<{ rowId: string; data: RowData }>)
         }
         return
@@ -1476,11 +1605,14 @@ export function TableGrid({
         }
       }
       if (updates.length > 0) {
-        pushUndoRef.current({ type: 'update-cells', cells: undoCells.map((c, i) => ({
-          rowId: c.rowId,
-          oldData: c.data as RowData,
-          newData: updates[i].data as RowData,
-        })) })
+        pushUndoRef.current({
+          type: 'update-cells',
+          cells: undoCells.map((c, i) => ({
+            rowId: c.rowId,
+            oldData: c.data as RowData,
+            newData: updates[i].data as RowData,
+          })),
+        })
         batchUpdateRef.current(updates as Array<{ rowId: string; data: RowData }>)
       }
     }
@@ -1497,7 +1629,6 @@ export function TableGrid({
         'relative flex h-full flex-col overflow-hidden outline-none',
         embedded ? '' : 'rounded-md border border-border bg-background'
       )}
-      tabIndex={0}
     >
       <div
         ref={scrollRef}
@@ -1507,10 +1638,7 @@ export function TableGrid({
         onDrop={handleScrollDrop}
       >
         <div style={{ minWidth: tableMinWidth }}>
-          <table
-            className='w-full border-collapse'
-            style={{ minWidth: tableMinWidth }}
-          >
+          <table className='w-full border-collapse' style={{ minWidth: tableMinWidth }}>
             <TableColGroup
               columns={displayColumns}
               columnWidths={columnWidths}
@@ -1558,7 +1686,9 @@ export function TableGrid({
                         idx >= normalizedSelection.startCol &&
                         idx <= normalizedSelection.endCol
                       }
-                      renameValue={columnRename.editingId === column.name ? columnRename.editValue : ''}
+                      renameValue={
+                        columnRename.editingId === column.name ? columnRename.editValue : ''
+                      }
                       onRenameValueChange={columnRename.setEditValue}
                       onRenameSubmit={columnRename.submitRename}
                       onRenameCancel={columnRename.cancelRename}
@@ -1595,10 +1725,12 @@ export function TableGrid({
                 (() => {
                   const virtualItems = rowVirtualizer.getVirtualItems()
                   const scrollMargin = rowVirtualizer.options.scrollMargin
-                  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start - scrollMargin : 0
+                  const paddingTop =
+                    virtualItems.length > 0 ? virtualItems[0].start - scrollMargin : 0
                   const paddingBottom =
                     virtualItems.length > 0
-                      ? rowVirtualizer.getTotalSize() - (virtualItems[virtualItems.length - 1].end - scrollMargin)
+                      ? rowVirtualizer.getTotalSize() -
+                        (virtualItems[virtualItems.length - 1].end - scrollMargin)
                       : 0
                   return (
                     <>
@@ -1618,10 +1750,16 @@ export function TableGrid({
                             columns={displayColumns}
                             rowIndex={index}
                             isFirstRow={index === 0}
-                            editingColumnName={editingCell?.rowId === row.id ? editingCell.columnName : null}
-                            initialCharacter={editingCell?.rowId === row.id ? initialCharacter : null}
+                            editingColumnName={
+                              editingCell?.rowId === row.id ? editingCell.columnName : null
+                            }
+                            initialCharacter={
+                              editingCell?.rowId === row.id ? initialCharacter : null
+                            }
                             pendingCellValue={
-                              pendingUpdate && pendingUpdate.rowId === row.id ? pendingUpdate.data : null
+                              pendingUpdate && pendingUpdate.rowId === row.id
+                                ? pendingUpdate.data
+                                : null
                             }
                             normalizedSelection={normalizedSelection}
                             onClick={handleCellClick}
@@ -1639,7 +1777,10 @@ export function TableGrid({
                       })}
                       {paddingBottom > 0 && (
                         <tr aria-hidden>
-                          <td colSpan={displayColumns.length + 2} style={{ height: paddingBottom }} />
+                          <td
+                            colSpan={displayColumns.length + 2}
+                            style={{ height: paddingBottom }}
+                          />
                         </tr>
                       )}
                     </>
@@ -1657,7 +1798,10 @@ export function TableGrid({
           {dropColumnBounds !== null && (
             <>
               <div
-                className={cn('pointer-events-none absolute top-0 z-[15] h-full', SELECTION_TINT_BG)}
+                className={cn(
+                  'pointer-events-none absolute top-0 z-[15] h-full',
+                  SELECTION_TINT_BG
+                )}
                 style={{ left: dropColumnBounds.left, width: dropColumnBounds.width }}
               />
               <div

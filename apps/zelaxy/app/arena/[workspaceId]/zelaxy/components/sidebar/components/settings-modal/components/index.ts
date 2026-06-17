@@ -1,10 +1,12 @@
 export { Account } from './account/account'
 export { AdminSettings } from './admin-settings/admin-settings'
 export { ApiKeys } from './api-keys/api-keys'
+export { AuditLogs } from './audit-logs/audit-logs'
 export { Credentials } from './credentials/credentials'
 export { EnvironmentVariables } from './environment/environment'
 export { General } from './general/general'
 export { MCPServers } from './mcp'
+export { OrgEnvironment } from './org-environment/org-environment'
 export { Privacy } from './privacy/privacy'
 export { SettingsNavigation } from './settings-navigation/settings-navigation'
 // Shared primitives for settings sections

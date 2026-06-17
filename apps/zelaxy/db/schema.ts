@@ -1802,10 +1802,7 @@ export const userTableRows = pgTable(
       table.workspaceId,
       table.tableId
     ),
-    tablePositionIdx: index('user_table_rows_table_position_idx').on(
-      table.tableId,
-      table.position
-    ),
+    tablePositionIdx: index('user_table_rows_table_position_idx').on(table.tableId, table.position),
   })
 )
 
@@ -1837,9 +1834,6 @@ export const tableRowExecutions = pgTable(
     executionIdIdx: index('table_row_executions_execution_id_idx')
       .on(table.executionId)
       .where(sql`${table.executionId} IS NOT NULL`),
-    tableGroupIdx: index('table_row_executions_table_group_idx').on(
-      table.tableId,
-      table.groupId
-    ),
+    tableGroupIdx: index('table_row_executions_table_group_idx').on(table.tableId, table.groupId),
   })
 )

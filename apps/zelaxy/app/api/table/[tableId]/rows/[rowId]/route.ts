@@ -3,8 +3,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { checkHybridAuth } from '@/lib/auth/hybrid'
 import { createLogger } from '@/lib/logs/console/logger'
-import { deleteRow, getRowById, updateRow } from '@/lib/table'
 import type { RowData } from '@/lib/table'
+import { deleteRow, getRowById, updateRow } from '@/lib/table'
 import { accessError, checkAccess } from '@/app/api/table/utils'
 
 export const dynamic = 'force-dynamic'
@@ -15,7 +15,13 @@ const UpdateRowBody = z.object({
   data: z.record(z.unknown()),
 })
 
-function serializeRow(r: { id: string; data: RowData; position: number; createdAt: Date | string; updatedAt: Date | string }) {
+function serializeRow(r: {
+  id: string
+  data: RowData
+  position: number
+  createdAt: Date | string
+  updatedAt: Date | string
+}) {
   return {
     id: r.id,
     data: r.data,

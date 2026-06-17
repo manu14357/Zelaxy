@@ -8,7 +8,8 @@ export const tableUpdateRowsByFilterTool: ToolConfig<
 > = {
   id: 'table_update_rows_by_filter',
   name: 'Update Rows by Filter',
-  description: 'Update multiple rows that match filter criteria. Data is merged with existing row data.',
+  description:
+    'Update multiple rows that match filter criteria. Data is merged with existing row data.',
   version: '1.0.0',
 
   params: {

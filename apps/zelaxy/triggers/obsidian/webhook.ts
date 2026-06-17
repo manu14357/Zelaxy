@@ -15,8 +15,7 @@ export const obsidianWebhookTrigger: TriggerConfig = {
       type: 'string',
       label: 'API Key',
       placeholder: 'Enter your Obsidian Local REST API key',
-      description:
-        'API key from the Obsidian Local REST API plugin to authenticate requests.',
+      description: 'API key from the Obsidian Local REST API plugin to authenticate requests.',
       required: false,
       isSecret: true,
     },
@@ -62,7 +61,7 @@ export const obsidianWebhookTrigger: TriggerConfig = {
   },
 
   instructions: [
-    'Install the <strong>Obsidian Webhooks</strong> community plugin from Obsidian\'s community plugin store.',
+    "Install the <strong>Obsidian Webhooks</strong> community plugin from Obsidian's community plugin store.",
     'Enable the plugin and open its settings.',
     'Add the Webhook URL (from above) as a webhook endpoint.',
     'Configure which file events trigger the webhook (create, modify, delete, rename).',

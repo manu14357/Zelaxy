@@ -3,17 +3,17 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { checkHybridAuth } from '@/lib/auth/hybrid'
 import { createLogger } from '@/lib/logs/console/logger'
+import type { CsvHeaderMapping, RowData, TableSchema } from '@/lib/table'
 import {
   batchInsertRows,
   buildAutoMapping,
-  coerceRowsForTable,
   CSV_MAX_FILE_SIZE_BYTES,
+  coerceRowsForTable,
   deleteRows,
   listRows,
   parseCsvBuffer,
   validateMapping,
 } from '@/lib/table'
-import type { CsvHeaderMapping, RowData, TableSchema } from '@/lib/table'
 import { accessError, checkAccess } from '@/app/api/table/utils'
 
 export const dynamic = 'force-dynamic'
@@ -29,10 +29,7 @@ const ImportBody = z.object({
  * POST /api/table/[tableId]/import — import CSV into an existing table.
  * Expects multipart/form-data with a `file` field (CSV) and optionally a `mode` and `mapping` JSON field.
  */
-export async function POST(
-  req: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function POST(req: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 
@@ -84,7 +81,8 @@ export async function POST(
       return NextResponse.json({ error: 'CSV has no headers' }, { status: 400 })
     }
 
-    const mapping: CsvHeaderMapping = (providedMapping as CsvHeaderMapping | undefined) ?? buildAutoMapping(csvHeaders, schema)
+    const mapping: CsvHeaderMapping =
+      (providedMapping as CsvHeaderMapping | undefined) ?? buildAutoMapping(csvHeaders, schema)
 
     const validation = validateMapping({ csvHeaders, mapping, tableSchema: schema })
     const coercedRows = coerceRowsForTable(csvRows, schema, validation.effectiveMap)
@@ -93,7 +91,11 @@ export async function POST(
     if (mode === 'replace') {
       const existing = await listRows({ tableId, limit: 10000, offset: 0 })
       if (existing.rows.length > 0) {
-        deletedCount = await deleteRows(tableId, existing.rows.map((r) => r.id), requestId)
+        deletedCount = await deleteRows(
+          tableId,
+          existing.rows.map((r) => r.id),
+          requestId
+        )
       }
     }
 
@@ -108,7 +110,9 @@ export async function POST(
       requestId
     )
 
-    logger.info(`[${requestId}] Imported ${inserted.length} rows into table ${tableId} (mode=${mode})`)
+    logger.info(
+      `[${requestId}] Imported ${inserted.length} rows into table ${tableId} (mode=${mode})`
+    )
 
     return NextResponse.json({
       success: true,

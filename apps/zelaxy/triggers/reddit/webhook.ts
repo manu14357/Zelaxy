@@ -5,8 +5,7 @@ export const redditWebhookTrigger: TriggerConfig = {
   id: 'reddit_webhook',
   name: 'Reddit Webhook',
   provider: 'reddit',
-  description:
-    'Trigger workflow from Reddit posts and comments via webhook forwarding',
+  description: 'Trigger workflow from Reddit posts and comments via webhook forwarding',
   version: '1.0.0',
   icon: RedditIcon,
 

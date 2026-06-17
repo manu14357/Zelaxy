@@ -628,6 +628,96 @@ export const clerkGetOrganizationTool: ToolConfig = {
   },
 }
 
+export const clerkCreateOrganizationTool: ToolConfig = {
+  id: 'clerk_create_organization',
+  name: 'Create Organization in Clerk',
+  description: 'Create a new organization in your Clerk application.',
+  version: '1.0.0',
+
+  params: {
+    secretKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'The Clerk Secret Key for API authentication',
+    },
+    name: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'The name of the organization',
+    },
+    createdBy: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'The ID of the user who will be the initial admin of the organization',
+    },
+    slug: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'A unique slug for the organization',
+    },
+    maxAllowedMemberships: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Maximum number of memberships allowed (0 for unlimited)',
+    },
+    publicMetadata: {
+      type: 'json',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Public metadata (JSON object)',
+    },
+    privateMetadata: {
+      type: 'json',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Private metadata (JSON object)',
+    },
+  },
+
+  request: {
+    url: 'https://api.clerk.com/v1/organizations',
+    method: 'POST',
+    headers: (params) => ({
+      Authorization: `Bearer ${params.secretKey}`,
+      'Content-Type': 'application/json',
+    }),
+    body: (params) => {
+      const body: Record<string, unknown> = {
+        name: (params.name as string).trim(),
+        created_by: (params.createdBy as string).trim(),
+      }
+      if (params.slug) body.slug = (params.slug as string).trim()
+      if (params.maxAllowedMemberships !== undefined)
+        body.max_allowed_memberships = params.maxAllowedMemberships
+      if (params.publicMetadata) body.public_metadata = params.publicMetadata
+      if (params.privateMetadata) body.private_metadata = params.privateMetadata
+      return body
+    },
+  },
+
+  transformResponse: async (response) => {
+    const data = await response.json()
+    if (!response.ok) {
+      throw new Error(
+        (data as { errors?: { message: string }[] }).errors?.[0]?.message ||
+          'Failed to create organization in Clerk'
+      )
+    }
+    return { success: true, output: data }
+  },
+
+  outputs: {
+    id: { type: 'string', description: 'Created organization ID' },
+    name: { type: 'string', description: 'Organization name' },
+    slug: { type: 'string', description: 'Organization slug' },
+  },
+}
+
 export const clerkListSessionsTool: ToolConfig = {
   id: 'clerk_list_sessions',
   name: 'List Sessions from Clerk',

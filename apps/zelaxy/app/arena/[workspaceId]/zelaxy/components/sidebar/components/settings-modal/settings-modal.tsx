@@ -10,10 +10,12 @@ import {
   Account,
   AdminSettings,
   ApiKeys,
+  AuditLogs,
   Credentials,
   EnvironmentVariables,
   General,
   MCPServers,
+  OrgEnvironment,
   Privacy,
   SettingsNavigation,
   Shortcuts,
@@ -41,6 +43,8 @@ type SettingsSection =
   | 'mcp'
   | 'subscription'
   | 'team'
+  | 'org-environment'
+  | 'audit'
   | 'privacy'
   | 'shortcuts'
   | 'admin'
@@ -64,6 +68,8 @@ const SECTIONS: SectionEntry[] = [
   { id: 'mcp', component: MCPServers },
   { id: 'subscription', component: Subscription, requiresBilling: true },
   { id: 'team', component: TeamManagement },
+  { id: 'org-environment', component: OrgEnvironment },
+  { id: 'audit', component: AuditLogs },
   { id: 'privacy', component: Privacy },
   { id: 'shortcuts', component: Shortcuts },
   { id: 'admin', component: AdminSettings },

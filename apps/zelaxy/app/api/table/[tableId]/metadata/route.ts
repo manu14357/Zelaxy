@@ -3,8 +3,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { checkHybridAuth } from '@/lib/auth/hybrid'
 import { createLogger } from '@/lib/logs/console/logger'
-import { updateTableMetadata } from '@/lib/table'
 import type { TableMetadata } from '@/lib/table'
+import { updateTableMetadata } from '@/lib/table'
 import { accessError, checkAccess } from '@/app/api/table/utils'
 
 export const dynamic = 'force-dynamic'
@@ -17,10 +17,7 @@ const PatchBody = z.object({
 })
 
 /** PATCH /api/table/[tableId]/metadata — update column widths/order */
-export async function PATCH(
-  req: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 

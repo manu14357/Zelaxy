@@ -1,8 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { cn } from '@/lib/utils'
 import type { ColumnDefinition } from '@/lib/table'
+import { cn } from '@/lib/utils'
 import type { SaveReason } from '../../../types'
 import {
   cleanCellValue,
@@ -20,7 +20,13 @@ interface InlineEditorProps {
 }
 
 /** Inline editor for `date` columns — text input overlaying a native date picker. */
-function InlineDateEditor({ value, column, initialCharacter, onSave, onCancel }: InlineEditorProps) {
+function InlineDateEditor({
+  value,
+  column,
+  initialCharacter,
+  onSave,
+  onCancel,
+}: InlineEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const doneRef = useRef(false)
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -87,13 +93,21 @@ function InlineDateEditor({ value, column, initialCharacter, onSave, onCancel }:
       onKeyDown={handleKeyDown}
       onBlur={handleBlur}
       placeholder='mm/dd/yyyy'
-      className={cn('w-full min-w-0 select-text border-none bg-transparent p-0 text-sm text-foreground outline-none')}
+      className={cn(
+        'w-full min-w-0 select-text border-none bg-transparent p-0 text-foreground text-sm outline-none'
+      )}
     />
   )
 }
 
 /** Inline editor for `string`/`number`/`json` columns. */
-function InlineTextEditor({ value, column, initialCharacter, onSave, onCancel }: InlineEditorProps) {
+function InlineTextEditor({
+  value,
+  column,
+  initialCharacter,
+  onSave,
+  onCancel,
+}: InlineEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState(() =>
     initialCharacter !== undefined ? initialCharacter : formatValueForInput(value, column.type)
@@ -152,7 +166,7 @@ function InlineTextEditor({ value, column, initialCharacter, onSave, onCancel }:
       onKeyDown={handleKeyDown}
       onWheel={handleWheel}
       onBlur={() => doSave('blur')}
-      className='w-full min-w-0 select-text border-none bg-transparent p-0 text-sm text-foreground outline-none'
+      className='w-full min-w-0 select-text border-none bg-transparent p-0 text-foreground text-sm outline-none'
     />
   )
 }

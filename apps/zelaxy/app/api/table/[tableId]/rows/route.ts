@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { checkHybridAuth } from '@/lib/auth/hybrid'
 import { createLogger } from '@/lib/logs/console/logger'
+import type { RowData } from '@/lib/table'
 import {
   batchInsertRows,
   batchUpdateRows,
@@ -11,7 +12,6 @@ import {
   listRows,
   TABLE_LIMITS,
 } from '@/lib/table'
-import type { RowData, TableSchema } from '@/lib/table'
 import { accessError, checkAccess } from '@/app/api/table/utils'
 
 export const dynamic = 'force-dynamic'
@@ -46,10 +46,7 @@ const DeleteRowsBody = z.object({
 /**
  * GET /api/table/[tableId]/rows — list rows (paginated)
  */
-export async function GET(
-  req: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function GET(req: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 
@@ -98,10 +95,7 @@ export async function GET(
  * POST /api/table/[tableId]/rows — create row(s)
  * Body can be either a single row or a batch of rows.
  */
-export async function POST(
-  req: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function POST(req: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 
@@ -191,10 +185,7 @@ export async function POST(
 /**
  * PATCH /api/table/[tableId]/rows — batch update rows
  */
-export async function PATCH(
-  req: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 
@@ -219,7 +210,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    await batchUpdateRows(tableId, parsed.data.updates as Array<{ rowId: string; data: RowData }>, requestId)
+    await batchUpdateRows(
+      tableId,
+      parsed.data.updates as Array<{ rowId: string; data: RowData }>,
+      requestId
+    )
     return NextResponse.json({ success: true, data: { message: 'Rows updated' } })
   } catch (error) {
     logger.error(`[${requestId}] Error batch updating rows in table ${tableId}:`, error)
@@ -230,10 +225,7 @@ export async function PATCH(
 /**
  * DELETE /api/table/[tableId]/rows — delete rows by IDs
  */
-export async function DELETE(
-  req: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 
@@ -259,7 +251,10 @@ export async function DELETE(
     }
 
     const deletedCount = await deleteRows(tableId, parsed.data.rowIds, requestId)
-    return NextResponse.json({ success: true, data: { deletedCount, message: `Deleted ${deletedCount} rows` } })
+    return NextResponse.json({
+      success: true,
+      data: { deletedCount, message: `Deleted ${deletedCount} rows` },
+    })
   } catch (error) {
     logger.error(`[${requestId}] Error deleting rows from table ${tableId}:`, error)
     return NextResponse.json({ error: 'Failed to delete rows' }, { status: 500 })

@@ -116,11 +116,27 @@ interface BlockConfig<T extends ToolResponse = ToolResponse> {
 
 ### Specialized Handlers (When You Need One)
 
-Current dedicated handlers:
-- `agent`, `api`, `condition`, `evaluator`, `function`
-- `loop`, `parallel`, `response`, `router`, `workflow`, `trigger`
+Handlers are registered in ONE place: `createBlockHandlers(...)` in
+`executor/handlers/registry.ts` (the `Executor` constructor calls it). Never add a second
+inline handler list in `executor/index.ts` — a drifting duplicate previously dropped handlers
+silently and broke those block types at runtime.
 
-If your new block has runtime semantics beyond “map params and call a tool”, add or extend a specialized handler. Otherwise, use `GenericBlockHandler`.
+Current dedicated handlers:
+- `agent`, `api`, `condition`, `evaluator`, `translate`, `function`, `router`, `switch`
+- `loop`, `parallel`, `response`, `workflow`, `trigger`
+- `human-in-the-loop`, `variables`, `wait`, `credential`, `zelaxy-arena`
+- `generic` (catch-all, must remain last)
+
+If your new block has runtime semantics beyond “map params and call a tool”, add or extend a
+specialized handler and register it in `executor/handlers/registry.ts`. Otherwise, use
+`GenericBlockHandler`.
+
+**LLM blocks** (`agent`, `evaluator`, `router`, `translate`) are the exception to the
+"every access id must be a registered tool" rule: their `tools.access` lists provider ids like
+`openai_chat` and `config.tool` returns a provider id (e.g. `openai`). They run via their
+dedicated handlers using `executeProviderRequest`, so those `*_chat` ids are intentionally NOT
+in `tools/registry.ts`. A block that resolves to a provider id but has no dedicated handler
+crashes in `GenericBlockHandler`.
 
 ### How to Create a New Block
 
@@ -370,13 +386,30 @@ export const myTool: ToolConfig<MyParams> = {
 3. If not, add specialized handler and wire it in executor handler list.
 4. Add serialization/execution tests.
 
+## Verify before finishing
+
+Two scripts in `apps/zelaxy/scripts/` catch the most common block defects deterministically —
+run them after any block/tool change:
+
+- `node scripts/verify-blocks.mjs` — every block's `tools.access` id resolves to a registered
+  tool. Expected residual hits: the LLM blocks' provider `*_chat` ids (benign, see above).
+- `node scripts/verify-blocks-structure.mjs` — no orphan `condition.field` references and no
+  empty `outputs` (trigger/note blocks excepted).
+
+Then `bunx tsc --noEmit` and the relevant `vitest run`.
+
 ## Common Issues
 1. **Outdated BlockConfig shape**: `toolbar` and `subBlocks[][]` are obsolete in this codebase.
 2. **Missing registry entry**: Block/tool compiles but never appears/executed because not registered.
-3. **Wrong assumption about handlers**: Most integration blocks should use `GenericBlockHandler`, not new handlers.
-4. **Param ID mismatch**: Block sub-block IDs and tool param IDs diverge, causing missing-required errors.
-5. **Visibility mistakes**: Marking sensitive/runtime params as `user-or-llm` instead of `hidden`/`user-only`.
-6. **OAuth wiring gaps**: Not mapping `credential` correctly or not allowing token resolution in execution.
-7. **MCP ID parsing bugs**: Dynamic MCP tool IDs must use metadata mapping, not string parsing.
-8. **Internal vs external routing confusion**: `/api/...` tools are direct internal calls; external calls go through proxy.
-9. **Assuming blocks-catalog is runtime source**: Runtime uses `blocks/registry.ts` and code definitions.
+3. **Registry key ≠ tool id**: In `tools/registry.ts` the map key MUST equal the tool's `id`
+   (and match what the block's `access`/`config.tool` use). A mismatch (or a tool exported from
+   its index but never added to the `tools` map) makes the operation unresolvable at runtime
+   even though it compiles. (Real examples fixed: `airtable_update_multiple_records` missing
+   from the map; `elasticsearch_index` registered under key `elasticsearch_index_document`.)
+4. **Wrong assumption about handlers**: Most integration blocks should use `GenericBlockHandler`, not new handlers.
+5. **Param ID mismatch**: Block sub-block IDs and tool param IDs diverge, causing missing-required errors.
+6. **Visibility mistakes**: Marking sensitive/runtime params as `user-or-llm` instead of `hidden`/`user-only`.
+7. **OAuth wiring gaps**: Not mapping `credential` correctly or not allowing token resolution in execution.
+8. **MCP ID parsing bugs**: Dynamic MCP tool IDs must use metadata mapping, not string parsing.
+9. **Internal vs external routing confusion**: `/api/...` tools are direct internal calls; external calls go through proxy.
+10. **Assuming blocks-catalog is runtime source**: Runtime uses `blocks/registry.ts` and code definitions.

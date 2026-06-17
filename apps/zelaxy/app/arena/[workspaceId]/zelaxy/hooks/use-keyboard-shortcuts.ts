@@ -120,7 +120,7 @@ export function useGlobalShortcuts() {
         event.preventDefault()
 
         const pathParts = window.location.pathname.split('/')
-        const workspaceIndex = pathParts.indexOf('workspace')
+        const workspaceIndex = pathParts.indexOf('arena')
 
         if (workspaceIndex !== -1 && pathParts[workspaceIndex + 1]) {
           const workspaceId = pathParts[workspaceIndex + 1]

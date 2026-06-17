@@ -29,8 +29,7 @@ export const linearWebhookTrigger: TriggerConfig = {
       },
       resource_type: {
         type: 'string',
-        description:
-          'Resource type (Issue, Comment, Project, Cycle, Label, etc.)',
+        description: 'Resource type (Issue, Comment, Project, Cycle, Label, etc.)',
       },
       createdAt: {
         type: 'string',
@@ -65,7 +64,8 @@ export const linearWebhookTrigger: TriggerConfig = {
         },
         priority: {
           type: 'number',
-          description: 'Issue priority (0 = No priority, 1 = Urgent, 2 = High, 3 = Medium, 4 = Low)',
+          description:
+            'Issue priority (0 = No priority, 1 = Urgent, 2 = High, 3 = Medium, 4 = Low)',
         },
         assignee: {
           id: {

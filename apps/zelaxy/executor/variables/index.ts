@@ -45,8 +45,6 @@ export function resolveVariableValue(variable: WorkflowVariable): unknown {
       }
       return value
     }
-    case 'plain':
-    case 'string':
     default:
       return String(value)
   }

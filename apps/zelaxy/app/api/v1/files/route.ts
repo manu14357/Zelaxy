@@ -91,12 +91,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const accessError = await validateWorkspaceAccess(rateLimit, userId, parsed.data.workspaceId, 'write')
+    const accessError = await validateWorkspaceAccess(
+      rateLimit,
+      userId,
+      parsed.data.workspaceId,
+      'write'
+    )
     if (accessError) return accessError
 
     const file = formData.get('file')
     if (!file || !(file instanceof File)) {
-      return NextResponse.json({ error: 'No file provided. Include a "file" field in the form data.' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'No file provided. Include a "file" field in the form data.' },
+        { status: 400 }
+      )
     }
 
     const maxSizeBytes = 100 * 1024 * 1024 // 100 MB
@@ -110,7 +118,9 @@ export async function POST(request: NextRequest) {
 
     const fileInfo = await uploadFile(buffer, file.name, contentType, file.size)
 
-    logger.info(`[${requestId}] Uploaded file ${fileInfo.key} for workspace ${parsed.data.workspaceId}`)
+    logger.info(
+      `[${requestId}] Uploaded file ${fileInfo.key} for workspace ${parsed.data.workspaceId}`
+    )
 
     return NextResponse.json(
       {

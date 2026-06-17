@@ -1268,7 +1268,7 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
           )}
 
           {/* Workflow Name (only shown when expanded, no panel is open, and on workflow page) */}
-          {showExpanded && pathname.match(/^\/workspace\/[^/]+\/zelaxy\/[^/]+$/) && (
+          {showExpanded && pathname.match(/^\/arena\/[^/]+\/zelaxy\/[^/]+$/) && (
             <div className='flex items-center justify-between border-border/40 border-b px-4 py-2.5'>
               <h2
                 className='flex-1 truncate font-medium text-[13px] text-foreground/90'

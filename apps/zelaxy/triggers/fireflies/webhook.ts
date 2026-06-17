@@ -5,8 +5,7 @@ export const firefliesWebhookTrigger: TriggerConfig = {
   id: 'fireflies_webhook',
   name: 'Fireflies.ai Webhook',
   provider: 'fireflies',
-  description:
-    'Trigger workflow when Fireflies.ai meeting transcripts and summaries are ready',
+  description: 'Trigger workflow when Fireflies.ai meeting transcripts and summaries are ready',
   version: '1.0.0',
   icon: WebhookIcon,
 

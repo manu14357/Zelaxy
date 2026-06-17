@@ -121,10 +121,8 @@ export const oneDrivePollingTrigger: TriggerConfig = {
   samplePayload: {
     id: 'AABB1234CC5678DD',
     name: 'Project Report.docx',
-    webUrl:
-      'https://onedrive.live.com/?authkey=!AAAA&id=AABB1234CC5678DD',
-    mimeType:
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    webUrl: 'https://onedrive.live.com/?authkey=!AAAA&id=AABB1234CC5678DD',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     size: 34512,
     parentReference: {
       driveId: 'b!abc123',

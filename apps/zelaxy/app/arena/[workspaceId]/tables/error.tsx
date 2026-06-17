@@ -16,7 +16,7 @@ export default function TablesError({
         <AlertCircle className='h-6 w-6 text-destructive' />
       </div>
       <div className='text-center'>
-        <h2 className='font-semibold text-lg text-foreground'>Failed to load tables</h2>
+        <h2 className='font-semibold text-foreground text-lg'>Failed to load tables</h2>
         <p className='mt-1 text-muted-foreground text-sm'>{error.message}</p>
       </div>
       <Button variant='outline' onClick={reset}>

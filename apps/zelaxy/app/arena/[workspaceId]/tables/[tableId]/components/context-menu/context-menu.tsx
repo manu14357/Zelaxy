@@ -41,8 +41,7 @@ export function ContextMenu({
   disableInsert = false,
   disableDelete = false,
 }: ContextMenuProps) {
-  const deleteLabel =
-    selectedRowCount > 1 ? `Delete ${selectedRowCount} rows` : 'Delete row'
+  const deleteLabel = selectedRowCount > 1 ? `Delete ${selectedRowCount} rows` : 'Delete row'
 
   return (
     <DropdownMenu

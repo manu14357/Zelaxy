@@ -15,10 +15,7 @@ const logger = createLogger('TableEventStreamAPI')
  * `connected` event immediately. Full real-time push requires an external
  * pub/sub mechanism (Redis, etc.) which can be wired in later.
  */
-export async function GET(
-  req: NextRequest,
-  context: { params: Promise<{ tableId: string }> }
-) {
+export async function GET(req: NextRequest, context: { params: Promise<{ tableId: string }> }) {
   const requestId = crypto.randomUUID().slice(0, 8)
   const { tableId } = await context.params
 

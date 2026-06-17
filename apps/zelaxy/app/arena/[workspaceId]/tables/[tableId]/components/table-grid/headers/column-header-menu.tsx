@@ -9,8 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { cn } from '@/lib/utils'
 import type { ColumnDefinition } from '@/lib/table'
+import { cn } from '@/lib/utils'
 import { COL_WIDTH, SELECTION_TINT_BG } from '../constants'
 import type { DisplayColumn } from '../types'
 import { ColumnTypeIcon } from './column-type-icon'
@@ -174,7 +174,10 @@ export const ColumnHeaderMenu = React.memo(function ColumnHeaderMenu({
 
   const handleDragStart = useCallback(
     (e: React.DragEvent) => {
-      if (readOnly || isRenaming) { e.preventDefault(); return }
+      if (readOnly || isRenaming) {
+        e.preventDefault()
+        return
+      }
       didDragRef.current = true
       e.dataTransfer.effectAllowed = 'move'
       e.dataTransfer.setData('text/plain', column.name)
@@ -214,7 +217,10 @@ export const ColumnHeaderMenu = React.memo(function ColumnHeaderMenu({
   )
 
   function handleHeaderClick(e: React.MouseEvent) {
-    if (didDragRef.current) { didDragRef.current = false; return }
+    if (didDragRef.current) {
+      didDragRef.current = false
+      return
+    }
     if (isRenaming) return
     onColumnSelect(colIndex, e.shiftKey)
     if (!e.shiftKey) onOpenConfig(column.name)
@@ -239,7 +245,10 @@ export const ColumnHeaderMenu = React.memo(function ColumnHeaderMenu({
       className='group relative border-border border-r border-b bg-background p-0 text-left align-middle'
       draggable={!readOnly && !isRenaming}
       onDragStart={handleDragStart}
-      onDragEnd={() => { didDragRef.current = false; onDragEnd?.() }}
+      onDragEnd={() => {
+        didDragRef.current = false
+        onDragEnd?.()
+      }}
       onDragOver={handleDragOver}
       onDrop={(e) => e.preventDefault()}
       onDragLeave={handleDragLeave}
@@ -264,13 +273,13 @@ export const ColumnHeaderMenu = React.memo(function ColumnHeaderMenu({
               if (e.key === 'Escape') onRenameCancel()
             }}
             onBlur={onRenameSubmit}
-            className='ml-1.5 min-w-0 flex-1 border-0 bg-transparent p-0 text-[13px] font-medium text-foreground outline-none focus:outline-none focus:ring-0'
+            className='ml-1.5 min-w-0 flex-1 border-0 bg-transparent p-0 font-medium text-[13px] text-foreground outline-none focus:outline-none focus:ring-0'
           />
         </div>
       ) : readOnly ? (
         <div className='flex h-full w-full min-w-0 items-center px-2 py-[7px]'>
           <ColumnTypeIcon type={column.type} />
-          <span className='ml-1.5 min-w-0 overflow-clip text-ellipsis whitespace-nowrap text-[13px] font-medium text-foreground'>
+          <span className='ml-1.5 min-w-0 overflow-clip text-ellipsis whitespace-nowrap font-medium text-[13px] text-foreground'>
             {column.name}
           </span>
         </div>
@@ -283,7 +292,7 @@ export const ColumnHeaderMenu = React.memo(function ColumnHeaderMenu({
             draggable={false}
           >
             <ColumnTypeIcon type={column.type} />
-            <span className='ml-1.5 min-w-0 overflow-clip text-ellipsis whitespace-nowrap text-[13px] font-medium text-foreground'>
+            <span className='ml-1.5 min-w-0 overflow-clip text-ellipsis whitespace-nowrap font-medium text-[13px] text-foreground'>
               {column.name}
             </span>
           </button>
