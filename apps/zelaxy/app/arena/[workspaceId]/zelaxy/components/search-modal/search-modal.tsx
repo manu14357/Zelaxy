@@ -17,6 +17,7 @@ import {
   Search,
   Shapes,
   SplitIcon,
+  Table as TableIcon,
   Workflow,
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
@@ -228,6 +229,12 @@ export function SearchModal({
         name: 'Deployments',
         icon: Globe,
         href: `/arena/${workspaceId}/hub?tab=deployments`,
+      },
+      {
+        id: 'tables',
+        name: 'Tables',
+        icon: TableIcon,
+        href: `/arena/${workspaceId}/hub?tab=tables`,
       },
       {
         id: 'knowledge',

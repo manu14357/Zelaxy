@@ -10,6 +10,7 @@ import {
   ScrollText,
   Settings,
   Shapes,
+  Table as TableIcon,
 } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -21,6 +22,7 @@ import { Knowledge } from '@/app/arena/[workspaceId]/knowledge/knowledge'
 import Logs from '@/app/arena/[workspaceId]/logs/logs'
 import { Memory } from '@/app/arena/[workspaceId]/memory/memory'
 import { Schedules } from '@/app/arena/[workspaceId]/schedules/schedules'
+import { Tables } from '@/app/arena/[workspaceId]/tables/tables'
 import type { Template } from '@/app/arena/[workspaceId]/templates/templates'
 import Templates from '@/app/arena/[workspaceId]/templates/templates'
 import {
@@ -97,6 +99,7 @@ const tabs = [
   { id: 'logs', label: 'Logs', icon: ScrollText },
   { id: 'schedules', label: 'Schedules', icon: CalendarClock },
   { id: 'deployments', label: 'Deployments', icon: Globe },
+  { id: 'tables', label: 'Tables', icon: TableIcon },
   { id: 'knowledge', label: 'Knowledge', icon: BookOpen },
   { id: 'memory', label: 'Memory', icon: Brain },
   { id: 'templates', label: 'Templates', icon: Shapes },
@@ -239,6 +242,10 @@ export function Hub({ initialTemplates, currentUserId }: HubProps) {
 
         <TabsContent value='deployments' className='mt-0 min-h-0 flex-1 overflow-auto'>
           <Deployments />
+        </TabsContent>
+
+        <TabsContent value='tables' className='mt-0 min-h-0 flex-1 overflow-auto'>
+          <Tables />
         </TabsContent>
 
         <TabsContent value='knowledge' className='mt-0 min-h-0 flex-1 overflow-auto'>
