@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/table'
 import { createLogger } from '@/lib/logs/console/logger'
 import type { TableDefinition } from '@/lib/table'
-import { buildAutoMapping, parseCsvBuffer } from '@/lib/table'
+import { buildAutoMapping, parseCsvBuffer } from '@/lib/table/csv'
 import { cn } from '@/lib/utils'
 import { useImportCsvIntoTable } from '@/hooks/queries/tables'
 

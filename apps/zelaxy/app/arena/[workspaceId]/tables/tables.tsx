@@ -189,10 +189,10 @@ export function Tables() {
 
   const handleCreateTable = useCallback(async () => {
     const existingNames = tables.map((t) => t.name)
-    const base = 'New Table'
+    const base = 'new_table'
     let name = base
     let i = 1
-    while (existingNames.includes(name)) name = `${base} ${++i}`
+    while (existingNames.includes(name)) name = `${base}_${++i}`
     try {
       const result = await createTable.mutateAsync({
         name,

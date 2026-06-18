@@ -13,7 +13,7 @@ import type {
   TableDefinition,
   TableRow as TableRowType,
 } from '@/lib/table'
-import { TABLE_LIMITS } from '@/lib/table/index'
+import { TABLE_LIMITS } from '@/lib/table/constants'
 import { cn } from '@/lib/utils'
 import { useUserPermissionsContext } from '@/app/arena/[workspaceId]/providers/workspace-permissions-provider'
 import {
