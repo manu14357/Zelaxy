@@ -242,7 +242,9 @@ export const registry: Record<string, BlockConfig> = {
   note: NoteBlock,
   variables: VariablesBlock,
   wait: WaitBlock,
-  zelaxy_arena: ZelaxyArenaBlock,
+  // Key MUST equal block.type ('zelaxy-arena') — getBlock(type)=registry[type] and the
+  // toolbar drags using block.type, so an underscore key here made the block undraggable.
+  'zelaxy-arena': ZelaxyArenaBlock,
   vision: VisionBlock,
   wealthbox: WealthboxBlock,
   webhook: WebhookBlock,

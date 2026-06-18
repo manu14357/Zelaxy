@@ -15,6 +15,7 @@ import {
   Search,
   Settings,
   Sparkles,
+  Table as TableIcon,
   Terminal,
   Variable,
   X,
@@ -1342,6 +1343,29 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
               </TooltipTrigger>
               <TooltipContent side='right'>
                 <div className='font-medium'>Hub</div>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => router.push(`/arena/${workspaceId}/tables`)}
+                  className={cn(
+                    'relative flex w-full items-center rounded-lg transition-all duration-150',
+                    'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+                    pathname?.startsWith(`/arena/${workspaceId}/tables`) &&
+                      'bg-accent/60 text-foreground',
+                    activePanel || isCollapsed || isMobile
+                      ? 'h-10 justify-center'
+                      : 'h-10 justify-start gap-3 px-3'
+                  )}
+                >
+                  <TableIcon className='h-[18px] w-[18px] flex-shrink-0 text-primary/80' />
+                  {showExpanded && <span className='truncate font-medium text-[13px]'>Tables</span>}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side='right'>
+                <div className='font-medium'>Tables</div>
               </TooltipContent>
             </Tooltip>
 
