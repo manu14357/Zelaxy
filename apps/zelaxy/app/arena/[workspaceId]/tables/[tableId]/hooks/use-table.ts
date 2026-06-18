@@ -3,8 +3,8 @@
 import { useCallback, useMemo } from 'react'
 import type { InfiniteData } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
-import type { ColumnDefinition, TableDefinition, TableRow } from '@/lib/table'
-import { TABLE_LIMITS } from '@/lib/table'
+import type { ColumnDefinition, TableDefinition, TableRow } from '@/lib/table/constants'
+import { TABLE_LIMITS } from '@/lib/table/constants'
 import { tableKeys, useInfiniteTableRows, useTable as useTableQuery } from '@/hooks/queries/tables'
 import type { QueryOptions } from '../types'
 

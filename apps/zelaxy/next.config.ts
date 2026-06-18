@@ -83,7 +83,7 @@ const nextConfig: NextConfig = {
       // not available in the browser. `serverExternalPackages` above handles the
       // server side; this alias handles the browser/client bundle side.
       // The stub returns a proxy that throws at query time with a clear message.
-      postgres: { browser: path.join(__dirname, 'lib/stubs/postgres-browser.js') },
+      postgres: { browser: './apps/zelaxy/lib/stubs/postgres-browser.js' },
     },
   },
   experimental: {

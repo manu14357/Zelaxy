@@ -34,3 +34,47 @@ export const CSV_MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 export type ColumnType = (typeof COLUMN_TYPES)[number]
 export type ColumnValue = string | number | boolean | null
 export type JsonValue = ColumnValue | JsonValue[] | { [key: string]: JsonValue }
+
+// ─── Browser-safe table types (no DB imports) ─────────────────────────────────
+
+export interface ColumnDefinition {
+  name: string
+  type: ColumnType
+  nullable?: boolean
+  identity?: boolean
+  readOnly?: boolean
+}
+
+export interface TableSchema {
+  columns: ColumnDefinition[]
+}
+
+export type RowData = Record<string, ColumnValue>
+
+export interface TableMetadata {
+  columnWidths?: Record<string, number>
+  columnOrder?: string[]
+}
+
+export interface TableDefinition {
+  id: string
+  name: string
+  description: string | null
+  schema: TableSchema
+  metadata: TableMetadata | null
+  rowCount: number
+  maxRows: number
+  workspaceId: string
+  createdBy: string | null
+  archivedAt: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+}
+
+export interface TableRow {
+  id: string
+  data: RowData
+  position: number
+  createdAt: Date
+  updatedAt: Date
+}

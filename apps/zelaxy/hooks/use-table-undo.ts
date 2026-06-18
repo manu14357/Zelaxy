@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import { createLogger } from '@/lib/logs/console/logger'
-import type { RowData, TableRow } from '@/lib/table'
-import { TABLE_LIMITS } from '@/lib/table'
+import type { RowData, TableRow } from '@/lib/table/constants'
+import { TABLE_LIMITS } from '@/lib/table/constants'
 import {
   useAddTableColumn,
   useBatchCreateTableRows,
