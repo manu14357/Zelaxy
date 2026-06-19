@@ -327,7 +327,7 @@ import {
   fathomListTeamMembersTool,
   fathomListTeamsTool,
 } from '@/tools/fathom'
-import { fileParseTool } from '@/tools/file'
+import { fileAppendTool, fileParseTool, fileWriteTool } from '@/tools/file'
 import { crawlTool, scrapeTool, searchTool } from '@/tools/firecrawl'
 import { functionExecuteTool } from '@/tools/function'
 import {
@@ -641,6 +641,8 @@ export const tools: Record<string, ToolConfig> = {
   guardrails_validate: guardrailsTool,
   vision_tool: visionTool,
   file_parser: fileParseTool,
+  file_write: fileWriteTool,
+  file_append: fileAppendTool,
   firecrawl_scrape: scrapeTool,
   firecrawl_search: searchTool,
   firecrawl_crawl: crawlTool,

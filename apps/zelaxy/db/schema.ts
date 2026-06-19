@@ -1912,3 +1912,33 @@ export const workspaceNotification = pgTable(
     enabledIdx: index('workspace_notification_enabled_idx').on(table.enabled),
   })
 )
+
+/**
+ * Workspace Files store. A persistent, workspace-scoped collection of files — uploads, files
+ * written by workflow runs (File block: Write/Append), and generated artifacts. Shared across
+ * every workflow in the workspace. The bytes live in the storage provider (S3/Blob/local) under
+ * `key`; this row is the catalog entry. See lib/files/workspace-files.
+ */
+export const workspaceFile = pgTable(
+  'workspace_file',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    key: text('key').notNull(), // storage key (S3/Blob key or local filename)
+    size: integer('size').notNull().default(0),
+    type: text('type').notNull().default('application/octet-stream'), // MIME type
+    category: text('category').notNull().default('document'), // document|image|audio|video|code|other
+    folder: text('folder'), // optional folder path for organization
+    uploadedBy: text('uploaded_by').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdx: index('workspace_file_ws_idx').on(table.workspaceId),
+    categoryIdx: index('workspace_file_category_idx').on(table.workspaceId, table.category),
+    nameIdx: index('workspace_file_name_idx').on(table.workspaceId, table.name),
+  })
+)
