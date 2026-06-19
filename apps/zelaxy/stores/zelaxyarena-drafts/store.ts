@@ -21,7 +21,7 @@ export interface DraftPayload {
   contexts?: ChatContext[]
 }
 
-interface MothershipDraftsState {
+interface ZelaxyarenaDraftsState {
   drafts: Record<string, DraftPayload>
   setDraft: (key: string, payload: DraftPayload) => void
   clearDraft: (key: string) => void
@@ -31,7 +31,7 @@ function isEmpty(payload: DraftPayload): boolean {
   return !payload.text && !payload.fileAttachments?.length && !payload.contexts?.length
 }
 
-export const useMothershipDraftsStore = create<MothershipDraftsState>()(
+export const useZelaxyarenaDraftsStore = create<ZelaxyarenaDraftsState>()(
   devtools(
     persist(
       (set) => ({
@@ -53,10 +53,10 @@ export const useMothershipDraftsStore = create<MothershipDraftsState>()(
           }),
       }),
       {
-        name: 'mothership-drafts:v1',
+        name: 'zelaxyarena-drafts:v1',
         partialize: (state) => ({ drafts: state.drafts }),
       }
     ),
-    { name: 'mothership-drafts-store' }
+    { name: 'zelaxyarena-drafts-store' }
   )
 )

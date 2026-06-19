@@ -1,5 +1,6 @@
 export { Account } from './account/account'
 export { AdminSettings } from './admin-settings/admin-settings'
+export { Alerts } from './alerts/alerts'
 export { ApiKeys } from './api-keys/api-keys'
 export { AuditLogs } from './audit-logs/audit-logs'
 export { Credentials } from './credentials/credentials'

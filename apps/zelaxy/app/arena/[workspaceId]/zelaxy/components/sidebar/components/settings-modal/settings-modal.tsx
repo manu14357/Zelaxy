@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import {
   Account,
   AdminSettings,
+  Alerts,
   ApiKeys,
   AuditLogs,
   Credentials,
@@ -41,6 +42,7 @@ type SettingsSection =
   | 'credentials'
   | 'apikeys'
   | 'mcp'
+  | 'alerts'
   | 'subscription'
   | 'team'
   | 'org-environment'
@@ -66,6 +68,7 @@ const SECTIONS: SectionEntry[] = [
   { id: 'credentials', component: Credentials },
   { id: 'apikeys', component: ApiKeys },
   { id: 'mcp', component: MCPServers },
+  { id: 'alerts', component: Alerts },
   { id: 'subscription', component: Subscription, requiresBilling: true },
   { id: 'team', component: TeamManagement },
   { id: 'org-environment', component: OrgEnvironment },

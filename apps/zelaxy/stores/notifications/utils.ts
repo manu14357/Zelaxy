@@ -3,15 +3,17 @@ import { createLogger } from '@/lib/logs/console/logger'
 const logger = createLogger('NotificationUtils')
 
 /**
- * Dispatches a message to the mothership chat via a custom window event.
- * The mothership `Home` component listens for this event and calls `sendMessage`.
+ * Dispatches a message to the zelaxyarena chat via a custom window event.
+ * The zelaxyarena `Home` component listens for this event and calls `sendMessage`.
  */
-export function sendMothershipMessage(message: string): void {
+export function sendZelaxyarenaMessage(message: string): void {
   const trimmed = message.trim()
   if (!trimmed) {
-    logger.warn('sendMothershipMessage called with empty message')
+    logger.warn('sendZelaxyarenaMessage called with empty message')
     return
   }
-  window.dispatchEvent(new CustomEvent('mothership-send-message', { detail: { message: trimmed } }))
-  logger.info('Dispatched mothership message event', { messageLength: trimmed.length })
+  window.dispatchEvent(
+    new CustomEvent('zelaxyarena-send-message', { detail: { message: trimmed } })
+  )
+  logger.info('Dispatched zelaxyarena message event', { messageLength: trimmed.length })
 }

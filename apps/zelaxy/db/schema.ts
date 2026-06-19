@@ -290,7 +290,7 @@ export const workflowExecutionLogs = pgTable(
 
     level: text('level').notNull(), // 'info', 'error'
     message: text('message').notNull(),
-    trigger: text('trigger').notNull(), // 'api', 'webhook', 'schedule', 'manual', 'chat'
+    trigger: text('trigger').notNull(), // api | webhook | schedule | manual | chat | mcp | zelaxyarena | copilot | workflow | a2a
 
     startedAt: timestamp('started_at').notNull(),
     endedAt: timestamp('ended_at'),
@@ -1835,5 +1835,39 @@ export const tableRowExecutions = pgTable(
       .on(table.executionId)
       .where(sql`${table.executionId} IS NOT NULL`),
     tableGroupIdx: index('table_row_executions_table_group_idx').on(table.tableId, table.groupId),
+  })
+)
+
+/**
+ * Workspace alert/notification rules. Each row is one alert: a rule (condition + thresholds)
+ * plus a delivery channel (webhook / email / slack). Evaluated on run completion and by a
+ * background poll (no-activity). See lib/notifications.
+ */
+export const workspaceNotification = pgTable(
+  'workspace_notification',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    enabled: boolean('enabled').notNull().default(true),
+    // 'consecutive_failures' | 'failure_rate' | 'error_count' | 'latency_threshold' | 'latency_spike' | 'cost_threshold' | 'no_activity'
+    ruleType: text('rule_type').notNull(),
+    ruleConfig: json('rule_config').notNull().default({}), // thresholds, window hours, etc.
+    // 'webhook' | 'email' | 'slack'
+    channelType: text('channel_type').notNull(),
+    channelConfig: json('channel_config').notNull().default({}), // {url, secret} | {recipients} | {channel}
+    levelFilter: text('level_filter'), // 'info' | 'error' | null (any)
+    triggerFilter: json('trigger_filter'), // string[] of trigger types, or null (any)
+    workflowIds: json('workflow_ids'), // string[] scope, or null (all workflows)
+    lastFiredAt: timestamp('last_fired_at'),
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdx: index('workspace_notification_workspace_idx').on(table.workspaceId),
+    enabledIdx: index('workspace_notification_enabled_idx').on(table.enabled),
   })
 )

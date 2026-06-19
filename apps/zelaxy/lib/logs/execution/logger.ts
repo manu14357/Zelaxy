@@ -417,6 +417,16 @@ export class ExecutionLogger implements IExecutionLoggerService {
         return 'Manual'
       case 'chat':
         return 'Chat'
+      case 'mcp':
+        return 'MCP'
+      case 'zelaxyarena':
+        return 'ZelaxyArena'
+      case 'copilot':
+        return 'Copilot'
+      case 'workflow':
+        return 'Workflow'
+      case 'a2a':
+        return 'A2A'
       default:
         return 'Unknown'
     }
