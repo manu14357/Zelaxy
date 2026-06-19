@@ -5,6 +5,7 @@ import {
   BookOpen,
   Brain,
   CalendarClock,
+  FolderOpen,
   Globe,
   LayoutDashboard,
   ScrollText,
@@ -18,6 +19,7 @@ import { isBillingEnabled } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
 import { Deployments } from '@/app/arena/[workspaceId]/deployments/deployments'
+import { Files } from '@/app/arena/[workspaceId]/files/files'
 import { Knowledge } from '@/app/arena/[workspaceId]/knowledge/knowledge'
 import Logs from '@/app/arena/[workspaceId]/logs/logs'
 import { Memory } from '@/app/arena/[workspaceId]/memory/memory'
@@ -103,6 +105,7 @@ const tabs = [
   { id: 'schedules', label: 'Schedules', icon: CalendarClock },
   { id: 'deployments', label: 'Deployments', icon: Globe },
   { id: 'tables', label: 'Tables', icon: TableIcon },
+  { id: 'files', label: 'Files', icon: FolderOpen },
   { id: 'knowledge', label: 'Knowledge', icon: BookOpen },
   { id: 'memory', label: 'Memory', icon: Brain },
   { id: 'templates', label: 'Templates', icon: Shapes },
@@ -249,6 +252,10 @@ export function Hub({ initialTemplates, currentUserId }: HubProps) {
 
         <TabsContent value='tables' className='mt-0 min-h-0 flex-1 overflow-auto'>
           <Tables />
+        </TabsContent>
+
+        <TabsContent value='files' className='mt-0 min-h-0 flex-1 overflow-auto'>
+          <Files />
         </TabsContent>
 
         <TabsContent value='knowledge' className='mt-0 min-h-0 flex-1 overflow-auto'>
