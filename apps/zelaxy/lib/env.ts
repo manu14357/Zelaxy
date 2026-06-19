@@ -104,6 +104,9 @@ export const env = createEnv({
     CRON_SECRET:                          z.string().optional(),                  // Secret for authenticating cron job requests
     JOB_RETENTION_DAYS:                   z.string().optional().default('1'),     // Days to retain job logs/data
 
+    // MCP
+    ALLOWED_MCP_DOMAINS:                  z.string().optional(),                  // Comma-separated allowlist of MCP server domains (unset = all allowed)
+
     // Monitoring & Telemetry
     SENTRY_DSN:                           z.string().url().optional(),             // Sentry DSN for server-side error tracking
     SENTRY_ORG:                           z.string().optional(),                  // Sentry organization slug

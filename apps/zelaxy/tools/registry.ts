@@ -570,6 +570,7 @@ import {
   sixtyfourFindEmailTool,
   sixtyfourFindPhoneTool,
 } from '@/tools/sixtyfour'
+import { loadSkillTool } from '@/tools/skill/load'
 import { slackCanvasTool, slackMessageReaderTool, slackMessageTool } from '@/tools/slack'
 import { smtpSendTool } from '@/tools/smtp'
 import { snowflakeTool } from '@/tools/snowflake'
@@ -643,6 +644,7 @@ export const tools: Record<string, ToolConfig> = {
   file_parser: fileParseTool,
   file_write: fileWriteTool,
   file_append: fileAppendTool,
+  load_skill: loadSkillTool,
   firecrawl_scrape: scrapeTool,
   firecrawl_search: searchTool,
   firecrawl_crawl: crawlTool,

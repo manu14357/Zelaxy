@@ -2,6 +2,9 @@ export interface AgentInputs {
   model?: string
   responseFormat?: string | object
   tools?: ToolInput[]
+  /** Attached Agent Skills (progressive disclosure via the load_skill tool). */
+  skills?: Array<{ id?: string; name: string; description?: string }>
+
   systemPrompt?: string
   userPrompt?: string | object
   memories?: any

@@ -1942,3 +1942,28 @@ export const workspaceFile = pgTable(
     nameIdx: index('workspace_file_name_idx').on(table.workspaceId, table.name),
   })
 )
+
+/**
+ * Agent Skills — reusable instruction packages (the open SKILL.md format). Progressive
+ * disclosure: only name + description are injected into an agent's system prompt; the agent
+ * calls the load_skill tool to pull `content` into context when a skill applies. Workspace-scoped.
+ */
+export const agentSkill = pgTable(
+  'agent_skill',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(), // kebab-case identifier, ≤64 chars
+    description: text('description').notNull(), // what it does + when to use, ≤1024 chars
+    content: text('content').notNull(), // full markdown instructions
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdx: index('agent_skill_ws_idx').on(table.workspaceId),
+    nameUnique: uniqueIndex('agent_skill_ws_name_unique').on(table.workspaceId, table.name),
+  })
+)
