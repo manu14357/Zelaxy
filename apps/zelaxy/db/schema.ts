@@ -794,6 +794,11 @@ export const document = pgTable(
     enabled: boolean('enabled').notNull().default(true), // Enable/disable from knowledge base
     deletedAt: timestamp('deleted_at'), // Soft delete
 
+    // Connector provenance (null for manual uploads). Used to diff on re-sync.
+    connectorId: text('connector_id'),
+    externalId: text('external_id'), // stable id of the source item (e.g. github path)
+    contentHash: text('content_hash'), // hash of source content, to detect changes
+
     // Document tags for filtering (inherited by all chunks)
     tag1: text('tag1'),
     tag2: text('tag2'),
@@ -826,6 +831,42 @@ export const document = pgTable(
     tag5Idx: index('doc_tag5_idx').on(table.tag5),
     tag6Idx: index('doc_tag6_idx').on(table.tag6),
     tag7Idx: index('doc_tag7_idx').on(table.tag7),
+    // Connector sync diffing
+    connectorIdx: index('doc_connector_idx').on(table.connectorId),
+  })
+)
+
+/**
+ * Knowledge base connectors. Each row syncs documents from an external source (GitHub repo,
+ * web URLs, …) into the knowledge base. The sync runner fetches items, diffs them against
+ * existing connector-owned documents by externalId/contentHash, and adds/updates/removes.
+ * See lib/knowledge/connectors.
+ */
+export const knowledgeBaseConnector = pgTable(
+  'knowledge_base_connector',
+  {
+    id: text('id').primaryKey(),
+    knowledgeBaseId: text('knowledge_base_id')
+      .notNull()
+      .references(() => knowledgeBase.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(), // 'github' | 'web'
+    name: text('name').notNull(),
+    config: json('config').notNull().default({}), // source-specific config
+    credential: text('credential'), // API key / token (nullable for public sources)
+    frequency: text('frequency').notNull().default('manual'), // hourly|6h|daily|weekly|manual
+    status: text('status').notNull().default('active'), // active|syncing|paused|error|disabled
+    enabled: boolean('enabled').notNull().default(true),
+    lastSyncAt: timestamp('last_sync_at'),
+    nextSyncAt: timestamp('next_sync_at'),
+    lastSyncSummary: json('last_sync_summary'), // {added,updated,deleted,failed,error?}
+    failedCount: integer('failed_count').notNull().default(0),
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    kbIdx: index('kb_connector_kb_idx').on(table.knowledgeBaseId),
+    dueIdx: index('kb_connector_due_idx').on(table.enabled, table.nextSyncAt),
   })
 )
 

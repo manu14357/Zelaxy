@@ -35,6 +35,7 @@ import {
   KnowledgeBaseLoading,
   UploadModal,
 } from '@/app/arena/[workspaceId]/knowledge/[id]/components'
+import { ConnectorsModal } from '@/app/arena/[workspaceId]/knowledge/[id]/components/connectors-modal/connectors-modal'
 import {
   getDocumentIcon,
   KnowledgeHeader,
@@ -139,6 +140,7 @@ export function KnowledgeBase({
 
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set())
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showConnectorsModal, setShowConnectorsModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isBulkOperating, setIsBulkOperating] = useState(false)
@@ -662,7 +664,15 @@ export function KnowledgeBase({
             window.location.reload()
           },
           onDeleteKnowledgeBase: () => setShowDeleteDialog(true),
+          onManageConnectors: () => setShowConnectorsModal(true),
         }}
+      />
+
+      <ConnectorsModal
+        open={showConnectorsModal}
+        onOpenChange={setShowConnectorsModal}
+        knowledgeBaseId={id}
+        onSynced={() => refreshDocuments()}
       />
 
       <div className='flex flex-1 overflow-hidden'>

@@ -1,6 +1,6 @@
 'use client'
 
-import { LibraryBig, MoreHorizontal, Trash2 } from 'lucide-react'
+import { LibraryBig, MoreHorizontal, Plug, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,6 +33,7 @@ interface KnowledgeHeaderOptions {
   currentWorkspaceId?: string | null
   onWorkspaceChange?: (workspaceId: string | null) => void
   onDeleteKnowledgeBase?: () => void
+  onManageConnectors?: () => void
 }
 
 interface KnowledgeHeaderProps {
@@ -78,7 +79,7 @@ export function KnowledgeHeader({ breadcrumbs, options }: KnowledgeHeaderProps) 
         )}
 
         {/* Actions Menu */}
-        {options?.onDeleteKnowledgeBase && (
+        {(options?.onDeleteKnowledgeBase || options?.onManageConnectors) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -91,13 +92,21 @@ export function KnowledgeHeader({ breadcrumbs, options }: KnowledgeHeaderProps) 
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
-              <DropdownMenuItem
-                onClick={options.onDeleteKnowledgeBase}
-                className='text-red-600 focus:text-red-600'
-              >
-                <Trash2 className='mr-2 h-4 w-4' />
-                Delete Knowledge Base
-              </DropdownMenuItem>
+              {options?.onManageConnectors && (
+                <DropdownMenuItem onClick={options.onManageConnectors}>
+                  <Plug className='mr-2 h-4 w-4' />
+                  Connected Sources
+                </DropdownMenuItem>
+              )}
+              {options?.onDeleteKnowledgeBase && (
+                <DropdownMenuItem
+                  onClick={options.onDeleteKnowledgeBase}
+                  className='text-red-600 focus:text-red-600'
+                >
+                  <Trash2 className='mr-2 h-4 w-4' />
+                  Delete Knowledge Base
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

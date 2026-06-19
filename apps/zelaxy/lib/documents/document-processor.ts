@@ -1,4 +1,5 @@
-import { type Chunk, TextChunker } from '@/lib/documents/chunker'
+import type { Chunk } from '@/lib/documents/chunker'
+import { type AdvancedChunkerOptions, createChunker } from '@/lib/documents/chunkers'
 import { retryWithExponentialBackoff } from '@/lib/documents/utils'
 import { env } from '@/lib/env'
 import { parseBuffer, parseFile } from '@/lib/file-parsers'
@@ -62,7 +63,12 @@ export async function processDocument(
   mimeType: string,
   chunkSize = 1000,
   chunkOverlap = 200,
-  minChunkSize = 1
+  minChunkSize = 1,
+  /** Advanced chunking: strategy + strategy-specific options. Defaults to `auto`. */
+  chunkingOptions?: Pick<
+    AdvancedChunkerOptions,
+    'strategy' | 'separators' | 'recipe' | 'pattern' | 'flags' | 'strictBoundaries'
+  >
 ): Promise<{
   chunks: Chunk[]
   metadata: {
@@ -82,12 +88,21 @@ export async function processDocument(
     // Parse the document
     const { content, processingMethod, cloudUrl } = await parseDocument(fileUrl, filename, mimeType)
 
-    // Create chunker and process content
-    const chunker = new TextChunker({
-      chunkSize,
-      overlap: chunkOverlap,
-      minChunkSize,
-    })
+    // Create chunker (strategy-aware; `auto` routes by file type) and process content.
+    const chunker = createChunker(
+      {
+        chunkSize,
+        overlap: chunkOverlap,
+        minChunkSize,
+        strategy: chunkingOptions?.strategy ?? 'auto',
+        separators: chunkingOptions?.separators,
+        recipe: chunkingOptions?.recipe,
+        pattern: chunkingOptions?.pattern,
+        flags: chunkingOptions?.flags,
+        strictBoundaries: chunkingOptions?.strictBoundaries,
+      },
+      { mimeType, filename }
+    )
 
     const chunks = await chunker.chunk(content)
 

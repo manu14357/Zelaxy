@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, type SQL, sql } from 'drizzle-orm'
 import { retryWithExponentialBackoff } from '@/lib/documents/utils'
 import { env } from '@/lib/env'
 import { createLogger } from '@/lib/logs/console/logger'
@@ -282,7 +282,100 @@ async function executeVectorSearchOnIds(
     return []
   }
 
-  return await db
+  try {
+    return await db
+      .select({
+        id: embedding.id,
+        content: embedding.content,
+        documentId: embedding.documentId,
+        chunkIndex: embedding.chunkIndex,
+        tag1: embedding.tag1,
+        tag2: embedding.tag2,
+        tag3: embedding.tag3,
+        tag4: embedding.tag4,
+        tag5: embedding.tag5,
+        tag6: embedding.tag6,
+        tag7: embedding.tag7,
+        distance: sql<number>`${embedding.embedding} <=> ${queryVector}::vector`.as('distance'),
+        knowledgeBaseId: embedding.knowledgeBaseId,
+      })
+      .from(embedding)
+      .where(
+        and(
+          inArray(embedding.id, embeddingIds),
+          sql`${embedding.embedding} <=> ${queryVector}::vector < ${distanceThreshold}`
+        )
+      )
+      .orderBy(sql`${embedding.embedding} <=> ${queryVector}::vector`)
+      .limit(topK)
+  } catch (error) {
+    if (!isMissingVectorOperator(error)) throw error
+    return cosineFallbackSearch(
+      inArray(embedding.id, embeddingIds),
+      queryVector,
+      topK,
+      distanceThreshold
+    )
+  }
+}
+
+// ─── pgvector-optional fallback ───────────────────────────────────────────────
+// The vector operator `<=>` only exists when the pgvector extension is installed and the
+// `embedding` column is a real `vector`. On a database without pgvector (e.g. a local dev DB
+// where embeddings are stored as jsonb), the operator query throws. We catch that specific
+// error and compute cosine distance in application code instead — slower (full scan, no HNSW),
+// but it makes Knowledge search functional without the extension. With pgvector present this
+// path is never reached, so production behavior is unchanged.
+
+function isMissingVectorOperator(error: unknown): boolean {
+  const msg = (error instanceof Error ? error.message : String(error)).toLowerCase()
+  return (
+    msg.includes('operator does not exist') ||
+    msg.includes('type "vector" does not exist') ||
+    (msg.includes('vector') && msg.includes('does not exist'))
+  )
+}
+
+function parseVectorLiteral(value: unknown): number[] {
+  if (Array.isArray(value)) return value as number[]
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+function cosineDistance(a: number[], b: number[]): number {
+  const n = Math.min(a.length, b.length)
+  if (n === 0) return 1
+  let dot = 0
+  let na = 0
+  let nb = 0
+  for (let i = 0; i < n; i++) {
+    dot += a[i] * b[i]
+    na += a[i] * a[i]
+    nb += b[i] * b[i]
+  }
+  if (na === 0 || nb === 0) return 1
+  return 1 - dot / (Math.sqrt(na) * Math.sqrt(nb))
+}
+
+async function cosineFallbackSearch(
+  where: SQL | undefined,
+  queryVector: string,
+  topK: number,
+  distanceThreshold: number
+): Promise<SearchResult[]> {
+  logger.warn('[cosineFallbackSearch] pgvector unavailable — computing cosine distance in app code')
+  const query = parseVectorLiteral(queryVector)
+  if (query.length === 0) return []
+
+  // `::text` renders both a real pgvector and a jsonb array as a JSON-parseable bracketed list.
+  const rows = await db
     .select({
       id: embedding.id,
       content: embedding.content,
@@ -295,18 +388,21 @@ async function executeVectorSearchOnIds(
       tag5: embedding.tag5,
       tag6: embedding.tag6,
       tag7: embedding.tag7,
-      distance: sql<number>`${embedding.embedding} <=> ${queryVector}::vector`.as('distance'),
       knowledgeBaseId: embedding.knowledgeBaseId,
+      embeddingText: sql<string>`${embedding.embedding}::text`,
     })
     .from(embedding)
-    .where(
-      and(
-        inArray(embedding.id, embeddingIds),
-        sql`${embedding.embedding} <=> ${queryVector}::vector < ${distanceThreshold}`
-      )
-    )
-    .orderBy(sql`${embedding.embedding} <=> ${queryVector}::vector`)
-    .limit(topK)
+    .where(where)
+    .limit(5000)
+
+  return rows
+    .map(({ embeddingText, ...rest }) => ({
+      ...rest,
+      distance: cosineDistance(query, parseVectorLiteral(embeddingText)),
+    }))
+    .filter((r) => r.distance < distanceThreshold)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, topK)
 }
 
 export async function handleTagOnlySearch(params: SearchParams): Promise<SearchResult[]> {
@@ -393,6 +489,28 @@ export async function handleVectorOnlySearch(params: SearchParams): Promise<Sear
   logger.debug(`[handleVectorOnlySearch] Executing vector-only search`)
 
   const strategy = getQueryStrategy(knowledgeBaseIds.length, topK)
+
+  try {
+    return await runVectorOnly(params, strategy)
+  } catch (error) {
+    if (!isMissingVectorOperator(error)) throw error
+    return cosineFallbackSearch(
+      and(inArray(embedding.knowledgeBaseId, knowledgeBaseIds), eq(embedding.enabled, true)),
+      queryVector,
+      topK,
+      distanceThreshold
+    )
+  }
+}
+
+async function runVectorOnly(
+  params: SearchParams,
+  strategy: { useParallel: boolean }
+): Promise<SearchResult[]> {
+  const { knowledgeBaseIds, topK, queryVector, distanceThreshold } = params
+  if (!queryVector || !distanceThreshold) {
+    throw new Error('Query vector and distance threshold are required for vector-only search')
+  }
 
   if (strategy.useParallel) {
     // Parallel approach for many KBs
