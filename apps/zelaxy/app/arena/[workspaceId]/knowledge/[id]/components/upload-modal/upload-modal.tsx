@@ -77,6 +77,9 @@ export function UploadModal({
   // Processing options with defaults from chunking config
   const [chunkSize, setChunkSize] = useState(chunkingConfig?.maxSize?.toString() || '1000')
   const [chunkOverlap, setChunkOverlap] = useState(chunkingConfig?.overlap?.toString() || '200')
+  const [strategy, setStrategy] = useState<
+    'auto' | 'text' | 'recursive' | 'sentence' | 'token' | 'regex'
+  >('auto')
 
   // UI state
   const [error, setError] = useState<string | null>(null)
@@ -248,6 +251,7 @@ export function UploadModal({
         chunkOverlap: Number.parseInt(chunkOverlap),
         embeddingModel: selectedModel.name,
         apiKeys: userApiKeys, // Include all user-provided API keys
+        strategy,
       })
     } catch (error) {
       logger.error('Upload failed:', error)
@@ -510,6 +514,22 @@ export function UploadModal({
           {/* Processing Options */}
           <div className='space-y-2'>
             <Label className='text-sm'>Processing Options</Label>
+            <div className='space-y-1'>
+              <Label className='text-gray-600 text-xs'>Chunking Strategy</Label>
+              <Select value={strategy} onValueChange={(v) => setStrategy(v as typeof strategy)}>
+                <SelectTrigger className='h-7 text-xs'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='auto'>Auto (recommended)</SelectItem>
+                  <SelectItem value='text'>Text (prose)</SelectItem>
+                  <SelectItem value='recursive'>Recursive</SelectItem>
+                  <SelectItem value='sentence'>Sentence</SelectItem>
+                  <SelectItem value='token'>Token (uniform size)</SelectItem>
+                  <SelectItem value='regex'>Regex</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className='grid grid-cols-2 gap-2'>
               <div className='space-y-1'>
                 <Label className='text-gray-600 text-xs'>Chunk Size</Label>

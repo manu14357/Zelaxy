@@ -160,6 +160,11 @@ async function processDocumentsWithConcurrencyControl(
     chunkOverlap: number
     embeddingModel?: string
     apiKeys?: Record<string, string>
+    strategy?: 'auto' | 'text' | 'recursive' | 'sentence' | 'token' | 'regex'
+    separators?: string[]
+    pattern?: string
+    flags?: string
+    strictBoundaries?: boolean
   },
   requestId: string
 ): Promise<void> {
@@ -204,6 +209,11 @@ async function processBatchWithConcurrency(
     chunkOverlap: number
     embeddingModel?: string
     apiKeys?: Record<string, string>
+    strategy?: 'auto' | 'text' | 'recursive' | 'sentence' | 'token' | 'regex'
+    separators?: string[]
+    pattern?: string
+    flags?: string
+    strictBoundaries?: boolean
   },
   requestId: string
 ): Promise<void> {
@@ -305,6 +315,12 @@ const BulkCreateDocumentsSchema = z.object({
     chunkOverlap: z.number().min(0).max(500),
     embeddingModel: z.string().optional(),
     apiKeys: z.record(z.string()).optional(), // API keys for cloud providers
+    // Chunking strategy (optional; defaults to `auto` which routes by file type).
+    strategy: z.enum(['auto', 'text', 'recursive', 'sentence', 'token', 'regex']).optional(),
+    separators: z.array(z.string()).optional(),
+    pattern: z.string().optional(),
+    flags: z.string().optional(),
+    strictBoundaries: z.boolean().optional(),
   }),
   bulk: z.literal(true),
 })

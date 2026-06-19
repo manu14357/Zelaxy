@@ -973,6 +973,11 @@ export async function processDocumentAsync(
     chunkOverlap?: number
     embeddingModel?: string
     apiKeys?: Record<string, string>
+    strategy?: 'auto' | 'text' | 'recursive' | 'sentence' | 'token' | 'regex'
+    separators?: string[]
+    pattern?: string
+    flags?: string
+    strictBoundaries?: boolean
   }
 ): Promise<void> {
   const startTime = Date.now()
@@ -1000,7 +1005,15 @@ export async function processDocumentAsync(
           docData.mimeType,
           processingOptions.chunkSize || 1000,
           processingOptions.chunkOverlap || 200,
-          processingOptions.minCharactersPerChunk || 1
+          processingOptions.minCharactersPerChunk || 1,
+          {
+            strategy: processingOptions.strategy ?? 'auto',
+            separators: processingOptions.separators,
+            recipe: processingOptions.recipe as any,
+            pattern: processingOptions.pattern,
+            flags: processingOptions.flags,
+            strictBoundaries: processingOptions.strictBoundaries,
+          }
         )
 
         const now = new Date()

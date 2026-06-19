@@ -37,6 +37,10 @@ export interface ProcessingOptions {
   minCharactersPerChunk?: number
   chunkOverlap?: number
   recipe?: string
+  /** Chunking strategy (default `auto`, which routes by file type). */
+  strategy?: 'auto' | 'text' | 'recursive' | 'sentence' | 'token' | 'regex'
+  pattern?: string
+  strictBoundaries?: boolean
   embeddingModel?: string
   embeddingModelConfig?: {
     id: string
@@ -326,6 +330,9 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions = {}) {
           embeddingModel: processingOptions.embeddingModel,
           apiKeys: processingOptions.apiKeys,
           lang: 'en',
+          strategy: processingOptions.strategy || 'auto',
+          ...(processingOptions.pattern ? { pattern: processingOptions.pattern } : {}),
+          ...(processingOptions.strictBoundaries ? { strictBoundaries: true } : {}),
         },
         bulk: true,
       }

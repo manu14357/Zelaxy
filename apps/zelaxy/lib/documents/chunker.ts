@@ -13,6 +13,8 @@ export interface ChunkerOptions {
   chunkSize?: number
   minChunkSize?: number
   overlap?: number
+  /** Optional custom separator hierarchy (largest semantic unit first). */
+  separators?: string[]
 }
 
 export interface Chunk {
@@ -34,7 +36,9 @@ export class TextChunker {
   private readonly overlap: number
 
   // Hierarchical separators ordered from largest to smallest semantic units
-  private readonly separators = [
+  private readonly separators: string[]
+
+  private static readonly DEFAULT_SEPARATORS = [
     '\n\n\n', // Document sections
     '\n---\n', // Markdown horizontal rules
     '\n***\n', // Markdown horizontal rules (alternative)
@@ -59,6 +63,10 @@ export class TextChunker {
     this.chunkSize = options.chunkSize ?? 512
     this.minChunkSize = options.minChunkSize ?? 1
     this.overlap = options.overlap ?? 0
+    this.separators =
+      options.separators && options.separators.length > 0
+        ? options.separators
+        : TextChunker.DEFAULT_SEPARATORS
   }
 
   /**
