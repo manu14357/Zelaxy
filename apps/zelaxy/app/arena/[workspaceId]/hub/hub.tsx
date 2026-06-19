@@ -11,6 +11,7 @@ import {
   ScrollText,
   Settings,
   Shapes,
+  Sparkles,
   Table as TableIcon,
 } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -24,6 +25,7 @@ import { Knowledge } from '@/app/arena/[workspaceId]/knowledge/knowledge'
 import Logs from '@/app/arena/[workspaceId]/logs/logs'
 import { Memory } from '@/app/arena/[workspaceId]/memory/memory'
 import { Schedules } from '@/app/arena/[workspaceId]/schedules/schedules'
+import { Skills } from '@/app/arena/[workspaceId]/skills/skills'
 import { Tables } from '@/app/arena/[workspaceId]/tables/tables'
 import type { Template } from '@/app/arena/[workspaceId]/templates/templates'
 import Templates from '@/app/arena/[workspaceId]/templates/templates'
@@ -107,6 +109,7 @@ const tabs = [
   { id: 'tables', label: 'Tables', icon: TableIcon },
   { id: 'files', label: 'Files', icon: FolderOpen },
   { id: 'knowledge', label: 'Knowledge', icon: BookOpen },
+  { id: 'skills', label: 'Skills', icon: Sparkles },
   { id: 'memory', label: 'Memory', icon: Brain },
   { id: 'templates', label: 'Templates', icon: Shapes },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -260,6 +263,10 @@ export function Hub({ initialTemplates, currentUserId }: HubProps) {
 
         <TabsContent value='knowledge' className='mt-0 min-h-0 flex-1 overflow-auto'>
           <Knowledge />
+        </TabsContent>
+
+        <TabsContent value='skills' className='mt-0 min-h-0 flex-1 overflow-auto'>
+          <Skills />
         </TabsContent>
 
         <TabsContent value='memory' className='mt-0 min-h-0 flex-1 overflow-auto'>

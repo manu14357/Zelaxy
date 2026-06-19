@@ -117,6 +117,8 @@ export class AgentBlockHandler implements BlockHandler {
     const model = inputs.model || DEFAULT_MODEL
     const providerId = getProviderFromModel(model)
     const formattedTools = await this.formatTools(inputs.tools || [], context)
+    // Agent Skills: inject <available_skills> into the prompt and add the load_skill tool.
+    inputs = this.applySkills(inputs, formattedTools, context)
     const streamingConfig = this.getStreamingConfig(block, context)
 
     // Extract and parse attached files from context (starter block output)
@@ -605,6 +607,51 @@ export class AgentBlockHandler implements BlockHandler {
       value: responseFormat,
     })
     return undefined
+  }
+
+  /**
+   * Agent Skills (progressive disclosure). When skills are attached to the block, inject an
+   * <available_skills> section (name + description only) into the system prompt and append a
+   * load_skill tool so the model can pull a skill's full content into context on demand.
+   */
+  private applySkills(
+    inputs: AgentInputs,
+    formattedTools: any[],
+    context: ExecutionContext
+  ): AgentInputs {
+    const skills = Array.isArray(inputs.skills) ? inputs.skills.filter((s) => s?.name) : []
+    if (skills.length === 0) return inputs
+
+    const listing = skills.map((s) => `- ${s.name}: ${s.description || ''}`).join('\n')
+    const section = `\n\n<available_skills>\nYou have access to the following skills. When one is relevant to the task, call the load_skill tool with its name to load the full instructions before acting.\n${listing}\n</available_skills>`
+
+    const base =
+      typeof inputs.systemPrompt === 'string'
+        ? inputs.systemPrompt
+        : inputs.systemPrompt
+          ? JSON.stringify(inputs.systemPrompt)
+          : ''
+
+    formattedTools.push({
+      id: 'load_skill',
+      name: 'load_skill',
+      description:
+        'Load the full instructions for one of the available skills by its name. Call when a skill is relevant.',
+      params: { workspaceId: context.workspaceId },
+      parameters: {
+        type: 'object',
+        properties: {
+          skill_name: {
+            type: 'string',
+            description: 'The name of the skill to load (from the available skills list)',
+          },
+        },
+        required: ['skill_name'],
+      },
+      usageControl: 'auto',
+    })
+
+    return { ...inputs, systemPrompt: `${base}${section}` }
   }
 
   private async formatTools(inputTools: ToolInput[], context: ExecutionContext): Promise<any[]> {

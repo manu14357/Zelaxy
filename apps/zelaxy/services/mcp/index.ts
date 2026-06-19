@@ -1,4 +1,5 @@
 import { and, desc, eq, sql } from 'drizzle-orm'
+import { isMcpUrlAllowed } from '@/lib/mcp/domain-allowlist'
 import { db } from '@/db'
 import { mcpServers, mcpServerTools, mcpToolExecutions } from '@/db/schema'
 import { createMCPConnection } from './connections'
@@ -93,6 +94,11 @@ export class MCPService {
     config: any,
     timeoutMs = 30_000
   ): Promise<string> {
+    // Enforce the MCP domain allowlist for raw/ephemeral configs (e.g. agent-block raw config).
+    const url = config?.baseUrl || config?.endpoint || config?.url
+    if (url && !isMcpUrlAllowed(url)) {
+      throw new Error('MCP server domain is not allowed by ALLOWED_MCP_DOMAINS')
+    }
     const serverId = `temp_${serverName}_${Date.now()}`
     const connection = createMCPConnection(serverType, config, timeoutMs)
     await connection.connect()

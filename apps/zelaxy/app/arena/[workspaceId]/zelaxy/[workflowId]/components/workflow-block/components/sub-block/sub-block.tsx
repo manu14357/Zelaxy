@@ -24,6 +24,7 @@ import {
   ResponseFormat,
   ScheduleConfig,
   ShortInput,
+  SkillSelector,
   SliderInput,
   Switch,
   SwitchCaseInput,
@@ -452,6 +453,16 @@ export function SubBlock({
       case 'knowledge-base-selector':
         return (
           <KnowledgeBaseSelector
+            blockId={blockId}
+            subBlock={config}
+            disabled={isDisabled}
+            isPreview={isPreview}
+            previewValue={previewValue}
+          />
+        )
+      case 'skill-selector':
+        return (
+          <SkillSelector
             blockId={blockId}
             subBlock={config}
             disabled={isDisabled}

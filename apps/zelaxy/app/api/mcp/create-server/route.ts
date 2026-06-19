@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { z } from 'zod'
+import { checkMcpConfigAllowed } from '@/lib/mcp/domain-allowlist'
 import { getUserId } from '@/app/api/auth/oauth/utils'
 import { MCPService } from '@/services/mcp'
 
@@ -60,6 +61,12 @@ export async function POST(req: NextRequest) {
     }
 
     const validatedData = createServerRequestSchema.parse(body)
+
+    // Enforce the MCP domain allowlist (ALLOWED_MCP_DOMAINS), if configured.
+    const allowlistError = checkMcpConfigAllowed(validatedData.serverType, validatedData.config)
+    if (allowlistError) {
+      return Response.json({ error: allowlistError }, { status: 403 })
+    }
 
     // Create the server
     const server = await MCPService.createServer(userId, workspaceId, {

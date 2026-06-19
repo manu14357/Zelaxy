@@ -50,6 +50,7 @@ export type SubBlockType =
   | 'response-format' // Response structure format
   | 'file-upload' // File uploader
   | 'switch-case-input' // Switch/Case dynamic routing inputs
+  | 'skill-selector' // Agent skills multi-select
 
 // Component width setting
 export type SubBlockLayout = 'full' | 'half'

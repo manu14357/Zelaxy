@@ -267,6 +267,14 @@ Create a system prompt that defines the agent's role, behavior, and constraints.
       layout: 'full',
     },
     {
+      id: 'skills',
+      title: 'Skills',
+      type: 'skill-selector',
+      layout: 'full',
+      description:
+        'Reusable instruction packages. The agent sees each skill name + description and loads the full instructions on demand.',
+    },
+    {
       id: 'enableOcr',
       title: 'Enable OCR (Extract Text)',
       type: 'switch',
@@ -440,6 +448,7 @@ Example 3 (Array Input):
           'enableOcr',
           'enableStreaming',
           'tools',
+          'skills',
           'responseFormat',
         ])
         const filteredParams: Record<string, any> = {}
@@ -478,6 +487,13 @@ Example 3 (Array Input):
             }))
         }
 
+        // Skills pass through as-is ([{ id, name, description }]) for the handler to inject.
+        if (Array.isArray(params.skills)) {
+          processedParams.skills = params.skills
+            .filter((s: any) => s?.name)
+            .map((s: any) => ({ id: s.id, name: s.name, description: s.description }))
+        }
+
         return processedParams
       },
     },
@@ -504,6 +520,7 @@ Example 3 (Array Input):
     enableOcr: { type: 'boolean', description: 'Extract text from images/PDFs via OCR' },
     enableStreaming: { type: 'boolean', description: 'Enable real-time streaming' },
     tools: { type: 'json', description: 'Tools available to the agent' },
+    skills: { type: 'json', description: 'Agent skills attached to this agent' },
     responseFormat: {
       type: 'json',
       description: 'JSON schema for structured output',
