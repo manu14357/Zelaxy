@@ -18,11 +18,15 @@ import {
   Globe,
   Loader2,
   MessageSquare,
+  Network,
   Play,
+  Plug,
   Radio,
   RefreshCw,
   Search,
+  Sparkles,
   Timer,
+  Workflow,
   X,
   Zap,
 } from 'lucide-react'
@@ -117,6 +121,15 @@ const TriggerIcon = ({
       return <Timer className={cls} />
     case 'manual':
       return <Play className={cls} />
+    case 'mcp':
+      return <Plug className={cls} />
+    case 'zelaxyarena':
+    case 'copilot':
+      return <Sparkles className={cls} />
+    case 'workflow':
+      return <Workflow className={cls} />
+    case 'a2a':
+      return <Network className={cls} />
     default:
       return <Bot className={cls} />
   }
@@ -134,6 +147,15 @@ function triggerColor(trigger: string | null | undefined) {
       return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
     case 'manual':
       return 'text-gray-400 bg-gray-400/10 border-gray-400/20'
+    case 'mcp':
+      return 'text-cyan-500 bg-cyan-500/10 border-cyan-500/20'
+    case 'zelaxyarena':
+    case 'copilot':
+      return 'text-violet-500 bg-violet-500/10 border-violet-500/20'
+    case 'workflow':
+      return 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20'
+    case 'a2a':
+      return 'text-pink-500 bg-pink-500/10 border-pink-500/20'
     default:
       return 'text-muted-foreground bg-muted/50 border-border/50'
   }

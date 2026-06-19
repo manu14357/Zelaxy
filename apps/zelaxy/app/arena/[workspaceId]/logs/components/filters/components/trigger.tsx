@@ -14,10 +14,15 @@ export default function Trigger() {
   const { triggers, toggleTrigger, setTriggers } = useFilterStore()
   const triggerOptions: { value: TriggerType; label: string; color?: string }[] = [
     { value: 'manual', label: 'Manual', color: 'bg-gray-500' },
-    { value: 'api', label: 'API', color: 'bg-primary/100' },
-    { value: 'webhook', label: 'Webhook', color: 'bg-orange-500' },
-    { value: 'schedule', label: 'Schedule', color: 'bg-green-500' },
-    { value: 'chat', label: 'Chat', color: 'bg-primary/100' },
+    { value: 'api', label: 'API', color: 'bg-blue-500' },
+    { value: 'webhook', label: 'Webhook', color: 'bg-amber-500' },
+    { value: 'schedule', label: 'Schedule', color: 'bg-emerald-500' },
+    { value: 'chat', label: 'Chat', color: 'bg-orange-500' },
+    { value: 'zelaxyarena', label: 'ZelaxyArena', color: 'bg-violet-500' },
+    { value: 'copilot', label: 'Copilot', color: 'bg-violet-500' },
+    { value: 'mcp', label: 'MCP', color: 'bg-cyan-500' },
+    { value: 'workflow', label: 'Workflow', color: 'bg-indigo-500' },
+    { value: 'a2a', label: 'A2A', color: 'bg-pink-500' },
   ]
 
   // Get display text for the dropdown button

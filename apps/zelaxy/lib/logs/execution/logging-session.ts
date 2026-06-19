@@ -170,6 +170,8 @@ export class LoggingSession {
         traceSpans: traceSpans || [],
       })
 
+      this.dispatchAlerts('success', 'info', totalDurationMs || 0, costSummary.totalCost ?? 0)
+
       if (this.requestId) {
         logger.debug(`[${this.requestId}] Completed logging for execution ${this.executionId}`)
       }
@@ -178,6 +180,38 @@ export class LoggingSession {
         logger.error(`[${this.requestId}] Failed to complete logging:`, error)
       }
     }
+  }
+
+  /**
+   * Fire-and-forget workspace alert evaluation for a completed run. Fully isolated:
+   * dynamic import + caught, so it can never affect logging or execution.
+   */
+  private dispatchAlerts(
+    status: 'success' | 'error',
+    level: 'info' | 'error',
+    durationMs: number,
+    cost: number
+  ): void {
+    const workspaceId = this.environment?.workspaceId
+    if (!workspaceId) return
+    const now = new Date().toISOString()
+    void import('@/lib/notifications/alerts')
+      .then((m) =>
+        m.evaluateAlertsForRun({
+          workspaceId,
+          workflowId: this.workflowId,
+          workflowName: (this.workflowState as any)?.name || this.workflowId,
+          executionId: this.executionId,
+          status,
+          level,
+          trigger: this.triggerType,
+          totalDurationMs: durationMs,
+          cost,
+          startedAt: now,
+          endedAt: now,
+        })
+      )
+      .catch(() => {})
   }
 
   async completeWithError(error?: any): Promise<void> {
@@ -202,6 +236,8 @@ export class LoggingSession {
         finalOutput: null,
         traceSpans: [],
       })
+
+      this.dispatchAlerts('error', 'error', 0, costSummary.totalCost ?? 0)
 
       if (this.requestId) {
         logger.debug(`[${this.requestId}] Completed logging for execution ${this.executionId}`)

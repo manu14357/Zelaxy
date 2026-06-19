@@ -126,7 +126,18 @@ export interface LogsResponse {
 
 export type TimeRange = 'Past 30 minutes' | 'Past hour' | 'Past 24 hours' | 'All time'
 export type LogLevel = 'error' | 'info' | 'all'
-export type TriggerType = 'chat' | 'api' | 'webhook' | 'manual' | 'schedule' | 'all'
+export type TriggerType =
+  | 'chat'
+  | 'api'
+  | 'webhook'
+  | 'manual'
+  | 'schedule'
+  | 'mcp'
+  | 'zelaxyarena'
+  | 'copilot'
+  | 'workflow'
+  | 'a2a'
+  | 'all'
 
 export interface FilterState {
   // Original logs from API

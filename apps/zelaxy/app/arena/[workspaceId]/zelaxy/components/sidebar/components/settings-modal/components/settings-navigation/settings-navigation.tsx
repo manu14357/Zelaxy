@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import {
+  Bell,
   Building2,
   CreditCard,
   Keyboard,
@@ -28,6 +29,7 @@ type SectionId =
   | 'credentials'
   | 'apikeys'
   | 'mcp'
+  | 'alerts'
   | 'subscription'
   | 'team'
   | 'org-environment'
@@ -72,6 +74,7 @@ const NAVIGATION_GROUPS: NavigationGroup[] = [
       { id: 'credentials', label: 'Credentials', icon: Lock },
       { id: 'apikeys', label: 'API Keys', icon: KeySquare },
       { id: 'mcp', label: 'MCP Servers', icon: McpIcon },
+      { id: 'alerts', label: 'Alerts', icon: Bell },
     ],
   },
   {

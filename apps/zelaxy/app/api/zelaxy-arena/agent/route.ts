@@ -39,7 +39,7 @@ const sse = (event: Record<string, unknown>): Uint8Array =>
 
 /**
  * Build the ZelaxyArena system prompt with a lightweight workspace snapshot so the
- * agent can reference workflows by name (the "mothership knows your workspace" behavior).
+ * agent can reference workflows by name (the "zelaxyarena knows your workspace" behavior).
  */
 async function buildSystemPrompt(workspaceId: string): Promise<string> {
   let workflowList = '(none yet)'
@@ -61,6 +61,7 @@ async function buildSystemPrompt(workspaceId: string): Promise<string> {
 You can:
 - Build and edit workflows from a natural-language description (use the build_workflow / edit_workflow tools).
 - Rename and delete workflows by name (rename_workflow, delete_workflow). Always confirm before deleting.
+- Run a deployed workflow by name (run_workflow) — the workflow must be deployed as an API.
 - Inspect the current workflow, available blocks/tools, and execution logs.
 - Create, query, add, update, delete, and export workspace data tables (list_tables, query_table, create_table, insert_table_row, update_table_row, delete_table_rows, export_table). To update or delete specific rows, call query_table first to get each row's _rowId.
 - List scheduled (cron) workflows in the workspace (list_scheduled_jobs).

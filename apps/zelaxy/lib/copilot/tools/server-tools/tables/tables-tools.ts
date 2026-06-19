@@ -10,8 +10,9 @@
 import { and, eq, isNull } from 'drizzle-orm'
 import { createTable, deleteRows, insertRow, listRows, listTables, updateRow } from '@/lib/table'
 import type { ColumnDefinition } from '@/lib/table/csv'
+import { getBaseUrl } from '@/lib/urls/utils'
 import { db } from '@/db'
-import { knowledgeBase, workflow, workflowSchedule } from '@/db/schema'
+import { apiKey, knowledgeBase, workflow, workflowSchedule } from '@/db/schema'
 import type { ProviderToolConfig } from '@/providers/types'
 import { BaseCopilotTool } from '../base'
 
@@ -242,6 +243,54 @@ class DeleteWorkflowTool extends BaseCopilotTool<{ workspaceId: string; name: st
   }
 }
 
+// ── run_workflow ─────────────────────────────────────────────────────────────
+interface RunWorkflowParams {
+  workspaceId: string
+  userId: string
+  name: string
+  input?: Record<string, any>
+}
+class RunWorkflowTool extends BaseCopilotTool<RunWorkflowParams, any> {
+  readonly id = 'run_workflow'
+  readonly displayName = 'Running workflow'
+  protected async executeImpl(params: RunWorkflowParams) {
+    const rows = await db
+      .select({ id: workflow.id, name: workflow.name, isDeployed: workflow.isDeployed })
+      .from(workflow)
+      .where(eq(workflow.workspaceId, params.workspaceId))
+      .limit(500)
+    const wf = rows.find((w) => w.name.toLowerCase() === params.name.toLowerCase())
+    if (!wf) throw new Error(`Workflow not found: ${params.name}`)
+    if (!wf.isDeployed) {
+      throw new Error(
+        `"${wf.name}" is not deployed. Deploy it as an API first, then it can be run from here.`
+      )
+    }
+
+    const keys = await db
+      .select({ key: apiKey.key })
+      .from(apiKey)
+      .where(eq(apiKey.userId, params.userId))
+      .limit(1)
+    if (!keys.length) {
+      throw new Error('No API key found for your account. Create one in Settings → API Keys first.')
+    }
+
+    const res = await fetch(`${getBaseUrl()}/api/workflows/${wf.id}/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': keys[0].key },
+      body: JSON.stringify(params.input ?? {}),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(
+        `Workflow run failed (${res.status}): ${(data as any)?.error || res.statusText}`
+      )
+    }
+    return { ok: true, workflow: wf.name, result: data }
+  }
+}
+
 // ── create_knowledge_base ────────────────────────────────────────────────────
 class CreateKnowledgeBaseTool extends BaseCopilotTool<
   { workspaceId: string; userId: string; name: string; description?: string },
@@ -346,6 +395,7 @@ export const listKnowledgeBasesTool = new ListKnowledgeBasesTool()
 export const httpRequestActionTool = new HttpRequestTool()
 export const renameWorkflowTool = new RenameWorkflowTool()
 export const deleteWorkflowTool = new DeleteWorkflowTool()
+export const runWorkflowTool = new RunWorkflowTool()
 
 /** LLM tool definitions exposed to the ZelaxyArena agent (not the in-editor copilot). */
 export const ARENA_EXTRA_TOOL_DEFS: ProviderToolConfig[] = [
@@ -528,6 +578,21 @@ export const ARENA_EXTRA_TOOL_DEFS: ProviderToolConfig[] = [
     parameters: {
       type: 'object',
       properties: { name: { type: 'string', description: 'Workflow name to delete' } },
+      required: ['name'],
+    },
+  },
+  {
+    id: 'run_workflow',
+    name: 'run_workflow',
+    description:
+      'Run a deployed workflow by name and return its result. The workflow must be deployed as an API. Optionally pass an input object.',
+    params: {},
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Workflow name to run' },
+        input: { type: 'object', description: 'Optional input payload for the run' },
+      },
       required: ['name'],
     },
   },

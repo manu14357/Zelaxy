@@ -20,6 +20,7 @@ import {
   listTablesTool,
   queryTableTool,
   renameWorkflowTool,
+  runWorkflowTool,
   updateTableRowTool,
 } from './tables/tables-tools'
 import { getEnvironmentVariablesTool } from './user/get-environment-variables'
@@ -128,6 +129,7 @@ copilotToolRegistry.register(sendSlackMessageTool)
 copilotToolRegistry.register(sendEmailTool)
 copilotToolRegistry.register(renameWorkflowTool)
 copilotToolRegistry.register(deleteWorkflowTool)
+copilotToolRegistry.register(runWorkflowTool)
 
 // Dynamically generated constants - single source of truth
 export const COPILOT_TOOL_IDS = copilotToolRegistry.getAvailableIds()
