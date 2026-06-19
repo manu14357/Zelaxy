@@ -16,6 +16,7 @@ import {
   ScrollText,
   Search,
   Shapes,
+  Sparkles,
   SplitIcon,
   Table as TableIcon,
   Workflow,
@@ -210,6 +211,12 @@ export function SearchModal({
         name: 'Hub',
         icon: LayoutDashboard,
         href: `/arena/${workspaceId}/hub`,
+      },
+      {
+        id: 'zelaxyarena',
+        name: 'ZelaxyArena',
+        icon: Sparkles,
+        href: `/arena/${workspaceId}/zelaxyarena`,
       },
       {
         id: 'logs',

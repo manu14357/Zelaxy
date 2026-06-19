@@ -222,6 +222,7 @@ export async function POST(req: NextRequest) {
 
     // Get tools for the current mode (both modes get tools, agent mode gets all, ask mode gets informational tools)
     const tools = getToolsForMode(mode as 'agent' | 'ask')
+    const hasTools = Array.isArray(tools) && tools.length > 0
 
     logger.info(`[${tracker.requestId}] Tools configuration`, {
       mode,
@@ -232,6 +233,12 @@ export async function POST(req: NextRequest) {
     // Select system prompt based on mode
     const systemPrompt = mode === 'agent' ? ENHANCED_DIRECT_CHAT_PROMPT : ASK_MODE_SYSTEM_PROMPT
 
+    // IMPORTANT: when tools are available we MUST use a non-streaming provider call so the
+    // tool-execution loop below runs. The streaming branch only forwards raw text and never
+    // executes tools — which previously meant Agie could never actually build/edit workflows
+    // (build_workflow / edit_workflow were never invoked). Plain Q&A with no tools still streams.
+    const useStream = stream && !hasTools
+
     // Call the provider directly with tools support for both modes
     const providerResponse = await executeProviderRequest(provider as any, {
       model,
@@ -240,17 +247,17 @@ export async function POST(req: NextRequest) {
       temperature: 0.7,
       maxTokens: 4000,
       apiKey: apiKey,
-      stream: stream,
+      stream: useStream,
       // Include tools for both modes
-      ...(tools && tools.length > 0 && { tools }),
+      ...(hasTools && { tools }),
       workflowId,
       userId: authenticatedUserId,
       isCopilotRequest: true,
     })
 
-    // Handle streaming response
+    // Handle streaming response (only when we actually requested a stream, i.e. no tools)
     if (
-      stream &&
+      useStream &&
       (providerResponse instanceof ReadableStream ||
         (typeof providerResponse === 'object' && providerResponse && 'stream' in providerResponse))
     ) {

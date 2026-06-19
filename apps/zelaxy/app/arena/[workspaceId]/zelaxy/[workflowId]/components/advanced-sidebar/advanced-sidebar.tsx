@@ -1349,6 +1349,32 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
+                  onClick={() => router.push(`/arena/${workspaceId}/zelaxyarena`)}
+                  className={cn(
+                    'relative flex w-full items-center rounded-lg transition-all duration-150',
+                    'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+                    pathname?.startsWith(`/arena/${workspaceId}/zelaxyarena`) &&
+                      'bg-accent/60 text-foreground',
+                    activePanel || isCollapsed || isMobile
+                      ? 'h-10 justify-center'
+                      : 'h-10 justify-start gap-3 px-3'
+                  )}
+                >
+                  <Sparkles className='h-[18px] w-[18px] flex-shrink-0 text-primary/80' />
+                  {showExpanded && (
+                    <span className='truncate font-medium text-[13px]'>ZelaxyArena</span>
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side='right'>
+                <div className='font-medium'>ZelaxyArena</div>
+                <div className='text-muted-foreground text-xs'>Workspace AI assistant</div>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
                   onClick={() => router.push(`/arena/${workspaceId}/tables`)}
                   className={cn(
                     'relative flex w-full items-center rounded-lg transition-all duration-150',
