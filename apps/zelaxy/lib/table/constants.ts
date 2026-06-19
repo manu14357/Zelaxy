@@ -49,7 +49,10 @@ export interface TableSchema {
   columns: ColumnDefinition[]
 }
 
-export type RowData = Record<string, ColumnValue>
+// Cell values are stored as JSON in the DB, so RowData must allow full JsonValue
+// (not just scalar ColumnValue). This MUST match lib/table/csv.ts's RowData so the
+// two TableRow definitions stay structurally identical (avoids cross-module type errors).
+export type RowData = Record<string, JsonValue>
 
 export interface TableMetadata {
   columnWidths?: Record<string, number>

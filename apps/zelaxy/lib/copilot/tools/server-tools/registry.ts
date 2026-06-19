@@ -1,11 +1,27 @@
 import { COPILOT_TOOL_DISPLAY_NAMES } from '@/stores/constants'
-import type { CopilotTool } from './base'
 // Import all tools to register them
+import { sendEmailTool, sendSlackMessageTool } from './actions/integration-tools'
+import type { CopilotTool } from './base'
 import { getBlocksAndToolsTool } from './blocks/get-blocks-and-tools'
 import { getBlocksMetadataTool } from './blocks/get-blocks-metadata'
 import { searchDocsTool } from './docs/search-docs'
 import { noOpTool } from './other/no-op'
 import { onlineSearchTool } from './other/online-search'
+import {
+  createKnowledgeBaseTool,
+  createTableTool,
+  deleteTableRowsTool,
+  deleteWorkflowTool,
+  exportTableTool,
+  httpRequestActionTool,
+  insertTableRowTool,
+  listKnowledgeBasesTool,
+  listScheduledJobsTool,
+  listTablesTool,
+  queryTableTool,
+  renameWorkflowTool,
+  updateTableRowTool,
+} from './tables/tables-tools'
 import { getEnvironmentVariablesTool } from './user/get-environment-variables'
 import { setEnvironmentVariablesTool } from './user/set-environment-variables'
 import { buildWorkflowTool } from './workflow/build-workflow'
@@ -96,6 +112,22 @@ copilotToolRegistry.register(getUserWorkflowTool)
 copilotToolRegistry.register(buildWorkflowTool)
 copilotToolRegistry.register(getWorkflowConsoleTool)
 copilotToolRegistry.register(editWorkflowTool)
+// ZelaxyArena workspace data tools (exposed only to the arena agent)
+copilotToolRegistry.register(listTablesTool)
+copilotToolRegistry.register(queryTableTool)
+copilotToolRegistry.register(createTableTool)
+copilotToolRegistry.register(insertTableRowTool)
+copilotToolRegistry.register(updateTableRowTool)
+copilotToolRegistry.register(deleteTableRowsTool)
+copilotToolRegistry.register(exportTableTool)
+copilotToolRegistry.register(listScheduledJobsTool)
+copilotToolRegistry.register(createKnowledgeBaseTool)
+copilotToolRegistry.register(listKnowledgeBasesTool)
+copilotToolRegistry.register(httpRequestActionTool)
+copilotToolRegistry.register(sendSlackMessageTool)
+copilotToolRegistry.register(sendEmailTool)
+copilotToolRegistry.register(renameWorkflowTool)
+copilotToolRegistry.register(deleteWorkflowTool)
 
 // Dynamically generated constants - single source of truth
 export const COPILOT_TOOL_IDS = copilotToolRegistry.getAvailableIds()
