@@ -71,6 +71,11 @@ import {
   apolloPeopleEnrichTool,
   apolloPeopleSearchTool,
 } from '@/tools/apollo'
+import {
+  appconfigListApplicationsTool,
+  appconfigListConfigurationProfilesTool,
+  appconfigListEnvironmentsTool,
+} from '@/tools/appconfig'
 import { arxivGetAuthorPapersTool, arxivGetPaperTool, arxivSearchTool } from '@/tools/arxiv'
 import {
   asanaAddCommentTool,
@@ -194,6 +199,12 @@ import {
   cloudwatchPutMetricDataTool,
   cloudwatchQueryLogsTool,
 } from '@/tools/cloudwatch'
+// Phase 2 — AWS (SigV4) + remaining HTTP/DB integrations
+import {
+  codepipelineGetPipelineStateTool,
+  codepipelineGetPipelineTool,
+  codepipelineListPipelinesTool,
+} from '@/tools/codepipeline'
 import { confluenceRetrieveTool, confluenceUpdateTool } from '@/tools/confluence'
 // Phase 2 — Tiers E & F (DevOps / observability / enrichment)
 import {
@@ -270,6 +281,8 @@ import {
   docusignSendEnvelopeTool,
   docusignVoidEnvelopeTool,
 } from '@/tools/docusign'
+// Platform subsystems — document generation
+import { docxGenerateTool } from '@/tools/docx_generate'
 import {
   dropboxCreateFolderTool,
   dropboxCreateSharedLinkTool,
@@ -387,6 +400,7 @@ import {
 import { gmailDraftTool, gmailReadTool, gmailSearchTool, gmailSendTool } from '@/tools/gmail'
 import { gongGetCallTool, gongListCallsTool, gongListUsersTool } from '@/tools/gong'
 import { searchTool as googleSearchTool } from '@/tools/google'
+import { googleAdsListCampaignsTool, googleAdsSearchTool } from '@/tools/google_ads'
 import {
   googleBigqueryListDatasetsTool,
   googleBigqueryListTablesTool,
@@ -459,6 +473,12 @@ import {
   googleTranslateTranslateTool,
 } from '@/tools/google_translate'
 import {
+  googleVaultCreateMatterTool,
+  googleVaultGetMatterTool,
+  googleVaultListExportsTool,
+  googleVaultListMattersTool,
+} from '@/tools/google_vault'
+import {
   grafanaGetDashboardTool,
   grafanaListAlertsTool,
   grafanaListDatasourcesTool,
@@ -523,11 +543,17 @@ import {
   hunterEmailFinderTool,
   hunterEmailVerifierTool,
 } from '@/tools/hunter'
+import { iamGetUserTool, iamListRolesTool, iamListUsersTool } from '@/tools/iam'
 import {
   icypeasDomainSearchTool,
   icypeasEmailSearchTool,
   icypeasEmailVerificationTool,
 } from '@/tools/icypeas'
+import {
+  identityCenterGetUserIdTool,
+  identityCenterListGroupsTool,
+  identityCenterListUsersTool,
+} from '@/tools/identity_center'
 import {
   imageSearchCatalogTool,
   imageSearchIngestTool,
@@ -686,8 +712,15 @@ import {
   mondayListBoardsTool,
   mondayUpdateItemTool,
 } from '@/tools/monday'
+import {
+  mongodbDeleteOneTool,
+  mongodbFindTool,
+  mongodbInsertOneTool,
+  mongodbUpdateOneTool,
+} from '@/tools/mongodb'
 import { mssqlTool } from '@/tools/mssql'
 import { mysqlTool } from '@/tools/mysql'
+import { neo4jRunQueryTool } from '@/tools/neo4j'
 import { neverbounceGetAccountTool, neverbounceVerifyEmailTool } from '@/tools/neverbounce'
 import { newRelicListAlertPoliciesTool, newRelicNrqlQueryTool } from '@/tools/new_relic'
 import {
@@ -699,6 +732,7 @@ import {
   notionSearchTool,
   notionWriteTool,
 } from '@/tools/notion'
+import { obsidianGetFileTool, obsidianListFilesTool, obsidianSearchTool } from '@/tools/obsidian'
 import {
   oktaCreateUserTool,
   oktaGetUserTool,
@@ -719,6 +753,7 @@ import {
   pagerdutyListIncidentsTool,
   pagerdutyListServicesTool,
 } from '@/tools/pagerduty'
+import { pdfGenerateTool } from '@/tools/pdf_generate'
 import {
   peopledatalabsCompanyEnrichTool,
   peopledatalabsPersonEnrichTool,
@@ -767,6 +802,7 @@ import {
 } from '@/tools/polymarket'
 import { postgresqlTool } from '@/tools/postgresql'
 import { posthogCaptureEventTool, posthogListInsightsTool, posthogQueryTool } from '@/tools/posthog'
+import { pptxGenerateTool } from '@/tools/pptx_generate'
 import {
   profoundBotLogsTool,
   profoundBotsReportTool,
@@ -849,6 +885,11 @@ import {
   sapS4hanaListProductsTool,
 } from '@/tools/sap_s4hana'
 import { searchTool as zelaxySearchTool } from '@/tools/search'
+import {
+  secretsManagerCreateSecretTool,
+  secretsManagerGetSecretValueTool,
+  secretsManagerListSecretsTool,
+} from '@/tools/secrets_manager'
 import { sendblueGetMessagesTool, sendblueSendMessageTool } from '@/tools/sendblue'
 import {
   sendgridAddContactTool,
@@ -868,6 +909,7 @@ import {
   servicenowQueryTableTool,
   servicenowUpdateRecordTool,
 } from '@/tools/servicenow'
+import { sesListIdentitiesTool, sesSendEmailTool } from '@/tools/ses'
 import {
   sharepointCreatePageTool,
   sharepointListSitesTool,
@@ -897,6 +939,7 @@ import {
   spotifyListMyPlaylistsTool,
   spotifySearchTool,
 } from '@/tools/spotify'
+import { sqsListQueuesTool, sqsReceiveMessageTool, sqsSendMessageTool } from '@/tools/sqs'
 import {
   squareCreateCustomerTool,
   squareGetPaymentTool,
@@ -911,6 +954,7 @@ import {
   stripeListChargesTool,
   stripeListCustomersTool,
 } from '@/tools/stripe'
+import { stsGetCallerIdentityTool, stsGetSessionTokenTool } from '@/tools/sts'
 import { sttTranscribeTool } from '@/tools/stt'
 import {
   supabaseDeleteTool,
@@ -940,6 +984,7 @@ import {
 } from '@/tools/tailscale'
 import { tavilyExtractTool, tavilySearchTool } from '@/tools/tavily'
 import { telegramMessageTool } from '@/tools/telegram'
+import { textractAnalyzeDocumentTool, textractDetectDocumentTextTool } from '@/tools/textract'
 import { thinkingTool } from '@/tools/thinking'
 import {
   tinybirdListDatasourcesTool,
@@ -1071,6 +1116,48 @@ export const tools: Record<string, ToolConfig> = {
   slack_canvas: slackCanvasTool,
   smtp_send: smtpSendTool,
   snowflake_connector: snowflakeTool,
+  pdf_generate: pdfGenerateTool,
+  docx_generate: docxGenerateTool,
+  pptx_generate: pptxGenerateTool,
+  sqs_send_message: sqsSendMessageTool,
+  sqs_receive_message: sqsReceiveMessageTool,
+  sqs_list_queues: sqsListQueuesTool,
+  // Phase 2 — AWS (SigV4) + remaining HTTP/DB
+  ses_send_email: sesSendEmailTool,
+  ses_list_identities: sesListIdentitiesTool,
+  textract_detect_document_text: textractDetectDocumentTextTool,
+  textract_analyze_document: textractAnalyzeDocumentTool,
+  secrets_manager_get_secret_value: secretsManagerGetSecretValueTool,
+  secrets_manager_list_secrets: secretsManagerListSecretsTool,
+  secrets_manager_create_secret: secretsManagerCreateSecretTool,
+  sts_get_caller_identity: stsGetCallerIdentityTool,
+  sts_get_session_token: stsGetSessionTokenTool,
+  iam_list_users: iamListUsersTool,
+  iam_list_roles: iamListRolesTool,
+  iam_get_user: iamGetUserTool,
+  codepipeline_list_pipelines: codepipelineListPipelinesTool,
+  codepipeline_get_pipeline: codepipelineGetPipelineTool,
+  codepipeline_get_pipeline_state: codepipelineGetPipelineStateTool,
+  google_ads_search: googleAdsSearchTool,
+  google_ads_list_campaigns: googleAdsListCampaignsTool,
+  google_vault_list_matters: googleVaultListMattersTool,
+  google_vault_get_matter: googleVaultGetMatterTool,
+  google_vault_create_matter: googleVaultCreateMatterTool,
+  google_vault_list_exports: googleVaultListExportsTool,
+  obsidian_list_files: obsidianListFilesTool,
+  obsidian_get_file: obsidianGetFileTool,
+  obsidian_search: obsidianSearchTool,
+  mongodb_find: mongodbFindTool,
+  mongodb_insert_one: mongodbInsertOneTool,
+  mongodb_update_one: mongodbUpdateOneTool,
+  mongodb_delete_one: mongodbDeleteOneTool,
+  neo4j_run_query: neo4jRunQueryTool,
+  identity_center_list_users: identityCenterListUsersTool,
+  identity_center_list_groups: identityCenterListGroupsTool,
+  identity_center_get_user_id: identityCenterGetUserIdTool,
+  appconfig_list_applications: appconfigListApplicationsTool,
+  appconfig_list_environments: appconfigListEnvironmentsTool,
+  appconfig_list_configuration_profiles: appconfigListConfigurationProfilesTool,
   stripe_create_customer: stripeCreateCustomerTool,
   stripe_list_customers: stripeListCustomersTool,
   stripe_create_payment_intent: stripeCreatePaymentIntentTool,

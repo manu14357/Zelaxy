@@ -32,12 +32,16 @@
   "dependencies": {
     "@linear/sdk": "40.0.0",
     "@t3-oss/env-nextjs": "0.13.4",
+    "@temporalio/client": "1.18.1",
     "@vercel/analytics": "1.5.0",
     "@xyflow/react": "12.10.2",
     "geist": "^1.4.2",
+    "imapflow": "1.4.2",
+    "mongodb": "7.3.0",
     "react-colorful": "5.6.1",
     "remark-gfm": "4.0.1",
-    "socket.io-client": "4.8.1"
+    "socket.io-client": "4.8.1",
+    "ssh2": "1.17.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.0.0-beta.5",

@@ -17,6 +17,7 @@ import { ApiBlock } from '@/blocks/blocks/api'
 import { ApiTriggerBlock } from '@/blocks/blocks/api_trigger'
 import { ApifyBlock } from '@/blocks/blocks/apify'
 import { ApolloBlock } from '@/blocks/blocks/apollo'
+import { AppConfigBlock } from '@/blocks/blocks/appconfig'
 import { ArxivBlock } from '@/blocks/blocks/arxiv'
 import { AsanaBlock } from '@/blocks/blocks/asana'
 import { AshbyBlock } from '@/blocks/blocks/ashby'
@@ -40,6 +41,8 @@ import { ClickhouseBlock } from '@/blocks/blocks/clickhouse'
 import { CloudflareBlock } from '@/blocks/blocks/cloudflare'
 import { CloudFormationBlock } from '@/blocks/blocks/cloudformation'
 import { CloudWatchBlock } from '@/blocks/blocks/cloudwatch'
+// Phase 2 — AWS (SigV4) + remaining HTTP/DB
+import { CodepipelineBlock } from '@/blocks/blocks/codepipeline'
 import { ConditionBlock } from '@/blocks/blocks/condition'
 import { ConfluenceBlock } from '@/blocks/blocks/confluence'
 // Phase 2 — Tiers E & F
@@ -56,6 +59,7 @@ import { DaytonaBlock } from '@/blocks/blocks/daytona'
 import { DelayBlock } from '@/blocks/blocks/delay'
 import { DevinBlock } from '@/blocks/blocks/devin'
 import { DiscordBlock } from '@/blocks/blocks/discord'
+import { DocumentGeneratorBlock } from '@/blocks/blocks/document_generator'
 import { DocusignBlock } from '@/blocks/blocks/docusign'
 import { DropboxBlock } from '@/blocks/blocks/dropbox'
 import { DropcontactBlock } from '@/blocks/blocks/dropcontact'
@@ -85,6 +89,7 @@ import { GitlabBlock } from '@/blocks/blocks/gitlab'
 import { GmailBlock } from '@/blocks/blocks/gmail'
 import { GongBlock } from '@/blocks/blocks/gong'
 import { GoogleSearchBlock } from '@/blocks/blocks/google'
+import { GoogleAdsBlock } from '@/blocks/blocks/google_ads'
 import { GoogleBigQueryBlock } from '@/blocks/blocks/google_bigquery'
 import { GoogleBooksBlock } from '@/blocks/blocks/google_books'
 import { GoogleCalendarBlock } from '@/blocks/blocks/google_calendar'
@@ -100,6 +105,7 @@ import { GoogleSheetsBlock } from '@/blocks/blocks/google_sheets'
 import { GoogleSlidesBlock } from '@/blocks/blocks/google_slides'
 import { GoogleTasksBlock } from '@/blocks/blocks/google_tasks'
 import { GoogleTranslateBlock } from '@/blocks/blocks/google_translate'
+import { GoogleVaultBlock } from '@/blocks/blocks/google_vault'
 import { GrafanaBlock } from '@/blocks/blocks/grafana'
 import { GrainBlock } from '@/blocks/blocks/grain'
 import { GranolaBlock } from '@/blocks/blocks/granola'
@@ -111,7 +117,9 @@ import { HubspotBlock } from '@/blocks/blocks/hubspot'
 import { HuggingFaceBlock } from '@/blocks/blocks/huggingface'
 import { HumanInTheLoopBlock } from '@/blocks/blocks/human_in_the_loop'
 import { HunterBlock } from '@/blocks/blocks/hunter'
+import { IamBlock } from '@/blocks/blocks/iam'
 import { IcypeasBlock } from '@/blocks/blocks/icypeas'
+import { IdentityCenterBlock } from '@/blocks/blocks/identity_center'
 import { ImageGeneratorBlock } from '@/blocks/blocks/image_generator'
 import { ImageSearchBlock } from '@/blocks/blocks/image_search'
 import { IncidentioBlock } from '@/blocks/blocks/incidentio'
@@ -152,12 +160,15 @@ import { MicrosoftTeamsBlock } from '@/blocks/blocks/microsoft_teams'
 import { MillionVerifierBlock } from '@/blocks/blocks/millionverifier'
 import { MistralParseBlock } from '@/blocks/blocks/mistral_parse'
 import { MondayBlock } from '@/blocks/blocks/monday'
+import { MongodbBlock } from '@/blocks/blocks/mongodb'
 import { MSSQLBlock } from '@/blocks/blocks/mssql'
 import { MySQLBlock } from '@/blocks/blocks/mysql'
+import { Neo4jBlock } from '@/blocks/blocks/neo4j'
 import { NeverbounceBlock } from '@/blocks/blocks/neverbounce'
 import { NewRelicBlock } from '@/blocks/blocks/new_relic'
 import { NoteBlock } from '@/blocks/blocks/note'
 import { NotionBlock } from '@/blocks/blocks/notion'
+import { ObsidianBlock } from '@/blocks/blocks/obsidian'
 import { OktaBlock } from '@/blocks/blocks/okta'
 import { OneDriveBlock } from '@/blocks/blocks/onedrive'
 import { OnePasswordBlock } from '@/blocks/blocks/onepassword'
@@ -196,11 +207,13 @@ import { SapConcurBlock } from '@/blocks/blocks/sap_concur'
 import { SapS4HanaBlock } from '@/blocks/blocks/sap_s4hana'
 import { ScheduleBlock } from '@/blocks/blocks/schedule'
 import { SearchBlock } from '@/blocks/blocks/search'
+import { SecretsManagerBlock } from '@/blocks/blocks/secrets_manager'
 import { SendblueBlock } from '@/blocks/blocks/sendblue'
 import { SendgridBlock } from '@/blocks/blocks/sendgrid'
 import { SentryBlock } from '@/blocks/blocks/sentry'
 import { SerperBlock } from '@/blocks/blocks/serper'
 import { ServiceNowBlock } from '@/blocks/blocks/servicenow'
+import { SesBlock } from '@/blocks/blocks/ses'
 import { SharepointBlock } from '@/blocks/blocks/sharepoint'
 import { ShopifyBlock } from '@/blocks/blocks/shopify'
 import { SimilarwebBlock } from '@/blocks/blocks/similarweb'
@@ -209,12 +222,14 @@ import { SlackBlock } from '@/blocks/blocks/slack'
 import { SMTPBlock } from '@/blocks/blocks/smtp'
 import { SnowflakeBlock } from '@/blocks/blocks/snowflake'
 import { SpotifyBlock } from '@/blocks/blocks/spotify'
+import { SqsBlock } from '@/blocks/blocks/sqs'
 import { SquareBlock } from '@/blocks/blocks/square'
 import { StagehandBlock } from '@/blocks/blocks/stagehand'
 import { StagehandAgentBlock } from '@/blocks/blocks/stagehand_agent'
 import { StartTriggerBlock } from '@/blocks/blocks/start_trigger'
 import { StarterBlock } from '@/blocks/blocks/starter'
 import { StripeBlock } from '@/blocks/blocks/stripe'
+import { StsBlock } from '@/blocks/blocks/sts'
 import { SttBlock } from '@/blocks/blocks/stt'
 import { SupabaseBlock } from '@/blocks/blocks/supabase'
 import { SwitchBlock } from '@/blocks/blocks/switch'
@@ -222,6 +237,7 @@ import { TableBlock } from '@/blocks/blocks/table'
 import { TailscaleBlock } from '@/blocks/blocks/tailscale'
 import { TavilyBlock } from '@/blocks/blocks/tavily'
 import { TelegramBlock } from '@/blocks/blocks/telegram'
+import { TextractBlock } from '@/blocks/blocks/textract'
 import { ThinkingBlock } from '@/blocks/blocks/thinking'
 import { TinybirdBlock } from '@/blocks/blocks/tinybird'
 import { TranslateBlock } from '@/blocks/blocks/translate'
@@ -326,6 +342,22 @@ export const registry: Record<string, BlockConfig> = {
   slack: SlackBlock,
   smtp: SMTPBlock,
   snowflake: SnowflakeBlock,
+  document_generator: DocumentGeneratorBlock,
+  sqs: SqsBlock,
+  // Phase 2 — AWS (SigV4) + remaining HTTP/DB
+  ses: SesBlock,
+  textract: TextractBlock,
+  secrets_manager: SecretsManagerBlock,
+  sts: StsBlock,
+  iam: IamBlock,
+  codepipeline: CodepipelineBlock,
+  google_ads: GoogleAdsBlock,
+  google_vault: GoogleVaultBlock,
+  obsidian: ObsidianBlock,
+  mongodb: MongodbBlock,
+  neo4j: Neo4jBlock,
+  identity_center: IdentityCenterBlock,
+  appconfig: AppConfigBlock,
   stripe: StripeBlock,
   // Phase 2 integrations
   hubspot: HubspotBlock,
