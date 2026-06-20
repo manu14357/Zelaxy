@@ -1,0 +1,73 @@
+---
+title: Bright Data Block
+description: Scrape web pages, run SERP searches, and discover data with Bright Data
+icon: Box
+---
+
+# Bright Data Block
+
+The Bright Data block brings web intelligence into your workflows. Use it to scrape any URL, run search engine queries (SERP), and discover related pages through Bright Data's network.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `brightdata` |
+| **Category** | tools |
+| **Color** | `#00A89C` |
+
+## When to Use
+
+- Scrape the raw HTML or structured JSON of a specific web page.
+- Run a search engine query and collect SERP results programmatically.
+- Discover additional URLs related to a starting page.
+- Gather competitive or market data (e.g., product listings, pricing) at scale.
+- Feed scraped content into downstream agents or knowledge bases.
+- Pull search results for a given query across Google, Bing, or DuckDuckGo.
+
+## Configuration
+
+### Operation
+
+Choose what to run: **Scrape URL** (`brightdata_scrape_url`), **SERP Search** (`brightdata_serp_search`), or **Discover URLs** (`brightdata_discover`). Required.
+
+### Zone
+
+Your Bright Data zone identifier used to route the request. Required.
+
+### URL
+
+The target page to scrape or use as the discovery seed. Shown for the Scrape URL and Discover URLs operations.
+
+### Search Query
+
+The query string to run against the search engine. Shown for the SERP Search operation.
+
+### Format
+
+Output format for scraped pages: **Raw HTML** (`raw`) or **JSON** (`json`). Shown for the Scrape URL operation.
+
+### Search Engine
+
+Which engine to query: **Google**, **Bing**, or **DuckDuckGo**. Shown for the SERP Search operation.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `zone` (string), `url` (string), `query` (string), `format` (string), `searchEngine` (string)
+- **Outputs**: `html` (string), `json` (json), `results` (json)
+
+## YAML Example
+
+```yaml
+brightdata_1:
+  type: brightdata
+  name: "Bright Data"
+  inputs:
+    operation: "brightdata_scrape_url"
+    zone: "your_zone"
+    url: "https://example.com"
+    format: "json"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,68 @@
+---
+title: Cal.com Block
+description: Manage bookings, slots, and events in Cal.com
+icon: Box
+---
+
+# Cal.com Block
+
+The Cal.com block integrates Cal.com scheduling into your workflows. Use it to list bookings, create appointments, check availability slots, get or cancel bookings, and manage event types directly from a workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `calcom` |
+| **Category** | tools |
+| **Color** | `#111827` |
+
+## When to Use
+
+- Automatically create a Cal.com booking when a form is submitted or a lead is qualified.
+- Look up available slots for an event type before offering times to a user.
+- List or retrieve booking details to drive downstream notifications or CRM updates.
+- Cancel a booking as part of a rescheduling or cleanup flow.
+- Enumerate event types to dynamically select the right meeting kind.
+
+## Configuration
+
+### Operation
+
+Select which Cal.com action to run: List Bookings, Create Booking, Get Booking, Cancel Booking, Get Available Slots, or List Event Types.
+
+### Cal.com Account
+
+OAuth credential used to authenticate with your Cal.com account.
+
+### Event Type ID
+
+The event type to act on. Required for Create Booking and Get Available Slots.
+
+### Start Date/Time and End Date/Time
+
+The time window for the operation. Used by Create Booking, Get Available Slots, and List Bookings.
+
+### Booking ID
+
+The identifier of an existing booking. Used by Get Booking and Cancel Booking.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `oauthCredential` (string), `eventTypeId` (string), `start` (string), `end` (string), `bookingId` (string)
+- **Outputs**: `bookings` (json), `booking` (json), `slots` (json)
+
+## YAML Example
+
+```yaml
+calcom_1:
+  type: calcom
+  name: "Cal.com"
+  inputs:
+    operation: "calcom_create_booking"
+    eventTypeId: "123"
+    start: "2024-01-15T10:00:00Z"
+    end: "2024-01-15T11:00:00Z"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

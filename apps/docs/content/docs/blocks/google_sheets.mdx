@@ -1,0 +1,73 @@
+---
+title: Google Sheets Block
+description: Read, write, and update data
+icon: Box
+---
+
+# Google Sheets Block
+
+The Google Sheets block integrates Google Sheets into your workflow to manage spreadsheet data. Read data from specific ranges, write new data, update existing cells, or append rows to the end of a sheet using OAuth authentication. Reach for it whenever a workflow needs to pull from or push to a spreadsheet.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_sheets` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Read a range of cells from a spreadsheet to feed downstream blocks
+- Write structured results from a workflow into a sheet
+- Update existing cells with new values (e.g., status flags, computed fields)
+- Append new rows to the end of a log or tracking sheet
+- Sync data between an external system and a shared spreadsheet
+- Build reporting or data-collection pipelines backed by Google Sheets
+
+## Configuration
+
+### Operation
+Dropdown selecting the action to perform: Read Data, Write Data, Update Data, or Append Data. Defaults to Read.
+
+### Google Account
+Required OAuth credential connecting your Google account (provider `google-sheets`).
+
+### Select Sheet
+File selector (basic mode) for picking a spreadsheet directly from Google Drive.
+
+### Spreadsheet ID
+Short input (advanced mode) to enter a spreadsheet ID manually from the URL when not using the selector.
+
+### Range
+The sheet name and cell range, e.g. `Sheet1!A1:D10`.
+
+### Values
+JSON array of arrays or array of objects holding the cell data. Required for Write, Update, and Append operations.
+
+### Value Input Option
+For write/update/append: whether to parse formulas (User Entered) or treat input literally (Raw).
+
+### Insert Data Option
+For append: insert new rows or overwrite existing data.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `spreadsheetId` (string), `manualSpreadsheetId` (string), `range` (string), `values` (string), `valueInputOption` (string), `insertDataOption` (string)
+- **Outputs**: `data` (json), `metadata` (json), `updatedRange` (string), `updatedRows` (number), `updatedColumns` (number), `updatedCells` (number), `tableRange` (string)
+
+## YAML Example
+
+```yaml
+sheets_1:
+  type: google_sheets
+  name: "Google Sheets"
+  inputs:
+    operation: "read"
+    credential: "{{credentials.google_sheets}}"
+    spreadsheetId: "1AbC2dEfGhIjKlMnOpQrStUvWxYz"
+    range: "Sheet1!A1:D10"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

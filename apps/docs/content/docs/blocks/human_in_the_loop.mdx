@@ -1,0 +1,70 @@
+---
+title: Human in the Loop Block
+description: Pause workflow execution for human review or approval
+icon: Box
+---
+
+# Human in the Loop Block
+
+The Human in the Loop block pauses workflow execution and waits for a person to review, approve, reject, or provide input before the run continues. Reach for it whenever a workflow needs human judgment or sign-off at a critical step, with configurable timeouts and multiple approvers.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `human_in_the_loop` |
+| **Category** | blocks |
+| **Color** | `#F59E0B` |
+
+## When to Use
+
+- Require manual approval before publishing content or sending external communications
+- Gate high-risk actions (payments, deletions, deployments) behind human sign-off
+- Collect free-text input or corrections from a reviewer mid-workflow
+- Send an acknowledgement step that a human must confirm before proceeding
+- Route a decision to specific approvers by email with a unique review link
+- Auto-resume or fail a stalled workflow after a configurable timeout
+
+## Configuration
+
+### Review Title
+Required short title for the review request, shown to the approver (e.g. "Approve content before publishing").
+
+### Instructions
+Long-form instructions displayed to the human reviewer explaining what to evaluate.
+
+### Approval Type
+Dropdown selecting the interaction mode: Approve / Reject (`approve_reject`), Acknowledge Only (`acknowledge`), or Provide Input (`input`). Defaults to `approve_reject`.
+
+### Timeout
+Numeric time before the workflow auto-resumes; `0` means no timeout. Paired with the Timeout Unit dropdown (Minutes, Hours, or Days — defaults to Hours).
+
+### On Timeout
+Dropdown for what happens if no response arrives before the timeout: Auto-approve (`approve`), Auto-reject (`reject`, default), or Fail workflow (`fail`).
+
+### Approvers
+Comma-separated email addresses of people allowed to approve this step; each receives the review link.
+
+## Inputs & Outputs
+
+- **Inputs**: `title` (string), `message` (string), `approvalType` (string), `timeout` (number), `timeoutUnit` (string), `timeoutAction` (string), `approvers` (string)
+- **Outputs**: `status` (string), `response` (string), `approvedBy` (string), `contextId` (string), `resumedAt` (string)
+
+## YAML Example
+
+```yaml
+human_review_1:
+  type: human_in_the_loop
+  name: "Human in the Loop"
+  inputs:
+    title: "Approve content before publishing"
+    message: "Please review the content and approve or reject it."
+    approvalType: "approve_reject"
+    timeout: 24
+    timeoutUnit: "hours"
+    timeoutAction: "reject"
+    approvers: "alice@example.com, bob@example.com"
+  connections:
+    outgoing:
+      - target: publish_block
+```

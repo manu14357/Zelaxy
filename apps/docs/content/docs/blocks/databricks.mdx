@@ -1,0 +1,74 @@
+---
+title: Databricks Block
+description: Execute queries and manage jobs in Databricks
+icon: Box
+---
+
+# Databricks Block
+
+The Databricks block integrates the Databricks platform into your workflows. Use it to execute SQL queries, manage and trigger job runs, list clusters and catalogs, and check run status without leaving your automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `databricks` |
+| **Category** | tools |
+| **Color** | `#FF3621` |
+
+## When to Use
+
+- Run ad-hoc or templated SQL queries against a Databricks SQL warehouse and pull the results into a workflow.
+- Trigger a Databricks job run as part of a larger pipeline.
+- Poll the status of a job run to gate downstream steps until processing completes.
+- Enumerate available clusters before dispatching compute-heavy work.
+- List jobs to discover or validate the job ID you want to run.
+- List catalogs to explore the available Unity Catalog data scope.
+
+## Configuration
+
+### Operation
+
+Dropdown that selects what the block does. Options: Execute SQL (`databricks_execute_sql`), List Clusters (`databricks_list_clusters`), List Jobs (`databricks_list_jobs`), Run Job (`databricks_run_job`), Get Run Status (`databricks_get_run_status`), and List Catalogs (`databricks_list_catalogs`). Required.
+
+### Workspace URL
+
+The Databricks workspace host (e.g. `https://your-workspace.azuredatabricks.net`). Required.
+
+### Access Token
+
+A Databricks personal access token (`dapi...`), stored as a password field. Required.
+
+### SQL Statement
+
+The SQL to run, shown only for the Execute SQL operation.
+
+### Warehouse ID
+
+The SQL warehouse to execute against, shown only for the Execute SQL operation.
+
+### Job ID
+
+The target job identifier, shown for the Run Job and Get Run Status operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `host` (string), `token` (string), `statement` (string), `warehouseId` (string), `jobId` (string)
+- **Outputs**: `rows` (json), `clusters` (json), `jobs` (json), `runId` (string)
+
+## YAML Example
+
+```yaml
+databricks_1:
+  type: databricks
+  name: "Databricks"
+  inputs:
+    operation: "databricks_execute_sql"
+    host: "https://your-workspace.azuredatabricks.net"
+    token: "{{credentials.databricks_token}}"
+    statement: "SELECT * FROM catalog.schema.table LIMIT 100"
+    warehouseId: "abc123xyz"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

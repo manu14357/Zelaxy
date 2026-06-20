@@ -1,0 +1,48 @@
+---
+title: Note Block
+description: Add an annotation or comment to your workflow
+icon: Box
+---
+
+# Note Block
+
+The Note block is a metadata-only block for adding human-readable notes, comments, or documentation directly on your workflow canvas. Reach for it when you want to explain a section of a workflow to teammates — notes have no runtime effect and are skipped during execution.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `note` |
+| **Category** | Core Block |
+| **Color** | `#FBBF24` (Amber) |
+
+## When to Use
+
+- Document what a particular section of the workflow does
+- Leave instructions or TODOs for collaborators editing the canvas
+- Explain non-obvious configuration choices near the relevant blocks
+- Annotate a flow before sharing it or handing it off
+- Group related blocks with a descriptive label
+
+## Configuration
+
+### Note
+A multi-line text area where you enter the annotation or comment. This is the only field on the block, and its contents are purely informational — they are never evaluated or executed.
+
+## Inputs & Outputs
+
+- **Inputs**: `content` (string) — the text content of the note
+- **Outputs**: none (this block produces no runtime output)
+
+## YAML Example
+
+```yaml
+note_1:
+  type: note
+  name: "Note"
+  inputs:
+    content: "This branch handles the error path — see the condition block above."
+  connections:
+    outgoing:
+      - target: next-block-id
+```

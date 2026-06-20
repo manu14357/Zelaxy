@@ -1,0 +1,71 @@
+---
+title: Grain Block
+description: Access meeting recordings, transcripts, and AI summaries
+icon: Box
+---
+
+# Grain Block
+
+The Grain block integrates Grain into your workflow so you can access meeting recordings, transcripts, highlights, and AI-generated summaries. Reach for it when you want to pull conversation data into automations — summarizing calls, extracting transcripts, or subscribing to recording events via webhooks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `grain` |
+| **Category** | tools |
+| **Color** | `#F6FAF9` |
+
+## When to Use
+
+- Pull a list of meeting recordings, optionally filtered by date range, team, meeting type, title, or participant scope.
+- Fetch a single recording's details, including highlights, participants, AI summary, calendar event, or HubSpot data.
+- Retrieve the full transcript of a recording for downstream summarization or analysis.
+- Enumerate available Grain views, teams, or meeting types for filtering and routing.
+- Create, list, or delete webhooks to react to Grain recording events in real time.
+
+## Configuration
+
+### Operation
+
+A dropdown selecting which Grain action to run: List Recordings, Get Recording, Get Transcript, List Views, List Teams, List Meeting Types, Create Webhook, List Webhooks, or Delete Webhook. Defaults to List Recordings.
+
+### API Key
+
+Your Grain API key (Personal Access Token). Required for every operation and stored as a password field.
+
+### Recording ID
+
+The recording UUID. Required for Get Recording and Get Transcript.
+
+### List Recordings filters
+
+When listing recordings you can supply a pagination cursor, before/after ISO8601 timestamps, participant scope (all/internal/external), title search, team ID, and meeting type ID, plus toggles to include highlights, participants, and AI summary.
+
+### Get Recording options
+
+Switches to include highlights, participants, AI summary, calendar event, and HubSpot data on the returned recording.
+
+### Webhook fields
+
+Create Webhook requires a View ID and a Webhook URL. Delete Webhook requires a Webhook ID.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `recordingId` (string), `cursor` (string), `viewId` (string), `beforeDatetime` (string), `afterDatetime` (string), `participantScope` (string), `titleSearch` (string), `teamId` (string), `meetingTypeId` (string), `includeHighlights` (boolean), `includeParticipants` (boolean), `includeAiSummary` (boolean), `includeCalendarEvent` (boolean), `includeHubspot` (boolean), `hookUrl` (string), `hookId` (string)
+- **Outputs**: `recordings` (json), `recording` (json), `transcript` (json), `views` (json), `teams` (json), `meetingTypes` (json), `hooks` (json), `hook` (json)
+
+## YAML Example
+
+```yaml
+grain_1:
+  type: grain
+  name: "Grain"
+  inputs:
+    operation: "grain_get_transcript"
+    apiKey: "{{GRAIN_API_KEY}}"
+    recordingId: "{{start.recordingId}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

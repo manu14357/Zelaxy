@@ -1,0 +1,45 @@
+---
+title: Manual (Legacy) Block
+description: Legacy manual start block. Prefer the Start block.
+icon: Box
+---
+
+# Manual (Legacy) Block
+
+The Manual (Legacy) block triggers a workflow manually without defining an input schema. Reach for it only for simple runs where no structured input is needed — for new workflows, prefer the Start block.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `manual_trigger` |
+| **Category** | triggers |
+| **Color** | `#2563EB` |
+
+## When to Use
+
+- You need to kick off a workflow by hand for a quick, one-off run.
+- The workflow requires no structured input data to begin executing.
+- You are testing or debugging a flow and just want a simple entry point.
+- You are maintaining an existing workflow that already relies on this legacy trigger.
+- A lightweight starter is needed and the Start block's input schema is unnecessary.
+
+## Configuration
+
+This block has no configurable sub-blocks. It acts purely as a manual entry point that starts the workflow when triggered.
+
+## Inputs & Outputs
+
+- **Inputs**: none
+- **Outputs**: none
+
+## YAML Example
+
+```yaml
+manual_start:
+  type: manual_trigger
+  name: "Manual (Legacy)"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,73 @@
+---
+title: Athena Block
+description: Run SQL queries on data in Amazon S3 with AWS Athena
+icon: Box
+---
+
+# Athena Block
+
+The Athena block integrates Amazon Athena into your workflows. Use it to execute SQL queries directly against data in Amazon S3, retrieve query results, and manage query executions without provisioning any infrastructure.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `athena` |
+| **Category** | tools |
+| **Color** | `#8C4FFF` |
+
+## When to Use
+
+- Run ad-hoc SQL analytics over data stored in Amazon S3
+- Kick off a long-running query and collect its execution ID for later polling
+- Fetch the result set of a completed query for downstream processing
+- Check the status of a query execution before reading its output
+- Cancel an in-flight query that is no longer needed
+- Audit recent query executions in an Athena workgroup
+
+## Configuration
+
+### Operation
+Dropdown selecting the Athena action: Start Query, Get Query Results, Get Query Execution, Stop Query, or List Query Executions. This drives which other fields are shown.
+
+### AWS Region
+The AWS region where Athena runs (e.g. `us-east-1`). Required.
+
+### Access Key ID / Secret Access Key
+AWS credentials used to authenticate the request. Both are required and stored as secrets.
+
+### SQL Query
+The SQL statement to execute. Shown for the Start Query operation.
+
+### Database
+The Athena/Glue database to run the query against. Shown for the Start Query operation.
+
+### Output S3 Location
+The S3 path where query results are written (e.g. `s3://my-bucket/query-results/`). Shown for the Start Query operation.
+
+### Query Execution ID
+Identifier of an existing query execution. Required for Get Query Results, Get Query Execution, and Stop Query.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `awsRegion` (string), `awsAccessKeyId` (string), `awsSecretAccessKey` (string), `queryString` (string), `database` (string), `outputLocation` (string), `queryExecutionId` (string)
+- **Outputs**: `queryExecutionId` (string), `results` (json), `status` (string)
+
+## YAML Example
+
+```yaml
+athena_1:
+  type: athena
+  name: "Athena"
+  inputs:
+    operation: "athena_start_query"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{secrets.AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{secrets.AWS_SECRET_ACCESS_KEY}}"
+    queryString: "SELECT * FROM my_table LIMIT 10"
+    database: "my_database"
+    outputLocation: "s3://my-bucket/query-results/"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

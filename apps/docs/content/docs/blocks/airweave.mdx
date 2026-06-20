@@ -1,0 +1,71 @@
+---
+title: Airweave Block
+description: Search and retrieve data from Airweave collections
+icon: Box
+---
+
+# Airweave Block
+
+The Airweave block brings semantic search into your workflows. Query a collection with natural language, choose a retrieval strategy, and optionally generate an AI-powered answer from the matched results. Reach for it whenever a workflow needs to pull relevant context out of an Airweave collection.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `airweave` |
+| **Category** | tools |
+| **Color** | `#6366F1` |
+
+## When to Use
+
+- Retrieve relevant documents or records from an Airweave collection using natural-language queries.
+- Power RAG-style flows by feeding search results into a downstream agent or prompt.
+- Get a synthesized, AI-generated answer directly from a collection without a separate LLM step.
+- Tune retrieval quality by switching between semantic, keyword, hybrid, or auto strategies.
+- Improve precision on large result sets by enabling reranking.
+
+## Configuration
+
+### Collection ID
+The ID of the Airweave collection to search. Required.
+
+### Query
+The natural-language search query describing what you want to find. Required.
+
+### Result Limit
+Maximum number of results to return. Choose from 5, 10, 20, or 50.
+
+### Retrieval Strategy
+How matches are scored: Auto, Semantic, Keyword, or Hybrid.
+
+### Generate Answer
+Toggle to have Airweave synthesize an AI-generated answer from the results.
+
+### Rerank Results
+Toggle to rerank the returned results for higher precision.
+
+### API Key
+Your Airweave API key, stored securely. Required.
+
+## Inputs & Outputs
+
+- **Inputs**: `collectionId` (string), `query` (string), `limit` (string), `retrievalStrategy` (string), `generateAnswer` (boolean), `rerank` (boolean), `apiKey` (string)
+- **Outputs**: `results` (json), `completion` (string)
+
+## YAML Example
+
+```yaml
+airweave_1:
+  type: airweave
+  name: "Airweave"
+  inputs:
+    collectionId: "collection-id"
+    query: {{start.input}}
+    limit: "10"
+    retrievalStrategy: "hybrid"
+    generateAnswer: true
+    apiKey: "{{secrets.AIRWEAVE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,106 @@
+---
+title: MCP Integration Block
+description: Connect and manage Model Context Protocol (MCP) servers
+icon: Box
+---
+
+# MCP Integration Block
+
+The MCP Integration block connects your workflow to Model Context Protocol (MCP) servers, enabling automatic tool discovery, dynamic integration, and server management. Reach for it when you want an AI agent to use tools exposed by an external MCP server (stdio, SSE, or HTTP) or to test and manage those server connections.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mcp` |
+| **Category** | tools |
+| **Color** | `#EA580C` |
+
+## When to Use
+
+- Connect to an MCP server already configured in Settings > MCP and execute one of its discovered tools.
+- Quickly test a new MCP server by pasting a Claude Desktop-style JSON config.
+- Discover and refresh the list of tools available from a server.
+- Stand up a stdio (command-line), SSE (server-sent events), or HTTP (REST) MCP connection.
+- Test, connect, disconnect, or refresh a server connection as part of a workflow.
+- Pass structured JSON parameters to a specific MCP tool and capture its result.
+
+## Configuration
+
+### Use Existing Server
+
+Switch that connects to a server already configured in MCP Settings rather than defining a new one.
+
+### Select Server
+
+Dropdown to choose a pre-configured server (shown when Use Existing Server is on). Populated from Settings > MCP.
+
+### Use JSON Config
+
+Switch (for new servers) to paste an MCP server config JSON directly, in the standard Claude Desktop / Cursor format.
+
+### MCP Server Configuration
+
+JSON code field for the raw `mcpServers` config, used when Use JSON Config is on.
+
+### Server Name & Connection Type
+
+For new form-based servers: a unique server name plus a Connection Type dropdown — Stdio (Command Line), SSE (Server-Sent Events), or HTTP (REST API).
+
+### Connection-specific fields
+
+- **Stdio**: Command Path, Script Path/Arguments, and Environment Variables table.
+- **SSE**: SSE Endpoint URL and Authentication Headers table.
+- **HTTP**: Base URL, API Key / Token, and Custom Headers table.
+
+### Execute Tool & Tool Parameters
+
+When using an existing server, pick a discovered tool from the Execute Tool dropdown and supply its JSON parameters in Tool Parameters.
+
+### Connection Management
+
+Dropdown action: Test Connection, Connect, Disconnect, or Refresh Tools.
+
+### Advanced
+
+Connection Timeout (seconds) and Retry Attempts sliders.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `workspaceId` (string) — workspace identifier (provided by context)
+  - `serverName` (string) — name of the MCP server
+  - `serverType` (string) — type of MCP connection
+  - `config` (json) — server configuration parameters
+  - `rawMcpConfig` (json) — raw MCP JSON configuration (Claude Desktop format)
+  - `settings` (json) — connection and behavior settings
+  - `execution` (json) — tool execution parameters
+  - `action` (string) — connection management action
+- **Outputs**:
+  - `serverId` (string) — unique server identifier
+  - `serverName` (string) — server display name
+  - `connectionStatus` (string) — current connection status
+  - `availableTools` (json) — array of tools available from this server
+  - `serverMetadata` (json) — server information and statistics
+  - `executionResult` (json) — result from tool execution (if applicable)
+  - `error` (string) — error message if operation failed
+
+## YAML Example
+
+```yaml
+mcp_1:
+  type: mcp
+  name: "MCP Integration"
+  inputs:
+    useExistingServer: true
+    existingServerId: "filesystem-server"
+    selectedTool: "read_file"
+    toolParams: |
+      {
+        "path": "/data/notes.txt"
+      }
+    connectionAction: "connect"
+  connections:
+    outgoing:
+      - target: agent_1
+```

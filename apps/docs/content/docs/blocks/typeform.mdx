@@ -1,0 +1,64 @@
+---
+title: Typeform Block
+description: Interact with Typeform
+icon: Box
+---
+
+# Typeform Block
+
+The Typeform block lets you access and retrieve responses from your Typeform forms. Use it to pull form submission data, download uploaded files, or fetch form insights so you can analyze, store, or process responses inside a workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `typeform` |
+| **Category** | tools |
+| **Color** | `#262627` |
+
+## When to Use
+
+- Retrieve survey or form responses for analysis or reporting
+- Sync new Typeform submissions into a database or downstream system
+- Filter responses by date range or completion status
+- Download files that respondents uploaded through a form field
+- Pull form insights (views, completion metrics) for monitoring
+
+## Configuration
+
+### Operation
+Dropdown selecting what to do: **Retrieve Responses** (`typeform_responses`), **Download File** (`typeform_files`), or **Form Insights** (`typeform_insights`). Defaults to Retrieve Responses.
+
+### Form ID
+Required. The Typeform form identifier to operate on.
+
+### Personal Access Token
+Required. Your Typeform personal access token, used to authenticate the request.
+
+### Response Filters
+Shown for the Retrieve Responses operation: **Page Size**, **Since** and **Until** (ISO date filters), and **Completed** (All / Only Completed / Only Incomplete).
+
+### File Fields
+Shown for the Download File operation: **Response ID** (token), **Field ID** (file upload field), **Filename**, and **Inline Display** toggle.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `formId` (string), `apiKey` (string), `pageSize` (number), `since` (string), `until` (string), `completed` (string), `responseId` (string), `fieldId` (string), `filename` (string), `inline` (boolean)
+- **Outputs**: `total_items` (number), `page_count` (number), `items` (json)
+
+## YAML Example
+
+```yaml
+typeform_1:
+  type: typeform
+  name: "Typeform"
+  inputs:
+    operation: "typeform_responses"
+    formId: "abc123XY"
+    apiKey: "{{TYPEFORM_TOKEN}}"
+    pageSize: 25
+    completed: "true"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

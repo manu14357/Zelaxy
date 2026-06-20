@@ -1,0 +1,64 @@
+---
+title: ElevenLabs Block
+description: Convert TTS using ElevenLabs
+icon: Box
+---
+
+# ElevenLabs Block
+
+The ElevenLabs block generates realistic speech from text using ElevenLabs voices. Reach for it whenever a workflow needs to turn text into natural-sounding audio output.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `elevenlabs` |
+| **Category** | tools |
+| **Color** | `#181C1E` |
+
+## When to Use
+
+- Convert workflow-generated text (summaries, responses, narration) into spoken audio.
+- Add voiceover to automated content pipelines.
+- Produce audio prompts or notifications from dynamic text.
+- Generate multilingual speech using ElevenLabs multilingual or turbo models.
+- Create audio assets on the fly from upstream block outputs.
+
+## Configuration
+
+### Text
+
+The text to convert to speech. Required. Accepts static text or a reference to an upstream output.
+
+### Voice ID
+
+The ElevenLabs voice identifier to use for synthesis. Required.
+
+### Model ID
+
+Dropdown to select the synthesis model. Options: `eleven_monolingual_v1`, `eleven_multilingual_v2`, `eleven_turbo_v2`, `eleven_turbo_v2_5`, `eleven_flash_v2_5`.
+
+### API Key
+
+Your ElevenLabs API key, stored as a password field. Required.
+
+## Inputs & Outputs
+
+- **Inputs**: `text` (string), `voiceId` (string), `modelId` (string), `apiKey` (string)
+- **Outputs**: `audioUrl` (string)
+
+## YAML Example
+
+```yaml
+elevenlabs_1:
+  type: elevenlabs
+  name: "ElevenLabs"
+  inputs:
+    text: "{{start.input}}"
+    voiceId: "21m00Tcm4TlvDq8ikWAM"
+    modelId: "eleven_multilingual_v2"
+    apiKey: "{{ELEVENLABS_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

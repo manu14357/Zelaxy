@@ -1,0 +1,87 @@
+---
+title: Telegram Block
+description: Send messages through Telegram or trigger workflows from Telegram events
+icon: Box
+---
+
+# Telegram Block
+
+The Telegram block sends messages to any Telegram channel using your Bot API key, or triggers workflows from incoming Telegram bot messages. Reach for it to push automated notifications and alerts to your team, or to kick off a workflow whenever your bot receives a message.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `telegram` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Send automated notifications or alerts to a Telegram channel or group
+- Keep a team informed by posting status updates from a workflow
+- Deliver the result of an upstream block (e.g. a summary or report) into Telegram
+- Trigger a workflow whenever your bot receives a message via a Telegram webhook
+- Build a conversational bot that reacts to incoming chat messages
+- Route inbound Telegram messages into downstream processing blocks
+
+## Configuration
+
+### Bot Token
+
+The Telegram Bot API token used to authenticate requests. Create a bot by messaging `/newbot` to @BotFather, then paste the provided token here. Required and stored as a secret.
+
+### Chat ID
+
+The identifier of the channel, group, or chat where the message is sent. Add your bot to the target channel, send a message, then read the chat ID from the `getUpdates` API response. Required.
+
+### Message
+
+The text content to send to the chat. Required.
+
+### Trigger Configuration
+
+When trigger mode is active, configures the `telegram_webhook` trigger so the workflow starts from incoming Telegram bot messages instead of sending one.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `botToken` (string) — Telegram bot token
+  - `chatId` (string) — Chat identifier
+  - `text` (string) — Message text
+- **Outputs**:
+  - `ok` (boolean) — API response success status
+  - `result` (json) — Complete message result object from Telegram API
+  - `messageId` (number) — Sent message ID
+  - `chatId` (number) — Chat ID where message was sent
+  - `chatType` (string) — Type of chat (private, group, supergroup, channel)
+  - `username` (string) — Chat username (if available)
+  - `messageDate` (number) — Unix timestamp of sent message
+  - `messageText` (string) — Text content of sent message
+  - `update_id` (number) — Unique identifier for the update (webhook)
+  - `message_id` (number) — Unique message identifier from webhook
+  - `from_id` (number) — User ID who sent the message
+  - `from_username` (string) — Username of the sender
+  - `from_first_name` (string) — First name of the sender
+  - `from_last_name` (string) — Last name of the sender
+  - `chat_id` (number) — Unique identifier for the chat
+  - `chat_type` (string) — Type of chat (private, group, supergroup, channel)
+  - `chat_title` (string) — Title of the chat (for groups and channels)
+  - `text` (string) — Message text content from webhook
+  - `date` (number) — Date the message was sent (Unix timestamp)
+  - `entities` (json) — Special entities in the message (mentions, hashtags, etc.)
+
+## YAML Example
+
+```yaml
+telegram_1:
+  type: telegram
+  name: "Telegram"
+  inputs:
+    botToken: "{{secrets.TELEGRAM_BOT_TOKEN}}"
+    chatId: "-1001234567890"
+    text: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

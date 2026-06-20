@@ -1967,3 +1967,28 @@ export const agentSkill = pgTable(
     nameUnique: uniqueIndex('agent_skill_ws_name_unique').on(table.workspaceId, table.name),
   })
 )
+
+/**
+ * ZelaxyArena conversations — persisted chat history for the workspace-wide assistant.
+ * Workspace-scoped (the arena is not tied to a single workflow). Messages are stored as JSON.
+ */
+export const arenaChat = pgTable(
+  'arena_chat',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    title: text('title').notNull().default('New chat'),
+    messages: json('messages').notNull().default([]),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    wsUserIdx: index('arena_chat_ws_user_idx').on(table.workspaceId, table.userId),
+    updatedIdx: index('arena_chat_updated_idx').on(table.updatedAt),
+  })
+)

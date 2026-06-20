@@ -1,0 +1,77 @@
+---
+title: Microsoft Excel Block
+description: Read, write, and update data
+icon: Box
+---
+
+# Microsoft Excel Block
+
+The Microsoft Excel block integrates with Excel spreadsheets to manage data via OAuth. Use it to read cell ranges, write new data, update existing cells, and append rows to Excel tables within your workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `microsoft_excel` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Read data from a specific range of a spreadsheet to feed into downstream blocks.
+- Write new rows or a block of values into a sheet at a given range.
+- Update existing cells in place with fresh values.
+- Append rows to a named Excel table (`table_add`).
+- Build reporting or data-sync workflows that move data into or out of Excel.
+- Parse formulas or store raw values using the value input option.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the action: Read Data (`read`), Write Data (`write`), Update Data (`update`), or Add to Table (`table_add`). Defaults to `read`.
+
+### Microsoft Account
+
+OAuth credential for the `microsoft-excel` provider. Required, with `Files.ReadWrite.All` and `Sites.ReadWrite.All` scopes.
+
+### Select Sheet / Spreadsheet ID
+
+Pick a spreadsheet with the file selector (basic mode) or enter a spreadsheet ID manually (advanced mode via `manualSpreadsheetId`). One is required.
+
+### Range
+
+Sheet name and cell range (e.g., `Sheet1!A1:D10`). Shown for read, write, and update operations.
+
+### Table Name
+
+Name of the Excel table to append to. Required for the `table_add` operation.
+
+### Values
+
+JSON array of arrays or array of objects to write. The field varies by operation: `values` (write), `updateValues` (update), `tableValues` (table_add).
+
+### Value Input Option
+
+Whether to parse formulas (`USER_ENTERED`) or store raw text (`RAW`). Available for write (`valueInputOption`) and update (`updateValueInputOption`).
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `spreadsheetId` (string), `manualSpreadsheetId` (string), `range` (string), `tableName` (string), `values` (string), `updateValues` (string), `tableValues` (string), `valueInputOption` (string), `updateValueInputOption` (string)
+- **Outputs**: `data` (json), `metadata` (json), `updatedRange` (string), `updatedRows` (number), `updatedColumns` (number), `updatedCells` (number), `index` (number), `values` (json)
+
+## YAML Example
+
+```yaml
+excel_read:
+  type: microsoft_excel
+  name: "Microsoft Excel"
+  inputs:
+    operation: "read"
+    credential: "{{credentials.microsoft-excel}}"
+    spreadsheetId: "{{start.spreadsheetId}}"
+    range: "Sheet1!A1:D10"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,79 @@
+---
+title: Stagehand Extract Block
+description: Extract data from websites
+icon: Box
+---
+
+# Stagehand Extract Block
+
+The Stagehand Extract block uses Stagehand to extract structured data from webpages using Browserbase and OpenAI. Reach for it when you need to turn an arbitrary web page into clean, schema-shaped JSON.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `stagehand` |
+| **Category** | tools |
+| **Color** | `#FFC83C` |
+
+## When to Use
+
+- Scrape structured fields (prices, titles, listings, contact details) from a live web page.
+- Convert unstructured page content into a predictable JSON shape defined by a schema.
+- Pull data from sites that lack a public API by describing what you want in plain language.
+- Feed extracted data into downstream blocks for transformation, storage, or notification.
+- Automate recurring data collection from product, news, or directory pages.
+
+## Configuration
+
+### URL
+
+The address of the website to extract data from. Required.
+
+### Instructions
+
+Detailed natural-language instructions describing exactly what data to extract from the page. Required.
+
+### OpenAI API Key
+
+Your OpenAI API key, used to power the extraction. Stored as a password field. Required.
+
+### Schema
+
+A JSON Schema describing the structure of the data to return. Required.
+
+## Inputs & Outputs
+
+- **Inputs**: `url` (string), `instruction` (string), `schema` (json), `apiKey` (string)
+- **Outputs**: `data` (json)
+
+## YAML Example
+
+```yaml
+stagehand_extract_1:
+  type: stagehand
+  name: "Stagehand Extract"
+  inputs:
+    url: "https://example.com/products"
+    instruction: "Extract the name and price of each product listed on the page."
+    apiKey: "{{secrets.OPENAI_API_KEY}}"
+    schema: |
+      {
+        "type": "object",
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "price": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+  connections:
+    outgoing:
+      - target: next-block-id
+```

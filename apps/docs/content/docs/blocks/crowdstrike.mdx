@@ -1,0 +1,71 @@
+---
+title: CrowdStrike Block
+description: Query sensors and host data in CrowdStrike Falcon
+icon: Box
+---
+
+# CrowdStrike Block
+
+The CrowdStrike block integrates CrowdStrike Falcon endpoint security into your workflows. Reach for it when you need to query sensors, retrieve host details, or pull aggregate statistics directly from Falcon.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `crowdstrike` |
+| **Category** | tools |
+| **Color** | `#E01F3D` |
+
+## When to Use
+
+- Query the fleet of Falcon sensors filtered by platform, hostname, or other FQL criteria.
+- Retrieve detailed host information for a specific sensor during an incident investigation.
+- Pull aggregate sensor statistics to feed dashboards or reporting workflows.
+- Enrich a security automation flow with live endpoint data before taking action.
+- Trigger downstream remediation based on the presence or state of hosts in your environment.
+
+## Configuration
+
+### Operation
+
+Choose what the block does: Query Sensors, Get Sensor Details, or Get Sensor Aggregates. Required.
+
+### Client ID
+
+Your CrowdStrike API client ID. Required.
+
+### Client Secret
+
+Your CrowdStrike API client secret (stored as a password field). Required.
+
+### Cloud Region
+
+The Falcon cloud region for your tenant: US-1, US-2, EU-1, or US-GOV-1.
+
+### FQL Filter
+
+A Falcon Query Language filter (for example `platform_name:"Windows"`) used to narrow results. Shown only for the Query Sensors operation.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `clientId` (string), `clientSecret` (string), `cloud` (string), `filter` (string)
+- **Outputs**: `sensors` (json), `sensorDetails` (json)
+
+## YAML Example
+
+Use the block's REAL `type` and REAL sub-block ids. This is the workflow YAML format the agent builder uses:
+
+```yaml
+crowdstrike_1:
+  type: crowdstrike
+  name: "CrowdStrike"
+  inputs:
+    operation: "crowdstrike_query_sensors"
+    clientId: "{{start.input}}"
+    clientSecret: "{{start.input}}"
+    cloud: "us-1"
+    filter: 'platform_name:"Windows"'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

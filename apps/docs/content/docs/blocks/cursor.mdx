@@ -1,0 +1,68 @@
+---
+title: Cursor (Legacy) Block
+description: Launch and manage AI coding agents in Cursor
+icon: Box
+---
+
+# Cursor (Legacy) Block
+
+The Cursor (Legacy) block integrates the Cursor AI coding assistant into your workflows. Use it to launch coding agents against a repository, send follow-up instructions, check agent status, retrieve conversation history, list agents, and stop agents.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `cursor` |
+| **Category** | tools |
+| **Color** | `#1E1E1E` |
+
+## When to Use
+
+- Kick off an AI coding agent on a specific repository and branch
+- Send a follow-up prompt to an already-running agent to refine its work
+- Poll an agent's status to gate downstream steps in a workflow
+- Pull back the full conversation history for an agent
+- List all active agents to find one to act on
+- Stop a running agent that is no longer needed
+
+## Configuration
+
+### Operation
+Dropdown that selects what the block does. Options: Launch Agent (`cursor_launch_agent`), Add Followup (`cursor_add_followup`), Get Agent (`cursor_get_agent`), Get Conversation (`cursor_get_conversation`), List Agents (`cursor_list_agents`), Stop Agent (`cursor_stop_agent`).
+
+### Repository
+The target repository slug (e.g. `org/repo`). Used when launching an agent.
+
+### Branch/Ref
+The branch or ref the agent should work against (e.g. `main`). Used when launching an agent.
+
+### Prompt
+The task description for the agent. Used when launching an agent or adding a follow-up.
+
+### Agent ID
+Identifier of an existing agent. Required for follow-up, get agent, get conversation, and stop operations.
+
+### Model
+The model the agent should use (e.g. `claude-4-5`). Used when launching an agent.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `repository` (string), `ref` (string), `promptText` (string), `agentId` (string), `model` (string)
+- **Outputs**: `agentId` (string), `status` (string), `conversation` (json)
+
+## YAML Example
+
+```yaml
+cursor_1:
+  type: cursor
+  name: "Cursor (Legacy)"
+  inputs:
+    operation: "cursor_launch_agent"
+    repository: "org/repo"
+    ref: "main"
+    promptText: "{{start.input}}"
+    model: "claude-4-5"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

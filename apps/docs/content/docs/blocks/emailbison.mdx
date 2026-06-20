@@ -1,0 +1,64 @@
+---
+title: Email Bison Block
+description: Find and verify email addresses with Email Bison
+icon: Box
+---
+
+# Email Bison Block
+
+The Email Bison block integrates the Email Bison email finder into your workflows. Use it to find professional email addresses, verify email deliverability, and enrich contact data as part of an automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `emailbison` |
+| **Category** | tools |
+| **Color** | `#FB7A22` |
+
+## When to Use
+
+- Find a professional email address from a person's first name, last name, and company domain
+- Verify whether an email address is valid and deliverable before sending outreach
+- Run a bulk find across many contacts to enrich a lead list
+- Discover email addresses associated with a company domain
+- Add confidence scoring to contact data feeding a downstream CRM or email block
+
+## Configuration
+
+### Operation
+A required dropdown that selects which action to perform: **Find Email** (`emailbison_find_email`), **Verify Email** (`emailbison_verify_email`), **Bulk Find Emails** (`emailbison_bulk_find`), or **Domain Search** (`emailbison_domain_search`). The other fields show/hide based on this choice.
+
+### API Key
+Required, masked input for your Email Bison API key used to authenticate requests.
+
+### First Name / Last Name
+Shown for the **Find Email** operation. The person's name used to locate their email address.
+
+### Domain
+Shown for **Find Email** and **Domain Search**. The company domain to search against (e.g. `example.com`).
+
+### Email
+Shown for the **Verify Email** operation. The email address to check for deliverability.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `firstName` (string), `lastName` (string), `domain` (string), `email` (string)
+- **Outputs**: `email` (string), `verified` (boolean), `confidence` (number)
+
+## YAML Example
+
+```yaml
+emailbison_1:
+  type: emailbison
+  name: "Email Bison"
+  inputs:
+    operation: "emailbison_find_email"
+    apiKey: "{{secrets.EMAIL_BISON_API_KEY}}"
+    firstName: "John"
+    lastName: "Doe"
+    domain: "example.com"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

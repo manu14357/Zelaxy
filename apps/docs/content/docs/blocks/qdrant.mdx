@@ -1,0 +1,79 @@
+---
+title: Qdrant Block
+description: Use Qdrant vector database
+icon: Box
+---
+
+# Qdrant Block
+
+The Qdrant block lets you store, search, and retrieve vector embeddings using a Qdrant vector database. Reach for it when you need semantic similarity search or to manage vector collections directly from a workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `qdrant` |
+| **Category** | tools |
+| **Color** | `#1A223F` |
+
+## When to Use
+
+- Upsert embeddings (with optional payloads) into a Qdrant collection.
+- Run semantic similarity searches over a collection using a query vector.
+- Filter search results by payload metadata (e.g. only points matching a city).
+- Fetch specific points by their IDs to retrieve stored payloads or vectors.
+- Power RAG pipelines that read from or write to a self-hosted or cloud Qdrant instance.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the action to perform: `Upsert`, `Search`, or `Fetch`. Defaults to `upsert`.
+
+### Qdrant URL
+
+The Qdrant server endpoint (e.g. `http://localhost:6333`). Required for all operations.
+
+### Collection
+
+The name of the target Qdrant collection. Required for all operations.
+
+### Points (Upsert)
+
+JSON array of points to insert or update, each with `id`, `vector`, and optional `payload`.
+
+### Query Vector (Search)
+
+The vector used as the similarity query, with optional `Limit` and `Filter` to constrain results, plus `With Payload` / `With Vector` switches to control returned fields.
+
+### IDs (Fetch)
+
+JSON array of point identifiers to retrieve, with `With Payload` / `With Vector` switches.
+
+### API Key
+
+Optional Qdrant API key (stored as a secret) used to authenticate requests.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `url` (string), `apiKey` (string), `collection` (string), `points` (json), `vector` (json), `limit` (number), `filter` (json), `ids` (json), `with_payload` (boolean), `with_vector` (boolean)
+- **Outputs**: `matches` (json), `upsertedCount` (number), `data` (json), `status` (string)
+
+## YAML Example
+
+```yaml
+qdrant_1:
+  type: qdrant
+  name: "Qdrant"
+  inputs:
+    operation: "search"
+    url: "http://localhost:6333"
+    collection: "my-collection"
+    vector: {{start.embedding}}
+    limit: 10
+    with_payload: true
+    apiKey: "{{QDRANT_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

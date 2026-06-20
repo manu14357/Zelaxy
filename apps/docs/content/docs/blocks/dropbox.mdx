@@ -1,0 +1,68 @@
+---
+title: Dropbox Block
+description: Upload, download, and manage files in Dropbox
+icon: Box
+---
+
+# Dropbox Block
+
+The Dropbox block integrates Dropbox file storage into your workflows. Use it to upload and download files, list folder contents, create folders, manage sharing links, and search for files when a step needs to read from or write to a Dropbox account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `dropbox` |
+| **Category** | tools |
+| **Color** | `#0061FF` |
+
+## When to Use
+
+- Upload a file produced earlier in the workflow to a specific Dropbox path.
+- Download an existing Dropbox file so a later block can process its contents.
+- List the contents of a folder to drive downstream logic over each item.
+- Create folders to organize generated output.
+- Delete files that are no longer needed.
+- Generate a shareable link for a stored file, or search Dropbox by filename or keyword.
+
+## Configuration
+
+### Operation
+Select the Dropbox action to run: Upload File, Download File, List Folder, Create Folder, Delete File, Get File Metadata, Create Shared Link, or Search Files. This choice drives which other fields are shown.
+
+### Dropbox Account
+Connect the Dropbox account to use via OAuth (`credential`).
+
+### Path
+The file or folder path to operate on (for example `/path/to/file.pdf`). Required.
+
+### Search Query
+The filename or keyword to match. Shown for the Search Files operation.
+
+### File
+The file to upload. Shown for the Upload File operation.
+
+### Write Mode
+How to write an uploaded file — Add or Overwrite. Shown for the Upload File operation.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `oauthCredential` (string), `path` (string), `query` (string), `mode` (string)
+- **Outputs**: `file` (json — file metadata), `files` (json — file list), `sharedLink` (string — shared link URL)
+
+## YAML Example
+
+```yaml
+dropbox_1:
+  type: dropbox
+  name: "Dropbox"
+  inputs:
+    operation: "dropbox_upload_file"
+    credential: "{{DROPBOX_CREDENTIAL}}"
+    path: "/reports/summary.pdf"
+    uploadFile: "{{start.file}}"
+    mode: "overwrite"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

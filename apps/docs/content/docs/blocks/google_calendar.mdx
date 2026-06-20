@@ -1,0 +1,85 @@
+---
+title: Google Calendar Block
+description: Manage Google Calendar events
+icon: Box
+---
+
+# Google Calendar Block
+
+The Google Calendar block integrates Google Calendar into your workflow so you can create, read, update, and list calendar events using OAuth authentication. Reach for it to automate scheduling, check availability, manage attendees, and send invitations as part of an automated flow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_calendar` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Create calendar events with a title, description, location, start/end times, and attendees.
+- List events within a time window to check availability or build a schedule digest.
+- Get the details of a specific event by its ID.
+- Add an event quickly from natural language (e.g. "Meeting with John tomorrow at 3pm for 1 hour").
+- Invite additional attendees to an existing event, optionally replacing the current attendee list.
+- Control whether email notifications go to all attendees, external attendees only, or no one.
+
+## Configuration
+
+### Operation
+
+Choose what the block does: Create Event, List Events, Get Event, Quick Add (Natural Language), or Invite Attendees. The selected operation controls which fields are shown.
+
+### Google Calendar Account
+
+Required OAuth credential connecting the Google Calendar account used for the request (scope `https://www.googleapis.com/auth/calendar`).
+
+### Calendar
+
+Select a calendar in basic mode, or enter a Calendar ID manually in advanced mode (e.g. `primary` or `calendar@gmail.com`). Defaults to `primary`.
+
+### Event Fields (Create)
+
+Set the event title (required), description, location, start date & time, end date & time (both required), and a comma-separated list of attendee emails.
+
+### Time Filters (List)
+
+Optional start and end time filters (`timeMin` / `timeMax`) to scope which events are returned.
+
+### Event ID (Get / Invite)
+
+The ID of the event to fetch or invite attendees to. Required for both Get and Invite.
+
+### Quick Add Fields
+
+Provide the natural-language event text and the attendee emails to create an event without structured fields.
+
+### Send Email Notifications
+
+For create, quick add, and invite operations, control delivery: all attendees, external attendees only, or none.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `calendarId` (string), `manualCalendarId` (string), `summary` (string), `description` (string), `location` (string), `startDateTime` (string), `endDateTime` (string), `attendees` (string), `timeMin` (string), `timeMax` (string), `eventId` (string), `text` (string), `replaceExisting` (string), `sendUpdates` (string)
+- **Outputs**: `content` (string), `metadata` (json)
+
+## YAML Example
+
+```yaml
+google_calendar_1:
+  type: google_calendar
+  name: "Google Calendar"
+  inputs:
+    operation: "create"
+    credential: "{{credentials.google-calendar}}"
+    calendarId: "primary"
+    summary: "Meeting with team"
+    startDateTime: "2025-10-28T14:00:00-08:00"
+    endDateTime: "2025-10-28T15:00:00-08:00"
+    attendees: "john@example.com, jane@example.com"
+    sendUpdates: "all"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

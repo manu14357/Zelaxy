@@ -1,0 +1,82 @@
+---
+title: Quiver Block
+description: Convert text and images to SVG with AI
+icon: Box
+---
+
+# Quiver Block
+
+The Quiver block generates clean, scalable SVG graphics from text prompts or existing images using AI. Reach for it when you need vector artwork, icons, or illustrations produced on the fly within a workflow, with support for multiple generation models and reference images.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `quiver` |
+| **Category** | tools |
+| **Color** | `#000000` |
+
+## When to Use
+
+- Generate SVG icons or illustrations from a natural-language description.
+- Vectorize an existing raster image (PNG/JPG) into a scalable SVG.
+- Produce multiple SVG variants of a concept in a single step.
+- Steer output with reference images and detailed style instructions.
+- Discover which Quiver models are available before generating.
+- Tune generation behavior (temperature, top-p, output length) for deterministic or varied results.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting what the block does: `Text to SVG`, `Image to SVG`, or `List Models`. Defaults to Text to SVG.
+
+### API Key
+
+Your Quiver API key (required, stored as a password field).
+
+### Model
+
+Choose the generation model: `Quiver Mini` or `Quiver Pro`. Shown for the Text to SVG and Image to SVG operations.
+
+### Prompt
+
+The text description of the SVG to generate (required for Text to SVG).
+
+### Instructions
+
+Optional style or detail instructions to refine Text to SVG output.
+
+### Reference Images / Reference Image URLs
+
+Provide reference images either as file uploads (basic mode) or as comma-separated URLs (advanced mode) for Text to SVG.
+
+### Image File / Image URL
+
+The source image to vectorize for the Image to SVG operation, supplied as a file upload (basic) or a URL (advanced).
+
+### Advanced Options
+
+`Number of Variants`, `Auto Crop`, `Target Size (px)`, `Temperature`, `Top P`, `Max Output Tokens`, and `Presence Penalty` fine-tune generation.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `model` (string), `prompt` (string), `instructions` (string), `referenceFiles` (json), `referenceInput` (string), `n` (number), `imageFile` (json), `imageInput` (string), `autoCrop` (string), `targetSize` (number), `temperature` (number), `topP` (number), `maxOutputTokens` (number), `presencePenalty` (number)
+- **Outputs**: `file` (json), `files` (json), `svgContent` (string), `id` (string), `usage` (json), `models` (json)
+
+## YAML Example
+
+```yaml
+quiver-1:
+  type: quiver
+  name: "Quiver"
+  inputs:
+    operation: "text_to_svg"
+    apiKey: "{{QUIVER_API_KEY}}"
+    model: "quiver-mini"
+    prompt: "{{start.input}}"
+    instructions: "Flat, minimal style with rounded corners"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

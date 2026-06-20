@@ -167,54 +167,49 @@ export async function getBlocksMetadata(
         `Checking if ${blockId} is in CORE_BLOCKS_WITH_DOCS:`,
         CORE_BLOCKS_WITH_DOCS.includes(blockId)
       )
-
-      if (CORE_BLOCKS_WITH_DOCS.includes(blockId)) {
-        try {
-          // Resolve the monorepo root and find the docs content
-          // cwd is typically apps/zelaxy in dev, so go up to the monorepo root
-          const workingDir = process.cwd()
-          // Determine the monorepo root by looking for common markers
-          let basePath = workingDir
-          if (workingDir.endsWith('/apps/zelaxy') || workingDir.endsWith('\\apps\\zelaxy')) {
-            basePath = join(workingDir, '..', '..')
-          } else if (workingDir.endsWith('/apps/core') || workingDir.endsWith('\\apps\\core')) {
-            basePath = join(workingDir, '..', '..')
-          }
-          const docPath = join(
-            basePath,
-            'apps',
-            'docs',
-            'content',
-            'docs',
-            'blocks',
-            `${docFileName}.mdx`
-          )
-          logger.info(`Looking for docs at: ${docPath}`)
-          logger.info(`File exists: ${existsSync(docPath)}`)
-
-          if (existsSync(docPath)) {
-            const docContent = readFileSync(docPath, 'utf-8')
-            logger.info(`Doc content length: ${docContent.length}`)
-
-            // Extract only the configuration and YAML-relevant sections, not the full MDX
-            // Truncate to keep token usage manageable
-            const maxDocLength = 1500
-            const truncatedContent =
-              docContent.length > maxDocLength
-                ? `${docContent.substring(0, maxDocLength)}\n... [truncated]`
-                : docContent
-            metadata.yamlDocumentation = truncatedContent
-            logger.info(
-              `✓ Added YAML documentation for ${blockId} (${truncatedContent.length} chars)`
-            )
-          } else {
-            logger.warn(`Documentation file not found for ${blockId}`)
-          }
-        } catch (error) {
-          logger.warn(`Failed to read documentation for ${blockId}:`, error)
+      try {
+        // Resolve the monorepo root and find the docs content
+        // cwd is typically apps/zelaxy in dev, so go up to the monorepo root
+        const workingDir = process.cwd()
+        // Determine the monorepo root by looking for common markers
+        let basePath = workingDir
+        if (workingDir.endsWith('/apps/zelaxy') || workingDir.endsWith('\\apps\\zelaxy')) {
+          basePath = join(workingDir, '..', '..')
+        } else if (workingDir.endsWith('/apps/core') || workingDir.endsWith('\\apps\\core')) {
+          basePath = join(workingDir, '..', '..')
         }
-      } else {
-        logger.info(`${blockId} is NOT in CORE_BLOCKS_WITH_DOCS`)
+        const docPath = join(
+          basePath,
+          'apps',
+          'docs',
+          'content',
+          'docs',
+          'blocks',
+          `${docFileName}.mdx`
+        )
+        logger.info(`Looking for docs at: ${docPath}`)
+        logger.info(`File exists: ${existsSync(docPath)}`)
+
+        if (existsSync(docPath)) {
+          const docContent = readFileSync(docPath, 'utf-8')
+          logger.info(`Doc content length: ${docContent.length}`)
+
+          // Extract only the configuration and YAML-relevant sections, not the full MDX
+          // Truncate to keep token usage manageable
+          const maxDocLength = 1500
+          const truncatedContent =
+            docContent.length > maxDocLength
+              ? `${docContent.substring(0, maxDocLength)}\n... [truncated]`
+              : docContent
+          metadata.yamlDocumentation = truncatedContent
+          logger.info(
+            `✓ Added YAML documentation for ${blockId} (${truncatedContent.length} chars)`
+          )
+        } else {
+          logger.warn(`Documentation file not found for ${blockId}`)
+        }
+      } catch (error) {
+        logger.warn(`Failed to read documentation for ${blockId}:`, error)
       }
 
       // Add tool metadata if requested
@@ -229,6 +224,13 @@ export async function getBlocksMetadata(
             }
           }
         }
+      }
+
+      // Always attach a generated, copy-pasteable YAML example built from the block's real
+      // definition (correct `type` + valid input ids). This gives every block — not just the
+      // hand-documented core ones — a concrete example, so the agent emits valid block types.
+      if (!metadata.yamlExample) {
+        metadata.yamlExample = buildYamlExample(blockId, metadata)
       }
 
       logger.info(`Final metadata keys for ${blockId}:`, Object.keys(metadata))
@@ -261,6 +263,43 @@ export async function getBlocksMetadata(
       error: `Failed to get block metadata: ${error instanceof Error ? error.message : 'Unknown error'}`,
     }
   }
+}
+
+/** Placeholder value for a sub-block, based on its input type. */
+function placeholderForSubBlock(sb: any): string {
+  switch (sb?.type) {
+    case 'switch':
+      return 'false'
+    case 'slider':
+      return '0'
+    case 'dropdown':
+    case 'combobox': {
+      const opt = Array.isArray(sb.options) ? sb.options[0] : undefined
+      const val = typeof opt === 'string' ? opt : opt?.id
+      return val ? `"${val}"` : '"<value>"'
+    }
+    default:
+      return '"<value>"'
+  }
+}
+
+/**
+ * Build a minimal, valid YAML example for a block from its real definition. Uses the actual block
+ * `type` (id) and a few of its real input ids so the agent has a correct skeleton to copy — this
+ * is what prevents hallucinated block types like `api_call`.
+ */
+function buildYamlExample(blockId: string, metadata: any): string {
+  const name = metadata?.name || blockId
+  const subs = Array.isArray(metadata?.subBlocks) ? metadata.subBlocks : []
+  const inputLines = subs
+    .filter((sb: any) => sb?.id)
+    .slice(0, 8)
+    .map((sb: any) => `    ${sb.id}: ${placeholderForSubBlock(sb)}`)
+
+  const lines = [`${blockId}_1:`, `  type: ${blockId}`, `  name: "${name}"`]
+  if (inputLines.length > 0) lines.push('  inputs:', ...inputLines)
+  lines.push('  connections:', '    outgoing:', '      - target: <next-block-id>')
+  return lines.join('\n')
 }
 
 // Core blocks that have documentation with YAML schemas

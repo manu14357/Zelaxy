@@ -1,0 +1,70 @@
+---
+title: Dub Block
+description: Create and manage short links in Dub.co
+icon: Box
+---
+
+# Dub Block
+
+The Dub block integrates Dub.co link management into your workflows. Use it to create, update, retrieve, and delete short links, list existing links, and pull analytics data — all without leaving your automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `dub` |
+| **Category** | tools |
+| **Color** | `#181C1E` |
+
+## When to Use
+
+- Programmatically create branded short links when new content or campaigns go live.
+- Update the destination URL of an existing short link as part of a workflow.
+- Retrieve a specific link's details by domain and key/slug.
+- Delete short links that are no longer needed.
+- List all links in your Dub workspace for reporting or cleanup.
+- Fetch click analytics for a link to drive downstream decisions.
+
+## Configuration
+
+### Operation
+
+Select the action to perform: Create Link, Get Link, Update Link, Delete Link, List Links, or Get Analytics. This determines which other fields are required.
+
+### API Key
+
+Your Dub.co API key, used to authenticate every request. Required.
+
+### Destination URL
+
+The long URL the short link points to. Shown for Create Link and Update Link operations.
+
+### Domain
+
+The short link domain (e.g. `dub.sh`). Shown for Create Link and Get Link operations.
+
+### Key (slug)
+
+The link key/slug that identifies the short link. Shown for Create, Get, Update, and Delete Link operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `url` (string), `domain` (string), `key` (string)
+- **Outputs**: `shortLink` (string), `clicks` (number), `links` (json)
+
+## YAML Example
+
+```yaml
+dub_1:
+  type: dub
+  name: "Dub"
+  inputs:
+    operation: "dub_create_link"
+    apiKey: "{{secrets.DUB_API_KEY}}"
+    url: "https://example.com/long-url"
+    domain: "dub.sh"
+    key: "my-link"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

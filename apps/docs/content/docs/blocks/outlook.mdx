@@ -1,0 +1,74 @@
+---
+title: Outlook Block
+description: Access Outlook to read, draft, and send email messages within your workflow.
+icon: Box
+---
+
+# Outlook Block
+
+The Outlook block integrates Microsoft Outlook into your workflow so you can read, draft, and send email messages. Reach for it when you need to automate email communication or process incoming email content using OAuth-authenticated access to a Microsoft account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `outlook` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Send transactional or notification emails from a workflow to one or more recipients.
+- Draft emails for later review instead of sending them immediately.
+- Read and process the contents of recent emails from a specific Outlook folder.
+- Fetch a specific message by its ID and extract its body, metadata, and attachments.
+- Reply within an existing email thread using a conversation or message ID.
+- Trigger workflows automatically when new email arrives via the Outlook poller.
+
+## Configuration
+
+### Operation
+
+Choose what the block does: Send Email (`send_outlook`), Draft Email (`draft_outlook`), or Read Email (`read_outlook`). Defaults to Send Email.
+
+### Microsoft Account
+
+OAuth credential for the Outlook provider. Required for all operations; requests the mail read/write/send scopes plus offline access.
+
+### To / Subject / Body
+
+The recipient address, subject line, and message content. Required when sending or drafting an email.
+
+### CC / BCC / Reply to Message ID / Conversation ID
+
+Advanced fields for additional recipients and thread continuation (reply/conversation IDs apply to sends).
+
+### Folder / Message ID / Number of Emails / Include Attachments
+
+Read-operation fields: pick a folder (selector in basic mode or manual name in advanced mode), optionally fetch a specific message ID, set how many emails to retrieve, and toggle whether attachments are included.
+
+### Trigger Configuration
+
+When trigger mode is active, configures the `outlook_poller` to start workflows on new email.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `to` (string), `subject` (string), `body` (string), `folder` (string), `manualFolder` (string), `messageId` (string), `maxResults` (number), `includeAttachments` (boolean)
+- **Outputs**: `content` (string), `metadata` (json), `attachments` (json), `message` (string), `messageId` (string), `status` (string), `email` (json), `rawEmail` (json)
+
+## YAML Example
+
+```yaml
+outlook_1:
+  type: outlook
+  name: "Outlook"
+  inputs:
+    operation: "send_outlook"
+    credential: "{{credentials.outlook}}"
+    to: "recipient@example.com"
+    subject: "Workflow notification"
+    body: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,66 @@
+---
+title: Resend Block
+description: Send emails using the Resend API
+icon: Box
+---
+
+# Resend Block
+
+The Resend block sends transactional and marketing emails through the Resend API. It supports HTML and plain text content, CC/BCC, reply-to, scheduled delivery, tags, custom headers, attachments, batch sending, and email retrieval or cancellation. Reach for it whenever a workflow needs to send or manage email.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `resend` |
+| **Category** | tools |
+| **Color** | `#000000` |
+
+## When to Use
+
+- Send transactional emails (welcome, password reset, receipts) from a workflow
+- Deliver AI-generated content as an HTML email to one or many recipients
+- Schedule emails for future delivery (up to 30 days out)
+- Send personalized emails in bulk with a single batch request
+- Look up the status and details of a previously sent email
+- Cancel a scheduled email before it goes out
+
+## Configuration
+
+### API Key
+Your Resend API key (starts with `re_`). Required for every action. Stored as a password field.
+
+### Action
+Dropdown selecting the operation: **Send Email** (`send`), **Batch Send** (`batch`), **Get Email** (`get`), or **Cancel Scheduled Email** (`cancel`). Defaults to `send`. The remaining fields are conditionally shown based on this choice.
+
+### Send Email Fields
+For the `send` action: **From** (verified-domain sender, required), **To** (recipients, comma-separated, required), **Subject** (required), **HTML Body**, and an advanced **Plain Text Body**. Advanced extras include **CC**, **BCC**, **Reply-To**, **Schedule At** (ISO 8601 or natural language), **Tags** (JSON), **Custom Headers** (JSON), and **Attachments** (JSON, max 40MB total).
+
+### Batch Send Fields
+For the `batch` action: **Emails (Batch)**, a JSON array of email objects (each with `from`, `to`, `subject`, and `html`/`text`). Supports the AI Wand to generate the array.
+
+### Get / Cancel Fields
+For the `get` and `cancel` actions: **Email ID**, the id returned from a previous send.
+
+## Inputs & Outputs
+
+- **Inputs**: `apiKey` (string), `action` (string), `from` (string), `to` (string), `subject` (string), `html` (string), `text` (string), `cc` (string), `bcc` (string), `replyTo` (string), `scheduledAt` (string), `headers` (string, JSON), `tags` (string, JSON), `attachments` (string, JSON), `emails` (string, JSON), `emailId` (string)
+- **Outputs**: `id` (string), `ids` (json), `email` (json), `status` (string), `error` (string)
+
+## YAML Example
+
+```yaml
+resend_1:
+  type: resend
+  name: "Resend"
+  inputs:
+    apiKey: "{{variable.resendApiKey}}"
+    action: "send"
+    from: "Your Name <you@yourdomain.com>"
+    to: "recipient@example.com"
+    subject: "Welcome aboard"
+    html: "{{agent_1.content}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

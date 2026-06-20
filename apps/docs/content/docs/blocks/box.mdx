@@ -1,0 +1,67 @@
+---
+title: Box Block
+description: Upload, download, and manage files in Box cloud storage
+icon: Box
+---
+
+# Box Block
+
+The Box block integrates Box file storage into your workflows. Use it to upload and download files, list folder contents, create folders, delete files, fetch metadata, and generate shared links — all authenticated through a connected Box account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `box` |
+| **Category** | Tools |
+| **Color** | `#0061FF` |
+
+## When to Use
+
+- Upload generated reports or attachments to a Box folder
+- Download files from Box for processing by downstream blocks
+- List the contents of a Box folder to drive iteration or selection
+- Create folders to organize workflow output
+- Delete obsolete files as part of cleanup steps
+- Generate a shareable link for a file to send to collaborators
+
+## Configuration
+
+### Operation
+Dropdown selecting the action to perform: Upload File, Download File, List Folder, Create Folder, Delete File, Get File Info, or Create Shared Link. This drives which other fields are shown.
+
+### Box Account
+OAuth connection (`credential`, provider `box`) authorizing access to your Box storage. Required for all operations.
+
+### File ID
+The target file identifier. Shown for Download File, Delete File, Get File Info, and Create Shared Link.
+
+### Folder ID
+The target folder identifier (use `0` for root). Shown for List Folder, Create Folder, and Upload File.
+
+### File/Folder Name
+Name for the new file or folder. Shown for Upload File and Create Folder.
+
+### File
+File-upload input providing the file contents. Shown for Upload File.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `oauthCredential` (string), `fileId` (string), `folderId` (string), `fileName` (string)
+- **Outputs**: `file` (json — file metadata), `files` (json — file list), `folder` (json — folder data)
+
+## YAML Example
+
+```yaml
+box_1:
+  type: box
+  name: "Box"
+  inputs:
+    operation: "box_upload_file"
+    credential: "{{box_account}}"
+    folderId: "0"
+    fileName: "report.pdf"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

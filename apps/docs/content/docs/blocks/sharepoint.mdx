@@ -1,0 +1,70 @@
+---
+title: Sharepoint Block
+description: Read and create pages
+icon: Box
+---
+
+# Sharepoint Block
+
+The Sharepoint block integrates Microsoft SharePoint into your workflows so you can manage pages and discover sites using OAuth authentication. Use it to read existing pages, create new pages, or list the SharePoint sites available to your account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `sharepoint` |
+| **Category** | Tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Create a new SharePoint page with custom content from upstream workflow data
+- Read the contents of an existing page by name or page ID
+- List the SharePoint sites accessible to the connected Microsoft account
+- Publish AI-generated summaries or reports directly to a SharePoint site
+- Pull page content into a workflow for downstream processing or analysis
+
+## Configuration
+
+### Operation
+Dropdown that selects what the block does: **Create Page**, **Read Page**, or **List Sites**. The remaining fields show or hide based on this choice.
+
+### Microsoft Account
+OAuth credential (`oauth-input`) for connecting your Microsoft account. Required scopes include `Files.Read`, `Files.ReadWrite`, and `offline_access`.
+
+### Select Site
+File selector for choosing the target SharePoint site. Available for all operations; falls back to the manual Site ID when not set.
+
+### Page Name
+Short input for the page name. Used by Create Page and Read Page.
+
+### Page ID
+Advanced short input that reads a page by its ID instead of its name (Read Page only).
+
+### Page Content
+Long input holding the body content of the page to create (Create Page only).
+
+### Site ID
+Advanced short input to enter a site ID manually; leave empty to target the root site (Create Page only).
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `pageName` (string), `pageContent` (string), `pageTitle` (string), `pageId` (string), `siteSelector` (string), `manualSiteId` (string), `pageSize` (number)
+- **Outputs**: `sites` (json) — an array of SharePoint site objects, each containing details such as id, name, and more.
+
+## YAML Example
+
+```yaml
+sharepoint_1:
+  type: sharepoint
+  name: "Sharepoint"
+  inputs:
+    operation: "create_page"
+    credential: "{{credentials.sharepoint}}"
+    siteSelector: "{{start.siteId}}"
+    pageName: "Weekly Report"
+    pageContent: "{{agent_1.content}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

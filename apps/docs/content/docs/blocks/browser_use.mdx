@@ -1,0 +1,63 @@
+---
+title: Browser Use Block
+description: Run browser automation tasks
+icon: Box
+---
+
+# Browser Use Block
+
+The Browser Use block executes browser automation tasks with BrowserUse, letting an AI agent navigate the web, scrape data, and perform actions as if a real user were driving the browser. Reach for it when a workflow needs live, interactive web behavior that a simple HTTP request can't accomplish.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `browser_use` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Automate multi-step web interactions (logging in, filling forms, clicking through flows) that require a real browser.
+- Scrape data from sites that render content dynamically with JavaScript.
+- Perform research or data collection tasks described in natural language rather than hardcoded selectors.
+- Drive site actions that depend on session state or browser cookies (enable Save Browser Data to persist it).
+- Run tasks that must reason about page content step by step using an AI model.
+
+## Configuration
+
+### Task
+The natural-language instruction describing what the browser agent should do. Required.
+
+### Variables (Secrets)
+A key/value table of variables (e.g. credentials or dynamic values) passed into the task for substitution.
+
+### Model
+Dropdown selecting the AI model that drives the agent. Options: `gpt-4o`, `gemini-2.0-flash`, `gemini-2.0-flash-lite`, `claude-3-7-sonnet-20250219`, `llama-4-maverick-17b-128e-instruct`.
+
+### Save Browser Data
+Switch to persist browser data (such as session/cookies) from the run.
+
+### API Key
+Your BrowserUse API key, stored as a password field. Required.
+
+## Inputs & Outputs
+
+- **Inputs**: `task` (string), `apiKey` (string), `variables` (json), `model` (string), `save_browser_data` (boolean)
+- **Outputs**: `id` (string), `success` (boolean), `output` (json), `steps` (json)
+
+## YAML Example
+
+```yaml
+browser_use_1:
+  type: browser_use
+  name: "Browser Use"
+  inputs:
+    task: "Go to example.com and extract the page title"
+    model: "gpt-4o"
+    save_browser_data: false
+    apiKey: "{{secrets.BROWSER_USE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

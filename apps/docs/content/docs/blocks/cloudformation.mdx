@@ -1,0 +1,65 @@
+---
+title: CloudFormation Block
+description: Manage AWS CloudFormation stacks and templates
+icon: Box
+---
+
+# CloudFormation Block
+
+The CloudFormation block integrates AWS CloudFormation into your workflows. Use it to describe stacks, list stack resources, inspect stack events, detect drift, fetch templates, and validate templates without leaving the canvas.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `cloudformation` |
+| **Category** | Tools |
+| **Color** | `#B0084D` |
+
+## When to Use
+
+- Fetch the status and details of one or more CloudFormation stacks
+- List the resources managed by a given stack
+- Pull recent stack events to audit deployments or troubleshoot failures
+- Detect configuration drift between a stack and its actual deployed resources
+- Retrieve the deployed template body for a stack
+- Validate a CloudFormation template before deploying it
+
+## Configuration
+
+### Operation
+Dropdown selecting which CloudFormation action to perform: Describe Stacks, List Stack Resources, Describe Stack Events, Detect Stack Drift, Get Template, or Validate Template.
+
+### AWS Region
+The AWS region the stacks live in (for example `us-east-1`). Required.
+
+### Access Key ID / Secret Access Key
+AWS credentials used to authenticate the request. Both are required and stored as secrets.
+
+### Stack Name
+The target stack name. Required for Describe Stacks, List Stack Resources, Describe Stack Events, Detect Stack Drift, and Get Template.
+
+### Template Body
+The CloudFormation template to check. Used only by the Validate Template operation.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `awsRegion` (string), `awsAccessKeyId` (string), `awsSecretAccessKey` (string), `stackName` (string), `templateBody` (string)
+- **Outputs**: `stacks` (json), `resources` (json), `template` (json)
+
+## YAML Example
+
+```yaml
+cloudformation_1:
+  type: cloudformation
+  name: "CloudFormation"
+  inputs:
+    operation: "cloudformation_describe_stacks"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{secrets.AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{secrets.AWS_SECRET_ACCESS_KEY}}"
+    stackName: "my-stack"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

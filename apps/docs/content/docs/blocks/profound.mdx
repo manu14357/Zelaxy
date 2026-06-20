@@ -1,0 +1,69 @@
+---
+title: Profound Block
+description: AI visibility and analytics with Profound
+icon: Box
+---
+
+# Profound Block
+
+The Profound block tracks how your brand appears across AI platforms. Use it to monitor visibility scores, sentiment, citations, bot traffic, referrals, content optimization, and prompt volumes through the Profound API.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `profound` |
+| **Category** | tools |
+| **Color** | `#000000` |
+
+## When to Use
+
+- Measure brand visibility and share of voice across AI answer engines
+- Analyze sentiment and citation share for a category over a date range
+- Track AI bot traffic and referral visits to a domain
+- List and inspect content optimizations and run optimization analyses
+- Retrieve prompt volumes and query fanouts to understand demand trends
+- Pull raw logs or bot logs for a domain for deeper auditing
+
+## Configuration
+
+### Operation
+Dropdown that selects which Profound API call to run (e.g. Visibility Report, Sentiment Report, Citations Report, Bots Report, Referrals Report, List Categories, Optimization Analysis, Prompt Volume). The chosen operation controls which other fields are required.
+
+### API Key
+Your Profound API key (required, stored as a password field).
+
+### Category ID / Domain / Asset ID / Content ID
+Identifiers required depending on the operation. Category-based reports need a Category UUID; domain reports need a domain like `example.com`; optimization operations need an Asset UUID (and a Content/optimization UUID for analysis).
+
+### Start Date / End Date
+Date range (`YYYY-MM-DD`) required for time-series report operations. Both support AI Wand generation.
+
+### Metrics
+Comma-separated metrics for report operations (the relevant metrics field is mapped per operation, e.g. `share_of_voice, visibility_score` for visibility, `positive, negative` for sentiment).
+
+### Advanced (Dimensions, Date Interval, Filters, Limit, Offset, Cursor, Prompt Type)
+Optional refinements: group by dimensions, set a date interval, supply a JSON filter array, paginate with limit/offset/cursor, and filter by prompt type.
+
+## Inputs & Outputs
+
+- **Inputs**: `apiKey` (string), `categoryId` (string), `domain` (string), `inputDomain` (string), `assetId` (string), `contentId` (string), `startDate` (string), `endDate` (string), `metrics` (string), `dimensions` (string), `dateInterval` (string), `filters` (string), `limit` (number), `offset` (number), `cursor` (string), `promptType` (string)
+- **Outputs**: `response` (json) — API response data
+
+## YAML Example
+
+```yaml
+profound_1:
+  type: profound
+  name: "Profound"
+  inputs:
+    operation: "visibility_report"
+    apiKey: "{{secrets.PROFOUND_API_KEY}}"
+    categoryId: "00000000-0000-0000-0000-000000000000"
+    startDate: "2026-01-01"
+    endDate: "2026-01-31"
+    visibilityMetrics: "share_of_voice, visibility_score, mentions_count"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

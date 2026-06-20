@@ -1,0 +1,68 @@
+---
+title: Gamma Block
+description: Generate presentations, documents, and webpages with AI
+icon: Box
+---
+
+# Gamma Block
+
+The Gamma block integrates Gamma into your workflow to generate presentations, documents, webpages, and social posts from text. Use it when you need to turn raw content into polished gammas, create from a template, check generation status, or browse available themes and folders.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `gamma` |
+| **Category** | tools |
+| **Color** | `#002253` |
+
+## When to Use
+
+- Turn a block of text or AI-generated content into a finished presentation, document, or webpage
+- Produce social posts automatically from upstream workflow output
+- Re-use an existing gamma as a template and adapt it with a prompt
+- Poll the status of a long-running generation by its generation ID
+- Look up theme IDs to apply a specific visual style to a generation
+- List folders to organize where generated gammas are stored
+
+## Configuration
+
+### Operation
+Dropdown selecting what the block does: `generate`, `generate_from_template`, `check_status`, `list_themes`, or `list_folders`. The remaining fields are shown based on this selection.
+
+### API Key
+Required Gamma API key (stored as a password field) used to authenticate every operation.
+
+### Input Text
+Required for `generate`. The text content the gamma is generated from. Pair it with **Text Mode** (`generate`, `condense`, `preserve`) and **Format** (`presentation`, `document`, `webpage`, `social`).
+
+### Generation Controls (advanced)
+For `generate`, optional fields tune the output: number of cards, additional instructions, text amount/tone/audience/language, card split and dimensions, and image source/model/style. You can also export the result as PDF or PPTX and assign a theme ID and folder IDs.
+
+### Template Fields
+For `generate_from_template`, supply the required **Template Gamma ID** and a **Prompt** describing how to adapt it.
+
+### Status & Listing
+For `check_status`, supply the required **Generation ID**. For `list_themes` / `list_folders`, optionally filter by **Search Query**, **Limit**, and a pagination cursor (**after**).
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `inputText` (string), `textMode` (string), `format` (string), `numCards` (number), `additionalInstructions` (string), `textAmount` (string), `textTone` (string), `textAudience` (string), `textLanguage` (string), `cardSplit` (string), `cardDimensions` (string), `imageSource` (string), `imageModel` (string), `imageStyle` (string), `exportAs` (string), `themeId` (string), `folderIds` (string), `gammaId` (string), `prompt` (string), `generationId` (string), `query` (string), `limit` (number), `after` (string)
+- **Outputs**: `generationId` (string), `status` (string), `gammaUrl` (string), `credits` (json), `error` (json), `themes` (json), `folders` (json), `hasMore` (boolean), `nextCursor` (string)
+
+## YAML Example
+
+```yaml
+gamma_1:
+  type: gamma
+  name: "Gamma"
+  inputs:
+    operation: "generate"
+    apiKey: "{{GAMMA_API_KEY}}"
+    inputText: "{{start.input}}"
+    format: "presentation"
+    textMode: "generate"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

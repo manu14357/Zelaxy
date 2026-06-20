@@ -1,0 +1,81 @@
+---
+title: Firecrawl Block
+description: Scrape or search the web
+icon: Box
+---
+
+# Firecrawl Block
+
+The Firecrawl block extracts clean, structured content from any website with advanced web scraping, crawls entire sites, or searches the web for information. Reach for it whenever a workflow needs page content, multi-page crawls, or live search results to feed downstream blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `firecrawl` |
+| **Category** | tools |
+| **Color** | `#181C1E` |
+
+## When to Use
+
+- Scrape a single web page and get clean markdown, HTML, and metadata
+- Focus extraction on the main content of a page, stripping nav and boilerplate
+- Crawl an entire website up to a page limit to gather many pages at once
+- Search the web for a query and retrieve structured result data
+- Feed scraped or searched content into an Agent or other downstream block
+- Monitor or ingest external sites as part of an automated pipeline
+
+## Configuration
+
+### Operation
+Dropdown selecting what Firecrawl does: **Scrape** (single page), **Search** (web query), or **Crawl** (multi-page site). Defaults to `scrape`. The remaining fields are shown based on this choice.
+
+### Website URL
+Required for Scrape and Crawl. The target page or site URL to extract.
+
+### Only Main Content
+Switch (Scrape only). When enabled, returns just the primary content of the page, dropping navigation, footers, and other boilerplate.
+
+### Page Limit
+Crawl only. Maximum number of pages to crawl (e.g. `100`).
+
+### Search Query
+Required for Search. The query terms used to search the web.
+
+### API Key
+Required. Your Firecrawl API key (stored securely).
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `apiKey` (string) — Firecrawl API key
+  - `operation` (string) — Operation to perform
+  - `url` (string) — Target website URL
+  - `limit` (string) — Page crawl limit
+  - `query` (string) — Search query terms
+  - `scrapeOptions` (json) — Scraping options
+- **Outputs**:
+  - `markdown` (string) — Page content markdown
+  - `html` (string) — Raw HTML content
+  - `metadata` (json) — Page metadata
+  - `data` (json) — Search results data
+  - `warning` (string) — Warning messages
+  - `pages` (json) — Crawled pages data
+  - `total` (number) — Total pages found
+  - `creditsUsed` (number) — Credits consumed
+
+## YAML Example
+
+```yaml
+firecrawl_1:
+  type: firecrawl
+  name: "Firecrawl"
+  inputs:
+    operation: "scrape"
+    url: "{{start.input}}"
+    onlyMainContent: true
+    apiKey: "{{FIRECRAWL_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

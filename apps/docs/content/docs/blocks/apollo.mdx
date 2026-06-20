@@ -1,0 +1,77 @@
+---
+title: Apollo Block
+description: Search people, enrich contacts, and find organizations in Apollo
+icon: Box
+---
+
+# Apollo Block
+
+The Apollo block brings Apollo.io sales intelligence into your workflows. Use it to search and enrich people, find organizations, and build targeted prospect lists directly from your automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `apollo` |
+| **Category** | tools |
+| **Color** | `#1a1a2e` |
+
+## When to Use
+
+- Search for people by job title, location, or company to build prospect lists.
+- Enrich a known person record using their email address.
+- Search for organizations by name or domain to qualify accounts.
+- Enrich an organization's profile from its domain.
+- Find a verified email address for a contact during outbound prospecting.
+
+## Configuration
+
+### Operation
+
+Selects which Apollo action to run. Options: Search People (`apollo_people_search`), Enrich Person (`apollo_people_enrich`), Search Organizations (`apollo_organization_search`), Enrich Organization (`apollo_organization_enrich`), and Find Email (`apollo_find_email`). Required.
+
+### API Key
+
+Your Apollo API key, stored as a password field. Required.
+
+### Job Titles
+
+JSON array of job titles to filter by (e.g. `["CEO", "CTO"]`). Used with Search People.
+
+### Locations
+
+JSON array of locations to filter by (e.g. `["San Francisco, CA"]`). Used with Search People.
+
+### Organization Names
+
+JSON array of organization names (e.g. `["Apple", "Google"]`). Used with Search People and Search Organizations.
+
+### Email
+
+The email address of the person to enrich or look up. Used with Enrich Person and Find Email.
+
+### Domain
+
+The organization domain (e.g. `example.com`). Used with Enrich Organization and Search Organizations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `personTitles` (json), `personLocations` (json), `organizationNames` (json), `email` (string), `domain` (string)
+- **Outputs**: `people` (json), `organizations` (json), `contacts` (json)
+
+## YAML Example
+
+```yaml
+apollo_1:
+  type: apollo
+  name: "Apollo"
+  inputs:
+    operation: "apollo_people_search"
+    apiKey: "{{secrets.APOLLO_API_KEY}}"
+    personTitles: '["CEO", "CTO"]'
+    personLocations: '["San Francisco, CA"]'
+    organizationNames: '["Apple", "Google"]'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

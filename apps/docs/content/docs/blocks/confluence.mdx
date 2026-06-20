@@ -1,0 +1,68 @@
+---
+title: Confluence Block
+description: Interact with Confluence
+icon: Box
+---
+
+# Confluence Block
+
+The Confluence block connects to Confluence workspaces to retrieve and search documentation. Reach for it when you need to pull page content and metadata into a workflow, or push updates back to a Confluence page.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `confluence` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Read the content and metadata of a Confluence page to feed it into downstream steps.
+- Bring product or internal documentation into an AI agent's context.
+- Update an existing Confluence page's title and content programmatically.
+- Sync workflow-generated output back to a knowledge base page.
+- Automate documentation maintenance triggered by other workflow events.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting what to do: `Read Page` (`read`) or `Update Page` (`update`). Defaults to `read`.
+
+### Domain
+
+The Confluence domain to connect to (for example `zelaxy.atlassian.net`). Required.
+
+### Confluence Account
+
+OAuth credential for the Confluence account, with read/write page scopes. Required.
+
+### Select Page / Page ID
+
+In basic mode, pick a page with the file selector (`pageId`). In advanced mode, enter the page identifier manually (`manualPageId`).
+
+### New Title / New Content
+
+Shown only for the `update` operation: the new `title` and `content` to write to the page.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `domain` (string), `credential` (string), `pageId` (string), `manualPageId` (string), `title` (string), `content` (string)
+- **Outputs**: `ts` (string), `pageId` (string), `content` (string), `title` (string), `success` (boolean)
+
+## YAML Example
+
+```yaml
+confluence_1:
+  type: confluence
+  name: "Confluence"
+  inputs:
+    operation: "read"
+    domain: "zelaxy.atlassian.net"
+    credential: "{{credentials.confluence}}"
+    pageId: "123456"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

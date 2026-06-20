@@ -1,0 +1,74 @@
+---
+title: Linear Block
+description: Read and create issues in Linear
+icon: Box
+---
+
+# Linear Block
+
+The Linear block integrates your workflow with Linear so you can fetch and filter existing issues or create new ones. Reach for it when a workflow needs to pull issue data from a team/project or open issues automatically.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `linear` |
+| **Category** | tools |
+| **Color** | `#5E6AD2` |
+
+## When to Use
+
+- Read open issues from a specific Linear team and project to drive downstream logic.
+- Create a new Linear issue from data produced earlier in the workflow (e.g., a bug report or support ticket).
+- File issues automatically when an upstream condition or trigger fires.
+- Sync issue data into another system after fetching it from Linear.
+- Build triage flows that read issues and route them based on their contents.
+
+## Configuration
+
+### Operation
+
+Choose between **Read Issues** (`read`) and **Create Issue** (`write`). Defaults to `read`.
+
+### Linear Account
+
+OAuth credential for connecting your Linear account (requires `read` and `write` scopes). Required.
+
+### Team
+
+Select a Linear team via the team selector (basic mode), or enter a team ID manually with **Team ID** (advanced mode). A team is required for both operations.
+
+### Project
+
+Select a Linear project via the project selector (basic mode), or enter a project ID manually with **Project ID** (advanced mode). A project is required for both operations.
+
+### Title
+
+The issue title. Required when the operation is **Create Issue**.
+
+### Description
+
+The issue body. Required when the operation is **Create Issue**.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `teamId` (string), `projectId` (string), `manualTeamId` (string), `manualProjectId` (string), `title` (string), `description` (string)
+- **Outputs**: `issues` (json), `issue` (json)
+
+## YAML Example
+
+```yaml
+linear_1:
+  type: linear
+  name: "Linear"
+  inputs:
+    operation: "write"
+    credential: "{{LINEAR_CREDENTIAL}}"
+    teamId: "team_abc123"
+    projectId: "project_xyz789"
+    title: "{{start.input}}"
+    description: "Filed automatically from the workflow"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,74 @@
+---
+title: Perplexity Block
+description: Use Perplexity AI chat models
+icon: Box
+---
+
+# Perplexity Block
+
+The Perplexity block generates completions using Perplexity AI models with real-time knowledge and search capabilities. Reach for it when you need responses, answers, or generated content that benefit from up-to-date web search grounding.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `perplexity` |
+| **Category** | tools |
+| **Color** | `#20808D` |
+
+## When to Use
+
+- Answer questions that require current, real-time information from the web.
+- Generate content or summaries grounded in live search rather than static training data.
+- Run quick research-style prompts where Perplexity's Sonar models add freshness.
+- Drive a conversational response with a custom system prompt to steer tone and behavior.
+- Tune output determinism and length via temperature and max tokens for predictable results.
+
+## Configuration
+
+### System Prompt
+
+Optional instructions that guide the model's behavior and persona.
+
+### User Prompt
+
+The required prompt content sent to the model.
+
+### Model
+
+Dropdown selecting the model to use. Options: Sonar (`sonar`, default), Mistral (`mistral`), Claude-3-Opus (`claude-3-opus`), Claude-3-Sonnet (`claude-3-sonnet`), Command-R (`command-r`), and GPT-4o (`gpt-4o`).
+
+### Temperature
+
+Slider (0–1, default 0.7) controlling response randomness.
+
+### Max Tokens
+
+Optional cap on the number of tokens generated in the response.
+
+### API Key
+
+Your required Perplexity API key (stored securely).
+
+## Inputs & Outputs
+
+- **Inputs**: `content` (string), `systemPrompt` (string), `model` (string), `max_tokens` (string), `temperature` (string), `apiKey` (string)
+- **Outputs**: `content` (string), `model` (string), `usage` (json)
+
+## YAML Example
+
+```yaml
+perplexity_1:
+  type: perplexity
+  name: "Perplexity"
+  inputs:
+    systemPrompt: "You are a concise research assistant."
+    content: {{start.input}}
+    model: "sonar"
+    temperature: 0.7
+    max_tokens: 1024
+    apiKey: "{{PERPLEXITY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

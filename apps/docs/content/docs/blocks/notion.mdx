@@ -1,0 +1,89 @@
+---
+title: Notion Block
+description: Manage Notion pages
+icon: Box
+---
+
+# Notion Block
+
+The Notion block integrates with Notion to read content from pages and databases, append new content, create pages and databases, query databases, and search your workspace. Reach for it when a workflow needs to pull context out of Notion or push results back into it.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `notion` |
+| **Category** | tools |
+| **Color** | `#181C1E` |
+
+## When to Use
+
+- Read the content of a specific Notion page or database into your workflow.
+- Append generated content (summaries, notes, results) to an existing page.
+- Create a new Notion page under a parent page with a title and content.
+- Create a new database under a parent page with custom properties.
+- Query a database with JSON filter and sort criteria, paging through results.
+- Search the workspace for pages and/or databases matching a query.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the action: Read Page (`notion_read`), Read Database (`notion_read_database`), Create Page (`notion_create_page`), Create Database (`notion_create_database`), Append Content (`notion_write`), Query Database (`notion_query_database`), or Search Workspace (`notion_search`). Defaults to Read Page.
+
+### Notion Account
+
+Required OAuth credential connecting the Notion account used to authorize requests.
+
+### Page ID
+
+The target page identifier. Required for Read Page and Append Content operations.
+
+### Database ID
+
+The target database identifier. Required for Read Database and Query Database operations.
+
+### Parent Page ID
+
+ID of the parent page under which a new page or database is created. Required for Create Page and Create Database.
+
+### Title
+
+Title for the new page (Create Page) or new database (Create Database, required).
+
+### Content
+
+The content to add. Required for Append Content and Create Page operations.
+
+### Filter / Sort Criteria / Page Size
+
+JSON filter (required), optional JSON sort array, and result page size for Query Database operations.
+
+### Search Query / Filter Type
+
+Search terms and a Filter Type dropdown (All, Pages Only, Databases Only) for Search Workspace.
+
+### Database Properties
+
+JSON object defining database properties when creating a database.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `pageId` (string), `content` (string), `parentId` (string), `title` (string), `databaseId` (string), `filter` (string), `sorts` (string), `pageSize` (number), `query` (string), `filterType` (string)
+- **Outputs**: `content` (string), `metadata` (json)
+
+## YAML Example
+
+```yaml
+notion_1:
+  type: notion
+  name: "Notion"
+  inputs:
+    operation: "notion_write"
+    credential: "{{credentials.notion}}"
+    pageId: "your-notion-page-id"
+    content: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

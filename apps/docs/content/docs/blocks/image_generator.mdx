@@ -1,0 +1,71 @@
+---
+title: Image Generator Block
+description: Generate images
+icon: Box
+---
+
+# Image Generator Block
+
+The Image Generator block creates high-quality images using OpenAI's image generation models. Reach for it whenever a workflow needs to turn a text prompt into an image, with control over resolution, quality, style, and background.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `image_generator` |
+| **Category** | tools |
+| **Color** | `#C2410C` |
+
+## When to Use
+
+- Generate marketing or social media visuals from a text description
+- Produce illustrations or concept art on demand inside a workflow
+- Create product mockups or hero images for landing pages
+- Generate transparent-background assets (with GPT Image) for compositing
+- Turn upstream AI-generated prompts into finished images automatically
+
+## Configuration
+
+### Model
+Dropdown to choose the generation model: **DALL-E 3** (`dall-e-3`, default) or **GPT Image** (`gpt-image-1`). The available size, quality, style, and background options depend on this selection.
+
+### Prompt
+Required long-input describing the image you want to generate.
+
+### Size
+Dropdown of image dimensions. For DALL-E 3: `1024x1024`, `1024x1792`, `1792x1024`. For GPT Image: `auto`, `1024x1024`, `1536x1024`, `1024x1536`.
+
+### Quality
+DALL-E 3 only. Choose `standard` (default) or `hd`.
+
+### Style
+DALL-E 3 only. Choose `vivid` (default) or `natural`.
+
+### Background
+GPT Image only. Choose `auto` (default), `transparent`, or `opaque`.
+
+### API Key
+Required OpenAI API key used to authorize the generation request.
+
+## Inputs & Outputs
+
+- **Inputs**: `prompt` (string), `model` (string), `size` (string), `quality` (string), `style` (string), `background` (string), `apiKey` (string)
+- **Outputs**: `content` (string), `image` (string), `metadata` (json)
+
+## YAML Example
+
+```yaml
+image_generator_1:
+  type: image_generator
+  name: "Image Generator"
+  inputs:
+    model: "dall-e-3"
+    prompt: "{{start.input}}"
+    size: "1024x1024"
+    quality: "standard"
+    style: "vivid"
+    apiKey: "{{OPENAI_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

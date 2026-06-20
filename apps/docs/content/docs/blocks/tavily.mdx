@@ -1,0 +1,68 @@
+---
+title: Tavily Block
+description: Search and extract information
+icon: Box
+---
+
+# Tavily Block
+
+The Tavily block taps into Tavily's AI-powered search engine to find relevant information from across the web, and can extract and process content from specific URLs with customizable depth. Reach for it when a workflow needs fresh, web-sourced facts or the readable content behind a known link.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `tavily` |
+| **Category** | tools |
+| **Color** | `#F59E0B` |
+
+## When to Use
+
+- Run an AI-optimized web search and feed the results or synthesized answer into a downstream agent.
+- Gather up-to-date information that an LLM's training data would not include.
+- Extract the clean, readable content from a specific URL for summarization or analysis.
+- Pull source titles and URLs to cite or link back to in generated output.
+- Choose between basic and advanced extraction depth depending on how thorough the content parse needs to be.
+
+## Configuration
+
+### Operation
+Dropdown selecting the action: `Search` (`tavily_search`) or `Extract Content` (`tavily_extract`). Defaults to Search.
+
+### Search Query
+Long input for the search terms. Required when the operation is Search.
+
+### Max Results
+Short input limiting the number of search results returned (Search only).
+
+### URL
+Long input for the URL to extract content from. Required when the operation is Extract Content.
+
+### Extract Depth
+Dropdown choosing `basic` or `advanced` extraction depth (Extract Content only). Defaults to basic.
+
+### API Key
+Required, password-protected field holding your Tavily API key.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `query` (string), `maxResults` (number), `urls` (string), `extract_depth` (string)
+- **Outputs**: `results` (json), `answer` (string), `query` (string), `content` (string), `title` (string), `url` (string)
+
+## YAML Example
+
+Use the block's REAL `type` and REAL sub-block ids. This is the workflow YAML format the agent builder uses:
+
+```yaml
+tavily-1:
+  type: tavily
+  name: "Tavily"
+  inputs:
+    operation: "tavily_search"
+    query: {{start.input}}
+    maxResults: 5
+    apiKey: "{{TAVILY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: agent-1
+```

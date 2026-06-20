@@ -1,0 +1,75 @@
+---
+title: Amazon DynamoDB Block
+description: Read, write, and query data in Amazon DynamoDB
+icon: Box
+---
+
+# Amazon DynamoDB Block
+
+The Amazon DynamoDB block integrates AWS DynamoDB into your workflows. Use it to get, put, update, and delete items, run queries and scans against tables, and perform batch writes — all from a single configurable block.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `dynamodb` |
+| **Category** | tools |
+| **Color** | `#4D27A8` |
+
+## When to Use
+
+- Look up a single item by its primary key during a workflow run
+- Persist workflow results by putting or updating items in a table
+- Delete items as part of cleanup or state-management logic
+- Query a table by partition/sort key using a key condition expression
+- Scan a table with an optional filter to find matching records
+- Write or remove many items at once with a batch write operation
+
+## Configuration
+
+### Operation
+Dropdown selecting which DynamoDB action to run: Get Item, Put Item, Update Item, Delete Item, Query, Scan, or Batch Write. The chosen operation determines which additional fields appear.
+
+### AWS Region
+The AWS region your table lives in (e.g. `us-east-1`). Required.
+
+### Access Key ID / Secret Access Key
+AWS credentials used to authenticate the request. Both are required and stored as secrets.
+
+### Table Name
+The name of the DynamoDB table to operate on. Required.
+
+### Primary Key (JSON)
+The item's primary key as JSON. Shown for Get Item, Update Item, and Delete Item operations.
+
+### Item (JSON)
+The full item to write as JSON. Shown for the Put Item operation.
+
+### Key Condition
+The key condition expression (e.g. `pk = :pk`) used for Query operations.
+
+### Filter Expression
+An optional filter expression applied to Scan and Query results.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `awsRegion` (string), `awsAccessKeyId` (string), `awsSecretAccessKey` (string), `tableName` (string), `key` (json), `item` (json), `keyConditionExpression` (string), `filterExpression` (string)
+- **Outputs**: `item` (json), `items` (json), `count` (number)
+
+## YAML Example
+
+```yaml
+dynamodb_1:
+  type: dynamodb
+  name: "Amazon DynamoDB"
+  inputs:
+    operation: "dynamodb_get_item"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{secrets.AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{secrets.AWS_SECRET_ACCESS_KEY}}"
+    tableName: "MyTable"
+    key: '{"pk": "{{start.input}}"}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

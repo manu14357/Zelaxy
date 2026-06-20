@@ -1,0 +1,67 @@
+---
+title: Amplitude Block
+description: Send events, identify users, and query analytics in Amplitude
+icon: Box
+---
+
+# Amplitude Block
+
+The Amplitude block integrates Amplitude product analytics into your workflows. Use it to track events, identify users, search user data, and export analytics directly from a running workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `amplitude` |
+| **Category** | tools |
+| **Color** | `#1B1F3B` |
+
+## When to Use
+
+- Send a custom analytics event (e.g. `button_clicked`) when a workflow step completes.
+- Identify a user and attach user properties to keep Amplitude profiles in sync.
+- Search Amplitude user data to enrich a workflow with profile information.
+- Pull a user's recent activity to drive downstream decisions.
+- Export raw events for reporting or to feed another system.
+
+## Configuration
+
+### Operation
+Dropdown selecting the action to run: Send Event, Identify User, User Search, Get User Activity, or Export Events.
+
+### API Key
+Required Amplitude API key used to authenticate requests (stored as a password field).
+
+### Secret Key
+Amplitude secret key, required for operations that use the Export/analytics APIs.
+
+### Event Type
+Name of the event to record (e.g. `button_clicked`). Shown for the Send Event operation.
+
+### User ID
+Identifier of the user. Shown for Send Event, Identify User, and Get User Activity operations.
+
+### Event Properties (JSON)
+JSON object of properties attached to the event or user. Shown for Send Event and Identify User operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `secretKey` (string), `eventType` (string), `userId` (string), `eventProperties` (string)
+- **Outputs**: `eventId` (string), `user` (json), `activeUsers` (number), `revenue` (number)
+
+## YAML Example
+
+```yaml
+amplitude_1:
+  type: amplitude
+  name: "Amplitude"
+  inputs:
+    operation: "amplitude_send_event"
+    apiKey: "{{secrets.AMPLITUDE_API_KEY}}"
+    eventType: "button_clicked"
+    userId: "{{start.input}}"
+    eventProperties: '{"page": "homepage", "action": "click"}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

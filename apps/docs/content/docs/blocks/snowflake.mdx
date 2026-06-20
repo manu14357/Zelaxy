@@ -1,0 +1,76 @@
+---
+title: Snowflake Block
+description: Connect to Snowflake Data Warehouse and execute SQL operations
+icon: Box
+---
+
+# Snowflake Block
+
+The Snowflake block connects to your Snowflake Data Warehouse to execute SQL queries, insert/update/delete data, manage tables, and run advanced data operations. Reach for it when a workflow needs to read from or write to Snowflake, with support for dynamic schema detection, parameterized queries, bulk loads, and connection pooling.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `snowflake` |
+| **Category** | tools |
+| **Color** | `#29B5E8` |
+
+## When to Use
+
+- Query a Snowflake warehouse and feed results into downstream blocks.
+- Insert, update, or delete rows in Snowflake tables from a workflow.
+- Create, drop, or truncate tables, or run stored procedures.
+- Bulk load data from a stage using CSV, JSON, Parquet, Avro, or XML formats.
+- Inspect schema info or list tables for dynamic, schema-aware automations.
+- Test connectivity to a Snowflake account before running heavier operations.
+
+## Configuration
+
+### Connection Mode
+Choose how to authenticate: `Credentials` (username/password), `OAuth`, or `Key Pair` (RSA private key). The relevant credential fields appear based on this selection.
+
+### Connection Details
+Set the required `Account Name`, `Database`, `Warehouse`, and `Schema`. An optional `Role` lets you assume a specific Snowflake security role.
+
+### Authentication
+For credentials mode, supply `Username` and `Password`. For OAuth, provide the `OAuth Token`. For key pair, provide the `Private Key` and optional `Private Key Passphrase`.
+
+### Operation
+Pick what to run: Execute Query, Insert/Update/Delete Rows, Create/Drop/Truncate Table, Bulk Load, Execute Procedure, Get Schema Info, List Tables, or Test Connection.
+
+### SQL Query
+For query, create_table, drop_table, and truncate operations, enter the SQL to execute (with an AI wand to generate Snowflake-correct SQL).
+
+### Data & Table Fields
+Insert/update/delete operations use `Table Name`, a `Data Mode` (JSON object, key-value pairs, or SQL values), `Insert Data`/`Update Data`, and a `WHERE Clause` where applicable.
+
+### Advanced Options
+Optional toggles for parameterized queries, pagination, retries, connection pooling, schema detection, query logging, and metrics, each with their own tuning sliders.
+
+## Inputs & Outputs
+
+- **Inputs**: `accountName` (string), `database` (string), `warehouse` (string), `schema` (string), `username` (string), `password` (string), `role` (string), `connectionMode` (string), `oauthToken` (string), `privateKey` (string), `privateKeyPassphrase` (string), `clientSessionKeepAlive` (boolean), `connectionTimeout` (number), `queryTimeout` (number), `operation` (string), `sqlQuery` (string), `tableName` (string), `dataMode` (string), `insertData` (json), `updateData` (json), `whereClause` (string), `stageName` (string), `fileFormat` (string), `procedureName` (string), `procedureParams` (json), `useParameterizedQuery` (boolean), `parameters` (json), `outputFormat` (string), `enablePagination` (boolean), `pageSize` (number), `pageNumber` (number), `enableRetry` (boolean), `maxRetries` (number), `retryDelay` (number), `enableConnectionPooling` (boolean), `maxConnections` (number), `enableSchemaDetection` (boolean), `schemaTable` (string), `enableQueryLogging` (boolean), `enableMetrics` (boolean)
+- **Outputs**: `success` (boolean), `data` (json), `rowCount` (number), `executionTime` (number), `queryId` (string), `error` (string), `schema` (json), `tables` (json), `columns` (json), `hasNextPage` (boolean), `totalPages` (number), `currentPage` (number), `connectionInfo` (json), `warehouseInfo` (json), `metrics` (json), `queryLog` (json), `loadStatus` (json)
+
+## YAML Example
+
+```yaml
+snowflake_1:
+  type: snowflake
+  name: "Snowflake"
+  inputs:
+    connectionMode: "credentials"
+    accountName: "mycompany.eu-central-1"
+    database: "ANALYTICS"
+    warehouse: "COMPUTE_WH"
+    schema: "PUBLIC"
+    username: "{{vars.SNOWFLAKE_USER}}"
+    password: "{{vars.SNOWFLAKE_PASSWORD}}"
+    operation: "query"
+    sqlQuery: "SELECT * FROM customers LIMIT 100;"
+    outputFormat: "json"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

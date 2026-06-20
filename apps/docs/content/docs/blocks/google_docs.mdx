@@ -1,0 +1,72 @@
+---
+title: Google Docs Block
+description: Read, write, and create documents
+icon: Box
+---
+
+# Google Docs Block
+
+The Google Docs block integrates Google Docs into your workflow so you can read content from existing documents, write content into them, and create brand-new documents. Reach for it when a workflow needs to pull text out of a doc, append generated content, or produce a new document via OAuth-authenticated Google access.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_docs` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Read the text content of an existing Google Doc to feed it into downstream blocks.
+- Write or append AI-generated or workflow-produced content into a specific document.
+- Create a new document with a title and optional starting content.
+- Save a new document into a chosen Google Drive folder (or the root folder).
+- Reference a document by picking it from a file selector, or by supplying its ID manually in advanced mode.
+
+## Configuration
+
+### Operation
+
+Dropdown to choose what the block does: Read Document (`read`), Write to Document (`write`), or Create Document (`create`). Defaults to `read`.
+
+### Google Account
+
+OAuth credential (`credential`) for the Google account, using the `google-docs` provider with the `drive.file` scope. Required.
+
+### Select Document / Document ID
+
+For read and write operations, pick the target document with the `documentId` file selector (basic mode) or enter the ID directly via `manualDocumentId` (advanced mode).
+
+### Document Title
+
+For the create operation, `title` sets the name of the new document. Required.
+
+### Select Parent Folder / Parent Folder ID
+
+For the create operation, choose a destination with the `folderSelector` file selector (basic mode) or supply `folderId` manually (advanced mode). Leave empty to create in the root folder.
+
+### Content
+
+The `content` long-input holds the text to write (required for write) or the optional starting content for create.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `documentId` (string), `manualDocumentId` (string), `title` (string), `folderSelector` (string), `folderId` (string), `content` (string)
+- **Outputs**: `content` (string), `metadata` (json), `updatedContent` (boolean)
+
+## YAML Example
+
+```yaml
+google_docs_1:
+  type: google_docs
+  name: "Google Docs"
+  inputs:
+    operation: "write"
+    credential: "{{credentials.google_docs}}"
+    documentId: "1AbCdEfGhIjKlMnOpQrStUvWxYz"
+    content: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

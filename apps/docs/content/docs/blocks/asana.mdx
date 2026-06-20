@@ -1,0 +1,77 @@
+---
+title: Asana Block
+description: Manage tasks, projects, and comments in Asana
+icon: Box
+---
+
+# Asana Block
+
+The Asana block integrates Asana project management into your workflows. Use it to create, update, retrieve, and delete tasks, list projects, search tasks, and add comments directly from a workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `asana` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Automatically create an Asana task when a form, email, or upstream block produces actionable work.
+- Update a task's name or notes as a workflow progresses through its steps.
+- Retrieve a specific task by its GID to read its current state before deciding what to do next.
+- Delete a task once it has been resolved or is no longer needed.
+- List all projects to route work into the correct project.
+- Search for tasks within a project by keyword, or add comments to keep collaborators informed.
+
+## Configuration
+
+### Operation
+
+Select what the block does: Get Task, Create Task, Update Task, Delete Task, Get Projects, Search Tasks, or Add Comment. This drives which other fields are shown.
+
+### Asana Account
+
+OAuth credential used to authenticate with Asana (provider `asana`).
+
+### Task GID
+
+Identifier of the task to act on. Shown for Get Task, Update Task, Delete Task, and Add Comment.
+
+### Project GID
+
+Identifier of the project. Shown for Create Task and Search Tasks.
+
+### Task Name
+
+Name of the task. Shown for Create Task and Update Task.
+
+### Notes
+
+Task description or comment body. Shown for Create Task, Update Task, and Add Comment.
+
+### Search Query
+
+Task name or keyword to search for. Shown for Search Tasks.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `oauthCredential` (string), `taskGid` (string), `projectGid` (string), `taskName` (string), `notes` (string), `query` (string)
+- **Outputs**: `task` (json), `tasks` (json), `comment` (json)
+
+## YAML Example
+
+```yaml
+asana_1:
+  type: asana
+  name: "Asana"
+  inputs:
+    operation: "asana_create_task"
+    projectGid: "1234567890"
+    taskName: "Follow up with customer"
+    notes: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

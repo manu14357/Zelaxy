@@ -6,8 +6,10 @@ import { getCopilotModel } from '@/lib/copilot/config'
 import { executeLocalTool, getToolsForMode } from '@/lib/copilot/tools/local-tools'
 import { INTEGRATION_TOOL_DEFS } from '@/lib/copilot/tools/server-tools/actions/integration-tools'
 import { ARENA_EXTRA_TOOL_DEFS } from '@/lib/copilot/tools/server-tools/tables/tables-tools'
+import { getDecryptedEnvironmentVariables } from '@/lib/environment/utils'
 import { createLogger } from '@/lib/logs/console/logger'
 import { getUserEntityPermissions } from '@/lib/permissions/utils'
+import { getProviderApiKeyEnvVar } from '@/lib/providers/api-keys'
 import { saveWorkflowToNormalizedTables } from '@/lib/workflows/db-helpers'
 import { db } from '@/db'
 import { workflow } from '@/db/schema'
@@ -77,6 +79,50 @@ You can:
 When the user asks about data ("how many leads…", "add a row…", "create a table…"), use the table tools. Refer to tables by name.
 
 When the user asks you to create or modify a workflow, ALWAYS use the build_workflow or edit_workflow tool with a complete YAML definition — do not just describe it. After building, briefly summarize what you created and that it has opened in the resource panel for review.
+
+IMPORTANT — use only REAL block types. Before building a workflow, call get_blocks_and_tools to see the valid block types, and get_blocks_metadata for the exact inputs + a YAML example of each block you'll use. Never invent block types. Common ones: 'starter' (trigger), 'agent' (LLM step), 'api' (HTTP request — NOT 'api_call'), 'function' (code), 'condition'/'router' (branching), 'jina'/'firecrawl' (web scraping), 'slack'/'gmail' (messaging), 'knowledge' (RAG search).
+
+The build_workflow YAML MUST be a single document with a top-level \`version\` and a \`blocks\` map (NOT a bare list of blocks). Exact shape:
+
+\`\`\`yaml
+version: "1.0"
+blocks:
+  start:
+    type: starter
+    name: "Start"
+    inputs:
+      startWorkflow: "manual"
+    connections:
+      outgoing:
+        - target: scrape
+  scrape:
+    type: jina
+    name: "Scrape URL"
+    inputs:
+      url: "{{start.input}}"
+    connections:
+      outgoing:
+        - target: summarize
+  summarize:
+    type: agent
+    name: "Summarize"
+    inputs:
+      model: "claude-sonnet-4-6"
+      userPrompt: "Summarize: {{scrape.content}}"
+    connections:
+      outgoing:
+        - target: notify
+  notify:
+    type: slack
+    name: "Post to Slack"
+    inputs:
+      channel: "#general"
+      text: "{{summarize.content}}"
+\`\`\`
+
+Every block lives UNDER \`blocks:\`, keyed by a short id, with \`type\` (a real block type), \`name\`, \`inputs\` (real sub-block ids), and \`connections.outgoing[].target\`. Use the per-block \`yamlExample\` from get_blocks_metadata for each block's inputs.
+
+MODELS: for any agent/router/evaluator block's \`model\`, use ONLY a real Zelaxy model id. Valid ids include: claude-sonnet-4-6 (the default), claude-opus-4-8, claude-haiku-4-5, gpt-5.1, gpt-4o, gemini-3-pro-preview, mimo-v2.5-pro. Do NOT use dated ids (e.g. "claude-sonnet-4-20250514"), provider-prefixed ids (e.g. "anthropic/..."), or models from other platforms — they don't exist here. When unsure, use claude-sonnet-4-6.
 
 Refer to workspace objects by name. Workflows currently in this workspace:
 ${workflowList}
@@ -161,9 +207,17 @@ export async function POST(req: NextRequest) {
   // Honor a user-selected model when it's a known model in the registry; otherwise default.
   const model = body.model && isKnownModel(body.model) ? body.model : defaultModel
   const provider = getProviderFromModel(model) || cfgProvider
+
+  // Load the user's stored Environment Variables and resolve the provider's key from them, so a
+  // key added via the model picker actually takes effect. Also passed into provider execution so
+  // multi-key providers (e.g. Bedrock) and tools can read them.
+  const envVars = await getDecryptedEnvironmentVariables(userId)
+  const keyEnvVar = getProviderApiKeyEnvVar(provider)
+  const userKey = keyEnvVar ? envVars[keyEnvVar] : undefined
+
   let apiKey: string
   try {
-    apiKey = getApiKey(provider, model)
+    apiKey = getApiKey(provider, model, userKey)
   } catch (error) {
     return NextResponse.json(
       {
@@ -201,6 +255,7 @@ export async function POST(req: NextRequest) {
             workflowId,
             userId,
             workspaceId,
+            environmentVariables: envVars,
             isCopilotRequest: true,
           })) as any
 
@@ -246,16 +301,14 @@ export async function POST(req: NextRequest) {
             )
 
             // build_workflow only yields a preview — persist it as a real, openable workflow.
-            if (
-              toolCall.name === 'build_workflow' &&
-              result.success &&
-              result.data?.workflowState
-            ) {
+            // The state may sit at result.data.workflowState (BaseCopilotTool wrap) or top-level.
+            const builtState = result.data?.workflowState ?? (result as any).workflowState
+            if (toolCall.name === 'build_workflow' && result.success && builtState) {
               const created = await persistBuiltWorkflow(
                 workspaceId,
                 userId,
-                result.data.workflowState,
-                result.data?.description
+                builtState,
+                result.data?.description ?? (result as any).description
               )
               if (created) {
                 controller.enqueue(

@@ -1,0 +1,83 @@
+---
+title: Agiloft Block
+description: Create, read, and manage records in Agiloft CLM
+icon: Box
+---
+
+# Agiloft Block
+
+The Agiloft block integrates Agiloft Contract Lifecycle Management into your workflows. Reach for it when you need to create, read, update, or delete records, or run queries across any Agiloft table.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `agiloft` |
+| **Category** | tools |
+| **Color** | `#001028` |
+
+## When to Use
+
+- Create new contract or other records in an Agiloft table from upstream workflow data.
+- Read a specific record by its ID to pull contract details into your workflow.
+- Update fields on an existing record as part of an automated CLM process.
+- Delete a record by ID when cleaning up or retiring data.
+- Run a query against a table (e.g. `status = "Active"`) to retrieve matching records.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the action to perform: Create Record (`agiloft_create_record`), Read Record (`agiloft_read_record`), Update Record (`agiloft_update_record`), Delete Record (`agiloft_delete_record`), or Query Records (`agiloft_query_records`).
+
+### Instance URL
+
+The base URL of your Agiloft instance, e.g. `https://your-instance.agiloft.com`. Required.
+
+### Knowledge Base
+
+The name of the Agiloft knowledge base to operate against. Required.
+
+### Login & Password
+
+The username and password credentials used to authenticate against Agiloft. Both required.
+
+### Table
+
+The Agiloft table to target, e.g. `Contract`. Required.
+
+### Record ID
+
+The ID of the record to act on. Used for Read, Update, and Delete operations.
+
+### Data (JSON)
+
+A JSON object of field values, e.g. `{"field": "value"}`. Used for Create and Update operations.
+
+### Query
+
+A query string, e.g. `status = "Active"`. Used for the Query Records operation.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `instanceUrl` (string), `knowledgeBase` (string), `login` (string), `password` (string), `table` (string), `recordId` (string), `data` (string), `query` (string)
+- **Outputs**: `recordId` (string), `data` (json), `records` (json), `recordCount` (number)
+
+## YAML Example
+
+```yaml
+agiloft_1:
+  type: agiloft
+  name: "Agiloft"
+  inputs:
+    operation: "agiloft_create_record"
+    instanceUrl: "https://your-instance.agiloft.com"
+    knowledgeBase: "KB Name"
+    login: "username"
+    password: "password"
+    table: "Contract"
+    data: '{"name": "{{start.input}}"}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

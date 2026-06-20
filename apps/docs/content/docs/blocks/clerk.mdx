@@ -1,0 +1,68 @@
+---
+title: Clerk Block
+description: Manage users, organizations, and sessions in Clerk
+icon: Box
+---
+
+# Clerk Block
+
+The Clerk block integrates Clerk authentication into your workflows, letting you list and manage users, organizations, and sessions programmatically. Reach for it when a workflow needs to read or mutate authentication data — provisioning users, syncing org membership, or revoking sessions.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `clerk` |
+| **Category** | tools |
+| **Color** | `#131316` |
+
+## When to Use
+
+- List or search your Clerk users to feed downstream automation or reporting.
+- Look up a single user's details by their Clerk user ID.
+- Programmatically create a new Clerk user from an email address captured earlier in the workflow.
+- Update or delete an existing user as part of an account-lifecycle flow.
+- List or fetch organizations, or create a new organization on demand.
+- Audit active sessions or revoke a session for security/sign-out scenarios.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the Clerk action to perform: List Users, Get User, Create User, Update User, Delete User, List Organizations, Get Organization, Create Organization, List Sessions, or Revoke Session.
+
+### Secret Key
+
+Your Clerk secret key (e.g. `sk_live_...`). Stored as a password field; required for every operation.
+
+### User ID
+
+The target Clerk user ID (e.g. `user_xxx`). Shown for Get User, Update User, and Delete User.
+
+### Email Address
+
+The email for the new account (e.g. `user@example.com`). Shown for Create User.
+
+### Search Query
+
+A search term to filter results. Shown for List Users.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `secretKey` (string), `userId` (string), `emailAddress` (string), `query` (string)
+- **Outputs**: `users` (json), `user` (json), `organizations` (json)
+
+## YAML Example
+
+```yaml
+clerk_1:
+  type: clerk
+  name: "Clerk"
+  inputs:
+    operation: "clerk_list_users"
+    secretKey: "{{secrets.CLERK_SECRET_KEY}}"
+    query: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

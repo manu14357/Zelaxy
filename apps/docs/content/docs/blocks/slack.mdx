@@ -1,0 +1,86 @@
+---
+title: Slack Block
+description: Send messages to Slack or trigger workflows from Slack events
+icon: Box
+---
+
+# Slack Block
+
+The Slack block provides a comprehensive Slack integration with OAuth authentication. Use it to send formatted messages with Slack's mrkdwn syntax, create canvases, read channel messages, or trigger workflows from Slack events like mentions and messages.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `slack` |
+| **Category** | tools |
+| **Color** | `#611f69` |
+
+## When to Use
+
+- Send notifications or status updates to a Slack channel as part of a workflow.
+- Post formatted messages using Slack's mrkdwn syntax (alerts, summaries, reports).
+- Create a Slack canvas with a title and markdown content to share rich documents.
+- Read recent messages from a channel to ingest context into downstream blocks.
+- Trigger a workflow from Slack events such as mentions or new messages via webhook.
+- Authenticate with either the managed Zelaxy Bot (OAuth) or your own custom bot token.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting what the block does: `Send Message` (send), `Create Canvas` (canvas), or `Read Messages` (read). Defaults to `send`.
+
+### Authentication Method
+
+Dropdown choosing how to authenticate: `Zelaxy Bot` (oauth) or `Custom Bot` (bot_token). Defaults to `oauth`. Required.
+
+### Slack Account
+
+OAuth credential picker for the Slack workspace (shown when authentication method is `oauth`). Requests scopes for reading channels/history, writing messages, reading users, and writing files/canvases.
+
+### Bot Token
+
+Password field for a Slack bot token (`xoxb-...`), shown when authentication method is `bot_token`.
+
+### Channel
+
+Channel selector (basic mode) for picking the target Slack channel, with a manual `Channel ID` input available in advanced mode (e.g., `C1234567890`).
+
+### Message
+
+Long input for the message text (supports Slack mrkdwn). Required for the `send` operation.
+
+### Canvas Title / Canvas Content
+
+Title (short input) and content (long input, markdown supported) for the `canvas` operation. Both required.
+
+### Message Limit / Oldest Timestamp
+
+For the `read` operation: number of messages to fetch and an ISO 8601 timestamp lower bound.
+
+### Trigger Configuration
+
+When the block runs in trigger mode, configures the `slack_webhook` trigger to start workflows from Slack events.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `authMethod` (string), `credential` (string), `botToken` (string), `channel` (string), `manualChannel` (string), `text` (string), `title` (string), `content` (string), `limit` (string), `oldest` (string)
+- **Outputs**: `ts` (string), `channel` (string), `canvas_id` (string), `title` (string), `messages` (json), `event_type` (string), `channel_name` (string), `user_name` (string), `team_id` (string), `event_id` (string)
+
+## YAML Example
+
+```yaml
+slack_1:
+  type: slack
+  name: "Slack"
+  inputs:
+    operation: "send"
+    authMethod: "oauth"
+    credential: "{{credentials.slack}}"
+    channel: "C1234567890"
+    text: "Deployment finished: {{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

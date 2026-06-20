@@ -1,0 +1,73 @@
+---
+title: Evernote Block
+description: Create, update, and search notes in Evernote
+icon: Box
+---
+
+# Evernote Block
+
+The Evernote block brings note-taking into your workflows. Use it to create, read, update, delete, and search notes, as well as list notebooks in your Evernote account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `evernote` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Automatically create notes from incoming data, summaries, or workflow output.
+- Capture meeting notes, research, or generated content into a notebook.
+- Retrieve a specific note by its GUID to use its contents downstream.
+- Update an existing note's title or content as part of an automation.
+- Search across notes with Evernote's query syntax (e.g. `notebook:Research tag:important`).
+- List available notebooks to drive routing or downstream logic.
+
+## Configuration
+
+### Operation
+
+Selects which action to perform: Create Note, Get Note, Update Note, Delete Note, Search Notes, or List Notebooks.
+
+### Developer Token
+
+The Evernote developer token used to authenticate API requests. Required and stored as a secret.
+
+### Title
+
+The note title. Shown for Create Note and Update Note operations.
+
+### Content
+
+The note body. Shown for Create Note and Update Note operations.
+
+### Note GUID
+
+The identifier of the target note. Shown for Get Note, Update Note, and Delete Note operations.
+
+### Search Query
+
+The Evernote search expression. Shown for the Search Notes operation.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `title` (string), `content` (string), `noteGuid` (string), `query` (string)
+- **Outputs**: `note` (json), `notes` (json), `notebooks` (json)
+
+## YAML Example
+
+```yaml
+evernote_1:
+  type: evernote
+  name: "Evernote"
+  inputs:
+    operation: "evernote_create_note"
+    apiKey: "{{secrets.EVERNOTE_TOKEN}}"
+    title: "Workflow Summary"
+    content: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

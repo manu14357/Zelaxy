@@ -1,0 +1,67 @@
+---
+title: Granola Block
+description: Access meeting notes and transcripts from Granola
+icon: Box
+---
+
+# Granola Block
+
+The Granola block integrates Granola into your workflow to retrieve meeting notes, summaries, attendees, and transcripts. Reach for it when you want to pull meeting context into an agent or downstream automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `granola` |
+| **Category** | tools |
+| **Color** | `#B2C147` |
+
+## When to Use
+
+- Fetch a list of recent meeting notes to feed into a summarization or follow-up workflow.
+- Retrieve a single meeting note by its ID, including attendees and the summary.
+- Include the full meeting transcript when you need verbatim detail for analysis.
+- Filter notes by creation or update date to scope a workflow to a time window.
+- Paginate through large sets of notes using a cursor.
+
+## Configuration
+
+### Operation
+
+Choose what the block does: `List Notes` (`list_notes`) to retrieve multiple notes, or `Get Note` (`get_note`) to fetch a single note. Defaults to `list_notes`.
+
+### API Key
+
+Required Granola API key used to authenticate the request.
+
+### Note ID
+
+Required for the `get_note` operation. The ID of the note to retrieve (e.g., `not_1d3tmYTlCICgjy`).
+
+### Include Transcript
+
+For `get_note`, whether to include the meeting transcript in the response (`true` / `false`, default `false`).
+
+### Date Filters & Pagination
+
+For `list_notes`, optional advanced filters: `Created After`, `Created Before`, `Updated After`, `Page Size` (1-30), and `Cursor` for paginating through results.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `noteId` (string), `includeTranscript` (string), `createdAfter` (string), `createdBefore` (string), `updatedAfter` (string), `pageSize` (number), `cursor` (string)
+- **Outputs**: `notes` (json), `hasMore` (boolean), `cursor` (string), `id` (string), `title` (string), `ownerName` (string), `ownerEmail` (string), `createdAt` (string), `updatedAt` (string), `transcript` (json)
+
+## YAML Example
+
+```yaml
+granola_1:
+  type: granola
+  name: "Granola"
+  inputs:
+    operation: "list_notes"
+    apiKey: "{{GRANOLA_API_KEY}}"
+    pageSize: 10
+  connections:
+    outgoing:
+      - target: agent-block-id
+```

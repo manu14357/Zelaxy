@@ -1,0 +1,69 @@
+---
+title: DocuSign Block
+description: Send envelopes and manage signing in DocuSign
+icon: Box
+---
+
+# DocuSign Block
+
+The DocuSign block integrates DocuSign e-signature into your workflows. Use it to create and send envelopes for signing, retrieve envelope status, list envelopes, generate signing URLs, and void envelopes.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `docusign` |
+| **Category** | tools |
+| **Color** | `#FFBE0F` |
+
+## When to Use
+
+- Create and send an envelope for signature as part of an automated document workflow
+- Check the current status of an envelope (sent, delivered, completed, voided)
+- List envelopes in a DocuSign account for auditing or follow-up
+- Generate a recipient signing URL to embed signing into your own application flow
+- Void an envelope that is no longer needed or was sent in error
+- Trigger downstream actions once a document reaches a particular signing state
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the DocuSign action to perform: Create Envelope, Get Envelope, List Envelopes, Send Envelope, Get Signing URL, or Void Envelope.
+
+### DocuSign Account
+
+OAuth connection to your DocuSign account (`docusign` provider) used to authorize the request.
+
+### Account ID
+
+Required. Your DocuSign account ID under which envelopes are managed.
+
+### Email Subject
+
+The subject line for the signing request email. Shown for Create Envelope and Send Envelope operations.
+
+### Envelope ID
+
+The target envelope identifier. Shown for Get Envelope, Send Envelope, Get Signing URL, and Void Envelope operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `oauthCredential` (string), `accountId` (string), `emailSubject` (string), `envelopeId` (string)
+- **Outputs**: `envelopeId` (string), `status` (string), `signingUrl` (string)
+
+## YAML Example
+
+```yaml
+docusign_1:
+  type: docusign
+  name: "DocuSign"
+  inputs:
+    operation: "docusign_send_envelope"
+    accountId: "{{start.input}}"
+    emailSubject: "Please sign this document"
+    envelopeId: "{{start.envelopeId}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

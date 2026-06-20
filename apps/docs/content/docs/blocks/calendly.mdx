@@ -1,0 +1,69 @@
+---
+title: Calendly Block
+description: Manage event types, scheduled events, and invitees in Calendly
+icon: Box
+---
+
+# Calendly Block
+
+The Calendly block integrates Calendly scheduling into your workflows. Use it to list event types, view scheduled events, manage invitees, and cancel appointments directly from a workflow run.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `calendly` |
+| **Category** | tools |
+| **Color** | `#006BFF` |
+
+## When to Use
+
+- List the event types configured on a Calendly user or organization.
+- Fetch details for a specific event type by its UUID.
+- Retrieve scheduled events for a user or organization.
+- Get the details of a single scheduled event.
+- List the invitees attached to a scheduled event.
+- Cancel an existing appointment programmatically.
+
+## Configuration
+
+### Operation
+
+A dropdown selecting which Calendly action to run: Get Current User, List Event Types, Get Event Type, List Scheduled Events, Get Scheduled Event, List Event Invitees, or Cancel Event. Required.
+
+### Personal Access Token
+
+The Calendly API token used to authenticate requests. Stored as a password field. Required.
+
+### Event Type UUID
+
+The UUID of the event type to target. Shown for the Get Event Type and List Event Invitees operations.
+
+### User URI
+
+The Calendly user URI (e.g. `https://api.calendly.com/users/xxx`). Shown for the List Event Types and List Scheduled Events operations.
+
+### Organization URI
+
+The Calendly organization URI (e.g. `https://api.calendly.com/organizations/xxx`). Shown for the List Scheduled Events operation.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `eventTypeUuid` (string), `user` (string), `organization` (string)
+- **Outputs**: `eventTypes` (json), `events` (json), `invitees` (json)
+
+## YAML Example
+
+```yaml
+calendly_1:
+  type: calendly
+  name: "Calendly"
+  inputs:
+    operation: "calendly_list_scheduled_events"
+    apiKey: "{{secrets.CALENDLY_TOKEN}}"
+    user: "https://api.calendly.com/users/xxx"
+    organization: "https://api.calendly.com/organizations/xxx"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

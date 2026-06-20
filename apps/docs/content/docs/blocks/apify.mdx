@@ -1,0 +1,72 @@
+---
+title: Apify Block
+description: Run web scraping and automation actors on Apify
+icon: Box
+---
+
+# Apify Block
+
+The Apify block integrates Apify web automation into your workflows. Use it to run actors synchronously or asynchronously, extract web data, check run status, and retrieve datasets from completed runs.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `apify` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Scrape web pages or sites by running an Apify actor like `apify/web-scraper`.
+- Run an actor synchronously when you need the extracted data returned within the same step.
+- Run an actor asynchronously for long-running jobs and continue the workflow without blocking.
+- Poll the status of a previously started run with its run ID.
+- Fetch the dataset produced by a completed actor run for downstream processing.
+
+## Configuration
+
+### Operation
+
+Choose what the block does: Run Actor (Sync), Run Actor (Async), Get Run, or Get Dataset.
+
+### API Token
+
+Your Apify API token (stored as a password field). Required for all operations.
+
+### Actor ID
+
+The actor to run, e.g. `apify/web-scraper`. Used by the Run Actor (Sync/Async) operations.
+
+### Actor Input (JSON)
+
+The JSON input passed to the actor, e.g. `{"startUrls": [{"url": "https://example.com"}]}`. Used by the Run Actor operations.
+
+### Memory (MB) / Timeout (s)
+
+Optional resource limits for the actor run. Used by the Run Actor operations.
+
+### Run ID
+
+The ID of an existing run. Used by the Get Run and Get Dataset operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `actorId` (string), `input` (json), `memory` (string), `timeout` (string), `runId` (string)
+- **Outputs**: `data` (json), `datasetId` (string), `status` (string)
+
+## YAML Example
+
+```yaml
+apify1:
+  type: apify
+  name: "Apify"
+  inputs:
+    operation: "apify_run_actor_sync"
+    apiKey: "{{secrets.APIFY_TOKEN}}"
+    actorId: "apify/web-scraper"
+    input: '{"startUrls": [{"url": "https://example.com"}]}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

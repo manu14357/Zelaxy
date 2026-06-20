@@ -1,0 +1,67 @@
+---
+title: 64 Block
+description: Find contact info and enrich leads with 64
+icon: Box
+---
+
+# 64 Block
+
+The 64 block uses the 64 API to find phone numbers and emails for people, and to enrich leads or companies with structured, AI-researched data. Reach for it when you need contact discovery or lead/company intelligence inside a workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `sixtyfour` |
+| **Category** | tools |
+| **Color** | `#000000` |
+
+## When to Use
+
+- Look up a person's phone number from their name, company, or LinkedIn URL
+- Find a professional or personal email for a known contact
+- Enrich a raw lead record into structured fields with AI research
+- Enrich a company by name or domain into structured firmographic data
+- Discover and structure people (e.g. engineering leaders) associated with a company
+- Build a full org chart for a target company
+
+## Configuration
+
+### Operation
+Dropdown selecting what to do: **Find Phone** (`find_phone`), **Find Email** (`find_email`), **Enrich Lead** (`enrich_lead`), or **Enrich Company** (`enrich_company`). Defaults to Find Phone.
+
+### API Key
+Your 64 API key (required, stored securely).
+
+### Contact Fields (Find Phone / Find Email)
+First Name, Last Name, Company, and LinkedIn URL identify the person to look up. For Find Email you can also supply a known Email, Phone, Title, and an Email Mode (Professional or Personal).
+
+### Lead Enrichment (Enrich Lead)
+Lead Info (the raw lead, required) and Lead Output Structure (JSON defining desired output fields, required), plus an optional Research Plan with extra instructions.
+
+### Company Enrichment (Enrich Company)
+Target Company (name or domain, required) and Company Output Structure (required). Toggle Find People to discover associated people, with optional People Focus, Full Org Chart, People Output Structure, and Research Plan.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `firstName` (string), `lastName` (string), `company` (string), `linkedinUrl` (string), `emailInput` (string), `phone` (string), `title` (string), `mode` (string), `leadInfo` (string), `leadStruct` (string), `leadResearchPlan` (string), `targetCompany` (string), `companyStruct` (string), `findPeople` (boolean), `peopleFocusPrompt` (string), `fullOrgChart` (boolean), `companyLeadStruct` (string), `companyResearchPlan` (string)
+- **Outputs**: `result` (json), `phone` (string), `email` (string), `data` (json)
+
+## YAML Example
+
+```yaml
+sixtyfour_1:
+  type: sixtyfour
+  name: "64"
+  inputs:
+    operation: "find_email"
+    apiKey: "{{secrets.SIXTYFOUR_API_KEY}}"
+    firstName: "{{start.firstName}}"
+    lastName: "{{start.lastName}}"
+    company: "{{start.company}}"
+    linkedinUrl: "{{start.linkedinUrl}}"
+    mode: "professional"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

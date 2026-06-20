@@ -1,0 +1,60 @@
+---
+title: A2A Block
+description: Send messages and manage tasks with Agent-to-Agent protocol
+icon: Box
+---
+
+# A2A Block
+
+The A2A block lets you interact with external AI agents using the A2A (Agent-to-Agent) protocol. Use it to send messages, retrieve or cancel task status, fetch an agent's capability card, resubscribe to a stream, and manage push notifications.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `a2a` |
+| **Category** | tools |
+| **Color** | `#4151B5` |
+
+## When to Use
+
+- Send a message to a remote A2A-compatible agent and receive its response
+- Poll the status of a long-running agent task by its task ID
+- Cancel an in-flight agent task you no longer need
+- Discover a remote agent's capabilities by fetching its Agent Card
+- Resubscribe to an existing task's event stream after a disconnect
+- Configure push notifications so an agent can call back on task updates
+
+## Configuration
+
+### Operation
+Dropdown selecting which A2A action to run: **Send Message** (`a2a_send_message`), **Get Task** (`a2a_get_task`), **Cancel Task** (`a2a_cancel_task`), **Get Agent Card** (`a2a_get_agent_card`), **Resubscribe** (`a2a_resubscribe`), or **Set Push Notification** (`a2a_set_push_notification`). Required.
+
+### Agent URL
+The base URL of the target A2A agent (e.g. `https://agent.example.com`). Required for every operation.
+
+### Message
+The message text to send. Shown for the **Send Message** and **Resubscribe** operations.
+
+### Task ID
+The identifier of an existing task. Shown for the **Get Task**, **Cancel Task**, and **Set Push Notification** operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `agentUrl` (string), `message` (string), `taskId` (string)
+- **Outputs**: `content` (string), `taskId` (string), `contextId` (string), `state` (string), `artifacts` (json)
+
+## YAML Example
+
+```yaml
+a2a_1:
+  type: a2a
+  name: "A2A"
+  inputs:
+    operation: "a2a_send_message"
+    agentUrl: "https://agent.example.com"
+    message: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

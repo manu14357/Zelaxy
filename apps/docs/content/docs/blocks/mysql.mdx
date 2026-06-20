@@ -1,0 +1,77 @@
+---
+title: MySQL Block
+description: Execute SQL queries and manage data in MySQL databases
+icon: Box
+---
+
+# MySQL Block
+
+The MySQL block connects to a MySQL database to execute queries and perform full CRUD operations on your data. Reach for it when a workflow needs to read from or write to MySQL, with support for secure SSL connections and parameterized queries.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mysql` |
+| **Category** | tools |
+| **Color** | `#FFFFFF` |
+
+## When to Use
+
+- Run ad-hoc `SELECT` queries to pull records into a workflow for downstream processing.
+- Insert new rows into a table from data produced by an upstream block or agent.
+- Update existing rows that match specific WHERE conditions.
+- Delete rows that match specific WHERE conditions.
+- Persist workflow results or AI-generated output into an application database.
+- Connect to a remote MySQL instance over an SSL/TLS-encrypted connection.
+
+## Configuration
+
+### Connection
+
+Set the **Host**, **Port** (default `3306`), **Database**, **Username**, and **Password** to establish the connection. Toggle **Enable SSL** to use SSL/TLS encryption. The password may be left empty for passwordless/local authentication.
+
+### Action
+
+A dropdown selecting the operation to perform: Execute Query, Insert Data, Update Data, or Delete Data. This choice controls which additional fields are required.
+
+### SQL Query
+
+The raw SQL statement to run. Shown only when the action is Execute Query.
+
+### Table Name
+
+The target table for the operation. Shown for Insert, Update, and Delete actions.
+
+### Data
+
+A JSON object (or array of objects) describing the values to write. Shown for Insert and Update actions.
+
+### Conditions (WHERE clause)
+
+A JSON object defining the WHERE conditions. Shown for Update and Delete actions.
+
+## Inputs & Outputs
+
+- **Inputs**: `host` (string), `port` (number), `database` (string), `username` (string), `password` (string), `ssl` (boolean), `action` (string), `query` (string), `table` (string), `data` (json), `conditions` (json)
+- **Outputs**: `data` (json), `affectedRows` (number), `metadata` (json), `error` (string), `errorDetails` (json)
+
+## YAML Example
+
+```yaml
+mysql_1:
+  type: mysql
+  name: "MySQL"
+  inputs:
+    host: "db.example.com"
+    port: 3306
+    database: "my_database"
+    username: "root"
+    password: "{{SECRET_DB_PASSWORD}}"
+    ssl: true
+    action: "execute"
+    query: "SELECT * FROM users WHERE active = 1"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

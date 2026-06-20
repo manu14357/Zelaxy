@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
+import { getDecryptedEnvironmentVariables } from '@/lib/environment/utils'
 import { createLogger } from '@/lib/logs/console/logger'
+import { getProviderApiKeyEnvVar } from '@/lib/providers/api-keys'
 import { executeProviderRequest } from '@/providers'
 import { DEFAULT_CHAT_MODEL } from '@/providers/models'
 import type { ProviderResponse } from '@/providers/types'
@@ -58,11 +60,13 @@ export async function POST(request: NextRequest) {
   const serviceToken = process.env.INTERNAL_SERVICE_TOKEN
   const isInternal = !!serviceToken && authHeader === `Bearer ${serviceToken}`
 
+  let userId: string | undefined
   if (!isInternal) {
     const session = await getSession()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    userId = session.user.id
   }
 
   let body: ArenaExecuteBody
@@ -83,7 +87,11 @@ export async function POST(request: NextRequest) {
   let result: ProviderResponse
   try {
     const providerId = getProviderFromModel(model)
-    const apiKey = getApiKey(providerId, model)
+    // Resolve the provider key from the user's stored Environment Variables when present.
+    const envVars = userId ? await getDecryptedEnvironmentVariables(userId) : {}
+    const keyEnvVar = getProviderApiKeyEnvVar(providerId)
+    const userKey = keyEnvVar ? envVars[keyEnvVar] : undefined
+    const apiKey = getApiKey(providerId, model, userKey)
 
     const response = await executeProviderRequest(providerId, {
       model,
@@ -93,6 +101,7 @@ export async function POST(request: NextRequest) {
       maxTokens: typeof body.maxTokens === 'number' ? body.maxTokens : undefined,
       apiKey,
       stream: false,
+      environmentVariables: envVars,
     })
 
     // Non-streaming request returns a ProviderResponse.

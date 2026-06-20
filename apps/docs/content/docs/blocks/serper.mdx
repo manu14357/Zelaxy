@@ -1,0 +1,75 @@
+---
+title: Serper Block
+description: Search the web using Serper
+icon: Box
+---
+
+# Serper Block
+
+The Serper block gives your workflow real-time web search results through Serper's Google Search API integration. Reach for it when you need structured, up-to-date search data — web pages, news, images, or places — with control over the result language and region.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `serper` |
+| **Category** | tools |
+| **Color** | `#2B3543` |
+
+## When to Use
+
+- Pull fresh web results to ground an agent's answer in current information.
+- Search recent news articles on a topic for monitoring or summarization.
+- Look up local places and businesses for a given query.
+- Retrieve image search results for a subject.
+- Tailor results to a specific country (e.g. US, GB, DE) and language (e.g. en, es, fr).
+- Cap the number of returned results (10 through 100) to keep downstream processing focused.
+
+## Configuration
+
+### Search Query
+
+The terms to search for. Required free-text input.
+
+### Search Type
+
+Dropdown selecting which Serper index to query: `search`, `news`, `places`, or `images`. Defaults to `search`.
+
+### Number of Results
+
+Dropdown limiting how many results to return: 10, 20, 30, 40, 50, or 100.
+
+### Country
+
+Dropdown for the geographic region (`gl`): US, GB, CA, AU, DE, or FR.
+
+### Language
+
+Dropdown for the result language (`hl`): en, es, fr, de, or it.
+
+### API Key
+
+Your Serper API key. Required and stored as a secret.
+
+## Inputs & Outputs
+
+- **Inputs**: `query` (string), `apiKey` (string), `num` (number), `gl` (string), `hl` (string), `type` (string)
+- **Outputs**: `searchResults` (json)
+
+## YAML Example
+
+```yaml
+serper_1:
+  type: serper
+  name: "Serper"
+  inputs:
+    query: "{{start.input}}"
+    type: "search"
+    num: "10"
+    gl: "US"
+    hl: "en"
+    apiKey: "{{SERPER_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

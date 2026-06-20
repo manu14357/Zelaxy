@@ -1,0 +1,63 @@
+---
+title: Ahrefs Block
+description: Retrieve SEO metrics, backlinks, and keyword data from Ahrefs
+icon: Box
+---
+
+# Ahrefs Block
+
+The Ahrefs block pulls SEO data into your workflows, including domain ratings, backlink profiles, organic keyword rankings, top pages, and referring domains. Reach for it when you need authoritative SEO signals to drive reporting, monitoring, or downstream automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `ahrefs` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Fetch a domain's Ahrefs Domain Rating to gate or score outreach prospects.
+- Pull a backlink profile for a target domain or URL to feed link-audit workflows.
+- Retrieve organic keyword rankings to monitor a site's search visibility over time.
+- List the top-performing pages of a competitor for content-gap analysis.
+- Count or enumerate referring domains to track link-building progress.
+
+## Configuration
+
+### Operation
+Choose which Ahrefs lookup to run: Domain Rating, Backlinks, Organic Keywords, Top Pages, or Referring Domains. Required.
+
+### Target (Domain/URL)
+The domain or URL to analyze (for example, `example.com`). Required.
+
+### Mode
+How the target is interpreted: Domain, Subdomains, Prefix, or Exact.
+
+### Limit
+Maximum number of results to return (for example, `100`).
+
+### Date
+Optional date for historical data, in `YYYY-MM-DD` format.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `target` (string), `mode` (string), `limit` (string), `date` (string)
+- **Outputs**: `domainRating` (number), `backlinks` (json), `refDomains` (number), `keywords` (json)
+
+## YAML Example
+
+```yaml
+ahrefs_1:
+  type: ahrefs
+  name: "Ahrefs"
+  inputs:
+    operation: "ahrefs_domain_rating"
+    target: "{{start.input}}"
+    mode: "domain"
+    limit: "100"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

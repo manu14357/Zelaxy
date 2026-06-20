@@ -1,0 +1,76 @@
+---
+title: Datadog Block
+description: Query metrics, logs, and manage incidents in Datadog
+icon: Box
+---
+
+# Datadog Block
+
+The Datadog block brings observability data into your workflows. Use it to query metrics and logs, list monitors and dashboards, and create or list incidents so automation can react to the health of your infrastructure.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `datadog` |
+| **Category** | tools |
+| **Color** | `#632CA6` |
+
+## When to Use
+
+- Pull time-series metrics (e.g. `avg:system.cpu.user{*}`) into a workflow for alerting or reporting.
+- Search Datadog logs over a time window to drive downstream analysis or notifications.
+- List active monitors to check the current health state of services.
+- Automatically create an incident when an upstream block detects a failure.
+- List existing incidents to summarize or reconcile ongoing issues.
+- Enumerate dashboards for inventory, auditing, or linking purposes.
+
+## Configuration
+
+### Operation
+
+Choose what the block does: Query Metrics, Query Logs, List Monitors, Create Incident, List Incidents, or List Dashboards. Required.
+
+### API Key
+
+Your Datadog API key. Required and stored as a secret.
+
+### Application Key
+
+Your Datadog application key. Required and stored as a secret.
+
+### Site
+
+The Datadog site/region for the API: US1 (datadoghq.com), US3, EU (datadoghq.eu), or US5.
+
+### Query
+
+The query expression. Shown for Query Metrics and Query Logs (e.g. `avg:system.cpu.user{*}`).
+
+### From / To
+
+Unix timestamps bounding the time range. Shown for Query Metrics and Query Logs.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `appKey` (string), `site` (string), `query` (string), `from` (string), `to` (string)
+- **Outputs**: `series` (json), `logs` (json), `monitors` (json)
+
+## YAML Example
+
+```yaml
+datadog_1:
+  type: datadog
+  name: "Datadog"
+  inputs:
+    operation: "datadog_query_metrics"
+    apiKey: "{{secrets.DATADOG_API_KEY}}"
+    appKey: "{{secrets.DATADOG_APP_KEY}}"
+    site: "datadoghq.com"
+    query: "avg:system.cpu.user{*}"
+    from: "1700000000"
+    to: "1700003600"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

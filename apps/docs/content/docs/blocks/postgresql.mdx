@@ -1,0 +1,97 @@
+---
+title: PostgreSQL Block
+description: Execute SQL queries and manage data in PostgreSQL databases
+icon: Box
+---
+
+# PostgreSQL Block
+
+The PostgreSQL block connects to a PostgreSQL database to execute raw SQL queries and perform full CRUD operations (insert, update, delete) on your data. Reach for it when a workflow needs to read from or write to a relational database, with support for secure SSL connections and parameterized queries.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `postgresql` |
+| **Category** | tools |
+| **Color** | `#336791` |
+
+## When to Use
+
+- Run a custom `SELECT` query to pull rows into your workflow for downstream blocks.
+- Insert one or many new records into a table from data produced earlier in the workflow.
+- Update existing rows that match a set of WHERE conditions.
+- Delete rows that match given conditions.
+- Connect to a managed/cloud Postgres instance over SSL/TLS.
+- Persist agent or workflow output into application tables for later retrieval.
+
+## Configuration
+
+### Host
+
+PostgreSQL hostname or IP address (e.g. `localhost` or `db.example.com`). Required.
+
+### Port
+
+PostgreSQL port. Defaults to `5432`.
+
+### Database
+
+Target database name. Required.
+
+### Username
+
+Database username. Required.
+
+### Password
+
+Database password. Leave empty for trust/peer authentication.
+
+### Enable SSL
+
+Switch to use SSL/TLS encryption for the connection.
+
+### Action
+
+Dropdown selecting the operation: Execute Query (`execute`), Insert Data (`insert`), Update Data (`update`), or Delete Data (`delete`). Defaults to `execute`.
+
+### SQL Query
+
+The raw SQL to run. Shown when the action is `execute`. Supports a generation assistant for producing PostgreSQL-correct queries.
+
+### Table Name
+
+Target table for `insert`, `update`, and `delete` actions.
+
+### Data
+
+JSON object (or array of objects) with the values to write. Shown for `insert` and `update` actions.
+
+### Conditions (WHERE clause)
+
+JSON object defining the WHERE conditions. Shown for `update` and `delete` actions.
+
+## Inputs & Outputs
+
+- **Inputs**: `host` (string), `port` (number), `database` (string), `username` (string), `password` (string), `ssl` (boolean), `action` (string), `query` (string), `table` (string), `data` (json), `conditions` (json)
+- **Outputs**: `data` (json), `affectedRows` (number), `metadata` (json), `error` (string), `errorDetails` (json)
+
+## YAML Example
+
+```yaml
+postgresql_1:
+  type: postgresql
+  name: "PostgreSQL"
+  inputs:
+    host: "db.example.com"
+    port: 5432
+    database: "my_database"
+    username: "postgres"
+    password: "{{ENV_DB_PASSWORD}}"
+    ssl: true
+    action: "execute"
+    query: "SELECT * FROM users WHERE active = true"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

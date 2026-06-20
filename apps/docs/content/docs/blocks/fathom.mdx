@@ -1,0 +1,58 @@
+---
+title: Fathom Block
+description: Retrieve meeting transcripts and summaries from Fathom
+icon: Box
+---
+
+# Fathom Block
+
+The Fathom block integrates the Fathom AI meeting recorder into your workflows. Use it to list meetings, retrieve transcripts, and pull AI-generated summaries — handy whenever a workflow needs to act on the contents of recorded calls.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `fathom` |
+| **Category** | tools |
+| **Color** | `#181C1E` |
+
+## When to Use
+
+- List recent meetings to feed downstream processing
+- Retrieve the AI-generated summary of a specific recording
+- Pull the full transcript of a recording for analysis or storage
+- Fetch summaries and transcripts inline while listing meetings
+- List team members or teams for routing or reporting logic
+
+## Configuration
+
+### Operation
+Dropdown selecting the action to perform: **List Meetings** (`fathom_list_meetings`), **Get Summary** (`fathom_get_summary`), **Get Transcript** (`fathom_get_transcript`), **List Team Members** (`fathom_list_team_members`), or **List Teams** (`fathom_list_teams`). Required.
+
+### Recording ID
+The recording identifier. Shown and used when the operation is **Get Summary** or **Get Transcript**.
+
+### Include Summary
+Switch (shown for **List Meetings**) to include each meeting's summary in the listing.
+
+### Include Transcript
+Switch (shown for **List Meetings**) to include each meeting's transcript in the listing.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `recordingId` (string), `includeSummary` (boolean), `includeTranscript` (boolean)
+- **Outputs**: `meetings` (json), `summary` (string), `transcript` (string)
+
+## YAML Example
+
+```yaml
+fathom_1:
+  type: fathom
+  name: "Fathom"
+  inputs:
+    operation: "fathom_get_transcript"
+    recordingId: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

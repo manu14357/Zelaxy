@@ -3,9 +3,32 @@ import { createLogger } from '@/lib/logs/console/logger'
 import { getAllBlocks } from '@/blocks/registry'
 import type { BlockConfig, SubBlockConfig } from '@/blocks/types'
 import { resolveOutputType } from '@/blocks/utils'
+import { DEFAULT_CHAT_MODEL, isKnownModel } from '@/providers/models'
 import { generateLoopBlocks, generateParallelBlocks } from '@/stores/workflows/workflow/utils'
 import { convertYamlToWorkflow, parseWorkflowYaml } from '@/stores/workflows/yaml/importer'
 import { BaseCopilotTool } from '../base'
+
+/**
+ * The workflow-builder LLM often emits model ids from its training data that don't exist in this
+ * Zelaxy install (e.g. "anthropic/claude-sonnet-4-20250514"). Replace any unknown model with a
+ * real one from our registry so built workflows only ever reference models we actually support.
+ * Mutates the blocks record; returns a list of the substitutions made (for warnings).
+ */
+function sanitizeWorkflowModels(blocks: Record<string, any>): string[] {
+  const fixed: string[] = []
+  for (const block of Object.values(blocks)) {
+    const modelSub = block?.subBlocks?.model
+    if (!modelSub || typeof modelSub.value !== 'string') continue
+    const raw = modelSub.value.trim()
+    if (!raw || isKnownModel(raw)) continue
+    // Try stripping a provider prefix (e.g. "anthropic/claude-sonnet-4-6" → "claude-sonnet-4-6").
+    const stripped = raw.includes('/') ? raw.split('/').pop()!.trim() : raw
+    const replacement = isKnownModel(stripped) ? stripped : DEFAULT_CHAT_MODEL
+    modelSub.value = replacement
+    fixed.push(`${block.name || block.type}: replaced unknown model "${raw}" with "${replacement}"`)
+  }
+  return fixed
+}
 
 // Zelaxy Agent API configuration - now optional
 const ZELAXY_AGENT_API_URL = env.ZELAXY_AGENT_API_URL // No fallback - use local converter if not configured
@@ -272,6 +295,10 @@ async function buildWorkflowLocal(
     }
   }
 
+  // Replace any LLM model ids that don't exist in this Zelaxy install with real ones.
+  const modelFixes = sanitizeWorkflowModels(previewWorkflowState.blocks)
+  if (modelFixes.length > 0) logger.info('Sanitized workflow models', { modelFixes })
+
   // Process edges with updated block IDs
   previewWorkflowState.edges = edges.map((edge) => ({
     id: `edge-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -400,6 +427,9 @@ async function buildWorkflowRemote(
       enabled: true,
     }
   }
+
+  // Replace any LLM model ids that don't exist in this Zelaxy install with real ones.
+  sanitizeWorkflowModels(previewWorkflowState.blocks)
 
   // Process edges with updated block IDs
   previewWorkflowState.edges = workflowState.edges.map((edge: any) => ({

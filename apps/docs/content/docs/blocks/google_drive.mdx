@@ -1,0 +1,89 @@
+---
+title: Google Drive Block
+description: Create, upload, and list files
+icon: Box
+---
+
+# Google Drive Block
+
+The Google Drive block integrates Google Drive functionality into your workflow so you can manage files and folders directly. Use it to upload new files, create folders, and list folder contents via OAuth authentication, with support for custom MIME types and folder organization.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_drive` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Upload generated content (text, reports, exported data) as a Google Doc, Sheet, Slides, or PDF.
+- Create a new folder to organize files produced by a workflow run.
+- List files inside a specific folder, optionally filtered by a search query.
+- Save workflow outputs into a chosen parent folder using a selector or a manual folder ID.
+- Programmatically organize Drive contents as part of an automation pipeline.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting what the block does: Create Folder, Upload File, or List Files. Defaults to Create Folder.
+
+### Google Drive Account
+
+Required OAuth credential for the `google-drive` provider (scope `drive.file`) used to authenticate the request.
+
+### File / Folder Name
+
+The name of the file to upload or the folder to create. Required for the Upload File and Create Folder operations.
+
+### Content
+
+The text content to write into the file. Required for the Upload File operation.
+
+### MIME Type
+
+For uploads, the target file type: Google Doc, Google Sheet, Google Slides, or PDF.
+
+### Parent Folder
+
+Choose a parent folder with the file selector (basic mode) or enter a folder ID manually (advanced mode). Leave empty to use the root folder. For List Files, this selects the folder to list.
+
+### Search Query / Results Per Page
+
+For List Files only: an optional query to filter results (e.g. name contains "report") and the number of results per page (default 100, max 1000).
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — operation to perform
+  - `credential` (string) — Google Drive access token
+  - `fileName` (string) — file or folder name
+  - `content` (string) — file content
+  - `mimeType` (string) — file MIME type
+  - `folderSelector` (string) — selected folder
+  - `manualFolderId` (string) — manual folder identifier
+  - `query` (string) — search query
+  - `pageSize` (number) — results per page
+- **Outputs**:
+  - `file` (json) — file data
+  - `files` (json) — files list
+
+## YAML Example
+
+```yaml
+drive_upload:
+  type: google_drive
+  name: "Google Drive"
+  inputs:
+    operation: "upload"
+    credential: "{{credentials.google_drive}}"
+    fileName: "Weekly Report"
+    content: "{{start.input}}"
+    mimeType: "application/vnd.google-apps.document"
+    manualFolderId: ""
+  connections:
+    outgoing:
+      - target: next-block-id
+```

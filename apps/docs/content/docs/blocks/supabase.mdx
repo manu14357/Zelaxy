@@ -1,0 +1,84 @@
+---
+title: Supabase Block
+description: Use Supabase database
+icon: Box
+---
+
+# Supabase Block
+
+The Supabase block lets you read and write rows in your Supabase (Postgres) database directly from a workflow. Reach for it when you need to query, fetch, create, update, or delete records using PostgREST filter syntax.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `supabase` |
+| **Category** | tools |
+| **Color** | `#1C1C1C` |
+
+## When to Use
+
+- Fetch many rows from a table with optional filtering, ordering, and a result limit.
+- Retrieve a single row by its primary key or any matching condition.
+- Insert a new row into a table from JSON data produced earlier in the workflow.
+- Update an existing row that matches a PostgREST filter.
+- Delete a row that matches a PostgREST filter.
+- Integrate database reads/writes into an AI agent or automation pipeline.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting what to do: Get Many Rows (`query`), Get a Row (`get_row`), Create a Row (`insert`), Update a Row (`update`), or Delete a Row (`delete`). Defaults to `query`.
+
+### Project ID
+
+Your Supabase project identifier (e.g. `jdrkgepadsdopsntdlom`). Required.
+
+### Table
+
+Name of the table to operate on. Required.
+
+### Service Role Secret
+
+Your Supabase service role secret key, used to authenticate the request. Required.
+
+### Data
+
+JSON object holding the row's column/value pairs. Shown and required for the `insert` and `update` operations.
+
+### Filter (PostgREST syntax)
+
+PostgREST filter expression such as `id=eq.123`. Required for `get_row`, `update`, and `delete`; optional for `query`.
+
+### Order By
+
+Optional sort column for `query` (append `DESC` for descending).
+
+### Limit
+
+Optional maximum number of rows to return for `query`.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `projectId` (string), `table` (string), `apiKey` (string), `data` (json), `filter` (string), `orderBy` (string), `limit` (number)
+- **Outputs**: `message` (string), `results` (json)
+
+## YAML Example
+
+```yaml
+supabase_1:
+  type: supabase
+  name: "Supabase"
+  inputs:
+    operation: "query"
+    projectId: "jdrkgepadsdopsntdlom"
+    table: "orders"
+    apiKey: "{{SUPABASE_SERVICE_ROLE_KEY}}"
+    filter: "status=eq.active"
+    orderBy: "created_at DESC"
+    limit: 100
+  connections:
+    outgoing:
+      - target: next-block-id
+```

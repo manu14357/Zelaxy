@@ -1,0 +1,76 @@
+---
+title: Devin Block
+description: Launch and monitor AI software engineering sessions in Devin
+icon: Box
+---
+
+# Devin Block
+
+The Devin block integrates the Devin AI software engineer into your workflows. Use it to create coding sessions, send follow-up messages, manage session secrets, and retrieve session snapshots — all driven from a single configurable operation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `devin` |
+| **Category** | tools |
+| **Color** | `#12141A` |
+
+## When to Use
+
+- Kick off an autonomous Devin coding session from a task prompt as part of a workflow.
+- Poll or fetch the status, URL, and details of an existing Devin session.
+- List existing Devin sessions to audit or branch on prior work.
+- Send a follow-up message to steer an in-progress Devin session.
+- Add or delete secrets (e.g. API keys) that a Devin session needs to access external services.
+- Retrieve a snapshot of a session's state for later reference or hand-off.
+
+## Configuration
+
+### Operation
+
+Dropdown that selects what the block does. Options: Create Session (`devin_create_session`), Get Session (`devin_get_session`), List Sessions (`devin_list_sessions`), Send Message (`devin_send_message`), Add Secret (`devin_add_secret`), Delete Secret (`devin_delete_secret`), and Get Snapshot (`devin_get_snapshot`). Required.
+
+### API Key
+
+Your Devin API key, stored as a password field. Required for every operation.
+
+### Task Prompt
+
+The task description for Devin to complete. Shown when the operation is Create Session.
+
+### Session ID
+
+The target session identifier. Shown for Get Session, Send Message, and Get Snapshot.
+
+### Message
+
+The message to send to an active session. Shown for Send Message.
+
+### Secret Name
+
+The name of the secret to add or remove (e.g. `API_KEY`). Shown for Add Secret and Delete Secret.
+
+### Secret Value
+
+The value of the secret to store, kept as a password field. Shown for Add Secret.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `prompt` (string), `sessionId` (string), `message` (string), `secretName` (string), `secretValue` (string)
+- **Outputs**: `sessionId` (string), `status` (string), `url` (string)
+
+## YAML Example
+
+```yaml
+devin_1:
+  type: devin
+  name: "Devin"
+  inputs:
+    operation: "devin_create_session"
+    apiKey: "{{secrets.DEVIN_API_KEY}}"
+    prompt: "Fix the failing unit tests in the auth module"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

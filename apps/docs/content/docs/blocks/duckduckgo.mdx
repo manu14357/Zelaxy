@@ -1,0 +1,64 @@
+---
+title: DuckDuckGo Block
+description: Search the web with DuckDuckGo for privacy-respecting results
+icon: Box
+---
+
+# DuckDuckGo Block
+
+The DuckDuckGo block integrates DuckDuckGo search into your workflows so you can perform web searches, fetch news results, and find images without tracking. Reach for it when a step needs fresh, privacy-respecting search data and you don't want to manage an API key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `duckduckgo` |
+| **Category** | tools |
+| **Color** | `#DE5833` |
+
+## When to Use
+
+- Pull live web results to feed an agent or downstream block with up-to-date context.
+- Search recent news on a topic to summarize or trigger follow-up actions.
+- Find images related to a query for enrichment or display.
+- Add web lookups to a workflow without provisioning a search API credential.
+- Localize results to a specific region using a DuckDuckGo region code.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting which search to run: Web Search (`duckduckgo_text_search`), News Search (`duckduckgo_news_search`), or Image Search (`duckduckgo_images_search`). Required.
+
+### Search Query
+
+The text to search for. Required.
+
+### Max Results
+
+Dropdown capping the number of returned results (5, 10, 20, or 50).
+
+### Region
+
+Optional region code that localizes results (for example, `wt-wt` for no region).
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `query` (string), `maxResults` (string), `region` (string)
+- **Outputs**: `results` (json), `news` (json), `images` (json)
+
+## YAML Example
+
+```yaml
+duckduckgo_search:
+  type: duckduckgo
+  name: "DuckDuckGo"
+  inputs:
+    operation: "duckduckgo_text_search"
+    query: "{{start.input}}"
+    maxResults: "10"
+    region: "wt-wt"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

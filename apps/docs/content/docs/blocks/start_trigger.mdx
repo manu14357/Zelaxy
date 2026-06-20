@@ -1,0 +1,51 @@
+---
+title: Start Block
+description: Unified workflow entry point for chat, manual and API runs
+icon: Box
+---
+
+# Start Block
+
+The Start block is the unified entry point for a workflow. It collects structured inputs and powers manual runs, API executions, and deployed chat experiences from a single block. Reach for it whenever a workflow needs a defined starting point with typed input fields.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `start_trigger` |
+| **Category** | triggers |
+| **Color** | `#34B5FF` |
+
+## When to Use
+
+- Start any workflow that needs a single, consistent entry point
+- Define structured input fields that callers must provide
+- Power manual test runs from the editor
+- Accept API executions with a typed request body
+- Serve deployed chat experiences that share the same input schema
+- Pass user-provided values (input, conversationId, files) downstream to later blocks
+
+## Configuration
+
+### Inputs (Input Format)
+The `inputFormat` sub-block lets you add custom fields beyond the built-in `input`, `conversationId`, and `files` fields. Each custom field becomes part of the workflow's input schema and is available to downstream blocks.
+
+## Inputs & Outputs
+
+- **Inputs**: none declared on the block (`inputs: {}`) — values arrive from the run context (chat, manual, or API) via the configured input format
+- **Outputs**: none declared on the block (`outputs: {}`) — provided fields such as `input`, `conversationId`, and `files` are referenced by downstream blocks
+
+## YAML Example
+
+```yaml
+start:
+  type: start_trigger
+  name: "Start"
+  inputs:
+    inputFormat:
+      - name: "input"
+        type: "string"
+  connections:
+    outgoing:
+      - target: agent-1
+```

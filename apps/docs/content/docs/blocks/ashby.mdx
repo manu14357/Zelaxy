@@ -1,0 +1,61 @@
+---
+title: Ashby Block
+description: Manage candidates and job applications in Ashby ATS
+icon: Box
+---
+
+# Ashby Block
+
+The Ashby block integrates the Ashby applicant tracking system into your workflows. Use it to list and manage candidates, create or update candidate records, and track applications and job postings across your hiring pipeline.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `ashby` |
+| **Category** | tools |
+| **Color** | `#5D4ED6` |
+
+## When to Use
+
+- List candidates from your Ashby ATS to drive downstream automation
+- Look up a single candidate's details by ID
+- Create a new candidate record when a lead or applicant arrives
+- Update an existing candidate's name or email
+- Pull the list of applications to track hiring pipeline stages
+- Fetch open job postings to power routing or notifications
+
+## Configuration
+
+### Operation
+Dropdown selecting the action to perform: List Candidates, Get Candidate, Create Candidate, Update Candidate, List Applications, or Get Job Postings. Required.
+
+### API Key
+Your Ashby API key, stored as a password field. Required for all operations.
+
+### Candidate ID
+The target candidate's ID. Shown for the Get Candidate and Update Candidate operations.
+
+### Name / Email
+Candidate name and email fields. Shown for the Create Candidate and Update Candidate operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `candidateId` (string), `name` (string), `email` (string)
+- **Outputs**: `candidates` (json), `candidate` (json), `applications` (json)
+
+## YAML Example
+
+```yaml
+ashby_1:
+  type: ashby
+  name: "Ashby"
+  inputs:
+    operation: "ashby_create_candidate"
+    apiKey: "{{secrets.ASHBY_API_KEY}}"
+    name: "John Doe"
+    email: "candidate@example.com"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

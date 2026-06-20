@@ -1,0 +1,78 @@
+---
+title: Cloudflare Block
+description: Manage zones, DNS records, and caching in Cloudflare
+icon: Box
+---
+
+# Cloudflare Block
+
+The Cloudflare block integrates Cloudflare into your workflows. Use it to list zones, manage DNS records, configure zone settings, and purge caches directly from an automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `cloudflare` |
+| **Category** | tools |
+| **Color** | `#F48120` |
+
+## When to Use
+
+- List the zones available on your Cloudflare account or look up a single zone's details.
+- Programmatically create, update, or delete DNS records (A, CNAME, MX, TXT) when infrastructure changes.
+- Point a new subdomain at a server by creating a DNS record as part of a provisioning workflow.
+- Purge a zone's cache after deploying updated content so visitors see the latest version.
+- Audit or sync DNS records by reading the current records for a zone.
+
+## Configuration
+
+### Operation
+
+Choose the Cloudflare action to perform: List Zones, Get Zone, List DNS Records, Create DNS Record, Update DNS Record, Delete DNS Record, or Purge Cache. This selection drives which other fields are required.
+
+### API Token
+
+Your Cloudflare API token (stored as a secret). Required for all operations.
+
+### Zone/Record Name
+
+The zone or record name (e.g. `example.com`). Used when listing zones or creating a DNS record.
+
+### Zone ID
+
+The target zone's ID. Used for getting a zone, listing DNS records, creating a DNS record, and purging cache.
+
+### Record ID
+
+The DNS record ID. Used when updating or deleting a DNS record.
+
+### Record Type
+
+The DNS record type (A, CNAME, MX, TXT). Used when creating or updating a DNS record.
+
+### Record Content
+
+The record's value (e.g. `1.2.3.4`). Used when creating or updating a DNS record.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiToken` (string), `name` (string), `zoneId` (string), `recordId` (string), `recordType` (string), `recordContent` (string)
+- **Outputs**: `zones` (json), `dnsRecords` (json)
+
+## YAML Example
+
+```yaml
+cloudflare_1:
+  type: cloudflare
+  name: "Cloudflare"
+  inputs:
+    operation: "cloudflare_create_dns_record"
+    apiToken: "{{secrets.CLOUDFLARE_API_TOKEN}}"
+    zoneId: "{{start.zoneId}}"
+    name: "app.example.com"
+    recordType: "A"
+    recordContent: "1.2.3.4"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

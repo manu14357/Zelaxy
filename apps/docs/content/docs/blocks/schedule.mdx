@@ -1,0 +1,62 @@
+---
+title: Schedule Block
+description: Trigger workflow execution on a schedule
+icon: Box
+---
+
+# Schedule Block
+
+The Schedule block starts a workflow automatically on a recurring timetable. Use it to run workflows at fixed intervals or specific times — minutes, hourly, daily, weekly, monthly, or with a custom cron expression — without any manual or external trigger.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `schedule` |
+| **Category** | triggers |
+| **Color** | `#7B68EE` |
+
+## When to Use
+
+- Run a workflow every X minutes for frequent polling or sync tasks
+- Send a daily report or digest at a fixed time of day
+- Execute weekly jobs on a chosen day (e.g. Monday morning summaries)
+- Run monthly billing, cleanup, or rollup workflows on a set day
+- Drive any recurring automation with a custom cron expression for full control
+- Pin execution to a specific timezone so timed runs fire when you expect
+
+## Configuration
+
+### Schedule Status
+Displays the current schedule configuration and status. The schedule itself is configured through the modal opened from this status display.
+
+### Frequency
+Dropdown (`scheduleType`) selecting how often the workflow runs: Every X Minutes, Hourly, Daily, Weekly, Monthly, or Custom Cron. Defaults to `daily`.
+
+### Timing Fields
+Depending on the selected frequency, you set the relevant value: `minutesInterval` (Every X Minutes), `hourlyMinute` (Hourly), `dailyTime` (Daily), `weeklyDay` + `weeklyDayTime` (Weekly), `monthlyDay` + `monthlyTime` (Monthly), or `cronExpression` (Custom Cron).
+
+### Timezone
+Dropdown (`timezone`) that anchors the schedule to a region (UTC, US Eastern/Central/Mountain/Pacific, London, Paris, Singapore, Tokyo, Sydney). Defaults to `UTC`.
+
+## Inputs & Outputs
+
+- **Inputs**: none — the Schedule block initiates workflows and takes no inputs.
+- **Outputs**: none — the Schedule block starts workflow execution and produces no direct outputs.
+
+## YAML Example
+
+As a trigger, the Schedule block has no incoming connection; it only connects outward to the first block of the workflow.
+
+```yaml
+schedule_1:
+  type: schedule
+  name: "Schedule"
+  inputs:
+    scheduleType: "daily"
+    dailyTime: "09:00"
+    timezone: "UTC"
+  connections:
+    outgoing:
+      - target: agent_1
+```

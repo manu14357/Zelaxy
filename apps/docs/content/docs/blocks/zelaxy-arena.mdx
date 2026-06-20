@@ -1,0 +1,79 @@
+---
+title: ZelaxyArena Block
+description: Stream AI completions via the ZelaxyArena execution engine
+icon: Box
+---
+
+# ZelaxyArena Block
+
+The ZelaxyArena block executes AI model completions through the ZelaxyArena streaming engine. Reach for it when you need multi-turn conversations, system prompts, tool calls, and full token/cost tracking with responses streamed in real time.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `zelaxy-arena` |
+| **Category** | blocks |
+| **Color** | `#7C3AED` |
+
+## When to Use
+
+- Run a model completion and stream the output token-by-token to the UI.
+- Maintain a multi-turn conversation by passing a `conversationId` between runs.
+- Apply system-level instructions to steer the model's behavior.
+- Capture token usage and an estimated cost breakdown for each completion.
+- Inspect tool calls the model makes during a completion.
+- Control output length and randomness via max tokens and temperature.
+
+## Configuration
+
+### Model
+
+The model identifier to use for the completion (e.g. `gpt-4o`). Required.
+
+### Conversation ID
+
+Reuse an existing conversation context to continue a multi-turn exchange; leave blank to start a new conversation.
+
+### System Prompt
+
+Optional system-level instructions that shape how the model responds.
+
+### Messages
+
+A JSON array of message objects, each with `role` and `content` fields. Required.
+
+### Temperature
+
+Sampling temperature from 0 (deterministic) to 2 (creative).
+
+### Max Tokens
+
+Maximum number of tokens to generate in the response.
+
+### Enable Streaming
+
+Toggle to stream the response token-by-token to the UI.
+
+## Inputs & Outputs
+
+- **Inputs**: `model` (string), `conversationId` (string), `systemPrompt` (string), `messages` (json), `temperature` (number), `maxTokens` (number), `stream` (boolean)
+- **Outputs**: `content` (string), `model` (string), `conversationId` (string), `tokens` (json), `toolCalls` (json), `cost` (json)
+
+## YAML Example
+
+```yaml
+arena1:
+  type: zelaxy-arena
+  name: "ZelaxyArena"
+  inputs:
+    model: "gpt-4o"
+    systemPrompt: "You are a helpful assistant."
+    messages: '[{"role": "user", "content": "Hello!"}]'
+    temperature: 0.7
+    maxTokens: 1024
+    stream: true
+  connections:
+    outgoing:
+      - target: next-block-id
+```
