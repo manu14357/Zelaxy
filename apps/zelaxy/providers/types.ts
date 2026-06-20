@@ -175,6 +175,21 @@ export interface ProviderRequest {
   // Base URL override for OpenAI-compatible providers with a user-specific endpoint (vLLM, LiteLLM,
   // self-hosted Baseten deployments).
   baseUrl?: string
+  // Image attachments to send as multimodal vision content alongside the latest user message.
+  attachments?: ProviderAttachment[]
+  // Request native extended thinking. When set on a streaming request to a capable provider, the
+  // returned stream emits NDJSON deltas (`{"reasoning":"..."}` / `{"text":"..."}`) so the caller can
+  // surface real reasoning separately from the answer.
+  thinking?: boolean
+}
+
+/** A multimodal attachment (currently images) sent to vision-capable models. */
+export interface ProviderAttachment {
+  type: 'image'
+  /** Base64 image bytes (no data: prefix) OR a public https URL. */
+  data: string
+  /** e.g. 'image/png', 'image/jpeg'. */
+  mediaType: string
 }
 
 // Map of provider IDs to their configurations

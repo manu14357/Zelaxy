@@ -5,17 +5,21 @@ import {
   type KeyboardEvent,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from 'react'
 import {
   ArrowUp,
+  AtSign,
+  Box,
   FileText,
   Image,
   Loader2,
   MessageCircle,
   Package,
   Paperclip,
+  Workflow,
   X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -23,6 +27,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { useSession } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
 import { useCopilotStore } from '@/stores/copilot/store'
+import type { CopilotChatContext } from '@/stores/copilot/types'
+import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
+import { useWorkflowStore } from '@/stores/workflows/workflow/store'
 
 export interface MessageFileAttachment {
   id: string
@@ -44,7 +51,11 @@ interface AttachedFile {
 }
 
 interface UserInputProps {
-  onSubmit: (message: string, fileAttachments?: MessageFileAttachment[]) => void
+  onSubmit: (
+    message: string,
+    fileAttachments?: MessageFileAttachment[],
+    contexts?: CopilotChatContext[]
+  ) => void
   onAbort?: () => void
   disabled?: boolean
   isLoading?: boolean
@@ -88,6 +99,74 @@ const UserInput = forwardRef<UserInputRef, UserInputProps>(
 
     const { data: session } = useSession()
     const { currentChat, workflowId } = useCopilotStore()
+
+    // ── @-mention contexts ──────────────────────────────────────────────────────
+    const blocks = useWorkflowStore((s) => s.blocks)
+    const workflows = useWorkflowRegistry((s) => s.workflows)
+    const [contexts, setContexts] = useState<CopilotChatContext[]>([])
+    const [mention, setMention] = useState<{ query: string; start: number } | null>(null)
+    const [mentionIndex, setMentionIndex] = useState(0)
+
+    // Candidate mention items = the current workflow's blocks + other workflows, filtered by query.
+    const mentionItems = useMemo<CopilotChatContext[]>(() => {
+      if (!mention) return []
+      const q = mention.query.toLowerCase()
+      const blockItems: CopilotChatContext[] = Object.values(blocks || {})
+        .filter((b: any) => b?.name)
+        .map((b: any) => ({
+          kind: 'workflow_block' as const,
+          id: b.id,
+          label: b.name,
+          blockType: b.type,
+        }))
+      const workflowItems: CopilotChatContext[] = Object.values(workflows || {})
+        .filter((w: any) => w?.name)
+        .map((w: any) => ({ kind: 'workflow' as const, id: w.id, label: w.name }))
+      return [...blockItems, ...workflowItems]
+        .filter((it) => it.label.toLowerCase().includes(q))
+        .slice(0, 8)
+    }, [mention, blocks, workflows])
+
+    const addContext = (item: CopilotChatContext) => {
+      setContexts((prev) =>
+        prev.some((c) => c.kind === item.kind && c.id === item.id) ? prev : [...prev, item]
+      )
+    }
+    const removeContext = (kind: string, id: string) =>
+      setContexts((prev) => prev.filter((c) => !(c.kind === kind && c.id === id)))
+
+    // Replace the active "@query" token in the textarea with nothing and attach the chosen context.
+    const selectMention = (item: CopilotChatContext) => {
+      if (!mention) return
+      const before = message.slice(0, mention.start)
+      const after = message.slice(mention.start + 1 + mention.query.length)
+      const next = `${before}${after}`
+      if (controlledValue !== undefined) onControlledChange?.(next)
+      else setInternalMessage(next)
+      addContext(item)
+      setMention(null)
+      setMentionIndex(0)
+      requestAnimationFrame(() => {
+        const el = textareaRef.current
+        if (el) {
+          el.focus()
+          el.setSelectionRange(before.length, before.length)
+        }
+      })
+    }
+
+    // Detect an active "@token" immediately before the caret (token starts at line start or space).
+    const detectMention = (value: string, caret: number) => {
+      const uptoCaret = value.slice(0, caret)
+      const at = uptoCaret.lastIndexOf('@')
+      if (at === -1) return setMention(null)
+      const charBefore = at === 0 ? '' : uptoCaret[at - 1]
+      if (charBefore && !/\s/.test(charBefore)) return setMention(null)
+      const query = uptoCaret.slice(at + 1)
+      if (/\s/.test(query)) return setMention(null)
+      setMention({ query, start: at })
+      setMentionIndex(0)
+    }
 
     // Expose focus method to parent
     useImperativeHandle(
@@ -282,7 +361,7 @@ const UserInput = forwardRef<UserInputRef, UserInputProps>(
           size: f.size,
         }))
 
-      onSubmit(trimmedMessage, fileAttachments)
+      onSubmit(trimmedMessage, fileAttachments, contexts.length > 0 ? contexts : undefined)
 
       // Clean up preview URLs before clearing
       attachedFiles.forEach((f) => {
@@ -291,13 +370,15 @@ const UserInput = forwardRef<UserInputRef, UserInputProps>(
         }
       })
 
-      // Clear the message and files after submit
+      // Clear the message, files and contexts after submit
       if (controlledValue !== undefined) {
         onControlledChange?.('')
       } else {
         setInternalMessage('')
       }
       setAttachedFiles([])
+      setContexts([])
+      setMention(null)
     }
 
     const handleAbort = () => {
@@ -307,6 +388,29 @@ const UserInput = forwardRef<UserInputRef, UserInputProps>(
     }
 
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      // While the @-mention menu is open, the arrow/enter/tab/escape keys drive the menu.
+      if (mention && mentionItems.length > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          setMentionIndex((i) => (i + 1) % mentionItems.length)
+          return
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          setMentionIndex((i) => (i - 1 + mentionItems.length) % mentionItems.length)
+          return
+        }
+        if (e.key === 'Enter' || e.key === 'Tab') {
+          e.preventDefault()
+          selectMention(mentionItems[mentionIndex])
+          return
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          setMention(null)
+          return
+        }
+      }
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault()
         handleSubmit()
@@ -320,6 +424,7 @@ const UserInput = forwardRef<UserInputRef, UserInputProps>(
       } else {
         setInternalMessage(newValue)
       }
+      detectMention(newValue, e.target.selectionStart ?? newValue.length)
     }
 
     const handleFileSelect = () => {
@@ -408,6 +513,41 @@ const UserInput = forwardRef<UserInputRef, UserInputProps>(
 
     return (
       <div className={cn('relative flex-none px-2 pb-2', className)}>
+        {/* @-mention menu — reference a workflow block or another workflow as context */}
+        {mention && mentionItems.length > 0 && (
+          <div className='absolute right-2 bottom-full left-2 z-20 mb-1 overflow-hidden rounded-lg border border-border bg-popover shadow-md'>
+            <div className='flex items-center gap-1.5 border-border/60 border-b px-2.5 py-1.5 text-[10px] text-muted-foreground'>
+              <AtSign className='h-3 w-3' /> Add context
+            </div>
+            <div className='max-h-52 overflow-auto py-1'>
+              {mentionItems.map((it, i) => (
+                <button
+                  key={`${it.kind}:${it.id}`}
+                  type='button'
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    selectMention(it)
+                  }}
+                  onMouseEnter={() => setMentionIndex(i)}
+                  className={cn(
+                    'flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs transition-colors',
+                    i === mentionIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/60'
+                  )}
+                >
+                  {it.kind === 'workflow_block' ? (
+                    <Box className='h-3.5 w-3.5 flex-shrink-0 text-muted-foreground' />
+                  ) : (
+                    <Workflow className='h-3.5 w-3.5 flex-shrink-0 text-muted-foreground' />
+                  )}
+                  <span className='truncate'>{it.label}</span>
+                  <span className='ml-auto flex-shrink-0 text-[9px] text-muted-foreground/70'>
+                    {it.kind === 'workflow_block' ? it.blockType || 'block' : 'workflow'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div
           className={cn(
             'rounded-lg border border-border bg-background p-1.5 shadow-sm transition-all duration-200 dark:border-border dark:bg-card',
@@ -474,6 +614,35 @@ const UserInput = forwardRef<UserInputRef, UserInputProps>(
                   {/* Hover overlay effect */}
                   <div className='pointer-events-none absolute inset-0 bg-black/10 opacity-0 transition-opacity group-hover:opacity-100' />
                 </div>
+              ))}
+            </div>
+          )}
+
+          {/* Attached context chips */}
+          {contexts.length > 0 && (
+            <div className='mb-1.5 flex flex-wrap gap-1'>
+              {contexts.map((c) => (
+                <span
+                  key={`${c.kind}:${c.id}`}
+                  className='flex items-center gap-1 rounded-md border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] text-foreground'
+                  title={
+                    c.kind === 'workflow_block' ? `Block (${c.blockType || 'block'})` : 'Workflow'
+                  }
+                >
+                  {c.kind === 'workflow_block' ? (
+                    <Box className='h-2.5 w-2.5 text-muted-foreground' />
+                  ) : (
+                    <Workflow className='h-2.5 w-2.5 text-muted-foreground' />
+                  )}
+                  <span className='max-w-[140px] truncate'>{c.label}</span>
+                  <button
+                    type='button'
+                    onClick={() => removeContext(c.kind, c.id)}
+                    className='text-muted-foreground transition-colors hover:text-foreground'
+                  >
+                    <X className='h-2.5 w-2.5' />
+                  </button>
+                </span>
               ))}
             </div>
           )}

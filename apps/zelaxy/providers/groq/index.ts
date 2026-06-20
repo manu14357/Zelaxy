@@ -2,6 +2,7 @@ import { Groq } from 'groq-sdk'
 import { createLogger } from '@/lib/logs/console/logger'
 import { toonEncodeForLLM } from '@/lib/toon/encoder'
 import type { StreamingExecution } from '@/executor/types'
+import { attachImagesToOpenAIMessages } from '@/providers/attachments'
 import { getProviderDefaultModel, getProviderModels } from '@/providers/models'
 import type {
   ProviderConfig,
@@ -75,6 +76,9 @@ export const groqProvider: ProviderConfig = {
     if (request.messages) {
       allMessages.push(...request.messages)
     }
+
+    // Attach any image attachments to the latest user message (multimodal vision).
+    attachImagesToOpenAIMessages(allMessages, request.attachments)
 
     // Transform tools to function format if provided
     const tools = request.tools?.length

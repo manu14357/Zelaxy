@@ -19,6 +19,7 @@ import type {
 import { COPILOT_TOOL_IDS } from '@/stores/copilot/constants'
 import { usePreviewStore } from '@/stores/copilot/preview-store'
 import { useCopilotStore } from '@/stores/copilot/store'
+import type { CopilotChatContext } from '@/stores/copilot/types'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 
 const logger = createLogger('Copilot')
@@ -264,15 +265,20 @@ export const Copilot = forwardRef<CopilotRef, CopilotProps>(({ panelWidth }, ref
 
   // Handle message submission
   const handleSubmit = useCallback(
-    async (query: string, fileAttachments?: MessageFileAttachment[]) => {
+    async (
+      query: string,
+      fileAttachments?: MessageFileAttachment[],
+      contexts?: CopilotChatContext[]
+    ) => {
       if (!query || isSendingMessage || !activeWorkflowId) return
 
       try {
-        await sendMessage(query, { stream: true, fileAttachments })
+        await sendMessage(query, { stream: true, fileAttachments, contexts })
         logger.info(
           'Sent message:',
           query,
-          fileAttachments ? `with ${fileAttachments.length} attachments` : ''
+          fileAttachments ? `with ${fileAttachments.length} attachments` : '',
+          contexts?.length ? `with ${contexts.length} contexts` : ''
         )
       } catch (error) {
         logger.error('Failed to send message:', error)

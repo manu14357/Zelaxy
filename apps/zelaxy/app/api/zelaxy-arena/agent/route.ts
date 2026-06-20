@@ -37,6 +37,10 @@ const BodySchema = z.object({
   model: z.string().optional(),
   // 'agent' (default) takes actions via tools; 'ask' answers/plans without executing anything.
   mode: z.enum(['agent', 'ask']).optional(),
+  // Image attachments sent as multimodal vision content (base64 bytes or https URL).
+  attachments: z
+    .array(z.object({ type: z.literal('image'), data: z.string(), mediaType: z.string() }))
+    .optional(),
 })
 
 const MAX_TOOL_ITERATIONS = 10
@@ -48,7 +52,7 @@ const sse = (event: Record<string, unknown>): Uint8Array =>
  * Build the ZelaxyArena system prompt with a lightweight workspace snapshot so the
  * agent can reference workflows by name (the "zelaxyarena knows your workspace" behavior).
  */
-async function buildSystemPrompt(workspaceId: string): Promise<string> {
+async function buildSystemPrompt(workspaceId: string, nativeThinking = false): Promise<string> {
   let workflowList = '(none yet)'
   try {
     const rows = await db
@@ -63,11 +67,15 @@ async function buildSystemPrompt(workspaceId: string): Promise<string> {
     logger.warn('Failed to load workspace workflow snapshot', { e })
   }
 
+  // With native extended thinking the model reasons in its own channel — only request an explicit
+  // <thinking> block when the provider lacks native reasoning.
+  const reasoningInstruction = nativeThinking
+    ? ''
+    : 'REASONING: for any non-trivial request (building/editing a workflow, multi-step actions, ambiguous asks), first think through your plan briefly inside a single <thinking>…</thinking> block — what the user wants, which blocks/tools to use, the order of steps — then give your answer/actions AFTER the closing tag. Keep the thinking concise. For simple questions you may skip it.\n\n'
+
   return `You are ZelaxyArena, the workspace-wide AI assistant for Zelaxy. You know the user's entire workspace and take action directly on their behalf.
 
-REASONING: for any non-trivial request (building/editing a workflow, multi-step actions, ambiguous asks), first think through your plan briefly inside a single <thinking>…</thinking> block — what the user wants, which blocks/tools to use, the order of steps — then give your answer/actions AFTER the closing tag. Keep the thinking concise. For simple questions you may skip it.
-
-You can:
+${reasoningInstruction}You can:
 - Build and edit workflows from a natural-language description (use the build_workflow / edit_workflow tools).
 - Rename and delete workflows by name (rename_workflow, delete_workflow). Always confirm before deleting.
 - Run a deployed workflow by name (run_workflow) — the workflow must be deployed as an API.
@@ -146,7 +154,7 @@ async function persistBuiltWorkflow(
 ): Promise<{ id: string; name: string } | null> {
   try {
     const id = crypto.randomUUID()
-    const name = (description && description.trim()) || 'Untitled Workflow'
+    const name = description?.trim() || 'Untitled Workflow'
     const now = new Date()
 
     await db.insert(workflow).values({
@@ -232,7 +240,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const systemPrompt = await buildSystemPrompt(workspaceId)
+  const systemPrompt = await buildSystemPrompt(workspaceId, provider === 'anthropic')
   // Ask mode answers and plans without executing anything — withhold tools so the model can't act.
   const mode = body.mode ?? 'agent'
   const tools =
@@ -248,11 +256,109 @@ export async function POST(req: NextRequest) {
     async start(controller) {
       const messages: any[] = [...body.messages]
 
-      try {
-        let iteration = 0
-        let finalContent = ''
+      // Stream a text answer over `msgs`, emitting each token chunk as a `content` event so the
+      // client renders it in realtime (the client appends every `content` event as it arrives).
+      // Tools are withheld so this call only produces text. Falls back to a single `content` event
+      // if the provider returns a non-streaming response. Returns the accumulated text.
+      // Providers that emit native extended-thinking as NDJSON reasoning deltas (see the anthropic
+      // provider). For these we request thinking and split reasoning vs answer into separate events.
+      const useThinking = provider === 'anthropic'
 
-        // Tool-execution loop: call the model, run any tool calls, feed results back.
+      const streamAnswer = async (msgs: any[]): Promise<string> => {
+        const resp: any = await executeProviderRequest(provider, {
+          model,
+          systemPrompt: systemPromptForMode,
+          messages: msgs as any,
+          temperature: 0.4,
+          maxTokens: 8000,
+          apiKey,
+          stream: true,
+          thinking: useThinking,
+          attachments: body.attachments,
+          workflowId,
+          userId,
+          workspaceId,
+          environmentVariables: envVars,
+          isCopilotRequest: true,
+        })
+        const readable: ReadableStream<any> | null =
+          resp instanceof ReadableStream ? resp : (resp?.stream ?? null)
+        if (!readable) {
+          const text = resp?.content ?? resp?.execution?.output?.content ?? ''
+          if (text) controller.enqueue(sse({ type: 'content', data: text }))
+          return text
+        }
+        const reader = readable.getReader()
+        const decoder = new TextDecoder()
+        let acc = ''
+
+        if (useThinking) {
+          // NDJSON stream: one {"reasoning":"…"} or {"text":"…"} per line. Reasoning is surfaced as
+          // a separate `reasoning` event; answer text as `content`. Non-JSON lines fall back to text.
+          let buf = ''
+          const handleLine = (line: string) => {
+            const t = line.trim()
+            if (!t) return
+            try {
+              const obj = JSON.parse(t)
+              if (typeof obj.reasoning === 'string') {
+                controller.enqueue(sse({ type: 'reasoning', data: obj.reasoning }))
+              } else if (typeof obj.text === 'string') {
+                acc += obj.text
+                controller.enqueue(sse({ type: 'content', data: obj.text }))
+              }
+            } catch {
+              acc += line
+              controller.enqueue(sse({ type: 'content', data: line }))
+            }
+          }
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            buf +=
+              typeof value === 'string'
+                ? value
+                : decoder.decode(value as Uint8Array, { stream: true })
+            let nl: number
+            // biome-ignore lint/suspicious/noAssignInExpressions: streaming line split
+            while ((nl = buf.indexOf('\n')) >= 0) {
+              handleLine(buf.slice(0, nl))
+              buf = buf.slice(nl + 1)
+            }
+          }
+          if (buf.trim()) handleLine(buf)
+          return acc
+        }
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          const chunk =
+            typeof value === 'string'
+              ? value
+              : decoder.decode(value as Uint8Array, { stream: true })
+          if (chunk) {
+            acc += chunk
+            controller.enqueue(sse({ type: 'content', data: chunk }))
+          }
+        }
+        return acc
+      }
+
+      try {
+        // Ask mode never calls tools — stream the answer directly (single model call, realtime).
+        if (mode === 'ask') {
+          await streamAnswer(messages)
+          controller.enqueue(sse({ type: 'done' }))
+          controller.close()
+          return
+        }
+
+        let iteration = 0
+
+        // Tool-execution loop: call the model, run any tool calls, feed results back. The model
+        // turn is non-streaming so tool calls are reliable; the FINAL answer (the turn with no tool
+        // calls) is then streamed token-by-token via streamAnswer for realtime output.
         // eslint-disable-next-line no-constant-condition
         while (true) {
           iteration++
@@ -265,6 +371,7 @@ export async function POST(req: NextRequest) {
             apiKey,
             stream: false,
             tools,
+            attachments: body.attachments,
             workflowId,
             userId,
             workspaceId,
@@ -272,11 +379,10 @@ export async function POST(req: NextRequest) {
             isCopilotRequest: true,
           })) as any
 
-          finalContent = response?.content || finalContent
           const toolCalls = Array.isArray(response?.toolCalls) ? response.toolCalls : []
 
           if (toolCalls.length === 0 || iteration > MAX_TOOL_ITERATIONS) {
-            if (finalContent) controller.enqueue(sse({ type: 'content', data: finalContent }))
+            await streamAnswer(messages)
             break
           }
 
@@ -336,7 +442,7 @@ export async function POST(req: NextRequest) {
                   const data = result.data ?? {}
                   const compact = { ...data }
                   // Drop the heavy workflowState from the model context (client uses it, model doesn't need it).
-                  if (compact.workflowState) delete compact.workflowState
+                  if (compact.workflowState) compact.workflowState = undefined
                   return JSON.stringify(compact).slice(0, 4000)
                 })()
               : `Error: ${result.error}`

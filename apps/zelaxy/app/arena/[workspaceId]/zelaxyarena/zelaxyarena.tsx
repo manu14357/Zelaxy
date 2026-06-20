@@ -7,7 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
-import { ArenaComposer } from '@/app/arena/[workspaceId]/zelaxyarena/arena-composer'
+import {
+  ArenaComposer,
+  type ArenaImageAttachment,
+} from '@/app/arena/[workspaceId]/zelaxyarena/arena-composer'
 import {
   ArenaResourcePanel,
   type ConsoleEntry,
@@ -42,6 +45,8 @@ interface ChatMessage {
   /** Enriched content sent to the model (context preamble + parsed attachments); display uses `content`. */
   apiContent?: string
   tools?: ToolAction[]
+  /** Native extended-thinking reasoning streamed from capable models (separate from the answer). */
+  reasoning?: string
 }
 
 const SUGGESTIONS = [
@@ -117,7 +122,7 @@ export function ZelaxyArena() {
 
   // Persist the current conversation (create on first save, update afterward).
   const persistChat = useCallback(async () => {
-    const msgs = messagesRef.current.filter((m) => m.content || (m.tools && m.tools.length))
+    const msgs = messagesRef.current.filter((m) => m.content || m.tools?.length)
     if (msgs.length === 0) return
     const payload = msgs.map((m) => ({ role: m.role, content: m.content, tools: m.tools }))
     try {
@@ -239,7 +244,7 @@ export function ZelaxyArena() {
   }, [keyInputs, missingCreds])
 
   const send = useCallback(
-    async (text: string, apiText?: string) => {
+    async (text: string, apiText?: string, attachments?: ArenaImageAttachment[]) => {
       const trimmed = text.trim()
       if (!trimmed || isStreaming) return
 
@@ -247,7 +252,7 @@ export function ZelaxyArena() {
         id: crypto.randomUUID(),
         role: 'user',
         content: trimmed,
-        apiContent: apiText && apiText.trim() ? apiText : undefined,
+        apiContent: apiText?.trim() ? apiText : undefined,
       }
       const assistantId = crypto.randomUUID()
       const assistantMsg: ChatMessage = {
@@ -277,6 +282,7 @@ export function ZelaxyArena() {
             model,
             mode,
             messages: history.map((m) => ({ role: m.role, content: m.apiContent ?? m.content })),
+            ...(attachments?.length ? { attachments } : {}),
           }),
         })
 
@@ -310,6 +316,11 @@ export function ZelaxyArena() {
 
             if (event.type === 'content') {
               updateAssistant((m) => ({ ...m, content: m.content + (event.data || '') }))
+            } else if (event.type === 'reasoning') {
+              updateAssistant((m) => ({
+                ...m,
+                reasoning: (m.reasoning || '') + (event.data || ''),
+              }))
             } else if (event.type === 'tool_call') {
               const t: ToolAction = {
                 id: event.data?.id || crypto.randomUUID(),
@@ -323,6 +334,7 @@ export function ZelaxyArena() {
                   id: t.id,
                   name: t.name,
                   status: 'running',
+                  startedAt: Date.now(),
                   args: event.data?.arguments
                     ? JSON.stringify(event.data.arguments, null, 2).slice(0, 2000)
                     : undefined,
@@ -348,6 +360,7 @@ export function ZelaxyArena() {
                     ? {
                         ...e,
                         status: event.success ? 'done' : 'error',
+                        endedAt: Date.now(),
                         error: event.error || undefined,
                         result:
                           event.success && event.result
@@ -674,10 +687,14 @@ export function ZelaxyArena() {
                         m.role === 'assistant' ? (
                           (() => {
                             const streamingThis = isStreaming && i === messages.length - 1
-                            const { thinking, text } = splitThinking(m.content)
+                            const parsed = splitThinking(m.content)
+                            // Prefer native extended-thinking reasoning (streamed separately);
+                            // fall back to <thinking> parsed from the answer for prompt-based models.
+                            const thinking = m.reasoning?.length ? m.reasoning : parsed.thinking
+                            const text = parsed.text
                             return (
                               <div className='copilot-markdown text-sm'>
-                                {thinking !== null && (
+                                {thinking && (
                                   <ThinkingBlock
                                     content={thinking}
                                     isActive={streamingThis && text.length === 0}

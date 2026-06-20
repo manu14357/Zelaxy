@@ -61,6 +61,8 @@ export interface SendMessageRequest {
   stream?: boolean
   implicitFeedback?: string
   fileAttachments?: MessageFileAttachment[]
+  // @-mention context refs (workflow blocks / workflows / knowledge). Inlined into the LLM prompt.
+  contexts?: Array<{ kind: string; id: string; label: string; blockType?: string }>
   abortSignal?: AbortSignal
   provider?: string // LLM provider selection
   model?: string // LLM model selection
