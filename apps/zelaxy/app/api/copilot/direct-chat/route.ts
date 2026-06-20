@@ -12,12 +12,81 @@ import { ASK_MODE_SYSTEM_PROMPT, ENHANCED_DIRECT_CHAT_PROMPT } from '@/lib/copil
 import { executeLocalTool, getToolsForMode } from '@/lib/copilot/tools/local-tools'
 import { createLogger } from '@/lib/logs/console/logger'
 import { toonEncodeForLLM } from '@/lib/toon/encoder'
+import { downloadFile } from '@/lib/uploads'
+import { downloadFromS3WithConfig } from '@/lib/uploads/s3/s3-client'
+import { S3_COPILOT_CONFIG, USE_S3_STORAGE } from '@/lib/uploads/setup'
 import { getRotatingApiKey } from '@/lib/utils'
+import { bufferToBase64 } from '@/app/api/copilot/chat/file-utils'
 import { db } from '@/db'
 import { copilotChats } from '@/db/schema'
 import { executeProviderRequest } from '@/providers'
+import type { ProviderAttachment } from '@/providers/types'
 
 const logger = createLogger('DirectCopilotAPI')
+
+/**
+ * Pump a provider response stream to the SSE client, accumulating and returning the answer text.
+ * When `thinking`, the provider stream is NDJSON ({"reasoning":"…"} / {"text":"…"}) — reasoning is
+ * forwarded as `reasoning` events and answer text as `content`; otherwise raw chunks are `content`.
+ */
+async function pumpProviderStream(
+  readable: ReadableStream,
+  thinking: boolean,
+  controller: ReadableStreamDefaultController,
+  encoder: TextEncoder
+): Promise<string> {
+  const reader = readable.getReader()
+  const decoder = new TextDecoder()
+  let acc = ''
+  const send = (obj: unknown) =>
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`))
+
+  if (thinking) {
+    let buf = ''
+    const handleLine = (line: string) => {
+      const t = line.trim()
+      if (!t) return
+      try {
+        const obj = JSON.parse(t)
+        if (typeof obj.reasoning === 'string') {
+          send({ type: 'reasoning', data: obj.reasoning })
+        } else if (typeof obj.text === 'string') {
+          acc += obj.text
+          send({ type: 'content', data: obj.text })
+        }
+      } catch {
+        acc += line
+        send({ type: 'content', data: line })
+      }
+    }
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buf +=
+        typeof value === 'string' ? value : decoder.decode(value as Uint8Array, { stream: true })
+      let nl = buf.indexOf('\n')
+      while (nl >= 0) {
+        handleLine(buf.slice(0, nl))
+        buf = buf.slice(nl + 1)
+        nl = buf.indexOf('\n')
+      }
+    }
+    if (buf.trim()) handleLine(buf)
+    return acc
+  }
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    const chunk =
+      typeof value === 'string' ? value : decoder.decode(value as Uint8Array, { stream: true })
+    if (chunk) {
+      acc += chunk
+      send({ type: 'content', data: chunk })
+    }
+  }
+  return acc
+}
 
 // Schema for file attachments
 const FileAttachmentSchema = z.object({
@@ -41,6 +110,17 @@ const DirectChatMessageSchema = z.object({
   model: z.string().min(1, 'Model is required'),
   customApiKey: z.string().optional(), // Optional custom API key from user
   fileAttachments: z.array(FileAttachmentSchema).optional(),
+  // @-mention context refs — inlined into the LLM prompt, not the saved message.
+  contexts: z
+    .array(
+      z.object({
+        kind: z.string(),
+        id: z.string(),
+        label: z.string(),
+        blockType: z.string().optional(),
+      })
+    )
+    .optional(),
 })
 
 /**
@@ -70,6 +150,7 @@ export async function POST(req: NextRequest) {
       model,
       customApiKey,
       fileAttachments,
+      contexts,
     } = DirectChatMessageSchema.parse(body)
 
     logger.info(`[${tracker.requestId}] Processing direct copilot chat request`, {
@@ -137,6 +218,41 @@ export async function POST(req: NextRequest) {
       role: 'user',
       content: message,
     })
+
+    // Inline @-mention context into the LLM's copy of the user message. The original `message` stays
+    // clean for display + persistence; only the model sees the referenced blocks/workflows.
+    if (contexts && contexts.length > 0) {
+      const lines = contexts.map((c) => {
+        if (c.kind === 'workflow_block') {
+          return `- Block "${c.label}"${c.blockType ? ` (type: ${c.blockType})` : ''} in the current workflow`
+        }
+        if (c.kind === 'workflow') return `- Workflow "${c.label}"`
+        if (c.kind === 'knowledge') return `- Knowledge base "${c.label}"`
+        return `- ${c.label}`
+      })
+      messages[messages.length - 1].content =
+        `[Referenced context]\n${lines.join('\n')}\n\n${message}`
+    }
+
+    // Download any image attachments and pass them to the model as multimodal vision content.
+    const imageAttachments: ProviderAttachment[] = []
+    if (fileAttachments && fileAttachments.length > 0) {
+      for (const att of fileAttachments) {
+        if (!att.media_type?.startsWith('image/')) continue
+        try {
+          const buf = USE_S3_STORAGE
+            ? await downloadFromS3WithConfig(att.s3_key, S3_COPILOT_CONFIG)
+            : await downloadFile(att.s3_key)
+          imageAttachments.push({
+            type: 'image',
+            data: bufferToBase64(buf),
+            mediaType: att.media_type,
+          })
+        } catch {
+          logger.warn(`[${tracker.requestId}] Failed to load image attachment ${att.filename}`)
+        }
+      }
+    }
 
     logger.info(`[${tracker.requestId}] Calling ${provider} provider directly`, {
       model,
@@ -239,6 +355,11 @@ export async function POST(req: NextRequest) {
     // (build_workflow / edit_workflow were never invoked). Plain Q&A with no tools still streams.
     const useStream = stream && !hasTools
 
+    // Providers that emit native extended-thinking as NDJSON reasoning deltas (anthropic). When the
+    // call streams, we request thinking and split reasoning vs answer into separate SSE events so the
+    // copilot can render a real reasoning block (mirrors ZelaxyArena).
+    const useThinking = provider === 'anthropic'
+
     // Call the provider directly with tools support for both modes
     const providerResponse = await executeProviderRequest(provider as any, {
       model,
@@ -248,8 +369,10 @@ export async function POST(req: NextRequest) {
       maxTokens: 4000,
       apiKey: apiKey,
       stream: useStream,
+      ...(useStream && useThinking ? { thinking: true } : {}),
       // Include tools for both modes
       ...(hasTools && { tools }),
+      ...(imageAttachments.length ? { attachments: imageAttachments } : {}),
       workflowId,
       userId: authenticatedUserId,
       isCopilotRequest: true,
@@ -294,23 +417,13 @@ export async function POST(req: NextRequest) {
           }
 
           try {
-            const reader = actualStream.getReader()
-            const decoder = new TextDecoder()
-
-            while (true) {
-              const { done, value } = await reader.read()
-              if (done) break
-
-              const chunk = decoder.decode(value, { stream: true })
-              assistantContent += chunk
-
-              // Forward the chunk to the client
-              const event = `data: ${JSON.stringify({
-                type: 'content',
-                data: chunk,
-              })}\n\n`
-              controller.enqueue(encoder.encode(event))
-            }
+            // Forward the provider stream — reasoning vs answer split when thinking is enabled.
+            assistantContent = await pumpProviderStream(
+              actualStream,
+              useThinking,
+              controller,
+              encoder
+            )
 
             // Send completion event
             controller.enqueue(encoder.encode('data: {"type": "done"}\n\n'))
@@ -644,8 +757,55 @@ export async function POST(req: NextRequest) {
               controller.enqueue(encoder.encode(toolResultEvent))
             }
 
-            // Send final content from LLM
-            if (finalContent) {
+            // Final answer. For thinking-capable providers, regenerate it as a streaming pass with
+            // native reasoning so the copilot renders a real thinking block; the reasoning + answer
+            // arrive as separate events. Otherwise emit the buffered answer in a single event.
+            if (useThinking) {
+              try {
+                const finalResp: any = await executeProviderRequest(provider as any, {
+                  model,
+                  messages: conversationMessages as any,
+                  systemPrompt,
+                  temperature: 0.7,
+                  maxTokens: 4000,
+                  apiKey,
+                  stream: true,
+                  thinking: true,
+                  workflowId,
+                  userId: authenticatedUserId,
+                  isCopilotRequest: true,
+                })
+                const finalReadable: ReadableStream | null =
+                  finalResp instanceof ReadableStream ? finalResp : (finalResp?.stream ?? null)
+                if (finalReadable) {
+                  const streamed = await pumpProviderStream(
+                    finalReadable,
+                    true,
+                    controller,
+                    encoder
+                  )
+                  if (streamed.trim()) finalContent = streamed
+                } else if (finalContent) {
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({ type: 'content', data: finalContent })}\n\n`
+                    )
+                  )
+                }
+              } catch (finalErr) {
+                logger.warn(
+                  `[${tracker.requestId}] Final streaming answer failed, falling back to buffered content`,
+                  { finalErr }
+                )
+                if (finalContent) {
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({ type: 'content', data: finalContent })}\n\n`
+                    )
+                  )
+                }
+              }
+            } else if (finalContent) {
               const contentEvent = `data: ${JSON.stringify({
                 type: 'content',
                 data: finalContent,

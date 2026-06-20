@@ -668,6 +668,7 @@ function finalizeToolCall(
 interface StreamingContext {
   messageId: string
   accumulatedContent: StringBuilder // Use StringBuilder for efficient concatenation
+  accumulatedReasoning: StringBuilder // Native extended-thinking reasoning (streamed separately)
   toolCalls: any[]
   contentBlocks: any[]
   currentTextBlock: any | null
@@ -802,6 +803,14 @@ const sseHandlers: Record<string, SSEHandler> = {
   },
 
   // Handle content events - OPTIMIZED
+  // Native extended-thinking reasoning — accumulated + surfaced as a collapsible block,
+  // kept separate from the answer content.
+  reasoning: (data, context, get, set) => {
+    if (!data.data) return
+    context.accumulatedReasoning.append(data.data)
+    updateStreamingMessage(set, context)
+  },
+
   content: (data, context, get, set) => {
     if (!data.data) return
 
@@ -1297,6 +1306,9 @@ function updateStreamingMessage(set: any, context: StreamingContext) {
             newMessages[messages.length - 1] = {
               ...lastMessage,
               content: '', // Don't use accumulated content for display
+              reasoning: lastMessageUpdate.accumulatedReasoning?.size
+                ? lastMessageUpdate.accumulatedReasoning.toString()
+                : lastMessage.reasoning,
               toolCalls: mergedToolCalls.length > 0 ? mergedToolCalls : [],
               contentBlocks:
                 mergedContentBlocks.length > 0
@@ -1322,6 +1334,9 @@ function updateStreamingMessage(set: any, context: StreamingContext) {
                 return {
                   ...msg,
                   content: '', // Don't use accumulated content for display
+                  reasoning: update.accumulatedReasoning?.size
+                    ? update.accumulatedReasoning.toString()
+                    : msg.reasoning,
                   toolCalls: mergedToolCalls.length > 0 ? mergedToolCalls : [],
                   contentBlocks:
                     mergedContentBlocks.length > 0
@@ -1734,7 +1749,7 @@ export const useCopilotStore = create<CopilotStore>()(
       // Send a message
       sendMessage: async (message: string, options = {}) => {
         const { workflowId, currentChat, mode, revertState } = get()
-        const { stream = true, fileAttachments } = options
+        const { stream = true, fileAttachments, contexts } = options
 
         if (!workflowId) {
           logger.warn('Cannot send message: no workflow ID set')
@@ -1843,6 +1858,7 @@ export const useCopilotStore = create<CopilotStore>()(
               createNewChat: !currentChat,
               stream,
               fileAttachments: options.fileAttachments,
+              contexts,
               abortSignal: abortController.signal,
               provider: llmSelection.selectedProvider,
               model: llmSelection.selectedModel,
@@ -1868,6 +1884,7 @@ export const useCopilotStore = create<CopilotStore>()(
               createNewChat: !currentChat,
               stream,
               fileAttachments: options.fileAttachments,
+              contexts,
               abortSignal: abortController.signal,
               provider: llmSelection.selectedProvider,
               model: llmSelection.selectedModel,
@@ -2645,6 +2662,7 @@ export const useCopilotStore = create<CopilotStore>()(
         const context: StreamingContext = {
           messageId,
           accumulatedContent: new StringBuilder(),
+          accumulatedReasoning: new StringBuilder(),
           toolCalls: [],
           contentBlocks: [],
           currentTextBlock: null,
@@ -2663,6 +2681,9 @@ export const useCopilotStore = create<CopilotStore>()(
           if (existingMessage) {
             if (existingMessage.content) {
               context.accumulatedContent.append(existingMessage.content)
+            }
+            if (existingMessage.reasoning) {
+              context.accumulatedReasoning.append(existingMessage.reasoning)
             }
             context.toolCalls = existingMessage.toolCalls ? [...existingMessage.toolCalls] : []
             context.contentBlocks = existingMessage.contentBlocks
@@ -2738,6 +2759,9 @@ export const useCopilotStore = create<CopilotStore>()(
                 return {
                   ...msg,
                   content: finalContent, // Set final content for non-streaming display
+                  reasoning: context.accumulatedReasoning.size
+                    ? context.accumulatedReasoning.toString()
+                    : msg.reasoning,
                   toolCalls: mergedToolCalls,
                   contentBlocks: mergedContentBlocks,
                 }

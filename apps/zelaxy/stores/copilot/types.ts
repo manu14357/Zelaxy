@@ -83,6 +83,7 @@ export interface CopilotMessage {
   toolCalls?: CopilotToolCall[]
   contentBlocks?: ContentBlock[] // New chronological content structure
   fileAttachments?: MessageFileAttachment[] // File attachments
+  reasoning?: string // Native extended-thinking reasoning, streamed separately from content
 }
 
 /**
@@ -140,11 +141,24 @@ export interface CreateChatOptions {
 }
 
 /**
+ * A @-mention reference the user attached to a message (a workflow block, another workflow, or a
+ * knowledge base). Inlined into the LLM prompt as context; never shown in the saved message text.
+ */
+export interface CopilotChatContext {
+  kind: 'workflow_block' | 'workflow' | 'knowledge'
+  id: string
+  label: string
+  /** For a workflow_block: the block's type (e.g. 'gmail', 'agent'). */
+  blockType?: string
+}
+
+/**
  * Options for sending messages
  */
 export interface SendMessageOptions {
   stream?: boolean
   fileAttachments?: MessageFileAttachment[]
+  contexts?: CopilotChatContext[]
 }
 
 /**

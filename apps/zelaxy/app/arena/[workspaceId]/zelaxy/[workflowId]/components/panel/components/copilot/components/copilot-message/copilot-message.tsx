@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { InlineToolCall } from '@/lib/copilot/tools/inline-tool-call'
 import { createLogger } from '@/lib/logs/console/logger'
+import { ThinkingBlock } from '@/app/arena/[workspaceId]/zelaxyarena/thinking-block'
 import { usePreviewStore } from '@/stores/copilot/preview-store'
 import { useCopilotStore } from '@/stores/copilot/store'
 import type { CopilotMessage as CopilotMessageType } from '@/stores/copilot/types'
@@ -676,6 +677,20 @@ const CopilotMessage: FC<CopilotMessageProps> = memo(
       return (
         <div className='w-full max-w-full overflow-hidden py-1.5 pl-[2px]'>
           <div className='max-w-full space-y-1.5 text-xs transition-all duration-200 ease-in-out'>
+            {/* Native extended-thinking reasoning, surfaced as a collapsible block above the answer */}
+            {message.reasoning?.trim() && (
+              <ThinkingBlock
+                content={message.reasoning}
+                isActive={Boolean(
+                  isStreaming &&
+                    !message.content?.trim() &&
+                    !message.contentBlocks?.some(
+                      (block) => block.type === 'text' && block.content?.trim()
+                    )
+                )}
+              />
+            )}
+
             {/* Content blocks in chronological order */}
             {memoizedContentBlocks}
 

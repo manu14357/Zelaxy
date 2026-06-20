@@ -1,6 +1,7 @@
 import { createLogger } from '@/lib/logs/console/logger'
 import { toonEncodeForLLM } from '@/lib/toon/encoder'
 import type { StreamingExecution } from '@/executor/types'
+import { toGoogleImageParts } from '@/providers/attachments'
 import { getProviderDefaultModel, getProviderModels } from '@/providers/models'
 import type {
   ProviderConfig,
@@ -1155,6 +1156,16 @@ function convertToGeminiFormat(request: ProviderRequest): {
           parts: [{ text: `Function result: ${message.content}` }],
         })
       }
+    }
+  }
+
+  // Attach image attachments to the latest user message's parts (multimodal vision).
+  if (request.attachments?.length) {
+    const imageParts = toGoogleImageParts(request.attachments)
+    if (imageParts.length) {
+      const lastUser = [...contents].reverse().find((c) => c.role === 'user')
+      if (lastUser) lastUser.parts.push(...imageParts)
+      else contents.push({ role: 'user', parts: imageParts })
     }
   }
 

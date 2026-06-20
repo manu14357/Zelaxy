@@ -21,6 +21,25 @@ export interface ArenaAttachment {
   previewUrl?: string
   uploading: boolean
   extractedText?: string
+  /** Base64 image bytes (no data: prefix) for images — sent to the model as vision content. */
+  base64?: string
+}
+
+/** Image attachment payload sent to the agent route for multimodal vision. */
+export interface ArenaImageAttachment {
+  type: 'image'
+  data: string
+  mediaType: string
+}
+
+/** Read a File's bytes as base64 (without the data: URL prefix). */
+function readAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result).split(',')[1] || '')
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
 }
 
 const TYPE_ICON: Record<ArenaContext['type'], typeof Workflow> = {
@@ -43,7 +62,7 @@ export function ArenaComposer({
 }: {
   workspaceId: string
   isStreaming: boolean
-  onSend: (displayText: string, apiText: string) => void
+  onSend: (displayText: string, apiText: string, attachments?: ArenaImageAttachment[]) => void
   onStop: () => void
 }) {
   const [text, setText] = useState('')
@@ -128,6 +147,12 @@ export function ArenaComposer({
           const data = await res.json()
           const info = data.files ? data.files[0] : data
 
+          // For images, read the bytes as base64 so they can be sent to the model as vision.
+          let base64: string | undefined
+          if (file.type.startsWith('image/')) {
+            base64 = await readAsBase64(file).catch(() => undefined)
+          }
+
           let extractedText: string | undefined
           if (info?.path && !file.type.startsWith('image/')) {
             try {
@@ -147,7 +172,14 @@ export function ArenaComposer({
           setAttachments((prev) =>
             prev.map((a) =>
               a.id === id
-                ? { ...a, uploading: false, key: info?.key, path: info?.path, extractedText }
+                ? {
+                    ...a,
+                    uploading: false,
+                    key: info?.key,
+                    path: info?.path,
+                    extractedText,
+                    base64,
+                  }
                 : a
             )
           )
@@ -181,7 +213,14 @@ export function ArenaComposer({
     const displayText =
       trimmed +
       (attachments.length ? `\n\n${attachments.map((a) => `📎 ${a.name}`).join('  ')}` : '')
-    onSend(displayText || '(see attachments)', apiText)
+    const imageAttachments: ArenaImageAttachment[] = attachments
+      .filter((a) => a.base64)
+      .map((a) => ({ type: 'image', data: a.base64!, mediaType: a.type }))
+    onSend(
+      displayText || '(see attachments)',
+      apiText,
+      imageAttachments.length ? imageAttachments : undefined
+    )
     setText('')
     setContexts([])
     setAttachments([])

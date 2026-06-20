@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createLogger } from '@/lib/logs/console/logger'
 import { toonEncodeForLLM } from '@/lib/toon/encoder'
 import type { StreamingExecution } from '@/executor/types'
+import { toAnthropicImageBlocks } from '@/providers/attachments'
 import { executeTool } from '@/tools'
 import { getProviderDefaultModel, getProviderModels } from '../models'
 import type { ProviderConfig, ProviderRequest, ProviderResponse, TimeSegment } from '../types'
@@ -21,6 +22,35 @@ function createReadableStreamFromAnthropicStream(
         for await (const event of anthropicStream) {
           if (event.type === 'content_block_delta' && event.delta?.text) {
             controller.enqueue(new TextEncoder().encode(event.delta.text))
+          }
+        }
+        controller.close()
+      } catch (err) {
+        controller.error(err)
+      }
+    },
+  })
+}
+
+/**
+ * Like the above, but for extended-thinking requests: emits NDJSON deltas so the caller can surface
+ * real reasoning separately from the answer. `thinking_delta` events become `{"reasoning":"..."}`
+ * and `text_delta` events become `{"text":"..."}`, one JSON object per line.
+ */
+function createThinkingNdjsonStream(anthropicStream: AsyncIterable<any>): ReadableStream {
+  const enc = new TextEncoder()
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const event of anthropicStream) {
+          if (event.type !== 'content_block_delta') continue
+          const d = event.delta
+          if (d?.type === 'thinking_delta' && d.thinking) {
+            controller.enqueue(enc.encode(`${JSON.stringify({ reasoning: d.thinking })}\n`))
+          } else if (d?.type === 'text_delta' && d.text) {
+            controller.enqueue(enc.encode(`${JSON.stringify({ text: d.text })}\n`))
+          } else if (d?.text) {
+            controller.enqueue(enc.encode(`${JSON.stringify({ text: d.text })}\n`))
           }
         }
         controller.close()
@@ -111,6 +141,21 @@ export const anthropicProvider: ProviderConfig = {
       })
       // Clear system prompt since we've used it as a user message
       systemPrompt = ''
+    }
+
+    // Attach image attachments to the latest user message (multimodal vision).
+    if (request.attachments?.length) {
+      const blocks = toAnthropicImageBlocks(request.attachments)
+      if (blocks.length) {
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (messages[i]?.role === 'user') {
+            const c = messages[i].content
+            const arr = Array.isArray(c) ? c : c ? [{ type: 'text', text: c }] : []
+            messages[i] = { ...messages[i], content: [...arr, ...blocks] }
+            break
+          }
+        }
+      }
     }
 
     // Transform tools to Anthropic format if provided
@@ -282,11 +327,18 @@ ${fieldDescriptions}
       const providerStartTime = Date.now()
       const providerStartTimeISO = new Date(providerStartTime).toISOString()
 
-      // Create a streaming request
-      const streamResponse: any = await anthropic.messages.create({
-        ...payload,
-        stream: true,
-      })
+      // Create a streaming request. When extended thinking is requested, enable it (Anthropic
+      // requires temperature=1 and max_tokens > thinking budget) and stream reasoning as NDJSON.
+      const useThinking = !!request.thinking
+      const createParams: any = { ...payload, stream: true }
+      if (useThinking) {
+        const maxTokens = typeof payload.max_tokens === 'number' ? payload.max_tokens : 8000
+        const budget = Math.max(1024, Math.min(8000, maxTokens - 1024))
+        createParams.thinking = { type: 'enabled', budget_tokens: budget }
+        createParams.max_tokens = Math.max(maxTokens, budget + 2048)
+        createParams.temperature = 1
+      }
+      const streamResponse: any = await anthropic.messages.create(createParams)
 
       // Start collecting token usage
       const tokenUsage = {
@@ -297,7 +349,9 @@ ${fieldDescriptions}
 
       // Create a StreamingExecution response with a readable stream
       const streamingResult = {
-        stream: createReadableStreamFromAnthropicStream(streamResponse),
+        stream: useThinking
+          ? createThinkingNdjsonStream(streamResponse)
+          : createReadableStreamFromAnthropicStream(streamResponse),
         execution: {
           success: true,
           output: {
