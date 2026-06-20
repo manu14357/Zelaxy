@@ -5,6 +5,7 @@ import { devtools } from 'zustand/middleware'
 import { type CopilotChat, sendDirectMessage, sendStreamingMessage } from '@/lib/copilot/api'
 import { toolRegistry } from '@/lib/copilot/tools'
 import { createLogger } from '@/lib/logs/console/logger'
+import { DEFAULT_CHAT_MODEL } from '@/providers/models'
 import { COPILOT_TOOL_DISPLAY_NAMES } from '@/stores/constants'
 import { COPILOT_TOOL_IDS } from './constants'
 import type {
@@ -1806,7 +1807,7 @@ export const useCopilotStore = create<CopilotStore>()(
           // NOTE: Default model must match DEFAULT_COPILOT_CONFIG in lib/copilot/config.ts
           const isCustomSelection =
             llmSelection.selectedProvider !== 'anthropic' ||
-            llmSelection.selectedModel !== 'claude-3-7-sonnet-latest'
+            llmSelection.selectedModel !== DEFAULT_CHAT_MODEL
 
           // CRITICAL: Agent mode should ALWAYS use the agent API for tool access
           // Only use direct-chat for Ask mode with custom providers
@@ -2163,7 +2164,7 @@ export const useCopilotStore = create<CopilotStore>()(
           // Check if user has selected a custom provider/model
           const isCustomSelection =
             llmSelection.selectedProvider !== 'anthropic' ||
-            llmSelection.selectedModel !== 'claude-3-5-sonnet-20241022'
+            llmSelection.selectedModel !== DEFAULT_CHAT_MODEL
 
           let result
           if (isCustomSelection && llmSelection.selectedProvider && llmSelection.selectedModel) {

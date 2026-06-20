@@ -16,6 +16,7 @@ import {
   DeepseekIcon,
   GeminiIcon,
   GroqIcon,
+  MiMoIcon,
   NvidiaIcon,
   OllamaIcon,
   OpenAIIcon,
@@ -86,6 +87,18 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
           cachedInput: 0.125,
           output: 10.0,
           updatedAt: '2025-08-07',
+        },
+        capabilities: {
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'gpt-5.1',
+        pricing: {
+          input: 1.25,
+          cachedInput: 0.125,
+          output: 10.0,
+          updatedAt: '2025-11-13',
         },
         capabilities: {
           toolUsageControl: true,
@@ -397,12 +410,77 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     icon: AnthropicIcon,
     models: [
       {
+        id: 'claude-opus-4-8',
+        pricing: {
+          input: 5.0,
+          cachedInput: 2.5,
+          output: 25.0,
+          updatedAt: '2026-06-20',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'claude-opus-4-7',
+        pricing: {
+          input: 5.0,
+          cachedInput: 2.5,
+          output: 25.0,
+          updatedAt: '2026-06-20',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
+      {
         id: 'claude-opus-4-6',
         pricing: {
           input: 5.0,
           cachedInput: 2.5,
           output: 25.0,
           updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'claude-opus-4-5',
+        pricing: {
+          input: 5.0,
+          cachedInput: 2.5,
+          output: 25.0,
+          updatedAt: '2025-09-10',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'claude-opus-4-1',
+        pricing: {
+          input: 15.0,
+          cachedInput: 7.5,
+          output: 75.0,
+          updatedAt: '2025-09-10',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'claude-sonnet-4-5',
+        pricing: {
+          input: 3.0,
+          cachedInput: 1.5,
+          output: 15.0,
+          updatedAt: '2025-09-10',
         },
         capabilities: {
           temperature: { min: 0, max: 1 },
@@ -499,6 +577,19 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     modelPatterns: [/^gemini/],
     icon: GeminiIcon,
     models: [
+      {
+        id: 'gemini-3-pro-preview',
+        pricing: {
+          input: 2.0,
+          cachedInput: 0.2,
+          output: 12.0,
+          updatedAt: '2025-11-18',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
       {
         id: 'gemini-3-flash',
         pricing: {
@@ -920,6 +1011,52 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
       },
     ],
   },
+  mimo: {
+    id: 'mimo',
+    name: 'MiMo',
+    description: "Xiaomi's MiMo models (OpenAI-compatible API)",
+    defaultModel: 'mimo-v2.5-pro',
+    modelPatterns: [/^mimo/],
+    icon: MiMoIcon,
+    models: [
+      {
+        id: 'mimo-v2.5-pro',
+        pricing: {
+          input: 0.435,
+          output: 0.87,
+          updatedAt: '2026-06-20',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'mimo-v2.5',
+        pricing: {
+          input: 0.14,
+          output: 0.28,
+          updatedAt: '2026-06-20',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'mimo-v2-flash',
+        pricing: {
+          input: 0.09,
+          output: 0.29,
+          updatedAt: '2026-06-20',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+    ],
+  },
   ollama: {
     id: 'ollama',
     name: 'Ollama',
@@ -1281,8 +1418,61 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
 /**
  * Get all models for a specific provider
  */
+// ─── Custom (user-added) models ─────────────────────────────────────────────
+// Users can register extra model ids for a provider (e.g. an NVIDIA NIM model id not in the
+// built-in list). These are merged into the registry at runtime so they appear in every model
+// picker and resolve for routing/pricing. Persisted client-side via stores/custom-models.
+const customModelsByProvider: Record<string, ModelDefinition[]> = {}
+
+/**
+ * Providers with genuinely open / self-extensible model catalogs, where a user may legitimately
+ * run a model id we don't ship: NVIDIA NIM (hundreds of models) and AWS Bedrock (large catalog +
+ * custom imported models + inference-profile ARNs). Everything else — including Groq, Cerebras,
+ * MiMo and the first-party providers — exposes a fixed/curated model list, so arbitrary ids there
+ * would just fail. (Ollama is also open but is managed via its own local-models store.)
+ */
+export const CUSTOM_MODEL_PROVIDERS = ['nvidia', 'bedrock'] as const
+
+export function supportsCustomModels(providerId: string): boolean {
+  return (CUSTOM_MODEL_PROVIDERS as readonly string[]).includes(providerId)
+}
+
+/** Replace the custom model list for a provider. Ignored for providers that don't support them. */
+export function setCustomModels(providerId: string, modelIds: string[]): void {
+  if (!supportsCustomModels(providerId)) {
+    customModelsByProvider[providerId] = []
+    return
+  }
+  const unique = Array.from(new Set(modelIds.map((m) => m.trim()).filter(Boolean)))
+  customModelsByProvider[providerId] = unique.map((id) => ({
+    id,
+    // Unknown pricing for user-added models — default to 0 (NVIDIA hosting is free; others unknown).
+    pricing: { input: 0, output: 0, updatedAt: '2026-06-20' },
+    capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+  }))
+}
+
+export function getCustomModels(providerId: string): ModelDefinition[] {
+  return customModelsByProvider[providerId] || []
+}
+
+function findModelDefinition(modelId: string): ModelDefinition | undefined {
+  const lower = modelId.toLowerCase()
+  for (const provider of Object.values(PROVIDER_DEFINITIONS)) {
+    const m = provider.models.find((x) => x.id.toLowerCase() === lower)
+    if (m) return m
+  }
+  for (const list of Object.values(customModelsByProvider)) {
+    const m = list.find((x) => x.id.toLowerCase() === lower)
+    if (m) return m
+  }
+  return undefined
+}
+
 export function getProviderModels(providerId: string): string[] {
-  return PROVIDER_DEFINITIONS[providerId]?.models.map((m) => m.id) || []
+  const base = PROVIDER_DEFINITIONS[providerId]?.models.map((m) => m.id) || []
+  const custom = getCustomModels(providerId).map((m) => m.id)
+  return Array.from(new Set([...base, ...custom]))
 }
 
 /**
@@ -1293,29 +1483,47 @@ export function getProviderDefaultModel(providerId: string): string {
 }
 
 /**
+ * Platform-wide default models. Every block, the Agie copilot, and ZelaxyArena should reference
+ * THESE instead of hardcoding a model id. Changing the default in one place updates everywhere.
+ *
+ * - DEFAULT_CHAT_MODEL: the everyday agent/copilot model (capable + reasonably priced).
+ * - DEFAULT_FAST_MODEL: cheap/fast tasks (title generation, routing, classification).
+ * - DEFAULT_VISION_MODEL: image/PDF understanding.
+ */
+export const DEFAULT_CHAT_MODEL = 'claude-sonnet-4-6'
+export const DEFAULT_FAST_MODEL = 'claude-haiku-4-5'
+export const DEFAULT_VISION_MODEL = 'gpt-4o'
+
+/** A model id is "known" if it (or a normalized form) resolves to pricing in the registry. */
+export function isKnownModel(modelId: string): boolean {
+  return getModelPricing(modelId) !== null
+}
+
+// ─── Credits ──────────────────────────────────────────────────────────────────
+// The platform meters usage in credits. 1 credit = $0.005 (see the billing docs). Costs are
+// computed and stored in USD; convert to credits for display/limits.
+export const DOLLARS_PER_CREDIT = 0.005
+
+export function dollarsToCredits(dollars: number): number {
+  return dollars / DOLLARS_PER_CREDIT
+}
+
+export function creditsToDollars(credits: number): number {
+  return credits * DOLLARS_PER_CREDIT
+}
+
+/**
  * Get pricing information for a specific model
  */
 export function getModelPricing(modelId: string): ModelPricing | null {
-  for (const provider of Object.values(PROVIDER_DEFINITIONS)) {
-    const model = provider.models.find((m) => m.id.toLowerCase() === modelId.toLowerCase())
-    if (model) {
-      return model.pricing
-    }
-  }
-  return null
+  return findModelDefinition(modelId)?.pricing ?? null
 }
 
 /**
  * Get capabilities for a specific model
  */
 export function getModelCapabilities(modelId: string): ModelCapabilities | null {
-  for (const provider of Object.values(PROVIDER_DEFINITIONS)) {
-    const model = provider.models.find((m) => m.id.toLowerCase() === modelId.toLowerCase())
-    if (model) {
-      return model.capabilities
-    }
-  }
-  return null
+  return findModelDefinition(modelId)?.capabilities ?? null
 }
 
 /**

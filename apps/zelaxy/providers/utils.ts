@@ -8,6 +8,7 @@ import { cerebrasProvider } from '@/providers/cerebras'
 import { deepseekProvider } from '@/providers/deepseek'
 import { googleProvider } from '@/providers/google'
 import { groqProvider } from '@/providers/groq'
+import { mimoProvider } from '@/providers/mimo'
 import {
   getComputerUseModels,
   getEmbeddingModelPricing,
@@ -20,6 +21,7 @@ import {
   getProviderModels as getProviderModelsFromDefinitions,
   getProvidersWithToolUsageControl,
   PROVIDER_DEFINITIONS,
+  setCustomModels as setCustomModelsInDefinitions,
   supportsTemperature as supportsTemperatureFromDefinitions,
   supportsToolUsageControl as supportsToolUsageControlFromDefinitions,
   updateOllamaModels as updateOllamaModelsInDefinitions,
@@ -104,6 +106,11 @@ export const providers: Record<
     models: getProviderModelsFromDefinitions('bedrock'),
     modelPatterns: PROVIDER_DEFINITIONS.bedrock.modelPatterns,
   },
+  mimo: {
+    ...mimoProvider,
+    models: getProviderModelsFromDefinitions('mimo'),
+    modelPatterns: PROVIDER_DEFINITIONS.mimo.modelPatterns,
+  },
 }
 
 // Initialize all providers that have initialize method
@@ -121,6 +128,18 @@ Object.entries(providers).forEach(([id, provider]) => {
 export function updateOllamaProviderModels(models: string[]): void {
   updateOllamaModelsInDefinitions(models)
   providers.ollama.models = getProviderModelsFromDefinitions('ollama')
+}
+
+/**
+ * Register user-added (custom) model ids for a provider so they appear in every model picker and
+ * resolve for routing/pricing. e.g. a custom NVIDIA NIM model id. Refreshes the provider's cached
+ * model list so getBaseModelProviders/getAllModelProviders pick it up immediately.
+ */
+export function updateCustomProviderModels(providerId: ProviderId, models: string[]): void {
+  setCustomModelsInDefinitions(providerId, models)
+  if (providers[providerId]) {
+    providers[providerId].models = getProviderModelsFromDefinitions(providerId)
+  }
 }
 
 export function getBaseModelProviders(): Record<string, ProviderId> {

@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { getProviderModels } from '@/providers/models'
 import { useLLMSelectionStore } from '@/stores/llm-selection/store'
 
 interface LLMProvider {
@@ -40,98 +41,23 @@ interface LLMProvider {
   models: string[]
 }
 
+// Models sourced from the central registry (providers/models.ts) — no stale/fake ids.
 const LLM_PROVIDERS: LLMProvider[] = [
-  {
-    id: 'nvidia',
-    name: 'NVIDIA',
-    icon: NvidiaIcon,
-    models: [
-      'qwen/qwen3-coder-480b-a35b-instruct',
-      'nvidia/llama-3.1-nemotron-70b-instruct',
-      'meta/llama-3.1-405b-instruct',
-      'nvidia/nemotron-3-ultra-550b-a55b',
-    ],
-  },
-  {
-    id: 'openai',
-    name: 'OpenAI',
-    icon: OpenAIIcon,
-    models: ['gpt-4o', 'gpt-4', 'gpt-3.5-turbo'],
-  },
+  { id: 'nvidia', name: 'NVIDIA', icon: NvidiaIcon, models: getProviderModels('nvidia') },
+  { id: 'openai', name: 'OpenAI', icon: OpenAIIcon, models: getProviderModels('openai') },
   {
     id: 'anthropic',
     name: 'Anthropic',
     icon: AnthropicIcon,
-    models: ['claude-3-5-sonnet-20241022', 'claude-3-haiku-20240307'],
+    models: getProviderModels('anthropic'),
   },
-  {
-    id: 'google',
-    name: 'Google',
-    icon: GeminiIcon,
-    models: ['gemini-1.5-pro', 'gemini-1.5-flash'],
-  },
-  {
-    id: 'groq',
-    name: 'Groq',
-    icon: GroqIcon,
-    models: ['llama-3.1-70b-versatile', 'mixtral-8x7b-32768'],
-  },
-  {
-    id: 'deepseek',
-    name: 'DeepSeek',
-    icon: DeepseekIcon,
-    models: ['deepseek-chat', 'deepseek-coder'],
-  },
-  {
-    id: 'xai',
-    name: 'xAI',
-    icon: xAIIcon,
-    models: ['grok-beta'],
-  },
-  {
-    id: 'cerebras',
-    name: 'Cerebras',
-    icon: CerebrasIcon,
-    models: ['llama3.1-8b', 'llama3.1-70b'],
-  },
-  {
-    id: 'ollama',
-    name: 'Ollama',
-    icon: OllamaIcon,
-    models: ['llama3.2', 'qwen2.5'],
-  },
-  {
-    id: 'bedrock',
-    name: 'AWS Bedrock',
-    icon: BedrockIcon,
-    models: [
-      'openai.gpt-oss-20b-1:0',
-      'openai.gpt-oss-safeguard-20b',
-      'openai.gpt-oss-safeguard-120b',
-      'amazon.nova-pro-v1:0',
-      'amazon.nova-lite-v1:0',
-      'amazon.nova-micro-v1:0',
-      'anthropic.claude-3-5-sonnet-20241022-v2:0',
-      'anthropic.claude-3-5-haiku-20241022-v1:0',
-      'meta.llama3-3-70b-instruct-v1:0',
-      'qwen.qwen3-next-80b-a3b',
-      'qwen.qwen3-vl-235b-a22b',
-      'google.gemma-3-4b-it',
-      'google.gemma-3-12b-it',
-      'google.gemma-3-27b-it',
-      'minimax.minimax-m2',
-      'moonshot.kimi-k2-thinking',
-      'nvidia.nemotron-nano-9b-v2',
-      'nvidia.nemotron-nano-12b-v2',
-      'mistral.magistral-small-2509',
-      'mistral.voxtral-mini-3b-2507',
-      'mistral.voxtral-small-24b-2507',
-      'mistral.ministral-3-3b-instruct',
-      'mistral.ministral-3-8b-instruct',
-      'mistral.ministral-3-14b-instruct',
-      'mistral.mistral-large-3-675b-instruct',
-    ],
-  },
+  { id: 'google', name: 'Google', icon: GeminiIcon, models: getProviderModels('google') },
+  { id: 'groq', name: 'Groq', icon: GroqIcon, models: getProviderModels('groq') },
+  { id: 'deepseek', name: 'DeepSeek', icon: DeepseekIcon, models: getProviderModels('deepseek') },
+  { id: 'xai', name: 'xAI', icon: xAIIcon, models: getProviderModels('xai') },
+  { id: 'cerebras', name: 'Cerebras', icon: CerebrasIcon, models: getProviderModels('cerebras') },
+  { id: 'bedrock', name: 'AWS Bedrock', icon: BedrockIcon, models: getProviderModels('bedrock') },
+  { id: 'ollama', name: 'Ollama', icon: OllamaIcon, models: ['llama3.2', 'qwen2.5'] },
 ]
 
 interface LLMSettingsDialogProps {

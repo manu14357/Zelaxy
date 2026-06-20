@@ -1,6 +1,6 @@
 import { AGENT_MODE_SYSTEM_PROMPT } from '@/lib/copilot/prompts'
 import { createLogger } from '@/lib/logs/console/logger'
-import { getProviderDefaultModel } from '@/providers/models'
+import { DEFAULT_CHAT_MODEL, DEFAULT_FAST_MODEL, getProviderDefaultModel } from '@/providers/models'
 import type { ProviderId } from '@/providers/types'
 
 const logger = createLogger('CopilotConfig')
@@ -124,14 +124,14 @@ function parseBooleanEnv(value: string | undefined): boolean | null {
 export const DEFAULT_COPILOT_CONFIG: CopilotConfig = {
   chat: {
     defaultProvider: 'anthropic',
-    defaultModel: 'claude-3-7-sonnet-latest',
+    defaultModel: DEFAULT_CHAT_MODEL,
     temperature: 0.1,
     maxTokens: 8192,
     systemPrompt: AGENT_MODE_SYSTEM_PROMPT,
   },
   rag: {
     defaultProvider: 'anthropic',
-    defaultModel: 'claude-3-7-sonnet-latest',
+    defaultModel: DEFAULT_CHAT_MODEL,
     temperature: 0.1,
     maxTokens: 2000,
     embeddingModel: 'text-embedding-3-small',
@@ -141,7 +141,7 @@ export const DEFAULT_COPILOT_CONFIG: CopilotConfig = {
   general: {
     streamingEnabled: true,
     maxConversationHistory: 10,
-    titleGenerationModel: 'claude-3-haiku-20240307',
+    titleGenerationModel: DEFAULT_FAST_MODEL,
   },
 }
 

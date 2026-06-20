@@ -12,6 +12,7 @@ import { saveWorkflowToNormalizedTables } from '@/lib/workflows/db-helpers'
 import { db } from '@/db'
 import { workflow } from '@/db/schema'
 import { executeProviderRequest } from '@/providers'
+import { isKnownModel } from '@/providers/models'
 import { getApiKey, getProviderFromModel } from '@/providers/utils'
 
 const logger = createLogger('ZelaxyArenaAgent')
@@ -30,6 +31,8 @@ const BodySchema = z.object({
     .min(1),
   workspaceId: z.string().min(1),
   workflowId: z.string().optional(),
+  // Optional user-selected model (falls back to the copilot default).
+  model: z.string().optional(),
 })
 
 const MAX_TOOL_ITERATIONS = 10
@@ -154,7 +157,9 @@ export async function POST(req: NextRequest) {
   const userId = session.user.id
   const { workspaceId, workflowId } = body
 
-  const { provider: cfgProvider, model } = getCopilotModel('chat')
+  const { provider: cfgProvider, model: defaultModel } = getCopilotModel('chat')
+  // Honor a user-selected model when it's a known model in the registry; otherwise default.
+  const model = body.model && isKnownModel(body.model) ? body.model : defaultModel
   const provider = getProviderFromModel(model) || cfgProvider
   let apiKey: string
   try {

@@ -2,6 +2,7 @@ import { AgentIcon } from '@/components/icons'
 import { isHosted } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
 import type { BlockConfig } from '@/blocks/types'
+import { DEFAULT_CHAT_MODEL } from '@/providers/models'
 import {
   getAllModelProviders,
   getBaseModelProviders,
@@ -412,7 +413,7 @@ Example 3 (Array Input):
     ],
     config: {
       tool: (params: Record<string, any>) => {
-        const model = params.model || 'gpt-4o'
+        const model = params.model || DEFAULT_CHAT_MODEL
 
         if (!model) {
           throw new Error('No model selected')

@@ -1,5 +1,6 @@
 import { TranslateIcon } from '@/components/icons'
 import type { BlockConfig } from '@/blocks/types'
+import { DEFAULT_CHAT_MODEL } from '@/providers/models'
 import type { ProviderId } from '@/providers/types'
 import { getBaseModelProviders } from '@/providers/utils'
 
@@ -74,7 +75,7 @@ export const TranslateBlock: BlockConfig = {
     access: ['openai_chat', 'anthropic_chat', 'google_chat'],
     config: {
       tool: (params: Record<string, any>) => {
-        const model = params.model || 'gpt-4o'
+        const model = params.model || DEFAULT_CHAT_MODEL
 
         if (!model) {
           throw new Error('No model selected')
