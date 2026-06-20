@@ -262,6 +262,20 @@ Create a system prompt that defines the agent's role, behavior, and constraints.
       },
     },
     {
+      id: 'baseUrl',
+      title: 'Base URL',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'http://localhost:8000/v1',
+      connectionDroppable: false,
+      // Self-hosted / overridable OpenAI-compatible endpoints. (For custom model ids not in the
+      // seed list, set VLLM_BASE_URL / LITELLM_BASE_URL / BASETEN_BASE_URL instead.)
+      condition: {
+        field: 'model',
+        value: [...providers.vllm.models, ...providers.litellm.models, ...providers.baseten.models],
+      },
+    },
+    {
       id: 'tools',
       title: 'Tools & Capabilities',
       type: 'tool-input',
@@ -439,6 +453,7 @@ Example 3 (Array Input):
           'apiKey',
           'azureEndpoint',
           'azureApiVersion',
+          'baseUrl',
           'temperature',
           'topP',
           'topK',
@@ -511,6 +526,10 @@ Example 3 (Array Input):
     apiKey: { type: 'string', description: 'Provider API key' },
     azureEndpoint: { type: 'string', description: 'Azure OpenAI endpoint URL' },
     azureApiVersion: { type: 'string', description: 'Azure API version' },
+    baseUrl: {
+      type: 'string',
+      description: 'Base URL for self-hosted OpenAI-compatible providers',
+    },
     temperature: { type: 'number', description: 'Controls randomness (0.0-2.0)' },
     topP: { type: 'number', description: 'Nucleus sampling (0.0-1.0)' },
     topK: { type: 'number', description: 'Top-K token sampling (1-100)' },

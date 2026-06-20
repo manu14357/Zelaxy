@@ -4,14 +4,22 @@ import { useEffect, useState } from 'react'
 import { Check, Eye, EyeOff, Key } from 'lucide-react'
 import {
   AnthropicIcon,
+  BasetenIcon,
   BedrockIcon,
   CerebrasIcon,
   DeepseekIcon,
+  FireworksIcon,
   GeminiIcon,
   GroqIcon,
+  LiteLLMIcon,
+  MiMoIcon,
+  MistralIcon,
   NvidiaIcon,
   OllamaIcon,
   OpenAIIcon,
+  OpenRouterIcon,
+  TogetherIcon,
+  VLLMIcon,
   xAIIcon,
 } from '@/components/icons'
 import { Button } from '@/components/ui/button'
@@ -56,6 +64,30 @@ const LLM_PROVIDERS: LLMProvider[] = [
   { id: 'deepseek', name: 'DeepSeek', icon: DeepseekIcon, models: getProviderModels('deepseek') },
   { id: 'xai', name: 'xAI', icon: xAIIcon, models: getProviderModels('xai') },
   { id: 'cerebras', name: 'Cerebras', icon: CerebrasIcon, models: getProviderModels('cerebras') },
+  { id: 'mimo', name: 'MiMo', icon: MiMoIcon, models: getProviderModels('mimo') },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    icon: OpenRouterIcon,
+    models: getProviderModels('openrouter'),
+  },
+  { id: 'together', name: 'Together', icon: TogetherIcon, models: getProviderModels('together') },
+  {
+    id: 'fireworks',
+    name: 'Fireworks',
+    icon: FireworksIcon,
+    models: getProviderModels('fireworks'),
+  },
+  { id: 'mistral', name: 'Mistral', icon: MistralIcon, models: getProviderModels('mistral') },
+  { id: 'vllm', name: 'vLLM', icon: VLLMIcon, models: getProviderModels('vllm') },
+  { id: 'litellm', name: 'LiteLLM', icon: LiteLLMIcon, models: getProviderModels('litellm') },
+  { id: 'baseten', name: 'Baseten', icon: BasetenIcon, models: getProviderModels('baseten') },
+  {
+    id: 'ollama-cloud',
+    name: 'Ollama Cloud',
+    icon: OllamaIcon,
+    models: getProviderModels('ollama-cloud'),
+  },
   { id: 'bedrock', name: 'AWS Bedrock', icon: BedrockIcon, models: getProviderModels('bedrock') },
   { id: 'ollama', name: 'Ollama', icon: OllamaIcon, models: ['llama3.2', 'qwen2.5'] },
 ]

@@ -1,21 +1,76 @@
 'use client'
 
-import { ModelPicker } from '@/app/arena/[workspaceId]/zelaxyarena/model-picker'
-import { getProviderFromModel } from '@/providers/utils'
+import { useState } from 'react'
+import { ChevronDown } from 'lucide-react'
+import {
+  AnthropicIcon,
+  BedrockIcon,
+  CerebrasIcon,
+  DeepseekIcon,
+  GeminiIcon,
+  GroqIcon,
+  MiMoIcon,
+  NvidiaIcon,
+  OllamaIcon,
+  OpenAIIcon,
+  xAIIcon,
+} from '@/components/icons'
 import { useLLMSelectionStore } from '@/stores/llm-selection/store'
+import { LLMSettingsDialog } from '../llm-settings-dialog/llm-settings-dialog'
+
+const PROVIDER_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  nvidia: NvidiaIcon,
+  openai: OpenAIIcon,
+  anthropic: AnthropicIcon,
+  google: GeminiIcon,
+  groq: GroqIcon,
+  deepseek: DeepseekIcon,
+  xai: xAIIcon,
+  cerebras: CerebrasIcon,
+  mimo: MiMoIcon,
+  ollama: OllamaIcon,
+  bedrock: BedrockIcon,
+}
+
+const PROVIDER_NAMES: Record<string, string> = {
+  nvidia: 'NVIDIA',
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  google: 'Google',
+  groq: 'Groq',
+  deepseek: 'DeepSeek',
+  xai: 'xAI',
+  cerebras: 'Cerebras',
+  mimo: 'MiMo',
+  ollama: 'Ollama',
+  bedrock: 'AWS Bedrock',
+}
 
 /**
- * Agie's model selector. Uses the same grouped ModelPicker as ZelaxyArena, so every provider in
- * the central registry (including MiMo) is available and custom model ids can be added — replacing
- * the old hardcoded provider/model dialog. The provider is derived from the chosen model.
+ * Agie's own model selector. Opens the copilot LLM settings dialog (provider + model + API key) —
+ * deliberately separate from ZelaxyArena's picker so each surface keeps its own model + BYOK config.
  */
 export function LLMProviderButton() {
-  const { selectedModel, setProviderAndModel } = useLLMSelectionStore()
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const { selectedProvider } = useLLMSelectionStore()
+
+  const ProviderIcon = PROVIDER_ICONS[selectedProvider] || NvidiaIcon
+  const providerName = PROVIDER_NAMES[selectedProvider] || 'NVIDIA'
 
   return (
-    <ModelPicker
-      value={selectedModel}
-      onChange={(model) => setProviderAndModel(getProviderFromModel(model), model)}
-    />
+    <>
+      <button
+        type='button'
+        onClick={() => setDialogOpen(true)}
+        className='flex items-center gap-1 rounded border px-2 py-1 text-xs transition-colors hover:bg-accent'
+        title='Configure LLM provider settings'
+      >
+        <ProviderIcon className='h-3 w-3' />
+        <span className='font-medium'>{providerName}</span>
+        <ChevronDown className='h-2.5 w-2.5 text-muted-foreground' />
+      </button>
+
+      <LLMSettingsDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+    </>
   )
 }

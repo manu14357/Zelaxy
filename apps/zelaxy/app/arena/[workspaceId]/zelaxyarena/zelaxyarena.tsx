@@ -1,28 +1,23 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  ArrowUp,
-  Bot,
-  FileIcon,
-  History,
-  Loader2,
-  Network,
-  Plus,
-  Sparkles,
-  Table,
-  Trash2,
-  Wrench,
-} from 'lucide-react'
-import { useParams, useRouter } from 'next/navigation'
+import { Bot, History, Loader2, Plus, Sparkles, Trash2, Wrench } from 'lucide-react'
+import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
-import CopilotMarkdownRenderer from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/panel/components/copilot/components/copilot-message/components/markdown-renderer'
+import { ArenaComposer } from '@/app/arena/[workspaceId]/zelaxyarena/arena-composer'
+import {
+  ArenaResourcePanel,
+  type ConsoleEntry,
+  type ResourceArtifact,
+} from '@/app/arena/[workspaceId]/zelaxyarena/arena-resource-panel'
 import { ModelPicker } from '@/app/arena/[workspaceId]/zelaxyarena/model-picker'
+import { SmoothStreamingText } from '@/app/arena/[workspaceId]/zelaxyarena/smooth-streaming-text'
+import { splitThinking, ThinkingBlock } from '@/app/arena/[workspaceId]/zelaxyarena/thinking-block'
 import { DEFAULT_CHAT_MODEL } from '@/providers/models'
+import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 
 const logger = createLogger('ZelaxyArena')
 
@@ -44,20 +39,9 @@ interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
+  /** Enriched content sent to the model (context preamble + parsed attachments); display uses `content`. */
+  apiContent?: string
   tools?: ToolAction[]
-}
-
-interface ResourceArtifact {
-  id: string
-  kind: 'workflow' | 'table' | 'file'
-  title: string
-  /** Workflow YAML (collapsed behind a toggle). */
-  yaml?: string
-  /** Set once a workflow is persisted and openable in the editor. */
-  workflowId?: string
-  /** Download/preview URL for a file artifact. */
-  url?: string
-  subtitle?: string
 }
 
 const SUGGESTIONS = [
@@ -73,14 +57,16 @@ function prettyToolName(name: string): string {
 
 export function ZelaxyArena() {
   const params = useParams()
-  const router = useRouter()
   const workspaceId = params.workspaceId as string
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [artifacts, setArtifacts] = useState<ResourceArtifact[]>([])
+  // Live console feed (tool calls + results) shown in the resource panel's Console tab.
+  const [consoleEntries, setConsoleEntries] = useState<ConsoleEntry[]>([])
   const [model, setModel] = useState<string>(DEFAULT_CHAT_MODEL)
+  // 'agent' takes actions; 'ask' answers/plans without executing tools.
+  const [mode, setMode] = useState<'agent' | 'ask'>('agent')
   // Dynamic API-key check: when the selected model's provider lacks credentials, prompt for the
   // missing fields (some providers need more than one — e.g. AWS Bedrock).
   const [missingCreds, setMissingCreds] = useState<MissingCred[]>([])
@@ -105,8 +91,13 @@ export function ZelaxyArena() {
   }, [chatId])
   const prevStreamingRef = useRef(false)
 
+  // Smart auto-scroll: only follow the stream when the user is already near the bottom, so manual
+  // scroll-up to re-read earlier messages isn't yanked back down (matches Agie's behaviour).
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+    const el = scrollRef.current
+    if (!el) return
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120
+    if (nearBottom) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
   }, [messages])
 
   // Load the conversation list on mount.
@@ -176,6 +167,7 @@ export function ZelaxyArena() {
       setChatId(id)
       chatIdRef.current = id
       setArtifacts([])
+      setConsoleEntries([])
       setShowHistory(false)
     } catch {
       /* ignore */
@@ -247,11 +239,16 @@ export function ZelaxyArena() {
   }, [keyInputs, missingCreds])
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, apiText?: string) => {
       const trimmed = text.trim()
       if (!trimmed || isStreaming) return
 
-      const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: trimmed }
+      const userMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: trimmed,
+        apiContent: apiText && apiText.trim() ? apiText : undefined,
+      }
       const assistantId = crypto.randomUUID()
       const assistantMsg: ChatMessage = {
         id: assistantId,
@@ -262,7 +259,6 @@ export function ZelaxyArena() {
 
       const history = [...messages, userMsg]
       setMessages([...history, assistantMsg])
-      setInput('')
       setIsStreaming(true)
 
       const updateAssistant = (fn: (m: ChatMessage) => ChatMessage) =>
@@ -279,7 +275,8 @@ export function ZelaxyArena() {
           body: JSON.stringify({
             workspaceId,
             model,
-            messages: history.map((m) => ({ role: m.role, content: m.content })),
+            mode,
+            messages: history.map((m) => ({ role: m.role, content: m.apiContent ?? m.content })),
           }),
         })
 
@@ -320,6 +317,17 @@ export function ZelaxyArena() {
                 status: 'running',
               }
               updateAssistant((m) => ({ ...m, tools: [...(m.tools || []), t] }))
+              setConsoleEntries((prev) => [
+                ...prev,
+                {
+                  id: t.id,
+                  name: t.name,
+                  status: 'running',
+                  args: event.data?.arguments
+                    ? JSON.stringify(event.data.arguments, null, 2).slice(0, 2000)
+                    : undefined,
+                },
+              ])
             } else if (event.type === 'tool_result') {
               const toolName = event.name
               updateAssistant((m) => ({
@@ -334,6 +342,21 @@ export function ZelaxyArena() {
                     : t
                 ),
               }))
+              setConsoleEntries((prev) =>
+                prev.map((e) =>
+                  e.id === event.toolCallId
+                    ? {
+                        ...e,
+                        status: event.success ? 'done' : 'error',
+                        error: event.error || undefined,
+                        result:
+                          event.success && event.result
+                            ? String(event.result).slice(0, 2000)
+                            : e.result,
+                      }
+                    : e
+                )
+              )
               // Surface created resources (workflows, tables, files) into the resource panel.
               if (event.success) {
                 try {
@@ -350,6 +373,7 @@ export function ZelaxyArena() {
                         kind: 'workflow',
                         title: data.description || 'Generated workflow',
                         yaml: data.yamlContent,
+                        workflowState: data.workflowState,
                       },
                       ...prev.filter((a) => a.kind !== 'workflow'),
                     ])
@@ -389,10 +413,14 @@ export function ZelaxyArena() {
                   kind: 'workflow',
                   title: event.name || pending?.title || 'New workflow',
                   yaml: pending?.yaml,
+                  workflowState: pending?.workflowState,
                   workflowId: event.workflowId,
                 }
                 return [upgraded, ...prev.filter((a) => a !== pending)]
               })
+              // Refresh the global workflow registry so the new workflow shows in the editor/sidebar
+              // immediately (without a page reload).
+              void useWorkflowRegistry.getState().loadWorkflows(workspaceId)
             } else if (event.type === 'error') {
               updateAssistant((m) => ({ ...m, content: `${m.content}\n\n⚠️ ${event.error}` }))
             }
@@ -410,7 +438,7 @@ export function ZelaxyArena() {
         // (set just before this) is included rather than a stale snapshot.
       }
     },
-    [messages, isStreaming, workspaceId, model]
+    [messages, isStreaming, workspaceId, model, mode]
   )
 
   const stop = () => {
@@ -423,7 +451,7 @@ export function ZelaxyArena() {
     setIsStreaming(false)
     setMessages([])
     setArtifacts([])
-    setInput('')
+    setConsoleEntries([])
     setChatId(null)
     chatIdRef.current = null
   }
@@ -443,6 +471,30 @@ export function ZelaxyArena() {
             </p>
           </div>
           <div className='ml-auto flex items-center gap-2'>
+            {/* Ask / Agent mode toggle */}
+            <div className='flex items-center rounded-lg border border-border/60 bg-card/40 p-0.5'>
+              {(['agent', 'ask'] as const).map((mo) => (
+                <button
+                  key={mo}
+                  type='button'
+                  disabled={isStreaming}
+                  onClick={() => setMode(mo)}
+                  className={cn(
+                    'rounded-md px-2.5 py-1 text-[12px] capitalize transition-colors disabled:opacity-50',
+                    mode === mo
+                      ? 'bg-background font-medium text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  title={
+                    mo === 'agent'
+                      ? 'Agent — takes actions (builds, runs, edits)'
+                      : 'Ask — answers and plans without taking actions'
+                  }
+                >
+                  {mo}
+                </button>
+              ))}
+            </div>
             <ModelPicker value={model} onChange={setModel} disabled={isStreaming} />
             {/* History */}
             <div className='relative'>
@@ -579,7 +631,7 @@ export function ZelaxyArena() {
               </div>
             ) : (
               <div className='space-y-5'>
-                {messages.map((m) => (
+                {messages.map((m, i) => (
                   <div key={m.id} className={cn('flex gap-3', m.role === 'user' && 'justify-end')}>
                     {m.role === 'assistant' && (
                       <div className='flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10'>
@@ -620,16 +672,37 @@ export function ZelaxyArena() {
                       )}
                       {m.content ? (
                         m.role === 'assistant' ? (
-                          <div className='copilot-markdown text-sm'>
-                            <CopilotMarkdownRenderer content={m.content} />
-                          </div>
+                          (() => {
+                            const streamingThis = isStreaming && i === messages.length - 1
+                            const { thinking, text } = splitThinking(m.content)
+                            return (
+                              <div className='copilot-markdown text-sm'>
+                                {thinking !== null && (
+                                  <ThinkingBlock
+                                    content={thinking}
+                                    isActive={streamingThis && text.length === 0}
+                                  />
+                                )}
+                                {text.length > 0 && (
+                                  <SmoothStreamingText content={text} isStreaming={streamingThis} />
+                                )}
+                              </div>
+                            )
+                          })()
                         ) : (
                           <span className='whitespace-pre-wrap'>{m.content}</span>
                         )
                       ) : (
                         m.role === 'assistant' &&
-                        isStreaming && (
-                          <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />
+                        isStreaming &&
+                        i === messages.length - 1 && (
+                          <div className='flex items-center gap-1.5 text-muted-foreground'>
+                            <span className='inline-flex gap-1'>
+                              <span className='h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]' />
+                              <span className='h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]' />
+                              <span className='h-1.5 w-1.5 animate-bounce rounded-full bg-current' />
+                            </span>
+                          </div>
                         )
                       )}
                     </div>
@@ -640,124 +713,22 @@ export function ZelaxyArena() {
           </div>
         </div>
 
-        {/* Composer */}
-        <div className='flex-shrink-0 border-border/40 border-t bg-background px-4 py-3'>
-          <div className='mx-auto flex w-full max-w-3xl items-end gap-2 rounded-2xl border border-border/60 bg-card/40 px-3 py-2 focus-within:border-primary/40'>
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  send(input)
-                }
-              }}
-              placeholder='Describe what you want ZelaxyArena to do…'
-              rows={1}
-              className='max-h-40 min-h-[24px] flex-1 resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0'
-            />
-            {isStreaming ? (
-              <Button size='icon' variant='ghost' className='h-8 w-8' onClick={stop}>
-                <span className='h-3 w-3 rounded-[2px] bg-foreground' />
-              </Button>
-            ) : (
-              <Button
-                size='icon'
-                className='h-8 w-8 rounded-full'
-                disabled={!input.trim()}
-                onClick={() => send(input)}
-              >
-                <ArrowUp className='h-4 w-4' />
-              </Button>
-            )}
-          </div>
-        </div>
+        {/* Composer — @-mentions + file attachments */}
+        <ArenaComposer
+          workspaceId={workspaceId}
+          isStreaming={isStreaming}
+          onSend={(displayText, apiText) => send(displayText, apiText)}
+          onStop={stop}
+        />
       </div>
 
-      {/* Resource panel */}
-      <div className='hidden w-[42%] min-w-[320px] max-w-[640px] flex-col bg-card/20 lg:flex'>
-        <div className='flex flex-shrink-0 items-center gap-2 border-border/40 border-b px-4 py-3.5'>
-          <Network className='h-4 w-4 text-muted-foreground' />
-          <span className='font-medium text-[13px]'>Resource panel</span>
-        </div>
-        <div className='min-h-0 flex-1 overflow-auto p-4'>
-          {artifacts.length > 0 ? (
-            <div className='space-y-3'>
-              {artifacts.map((a) => {
-                const Icon = a.kind === 'workflow' ? Network : a.kind === 'table' ? Table : FileIcon
-                return (
-                  <div
-                    key={a.id}
-                    className='space-y-2 rounded-xl border border-border/60 bg-background/40 p-3'
-                  >
-                    <div className='flex items-center justify-between gap-2'>
-                      <div className='flex min-w-0 items-center gap-2'>
-                        <Icon className='h-4 w-4 flex-shrink-0 text-muted-foreground' />
-                        <div className='min-w-0'>
-                          <h2 className='truncate font-medium text-sm'>{a.title}</h2>
-                          {a.subtitle && (
-                            <p className='truncate text-[11px] text-muted-foreground'>
-                              {a.subtitle}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      {a.kind === 'workflow' && a.workflowId ? (
-                        <Button
-                          size='sm'
-                          className='h-7 flex-shrink-0'
-                          onClick={() =>
-                            router.push(`/arena/${workspaceId}/zelaxy/${a.workflowId}`)
-                          }
-                        >
-                          Open in editor
-                        </Button>
-                      ) : a.kind === 'table' ? (
-                        <Button
-                          size='sm'
-                          variant='outline'
-                          className='h-7 flex-shrink-0'
-                          onClick={() => router.push(`/arena/${workspaceId}/hub?tab=tables`)}
-                        >
-                          Open
-                        </Button>
-                      ) : a.kind === 'file' && a.url ? (
-                        <a href={a.url} target='_blank' rel='noopener noreferrer'>
-                          <Button size='sm' variant='outline' className='h-7 flex-shrink-0'>
-                            Download
-                          </Button>
-                        </a>
-                      ) : null}
-                    </div>
-                    {a.kind === 'workflow' && !a.workflowId && (
-                      <p className='text-[11px] text-amber-600 dark:text-amber-400'>
-                        Draft — saving to your workspace…
-                      </p>
-                    )}
-                    {a.yaml && (
-                      <details className='group'>
-                        <summary className='cursor-pointer text-[11px] text-muted-foreground hover:text-foreground'>
-                          View YAML
-                        </summary>
-                        <pre className='mt-2 max-h-64 overflow-auto rounded-lg border border-border/50 bg-background/60 p-2.5 text-[11px] text-muted-foreground'>
-                          {a.yaml}
-                        </pre>
-                      </details>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className='flex h-full flex-col items-center justify-center gap-2 text-center'>
-              <Network className='h-8 w-8 text-muted-foreground/50' />
-              <p className='text-muted-foreground text-sm'>
-                Workflows, tables, and files you create will appear here.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Live session panel — tabbed canvas / resources / console */}
+      <ArenaResourcePanel
+        workspaceId={workspaceId}
+        artifacts={artifacts}
+        consoleEntries={consoleEntries}
+        isStreaming={isStreaming}
+      />
     </div>
   )
 }

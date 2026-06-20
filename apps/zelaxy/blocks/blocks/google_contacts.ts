@@ -1,0 +1,132 @@
+import { GoogleContactsIcon } from '@/components/icons/google-contacts-icon'
+import type { BlockConfig } from '@/blocks/types'
+import type { GoogleContactsResponse } from '@/tools/google_contacts/types'
+
+export const GoogleContactsBlock: BlockConfig<GoogleContactsResponse> = {
+  type: 'google_contacts',
+  name: 'Google Contacts',
+  description: 'List, search, get, and create contacts in Google Contacts',
+  longDescription:
+    'List contacts, search contacts, retrieve a single contact, and create new contacts through the Google People API. Authenticate with a Google OAuth access token.',
+  docsLink: '#',
+  category: 'tools',
+  bgColor: '#1A73E8',
+  icon: GoogleContactsIcon,
+  subBlocks: [
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'dropdown',
+      layout: 'full',
+      options: [
+        { label: 'List contacts', id: 'google_contacts_list_contacts' },
+        { label: 'Get contact', id: 'google_contacts_get_contact' },
+        { label: 'Search contacts', id: 'google_contacts_search_contacts' },
+        { label: 'Create contact', id: 'google_contacts_create_contact' },
+      ],
+      value: () => 'google_contacts_list_contacts',
+    },
+    {
+      id: 'resourceName',
+      title: 'Resource Name',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'people/c1234567890',
+      condition: { field: 'operation', value: 'google_contacts_get_contact' },
+    },
+    {
+      id: 'query',
+      title: 'Search Query',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Jane Doe',
+      condition: { field: 'operation', value: 'google_contacts_search_contacts' },
+    },
+    {
+      id: 'givenName',
+      title: 'First Name',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'Jane',
+      condition: { field: 'operation', value: 'google_contacts_create_contact' },
+    },
+    {
+      id: 'familyName',
+      title: 'Last Name',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'Doe',
+      condition: { field: 'operation', value: 'google_contacts_create_contact' },
+    },
+    {
+      id: 'email',
+      title: 'Email',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'jane@example.com',
+      condition: { field: 'operation', value: 'google_contacts_create_contact' },
+    },
+    {
+      id: 'phone',
+      title: 'Phone',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: '+15551234567',
+      condition: { field: 'operation', value: 'google_contacts_create_contact' },
+    },
+    {
+      id: 'pageSize',
+      title: 'Page Size',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: '100',
+      condition: {
+        field: 'operation',
+        value: ['google_contacts_list_contacts', 'google_contacts_search_contacts'],
+      },
+    },
+    {
+      id: 'pageToken',
+      title: 'Page Token',
+      type: 'short-input',
+      layout: 'half',
+      condition: { field: 'operation', value: 'google_contacts_list_contacts' },
+    },
+    {
+      id: 'accessToken',
+      title: 'Google Access Token',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'ya29....',
+      password: true,
+      required: true,
+    },
+  ],
+  tools: {
+    access: [
+      'google_contacts_list_contacts',
+      'google_contacts_get_contact',
+      'google_contacts_search_contacts',
+      'google_contacts_create_contact',
+    ],
+    config: {
+      tool: (params) => params.operation || 'google_contacts_list_contacts',
+    },
+  },
+  inputs: {
+    operation: { type: 'string', description: 'Operation to perform' },
+    accessToken: { type: 'string', description: 'Google OAuth access token' },
+    resourceName: { type: 'string', description: 'Contact resource name' },
+    query: { type: 'string', description: 'Search query' },
+    givenName: { type: 'string', description: 'First name' },
+    familyName: { type: 'string', description: 'Last name' },
+    email: { type: 'string', description: 'Email address' },
+    phone: { type: 'string', description: 'Phone number' },
+    pageSize: { type: 'number', description: 'Number of results to return' },
+    pageToken: { type: 'string', description: 'Pagination token' },
+  },
+  outputs: {
+    data: { type: 'json', description: 'Result object or array from Google Contacts' },
+    metadata: { type: 'json', description: 'Response metadata' },
+  },
+}

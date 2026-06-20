@@ -35,6 +35,8 @@ const BodySchema = z.object({
   workflowId: z.string().optional(),
   // Optional user-selected model (falls back to the copilot default).
   model: z.string().optional(),
+  // 'agent' (default) takes actions via tools; 'ask' answers/plans without executing anything.
+  mode: z.enum(['agent', 'ask']).optional(),
 })
 
 const MAX_TOOL_ITERATIONS = 10
@@ -62,6 +64,8 @@ async function buildSystemPrompt(workspaceId: string): Promise<string> {
   }
 
   return `You are ZelaxyArena, the workspace-wide AI assistant for Zelaxy. You know the user's entire workspace and take action directly on their behalf.
+
+REASONING: for any non-trivial request (building/editing a workflow, multi-step actions, ambiguous asks), first think through your plan briefly inside a single <thinking>…</thinking> block — what the user wants, which blocks/tools to use, the order of steps — then give your answer/actions AFTER the closing tag. Keep the thinking concise. For simple questions you may skip it.
 
 You can:
 - Build and edit workflows from a natural-language description (use the build_workflow / edit_workflow tools).
@@ -229,7 +233,16 @@ export async function POST(req: NextRequest) {
   }
 
   const systemPrompt = await buildSystemPrompt(workspaceId)
-  const tools = [...getToolsForMode('agent'), ...ARENA_EXTRA_TOOL_DEFS, ...INTEGRATION_TOOL_DEFS]
+  // Ask mode answers and plans without executing anything — withhold tools so the model can't act.
+  const mode = body.mode ?? 'agent'
+  const tools =
+    mode === 'ask'
+      ? undefined
+      : [...getToolsForMode('agent'), ...ARENA_EXTRA_TOOL_DEFS, ...INTEGRATION_TOOL_DEFS]
+  const systemPromptForMode =
+    mode === 'ask'
+      ? `${systemPrompt}\n\nMODE: ASK — Do NOT call any tools or take actions. Answer questions, explain the workspace, and outline plans only. If the user asks you to build/run/change something, describe how you would do it and suggest switching to Agent mode to execute.`
+      : systemPrompt
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -245,7 +258,7 @@ export async function POST(req: NextRequest) {
           iteration++
           const response = (await executeProviderRequest(provider, {
             model,
-            systemPrompt,
+            systemPrompt: systemPromptForMode,
             messages: messages as any,
             temperature: 0.4,
             maxTokens: 8000,

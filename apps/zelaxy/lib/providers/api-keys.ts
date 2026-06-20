@@ -35,6 +35,15 @@ export const PROVIDER_CREDENTIALS: Record<string, ProviderCredential[]> = {
   cerebras: [{ name: 'CEREBRAS_API_KEY', label: 'Cerebras API Key' }],
   nvidia: [{ name: 'NVIDIA_API_KEY', label: 'NVIDIA API Key' }],
   mimo: [{ name: 'XIAOMI_MIMO_API_KEY', label: 'Xiaomi MiMo API Key' }],
+  openrouter: [{ name: 'OPENROUTER_API_KEY', label: 'OpenRouter API Key' }],
+  together: [{ name: 'TOGETHER_API_KEY', label: 'Together AI API Key' }],
+  fireworks: [{ name: 'FIREWORKS_API_KEY', label: 'Fireworks AI API Key' }],
+  mistral: [{ name: 'MISTRAL_API_KEY', label: 'Mistral API Key' }],
+  // Self-hosted endpoints — key is optional (many run without auth); the base URL is the real input.
+  vllm: [{ name: 'VLLM_API_KEY', label: 'vLLM API Key (optional)', optional: true }],
+  litellm: [{ name: 'LITELLM_API_KEY', label: 'LiteLLM API Key (optional)', optional: true }],
+  baseten: [{ name: 'BASETEN_API_KEY', label: 'Baseten API Key' }],
+  'ollama-cloud': [{ name: 'OLLAMA_CLOUD_API_KEY', label: 'Ollama Cloud API Key' }],
   bedrock: [
     { name: 'BEDROCK_ACCESS_KEY_ID', label: 'AWS Access Key ID' },
     { name: 'BEDROCK_SECRET_ACCESS_KEY', label: 'AWS Secret Access Key' },

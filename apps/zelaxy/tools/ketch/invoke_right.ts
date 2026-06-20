@@ -1,0 +1,104 @@
+import type { KetchInvokeRightParams, KetchInvokeRightResponse } from '@/tools/ketch/types'
+import type { ToolConfig } from '@/tools/types'
+
+export const invokeRightTool: ToolConfig<KetchInvokeRightParams, KetchInvokeRightResponse> = {
+  id: 'ketch_invoke_right',
+  name: 'Ketch Invoke Right',
+  description: 'Submit a data subject rights request (e.g., access, delete, correct) in Ketch',
+  version: '1.0.0',
+
+  params: {
+    organizationCode: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Ketch organization code',
+    },
+    propertyCode: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Digital property code defined in Ketch',
+    },
+    environmentCode: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Environment code defined in Ketch (e.g., "production")',
+    },
+    jurisdictionCode: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Jurisdiction code (e.g., "gdpr", "ccpa")',
+    },
+    rightCode: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description:
+        'Privacy right code to invoke (e.g., "access", "delete", "correct", "restrict_processing")',
+    },
+    identities: {
+      type: 'json',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Identity map (e.g., {"email": "user@example.com"})',
+    },
+    userData: {
+      type: 'json',
+      required: false,
+      visibility: 'user-or-llm',
+      description:
+        'Optional data subject information (e.g., {"email": "user@example.com", "firstName": "John", "lastName": "Doe"})',
+    },
+  },
+
+  request: {
+    url: (params) =>
+      `https://global.ketchcdn.com/web/v2/rights/${encodeURIComponent(params.organizationCode.trim())}/invoke`,
+    method: 'POST',
+    headers: () => ({
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    }),
+    body: (params) => {
+      const body: Record<string, any> = {
+        organizationCode: params.organizationCode.trim(),
+        propertyCode: params.propertyCode,
+        environmentCode: params.environmentCode,
+        jurisdictionCode: params.jurisdictionCode,
+        rightCode: params.rightCode,
+        identities: params.identities,
+      }
+      if (params.userData) body.user = params.userData
+      return body
+    },
+  },
+
+  transformResponse: async (response, params) => {
+    const data = response.status === 204 ? {} : await response.json()
+    return {
+      success: true,
+      output: {
+        data,
+        metadata: {
+          organizationCode: params?.organizationCode.trim() ?? '',
+          rightCode: params?.rightCode ?? '',
+        },
+      },
+    }
+  },
+
+  outputs: {
+    data: { type: 'json', description: 'Response from the Ketch rights invocation' },
+    metadata: {
+      type: 'json',
+      description: 'Request identifiers',
+      properties: {
+        organizationCode: { type: 'string', description: 'Ketch organization code' },
+        rightCode: { type: 'string', description: 'Invoked right code' },
+      },
+    },
+  },
+}
