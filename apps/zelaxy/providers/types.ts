@@ -13,6 +13,14 @@ export type ProviderId =
   | 'nvidia'
   | 'bedrock'
   | 'mimo'
+  | 'openrouter'
+  | 'together'
+  | 'fireworks'
+  | 'mistral'
+  | 'vllm'
+  | 'litellm'
+  | 'baseten'
+  | 'ollama-cloud'
 
 /**
  * Model pricing information per million tokens
@@ -164,6 +172,9 @@ export interface ProviderRequest {
   // Azure OpenAI specific parameters
   azureEndpoint?: string
   azureApiVersion?: string
+  // Base URL override for OpenAI-compatible providers with a user-specific endpoint (vLLM, LiteLLM,
+  // self-hosted Baseten deployments).
+  baseUrl?: string
 }
 
 // Map of provider IDs to their configurations

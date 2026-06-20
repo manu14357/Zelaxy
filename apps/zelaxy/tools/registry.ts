@@ -124,6 +124,12 @@ import {
   boxUploadFileTool,
 } from '@/tools/box'
 import { brandfetchGetBrandTool, brandfetchSearchTool } from '@/tools/brandfetch'
+// Phase 2 — Tiers D, G & H (Google Workspace / enterprise / files & media)
+import {
+  brexListCashAccountsTool,
+  brexListCashTransactionsTool,
+  brexListUsersTool,
+} from '@/tools/brex'
 import {
   brightDataDiscoverTool,
   brightDataScrapeUrlTool,
@@ -160,6 +166,8 @@ import {
   clerkRevokeSessionTool,
   clerkUpdateUserTool,
 } from '@/tools/clerk'
+// Phase 2 integrations
+import { clickhousePingTool, clickhouseQueryTool } from '@/tools/clickhouse'
 import {
   cloudflareCreateDnsRecordTool,
   cloudflareDeleteDnsRecordTool,
@@ -187,6 +195,13 @@ import {
   cloudwatchQueryLogsTool,
 } from '@/tools/cloudwatch'
 import { confluenceRetrieveTool, confluenceUpdateTool } from '@/tools/confluence'
+// Phase 2 — Tiers E & F (DevOps / observability / enrichment)
+import {
+  contextDevCrawlTool,
+  contextDevScrapeMarkdownTool,
+  contextDevSearchTool,
+} from '@/tools/context_dev'
+import { convexRunMutationTool, convexRunQueryTool } from '@/tools/convex'
 import {
   crowdstrikeGetSensorAggregatesTool,
   crowdstrikeGetSensorDetailsTool,
@@ -225,6 +240,12 @@ import {
   datadogQueryLogsTool,
   datadogQueryMetricsTool,
 } from '@/tools/datadog'
+import { datagmaEnrichPersonTool, datagmaFindEmailTool } from '@/tools/datagma'
+import {
+  daytonaCreateWorkspaceTool,
+  daytonaGetWorkspaceTool,
+  daytonaListWorkspacesTool,
+} from '@/tools/daytona'
 import { delayTool } from '@/tools/delay'
 import {
   devinAddSecretTool,
@@ -259,6 +280,7 @@ import {
   dropboxSearchFilesTool,
   dropboxUploadFileTool,
 } from '@/tools/dropbox'
+import { dropcontactEnrichTool, dropcontactGetBatchTool } from '@/tools/dropcontact'
 import { dspyRunTool } from '@/tools/dspy'
 import {
   dubCreateLinkTool,
@@ -305,6 +327,7 @@ import {
   enrichSearchPeopleTool,
   enrichVerifyEmailTool,
 } from '@/tools/enrich'
+import { enrowFindEmailTool, enrowGetResultTool, enrowVerifyEmailTool } from '@/tools/enrow'
 import {
   evernoteCreateNoteTool,
   evernoteDeleteNoteTool,
@@ -320,6 +343,7 @@ import {
   exaResearchTool,
   exaSearchTool,
 } from '@/tools/exa'
+import { extendGetRunTool, extendParseTool } from '@/tools/extend'
 import {
   fathomGetSummaryTool,
   fathomGetTranscriptTool,
@@ -328,7 +352,17 @@ import {
   fathomListTeamsTool,
 } from '@/tools/fathom'
 import { fileAppendTool, fileParseTool, fileWriteTool } from '@/tools/file'
+import {
+  findymailFindEmailTool,
+  findymailFindFromLinkedinTool,
+  findymailVerifyEmailTool,
+} from '@/tools/findymail'
 import { crawlTool, scrapeTool, searchTool } from '@/tools/firecrawl'
+import {
+  firefliesGetTranscriptTool,
+  firefliesGetUserTool,
+  firefliesListTranscriptsTool,
+} from '@/tools/fireflies'
 import { functionExecuteTool } from '@/tools/function'
 import {
   gammaCheckStatusTool,
@@ -343,8 +377,22 @@ import {
   githubPrTool,
   githubRepoInfoTool,
 } from '@/tools/github'
+import {
+  gitlabCreateIssueTool,
+  gitlabGetFileTool,
+  gitlabGetProjectTool,
+  gitlabListIssuesTool,
+  gitlabListProjectsTool,
+} from '@/tools/gitlab'
 import { gmailDraftTool, gmailReadTool, gmailSearchTool, gmailSendTool } from '@/tools/gmail'
+import { gongGetCallTool, gongListCallsTool, gongListUsersTool } from '@/tools/gong'
 import { searchTool as googleSearchTool } from '@/tools/google'
+import {
+  googleBigqueryListDatasetsTool,
+  googleBigqueryListTablesTool,
+  googleBigqueryQueryTool,
+} from '@/tools/google_bigquery'
+import { googleBooksGetVolumeTool, googleBooksSearchVolumesTool } from '@/tools/google_books'
 import {
   googleCalendarCreateTool,
   googleCalendarGetTool,
@@ -352,6 +400,12 @@ import {
   googleCalendarListTool,
   googleCalendarQuickAddTool,
 } from '@/tools/google_calendar'
+import {
+  googleContactsCreateContactTool,
+  googleContactsGetContactTool,
+  googleContactsListContactsTool,
+  googleContactsSearchContactsTool,
+} from '@/tools/google_contacts'
 import { googleDocsCreateTool, googleDocsReadTool, googleDocsWriteTool } from '@/tools/google_docs'
 import {
   googleDriveCreateFolderTool,
@@ -360,11 +414,56 @@ import {
   googleDriveUploadTool,
 } from '@/tools/google_drive'
 import {
+  googleFormsGetFormTool,
+  googleFormsGetResponseTool,
+  googleFormsListResponsesTool,
+} from '@/tools/google_forms'
+import {
+  googleGroupsAddMemberTool,
+  googleGroupsGetGroupTool,
+  googleGroupsListGroupsTool,
+  googleGroupsListMembersTool,
+} from '@/tools/google_groups'
+import {
+  googleMapsDirectionsTool,
+  googleMapsGeocodeTool,
+  googleMapsPlaceSearchTool,
+  googleMapsReverseGeocodeTool,
+} from '@/tools/google_maps'
+import {
+  googleMeetCreateSpaceTool,
+  googleMeetGetSpaceTool,
+  googleMeetListConferenceRecordsTool,
+} from '@/tools/google_meet'
+import { googlePagespeedAnalyzeTool } from '@/tools/google_pagespeed'
+import {
   googleSheetsAppendTool,
   googleSheetsReadTool,
   googleSheetsUpdateTool,
   googleSheetsWriteTool,
 } from '@/tools/google_sheets'
+import {
+  googleSlidesBatchUpdateTool,
+  googleSlidesCreatePresentationTool,
+  googleSlidesGetPresentationTool,
+} from '@/tools/google_slides'
+import {
+  googleTasksCompleteTaskTool,
+  googleTasksCreateTaskTool,
+  googleTasksListTasklistsTool,
+  googleTasksListTasksTool,
+} from '@/tools/google_tasks'
+import {
+  googleTranslateDetectLanguageTool,
+  googleTranslateListLanguagesTool,
+  googleTranslateTranslateTool,
+} from '@/tools/google_translate'
+import {
+  grafanaGetDashboardTool,
+  grafanaListAlertsTool,
+  grafanaListDatasourcesTool,
+  grafanaSearchDashboardsTool,
+} from '@/tools/grafana'
 import {
   grainCreateHookTool,
   grainDeleteHookTool,
@@ -377,6 +476,17 @@ import {
   grainListViewsTool,
 } from '@/tools/grain'
 import { granolaGetNoteTool, granolaListNotesTool } from '@/tools/granola'
+import {
+  greenhouseGetCandidateTool,
+  greenhouseListApplicationsTool,
+  greenhouseListCandidatesTool,
+  greenhouseListJobsTool,
+} from '@/tools/greenhouse'
+import {
+  greptileIndexRepositoryTool,
+  greptileQueryTool,
+  greptileSearchTool,
+} from '@/tools/greptile'
 import { guardrailsTool } from '@/tools/guardrails'
 import {
   hexCancelRunTool,
@@ -397,6 +507,13 @@ import {
   hexUpdateProjectTool,
 } from '@/tools/hex'
 import { requestTool as httpRequest } from '@/tools/http'
+import {
+  hubspotCreateContactTool,
+  hubspotCreateDealTool,
+  hubspotGetContactTool,
+  hubspotListContactsTool,
+  hubspotSearchContactsTool,
+} from '@/tools/hubspot'
 import { huggingfaceChatTool } from '@/tools/huggingface'
 import {
   hunterCompaniesFindTool,
@@ -407,13 +524,45 @@ import {
   hunterEmailVerifierTool,
 } from '@/tools/hunter'
 import {
+  icypeasDomainSearchTool,
+  icypeasEmailSearchTool,
+  icypeasEmailVerificationTool,
+} from '@/tools/icypeas'
+import {
   imageSearchCatalogTool,
   imageSearchIngestTool,
   imageSearchStatusTool,
   imageSearchTool,
 } from '@/tools/image_search'
+import {
+  incidentioCreateIncidentTool,
+  incidentioGetIncidentTool,
+  incidentioListIncidentsTool,
+} from '@/tools/incidentio'
+import {
+  infisicalCreateSecretTool,
+  infisicalGetSecretTool,
+  infisicalListSecretsTool,
+} from '@/tools/infisical'
+import {
+  instantlyCreateLeadTool,
+  instantlyListCampaignsTool,
+  instantlyListLeadsTool,
+} from '@/tools/instantly'
+import {
+  intercomCreateContactTool,
+  intercomGetContactTool,
+  intercomListContactsTool,
+  intercomSearchContactsTool,
+} from '@/tools/intercom'
 import { readUrlTool } from '@/tools/jina'
 import { jiraBulkRetrieveTool, jiraRetrieveTool, jiraUpdateTool, jiraWriteTool } from '@/tools/jira'
+import {
+  jiraServiceManagementCreateRequestTool,
+  jiraServiceManagementGetRequestTool,
+  jiraServiceManagementListRequestsTool,
+  jiraServiceManagementListServicedesksTool,
+} from '@/tools/jira_service_management'
 import {
   kalshiAmendOrderTool,
   kalshiCancelOrderTool,
@@ -433,11 +582,34 @@ import {
   kalshiGetSeriesByTickerTool,
   kalshiGetTradesTool,
 } from '@/tools/kalshi'
+import { ketchGetConsentTool, ketchInvokeRightTool, ketchSetConsentTool } from '@/tools/ketch'
 import {
   knowledgeCreateDocumentTool,
   knowledgeSearchTool,
   knowledgeUploadChunkTool,
 } from '@/tools/knowledge'
+import {
+  langsmithCreateFeedbackTool,
+  langsmithGetRunTool,
+  langsmithListRunsTool,
+} from '@/tools/langsmith'
+import { latexCompileTool, latexSearchPackagesTool } from '@/tools/latex'
+import {
+  launchdarklyGetFlagTool,
+  launchdarklyListFlagsTool,
+  launchdarklyListProjectsTool,
+} from '@/tools/launchdarkly'
+import {
+  leadmagicEmailFinderTool,
+  leadmagicEmailValidateTool,
+  leadmagicProfileSearchTool,
+} from '@/tools/leadmagic'
+import {
+  lemlistAddLeadTool,
+  lemlistGetCampaignTool,
+  lemlistListActivitiesTool,
+  lemlistListCampaignsTool,
+} from '@/tools/lemlist'
 import { linearCreateIssueTool, linearReadIssuesTool } from '@/tools/linear'
 import {
   linkedinCreatePostTool,
@@ -446,7 +618,14 @@ import {
   linkedinGetProfileTool,
 } from '@/tools/linkedin'
 import { linkupSearchTool } from '@/tools/linkup'
+import { linqListChatsTool, linqListMessagesTool, linqSendMessageTool } from '@/tools/linq'
 import { logsGetExecutionTool, logsGetTool, logsQueryTool } from '@/tools/logs'
+import {
+  loopsCreateContactTool,
+  loopsSendEventTool,
+  loopsSendTransactionalTool,
+  loopsUpdateContactTool,
+} from '@/tools/loops'
 import {
   lumaAddGuestsTool,
   lumaCreateEventTool,
@@ -456,6 +635,12 @@ import {
   lumaUpdateEventTool,
 } from '@/tools/luma'
 import {
+  mailchimpAddMemberTool,
+  mailchimpGetListTool,
+  mailchimpListMembersTool,
+} from '@/tools/mailchimp'
+import { mailgunListEventsTool, mailgunSendEmailTool } from '@/tools/mailgun'
+import {
   mcpConnectTool,
   mcpCreateServerTool,
   mcpDiscoverToolsTool,
@@ -463,6 +648,17 @@ import {
 } from '@/tools/mcp'
 import { mem0AddMemoriesTool, mem0GetMemoriesTool, mem0SearchMemoriesTool } from '@/tools/mem0'
 import { memoryAddTool, memoryDeleteTool, memoryGetAllTool, memoryGetTool } from '@/tools/memory'
+import {
+  microsoftAdCreateUserTool,
+  microsoftAdGetUserTool,
+  microsoftAdListGroupsTool,
+  microsoftAdListUsersTool,
+} from '@/tools/microsoft_ad'
+import {
+  microsoftDataverseCreateRecordTool,
+  microsoftDataverseGetRecordTool,
+  microsoftDataverseQueryRecordsTool,
+} from '@/tools/microsoft_dataverse'
 import {
   microsoftExcelReadTool,
   microsoftExcelTableAddTool,
@@ -479,9 +675,21 @@ import {
   microsoftTeamsWriteChannelTool,
   microsoftTeamsWriteChatTool,
 } from '@/tools/microsoft_teams'
+import {
+  millionverifierGetCreditsTool,
+  millionverifierVerifyEmailTool,
+} from '@/tools/millionverifier'
 import { mistralParserTool } from '@/tools/mistral'
+import {
+  mondayCreateItemTool,
+  mondayGetBoardItemsTool,
+  mondayListBoardsTool,
+  mondayUpdateItemTool,
+} from '@/tools/monday'
 import { mssqlTool } from '@/tools/mssql'
 import { mysqlTool } from '@/tools/mysql'
+import { neverbounceGetAccountTool, neverbounceVerifyEmailTool } from '@/tools/neverbounce'
+import { newRelicListAlertPoliciesTool, newRelicNrqlQueryTool } from '@/tools/new_relic'
 import {
   notionCreateDatabaseTool,
   notionCreatePageTool,
@@ -491,10 +699,37 @@ import {
   notionSearchTool,
   notionWriteTool,
 } from '@/tools/notion'
+import {
+  oktaCreateUserTool,
+  oktaGetUserTool,
+  oktaListGroupsTool,
+  oktaListUsersTool,
+} from '@/tools/okta'
 import { onedriveCreateFolderTool, onedriveListTool, onedriveUploadTool } from '@/tools/onedrive'
+import {
+  onepasswordGetItemTool,
+  onepasswordListItemsTool,
+  onepasswordListVaultsTool,
+} from '@/tools/onepassword'
 import { imageTool, embeddingsTool as openAIEmbeddings } from '@/tools/openai'
 import { outlookDraftTool, outlookReadTool, outlookSendTool } from '@/tools/outlook'
+import {
+  pagerdutyCreateIncidentTool,
+  pagerdutyGetIncidentTool,
+  pagerdutyListIncidentsTool,
+  pagerdutyListServicesTool,
+} from '@/tools/pagerduty'
+import {
+  peopledatalabsCompanyEnrichTool,
+  peopledatalabsPersonEnrichTool,
+  peopledatalabsPersonSearchTool,
+} from '@/tools/peopledatalabs'
 import { perplexityChatTool } from '@/tools/perplexity'
+import {
+  personaGetAccountTool,
+  personaGetInquiryTool,
+  personaListInquiriesTool,
+} from '@/tools/persona'
 import {
   pineconeFetchTool,
   pineconeGenerateEmbeddingsTool,
@@ -502,6 +737,12 @@ import {
   pineconeSearchVectorTool,
   pineconeUpsertTextTool,
 } from '@/tools/pinecone'
+import {
+  pipedriveCreateDealTool,
+  pipedriveCreatePersonTool,
+  pipedriveListDealsTool,
+  pipedriveSearchDealsTool,
+} from '@/tools/pipedrive'
 import {
   polymarketGetActivityTool,
   polymarketGetEventsTool,
@@ -525,6 +766,7 @@ import {
   polymarketSearchTool,
 } from '@/tools/polymarket'
 import { postgresqlTool } from '@/tools/postgresql'
+import { posthogCaptureEventTool, posthogListInsightsTool, posthogQueryTool } from '@/tools/posthog'
 import {
   profoundBotLogsTool,
   profoundBotsReportTool,
@@ -551,19 +793,93 @@ import {
   profoundSentimentReportTool,
   profoundVisibilityReportTool,
 } from '@/tools/profound'
+import {
+  prospeoEmailFinderTool,
+  prospeoLinkedinEmailFinderTool,
+  prospeoMobileFinderTool,
+} from '@/tools/prospeo'
 import { pulseParserTool } from '@/tools/pulse'
 import { qdrantFetchTool, qdrantSearchTool, qdrantUpsertTool } from '@/tools/qdrant'
+import {
+  quartrGetCompanyTool,
+  quartrListCompaniesTool,
+  quartrListDocumentsTool,
+} from '@/tools/quartr'
 import { quiverImageToSvgTool, quiverListModelsTool, quiverTextToSvgTool } from '@/tools/quiver'
+import {
+  railwayGetProjectTool,
+  railwayListDeploymentsTool,
+  railwayListProjectsTool,
+} from '@/tools/railway'
+import { rb2bGetVisitorTool, rb2bListVisitorsTool } from '@/tools/rb2b'
 import { redditGetCommentsTool, redditGetPostsTool, redditHotPostsTool } from '@/tools/reddit'
+import { reductoExtractTool, reductoParseTool, reductoSplitTool } from '@/tools/reducto'
 import { resendBatchTool, resendCancelTool, resendGetTool, resendSendTool } from '@/tools/resend'
+import {
+  revenuecatGetCustomerTool,
+  revenuecatGetSubscriptionTool,
+  revenuecatListCustomersTool,
+} from '@/tools/revenuecat'
+import {
+  ripplingGetWorkerTool,
+  ripplingListCompaniesTool,
+  ripplingListWorkersTool,
+} from '@/tools/rippling'
+import {
+  rootlyCreateIncidentTool,
+  rootlyGetIncidentTool,
+  rootlyListIncidentsTool,
+} from '@/tools/rootly'
+import { rssFetchFeedTool, rssGetFeedInfoTool } from '@/tools/rss'
 import { s3GetObjectTool } from '@/tools/s3'
+import {
+  salesforceCreateRecordTool,
+  salesforceGetRecordTool,
+  salesforceQueryTool,
+  salesforceUpdateRecordTool,
+} from '@/tools/salesforce'
+import {
+  sapConcurGetReportTool,
+  sapConcurListReportsTool,
+  sapConcurListUsersTool,
+} from '@/tools/sap_concur'
+import {
+  sapS4hanaGetBusinessPartnersTool,
+  sapS4hanaGetBusinessPartnerTool,
+  sapS4hanaListProductsTool,
+} from '@/tools/sap_s4hana'
 import { searchTool as zelaxySearchTool } from '@/tools/search'
+import { sendblueGetMessagesTool, sendblueSendMessageTool } from '@/tools/sendblue'
+import {
+  sendgridAddContactTool,
+  sendgridListContactsTool,
+  sendgridSendEmailTool,
+} from '@/tools/sendgrid'
+import {
+  sentryGetIssueTool,
+  sentryListIssuesTool,
+  sentryListProjectsTool,
+  sentryUpdateIssueTool,
+} from '@/tools/sentry'
 import { searchTool as serperSearch } from '@/tools/serper'
+import {
+  servicenowCreateRecordTool,
+  servicenowGetRecordTool,
+  servicenowQueryTableTool,
+  servicenowUpdateRecordTool,
+} from '@/tools/servicenow'
 import {
   sharepointCreatePageTool,
   sharepointListSitesTool,
   sharepointReadPageTool,
 } from '@/tools/sharepoint'
+import {
+  shopifyCreateProductTool,
+  shopifyGetOrderTool,
+  shopifyListOrdersTool,
+  shopifyListProductsTool,
+} from '@/tools/shopify'
+import { similarwebTotalTrafficTool, similarwebWebsiteRankTool } from '@/tools/similarweb'
 import {
   sixtyfourEnrichCompanyTool,
   sixtyfourEnrichLeadTool,
@@ -574,7 +890,28 @@ import { loadSkillTool } from '@/tools/skill/load'
 import { slackCanvasTool, slackMessageReaderTool, slackMessageTool } from '@/tools/slack'
 import { smtpSendTool } from '@/tools/smtp'
 import { snowflakeTool } from '@/tools/snowflake'
+import {
+  spotifyGetArtistTool,
+  spotifyGetPlaylistTool,
+  spotifyGetTrackTool,
+  spotifyListMyPlaylistsTool,
+  spotifySearchTool,
+} from '@/tools/spotify'
+import {
+  squareCreateCustomerTool,
+  squareGetPaymentTool,
+  squareListCustomersTool,
+  squareListPaymentsTool,
+} from '@/tools/square'
 import { stagehandAgentTool, stagehandExtractTool } from '@/tools/stagehand'
+import {
+  stripeCreateCustomerTool,
+  stripeCreatePaymentIntentTool,
+  stripeCreateRefundTool,
+  stripeListChargesTool,
+  stripeListCustomersTool,
+} from '@/tools/stripe'
+import { sttTranscribeTool } from '@/tools/stt'
 import {
   supabaseDeleteTool,
   supabaseGetRowTool,
@@ -596,12 +933,48 @@ import {
   tableUpdateRowTool,
   tableUpsertRowTool,
 } from '@/tools/table'
+import {
+  tailscaleGetDeviceTool,
+  tailscaleListDevicesTool,
+  tailscaleListKeysTool,
+} from '@/tools/tailscale'
 import { tavilyExtractTool, tavilySearchTool } from '@/tools/tavily'
 import { telegramMessageTool } from '@/tools/telegram'
 import { thinkingTool } from '@/tools/thinking'
+import {
+  tinybirdListDatasourcesTool,
+  tinybirdListPipesTool,
+  tinybirdQueryTool,
+} from '@/tools/tinybird'
+import {
+  trelloCreateBoardTool,
+  trelloCreateCardTool,
+  trelloGetBoardTool,
+  trelloListCardsTool,
+  trelloMoveCardTool,
+} from '@/tools/trello'
+import {
+  triggerDevGetRunTool,
+  triggerDevListRunsTool,
+  triggerDevTriggerTaskTool,
+} from '@/tools/trigger_dev'
+import { ttsSynthesizeTool } from '@/tools/tts'
 import { sendSMSTool } from '@/tools/twilio'
+import {
+  twilioVoiceGetCallTool,
+  twilioVoiceListCallsTool,
+  twilioVoiceMakeCallTool,
+} from '@/tools/twilio_voice'
 import { typeformFilesTool, typeformInsightsTool, typeformResponsesTool } from '@/tools/typeform'
 import type { ToolConfig } from '@/tools/types'
+import { upstashRedisGetTool, upstashRedisSetTool, upstashRunCommandTool } from '@/tools/upstash'
+import { vantaListControlsTool, vantaListTestsTool, vantaListVendorsTool } from '@/tools/vanta'
+import {
+  vercelCreateDeploymentTool,
+  vercelGetDeploymentTool,
+  vercelListDeploymentsTool,
+  vercelListProjectsTool,
+} from '@/tools/vercel'
 import {
   falaiGenerateVideoTool,
   lumaGenerateVideoTool,
@@ -618,6 +991,12 @@ import {
   wealthboxWriteNoteTool,
   wealthboxWriteTaskTool,
 } from '@/tools/wealthbox'
+import {
+  webflowCreateCollectionItemTool,
+  webflowListCollectionItemsTool,
+  webflowListCollectionsTool,
+  webflowListSitesTool,
+} from '@/tools/webflow'
 import { whatsappSendMessageTool } from '@/tools/whatsapp'
 import {
   wikipediaPageContentTool,
@@ -625,9 +1004,41 @@ import {
   wikipediaRandomPageTool,
   wikipediaSearchTool,
 } from '@/tools/wikipedia'
+import {
+  wizaCreateListTool,
+  wizaGetContactsTool,
+  wizaGetListTool,
+  wizaRevealIndividualTool,
+} from '@/tools/wiza'
+import {
+  wordpressCreatePostTool,
+  wordpressGetPostTool,
+  wordpressListPostsTool,
+  wordpressUpdatePostTool,
+} from '@/tools/wordpress'
+import { workdayGetWorkersTool, workdayGetWorkerTool } from '@/tools/workday'
 import { workflowExecutorTool } from '@/tools/workflow'
 import { xReadTool, xSearchTool, xUserTool, xWriteTool } from '@/tools/x'
 import { youtubeSearchTool } from '@/tools/youtube'
+import {
+  zendeskCreateTicketTool,
+  zendeskGetTicketTool,
+  zendeskListTicketsTool,
+  zendeskSearchTool,
+  zendeskUpdateTicketTool,
+} from '@/tools/zendesk'
+import { zerobounceGetCreditsTool, zerobounceValidateEmailTool } from '@/tools/zerobounce'
+import {
+  zoomCreateMeetingTool,
+  zoomGetMeetingTool,
+  zoomListMeetingsTool,
+  zoomListUsersTool,
+} from '@/tools/zoom'
+import {
+  zoominfoEnrichCompanyTool,
+  zoominfoEnrichContactTool,
+  zoominfoSearchContactTool,
+} from '@/tools/zoominfo'
 
 // Registry of all available tools
 export const tools: Record<string, ToolConfig> = {
@@ -660,6 +1071,311 @@ export const tools: Record<string, ToolConfig> = {
   slack_canvas: slackCanvasTool,
   smtp_send: smtpSendTool,
   snowflake_connector: snowflakeTool,
+  stripe_create_customer: stripeCreateCustomerTool,
+  stripe_list_customers: stripeListCustomersTool,
+  stripe_create_payment_intent: stripeCreatePaymentIntentTool,
+  stripe_list_charges: stripeListChargesTool,
+  stripe_create_refund: stripeCreateRefundTool,
+  // Phase 2 integrations
+  hubspot_create_contact: hubspotCreateContactTool,
+  hubspot_get_contact: hubspotGetContactTool,
+  hubspot_list_contacts: hubspotListContactsTool,
+  hubspot_search_contacts: hubspotSearchContactsTool,
+  hubspot_create_deal: hubspotCreateDealTool,
+  salesforce_create_record: salesforceCreateRecordTool,
+  salesforce_query: salesforceQueryTool,
+  salesforce_update_record: salesforceUpdateRecordTool,
+  salesforce_get_record: salesforceGetRecordTool,
+  pipedrive_create_deal: pipedriveCreateDealTool,
+  pipedrive_list_deals: pipedriveListDealsTool,
+  pipedrive_create_person: pipedriveCreatePersonTool,
+  pipedrive_search_deals: pipedriveSearchDealsTool,
+  gitlab_list_projects: gitlabListProjectsTool,
+  gitlab_get_project: gitlabGetProjectTool,
+  gitlab_list_issues: gitlabListIssuesTool,
+  gitlab_create_issue: gitlabCreateIssueTool,
+  gitlab_get_file: gitlabGetFileTool,
+  sentry_list_projects: sentryListProjectsTool,
+  sentry_list_issues: sentryListIssuesTool,
+  sentry_get_issue: sentryGetIssueTool,
+  sentry_update_issue: sentryUpdateIssueTool,
+  gong_list_calls: gongListCallsTool,
+  gong_get_call: gongGetCallTool,
+  gong_list_users: gongListUsersTool,
+  zoom_list_meetings: zoomListMeetingsTool,
+  zoom_create_meeting: zoomCreateMeetingTool,
+  zoom_get_meeting: zoomGetMeetingTool,
+  zoom_list_users: zoomListUsersTool,
+  intercom_create_contact: intercomCreateContactTool,
+  intercom_list_contacts: intercomListContactsTool,
+  intercom_get_contact: intercomGetContactTool,
+  intercom_search_contacts: intercomSearchContactsTool,
+  greenhouse_list_candidates: greenhouseListCandidatesTool,
+  greenhouse_get_candidate: greenhouseGetCandidateTool,
+  greenhouse_list_jobs: greenhouseListJobsTool,
+  greenhouse_list_applications: greenhouseListApplicationsTool,
+  trello_create_card: trelloCreateCardTool,
+  trello_list_cards: trelloListCardsTool,
+  trello_get_board: trelloGetBoardTool,
+  trello_create_board: trelloCreateBoardTool,
+  trello_move_card: trelloMoveCardTool,
+  monday_list_boards: mondayListBoardsTool,
+  monday_get_board_items: mondayGetBoardItemsTool,
+  monday_create_item: mondayCreateItemTool,
+  monday_update_item: mondayUpdateItemTool,
+  fireflies_list_transcripts: firefliesListTranscriptsTool,
+  fireflies_get_transcript: firefliesGetTranscriptTool,
+  fireflies_get_user: firefliesGetUserTool,
+  shopify_list_products: shopifyListProductsTool,
+  shopify_create_product: shopifyCreateProductTool,
+  shopify_list_orders: shopifyListOrdersTool,
+  shopify_get_order: shopifyGetOrderTool,
+  square_list_customers: squareListCustomersTool,
+  square_create_customer: squareCreateCustomerTool,
+  square_list_payments: squareListPaymentsTool,
+  square_get_payment: squareGetPaymentTool,
+  webflow_list_sites: webflowListSitesTool,
+  webflow_list_collections: webflowListCollectionsTool,
+  webflow_list_collection_items: webflowListCollectionItemsTool,
+  webflow_create_collection_item: webflowCreateCollectionItemTool,
+  wordpress_create_post: wordpressCreatePostTool,
+  wordpress_list_posts: wordpressListPostsTool,
+  wordpress_get_post: wordpressGetPostTool,
+  wordpress_update_post: wordpressUpdatePostTool,
+  spotify_search: spotifySearchTool,
+  spotify_get_track: spotifyGetTrackTool,
+  spotify_get_artist: spotifyGetArtistTool,
+  spotify_get_playlist: spotifyGetPlaylistTool,
+  spotify_list_my_playlists: spotifyListMyPlaylistsTool,
+  zendesk_create_ticket: zendeskCreateTicketTool,
+  zendesk_list_tickets: zendeskListTicketsTool,
+  zendesk_get_ticket: zendeskGetTicketTool,
+  zendesk_update_ticket: zendeskUpdateTicketTool,
+  zendesk_search: zendeskSearchTool,
+  loops_create_contact: loopsCreateContactTool,
+  loops_update_contact: loopsUpdateContactTool,
+  loops_send_event: loopsSendEventTool,
+  loops_send_transactional: loopsSendTransactionalTool,
+  lemlist_list_campaigns: lemlistListCampaignsTool,
+  lemlist_get_campaign: lemlistGetCampaignTool,
+  lemlist_add_lead: lemlistAddLeadTool,
+  lemlist_list_activities: lemlistListActivitiesTool,
+  sendgrid_send_email: sendgridSendEmailTool,
+  sendgrid_add_contact: sendgridAddContactTool,
+  sendgrid_list_contacts: sendgridListContactsTool,
+  mailgun_send_email: mailgunSendEmailTool,
+  mailgun_list_events: mailgunListEventsTool,
+  mailchimp_add_member: mailchimpAddMemberTool,
+  mailchimp_list_members: mailchimpListMembersTool,
+  mailchimp_get_list: mailchimpGetListTool,
+  instantly_list_campaigns: instantlyListCampaignsTool,
+  instantly_create_lead: instantlyCreateLeadTool,
+  instantly_list_leads: instantlyListLeadsTool,
+  sendblue_send_message: sendblueSendMessageTool,
+  sendblue_get_messages: sendblueGetMessagesTool,
+  twilio_voice_make_call: twilioVoiceMakeCallTool,
+  twilio_voice_list_calls: twilioVoiceListCallsTool,
+  twilio_voice_get_call: twilioVoiceGetCallTool,
+  clickhouse_query: clickhouseQueryTool,
+  clickhouse_ping: clickhousePingTool,
+  upstash_redis_get: upstashRedisGetTool,
+  upstash_redis_set: upstashRedisSetTool,
+  upstash_run_command: upstashRunCommandTool,
+  tinybird_query: tinybirdQueryTool,
+  tinybird_list_pipes: tinybirdListPipesTool,
+  tinybird_list_datasources: tinybirdListDatasourcesTool,
+  convex_run_query: convexRunQueryTool,
+  convex_run_mutation: convexRunMutationTool,
+  // Phase 2 — Tiers E & F
+  zoominfo_enrich_contact: zoominfoEnrichContactTool,
+  zoominfo_enrich_company: zoominfoEnrichCompanyTool,
+  zoominfo_search_contact: zoominfoSearchContactTool,
+  peopledatalabs_person_enrich: peopledatalabsPersonEnrichTool,
+  peopledatalabs_company_enrich: peopledatalabsCompanyEnrichTool,
+  peopledatalabs_person_search: peopledatalabsPersonSearchTool,
+  leadmagic_email_finder: leadmagicEmailFinderTool,
+  leadmagic_profile_search: leadmagicProfileSearchTool,
+  leadmagic_email_validate: leadmagicEmailValidateTool,
+  datagma_enrich_person: datagmaEnrichPersonTool,
+  datagma_find_email: datagmaFindEmailTool,
+  dropcontact_enrich: dropcontactEnrichTool,
+  dropcontact_get_batch: dropcontactGetBatchTool,
+  enrow_find_email: enrowFindEmailTool,
+  enrow_verify_email: enrowVerifyEmailTool,
+  enrow_get_result: enrowGetResultTool,
+  findymail_find_email: findymailFindEmailTool,
+  findymail_find_from_linkedin: findymailFindFromLinkedinTool,
+  findymail_verify_email: findymailVerifyEmailTool,
+  icypeas_email_search: icypeasEmailSearchTool,
+  icypeas_email_verification: icypeasEmailVerificationTool,
+  icypeas_domain_search: icypeasDomainSearchTool,
+  prospeo_email_finder: prospeoEmailFinderTool,
+  prospeo_mobile_finder: prospeoMobileFinderTool,
+  prospeo_linkedin_email_finder: prospeoLinkedinEmailFinderTool,
+  rb2b_list_visitors: rb2bListVisitorsTool,
+  rb2b_get_visitor: rb2bGetVisitorTool,
+  wiza_create_list: wizaCreateListTool,
+  wiza_get_list: wizaGetListTool,
+  wiza_get_contacts: wizaGetContactsTool,
+  wiza_reveal_individual: wizaRevealIndividualTool,
+  persona_list_inquiries: personaListInquiriesTool,
+  persona_get_inquiry: personaGetInquiryTool,
+  persona_get_account: personaGetAccountTool,
+  millionverifier_verify_email: millionverifierVerifyEmailTool,
+  millionverifier_get_credits: millionverifierGetCreditsTool,
+  neverbounce_verify_email: neverbounceVerifyEmailTool,
+  neverbounce_get_account: neverbounceGetAccountTool,
+  zerobounce_validate_email: zerobounceValidateEmailTool,
+  zerobounce_get_credits: zerobounceGetCreditsTool,
+  similarweb_total_traffic: similarwebTotalTrafficTool,
+  similarweb_website_rank: similarwebWebsiteRankTool,
+  vercel_list_projects: vercelListProjectsTool,
+  vercel_list_deployments: vercelListDeploymentsTool,
+  vercel_get_deployment: vercelGetDeploymentTool,
+  vercel_create_deployment: vercelCreateDeploymentTool,
+  railway_list_projects: railwayListProjectsTool,
+  railway_get_project: railwayGetProjectTool,
+  railway_list_deployments: railwayListDeploymentsTool,
+  daytona_list_workspaces: daytonaListWorkspacesTool,
+  daytona_get_workspace: daytonaGetWorkspaceTool,
+  daytona_create_workspace: daytonaCreateWorkspaceTool,
+  trigger_dev_trigger_task: triggerDevTriggerTaskTool,
+  trigger_dev_get_run: triggerDevGetRunTool,
+  trigger_dev_list_runs: triggerDevListRunsTool,
+  grafana_search_dashboards: grafanaSearchDashboardsTool,
+  grafana_get_dashboard: grafanaGetDashboardTool,
+  grafana_list_datasources: grafanaListDatasourcesTool,
+  grafana_list_alerts: grafanaListAlertsTool,
+  new_relic_nrql_query: newRelicNrqlQueryTool,
+  new_relic_list_alert_policies: newRelicListAlertPoliciesTool,
+  posthog_capture_event: posthogCaptureEventTool,
+  posthog_query: posthogQueryTool,
+  posthog_list_insights: posthogListInsightsTool,
+  langsmith_list_runs: langsmithListRunsTool,
+  langsmith_get_run: langsmithGetRunTool,
+  langsmith_create_feedback: langsmithCreateFeedbackTool,
+  launchdarkly_list_flags: launchdarklyListFlagsTool,
+  launchdarkly_get_flag: launchdarklyGetFlagTool,
+  launchdarkly_list_projects: launchdarklyListProjectsTool,
+  pagerduty_list_incidents: pagerdutyListIncidentsTool,
+  pagerduty_create_incident: pagerdutyCreateIncidentTool,
+  pagerduty_get_incident: pagerdutyGetIncidentTool,
+  pagerduty_list_services: pagerdutyListServicesTool,
+  incidentio_list_incidents: incidentioListIncidentsTool,
+  incidentio_create_incident: incidentioCreateIncidentTool,
+  incidentio_get_incident: incidentioGetIncidentTool,
+  rootly_list_incidents: rootlyListIncidentsTool,
+  rootly_create_incident: rootlyCreateIncidentTool,
+  rootly_get_incident: rootlyGetIncidentTool,
+  tailscale_list_devices: tailscaleListDevicesTool,
+  tailscale_get_device: tailscaleGetDeviceTool,
+  tailscale_list_keys: tailscaleListKeysTool,
+  infisical_list_secrets: infisicalListSecretsTool,
+  infisical_get_secret: infisicalGetSecretTool,
+  infisical_create_secret: infisicalCreateSecretTool,
+  onepassword_list_vaults: onepasswordListVaultsTool,
+  onepassword_list_items: onepasswordListItemsTool,
+  onepassword_get_item: onepasswordGetItemTool,
+  greptile_query: greptileQueryTool,
+  greptile_search: greptileSearchTool,
+  greptile_index_repository: greptileIndexRepositoryTool,
+  context_dev_search: contextDevSearchTool,
+  context_dev_scrape_markdown: contextDevScrapeMarkdownTool,
+  context_dev_crawl: contextDevCrawlTool,
+  // Phase 2 — Tiers D, G & H
+  google_forms_get_form: googleFormsGetFormTool,
+  google_forms_list_responses: googleFormsListResponsesTool,
+  google_forms_get_response: googleFormsGetResponseTool,
+  google_tasks_list_tasklists: googleTasksListTasklistsTool,
+  google_tasks_list_tasks: googleTasksListTasksTool,
+  google_tasks_create_task: googleTasksCreateTaskTool,
+  google_tasks_complete_task: googleTasksCompleteTaskTool,
+  google_contacts_list_contacts: googleContactsListContactsTool,
+  google_contacts_get_contact: googleContactsGetContactTool,
+  google_contacts_search_contacts: googleContactsSearchContactsTool,
+  google_contacts_create_contact: googleContactsCreateContactTool,
+  google_slides_get_presentation: googleSlidesGetPresentationTool,
+  google_slides_create_presentation: googleSlidesCreatePresentationTool,
+  google_slides_batch_update: googleSlidesBatchUpdateTool,
+  google_translate_translate: googleTranslateTranslateTool,
+  google_translate_detect_language: googleTranslateDetectLanguageTool,
+  google_translate_list_languages: googleTranslateListLanguagesTool,
+  google_maps_geocode: googleMapsGeocodeTool,
+  google_maps_reverse_geocode: googleMapsReverseGeocodeTool,
+  google_maps_place_search: googleMapsPlaceSearchTool,
+  google_maps_directions: googleMapsDirectionsTool,
+  google_books_search_volumes: googleBooksSearchVolumesTool,
+  google_books_get_volume: googleBooksGetVolumeTool,
+  google_pagespeed_analyze: googlePagespeedAnalyzeTool,
+  google_bigquery_query: googleBigqueryQueryTool,
+  google_bigquery_list_datasets: googleBigqueryListDatasetsTool,
+  google_bigquery_list_tables: googleBigqueryListTablesTool,
+  google_meet_create_space: googleMeetCreateSpaceTool,
+  google_meet_get_space: googleMeetGetSpaceTool,
+  google_meet_list_conference_records: googleMeetListConferenceRecordsTool,
+  google_groups_list_groups: googleGroupsListGroupsTool,
+  google_groups_get_group: googleGroupsGetGroupTool,
+  google_groups_list_members: googleGroupsListMembersTool,
+  google_groups_add_member: googleGroupsAddMemberTool,
+  servicenow_query_table: servicenowQueryTableTool,
+  servicenow_create_record: servicenowCreateRecordTool,
+  servicenow_get_record: servicenowGetRecordTool,
+  servicenow_update_record: servicenowUpdateRecordTool,
+  jira_service_management_list_servicedesks: jiraServiceManagementListServicedesksTool,
+  jira_service_management_create_request: jiraServiceManagementCreateRequestTool,
+  jira_service_management_get_request: jiraServiceManagementGetRequestTool,
+  jira_service_management_list_requests: jiraServiceManagementListRequestsTool,
+  okta_list_users: oktaListUsersTool,
+  okta_get_user: oktaGetUserTool,
+  okta_create_user: oktaCreateUserTool,
+  okta_list_groups: oktaListGroupsTool,
+  workday_get_workers: workdayGetWorkersTool,
+  workday_get_worker: workdayGetWorkerTool,
+  rippling_list_workers: ripplingListWorkersTool,
+  rippling_get_worker: ripplingGetWorkerTool,
+  rippling_list_companies: ripplingListCompaniesTool,
+  vanta_list_tests: vantaListTestsTool,
+  vanta_list_controls: vantaListControlsTool,
+  vanta_list_vendors: vantaListVendorsTool,
+  ketch_get_consent: ketchGetConsentTool,
+  ketch_set_consent: ketchSetConsentTool,
+  ketch_invoke_right: ketchInvokeRightTool,
+  brex_list_cash_accounts: brexListCashAccountsTool,
+  brex_list_cash_transactions: brexListCashTransactionsTool,
+  brex_list_users: brexListUsersTool,
+  revenuecat_get_customer: revenuecatGetCustomerTool,
+  revenuecat_list_customers: revenuecatListCustomersTool,
+  revenuecat_get_subscription: revenuecatGetSubscriptionTool,
+  microsoft_dataverse_query_records: microsoftDataverseQueryRecordsTool,
+  microsoft_dataverse_create_record: microsoftDataverseCreateRecordTool,
+  microsoft_dataverse_get_record: microsoftDataverseGetRecordTool,
+  microsoft_ad_list_users: microsoftAdListUsersTool,
+  microsoft_ad_get_user: microsoftAdGetUserTool,
+  microsoft_ad_list_groups: microsoftAdListGroupsTool,
+  microsoft_ad_create_user: microsoftAdCreateUserTool,
+  sap_s4hana_get_business_partners: sapS4hanaGetBusinessPartnersTool,
+  sap_s4hana_get_business_partner: sapS4hanaGetBusinessPartnerTool,
+  sap_s4hana_list_products: sapS4hanaListProductsTool,
+  sap_concur_list_reports: sapConcurListReportsTool,
+  sap_concur_get_report: sapConcurGetReportTool,
+  sap_concur_list_users: sapConcurListUsersTool,
+  latex_compile: latexCompileTool,
+  latex_search_packages: latexSearchPackagesTool,
+  reducto_parse: reductoParseTool,
+  reducto_extract: reductoExtractTool,
+  reducto_split: reductoSplitTool,
+  extend_parse: extendParseTool,
+  extend_get_run: extendGetRunTool,
+  stt_transcribe: sttTranscribeTool,
+  tts_synthesize: ttsSynthesizeTool,
+  quartr_get_company: quartrGetCompanyTool,
+  quartr_list_companies: quartrListCompaniesTool,
+  quartr_list_documents: quartrListDocumentsTool,
+  linq_send_message: linqSendMessageTool,
+  linq_list_chats: linqListChatsTool,
+  linq_list_messages: linqListMessagesTool,
+  rss_fetch_feed: rssFetchFeedTool,
+  rss_get_feed_info: rssGetFeedInfoTool,
   github_repo_info: githubRepoInfoTool,
   github_latest_commit: githubLatestCommitTool,
   serper_search: serperSearch,

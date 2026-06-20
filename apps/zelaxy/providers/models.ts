@@ -11,15 +11,22 @@ import type React from 'react'
 import {
   AnthropicIcon,
   AzureIcon,
+  BasetenIcon,
   BedrockIcon,
   CerebrasIcon,
   DeepseekIcon,
+  FireworksIcon,
   GeminiIcon,
   GroqIcon,
+  LiteLLMIcon,
   MiMoIcon,
+  MistralIcon,
   NvidiaIcon,
   OllamaIcon,
   OpenAIIcon,
+  OpenRouterIcon,
+  TogetherIcon,
+  VLLMIcon,
   xAIIcon,
 } from '@/components/icons'
 
@@ -1411,6 +1418,279 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
       },
     ],
   },
+  openrouter: {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    description: 'Unified access to many models from multiple providers via OpenRouter',
+    // Catalog ids are namespaced with `openrouter/` so they never collide with a first-party
+    // provider offering the same underlying model; the prefix is stripped before the API call.
+    defaultModel: 'openrouter/openai/gpt-4o-mini',
+    modelPatterns: [/^openrouter\//],
+    icon: OpenRouterIcon,
+    models: [
+      {
+        id: 'openrouter/openai/gpt-4o',
+        pricing: { input: 2.5, cachedInput: 1.25, output: 10, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'openrouter/openai/gpt-4o-mini',
+        pricing: { input: 0.15, output: 0.6, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'openrouter/anthropic/claude-3.5-sonnet',
+        pricing: { input: 3, output: 15, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+      {
+        id: 'openrouter/anthropic/claude-3.5-haiku',
+        pricing: { input: 0.8, output: 4, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+      {
+        id: 'openrouter/google/gemini-2.0-flash-001',
+        pricing: { input: 0.1, output: 0.4, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'openrouter/meta-llama/llama-3.3-70b-instruct',
+        pricing: { input: 0.12, output: 0.3, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'openrouter/deepseek/deepseek-chat',
+        pricing: { input: 0.27, output: 1.1, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'openrouter/qwen/qwen-2.5-72b-instruct',
+        pricing: { input: 0.35, output: 0.4, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'openrouter/mistralai/mistral-large',
+        pricing: { input: 2, output: 6, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+    ],
+  },
+  together: {
+    id: 'together',
+    name: 'Together',
+    description: "Together AI's hosted open-source model inference",
+    defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+    icon: TogetherIcon,
+    models: [
+      {
+        id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+        pricing: { input: 0.88, output: 0.88, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
+        pricing: { input: 3.5, output: 3.5, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+        pricing: { input: 0.18, output: 0.18, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'Qwen/Qwen2.5-72B-Instruct-Turbo',
+        pricing: { input: 1.2, output: 1.2, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'Qwen/Qwen2.5-Coder-32B-Instruct',
+        pricing: { input: 0.8, output: 0.8, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'deepseek-ai/DeepSeek-V3',
+        pricing: { input: 1.25, output: 1.25, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
+        pricing: { input: 0.6, output: 0.6, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+    ],
+  },
+  fireworks: {
+    id: 'fireworks',
+    name: 'Fireworks',
+    description: "Fireworks AI's fast open-source model inference",
+    defaultModel: 'accounts/fireworks/models/llama-v3p3-70b-instruct',
+    modelPatterns: [/^accounts\/fireworks\//],
+    icon: FireworksIcon,
+    models: [
+      {
+        id: 'accounts/fireworks/models/llama-v3p3-70b-instruct',
+        pricing: { input: 0.9, output: 0.9, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'accounts/fireworks/models/llama-v3p1-405b-instruct',
+        pricing: { input: 3, output: 3, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'accounts/fireworks/models/llama-v3p1-8b-instruct',
+        pricing: { input: 0.2, output: 0.2, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'accounts/fireworks/models/qwen2p5-72b-instruct',
+        pricing: { input: 0.9, output: 0.9, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'accounts/fireworks/models/deepseek-v3',
+        pricing: { input: 0.9, output: 0.9, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'accounts/fireworks/models/mixtral-8x7b-instruct',
+        pricing: { input: 0.5, output: 0.5, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+    ],
+  },
+  mistral: {
+    id: 'mistral',
+    name: 'Mistral',
+    description: "Mistral AI's chat and code models",
+    defaultModel: 'mistral-large-latest',
+    modelPatterns: [/^mistral-/, /^ministral-/, /^open-mi/, /^codestral/, /^pixtral/, /^magistral/],
+    icon: MistralIcon,
+    models: [
+      {
+        id: 'mistral-large-latest',
+        pricing: { input: 2, output: 6, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+      {
+        id: 'mistral-small-latest',
+        pricing: { input: 0.2, output: 0.6, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+      {
+        id: 'ministral-8b-latest',
+        pricing: { input: 0.1, output: 0.1, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+      {
+        id: 'ministral-3b-latest',
+        pricing: { input: 0.04, output: 0.04, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+      {
+        id: 'open-mistral-nemo',
+        pricing: { input: 0.15, output: 0.15, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+      {
+        id: 'codestral-latest',
+        pricing: { input: 0.3, output: 0.9, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+      {
+        id: 'pixtral-large-latest',
+        pricing: { input: 2, output: 6, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+    ],
+  },
+  vllm: {
+    id: 'vllm',
+    name: 'vLLM',
+    // Self-hosted: the served model id is whatever the user's server exposes, so the seeds below are
+    // just examples — real ids are added as custom models. Pricing is 0 (the user owns the compute).
+    description: 'Self-hosted vLLM server (OpenAI-compatible)',
+    defaultModel: 'vllm/meta-llama/Llama-3.1-8B-Instruct',
+    modelPatterns: [/^vllm\//],
+    icon: VLLMIcon,
+    models: [
+      {
+        id: 'vllm/meta-llama/Llama-3.1-8B-Instruct',
+        pricing: { input: 0, output: 0, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'vllm/Qwen/Qwen2.5-7B-Instruct',
+        pricing: { input: 0, output: 0, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+    ],
+  },
+  litellm: {
+    id: 'litellm',
+    name: 'LiteLLM',
+    description: 'Self-hosted LiteLLM proxy (OpenAI-compatible gateway)',
+    defaultModel: 'litellm/gpt-4o',
+    modelPatterns: [/^litellm\//],
+    icon: LiteLLMIcon,
+    models: [
+      {
+        id: 'litellm/gpt-4o',
+        pricing: { input: 0, output: 0, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'litellm/claude-3-5-sonnet',
+        pricing: { input: 0, output: 0, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+    ],
+  },
+  baseten: {
+    id: 'baseten',
+    name: 'Baseten',
+    description: "Baseten's hosted open-source and custom model inference",
+    defaultModel: 'baseten/deepseek-ai/DeepSeek-V3',
+    modelPatterns: [/^baseten\//],
+    icon: BasetenIcon,
+    models: [
+      {
+        id: 'baseten/deepseek-ai/DeepSeek-V3',
+        pricing: { input: 0, output: 0, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'baseten/meta-llama/Llama-3.3-70B-Instruct',
+        pricing: { input: 0, output: 0, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+    ],
+  },
+  'ollama-cloud': {
+    id: 'ollama-cloud',
+    name: 'Ollama Cloud',
+    description: "Ollama's hosted inference for large models",
+    defaultModel: 'ollama-cloud/gpt-oss:120b',
+    modelPatterns: [/^ollama-cloud\//],
+    icon: OllamaIcon,
+    models: [
+      {
+        id: 'ollama-cloud/gpt-oss:120b',
+        pricing: { input: 0, output: 0, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'ollama-cloud/deepseek-v3.1:671b',
+        pricing: { input: 0, output: 0, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'ollama-cloud/qwen3-coder:480b',
+        pricing: { input: 0, output: 0, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+    ],
+  },
 }
 
 // Helper functions to extract information from the comprehensive definitions
@@ -1426,12 +1706,24 @@ const customModelsByProvider: Record<string, ModelDefinition[]> = {}
 
 /**
  * Providers with genuinely open / self-extensible model catalogs, where a user may legitimately
- * run a model id we don't ship: NVIDIA NIM (hundreds of models) and AWS Bedrock (large catalog +
- * custom imported models + inference-profile ARNs). Everything else — including Groq, Cerebras,
- * MiMo and the first-party providers — exposes a fixed/curated model list, so arbitrary ids there
- * would just fail. (Ollama is also open but is managed via its own local-models store.)
+ * run a model id we don't ship: NVIDIA NIM (hundreds of models), AWS Bedrock (large catalog +
+ * custom imported models + inference-profile ARNs), and the OpenAI-compatible aggregators
+ * OpenRouter / Together / Fireworks (each fronts hundreds of models). The user-added id is sent to
+ * the provider as-is. Everything else — including Groq, Cerebras, MiMo, Mistral and the first-party
+ * providers — exposes a fixed/curated model list, so arbitrary ids there would just fail. (Ollama
+ * is also open but is managed via its own local-models store.)
  */
-export const CUSTOM_MODEL_PROVIDERS = ['nvidia', 'bedrock'] as const
+export const CUSTOM_MODEL_PROVIDERS = [
+  'nvidia',
+  'bedrock',
+  'openrouter',
+  'together',
+  'fireworks',
+  'vllm',
+  'litellm',
+  'baseten',
+  'ollama-cloud',
+] as const
 
 export function supportsCustomModels(providerId: string): boolean {
   return (CUSTOM_MODEL_PROVIDERS as readonly string[]).includes(providerId)

@@ -109,6 +109,16 @@ export const env = createEnv({
 
     // Additional LLM providers
     XIAOMI_MIMO_API_KEY:                  z.string().optional(),                  // Xiaomi MiMo (OpenAI-compatible) API key
+    OPENROUTER_API_KEY:                   z.string().min(1).optional(),           // OpenRouter API key (unified access to many models)
+    TOGETHER_API_KEY:                     z.string().min(1).optional(),           // Together AI API key (hosted open-source models)
+    FIREWORKS_API_KEY:                    z.string().min(1).optional(),           // Fireworks AI API key (fast OSS inference)
+    VLLM_BASE_URL:                        z.string().url().optional(),            // Self-hosted vLLM OpenAI-compatible base URL
+    VLLM_API_KEY:                         z.string().optional(),                  // vLLM API key (optional; many servers run without auth)
+    LITELLM_BASE_URL:                     z.string().url().optional(),            // Self-hosted LiteLLM proxy base URL
+    LITELLM_API_KEY:                      z.string().optional(),                  // LiteLLM proxy API key (optional)
+    BASETEN_API_KEY:                      z.string().min(1).optional(),           // Baseten API key
+    BASETEN_BASE_URL:                     z.string().url().optional(),            // Baseten base URL override (dedicated deployments)
+    OLLAMA_CLOUD_API_KEY:                 z.string().min(1).optional(),           // Ollama Cloud API key
 
     // Monitoring & Telemetry
     SENTRY_DSN:                           z.string().url().optional(),             // Sentry DSN for server-side error tracking

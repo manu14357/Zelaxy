@@ -3,12 +3,16 @@ import { createLogger } from '@/lib/logs/console/logger'
 import { isToonEnabled, toonEncodeForLLM } from '@/lib/toon/encoder'
 import { anthropicProvider } from '@/providers/anthropic'
 import { azureOpenAIProvider } from '@/providers/azure-openai'
+import { basetenProvider } from '@/providers/baseten'
 import { bedrockProvider } from '@/providers/bedrock'
 import { cerebrasProvider } from '@/providers/cerebras'
 import { deepseekProvider } from '@/providers/deepseek'
+import { fireworksProvider } from '@/providers/fireworks'
 import { googleProvider } from '@/providers/google'
 import { groqProvider } from '@/providers/groq'
+import { litellmProvider } from '@/providers/litellm'
 import { mimoProvider } from '@/providers/mimo'
+import { mistralProvider } from '@/providers/mistral'
 import {
   getComputerUseModels,
   getEmbeddingModelPricing,
@@ -28,8 +32,12 @@ import {
 } from '@/providers/models'
 import { nvidiaProvider } from '@/providers/nvidia'
 import { ollamaProvider } from '@/providers/ollama'
+import { ollamaCloudProvider } from '@/providers/ollama-cloud'
 import { openaiProvider } from '@/providers/openai'
+import { openRouterProvider } from '@/providers/openrouter'
+import { togetherProvider } from '@/providers/together'
 import type { ProviderConfig, ProviderId, ProviderToolConfig } from '@/providers/types'
+import { vllmProvider } from '@/providers/vllm'
 import { xAIProvider } from '@/providers/xai'
 import { useCustomToolsStore } from '@/stores/custom-tools/store'
 import { useOllamaStore } from '@/stores/ollama/store'
@@ -110,6 +118,46 @@ export const providers: Record<
     ...mimoProvider,
     models: getProviderModelsFromDefinitions('mimo'),
     modelPatterns: PROVIDER_DEFINITIONS.mimo.modelPatterns,
+  },
+  openrouter: {
+    ...openRouterProvider,
+    models: getProviderModelsFromDefinitions('openrouter'),
+    modelPatterns: PROVIDER_DEFINITIONS.openrouter.modelPatterns,
+  },
+  together: {
+    ...togetherProvider,
+    models: getProviderModelsFromDefinitions('together'),
+    modelPatterns: PROVIDER_DEFINITIONS.together.modelPatterns,
+  },
+  fireworks: {
+    ...fireworksProvider,
+    models: getProviderModelsFromDefinitions('fireworks'),
+    modelPatterns: PROVIDER_DEFINITIONS.fireworks.modelPatterns,
+  },
+  mistral: {
+    ...mistralProvider,
+    models: getProviderModelsFromDefinitions('mistral'),
+    modelPatterns: PROVIDER_DEFINITIONS.mistral.modelPatterns,
+  },
+  vllm: {
+    ...vllmProvider,
+    models: getProviderModelsFromDefinitions('vllm'),
+    modelPatterns: PROVIDER_DEFINITIONS.vllm.modelPatterns,
+  },
+  litellm: {
+    ...litellmProvider,
+    models: getProviderModelsFromDefinitions('litellm'),
+    modelPatterns: PROVIDER_DEFINITIONS.litellm.modelPatterns,
+  },
+  baseten: {
+    ...basetenProvider,
+    models: getProviderModelsFromDefinitions('baseten'),
+    modelPatterns: PROVIDER_DEFINITIONS.baseten.modelPatterns,
+  },
+  'ollama-cloud': {
+    ...ollamaCloudProvider,
+    models: getProviderModelsFromDefinitions('ollama-cloud'),
+    modelPatterns: PROVIDER_DEFINITIONS['ollama-cloud'].modelPatterns,
   },
 }
 
@@ -664,6 +712,12 @@ export function getApiKey(provider: string, model: string, userProvidedKey?: str
   // Bedrock uses AWS credentials from env vars, not an API key
   if (provider === 'bedrock') {
     return 'bedrock' // Placeholder — actual auth is via AWS SDK credentials
+  }
+
+  // Self-hosted OpenAI-compatible endpoints (vLLM, LiteLLM proxy) frequently run without auth.
+  // Use the user's key if they set one, otherwise a placeholder so the request isn't blocked.
+  if (provider === 'vllm' || provider === 'litellm') {
+    return userProvidedKey || 'empty'
   }
 
   // Use server key rotation for all OpenAI models and Anthropic's Claude models on the hosted platform
