@@ -1074,3 +1074,44 @@ input[type="search"]::-ms-clear {
     overflow: hidden;
   }
 }
+
+/*
+ * Hide writing-assistant browser-extension overlays (Grammarly / Quillbot / LanguageTool) that
+ * inject a "container inside the input" widget — the box + nav arrows + colored dot rendered on top
+ * of our textareas. These are extension-owned host elements (often Shadow DOM hosts), so hiding the
+ * host removes the whole overlay. Best-effort: selectors track the extensions' injected hosts.
+ */
+grammarly-extension,
+grammarly-desktop-integration,
+[data-grammarly-shadow-root],
+.grammarly-disable-indicator,
+quillbot-content,
+quillbot-extension,
+quillbot-para,
+[class*='quillbot-'],
+[id*='quillbot-'],
+[class*='qb-ext'],
+[id*='qb-ext'],
+ltrtxt-popup,
+.lt-toolbar {
+  display: none !important;
+}
+
+/*
+ * Bare composer textarea: force-remove ALL box chrome (border, outline, focus ring, box-shadow,
+ * background) in every state, so the only visible container is the composer's own rounded pill.
+ * This kills any "box inside the input" — whether it's a stray border, a focus outline/ring, or an
+ * extension that restyles the textarea element itself.
+ */
+.composer-bare-textarea,
+.composer-bare-textarea:hover,
+.composer-bare-textarea:focus,
+.composer-bare-textarea:focus-visible,
+.composer-bare-textarea:focus-within {
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  --tw-ring-shadow: 0 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 0 transparent !important;
+}

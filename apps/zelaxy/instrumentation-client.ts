@@ -3,8 +3,11 @@
 
 import * as Sentry from '@sentry/nextjs'
 
-// Privacy-first: only initialize if DSN is explicitly configured
-if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+// Privacy-first: only initialize if a DSN is explicitly configured AND we're in production.
+// In local dev Sentry adds per-interaction overhead (a trace/replay fetch on every click) that
+// gets blocked by CSP and floods the console — and you generally don't want dev errors reported.
+const isDevelopment = process.env.NODE_ENV === 'development'
+if (process.env.NEXT_PUBLIC_SENTRY_DSN && !isDevelopment) {
   Sentry.init({
     dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
     sendDefaultPii: true,

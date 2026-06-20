@@ -389,7 +389,7 @@ export function ArenaComposer({
             }}
             placeholder='Describe what you want — use @ to reference resources, or attach files…'
             rows={1}
-            className='max-h-40 min-h-[24px] flex-1 resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0'
+            className='composer-bare-textarea max-h-40 min-h-[24px] flex-1 resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0'
           />
           {isStreaming ? (
             <Button size='icon' variant='ghost' className='h-8 w-8 flex-shrink-0' onClick={onStop}>
