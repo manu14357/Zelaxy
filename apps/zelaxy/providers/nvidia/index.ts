@@ -18,6 +18,7 @@ export const nvidiaProvider: ProviderConfig = {
     'qwen/qwen3-coder-480b-a35b-instruct',
     'nvidia/llama-3.1-nemotron-70b-instruct',
     'nvidia/llama-3.1-nemotron-405b-instruct',
+    'nvidia/nemotron-3-ultra-550b-a55b',
     'meta/llama-3.1-405b-instruct',
     'meta/llama-3.1-70b-instruct',
     'meta/llama-3.1-8b-instruct',
