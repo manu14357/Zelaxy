@@ -4,7 +4,7 @@ export interface WorkflowExecutionPayload {
   workflowId: string
   userId: string
   input?: any
-  triggerType?: 'api' | 'webhook' | 'schedule' | 'manual' | 'chat'
+  triggerType?: 'api' | 'webhook' | 'schedule' | 'manual' | 'chat' | 'a2a'
   metadata?: Record<string, any>
 }
 
