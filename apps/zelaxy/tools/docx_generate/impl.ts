@@ -1,6 +1,9 @@
-import { Document, HeadingLevel, Packer, Paragraph } from 'docx'
 import type { ToolConfig, ToolResponse } from '@/tools/types'
 import type { DocxGenerateParams } from './types'
+
+// NOTE: `docx` is imported dynamically inside directExecution (server-only). A static top-level
+// import leaks its ESM bundle into the client chunk, where Turbopack fails to parse it
+// ("'super' keyword unexpected here") and it bloats the bundle. Keep it lazy + server-side.
 
 export const docxGenerate: ToolConfig<DocxGenerateParams> = {
   id: 'docx_generate',
@@ -34,10 +37,12 @@ export const docxGenerate: ToolConfig<DocxGenerateParams> = {
 
   directExecution: async (params: DocxGenerateParams): Promise<ToolResponse> => {
     try {
+      const { Document, HeadingLevel, Packer, Paragraph } = await import('docx')
+
       const title = params.title?.trim() || ''
       const content = params.content ?? ''
 
-      const children: Paragraph[] = []
+      const children: InstanceType<typeof Paragraph>[] = []
 
       if (title) {
         children.push(

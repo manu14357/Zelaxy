@@ -10,6 +10,15 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<'tex
           className
         )}
         ref={ref}
+        // Turn off the native red spellcheck squiggle (keeps the text clean/legible) and ask browser
+        // writing-assistant extensions (Grammarly / Quillbot / LanguageTool) not to inject their
+        // overlay widget inside the field — that's the "field inside a field" artifact. All
+        // overridable: a field that wants spellcheck can pass spellCheck for itself.
+        spellCheck={false}
+        data-gramm='false'
+        data-gramm_editor='false'
+        data-enable-grammarly='false'
+        data-enable-quillbot='false'
         {...props}
       />
     )

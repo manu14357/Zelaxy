@@ -1,6 +1,10 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import type { ToolConfig, ToolResponse } from '@/tools/types'
 import type { PdfGenerateParams } from './types'
+
+// NOTE: `pdf-lib` is imported dynamically inside directExecution (server-only) — a static top-level
+// import leaks it into the client bundle (extra weight, and the same Turbopack ESM-parse class of
+// failure that `docx` hits). The inline `import('pdf-lib').PDFFont` type below is erased at compile
+// time, so it does not pull the runtime in.
 
 /**
  * Wrap a single line of text to fit within a given max width.
@@ -77,6 +81,8 @@ export const pdfGenerate: ToolConfig<PdfGenerateParams> = {
 
   directExecution: async (params: PdfGenerateParams): Promise<ToolResponse> => {
     try {
+      const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib')
+
       const title = params.title?.trim() || ''
       const content = params.content ?? ''
 

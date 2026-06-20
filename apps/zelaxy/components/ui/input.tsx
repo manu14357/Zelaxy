@@ -15,6 +15,11 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<'input'>>(
         autoCorrect='off'
         autoCapitalize='off'
         spellCheck='false'
+        // Stop browser writing-assistant extensions (Grammarly, etc.) from injecting their overlay
+        // widget inside the field. Overridable via props.
+        data-gramm='false'
+        data-gramm_editor='false'
+        data-enable-grammarly='false'
         {...props}
       />
     )
