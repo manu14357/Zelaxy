@@ -1,0 +1,63 @@
+---
+title: Brandfetch Block
+description: Retrieve brand assets, logos, and colors from Brandfetch
+icon: Box
+---
+
+# Brandfetch Block
+
+The Brandfetch block brings brand intelligence into your workflows, returning logos, colors, typography, and company data for any brand by domain. Reach for it when a workflow needs accurate, up-to-date brand assets without manual lookups.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `brandfetch` |
+| **Category** | tools |
+| **Color** | `#000000` |
+
+## When to Use
+
+- Fetch a brand's logos and icons by domain for use in generated content or templates.
+- Pull a brand's official color palette to keep designs and emails on-brand.
+- Retrieve company information (typography, metadata) for enrichment pipelines.
+- Search for brands by name when you only know the company, not its domain.
+- Automate brand-asset gathering for onboarding, CRM enrichment, or marketing tasks.
+
+## Configuration
+
+### Operation
+
+Choose what to do: **Get Brand** (`brandfetch_get_brand`) to look up a brand by domain, or **Search Brands** (`brandfetch_search`) to find brands by name.
+
+### API Key
+
+Your Brandfetch API key (stored securely). Required for all operations.
+
+### Domain
+
+The brand domain to look up (e.g. `example.com`). Shown when the operation is **Get Brand**.
+
+### Brand Name
+
+The brand name to search for (e.g. `Apple`). Shown when the operation is **Search Brands**.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `identifier` (string), `name` (string)
+- **Outputs**: `id` (string), `name` (string), `domain` (string), `logos` (json), `colors` (json), `company` (json)
+
+## YAML Example
+
+```yaml
+brandfetch_1:
+  type: brandfetch
+  name: "Brandfetch"
+  inputs:
+    operation: "brandfetch_get_brand"
+    apiKey: "{{BRANDFETCH_API_KEY}}"
+    identifier: "example.com"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

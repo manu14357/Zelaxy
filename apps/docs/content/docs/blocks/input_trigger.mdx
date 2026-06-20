@@ -1,0 +1,47 @@
+---
+title: Input Form (Legacy) Block
+description: Legacy manual start block with structured input
+icon: Box
+---
+
+# Input Form (Legacy) Block
+
+The Input Form (Legacy) block manually triggers a workflow from the editor using a structured, typed input schema. It is a legacy starter — for new workflows, prefer the Start block.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `input_trigger` |
+| **Category** | triggers |
+| **Color** | `#3B82F6` |
+
+## When to Use
+
+- Manually start a workflow from the editor during development or testing
+- Define a typed JSON input schema so the workflow expects structured data
+- Expose typed inputs that a parent workflow can map into when calling this workflow as a subflow
+- Maintain an existing workflow that already relies on this legacy trigger (for new builds, use the Start block instead)
+
+## Configuration
+
+### Input Format
+Define the JSON input schema for this workflow when run manually. This declares the typed fields the workflow accepts, allowing parent workflows to map values into them.
+
+## Inputs & Outputs
+
+- **Inputs**: none (the block declares no `inputs` keys; data is supplied through the configured input schema)
+- **Outputs**: none declared
+
+## YAML Example
+
+```yaml
+input_start:
+  type: input_trigger
+  name: "Input Form (Legacy)"
+  inputs:
+    inputFormat: '[{ "name": "query", "type": "string" }]'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

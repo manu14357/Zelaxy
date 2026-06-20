@@ -1,0 +1,49 @@
+---
+title: API (Legacy) Block
+description: Trigger workflows via a REST API endpoint (legacy format)
+icon: Box
+---
+
+# API (Legacy) Block
+
+The API (Legacy) block exposes your workflow as a REST API endpoint. Incoming requests trigger the workflow and pass their data through the configured input format. Reach for it when you need to start a workflow programmatically from an external system using the legacy API trigger format.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `api_trigger` |
+| **Category** | triggers |
+| **Color** | `#2F55FF` |
+
+## When to Use
+
+- Start a workflow on demand from an external service or backend over HTTP.
+- Accept a structured JSON payload and pass it into the workflow as input.
+- Integrate the workflow with a third-party system that calls a REST endpoint.
+- Build a programmatic entry point for automations triggered by your own code.
+- Maintain compatibility with existing integrations using the legacy API trigger format.
+
+## Configuration
+
+### Input Format
+
+Defines the schema of the incoming request payload. The fields you declare here become the structured data passed into the workflow when the endpoint is called.
+
+## Inputs & Outputs
+
+- **Inputs**: none
+- **Outputs**: `input` (json) — incoming request data
+
+## YAML Example
+
+```yaml
+api_trigger_1:
+  type: api_trigger
+  name: "API (Legacy)"
+  inputs:
+    inputFormat: '{"name": "string", "email": "string"}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

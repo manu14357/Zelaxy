@@ -1,0 +1,76 @@
+---
+title: Polymarket Block
+description: Browse and analyze Polymarket prediction markets
+icon: Box
+---
+
+# Polymarket Block
+
+The Polymarket block lets you access Polymarket prediction market data inside a workflow. Browse markets, events, and prices; track positions, trades, and holder data; search markets; and query CLOB price and orderbook data. Reach for it when a workflow needs live prediction-market signals or on-chain user activity.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `polymarket` |
+| **Category** | tools |
+| **Color** | `#0A0A0A` |
+
+## When to Use
+
+- Pull a list of active or closed markets and events, with sorting by volume, liquidity, or date.
+- Look up a single market or event by its ID or URL slug.
+- Search markets by keyword and paginate through the results.
+- Track a wallet's positions, trades, or activity by Ethereum address.
+- Query CLOB pricing data: orderbook, price, midpoint, spread, tick size, last trade price, or price history for a token.
+- Inspect token holders or fetch the trader leaderboard for a category or time period.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting which Polymarket query to run (Get Markets, Get Market, Get Events, Get Event, Get Tags, Search, Get Series, Get Series by ID, Get Orderbook, Get Price, Get Midpoint, Get Price History, Get Last Trade Price, Get Spread, Get Tick Size, Get Positions, Get Trades, Get Activity, Get Leaderboard, Get Holders). Defaults to Get Markets. The remaining fields appear based on this selection.
+
+### Market / Event / Series identifiers
+
+`marketId` and optional `marketSlug` for Get Market; `eventId` and optional `eventSlug` for Get Event; `seriesId` for Get Series by ID.
+
+### Search Query
+
+`query` (required) for the Search operation, with an optional `page` for pagination.
+
+### User Address
+
+`user` (required) Ethereum wallet address for Get Positions, Get Trades, Get Activity, and Get Leaderboard.
+
+### Token ID
+
+`tokenId` (required) CLOB token ID for the price/orderbook operations (Get Orderbook, Get Price, Get Midpoint, Get Price History, Get Last Trade Price, Get Spread, Get Tick Size). Get Price also requires a `side` (buy/sell).
+
+### Holders
+
+`holdersMarket` (required, comma-separated condition IDs) plus optional `holdersMinBalance` for Get Holders.
+
+### Advanced filters
+
+Operation-specific advanced fields cover sorting (`order`, `orderEvents`, `ascending`), status (`closed`), price history range (`interval`, `fidelity`, `startTs`, `endTs`), position/trade/activity/leaderboard filters, and pagination (`limit`, `offset`).
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `marketId` (string), `marketSlug` (string), `eventId` (string), `eventSlug` (string), `seriesId` (string), `query` (string), `user` (string), `market` (string), `tokenId` (string), `side` (string), `interval` (string), `fidelity` (number), `startTs` (number), `endTs` (number), `limit` (string), `offset` (string), `page` (string)
+- **Outputs**: `markets` (json), `events` (json), `tags` (json), `series` (json), `market` (json), `event` (json), `orderbook` (json), `price` (number), `midpoint` (number), `history` (json), `lastTradePrice` (number), `spread` (number), `tickSize` (number), `positions` (json), `trades` (json), `activity` (json), `leaderboard` (json), `holders` (json), `results` (json), `data` (json)
+
+## YAML Example
+
+```yaml
+polymarket_1:
+  type: polymarket
+  name: "Polymarket"
+  inputs:
+    operation: "search"
+    query: "{{start.input}}"
+    limit: "20"
+  connections:
+    outgoing:
+      - target: agent_1
+```

@@ -1,0 +1,71 @@
+---
+title: Hex Block
+description: Run and manage Hex projects
+icon: Box
+---
+
+# Hex Block
+
+The Hex block integrates Hex into your workflow so you can trigger project runs, track run status, and manage Hex resources programmatically. Reach for it when you need to kick off a Hex notebook/app, poll its execution, or administer collections, groups, users, and data connections. Requires a Hex API token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `hex` |
+| **Category** | tools |
+| **Color** | `#14151A` |
+
+## When to Use
+
+- Run a Hex project with custom input parameters and capture its run URL/status
+- Poll a run's status or list a project's recent runs to monitor execution
+- Cancel an in-progress run
+- List or fetch project details, and update a project's status
+- Inspect the tables a project queried (`get_queried_tables`)
+- Administer Hex resources: list/get users, groups, collections, and data connections, or create a new collection
+
+## Configuration
+
+### Operation
+Dropdown that selects which Hex action to perform. Options: Run Project, Get Run Status, Get Project Runs, Cancel Run, List Projects, Get Project, Update Project, Get Queried Tables, List Users, List Groups, Get Group, List Collections, Get Collection, Create Collection, List Data Connections, Get Data Connection. Defaults to `run_project`.
+
+### API Key
+Required Hex API token (stored as a password field).
+
+### Project ID
+Project UUID. Required for run/status/project operations (run_project, get_run_status, get_project_runs, cancel_run, get_project, update_project, get_queried_tables).
+
+### Run ID
+Run UUID. Required for `get_run_status` and `cancel_run`.
+
+### Input Parameters
+JSON object of project input parameters, used when running a project. Supports AI-assisted generation.
+
+### Resource fields
+Operation-specific identifiers: Status (update_project), Group ID (get_group), Collection ID (get_collection), Collection Name/Description (create_collection), and Data Connection ID (get_data_connection).
+
+### Advanced options
+Run flags (Dry Run, Update Cache, Update Published Results, Use Cached SQL Results) for runs, plus pagination/filtering (Limit, Offset, Include Archived, Status Filter, Filter by Group) for list operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `projectId` (string), `runId` (string), `inputParams` (json), `dryRun` (boolean), `updateCache` (boolean), `updatePublishedResults` (boolean), `useCachedSqlResults` (boolean), `projectStatus` (string), `limit` (number), `offset` (number), `includeArchived` (boolean), `statusFilter` (string), `runStatusFilter` (string), `groupId` (string), `groupIdInput` (string), `collectionId` (string), `collectionName` (string), `collectionDescription` (string), `dataConnectionId` (string)
+- **Outputs**: `projectId` (string), `runId` (string), `runUrl` (string), `runStatusUrl` (string), `projectVersion` (number), `status` (json), `startTime` (string), `endTime` (string), `elapsedTime` (number), `traceId` (string), `id` (string), `title` (string), `name` (string), `description` (string), `type` (string), `createdAt` (string), `updatedAt` (string), `lastEditedAt` (string), `lastPublishedAt` (string), `archivedAt` (string), `trashedAt` (string), `projects` (json), `runs` (json), `users` (json), `groups` (json), `collections` (json), `connections` (json), `tables` (json), `categories` (json), `creator` (json), `owner` (json), `total` (number), `success` (boolean), `connectViaSsh` (boolean), `includeMagic` (boolean), `allowWritebackCells` (boolean)
+
+## YAML Example
+
+```yaml
+hex_1:
+  type: hex
+  name: "Hex"
+  inputs:
+    operation: "run_project"
+    apiKey: "{{HEX_API_TOKEN}}"
+    projectId: "00000000-0000-0000-0000-000000000000"
+    inputParams: '{"date_range": "2024-01-01", "department": "engineering"}'
+    dryRun: false
+  connections:
+    outgoing:
+      - target: next-block-id
+```

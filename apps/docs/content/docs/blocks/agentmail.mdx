@@ -1,0 +1,72 @@
+---
+title: AgentMail Block
+description: Send, reply, and manage email threads with AgentMail
+icon: Box
+---
+
+# AgentMail Block
+
+The AgentMail block automates email workflows through AgentMail. Use it to send messages, reply to or forward existing threads, create drafts, and list or fetch email threads — all from within a workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `agentmail` |
+| **Category** | tools |
+| **Color** | `#000000` |
+
+## When to Use
+
+- Send a transactional or notification email as part of a workflow
+- Reply to an existing email thread programmatically
+- Forward an incoming message to another recipient
+- Create a draft for later review instead of sending immediately
+- List email threads in an inbox to drive downstream logic
+- Fetch a specific thread by ID to read its contents
+
+## Configuration
+
+### Operation
+Dropdown selecting which AgentMail action to run: Send Message, Reply to Message, Forward Message, List Threads, Get Thread, or Create Draft. Required.
+
+### API Key
+Your AgentMail API key, stored as a password field. Required for all operations.
+
+### Inbox ID
+The inbox to operate against (e.g. `inbox-id`).
+
+### To
+Recipient email address. Shown for Send Message, Forward Message, and Create Draft.
+
+### Subject
+Email subject line. Shown for Send Message and Create Draft.
+
+### Message
+The email body text. Shown for Send Message, Reply to Message, Forward Message, and Create Draft.
+
+### Thread ID
+The thread to act on. Shown for Reply to Message, Forward Message, and Get Thread.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `inboxId` (string), `to` (string), `subject` (string), `text` (string), `threadId` (string)
+- **Outputs**: `threadId` (string), `messageId` (string), `status` (string), `draftId` (string)
+
+## YAML Example
+
+```yaml
+agentmail_1:
+  type: agentmail
+  name: "AgentMail"
+  inputs:
+    operation: "agentmail_send_message"
+    apiKey: "{{secrets.AGENTMAIL_API_KEY}}"
+    inboxId: "inbox-id"
+    to: "recipient@example.com"
+    subject: "Hello from Zelaxy"
+    text: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

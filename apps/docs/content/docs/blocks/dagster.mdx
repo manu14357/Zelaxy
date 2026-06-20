@@ -1,0 +1,89 @@
+---
+title: Dagster Block
+description: Launch and manage data pipeline runs in Dagster
+icon: Box
+---
+
+# Dagster Block
+
+The Dagster block integrates Dagster data orchestration into your workflows. Use it to launch runs, monitor their status, manage jobs and schedules, and retrieve run logs directly from a Dagster deployment.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `dagster` |
+| **Category** | tools |
+| **Color** | `#333333` |
+
+## When to Use
+
+- Launch a Dagster job run as part of an automated workflow.
+- Poll or inspect the status of an existing run.
+- Pull run logs to diagnose pipeline failures or feed results downstream.
+- List runs to find recent or in-progress executions.
+- Terminate a run that is stuck or no longer needed.
+- Enumerate available jobs or schedules in a repository location.
+
+## Configuration
+
+### Operation
+
+Choose which Dagster action to perform: Launch Run, Get Run, Get Run Logs, List Runs, Terminate Run, List Jobs, or List Schedules.
+
+### Dagster URL
+
+The base URL of your Dagster deployment (e.g. `https://dagster.example.com`). Required for all operations.
+
+### Repository Location
+
+The repository location name. Used when launching a run or listing jobs.
+
+### Repository Name
+
+The repository name (e.g. `__repository__`). Used when launching a run or listing jobs.
+
+### Job Name
+
+The name of the job/pipeline to launch. Required for Launch Run.
+
+### Run Config (JSON)
+
+The Dagster run configuration as JSON. Used with Launch Run.
+
+### Run ID
+
+The identifier of an existing run. Required for Get Run, Get Run Logs, and Terminate Run.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform
+  - `baseUrl` (string) — Dagster URL
+  - `repositoryLocationName` (string) — Repository location name
+  - `repositoryName` (string) — Repository name
+  - `jobName` (string) — Job name
+  - `runConfigJson` (json) — Run configuration
+  - `runId` (string) — Run ID
+- **Outputs**:
+  - `runId` (string) — Run ID
+  - `status` (string) — Run status
+  - `logs` (json) — Run logs
+
+## YAML Example
+
+```yaml
+dagster_1:
+  type: dagster
+  name: "Dagster"
+  inputs:
+    operation: "dagster_launch_run"
+    baseUrl: "https://dagster.example.com"
+    repositoryLocationName: "my_repo_location"
+    repositoryName: "__repository__"
+    jobName: "my_pipeline"
+    runConfigJson: '{"ops": {"my_op": {"config": {"param": "value"}}}}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

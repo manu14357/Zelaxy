@@ -1,0 +1,86 @@
+---
+title: Microsoft Planner Block
+description: Read and create tasks in Microsoft Planner
+icon: Box
+---
+
+# Microsoft Planner Block
+
+The Microsoft Planner block integrates Planner task management into your workflow. Use it to read all of your tasks, tasks from a specific plan, or an individual task, and to create new tasks with properties like title, description, due date, and assignees using OAuth authentication.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `microsoft_planner` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Create a new Planner task in a plan as part of an automated workflow.
+- Read a specific task by ID to pull its current details into downstream steps.
+- Fetch all tasks within a given plan to summarize or process them.
+- Retrieve all of the authenticated user's tasks across plans.
+- Assign newly created tasks to a user and set due dates programmatically.
+- Organize created tasks into a specific bucket within a plan.
+
+## Configuration
+
+### Operation
+
+Choose between `Read Task` and `Create Task`. This determines which fields are shown and which tool runs.
+
+### Microsoft Account
+
+OAuth credential used to authenticate against Microsoft Planner. Requires scopes including `Group.ReadWrite.All`, `Group.Read.All`, and `Tasks.ReadWrite`.
+
+### Plan ID
+
+The Planner plan to operate on. Required when creating a task; optional when reading (used to fetch all tasks from that plan).
+
+### Task ID
+
+For read operations, select a task via the file selector (basic mode) or enter the task ID manually (advanced mode).
+
+### Task Title
+
+The title of the task to create. Required for the create operation.
+
+### Description, Due Date, Assignee User ID, Bucket ID
+
+Optional create-task fields. Due Date uses ISO 8601 format (e.g., `2024-12-31T23:59:59Z`); Assignee and Bucket organize and assign the task.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — operation to perform
+  - `credential` (string) — Microsoft account credential
+  - `planId` (string) — plan ID
+  - `taskId` (string) — task ID
+  - `title` (string) — task title
+  - `description` (string) — task description
+  - `dueDateTime` (string) — due date
+  - `assigneeUserId` (string) — assignee user ID
+  - `bucketId` (string) — bucket ID
+- **Outputs**:
+  - `task` (json) — the Microsoft Planner task object (id, title, description, status, due date, assignees)
+  - `metadata` (json) — additional metadata about the operation
+
+## YAML Example
+
+```yaml
+planner_create:
+  type: microsoft_planner
+  name: "Microsoft Planner"
+  inputs:
+    operation: "create_task"
+    credential: "{{credentials.microsoft-planner}}"
+    planId: "AAkALgAAAAAAHYQDEapmEc2byACkI8OwAA"
+    title: "Follow up with customer"
+    description: "Reach out about the renewal"
+    dueDateTime: "2024-12-31T23:59:59Z"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

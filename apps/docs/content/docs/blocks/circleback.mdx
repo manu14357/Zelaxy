@@ -1,0 +1,66 @@
+---
+title: Circleback Block
+description: Trigger workflows from Circleback meeting completions and notes
+icon: Box
+---
+
+# Circleback Block
+
+The Circleback block is a trigger that starts a workflow when a Circleback AI meeting assistant event fires. Reach for it when you want to automate follow-ups from meetings — receiving notes, action items, transcripts, and recordings the moment a meeting completes.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `circleback` |
+| **Category** | triggers |
+| **Color** | `#0097A7` |
+
+## When to Use
+
+- Kick off a workflow automatically when a Circleback meeting completes
+- Route meeting notes into a knowledge base or document store
+- Turn extracted action items into tasks, tickets, or reminders
+- Summarize or analyze meeting transcripts with a downstream Agent block
+- Notify a team channel with the recording URL and attendees after each meeting
+- Archive full meeting data for compliance or reporting
+
+## Configuration
+
+This block is a trigger and has no configurable sub-blocks. It activates from incoming Circleback webhook events. The available trigger events are:
+
+### circleback_meeting_completed
+Fires when a Circleback meeting finishes processing.
+
+### circleback_meeting_notes
+Fires when meeting notes become available.
+
+### circleback_webhook
+Generic Circleback webhook event.
+
+## Inputs & Outputs
+
+- **Inputs**: none (this block is a trigger / workflow starter)
+- **Outputs**:
+  - `id` (number) — Meeting ID
+  - `name` (string) — Meeting name
+  - `url` (string) — Meeting URL
+  - `createdAt` (string) — Created at timestamp
+  - `duration` (number) — Meeting duration in minutes
+  - `recordingUrl` (string) — Recording URL
+  - `attendees` (json) — Meeting attendees
+  - `notes` (string) — Meeting notes
+  - `actionItems` (json) — Action items
+  - `transcript` (json) — Meeting transcript
+  - `meeting` (json) — Full meeting data
+
+## YAML Example
+
+```yaml
+circleback_1:
+  type: circleback
+  name: "Circleback"
+  connections:
+    outgoing:
+      - target: agent_1
+```

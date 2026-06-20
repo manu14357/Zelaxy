@@ -1,0 +1,74 @@
+---
+title: Gmail Block
+description: Send Gmail or trigger workflows from Gmail events
+icon: Box
+---
+
+# Gmail Block
+
+The Gmail block is a comprehensive Gmail integration with OAuth authentication. Use it to send, draft, read, and search email, or to trigger workflows from Gmail events like new emails and label changes.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `gmail` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Send transactional or notification emails as part of a workflow.
+- Draft an email for later review instead of sending it immediately.
+- Read messages from a specific label/folder (e.g. INBOX) to feed their content into downstream steps.
+- Fetch a single message by its message ID.
+- Search a mailbox with Gmail query syntax to pull matching threads.
+- Trigger a workflow automatically when new emails arrive (via the Gmail poller).
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the action to perform: **Send Email** (`send_gmail`), **Read Email** (`read_gmail`), **Draft Email** (`draft_gmail`), or **Search Email** (`search_gmail`). Defaults to Send Email.
+
+### Gmail Account
+
+OAuth credential (`credential`) connecting your Gmail account via the `google-email` provider. Required for all operations.
+
+### Send / Draft Fields
+
+`to`, `subject`, and `body` are required when sending or drafting. `cc` and `bcc` (comma-separated, advanced mode) add additional recipients.
+
+### Read Fields
+
+`folder` (label selector) or `manualFolder` (advanced) chooses the label to read from; defaults to INBOX. `messageId` fetches a specific message and overrides the label. `unreadOnly` and `includeAttachments` are switches. `maxResults` caps the number returned.
+
+### Search Fields
+
+`query` (required) holds the Gmail search terms; `maxResults` limits the number of results.
+
+### Trigger Configuration
+
+`triggerConfig` enables trigger mode using the `gmail_poller` to start workflows on new Gmail events.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `to` (string), `subject` (string), `body` (string), `cc` (string), `bcc` (string), `folder` (string), `manualFolder` (string), `messageId` (string), `unreadOnly` (boolean), `includeAttachments` (boolean), `query` (string), `maxResults` (number)
+- **Outputs**: `content` (string), `metadata` (json), `attachments` (json), `message` (string), `messageId` (string), `threadId` (string), `email` (json), `rawEmail` (json)
+
+## YAML Example
+
+```yaml
+gmail_1:
+  type: gmail
+  name: "Gmail"
+  inputs:
+    operation: "send_gmail"
+    credential: "{{credentials.gmail}}"
+    to: "{{start.input}}"
+    subject: "Workflow notification"
+    body: "Your workflow completed successfully."
+  connections:
+    outgoing:
+      - target: next-block-id
+```

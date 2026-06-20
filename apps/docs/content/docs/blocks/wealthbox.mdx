@@ -1,0 +1,81 @@
+---
+title: Wealthbox Block
+description: Interact with Wealthbox
+icon: Box
+---
+
+# Wealthbox Block
+
+The Wealthbox block integrates Wealthbox CRM into your workflow so you can manage notes, contacts, and tasks. Use it to read existing notes, contacts, and tasks or to create new ones via OAuth authentication.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `wealthbox` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Read the content of an existing Wealthbox note by ID and feed it into downstream steps.
+- Create a new note attached to a specific contact during a workflow run.
+- Look up a contact's details (name, email, phone, background info) from Wealthbox.
+- Create a new contact record with first name, last name, and email.
+- Read a task by ID to check its due date, description, or priority.
+- Create a new task with a title and due date linked to a contact.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting what to do: Read Note, Write Note, Read Contact, Write Contact, Read Task, or Write Task. This determines which fields and tool are used.
+
+### Wealthbox Account
+
+OAuth credential for the Wealthbox account (scopes: `login`, `data`). Required for all operations.
+
+### Note ID
+
+Identifier of the note to read (used for Read Note).
+
+### Contact
+
+Contact selector (basic mode) or manual Contact ID (advanced mode), used by Read Contact, Write Note, and Write Task.
+
+### Task ID
+
+Identifier of the task to read (used for Read Task).
+
+### Title / Due Date
+
+Required fields when creating a task (Write Task).
+
+### First Name / Last Name / Email Address / Background Information
+
+Fields used when creating a contact (Write Contact). First and last name are required.
+
+### Content
+
+Text body required when writing a note or task.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `noteId` (string), `contactId` (string), `manualContactId` (string), `taskId` (string), `manualTaskId` (string), `content` (string), `firstName` (string), `lastName` (string), `emailAddress` (string), `backgroundInformation` (string), `title` (string), `dueDate` (string)
+- **Outputs**: `note` (json), `notes` (json), `contact` (json), `contacts` (json), `task` (json), `tasks` (json), `metadata` (json), `success` (boolean)
+
+## YAML Example
+
+```yaml
+wealthbox_1:
+  type: wealthbox
+  name: "Wealthbox"
+  inputs:
+    operation: "write_note"
+    credential: "{{credentials.wealthbox}}"
+    contactId: "12345"
+    content: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

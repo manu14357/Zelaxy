@@ -1,0 +1,78 @@
+---
+title: Microsoft MSSQL Block
+description: Execute SQL queries and manage files in Microsoft SQL Server
+icon: Box
+---
+
+# Microsoft MSSQL Block
+
+The Microsoft MSSQL block connects to a Microsoft SQL Server instance to execute T-SQL queries, manage data (insert/update/delete), and perform file operations. Reach for it when your workflow needs to read from or write to a SQL Server database with secure connections, automatic query parameterization, and connection pooling.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mssql` |
+| **Category** | tools |
+| **Color** | `#CC2927` |
+
+## When to Use
+
+- Run ad-hoc T-SQL `SELECT` queries against a SQL Server database and feed results into downstream blocks.
+- Insert new records into a table from data produced earlier in the workflow.
+- Update existing rows based on JSON-defined WHERE conditions.
+- Delete rows that match specific conditions.
+- Create, read, edit, delete, or list files associated with the SQL Server operation (e.g., scripts, config files).
+- Integrate with on-prem or cloud SQL Server using SSL encryption and self-signed certificate trust.
+
+## Configuration
+
+### Connection Settings
+
+Set the **Server** (hostname or IP), **Port** (default `1433`), **Database** name, **Username**, and **Password**. The **Enable SSL Encryption** and **Trust Server Certificate** switches control TLS behavior for the connection.
+
+### Action
+
+A dropdown that selects the operation: Execute Query, Insert Data, Update Data, Delete Data, Create File, Get File, Edit File, Delete File, or List Files. Defaults to Execute Query.
+
+### SQL Query
+
+For the `execute` action, the T-SQL query to run. Supports AI-assisted generation and references to prior block outputs and variables.
+
+### Table & Data
+
+For `insert`, `update`, and `delete` actions, **Table Name** identifies the target table. **Data** holds the JSON payload for insert/update operations.
+
+### Conditions
+
+For `update` and `delete` actions, a JSON object defining the WHERE clause conditions.
+
+### File Fields
+
+For file actions, **File Path** points to the target file, **File Content** supplies content for create/edit, and **Folder Path** scopes the list-files operation.
+
+## Inputs & Outputs
+
+- **Inputs**: `server` (string), `port` (number), `database` (string), `username` (string), `password` (string), `encrypt` (boolean), `trustServerCertificate` (boolean), `action` (string), `query` (string), `table` (string), `data` (json), `conditions` (json), `filePath` (string), `content` (string), `folderPath` (string)
+- **Outputs**: `data` (json), `affectedRows` (number), `metadata` (json), `fileName` (string), `filePath` (string), `content` (string), `files` (json), `error` (string), `errorDetails` (json)
+
+## YAML Example
+
+```yaml
+mssql_1:
+  type: mssql
+  name: "Microsoft MSSQL"
+  inputs:
+    server: "localhost"
+    port: 1433
+    database: "MyDatabase"
+    username: "sa"
+    password: "{{ENV_MSSQL_PASSWORD}}"
+    encrypt: true
+    trustServerCertificate: false
+    action: "execute"
+    query: "SELECT * FROM Users WHERE active = 1"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

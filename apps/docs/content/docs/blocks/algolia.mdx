@@ -1,0 +1,73 @@
+---
+title: Algolia Block
+description: Search, index, and manage records in Algolia
+icon: Box
+---
+
+# Algolia Block
+
+The Algolia block integrates Algolia search into your workflows. Use it to run full-text searches, add or update index records, fetch or delete records, and manage your search indices directly from a workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `algolia` |
+| **Category** | tools |
+| **Color** | `#003DFF` |
+
+## When to Use
+
+- Run full-text searches over an Algolia index and feed the hits into downstream blocks
+- Add new records to an index as part of an ingestion or sync workflow
+- Update an existing record by its object ID when data changes upstream
+- Fetch a single record by object ID to enrich or validate workflow data
+- Delete stale or removed records from an index to keep search results clean
+- Apply filters and pagination (e.g. `category:electronics`, results per page) on search queries
+
+## Configuration
+
+### Operation
+Dropdown selecting the action to perform: **Search** (`algolia_search`), **Add Record** (`algolia_index_document`), **Update Record** (`algolia_update_document`), **Delete Record** (`algolia_delete_document`), or **Get Record** (`algolia_get_document`).
+
+### Application ID
+Your Algolia Application ID. Required for all operations.
+
+### API Key
+Your Algolia API key (stored securely). Required for all operations.
+
+### Index Name
+The name of the Algolia index to operate against (e.g. `my_index`). Required.
+
+### Search Query
+The search term, shown for the Search operation. Pair with **Results Per Page** and **Filters** to control pagination and refine matches.
+
+### Object ID
+The record identifier, shown for Update, Delete, and Get operations.
+
+### Record (JSON)
+The record payload, shown for Add and Update operations (e.g. `{"name": "Product", "price": 29.99}`).
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `appId` (string), `apiKey` (string), `indexName` (string), `query` (string), `hitsPerPage` (string), `filters` (string), `objectId` (string), `record` (json)
+- **Outputs**: `hits` (json), `records` (json), `nbHits` (number)
+
+## YAML Example
+
+```yaml
+algolia_1:
+  type: algolia
+  name: "Algolia"
+  inputs:
+    operation: "algolia_search"
+    appId: "XXXXXXXXXX"
+    apiKey: "{{secrets.ALGOLIA_API_KEY}}"
+    indexName: "my_index"
+    query: "{{start.input}}"
+    hitsPerPage: "20"
+    filters: "category:electronics"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

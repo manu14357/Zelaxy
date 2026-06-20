@@ -1,0 +1,58 @@
+---
+title: Webhook Block
+description: Receive webhooks from any service
+icon: Box
+---
+
+# Webhook Block
+
+The Webhook block is a trigger that starts a workflow whenever an external service sends an HTTP request to its endpoint. Reach for it when you need to react to events from any platform that can POST a webhook, even when there is no dedicated integration block.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `generic_webhook` |
+| **Category** | triggers |
+| **Color** | `#10B981` (Green) |
+
+## When to Use
+
+- Start a workflow from any third-party service that can send HTTP webhooks
+- Handle events from platforms that lack a dedicated trigger block
+- Capture custom payloads, headers, and metadata from inbound requests
+- Build event-driven automations triggered by external systems
+- Receive notifications (deploys, alerts, form submissions) and route them downstream
+
+## Configuration
+
+### Webhook Configuration
+The single `triggerConfig` sub-block (type `trigger-config`) generates and manages the webhook endpoint. It uses the `generic` trigger provider and exposes the generated URL you give to the sending service. Configure the inbound request handling here.
+
+## Inputs & Outputs
+
+- **Inputs**: none (the webhook receives data externally via HTTP)
+- **Outputs**:
+  - `payload` (json) — Complete webhook payload
+  - `headers` (json) — Request headers
+  - `method` (string) — HTTP method
+  - `url` (string) — Request URL
+  - `timestamp` (string) — Webhook received timestamp
+  - `event` (string) — Event type from payload
+  - `id` (string) — Event ID from payload
+  - `data` (json) — Event data from payload
+
+## YAML Example
+
+This block is a trigger, so it has no incoming connection.
+
+```yaml
+webhook_trigger:
+  type: generic_webhook
+  name: "Webhook"
+  inputs:
+    triggerConfig: {}
+  connections:
+    outgoing:
+      - target: next-block-id
+```

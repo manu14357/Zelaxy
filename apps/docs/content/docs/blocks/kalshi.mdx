@@ -1,0 +1,64 @@
+---
+title: Kalshi Block
+description: Trade and query prediction markets on Kalshi
+icon: Box
+---
+
+# Kalshi Block
+
+The Kalshi block connects your workflow to Kalshi prediction markets. Use it to browse markets and events, check your balance, place and manage orders, view positions, retrieve orderbooks, and pull candlestick data.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `kalshi` |
+| **Category** | tools |
+| **Color** | `#09C285` |
+
+## When to Use
+
+- Browse open, closed, or settled markets and events to feed downstream decision logic.
+- Check account balance and current positions before placing trades.
+- Place limit or market orders (Yes/No, Buy/Sell) programmatically as part of a trading workflow.
+- Cancel or amend resting orders based on market movement or new signals.
+- Retrieve orderbooks, trades, fills, and candlestick history for analysis.
+- Look up series metadata or check the exchange status before acting.
+
+## Configuration
+
+### Operation
+Dropdown selecting the action to perform: Get Markets, Get Market, Get Events, Get Event, Get Balance, Get Positions, Get Orders, Get Order, Get Orderbook, Get Trades, Get Candlesticks, Get Fills, Get Series by Ticker, Get Exchange Status, Create Order, Cancel Order, and Amend Order. Defaults to Get Markets.
+
+### Credentials (Key ID & Private Key)
+For authenticated operations (balance, positions, orders, fills, and order create/cancel/amend) supply your Kalshi API Key ID and RSA Private Key in PEM format.
+
+### Market & Event Filters
+Filter listings by Status (All/Open/Closed/Settled), Series Ticker, or Event Ticker. Single-record lookups require a Ticker. Orderbook lookups require a Ticker.
+
+### Candlesticks
+Get Candlesticks requires Series Ticker, Market Ticker, Start Timestamp, End Timestamp, and a Period Interval (1 Minute, 1 Hour, or 1 Day).
+
+### Order Fields
+Create Order takes a Market Ticker, Side (Yes/No), Action (Buy/Sell), Quantity, Order Type (Limit/Market), and prices. Amend Order takes the Order ID, new quantity, prices, and client order IDs. Cancel Order takes the Order ID.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `keyId` (string), `privateKey` (string), `ticker` (string), `eventTicker` (string), `status` (string)
+- **Outputs**: `markets` (json), `events` (json), `orders` (json), `positions` (json), `fills` (json), `trades` (json), `candlesticks` (json), `market` (json), `event` (json), `order` (json), `series` (json), `balance` (number), `orderbook` (json), `exchangeStatus` (json), `cursor` (string)
+
+## YAML Example
+
+```yaml
+kalshi_1:
+  type: kalshi
+  name: "Kalshi"
+  inputs:
+    operation: "get_markets"
+    status: "open"
+    seriesTicker: "{{start.input}}"
+    limit: "100"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

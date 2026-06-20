@@ -1,0 +1,83 @@
+---
+title: Reddit Block
+description: Access Reddit data and content
+icon: Box
+---
+
+# Reddit Block
+
+The Reddit block lets you retrieve posts and comments from any subreddit. Reach for it when a workflow needs to monitor, summarize, or react to Reddit content such as post titles, bodies, authors, scores, and comment threads.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `reddit` |
+| **Category** | tools |
+| **Color** | `#FF5700` |
+
+## When to Use
+
+- Pull the latest hot, new, top, or rising posts from a subreddit for monitoring or research.
+- Summarize trending discussions in a community over a specific time window (day, week, month, year, all time).
+- Fetch the full comment thread for a known post to analyze sentiment or extract feedback.
+- Feed Reddit content into a downstream Agent block for summarization or classification.
+- Track mentions or topics across a subreddit on a recurring schedule.
+
+## Configuration
+
+### Operation
+
+Dropdown choosing what to do: Get Posts (`get_posts`) or Get Comments (`get_comments`). This drives which other fields appear.
+
+### Reddit Account
+
+OAuth credential (`credential`) for the Reddit account to authenticate with. Required; uses the `identity` and `read` scopes.
+
+### Subreddit
+
+The subreddit name without the `r/` prefix. Required for both operations.
+
+### Sort By / Time Filter (Get Posts)
+
+`sort` selects Hot, New, Top, or Rising ordering. When sort is Top, the `time` filter (Day, Week, Month, Year, All Time) narrows the window. `limit` caps the number of posts returned.
+
+### Post ID / Sort Comments By / Number of Comments (Get Comments)
+
+`postId` identifies the post whose comments to fetch (required). `commentSort` orders comments (Confidence, Top, New, Controversial, Old, Random, Q&A), and `commentLimit` caps how many are returned.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — operation to perform
+  - `credential` (string) — Reddit access token
+  - `subreddit` (string) — subreddit name
+  - `sort` (string) — sort order
+  - `time` (string) — time filter
+  - `limit` (number) — maximum posts
+  - `postId` (string) — post identifier
+  - `commentSort` (string) — comment sort order
+  - `commentLimit` (number) — maximum comments
+- **Outputs**:
+  - `subreddit` (string) — subreddit name
+  - `posts` (json) — posts data
+  - `post` (json) — single post data
+  - `comments` (json) — comments data
+
+## YAML Example
+
+```yaml
+reddit_1:
+  type: reddit
+  name: "Reddit"
+  inputs:
+    operation: "get_posts"
+    credential: "{{credentials.reddit}}"
+    subreddit: "programming"
+    sort: "top"
+    time: "week"
+    limit: 10
+  connections:
+    outgoing:
+      - target: agent_1
+```

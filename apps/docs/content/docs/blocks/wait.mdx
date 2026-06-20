@@ -1,0 +1,52 @@
+---
+title: Wait Block
+description: Pause workflow execution for a specified duration
+icon: Box
+---
+
+# Wait Block
+
+The Wait block suspends workflow execution for a fixed duration before continuing. Durations up to 5 minutes run synchronously, while longer waits are handled asynchronously and the workflow resumes automatically when the timer expires. Reach for it when you need to introduce a deliberate delay between steps.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `wait` |
+| **Category** | blocks |
+| **Color** | `#6366F1` |
+
+## When to Use
+
+- Insert a deliberate pause between two steps in a workflow
+- Rate-limit calls to an external API by spacing requests apart
+- Give an external system time to finish processing before polling again
+- Delay a downstream action (e.g. wait a few minutes before sending a follow-up)
+- Schedule a long pause (hours or days) that resumes automatically without holding execution open
+
+## Configuration
+
+### Duration
+A required short input specifying how long to wait. Combined with the Unit dropdown to compute the total delay.
+
+### Unit
+A dropdown selecting the time unit for the duration. Options: **Seconds**, **Minutes**, **Hours**, **Days** (defaults to Seconds).
+
+## Inputs & Outputs
+
+- **Inputs**: `duration` (number) — wait duration value; `unit` (string) — wait duration unit: seconds, minutes, hours, or days.
+- **Outputs**: `waitedMs` (number) — actual time waited in milliseconds; `resumedAt` (string) — ISO timestamp when the workflow resumed; `mode` (string) — whether the wait was synchronous (≤5 min) or asynchronous.
+
+## YAML Example
+
+```yaml
+wait_1:
+  type: wait
+  name: "Wait"
+  inputs:
+    duration: 5
+    unit: "seconds"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

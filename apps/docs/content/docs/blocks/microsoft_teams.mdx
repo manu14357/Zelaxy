@@ -1,0 +1,68 @@
+---
+title: Microsoft Teams Block
+description: Read, write, and create Microsoft Teams chat and channel messages
+icon: Box
+---
+
+# Microsoft Teams Block
+
+The Microsoft Teams block integrates Microsoft Teams messaging into your workflows. Using OAuth authentication, it can read messages from chats and channels and post new messages to them. Reach for it when a workflow needs to pull conversation content or notify a team.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `microsoft_teams` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Read recent messages from a one-on-one or group chat
+- Post a chat message to notify a person or group
+- Read messages from a specific channel within a team
+- Send a channel message to broadcast updates to a team
+- Pull message metadata and attachments for downstream processing
+- Trigger workflows from incoming Teams messages via the webhook trigger
+
+## Configuration
+
+### Operation
+Dropdown selecting what the block does: **Read Chat Messages** (`read_chat`), **Write Chat Message** (`write_chat`), **Read Channel Messages** (`read_channel`), or **Write Channel Message** (`write_channel`). Defaults to `read_chat`.
+
+### Microsoft Account
+Required OAuth credential (`credential`) connecting your Microsoft account with the necessary Teams scopes (chat read/write, channel message send/read, team and group access).
+
+### Chat
+For chat operations, select a chat (`chatId`) in basic mode or enter a chat ID manually (`manualChatId`) in advanced mode.
+
+### Team & Channel
+For channel operations, select a team (`teamId`) and channel (`channelId`) in basic mode, or enter them manually (`manualTeamId`, `manualChannelId`) in advanced mode.
+
+### Message
+The message body (`content`), required for the write operations.
+
+### Trigger Configuration
+Configures the `microsoftteams_webhook` trigger so the block can start workflows from incoming Teams events.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `messageId` (string), `chatId` (string), `manualChatId` (string), `channelId` (string), `manualChannelId` (string), `teamId` (string), `manualTeamId` (string), `content` (string)
+- **Outputs**: `content` (string), `metadata` (json), `messageCount` (number), `messages` (json), `totalAttachments` (number), `attachmentTypes` (json), `updatedContent` (boolean), `messageId` (string), `createdTime` (string), `url` (string), `sender` (string), `messageTimestamp` (string), `messageType` (string), `type` (string), `id` (string), `timestamp` (string), `localTimestamp` (string), `serviceUrl` (string), `channelId` (string), `from_id` (string), `from_name` (string), `conversation_id` (string), `text` (string)
+
+## YAML Example
+
+```yaml
+microsoft_teams_1:
+  type: microsoft_teams
+  name: "Microsoft Teams"
+  inputs:
+    operation: "write_channel"
+    credential: "{{credentials.microsoft-teams}}"
+    teamId: "your-team-id"
+    channelId: "your-channel-id"
+    content: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

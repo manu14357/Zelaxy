@@ -1,0 +1,59 @@
+---
+title: Webhook Block
+description: Trigger workflow execution from external webhooks
+icon: Box
+---
+
+# Webhook Block
+
+The Webhook block starts a workflow when an external service sends an HTTP request. It supports provider-specific integrations (Slack, Gmail, Outlook, GitHub, Stripe, and more) as well as a generic mode, injecting the incoming payload directly into the workflow context.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `webhook` |
+| **Category** | triggers |
+| **Color** | `#10B981` |
+
+## When to Use
+
+- Kick off a workflow when an external system posts an event (e.g. a Stripe payment, a GitHub push)
+- React to new emails by connecting a Gmail or Outlook account
+- Receive Slack, Discord, Telegram, WhatsApp, or Microsoft Teams events
+- Accept arbitrary inbound payloads from any service using the generic provider
+- Build event-driven automations that don't rely on polling or schedules
+
+> This block is hidden from the toolbar for backwards compatibility — for new workflows prefer the generic webhook trigger.
+
+## Configuration
+
+### Webhook Provider
+Dropdown that selects the source of the webhook. Options: Slack, Gmail, Outlook, Airtable, Telegram, Generic, WhatsApp, GitHub, Discord, Stripe, Microsoft Teams. Defaults to `generic`.
+
+### Gmail Account
+OAuth credential shown when the provider is `gmail`. Connects a Google account with Gmail modify and labels scopes.
+
+### Microsoft Account
+OAuth credential shown when the provider is `outlook`. Connects a Microsoft account with mail read/write/send scopes.
+
+### Webhook Configuration
+Sets up the webhook endpoint and provider-specific options (URL, verification, filtering) used to receive inbound requests.
+
+## Inputs & Outputs
+
+- **Inputs**: none — the webhook receives data externally
+- **Outputs**: none — the incoming webhook payload is injected directly into the workflow context
+
+## YAML Example
+
+```yaml
+webhook_trigger:
+  type: webhook
+  name: "Webhook"
+  inputs:
+    webhookProvider: "generic"
+  connections:
+    outgoing:
+      - target: agent-1
+```

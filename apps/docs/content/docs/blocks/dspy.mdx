@@ -1,0 +1,54 @@
+---
+title: DSPy Block
+description: Run DSPy AI programs and optimize prompts
+icon: Box
+---
+
+# DSPy Block
+
+The DSPy block runs DSPy language model programs inside your workflow, letting you execute structured AI tasks and optimize prompt chains in code. Reach for it when you need programmatic, optimizable LLM pipelines rather than a single freeform prompt.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `dspy` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Execute a DSPy program defined in code as part of an automated workflow
+- Optimize prompt chains and structured AI tasks programmatically
+- Build multi-step LLM pipelines that need composition and optimization
+- Run structured prediction tasks where you want a typed prediction object back
+- Integrate existing DSPy programs into a larger Zelaxy workflow
+
+## Configuration
+
+### DSPy Program (Code)
+A required code editor where you write the DSPy program to run (e.g. `import dspy` and your module/signature definitions).
+
+### Input
+A long-input field providing the input passed to the DSPy program at execution time. Commonly references an upstream block's output.
+
+## Inputs & Outputs
+
+- **Inputs**: `program` (string — DSPy program code), `input` (string — program input)
+- **Outputs**: `output` (string — program output), `prediction` (json — prediction object)
+
+## YAML Example
+
+```yaml
+dspy_1:
+  type: dspy
+  name: "DSPy"
+  inputs:
+    program: |
+      import dspy
+      # Define your DSPy program here
+    input: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

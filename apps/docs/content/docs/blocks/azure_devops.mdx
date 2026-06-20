@@ -1,0 +1,82 @@
+---
+title: Azure DevOps Block
+description: Manage pipelines, work items, and repositories in Azure DevOps
+icon: Box
+---
+
+# Azure DevOps Block
+
+The Azure DevOps block integrates Azure DevOps into your workflows. Use it to list and run pipelines, check pipeline run status, and query, create, update, or fetch work items across your DevOps projects.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `azure_devops` |
+| **Category** | tools |
+| **Color** | `#0078D4` |
+
+## When to Use
+
+- Trigger a CI/CD pipeline run automatically as part of a larger workflow.
+- Poll or fetch the status and details of a specific pipeline run.
+- List the available pipelines in a project for selection or auditing.
+- Create work items (Tasks, Bugs, User Stories) from external events or AI output.
+- Update an existing work item's title or fields.
+- Query work items with WIQL to gather data for reporting or downstream steps.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting which Azure DevOps action to run: List Pipelines, Run Pipeline, Get Pipeline Run, Query Work Items, Create Work Item, Update Work Item, or Get Work Item. Required.
+
+### Personal Access Token
+
+Your Azure DevOps PAT used to authenticate API requests. Required and stored as a secret.
+
+### Organization
+
+The Azure DevOps organization name (e.g. `my-org`). Required.
+
+### Project
+
+The Azure DevOps project name (e.g. `my-project`). Required.
+
+### Pipeline ID
+
+The numeric pipeline identifier. Shown for the Run Pipeline and Get Pipeline Run operations.
+
+### Work Item Type
+
+The work item type to create (e.g. `Task`, `Bug`). Shown for the Create Work Item operation.
+
+### Title
+
+The work item title. Shown for the Create Work Item and Update Work Item operations.
+
+### WIQL Query
+
+A Work Item Query Language statement to filter work items. Shown for the Query Work Items operation.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `accessToken` (string), `organization` (string), `project` (string), `pipelineId` (string), `workItemType` (string), `title` (string), `wiql` (string)
+- **Outputs**: `pipelines` (json), `workItems` (json), `run` (json)
+
+## YAML Example
+
+```yaml
+azure_devops_1:
+  type: azure_devops
+  name: "Azure DevOps"
+  inputs:
+    operation: "azure_devops_run_pipeline"
+    accessToken: "{{secrets.AZURE_DEVOPS_PAT}}"
+    organization: "my-org"
+    project: "my-project"
+    pipelineId: "1"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

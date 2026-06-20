@@ -1,0 +1,61 @@
+---
+title: Jina Block
+description: Convert website content into text
+icon: Box
+---
+
+# Jina Block
+
+The Jina block transforms web content into clean, readable text using Jina AI's advanced extraction capabilities. Reach for it when you need to pull meaningful content from a webpage while preserving important information and optionally gathering its links.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `jina` |
+| **Category** | tools |
+| **Color** | `#333333` |
+
+## When to Use
+
+- Extract the main readable text from an article or webpage for downstream LLM processing
+- Strip away navigation, ads, and boilerplate to get clean content
+- Collect all the links found on a page for crawling or research workflows
+- Get a structured JSON response when you need machine-parseable output
+- Use Reader LM v2 for higher-quality content extraction on complex pages
+
+## Configuration
+
+### URL
+The webpage address to extract content from. Required.
+
+### Options
+A checkbox list controlling extraction behavior:
+- **Use Reader LM v2** (`useReaderLMv2`) — enable the improved reader model for extraction
+- **Gather Links** (`gatherLinks`) — include the page's links in the result
+- **JSON Response** (`jsonResponse`) — return the response in JSON format
+
+### API Key
+Your Jina API key, stored securely. Required.
+
+## Inputs & Outputs
+
+- **Inputs**: `url` (string), `useReaderLMv2` (boolean), `gatherLinks` (boolean), `jsonResponse` (boolean), `apiKey` (string)
+- **Outputs**: `content` (string)
+
+## YAML Example
+
+```yaml
+jina_1:
+  type: jina
+  name: "Jina"
+  inputs:
+    url: "https://example.com/article"
+    useReaderLMv2: true
+    gatherLinks: false
+    jsonResponse: false
+    apiKey: "{{JINA_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

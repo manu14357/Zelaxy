@@ -1,0 +1,63 @@
+---
+title: WhatsApp Block
+description: Send WhatsApp messages
+icon: Box
+---
+
+# WhatsApp Block
+
+The WhatsApp block sends messages to WhatsApp users through the WhatsApp Business API. Reach for it when a workflow needs to notify or reply to a user on WhatsApp, and pair it with the built-in webhook trigger to react to incoming messages.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `whatsapp` |
+| **Category** | Tools |
+| **Color** | `#25D366` |
+
+## When to Use
+
+- Send transactional notifications (order updates, alerts, reminders) to a WhatsApp user
+- Reply to an inbound WhatsApp message captured by the WhatsApp webhook trigger
+- Deliver workflow results or summaries straight to a customer's phone
+- Build conversational automations that respond to user messages in real time
+- Route AI-generated responses to a recipient via the WhatsApp Business API
+
+## Configuration
+
+### Recipient Phone Number
+The destination number in full international format, including country code (e.g., `+1234567890`). Required.
+
+### Message
+The text body to send to the recipient. Required.
+
+### WhatsApp Phone Number ID
+Your WhatsApp Business Phone Number ID used to send the message. Required.
+
+### Access Token
+Your WhatsApp Business API access token. Stored as a secret. Required.
+
+### Trigger Configuration
+Configures the `whatsapp_webhook` trigger so the block can also receive inbound WhatsApp messages and start a workflow.
+
+## Inputs & Outputs
+
+- **Inputs**: `phoneNumber` (string), `message` (string), `phoneNumberId` (string), `accessToken` (string)
+- **Outputs**: `success` (boolean), `messageId` (string), `error` (string), `from` (string), `to` (string), `text` (string), `timestamp` (string), `type` (string)
+
+## YAML Example
+
+```yaml
+whatsapp_1:
+  type: whatsapp
+  name: "WhatsApp"
+  inputs:
+    phoneNumber: "+1234567890"
+    message: "{{start.input}}"
+    phoneNumberId: "123456789012345"
+    accessToken: "{{secrets.WHATSAPP_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

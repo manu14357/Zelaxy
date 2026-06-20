@@ -1,0 +1,68 @@
+---
+title: Pulse Block
+description: Parse and extract text from PDFs and documents
+icon: Box
+---
+
+# Pulse Block
+
+The Pulse block extracts text, structure, and data from PDFs, Word documents, PowerPoints, spreadsheets, and images using Pulse. Reach for it when you need to turn uploaded files into clean markdown, HTML, structured output, or chunked text for downstream blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `pulse` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Convert a PDF, DOCX, PPTX, or XLSX into clean markdown or HTML
+- Extract text and structure from scanned documents or images
+- Pull structured output (tables, fields) from a document for downstream processing
+- Split a large document into chunks for embedding or RAG pipelines
+- Parse only specific pages of a large file
+- Retrieve figures, images, or element bounding boxes from a document
+
+## Configuration
+
+### File Upload
+Upload the document to parse directly (basic mode). Accepts PDF, images, DOCX, PPTX, and XLSX up to 50 MB. Required.
+
+### File URL or Path
+Alternative to uploading — provide a URL or path to the file (advanced mode). Required when not uploading.
+
+### Pages
+Optional page range to parse, e.g. `1-3,5`. Leave blank to parse all pages.
+
+### Enable Chunking
+Switch to split the extracted output into chunks.
+
+### Chunk Size
+Characters per chunk (default 512) when chunking is enabled.
+
+### API Key
+Your Pulse API key. Required and stored as a secret.
+
+## Inputs & Outputs
+
+- **Inputs**: `fileUpload` (json), `filePath` (string), `pages` (string), `chunking` (boolean), `chunkSize` (string), `apiKey` (string)
+- **Outputs**: `markdown` (string), `page_count` (number), `job_id` (string), `extraction_url` (string), `html` (string), `structured_output` (json), `chunks` (json), `figures` (json), `bounding_boxes` (json)
+
+## YAML Example
+
+```yaml
+pulse_1:
+  type: pulse
+  name: "Pulse"
+  inputs:
+    filePath: "https://example.com/report.pdf"
+    pages: "1-3,5"
+    chunking: true
+    chunkSize: "512"
+    apiKey: "{{PULSE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

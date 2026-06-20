@@ -1,0 +1,70 @@
+---
+title: X Block
+description: Interact with X
+icon: Box
+---
+
+# X Block
+
+The X block connects your workflow to the X (formerly Twitter) platform. Use it to post new tweets, read tweet details, search tweets with X's search operators, and fetch user profiles — bringing social media actions directly into your automations.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `x` |
+| **Category** | tools |
+| **Color** | `#000000` |
+
+## When to Use
+
+- Post a new tweet (optionally as a reply, or with attached media) from a workflow
+- Automatically respond to mentions or events by replying to a specific tweet
+- Read the full details of a tweet, optionally including its replies
+- Search recent tweets by keyword or query using X search operators
+- Filter tweet searches by time window and sort by recency or relevancy
+- Look up a user's profile by username for enrichment or routing decisions
+
+## Configuration
+
+### Operation
+Dropdown that selects what the block does: **Post a New Tweet** (`x_write`), **Get Tweet Details** (`x_read`), **Search Tweets** (`x_search`), or **Get User Profile** (`x_user`). Defaults to posting a new tweet.
+
+### X Account
+OAuth credential (`credential`) for the X account used to perform the operation. Requires the `tweet.read`, `tweet.write`, and `users.read` scopes.
+
+### Tweet Text
+The tweet body (`text`) when posting. Required for the post operation.
+
+### Reply To / Media IDs
+When posting, optionally set `replyTo` (a tweet ID to reply to) and `mediaIds` (comma-separated media IDs to attach).
+
+### Tweet ID
+The `tweetId` to fetch when reading tweet details. Required for the read operation; `includeReplies` controls whether replies are returned.
+
+### Search Query
+The `query` for the search operation (supports X search operators). Required. Refine with `maxResults`, `sortOrder` (recency or relevancy), `startTime`, and `endTime`.
+
+### Username
+The `username` (without @) to look up for the user profile operation. Required.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `text` (string), `replyTo` (string), `mediaIds` (string), `poll` (json), `tweetId` (string), `includeReplies` (boolean), `query` (string), `maxResults` (number), `startTime` (string), `endTime` (string), `sortOrder` (string), `username` (string), `includeRecentTweets` (boolean)
+- **Outputs**: `tweet` (json), `replies` (json), `context` (json), `tweets` (json), `includes` (json), `meta` (json), `user` (json), `recentTweets` (json)
+
+## YAML Example
+
+```yaml
+x_1:
+  type: x
+  name: "X"
+  inputs:
+    operation: "x_write"
+    credential: "{{credentials.x}}"
+    text: "{{previous_block.output}}"
+    replyTo: ""
+  connections:
+    outgoing:
+      - target: next-block-id
+```

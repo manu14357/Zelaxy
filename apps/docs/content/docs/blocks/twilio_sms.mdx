@@ -1,0 +1,73 @@
+---
+title: Twilio SMS Block
+description: Send SMS messages
+icon: Box
+---
+
+# Twilio SMS Block
+
+The Twilio SMS block sends text messages to single or multiple recipients using the Twilio API. Reach for it whenever a workflow needs to notify people by SMS, such as alerts, confirmations, or one-time codes.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `twilio_sms` |
+| **Category** | tools |
+| **Color** | `#F22F46` |
+
+## When to Use
+
+- Send transactional alerts (order updates, status changes) to a customer's phone.
+- Deliver one-time passcodes or verification messages during a workflow.
+- Broadcast a message to multiple recipients by listing several phone numbers.
+- Notify an on-call person when an automated process detects an error.
+- Send appointment or reminder texts triggered on a schedule.
+
+## Configuration
+
+### Recipient Phone Numbers
+The phone numbers to text, in E.164 format with country code (e.g. `+1234567890`), one per line for multiple recipients. Required.
+
+### Message
+The body of the SMS to send. Required.
+
+### Twilio Account SID
+Your Twilio Account SID used to authenticate the API request. Required.
+
+### Auth Token
+Your Twilio Auth Token (stored as a password field). Required.
+
+### From Twilio Phone Number
+The Twilio phone number messages are sent from (e.g. `+1234567890`). Required.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `phoneNumbers` (string) — Recipient phone numbers
+  - `message` (string) — SMS message text
+  - `accountSid` (string) — Twilio account SID
+  - `authToken` (string) — Twilio auth token
+  - `fromNumber` (string) — Sender phone number
+- **Outputs**:
+  - `success` (boolean) — Send success status
+  - `messageId` (string) — Twilio message SID
+  - `status` (string) — SMS delivery status (queued, sent, delivered, etc.)
+  - `error` (string) — Error information if sending fails
+
+## YAML Example
+
+```yaml
+twilio_sms_1:
+  type: twilio_sms
+  name: "Twilio SMS"
+  inputs:
+    phoneNumbers: "+1234567890"
+    message: "Hello! This is a test message."
+    accountSid: "{{start.accountSid}}"
+    authToken: "{{start.authToken}}"
+    fromNumber: "+1987654321"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

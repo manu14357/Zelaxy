@@ -1,0 +1,48 @@
+---
+title: Chat Block
+description: Trigger workflows from chat messages
+icon: Box
+---
+
+# Chat Block
+
+The Chat block starts a workflow from chat messages. It receives the user's input, a conversation ID, and any file attachments through the chat interface, making it the entry point for conversational and chatbot-style workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `chat_trigger` |
+| **Category** | Triggers |
+| **Color** | `#6F3DFA` |
+
+## When to Use
+
+- Build a chatbot or conversational assistant that responds to user messages
+- Start a workflow whenever a user sends a message through the chat interface
+- Capture file attachments sent alongside a chat message for downstream processing
+- Maintain multi-turn conversations by passing through the conversation ID
+- Feed user input directly into an Agent block for AI reasoning or generation
+
+## Configuration
+
+The Chat block is a trigger and has no configurable sub-blocks. It is enabled as a `chat` trigger and exposes the incoming message, conversation context, and attachments as outputs for downstream blocks to consume.
+
+## Inputs & Outputs
+
+- **Inputs**: none
+- **Outputs**:
+  - `input` (string) — User chat message
+  - `conversationId` (string) — Conversation ID
+  - `files` (json) — Attached files
+
+## YAML Example
+
+```yaml
+chat_trigger_1:
+  type: chat_trigger
+  name: "Chat"
+  connections:
+    outgoing:
+      - target: agent_1
+```

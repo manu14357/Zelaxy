@@ -1,0 +1,49 @@
+---
+title: Search Block
+description: Search the web ($0.01 per search)
+icon: Box
+---
+
+# Search Block
+
+The Search block runs a web search using the built-in Search tool, returning a list of results for a query. Reach for it when a workflow needs fresh, real-world information from the open web. Each search costs $0.01 per query.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `search` |
+| **Category** | tools |
+| **Color** | `#3B82F6` |
+
+## When to Use
+
+- Pull current information from the web that isn't available in your own data.
+- Gather source links and snippets to feed into an agent for summarization or research.
+- Fact-check or enrich an incoming message with up-to-date results.
+- Build research or monitoring workflows that need live web context.
+- Look up entities, companies, or topics on demand before downstream processing.
+
+## Configuration
+
+### Search Query
+
+The query string to search for (`query`). This is a required long-input field — type the search text or wire in a reference such as `{{start.input}}`.
+
+## Inputs & Outputs
+
+- **Inputs**: `query` (string) — the search query.
+- **Outputs**: `results` (json) — search results; `query` (string) — the search query; `totalResults` (number) — total number of results; `source` (string) — search source; `cost` (json) — cost information.
+
+## YAML Example
+
+```yaml
+search_1:
+  type: search
+  name: "Search"
+  inputs:
+    query: {{start.input}}
+  connections:
+    outgoing:
+      - target: agent_1
+```

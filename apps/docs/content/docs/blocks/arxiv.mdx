@@ -1,0 +1,90 @@
+---
+title: ArXiv Block
+description: Search and retrieve academic papers from ArXiv
+icon: Box
+---
+
+# ArXiv Block
+
+The ArXiv block lets you search for academic papers, retrieve paper metadata, and list an author's publications from ArXiv's open collection of scientific research. Reach for it whenever a workflow needs to pull in scholarly references or literature data.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `arxiv` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Search ArXiv for papers on a topic and feed the results into a downstream summarizer or agent.
+- Look up the full metadata of a specific paper when you already have its ArXiv ID.
+- Retrieve the publication list for a given author.
+- Build research-assistant workflows that gather citations or related work automatically.
+- Filter results by a specific field (title, author, abstract, category) and control sorting.
+
+## Configuration
+
+### Operation
+
+Dropdown that selects what the block does: Search Papers (`arxiv_search`), Get Paper Details (`arxiv_get_paper`), or Get Author Papers (`arxiv_get_author_papers`). Defaults to Search Papers.
+
+### Search Query
+
+The terms to search for (required for the Search Papers operation).
+
+### Search Field
+
+Restricts the search to a field: All Fields, Title, Author, Abstract, Comment, Journal Reference, Category, or Report Number.
+
+### Max Results
+
+Maximum number of papers to return for search and author-paper operations.
+
+### Sort By / Sort Order
+
+Order results by Relevance, Last Updated Date, or Submitted Date, in Descending or Ascending order.
+
+### Paper ID
+
+The ArXiv identifier (e.g. `1706.03762`) required for the Get Paper Details operation.
+
+### Author Name
+
+The author to look up papers for, required for the Get Author Papers operation.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string)
+  - `searchQuery` (string)
+  - `searchField` (string)
+  - `maxResults` (number)
+  - `sortBy` (string)
+  - `sortOrder` (string)
+  - `paperId` (string)
+  - `authorName` (string)
+- **Outputs**:
+  - `papers` (json)
+  - `totalResults` (number)
+  - `paper` (json)
+  - `authorPapers` (json)
+
+## YAML Example
+
+```yaml
+arxiv_1:
+  type: arxiv
+  name: "ArXiv"
+  inputs:
+    operation: "arxiv_search"
+    searchQuery: "{{start.input}}"
+    searchField: "all"
+    maxResults: 10
+    sortBy: "relevance"
+    sortOrder: "descending"
+  connections:
+    outgoing:
+      - target: agent_1
+```

@@ -1,0 +1,87 @@
+---
+title: Pinecone Block
+description: Use Pinecone vector database
+icon: Box
+---
+
+# Pinecone Block
+
+The Pinecone block lets you store, search, and retrieve vector embeddings using Pinecone's specialized vector database. Generate embeddings from text and perform semantic similarity searches with customizable filtering and reranking options. Reach for it when your workflow needs fast vector storage and semantic retrieval.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `pinecone` |
+| **Category** | tools |
+| **Color** | `#0D1117` |
+
+## When to Use
+
+- Generate embeddings from text using Pinecone's hosted embedding models.
+- Upsert text records into a Pinecone index with automatic embedding.
+- Run semantic similarity searches over an index by passing raw text.
+- Query an index directly with a precomputed vector.
+- Fetch specific vectors by their IDs from a namespace.
+- Apply metadata filters and reranking to refine search results.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the action: Generate Embeddings, Upsert Text, Search With Text, Search With Vector, or Fetch Vectors.
+
+### Model
+
+For Generate Embeddings: the embedding model (`multilingual-e5-large`, `llama-text-embed-v2`, or `pinecone-sparse-english-v0`).
+
+### Text Inputs
+
+For Generate Embeddings: a JSON array of objects to embed, e.g. `[{"text": "Your text here"}]`.
+
+### Index Host & Namespace
+
+The Pinecone index host URL and the target namespace. Required for upsert, search, and fetch operations.
+
+### Records
+
+For Upsert Text: the JSON records to upsert into the index.
+
+### Search Query / Query Vector
+
+For Search With Text: the text to search for. For Search With Vector: the query vector array.
+
+### Top K Results, Fields, Filter, Rerank
+
+Optional search refinements controlling result count, returned fields, metadata filtering, and reranking.
+
+### Vector IDs
+
+For Fetch Vectors: a JSON array of vector IDs to retrieve.
+
+### API Key
+
+Your Pinecone API key (required for all operations).
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `indexHost` (string), `namespace` (string), `model` (string), `inputs` (json), `parameters` (json), `records` (json), `searchQuery` (string), `topK` (string), `fields` (json), `filter` (json), `rerank` (json), `ids` (json), `vector` (json), `includeValues` (boolean), `includeMetadata` (boolean)
+- **Outputs**: `matches` (json), `upsertedCount` (number), `data` (json), `model` (string), `vector_type` (string), `usage` (json)
+
+## YAML Example
+
+```yaml
+pinecone_1:
+  type: pinecone
+  name: "Pinecone"
+  inputs:
+    operation: "search_text"
+    apiKey: "{{secrets.PINECONE_API_KEY}}"
+    indexHost: "https://index-name-abc123.svc.project-id.pinecone.io"
+    namespace: "default"
+    searchQuery: "{{start.input}}"
+    topK: "10"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

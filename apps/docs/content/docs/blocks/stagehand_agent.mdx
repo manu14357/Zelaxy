@@ -1,0 +1,88 @@
+---
+title: Stagehand Agent Block
+description: Autonomous web browsing agent
+icon: Box
+---
+
+# Stagehand Agent Block
+
+The Stagehand Agent block uses Stagehand to create an autonomous web browsing agent that can navigate across websites, perform tasks, and return structured data. Reach for it when a workflow needs to interact with live web pages rather than a fixed API.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `stagehand_agent` |
+| **Category** | tools |
+| **Color** | `#FFC83C` |
+
+## When to Use
+
+- Automate multi-step web tasks (search, click, fill forms, navigate) starting from a given URL.
+- Extract structured data from sites that have no usable API.
+- Run autonomous research where the agent decides its own navigation steps toward a goal.
+- Drive a real browser via Browserbase with DOM, CUA, or hybrid control modes.
+- Capture results conforming to a defined JSON Schema for downstream blocks.
+
+## Configuration
+
+### Starting URL
+The URL where the agent begins browsing. Required.
+
+### Task
+The goal or task for the agent to achieve. Reference workflow variables using `%key%` syntax. Required.
+
+### Provider & Model
+Pick the model provider (Anthropic, OpenAI, Google) and the specific model (defaults to `anthropic/claude-sonnet-4-5`).
+
+### Agent Mode
+Choose how the agent controls the browser: Hybrid (default), DOM, or CUA.
+
+### Max Steps
+Slider (1–40) capping how many steps the agent may take.
+
+### Use Web Search
+Switch to allow the agent to perform web searches.
+
+### System Prompt (Optional)
+Extra guidance shaping the agent's behavior.
+
+### Exclude Tools (Optional)
+Comma-separated tool names to disable, e.g. `extract,observe`.
+
+### Variables
+Key/Value table of task variables referenced in the task.
+
+### Model Provider API Key
+API key for the selected model provider. Required and stored as a secret.
+
+### Browserbase API Key / Project ID (Optional)
+Override the server's Browserbase credentials when needed.
+
+### Output Schema
+JSON Schema defining the shape of the structured result.
+
+## Inputs & Outputs
+
+- **Inputs**: `startUrl` (string), `task` (string), `provider` (string), `model` (string), `mode` (string), `maxSteps` (number), `useSearch` (boolean), `systemPrompt` (string), `excludeTools` (string), `variables` (json), `apiKey` (string), `browserbaseApiKey` (string), `browserbaseProjectId` (string), `outputSchema` (json)
+- **Outputs**: `agentResult` (json), `structuredOutput` (json)
+
+## YAML Example
+
+```yaml
+stagehand_agent_1:
+  type: stagehand_agent
+  name: "Stagehand Agent"
+  inputs:
+    startUrl: "https://example.com"
+    task: "Find the pricing page and extract all plan names and prices."
+    provider: "anthropic"
+    model: "anthropic/claude-sonnet-4-5"
+    mode: "hybrid"
+    maxSteps: 20
+    useSearch: false
+    apiKey: "{{secrets.MODEL_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

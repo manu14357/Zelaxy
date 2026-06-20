@@ -1,0 +1,64 @@
+---
+title: Linkup Block
+description: Search the web with Linkup
+icon: Box
+---
+
+# Linkup Block
+
+The Linkup block searches and retrieves up-to-date information from the web with source attribution. Reach for it when a workflow needs fresh, citable facts from across the internet rather than relying on a model's training data.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `linkup` |
+| **Category** | tools |
+| **Color** | `#D6D3C7` |
+
+## When to Use
+
+- Answer questions that depend on current events or recently published information.
+- Ground an agent's response in real web sources with attribution.
+- Retrieve a list of relevant search results for downstream processing.
+- Get a synthesized, sourced answer to a natural-language query in one step.
+- Run deeper research passes when a standard search is not thorough enough.
+
+## Configuration
+
+### Search Query
+
+The natural-language query to search the web for. Required.
+
+### Output Type
+
+Choose between `Answer` (a synthesized, sourced answer) and `Search` (a list of search results). Defaults to `sourcedAnswer`.
+
+### Search Depth
+
+Choose `Standard` for a fast search or `Deep` for a more thorough research pass.
+
+### API Key
+
+Your Linkup API key, used to authenticate the request. Required.
+
+## Inputs & Outputs
+
+- **Inputs**: `q` (string), `apiKey` (string), `depth` (string), `outputType` (string)
+- **Outputs**: `answer` (string), `sources` (json)
+
+## YAML Example
+
+```yaml
+linkup_1:
+  type: linkup
+  name: "Linkup"
+  inputs:
+    q: {{start.input}}
+    outputType: "sourcedAnswer"
+    depth: "standard"
+    apiKey: "{{LINKUP_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

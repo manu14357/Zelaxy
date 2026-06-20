@@ -1,0 +1,61 @@
+---
+title: S3 Block
+description: View S3 files
+icon: Box
+---
+
+# S3 Block
+
+The S3 block retrieves and views files from Amazon S3 buckets using presigned URLs. Reach for it when a workflow needs to access an object stored in S3 and produce a temporary, shareable link to its contents.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `s3` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Generate a presigned URL for an object stored in an Amazon S3 bucket.
+- Fetch a file from S3 so a downstream block can read or display it.
+- Pull object metadata for a specific S3 object.
+- Pass an S3-hosted asset (image, document, data file) into a later step via a temporary link.
+- Access private S3 objects without making the bucket publicly readable.
+
+## Configuration
+
+### Access Key ID
+
+Your AWS Access Key ID, used to authenticate the request. Required and stored as a secret.
+
+### Secret Access Key
+
+Your AWS Secret Access Key, paired with the Access Key ID. Required and stored as a secret.
+
+### S3 Object URL
+
+The full URL of the S3 object, e.g. `https://bucket-name.s3.region.amazonaws.com/path/to/file`. The bucket name, region, and object key are parsed from this URL. Required.
+
+## Inputs & Outputs
+
+- **Inputs**: `accessKeyId` (string), `secretAccessKey` (string), `s3Uri` (string)
+- **Outputs**: `url` (string — presigned URL), `metadata` (json — object metadata)
+
+## YAML Example
+
+Use the block's real `type` and sub-block ids. This is the workflow YAML format the agent builder uses:
+
+```yaml
+get_file:
+  type: s3
+  name: "S3"
+  inputs:
+    accessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    secretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+    s3Uri: "https://my-bucket.s3.us-east-1.amazonaws.com/reports/q2.pdf"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

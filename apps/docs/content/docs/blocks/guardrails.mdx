@@ -1,75 +1,69 @@
 ---
 title: Guardrails Block
-description: Validate and filter AI-generated content with safety rules
-icon: Shield
+description: Validate content with guardrails
+icon: Box
 ---
 
 # Guardrails Block
 
-The Guardrails block applies safety rules, content filters, and validation constraints to AI-generated content. It acts as a gatekeeper — blocking or flagging content that violates your defined policies before it reaches users or external systems.
+The Guardrails block validates content against a chosen rule before it moves downstream. It can check whether content is valid JSON, matches a regex pattern, detect hallucinations using RAG + LLM scoring, or detect (and optionally mask) PII. Reach for it when you need to gate or sanitize text inside a workflow.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `guardrails` |
-| **Category** | Core Block |
-| **Color** | `#EF4444` (Red) |
+| **Category** | blocks |
+| **Color** | `#3D642D` |
 
 ## When to Use
 
-- Enforce content policies on AI outputs
-- Block harmful, biased, or off-topic responses
-- Validate format and structure of generated content
-- Create compliance-safe AI workflows (HIPAA, PII, etc.)
+- Verify that an upstream block produced syntactically valid JSON before parsing it.
+- Confirm content matches a specific format (email, phone, URL, date, custom pattern) via regex.
+- Fact-check an AI response against a knowledge base and score it for hallucinations.
+- Detect personally identifiable information (names, emails, phone numbers, Aadhaar, PAN, credit cards, etc.) for privacy compliance.
+- Mask PII in place so sensitive data is scrubbed before storage or sharing.
+- Block requests that contain disallowed personal information.
 
 ## Configuration
 
-| Setting | Type | Description |
-|---------|------|-------------|
-| Content to Check | Long text | Content to validate: `{{agent.content}}` |
-| Rules | Code editor | JSON rules array defining constraints |
-| Action on Violation | Dropdown | `block`, `flag`, `modify` |
-| Custom Prompt | Long text | Additional validation instructions for the LLM |
-| Model | Dropdown | LLM for evaluation (used in some modes) |
+### Content to Validate
 
-## Outputs
+The `input` field holds the text to validate. Accepts references like `{{blockName.output.fieldName}}`. Required.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `content` | `string` | Validated/filtered content |
-| `passed` | `boolean` | Whether all rules passed |
-| `violations` | `json` | Array of rule violations |
-| `reasoning` | `string` | Why content was flagged/blocked |
+### Validation Type
 
-## Example: PII Filter
+The `validationType` dropdown selects the rule: `json`, `regex`, `hallucination`, or `pii`. This drives which other fields appear.
 
-**Goal:** Ensure AI responses never contain personal identifiable information.
+### Regex Pattern
 
-**Workflow:**
+When validation type is `regex`, the `regex` field holds the pattern to match against (e.g. `^\{.*\}$`).
+
+### Knowledge Base, Model & Threshold
+
+For `hallucination` checks: `knowledgeBaseId` selects the knowledge base for context, `model` picks the LLM for confidence scoring, `threshold` (0-10 slider) sets the minimum passing score, and `topK` controls how many context chunks are retrieved. `apiKey` (plus optional `azureEndpoint` / `azureApiVersion`) supplies provider credentials.
+
+### PII Settings
+
+For `pii` detection: `piiEntityTypes` selects which entity types to detect (leave empty for all), `customPiiPatterns` adds custom JSON-defined patterns, `piiMode` chooses `block` or `mask`, and `piiLanguage` sets the detection language.
+
+## Inputs & Outputs
+
+- **Inputs**: `input` (string), `validationType` (string), `regex` (string), `knowledgeBaseId` (string), `threshold` (number), `topK` (number), `model` (string), `apiKey` (string), `azureEndpoint` (string), `azureApiVersion` (string), `piiEntityTypes` (json), `piiMode` (string), `piiLanguage` (string), `customPiiPatterns` (json)
+- **Outputs**: `passed` (boolean), `validationType` (string), `input` (string), `score` (number), `reasoning` (string), `detectedEntities` (json), `maskedText` (string), `error` (string)
+
+## YAML Example
+
+```yaml
+guardrails-1:
+  type: guardrails
+  name: "Guardrails"
+  inputs:
+    input: "{{agent.output.content}}"
+    validationType: "pii"
+    piiMode: "mask"
+    piiLanguage: "en"
+  connections:
+    outgoing:
+      - target: next-block-id
 ```
-[Starter] → [Agent] → [Guardrails] → [Condition] → [Response] / [Agent: Rewrite]
-```
-
-**Configuration:**
-- **Content:** `{{agent.content}}`
-- **Rules:**
-  ```json
-  [
-    { "type": "no_pii", "description": "Block phone numbers, SSNs, addresses" },
-    { "type": "no_profanity", "description": "Block inappropriate language" },
-    { "type": "on_topic", "description": "Must relate to customer support" }
-  ]
-  ```
-- **Action on Violation:** `block`
-
-**Follow-up Condition:** `{{guardrails.passed}} == true`
-- True → return content to user
-- False → send to rewrite Agent with `{{guardrails.violations}}` as feedback
-
-## Tips
-
-- **Place after Agent blocks** to filter AI output before delivery
-- **Use `block` action** for strict safety requirements
-- **Use `flag` action** for monitoring — content passes through but violations are logged
-- **Combine rules** — you can check for PII, profanity, tone, and topic relevance simultaneously

@@ -1,0 +1,62 @@
+---
+title: Workflow Block
+description: Execute another workflow and map variables to its Start trigger schema.
+icon: Box
+---
+
+# Workflow Block
+
+The Workflow block executes another child workflow and maps a variable into its Start trigger schema. Reach for it when you want to modularize logic by composing reusable workflows instead of duplicating blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `workflow_input` |
+| **Category** | blocks |
+| **Color** | `#6366F1` |
+
+## When to Use
+
+- Break a large workflow into smaller, reusable child workflows.
+- Call a shared subroutine (e.g. a common notification or enrichment flow) from multiple parent workflows.
+- Pass a single input variable into a child workflow's `start.input`.
+- Capture a child workflow's result and trace spans back in the parent for further processing.
+- Keep a parent workflow readable by delegating self-contained steps to dedicated workflows.
+
+## Configuration
+
+### Select Workflow
+
+Dropdown of the available workflows in the workspace (excluding the current one). Choose the child workflow to execute. Required.
+
+### Input Variable (Optional)
+
+A variable reference to pass to the child workflow. The selected value becomes available as `start.input` inside the child workflow.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `workflowId` (string) — ID of the child workflow
+  - `input` (string) — Variable reference to pass to the child workflow
+- **Outputs**:
+  - `success` (boolean) — Execution success status
+  - `childWorkflowName` (string) — Child workflow name
+  - `childWorkflowId` (string) — Child workflow ID
+  - `result` (json) — Workflow execution result
+  - `error` (string) — Error message
+  - `childTraceSpans` (json) — Child workflow trace spans
+
+## YAML Example
+
+```yaml
+run_subflow:
+  type: workflow_input
+  name: "Workflow"
+  inputs:
+    workflowId: "child-workflow-id"
+    input: {{start.input}}
+  connections:
+    outgoing:
+      - target: next-block-id
+```

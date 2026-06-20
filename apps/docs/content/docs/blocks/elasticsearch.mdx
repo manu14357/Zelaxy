@@ -1,0 +1,83 @@
+---
+title: Elasticsearch Block
+description: Search and manage data in Elasticsearch
+icon: Box
+---
+
+# Elasticsearch Block
+
+The Elasticsearch block lets you integrate Elasticsearch into your workflows. Use it to search documents, index data, retrieve or delete documents, run bulk indexing, and list indices directly from a workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `elasticsearch` |
+| **Category** | tools |
+| **Color** | `#005571` |
+
+## When to Use
+
+- Search an index with a JSON query and return matching hits.
+- Index a single document into an index.
+- Retrieve a specific document by its ID.
+- Delete a document by its ID.
+- Bulk-index a batch of documents in one operation.
+- List the indices available on your Elasticsearch cluster.
+
+## Configuration
+
+### Operation
+
+Choose what the block does. Options: Search (`elasticsearch_search`), Index Document (`elasticsearch_index`), Get Document (`elasticsearch_get`), Delete Document (`elasticsearch_delete`), Bulk Index (`elasticsearch_bulk`), and List Indices (`elasticsearch_list_indices`). Required.
+
+### Elasticsearch URL
+
+The base URL of your Elasticsearch cluster (e.g. `https://localhost:9200`). Required.
+
+### API Key
+
+Your Elasticsearch API key, used to authenticate requests. Stored as a secret.
+
+### Index
+
+The name of the target index (e.g. `my-index`). Required.
+
+### Query (JSON)
+
+The search query body, in JSON. Shown for the Search operation.
+
+### Document (JSON)
+
+The document body to store, in JSON. Shown for the Index Document operation.
+
+### Document ID
+
+The ID of the document to retrieve or delete. Shown for the Get Document and Delete Document operations.
+
+### Max Results
+
+The maximum number of hits to return. Shown for the Search operation.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `url` (string), `apiKey` (string), `index` (string), `query` (json), `document` (json), `id` (string), `size` (string)
+- **Outputs**: `hits` (json), `total` (number), `document` (json)
+
+## YAML Example
+
+```yaml
+elasticsearch_1:
+  type: elasticsearch
+  name: "Elasticsearch"
+  inputs:
+    operation: "elasticsearch_search"
+    url: "https://localhost:9200"
+    apiKey: "{{secrets.ELASTICSEARCH_API_KEY}}"
+    index: "my-index"
+    query: '{"match": {"field": "value"}}'
+    size: "10"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

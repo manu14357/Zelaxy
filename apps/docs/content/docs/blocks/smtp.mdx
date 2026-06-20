@@ -1,0 +1,72 @@
+---
+title: SMTP Email Block
+description: Send emails via any SMTP server
+icon: Box
+---
+
+# SMTP Email Block
+
+The SMTP Email block sends emails through any SMTP server — Gmail, Outlook/Office 365, Yahoo, Amazon SES, SendGrid, Mailgun, or your own custom server. It uses the standard SMTP protocol with STARTTLS/SSL support and requires no OAuth, just your SMTP credentials. Reach for it when you need to deliver email from a workflow without a provider-specific integration.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `smtp` |
+| **Category** | tools |
+| **Color** | `#FB923C` |
+
+## When to Use
+
+- Send transactional or notification emails from a custom or self-hosted SMTP server.
+- Deliver email through providers like Gmail, Office 365, Amazon SES, SendGrid, or Mailgun without OAuth.
+- Send HTML-formatted emails (e.g. reports, receipts, alerts) generated earlier in the workflow.
+- Send to multiple recipients with CC and BCC support.
+- Override the sender identity with a custom From address, display name, and Reply-To.
+- Wire up email delivery in environments where you already manage SMTP credentials.
+
+## Configuration
+
+### SMTP Host & Port
+Set the SMTP server hostname (e.g. `smtp.gmail.com`) and port (`587` for STARTTLS, `465` for SSL).
+
+### Username & Password
+Provide the SMTP login (usually your email) and the SMTP password or app-specific password. The password field is masked.
+
+### Use SSL/TLS
+Switch on for port 465 (SSL); leave off for port 587 (STARTTLS).
+
+### To, Subject & Body
+The required recipient address(es) (comma-separated for multiple), the subject line, and the email content.
+
+### Send as HTML
+Switch to treat the body as HTML content rather than plain text.
+
+### Advanced
+Optionally override the sender with From Email and From Name, add CC/BCC recipients, and set a Reply-To address.
+
+## Inputs & Outputs
+
+- **Inputs**: `host` (string), `port` (number), `username` (string), `password` (string), `secure` (boolean), `to` (string), `subject` (string), `body` (string), `isHtml` (boolean), `from` (string), `fromName` (string), `cc` (string), `bcc` (string), `replyTo` (string)
+- **Outputs**: `messageId` (string), `accepted` (json), `rejected` (json), `status` (string), `error` (string)
+
+## YAML Example
+
+```yaml
+send_email:
+  type: smtp
+  name: "SMTP Email"
+  inputs:
+    host: "smtp.gmail.com"
+    port: 587
+    username: "your-email@example.com"
+    password: "app-password"
+    secure: false
+    to: "recipient@example.com"
+    subject: "Workflow notification"
+    body: "{{start.input}}"
+    isHtml: false
+  connections:
+    outgoing:
+      - target: next-block-id
+```

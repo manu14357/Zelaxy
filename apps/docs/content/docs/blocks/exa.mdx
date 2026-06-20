@@ -1,0 +1,70 @@
+---
+title: Exa Block
+description: Search with Exa AI
+icon: Box
+---
+
+# Exa Block
+
+The Exa block lets you search the web, retrieve page content, find similar links, and answer questions using Exa's AI-powered search. Reach for it when you need high-quality web results or grounded answers to feed into the rest of your workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `exa` |
+| **Category** | tools |
+| **Color** | `#D97706` |
+
+## When to Use
+
+- Run AI-powered web searches and return ranked results for a query.
+- Retrieve and optionally summarize the full content of specific URLs.
+- Discover pages similar to a known reference URL.
+- Get a direct, cited answer to a natural-language question.
+- Conduct deeper, multi-step research on a topic with full-text findings.
+
+## Configuration
+
+### Operation
+
+Choose what the block does: Search, Get Contents, Find Similar Links, Answer, or Research. The selected operation controls which other inputs are shown.
+
+### Search Query / Question / Research Query
+
+The `query` field provides the text for the Search, Answer, and Research operations (required for each).
+
+### URLs / URL
+
+`urls` is a comma-separated list of pages to retrieve content from (Get Contents). `url` is a single reference page used to find similar links (Find Similar Links).
+
+### Result Options
+
+`numResults` sets how many results to return, `type` selects the search strategy (Auto, Neural, Keyword, Fast), and `useAutoprompt` lets Exa refine your query. `text` includes page text, `summaryQuery` guides summary generation, and `includeText` returns full text for research.
+
+### API Key
+
+`apiKey` is your Exa API key (required, stored as a secret).
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `query` (string), `numResults` (number), `useAutoprompt` (boolean), `type` (string), `urls` (string), `text` (boolean), `summaryQuery` (string), `url` (string)
+- **Outputs**: `results` (json), `similarLinks` (json), `answer` (string), `citations` (json), `research` (json)
+
+## YAML Example
+
+```yaml
+exa_1:
+  type: exa
+  name: "Exa"
+  inputs:
+    operation: "exa_search"
+    query: "{{start.input}}"
+    numResults: 10
+    type: "auto"
+    useAutoprompt: true
+    apiKey: "{{secrets.EXA_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

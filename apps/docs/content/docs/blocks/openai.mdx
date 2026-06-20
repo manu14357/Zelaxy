@@ -1,0 +1,56 @@
+---
+title: Embeddings Block
+description: Generate Open AI embeddings
+icon: Box
+---
+
+# Embeddings Block
+
+The Embeddings block converts text into numerical vector representations using OpenAI's embedding models. Reach for it when you need to turn text into embeddings for semantic search, clustering, recommendations, or any other vector-based operation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `openai` |
+| **Category** | tools |
+| **Color** | `#10a37f` |
+
+## When to Use
+
+- Build semantic search by embedding documents and queries for similarity comparison
+- Power retrieval-augmented generation (RAG) pipelines that need vectorized text
+- Cluster or deduplicate text by comparing embedding vectors
+- Generate features for classification or recommendation systems
+- Index content into a vector store for later nearest-neighbor lookup
+
+## Configuration
+
+### Input Text
+The text to convert into an embedding. Required. Typically references an upstream block's output, e.g. `{{start.input}}`.
+
+### Model
+Dropdown to choose the OpenAI embedding model. Options: `text-embedding-3-small` (default), `text-embedding-3-large`, and `text-embedding-ada-002`.
+
+### API Key
+Your OpenAI API key. Required and stored as a password field.
+
+## Inputs & Outputs
+
+- **Inputs**: `input` (string), `model` (string), `apiKey` (string)
+- **Outputs**: `embeddings` (json), `model` (string), `usage` (json)
+
+## YAML Example
+
+```yaml
+embeddings_1:
+  type: openai
+  name: "Embeddings"
+  inputs:
+    input: {{start.input}}
+    model: "text-embedding-3-small"
+    apiKey: "{{OPENAI_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

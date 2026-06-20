@@ -1,0 +1,75 @@
+---
+title: GitHub Block
+description: Interact with GitHub or trigger workflows from GitHub events
+icon: Box
+---
+
+# GitHub Block
+
+The GitHub block lets you read and act on GitHub repositories — fetch pull request details, post PR comments, inspect repository info, and get the latest commit. It can also run as a trigger, starting a workflow from GitHub webhook events like push, pull requests, and issues.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `github` |
+| **Category** | tools |
+| **Color** | `#181C1E` |
+
+## When to Use
+
+- Fetch the details of a pull request to drive an automated review
+- Post a comment on a PR — either a general comment or one tied to a specific file and line
+- Look up repository metadata before deciding how a workflow should proceed
+- Get the latest commit on a branch to detect or react to new changes
+- Trigger a workflow automatically when a push, pull request, or issue event fires on a repo
+
+## Configuration
+
+### Operation
+Dropdown selecting what the block does: **Get PR details** (`github_pr`), **Create PR comment** (`github_comment`), **Get repository info** (`github_repo_info`), or **Get latest commit** (`github_latest_commit`). Defaults to Get PR details.
+
+### Repository Owner / Repository Name
+The `owner` and `repo` of the target repository (e.g., `microsoft` / `vscode`). Both are required.
+
+### Pull Request Number
+The PR number to read or comment on. Required for the Get PR details and Create PR comment operations.
+
+### Comment
+The text of the comment to post. Required for the Create PR comment operation.
+
+### Comment Type
+For comments, choose **General PR Comment** or **File-specific Comment**. Selecting file-specific reveals the **File Path** and **Line Number** fields to anchor the comment.
+
+### Branch Name
+For Get latest commit, the branch to read (leave empty for the repository default).
+
+### GitHub Token
+A GitHub access token used to authenticate API calls. Required and stored as a password field.
+
+### Trigger Configuration
+When running in trigger mode, configures the `github_webhook` trigger so GitHub events start the workflow.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `owner` (string), `repo` (string), `pullNumber` (number), `body` (string), `apiKey` (string), `commentType` (string), `path` (string), `line` (number), `side` (string), `commitId` (string), `branch` (string)
+- **Outputs**: `content` (string), `metadata` (json), plus trigger outputs: `action` (string), `event_type` (string), `repository` (string), `repository_name` (string), `repository_owner` (string), `sender` (string), `sender_id` (string), `ref` (string), `before` (string), `after` (string), `commits` (string), `pull_request` (string), `issue` (string), `comment` (string), `branch` (string), `commit_message` (string), `commit_author` (string)
+
+## YAML Example
+
+```yaml
+github_1:
+  type: github
+  name: "GitHub"
+  inputs:
+    operation: "github_comment"
+    owner: "microsoft"
+    repo: "vscode"
+    pullNumber: 123
+    commentType: "pr_comment"
+    body: "{{previous_block.content}}"
+    apiKey: "{{GITHUB_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

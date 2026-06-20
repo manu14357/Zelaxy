@@ -1,0 +1,73 @@
+---
+title: Video Generator (Legacy) Block
+description: Generate videos from text and images using AI
+icon: Box
+---
+
+# Video Generator (Legacy) Block
+
+The Video Generator block creates AI videos from text prompts and optional start/end images using multiple providers (Fal.ai, Runway, Luma, Minimax, and Google Veo). This is a legacy block — reach for individual provider blocks when you need finer control, but it remains handy for quickly switching providers behind a single configuration.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `video_generator` |
+| **Category** | tools |
+| **Color** | `#181C1E` |
+
+## When to Use
+
+- Generate a short video clip from a text description (text-to-video).
+- Animate a still image into a video by supplying a start image (image-to-video).
+- Interpolate between a start and end image using Luma, Runway, or Fal.ai.
+- Compare or swap between video providers (Fal.ai, Runway, Luma, Minimax, Veo) without rewiring your workflow.
+- Produce videos with specific duration, resolution, and aspect-ratio requirements.
+- Add reproducibility with a fixed seed, or steer output away from unwanted elements with a negative prompt.
+
+## Configuration
+
+### Provider
+Choose the video generation backend: Fal.ai, Runway, Luma, Minimax, or Veo. The selected provider determines which model dropdown is shown.
+
+### Model
+A provider-specific model dropdown (`falaiModel`, `runwayModel`, `lumaModel`, `minimaxModel`, or `veoModel`) appears based on the chosen provider — e.g. Wan / Kling / Seedance for Fal.ai, Gen4 Turbo for Runway, Ray 2 for Luma.
+
+### Prompt
+Required text describing the video you want to generate.
+
+### Duration, Resolution & Aspect Ratio
+Set clip length in seconds, output resolution (480p / 720p / 1080p), and aspect ratio (16:9, 9:16, 1:1, 4:3, 3:4).
+
+### Start / End Image
+Provide a start image via file upload (`imageFile`) or URL (`imageUrl`) for image-to-video. An end image URL (`endImageUrl`) enables interpolation on Luma, Runway, and Fal.ai.
+
+### Advanced Options
+`enableAudio` (Minimax / Fal.ai), `cameraMotion` (Luma), `negativePrompt`, and `seed` for reproducibility.
+
+### API Key
+Required provider API key (stored as a password field).
+
+## Inputs & Outputs
+
+- **Inputs**: `provider` (string), `falaiModel` (string), `runwayModel` (string), `lumaModel` (string), `minimaxModel` (string), `veoModel` (string), `prompt` (string), `duration` (string), `resolution` (string), `aspectRatio` (string), `imageUrl` (string), `imageFile` (json), `endImageUrl` (string), `enableAudio` (boolean), `cameraMotion` (string), `negativePrompt` (string), `seed` (string), `apiKey` (string)
+- **Outputs**: `videoUrl` (string), `id` (string), `status` (string), `duration` (number), `thumbnailUrl` (string)
+
+## YAML Example
+
+```yaml
+video_gen_1:
+  type: video_generator
+  name: "Video Generator (Legacy)"
+  inputs:
+    provider: "falai"
+    falaiModel: "fal-ai/wan/v2.1/1.3b/text-to-video"
+    prompt: "A serene mountain lake at sunrise, gentle ripples on the water"
+    duration: "5"
+    resolution: "720p"
+    aspectRatio: "16:9"
+    apiKey: "{{FALAI_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

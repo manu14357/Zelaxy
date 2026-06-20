@@ -1,0 +1,72 @@
+---
+title: AgentPhone Block
+description: Manage phone numbers and voice calls with AgentPhone
+icon: Box
+---
+
+# AgentPhone Block
+
+The AgentPhone block automates voice communication through AgentPhone. Use it to provision and manage phone numbers, send messages, and initiate voice calls directly from your workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `agentphone` |
+| **Category** | tools |
+| **Color** | `#1a1a2e` |
+
+## When to Use
+
+- Provision a new phone number in the US or Canada for a campaign or agent.
+- List the phone numbers currently available in your AgentPhone account.
+- Release a phone number you no longer need.
+- Send an outbound message from one of your numbers to a recipient.
+- Place an automated voice call from a managed number to a target number.
+
+## Configuration
+
+### Operation
+
+Select the action to perform: Create Number, List Numbers, Release Number, Send Message, or Create Call. This drives which other fields are required.
+
+### API Key
+
+Your AgentPhone API key. Stored securely and required for every operation.
+
+### Country
+
+For Create Number, the country to provision the number in (United States or Canada).
+
+### Area Code
+
+For Create Number, an optional area code preference (for example, `415`).
+
+### Number ID
+
+The id of the managed number to act on. Required for Release Number, Send Message, and Create Call.
+
+### To Number
+
+The destination phone number (E.164 format, for example `+14155551234`). Required for Send Message and Create Call.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `country` (string), `areaCode` (string), `numberId` (string), `toNumber` (string)
+- **Outputs**: `phoneNumber` (string), `numberId` (string), `callId` (string), `status` (string)
+
+## YAML Example
+
+```yaml
+agentphone_1:
+  type: agentphone
+  name: "AgentPhone"
+  inputs:
+    operation: "agentphone_create_call"
+    apiKey: "{{secrets.AGENTPHONE_API_KEY}}"
+    numberId: "number-id"
+    toNumber: "+14155551234"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

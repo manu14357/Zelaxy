@@ -1,0 +1,75 @@
+---
+title: Image Search Block
+description: Search images & CAD drawings
+icon: Box
+---
+
+# Image Search Block
+
+The Image Search block indexes and searches images and DWG/DXF CAD drawings using keyword, visual similarity, hybrid, and spatial search. Reach for it when you need to build a searchable catalog from many file sources (upload, network, S3, Azure Blob, Google Drive, databases, or URLs) and query it at scale.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `image_search` |
+| **Category** | tools |
+| **Color** | `#EA580C` |
+
+## When to Use
+
+- Build a searchable catalog of CAD drawings (DWG/DXF) and images that scales to 100K+ files.
+- Run full-text keyword search across extracted text, dimensions, and part names.
+- Find visually similar images or drawings from a reference image URL.
+- Perform spatial search filtered by CAD layer or block name (e.g. DIMENSIONS, TITLE_BLOCK).
+- Ingest files from diverse sources such as network folders, S3, Azure Blob, Google Drive, PostgreSQL/MSSQL, or URLs.
+- Check indexing progress and file counts for a catalog before querying it.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the action: Create Catalog (`image_search_catalog`), Ingest Files (`image_search_ingest`), Search (`image_search_search`), or Status (`image_search_status`). Defaults to Search.
+
+### Create Catalog
+
+Set the catalog `name` (required) and optional `description`. Choose a `processingMode` (Batch or Real-time) and an `extractionMethod` (Auto Detect, ODA Converter, Autodesk APS, AI Vision GPT-4o, or OCR).
+
+### Ingest Files
+
+Provide the target `catalogId` (required) and pick a `dataSource`. Each source reveals its own fields — network folder path, S3 bucket/credentials, Azure connection string/container, Google Drive folder/token, database connection string + query, or URLs. Set `ingestExtractionMethod` to control how text is extracted.
+
+### Search
+
+Provide `searchCatalogId` (required) and a `query`, choose a `mode` (Hybrid, Keyword, Visual Similarity, or Spatial), and set `topK` results. Visual mode adds a reference `imageUrl`; spatial mode adds `spatialLayer` and `spatialBlock` filters.
+
+### Status
+
+Provide `statusCatalogId` (required) to check indexing progress.
+
+### API Key
+
+OpenAI API key used for embeddings and AI Vision extraction.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `name` (string), `description` (string), `processingMode` (string), `extractionMethod` (string), `catalogId` (string), `dataSource` (string), `networkPath` (string), `networkRecursive` (boolean), `s3Bucket` (string), `s3Prefix` (string), `s3Region` (string), `s3AccessKey` (string), `s3SecretKey` (string), `azureConnectionString` (string), `azureContainer` (string), `googleDriveFolderId` (string), `googleDriveAccessToken` (string), `dbConnectionString` (string), `dbQuery` (string), `mssqlConnectionString` (string), `mssqlQuery` (string), `urls` (string), `ingestExtractionMethod` (string), `searchCatalogId` (string), `query` (string), `mode` (string), `imageUrl` (string), `topK` (number), `spatialLayer` (string), `spatialBlock` (string), `statusCatalogId` (string)
+- **Outputs**: `results` (json), `totalResults` (number), `catalogId` (string), `message` (string), `processed` (number), `failed` (number), `status` (string), `indexingProgress` (number), `fileCount` (number)
+
+## YAML Example
+
+```yaml
+image_search_1:
+  type: image_search
+  name: "Image Search"
+  inputs:
+    operation: "image_search_search"
+    searchCatalogId: "{{start.input}}"
+    query: "title block revision A"
+    mode: "hybrid"
+    topK: 10
+    apiKey: "{{OPENAI_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

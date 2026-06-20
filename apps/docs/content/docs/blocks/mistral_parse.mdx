@@ -1,0 +1,73 @@
+---
+title: Mistral Parser Block
+description: Extract text from PDF documents
+icon: Box
+---
+
+# Mistral Parser Block
+
+The Mistral Parser block extracts text and structure from PDF documents using Mistral's OCR API. Point it at a publicly accessible PDF URL or upload a PDF directly, then receive the content in Markdown, plain text, or raw JSON. Reach for it when you need to turn PDFs into clean, machine-readable text for downstream blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mistral_parse` |
+| **Category** | tools |
+| **Color** | `#000000` |
+
+## When to Use
+
+- Convert a PDF from a public URL into formatted Markdown for an LLM or knowledge base.
+- Extract plain text from uploaded contracts, invoices, or reports for further processing.
+- Pull raw JSON OCR output when you need page-level structure and metadata.
+- Parse only specific pages of a large PDF instead of the whole document.
+- Feed scanned or image-based PDFs through OCR to recover their text content.
+
+## Configuration
+
+### Select Input Method
+
+Dropdown choosing how the PDF is supplied: `PDF Document URL` (`url`) or `Upload PDF Document` (`upload`).
+
+### PDF Document URL
+
+A direct, publicly accessible URL to a PDF (shown when input method is `url`). Cloud storage share links (Google Drive, Dropbox) are not supported; use a direct download URL.
+
+### Upload PDF
+
+File upload for a PDF (shown when input method is `upload`), accepting `application/pdf` up to 50MB.
+
+### Output Format
+
+Dropdown selecting the result format: `Markdown (Formatted)` (`markdown`), `Plain Text` (`text`), or `JSON (Raw)` (`json`).
+
+### Specific Pages
+
+Optional comma-separated, zero-based page list (e.g. `0,1,2`). Leave empty to parse all pages.
+
+### API Key
+
+Required Mistral API key used to authenticate the OCR request.
+
+## Inputs & Outputs
+
+- **Inputs**: `inputMethod` (string), `filePath` (string), `fileUpload` (json), `apiKey` (string), `resultType` (string), `pages` (string)
+- **Outputs**: `content` (string), `metadata` (json)
+
+## YAML Example
+
+```yaml
+mistral_parse_1:
+  type: mistral_parse
+  name: "Mistral Parser"
+  inputs:
+    inputMethod: "url"
+    filePath: "https://example.com/document.pdf"
+    resultType: "markdown"
+    pages: "0,1,2"
+    apiKey: "{{MISTRAL_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

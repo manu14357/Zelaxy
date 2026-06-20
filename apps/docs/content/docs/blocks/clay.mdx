@@ -1,0 +1,63 @@
+---
+title: Clay Block
+description: Populate a Clay workbook with data via a webhook.
+icon: Box
+---
+
+# Clay Block
+
+The Clay block sends data to a Clay workbook through a webhook, letting you populate Clay tables with either structured JSON or free-form plain text. Reach for it when a workflow needs to push enriched or collected data into Clay for further enrichment or outreach.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `clay` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Push leads or contact records collected earlier in a workflow into a Clay table.
+- Populate multiple Clay columns at once by sending structured JSON.
+- Add free-form rows to a Clay table using plain text.
+- Forward enriched data from another integration into Clay for further processing.
+- Trigger Clay's enrichment pipelines by populating a workbook on demand.
+
+## Configuration
+
+### Webhook URL
+
+The Clay webhook URL that the data is posted to. Required.
+
+### Data (JSON or Plain Text)
+
+The payload to populate your Clay table. Use JSON when populating multiple columns, or plain text for free-form rows. Required.
+
+### Auth Token
+
+Your Clay auth token used to authenticate the webhook request. Stored as a password field. Required.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `authToken` (string) — Clay authentication token
+  - `webhookURL` (string) — Clay webhook URL
+  - `data` (json) — Data to populate
+- **Outputs**:
+  - `data` (json) — Response data
+
+## YAML Example
+
+```yaml
+clay_1:
+  type: clay
+  name: "Clay"
+  inputs:
+    webhookURL: "https://api.clay.com/v3/sources/webhook/your-id"
+    data: {{start.input}}
+    authToken: "your-clay-auth-token"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

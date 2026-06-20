@@ -1,0 +1,85 @@
+---
+title: Logs Block
+description: Query workflow execution logs
+icon: Box
+---
+
+# Logs Block
+
+The Logs block lets you search and inspect workflow execution logs from inside a workflow. Use it to query logs across the workspace, fetch a single log entry by id, or load the full execution details with the per-block state snapshot.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `logs` |
+| **Category** | blocks |
+| **Color** | `#EAB308` |
+
+## When to Use
+
+- Search recent workflow runs in the workspace, filtered by level (info, error, running, pending).
+- Build alerting or reporting flows that react to failed or long-running executions.
+- Fetch a single log entry by id to enrich a downstream notification.
+- Load full execution details, including the per-block state snapshot, for debugging or auditing.
+- Filter logs by trigger type (api, webhook, schedule, manual, chat) or by a date range.
+- Paginate through large result sets using the returned `nextCursor`.
+
+## Configuration
+
+### Operation
+
+Choose what the block does: `Query Logs` (search), `Get Log by ID` (single entry), or `Get Execution Details` (full execution with per-block state). Defaults to Query Logs.
+
+### Workflow IDs
+
+Comma-separated workflow IDs to scope a query to specific workflows.
+
+### Execution ID
+
+When querying, restrict results to a single execution ID. (For full details, use the Get Execution Details operation instead.)
+
+### Level
+
+Filter query results by status: All, Info, Error, Running, or Pending. Defaults to All.
+
+### Triggers
+
+Filter by trigger type, e.g. `api,webhook,schedule,manual,chat`.
+
+### Limit
+
+Maximum number of results to return (default 100, max 200).
+
+### Advanced Query Filters
+
+Start Date and End Date (ISO 8601), free-text Search, Sort By (date, duration, cost, status), Sort Order (descending/ascending), and a pagination Cursor.
+
+### Log ID
+
+Required for Get Log by ID — the id of the single log entry to fetch.
+
+### Execution ID (lookup)
+
+Required for Get Execution Details — the execution id whose full details and per-block state snapshot to load.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `workflowIds` (string), `executionId` (string), `level` (string), `triggers` (string), `limit` (number), `startDate` (string), `endDate` (string), `search` (string), `sortBy` (string), `sortOrder` (string), `cursor` (string), `logId` (string), `executionIdLookup` (string)
+- **Outputs**: `logs` (json), `total` (number), `nextCursor` (string), `log` (json), `execution` (json)
+
+## YAML Example
+
+```yaml
+logs_1:
+  type: logs
+  name: "Logs"
+  inputs:
+    operation: "query"
+    level: "error"
+    triggers: "api,schedule"
+    limit: 100
+  connections:
+    outgoing:
+      - target: next-block-id
+```

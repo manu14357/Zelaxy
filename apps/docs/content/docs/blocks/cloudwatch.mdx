@@ -1,0 +1,75 @@
+---
+title: CloudWatch Block
+description: Query logs, metrics, and alarms in AWS CloudWatch
+icon: Box
+---
+
+# CloudWatch Block
+
+The CloudWatch block integrates AWS CloudWatch into your workflows, letting you query log groups, retrieve metric statistics, publish custom metrics, and inspect alarms. Reach for it when a workflow needs to observe or react to the state of your AWS infrastructure.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `cloudwatch` |
+| **Category** | tools |
+| **Color** | `#B0084D` |
+
+## When to Use
+
+- Run a CloudWatch Logs Insights query to pull recent log lines from a Lambda or service log group.
+- Fetch raw log events from a specific log group for inspection or downstream processing.
+- Discover available log groups or metrics before drilling into a particular one.
+- Get metric statistics (e.g. CPUUtilization) to drive conditional logic or alerting.
+- Publish custom metric data points back into CloudWatch from your workflow.
+- Describe alarms to check whether any monitored resource is in an alarm state.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the CloudWatch action: Query Logs, Describe Log Groups, Get Log Events, List Metrics, Get Metric Statistics, Put Metric Data, or Describe Alarms. Required.
+
+### AWS Region
+
+The AWS region to target (e.g. `us-east-1`). Required.
+
+### Access Key ID / Secret Access Key
+
+AWS credentials used to authenticate the request. Both are required and stored as secrets.
+
+### Log Group Names
+
+The log group(s) to operate on. Shown for the Query Logs and Get Log Events operations.
+
+### Insights Query
+
+A CloudWatch Logs Insights query string. Shown for the Query Logs operation.
+
+### Metric Name / Namespace
+
+The metric name and namespace (e.g. `CPUUtilization` in `AWS/EC2`). Shown for the Get Metric Statistics and Put Metric Data operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `awsRegion` (string), `awsAccessKeyId` (string), `awsSecretAccessKey` (string), `logGroupNames` (string), `queryString` (string), `metricName` (string), `namespace` (string)
+- **Outputs**: `logEvents` (json), `metrics` (json), `queryId` (string)
+
+## YAML Example
+
+```yaml
+cloudwatch_1:
+  type: cloudwatch
+  name: "CloudWatch"
+  inputs:
+    operation: "cloudwatch_query_logs"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{start.accessKeyId}}"
+    awsSecretAccessKey: "{{start.secretAccessKey}}"
+    logGroupNames: "/aws/lambda/my-function"
+    queryString: "fields @timestamp, @message | sort @timestamp desc | limit 20"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

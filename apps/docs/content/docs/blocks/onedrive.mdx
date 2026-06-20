@@ -1,0 +1,83 @@
+---
+title: OneDrive Block
+description: Create, upload, and list files
+icon: Box
+---
+
+# OneDrive Block
+
+The OneDrive block integrates Microsoft OneDrive into your workflows so you can manage files and folders directly. Use it to upload new files, create folders, and list folder contents over OAuth, with support for custom MIME types and folder organization.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `onedrive` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Upload generated content or reports to a specific OneDrive folder as a new file.
+- Create new folders to organize files produced by a workflow.
+- List the contents of a folder (or the root) to drive downstream processing.
+- Search a folder for specific files by name or query before acting on them.
+- Persist workflow artifacts to a user's Microsoft account using OAuth credentials.
+
+## Configuration
+
+### Operation
+
+Selects what the block does: Create Folder (`create_folder`), Upload File (`upload`), or List Files (`list`).
+
+### Microsoft Account
+
+OAuth credential for the connected Microsoft/OneDrive account; required for all operations.
+
+### File Name & Content
+
+For the upload operation, the name of the new file and the content to write into it.
+
+### Parent Folder
+
+For upload and create-folder operations, pick a parent folder with the file selector (basic mode) or supply a folder ID via `manualFolderId` (advanced mode). Leave empty to target the root folder.
+
+### Folder Name
+
+For the create-folder operation, the name for the new folder.
+
+### Search Query & Results Per Page
+
+For the list operation, an optional search query to filter files and a page size for the number of results returned (default 100, max 1000).
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string)
+  - `credential` (string)
+  - `fileName` (string)
+  - `content` (string)
+  - `folderSelector` (string)
+  - `manualFolderId` (string)
+  - `query` (string)
+  - `pageSize` (number)
+- **Outputs**:
+  - `file` (json) — the OneDrive file object (id, name, size, and more)
+  - `files` (json) — an array of OneDrive file objects
+
+## YAML Example
+
+```yaml
+onedrive_1:
+  type: onedrive
+  name: "OneDrive"
+  inputs:
+    operation: "upload"
+    credential: "{{credentials.onedrive}}"
+    fileName: "report.txt"
+    content: "{{start.input}}"
+    manualFolderId: ""
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,78 @@
+---
+title: Airtable Block
+description: Read, create, and update Airtable
+icon: Box
+---
+
+# Airtable Block
+
+The Airtable block lets you manage table records in an Airtable base directly from a workflow. Use it to list, get, create, or update records over OAuth — reach for it whenever a workflow needs to read from or write to Airtable as a data source.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `airtable` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- List records from a table, optionally filtered by an Airtable formula
+- Fetch a single record by its record ID
+- Create one or more new records from a JSON array
+- Update an individual record's fields by record ID
+- Sync external data (form submissions, scraped content, API results) into an Airtable base
+- Trigger a workflow when records change in Airtable via the webhook trigger
+
+## Configuration
+
+### Operation
+Dropdown selecting the action to perform: **List Records** (`list`), **Get Record** (`get`), **Create Records** (`create`), or **Update Record** (`update`). Defaults to `list`.
+
+### Airtable Account
+OAuth connection to your Airtable account. Required, and requests the `data.records:read` and `data.records:write` scopes.
+
+### Base ID
+The target base identifier (e.g., `appXXXXXXXXXXXXXX`). Required.
+
+### Table ID
+The target table identifier (e.g., `tblXXXXXXXXXXXXXX`). Required.
+
+### Record ID
+The record to operate on (e.g., `recXXXXXXXXXXXXXX`). Required for the **get** and **update** operations.
+
+### Max Records / Filter Formula
+Optional list-only inputs: cap the number of returned records and/or supply an Airtable formula to filter results.
+
+### Records (JSON Array)
+JSON array of records to write, used by the **create** operation (e.g., `[{ "fields": { ... } }]`).
+
+### Fields (JSON Object)
+JSON object of field values to apply, used by the **update** operation (e.g., `{ "Field Name": "New Value" }`).
+
+### Trigger Configuration
+When trigger mode is active, configures the `airtable_webhook` trigger so the workflow runs on record changes.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `baseId` (string), `tableId` (string), `recordId` (string), `maxRecords` (number), `filterFormula` (string), `records` (json), `fields` (json)
+- **Outputs**: `records` (json), `record` (json), `metadata` (json), `event_type` (string), `base_id` (string), `table_id` (string), `record_id` (string), `record_data` (string), `changed_fields` (string), `webhook_id` (string), `timestamp` (string)
+
+## YAML Example
+
+```yaml
+airtable_1:
+  type: airtable
+  name: "Airtable"
+  inputs:
+    operation: "list"
+    credential: "{{airtable_account}}"
+    baseId: "appXXXXXXXXXXXXXX"
+    tableId: "tblXXXXXXXXXXXXXX"
+    maxRecords: 100
+    filterFormula: ""
+  connections:
+    outgoing:
+      - target: next-block-id
+```

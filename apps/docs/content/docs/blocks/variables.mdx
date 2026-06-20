@@ -1,0 +1,53 @@
+---
+title: Variables Block
+description: Set or update workflow-scoped variables
+icon: Box
+---
+
+# Variables Block
+
+The Variables block assigns values to named variables that persist for the lifetime of the workflow run. Reach for it when you need to define reusable values once and reference them across downstream blocks using the standard `{{block_id.output.variables.varName}}` syntax.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `variables` |
+| **Category** | blocks |
+| **Color** | `#10B981` |
+
+## When to Use
+
+- Define constants or configuration values once and reuse them in multiple downstream blocks.
+- Capture and rename intermediate results into clearly named variables for readability.
+- Centralize values (API endpoints, thresholds, labels) so they're easy to update in one place.
+- Build a small set of run-scoped variables that several branches of the workflow depend on.
+- Stage computed or referenced values for later blocks without re-deriving them.
+
+## Configuration
+
+### Variable Assignments
+
+A table of `Name` / `Value` pairs. Each row defines one variable: the `Name` column is the variable key, and the `Value` column is its assigned value (a literal or a `{{...}}` reference to another block's output).
+
+## Inputs & Outputs
+
+- **Inputs**: `assignments` (json) — array of `{name, value}` pairs defining the variables to set.
+- **Outputs**: `variables` (json) — map of all variable names to their assigned values; `count` (number) — number of variables assigned.
+
+## YAML Example
+
+```yaml
+set_vars:
+  type: variables
+  name: "Variables"
+  inputs:
+    assignments:
+      - name: "greeting"
+        value: "Hello"
+      - name: "userId"
+        value: "{{start.input.id}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

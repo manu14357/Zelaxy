@@ -1,0 +1,64 @@
+---
+title: YouTube Block
+description: Search for videos on YouTube
+icon: Box
+---
+
+# YouTube Block
+
+The YouTube block finds relevant videos using the YouTube Data API. Reach for it when your workflow needs to discover content, surface video metadata, or feed search results into downstream steps with a customizable result limit.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `youtube` |
+| **Category** | tools |
+| **Color** | `#FF0000` |
+
+## When to Use
+
+- Search YouTube for videos matching a user- or workflow-supplied query.
+- Pull structured video metadata to enrich a record, message, or report.
+- Gather a capped list of candidate videos for an agent to summarize or rank.
+- Power a content-discovery step that responds to incoming triggers.
+- Build research or monitoring flows that track topics across YouTube.
+
+## Configuration
+
+### Search Query
+
+The text to search for. Required.
+
+### YouTube API Key
+
+Your YouTube Data API key used to authenticate the request. Required and stored as a secret.
+
+### Max Results
+
+A slider (0–20) that caps how many video results are returned.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `query` (string) — the query for the YouTube search
+  - `apiKey` (string) — the API key for the YouTube search
+  - `maxResults` (number) — the maximum number of results to return
+- **Outputs**:
+  - `items` (json) — the items returned by the YouTube search
+  - `totalResults` (number) — the total number of results returned by the YouTube search
+
+## YAML Example
+
+```yaml
+youtube_1:
+  type: youtube
+  name: "YouTube"
+  inputs:
+    query: {{start.input}}
+    apiKey: "{{YOUTUBE_API_KEY}}"
+    maxResults: 5
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,66 @@
+---
+title: Attio Block
+description: Manage records, notes, and tasks in Attio CRM
+icon: Box
+---
+
+# Attio Block
+
+The Attio block integrates Attio CRM into your workflows. Use it to list, get, create, update, and delete records across any object type, plus create and list notes — all authenticated through your connected Attio account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `attio` |
+| **Category** | tools |
+| **Color** | `#1D1E20` |
+
+## When to Use
+
+- Look up a contact or company record before enriching or routing it elsewhere
+- Create new people, company, or deal records from form submissions or upstream data
+- Update existing records when a workflow gathers new information
+- Filter and list records of any object type for reporting or batch processing
+- Attach notes to a record to log activity or context from a workflow run
+- Delete stale or duplicate records as part of a cleanup automation
+
+## Configuration
+
+### Operation
+Dropdown selecting the action to perform: List Records, Get Record, Create Record, Update Record, Delete Record, Create Note, or List Notes. This drives which other fields are required.
+
+### Attio Account
+OAuth connection (`attio` provider) used to authenticate all requests against your Attio workspace.
+
+### Object Type
+The object slug to operate on (e.g. `people`, `companies`, `deals`). Required.
+
+### Record ID
+The target record's ID. Required for Get Record, Update Record, and Delete Record operations.
+
+### Attributes (JSON)
+A JSON object of record attributes to set. Used by Create Record and Update Record.
+
+### Filter (JSON)
+A JSON object of filter criteria for narrowing results. Used by List Records.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `oauthCredential` (string), `objectType` (string), `recordId` (string), `attributes` (json), `filter` (json)
+- **Outputs**: `records` (json), `record` (json), `notes` (json)
+
+## YAML Example
+
+```yaml
+attio_1:
+  type: attio
+  name: "Attio"
+  inputs:
+    operation: "attio_create_record"
+    objectType: "people"
+    attributes: '{"name": "John Doe", "email": "john@example.com"}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

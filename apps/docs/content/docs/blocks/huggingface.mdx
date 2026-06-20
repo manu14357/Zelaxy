@@ -1,0 +1,89 @@
+---
+title: Hugging Face Block
+description: Use Hugging Face Inference API
+icon: Box
+---
+
+# Hugging Face Block
+
+The Hugging Face block generates completions through the Hugging Face Inference API, giving you access to a wide range of open-source models across multiple inference providers. Reach for it when you want chat completions, content generation, or AI-powered conversations from open models with customizable parameters.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `huggingface` |
+| **Category** | tools |
+| **Color** | `#0B0F19` |
+
+## When to Use
+
+- Run chat completions against open-source models hosted on Hugging Face instead of a single proprietary provider.
+- Pick a specific inference provider (Novita, Cerebras, Cohere, Fireworks, Together, etc.) for cost, latency, or availability reasons.
+- Generate content or conversational responses with a custom system prompt to steer model behavior.
+- Tune output with temperature and a maximum token budget for predictable, bounded responses.
+- Use a model that is only available through the Hugging Face ecosystem rather than a native provider block.
+
+## Configuration
+
+### System Prompt
+
+Optional instructions that guide the model's behavior and tone for the request.
+
+### User Prompt
+
+The required user message content the model responds to.
+
+### Provider
+
+Required dropdown selecting the inference provider. Options: Novita, Cerebras, Cohere, Fal AI, Fireworks, Hyperbolic, HF Inference, Nebius, Nscale, Replicate, SambaNova, Together. Defaults to Novita.
+
+### Model
+
+Required model identifier. The model must be available for the selected provider (e.g., `deepseek/deepseek-v3-0324`, `meta-llama/Llama-3.2-3B-Instruct-Turbo`).
+
+### Temperature
+
+Slider (0–2) controlling response randomness. Defaults to 0.7.
+
+### Max Tokens
+
+Optional cap on the number of output tokens generated.
+
+### API Token
+
+Required Hugging Face API token (stored as a password field).
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `systemPrompt` (string) — System instructions
+  - `content` (string) — User message content
+  - `provider` (string) — Model provider
+  - `model` (string) — Model identifier
+  - `temperature` (string) — Response randomness
+  - `maxTokens` (string) — Maximum output tokens
+  - `apiKey` (string) — API access token
+- **Outputs**:
+  - `content` (string) — Generated response
+  - `model` (string) — Model used
+  - `usage` (json) — Token usage stats
+
+## YAML Example
+
+```yaml
+huggingface_1:
+  type: huggingface
+  name: "Hugging Face"
+  inputs:
+    systemPrompt: "You are a helpful assistant."
+    content: {{start.input}}
+    provider: "novita"
+    model: "deepseek/deepseek-v3-0324"
+    temperature: 0.7
+    maxTokens: 1000
+    apiKey: "{{HUGGINGFACE_API_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

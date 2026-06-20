@@ -1,0 +1,74 @@
+---
+title: Table Block
+description: User-defined data tables
+icon: Box
+---
+
+# Table Block
+
+The Table block lets you create and manage custom data tables, storing, querying, and manipulating structured data directly inside a workflow. Reach for it when you need persistent, queryable state that outlives a single block run.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `table` |
+| **Category** | blocks |
+| **Color** | `#10B981` |
+
+## When to Use
+
+- Persist structured records (users, leads, events) that other steps or future runs can read back.
+- Query rows with filters, sorting, and pagination to drive downstream logic.
+- Insert single rows, batch-insert many rows, or upsert to avoid duplicates.
+- Update or delete rows either by their row ID or by a filter that matches many rows.
+- Fetch a row by ID or inspect a table's schema (name and column definitions) at runtime.
+
+## Configuration
+
+### Operation
+Dropdown selecting the action to perform: Query Rows, Insert Row, Upsert Row, Batch Insert Rows, Update Rows by Filter, Delete Rows by Filter, Update Row by ID, Delete Row by ID, Get Row by ID, or Get Schema. Defaults to Query Rows.
+
+### Table ID
+Required identifier of the target table for every operation.
+
+### Row ID
+Required for the get_row, update_row, and delete_row operations; identifies a single row.
+
+### Row Data (JSON)
+A JSON object of column/value pairs. Required for insert_row, upsert_row, update_row, and update_rows_by_filter.
+
+### Rows Data (Array of JSON)
+A JSON array of row objects for batch_insert_rows.
+
+### Filter (JSON)
+Filter criteria (supports operators like `$eq`, `$gt`, `$in`, `$contains`). Required for update_rows_by_filter and delete_rows_by_filter; optional for query_rows.
+
+### Sort (JSON)
+Sort order such as `{"createdAt": "desc"}`, used by query_rows.
+
+### Limit / Offset
+Pagination controls for query_rows; Limit also caps update/delete by-filter operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `tableId` (string), `data` (json), `rows` (json), `rowId` (string), `filter` (json), `sort` (json), `limit` (number), `offset` (number)
+- **Outputs**: `success` (boolean), `row` (json), `operation` (string), `rows` (json), `rowCount` (number), `totalCount` (number), `insertedCount` (number), `updatedCount` (number), `updatedRowIds` (json), `deletedCount` (number), `deletedRowIds` (json), `name` (string), `columns` (json), `message` (string)
+
+## YAML Example
+
+```yaml
+table_1:
+  type: table
+  name: "Table"
+  inputs:
+    operation: "query_rows"
+    tableId: "tbl_customers"
+    filter: '{"status": {"$eq": "active"}}'
+    sort: '{"createdAt": "desc"}'
+    limit: 100
+    offset: 0
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,70 @@
+---
+title: Google Search Block
+description: Search the web
+icon: Box
+---
+
+# Google Search Block
+
+The Google Search block searches the web using the Google Custom Search API, returning high-quality results from across the internet or from a specific site defined by a custom search engine. Reach for it when a workflow needs live web data to ground answers, gather references, or feed downstream blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_search` |
+| **Category** | tools |
+| **Color** | `#E0E0E0` |
+
+## When to Use
+
+- Fetch up-to-date web results to ground an agent's response with current information.
+- Search within a specific site or domain via a custom search engine ID.
+- Collect a list of source URLs and snippets for research or summarization steps.
+- Verify facts or pull supporting links before generating content.
+- Power a "search the web" capability inside a larger automation pipeline.
+
+## Configuration
+
+### Search Query
+
+The terms to search for (`query`). Required.
+
+### Custom Search Engine ID
+
+Your Google Programmable Search Engine ID (`searchEngineId`) that scopes where results come from. Required.
+
+### API Key
+
+Your Google API key (`apiKey`), stored as a secret. Required.
+
+### Number of Results
+
+How many results to return (`num`). Defaults to 10 when left blank.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `query` (string) — Search query terms
+  - `apiKey` (string) — Google API key
+  - `searchEngineId` (string) — Custom search engine ID
+  - `num` (string) — Number of results
+- **Outputs**:
+  - `items` (json) — Search result items
+  - `searchInformation` (json) — Search metadata
+
+## YAML Example
+
+```yaml
+google_search_1:
+  type: google_search
+  name: "Google Search"
+  inputs:
+    query: {{start.input}}
+    searchEngineId: "your-custom-search-engine-id"
+    apiKey: "your-google-api-key"
+    num: "10"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

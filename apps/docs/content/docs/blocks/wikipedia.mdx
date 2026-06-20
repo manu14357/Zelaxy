@@ -1,0 +1,58 @@
+---
+title: Wikipedia Block
+description: Search and retrieve content from Wikipedia
+icon: Box
+---
+
+# Wikipedia Block
+
+The Wikipedia block lets workflows tap into the world's largest encyclopedia. Search for pages, fetch concise summaries, retrieve full article content, or pull a random article — useful whenever you need factual, reference-grade context for downstream reasoning or output.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `wikipedia` |
+| **Category** | tools |
+| **Color** | `#000000` |
+
+## When to Use
+
+- Fetch a quick summary of a topic to feed an Agent block as grounding context
+- Search Wikipedia for candidate pages matching a query before retrieving one
+- Retrieve the full content of a specific article for detailed analysis or extraction
+- Surface a random article for discovery, quizzes, or content-generation prompts
+- Enrich a workflow with authoritative reference data without managing an API key
+
+## Configuration
+
+### Operation
+Dropdown selecting what the block does. Options: **Get Page Summary** (`wikipedia_summary`), **Search Pages** (`wikipedia_search`), **Get Page Content** (`wikipedia_content`), and **Random Page** (`wikipedia_random`). Defaults to Get Page Summary.
+
+### Page Title
+Required for the **Get Page Summary** and **Get Page Content** operations. The exact title of the Wikipedia article (e.g., "Python programming language").
+
+### Search Query
+Required for the **Search Pages** operation. The search terms used to find matching articles.
+
+### Max Results
+Optional for the **Search Pages** operation. Caps how many search results are returned (e.g., `10`).
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `pageTitle` (string), `query` (string), `searchLimit` (number)
+- **Outputs**: `summary` (json), `searchResults` (json), `totalHits` (number), `content` (json), `randomPage` (json)
+
+## YAML Example
+
+```yaml
+wikipedia_lookup:
+  type: wikipedia
+  name: "Wikipedia"
+  inputs:
+    operation: "wikipedia_summary"
+    pageTitle: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,83 @@
+---
+title: Luma Block
+description: Manage events and guests on Luma
+icon: Box
+---
+
+# Luma Block
+
+The Luma block integrates Luma into your workflow so you can create, update, and read events, list calendar events, and manage guest lists. Reach for it whenever a workflow needs to automate event scheduling or attendee management on Luma.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `luma` |
+| **Category** | tools |
+| **Color** | `#FFFFFF` |
+
+## When to Use
+
+- Create a new Luma event programmatically with a name, start time, timezone, and description.
+- Update details of an existing event such as its time, visibility, or cover image.
+- Fetch full details of a specific event by its event ID.
+- List events from a calendar, optionally filtered by date range and sorted.
+- Retrieve the guest list for an event, filtered by approval status.
+- Add one or more guests to an event from a JSON array of guest objects.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the action to perform: Get Event, Create Event, Update Event, List Events, Get Guests, or Add Guests. Defaults to Get Event.
+
+### API Key
+
+Your Luma API key (required, stored as a password field) used to authenticate every operation.
+
+### Event ID
+
+The target event identifier (starts with `evt-`). Required for Get Event, Update Event, Get Guests, and Add Guests.
+
+### Event Name, Start Time, Timezone
+
+Required when creating or updating an event. Start time is an ISO 8601 timestamp and timezone is an IANA identifier.
+
+### End Time / Duration / Description / Meeting URL / Visibility / Cover Image URL
+
+Optional event details available when creating or updating an event.
+
+### Status Filter
+
+When getting guests, filters the returned list by approval status (Approved, Session, Pending Approval, Invited, Declined, Waitlist, or All).
+
+### Guests
+
+When adding guests, a JSON array of guest objects (each requires an `email`, optionally `name`, `first_name`, `last_name`).
+
+### After / Before / Limit / Pagination Cursor / Sort By / Sort Direction
+
+Filtering, pagination, and sorting controls for List Events and Get Guests.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `eventId` (string), `name` (string), `startAt` (string), `timezone` (string), `durationInterval` (string), `endAt` (string), `descriptionMd` (string), `meetingUrl` (string), `visibility` (string), `coverUrl` (string), `approvalStatus` (string), `guests` (string), `after` (string), `before` (string), `paginationLimit` (number), `paginationCursor` (string), `sortColumn` (string), `sortDirection` (string)
+- **Outputs**: `event` (json), `hosts` (json), `events` (json), `guests` (json), `hasMore` (boolean), `nextCursor` (string)
+
+## YAML Example
+
+```yaml
+luma_1:
+  type: luma
+  name: "Luma"
+  inputs:
+    operation: "create_event"
+    apiKey: "{{LUMA_API_KEY}}"
+    name: "Quarterly Meetup"
+    startAt: "2025-03-15T18:00:00Z"
+    timezone: "America/New_York"
+    descriptionMd: "Join us for our quarterly community meetup."
+  connections:
+    outgoing:
+      - target: next-block-id
+```

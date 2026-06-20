@@ -1,0 +1,60 @@
+---
+title: Enrich Block
+description: Enrich email addresses and LinkedIn profiles with Enrich.so
+icon: Box
+---
+
+# Enrich Block
+
+The Enrich block integrates Enrich.so data enrichment into your workflows. Use it to turn an email into a full profile, find work emails from LinkedIn, verify deliverability, look up phone numbers, and search people or companies.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `enrich` |
+| **Category** | tools |
+| **Color** | `#E5E5E6` |
+
+## When to Use
+
+- Resolve an email address into a full person or LinkedIn profile
+- Find a person's work email from their LinkedIn URL
+- Verify whether an email address is valid and deliverable
+- Discover a phone number from a LinkedIn profile
+- Look up company details for sales or research workflows
+- Search for people or companies to power lead-generation pipelines
+
+## Configuration
+
+### Operation
+Dropdown selecting which Enrich.so action to run. Options: Email to Profile, Email to Person (Lite), LinkedIn Profile, Find Email, LinkedIn to Work Email, Verify Email, Phone Finder, Company Lookup, Search People, and Search Company. Required.
+
+### API Key
+Your Enrich.so API key (stored as a password field). Required.
+
+### Email
+The email address to enrich or verify. Shown for the Email to Profile, Email to Person (Lite), and Verify Email operations.
+
+### LinkedIn URL
+The LinkedIn profile URL to enrich. Shown for the LinkedIn Profile, LinkedIn to Work Email, and Phone Finder operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `email` (string), `linkedinUrl` (string)
+- **Outputs**: `profile` (json), `email` (string), `person` (json), `company` (json)
+
+## YAML Example
+
+```yaml
+enrich_1:
+  type: enrich
+  name: "Enrich"
+  inputs:
+    operation: "enrich_email_to_profile"
+    apiKey: "{{ENRICH_API_KEY}}"
+    email: "{{start.input}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

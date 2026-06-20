@@ -1,0 +1,77 @@
+---
+title: LinkedIn Block
+description: Interact with LinkedIn
+icon: Box
+---
+
+# LinkedIn Block
+
+The LinkedIn block connects your workflow to LinkedIn so you can create posts, view profiles, look up company pages, and delete posts. Reach for it to automate professional networking, B2B content distribution, and social publishing.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `linkedin` |
+| **Category** | tools |
+| **Color** | `#0A66C2` |
+
+## When to Use
+
+- Publish a LinkedIn post automatically as part of a content or marketing workflow.
+- Share an article or external link with a custom title and description.
+- Post on behalf of a company page by supplying an organization ID.
+- Fetch the authenticated member's profile data for personalization or routing.
+- Look up details about a LinkedIn company/organization by ID.
+- Remove a previously published post by its URN.
+
+## Configuration
+
+### Operation
+
+Choose the action to perform: Create Post, Get Profile, Get Company, or Delete Post. Defaults to Create Post.
+
+### LinkedIn Account
+
+OAuth credential used to authenticate. Requires the `openid`, `profile`, `email`, and `w_member_social` scopes.
+
+### Post Content
+
+The text body of the post. Required when the operation is Create Post.
+
+### Visibility
+
+Sets who can see the post: Public or Connections Only. Defaults to Public. Applies to Create Post.
+
+### Link Fields
+
+Optional `mediaUrl`, `mediaTitle`, and `mediaDescription` attach and describe a shared link on a created post.
+
+### Organization ID
+
+For Create Post, the optional `organizationId` posts on behalf of a company page (leave empty for a personal post). For Get Company, `companyOrganizationId` is the required ID to look up.
+
+### Post ID
+
+The post URN to remove (e.g., `urn:li:share:123456`). Required for Delete Post.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `credential` (string), `text` (string), `visibility` (string), `mediaUrl` (string), `mediaTitle` (string), `mediaDescription` (string), `organizationId` (string), `companyOrganizationId` (string), `postId` (string)
+- **Outputs**: `post` (json), `profile` (json), `organization` (json), `deleted` (json)
+
+## YAML Example
+
+```yaml
+linkedin_1:
+  type: linkedin
+  name: "LinkedIn"
+  inputs:
+    operation: "linkedin_create_post"
+    credential: "{{LINKEDIN_CREDENTIAL}}"
+    text: "{{start.input}}"
+    visibility: "PUBLIC"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

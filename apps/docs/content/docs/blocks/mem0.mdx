@@ -1,0 +1,72 @@
+---
+title: Mem0 Block
+description: Agent memory management
+icon: Box
+---
+
+# Mem0 Block
+
+The Mem0 block adds long-term memory to your AI agents using Mem0. Add, search, and retrieve memories so you can persist conversation history, user preferences, and context across workflow executions.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mem0` |
+| **Category** | tools |
+| **Color** | `#181C1E` |
+
+## When to Use
+
+- Store conversation messages so an agent remembers prior turns across executions
+- Persist user preferences and facts tied to a specific user ID
+- Search past memories with a natural-language query to enrich an agent's context
+- Retrieve a specific memory by ID or pull memories within a date range
+- Limit how many memory results return for search and get operations
+
+## Configuration
+
+### Operation
+Dropdown that selects the action: **Add Memories** (`add`), **Search Memories** (`search`), or **Get Memories** (`get`). Defaults to `add`.
+
+### User ID
+Required identifier that scopes memories to a particular user.
+
+### Messages
+Required for the `add` operation. A JSON array of message objects, each with `role` and `content` (e.g. `[{"role": "user", "content": "I love Zelaxy!"}]`).
+
+### Search Query
+Required for the `search` operation. The natural-language query used to find relevant memories.
+
+### Memory ID
+Optional, shown for the `get` operation. Retrieves a specific memory by its ID.
+
+### Start Date / End Date
+Optional date filters (`YYYY-MM-DD`) for the `get` operation.
+
+### API Key
+Required Mem0 API key for all operations. Stored as a password field.
+
+### Result Limit
+Slider (1–50) that caps results, shown for the `search` and `get` operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string), `apiKey` (string), `userId` (string), `version` (string), `messages` (json), `query` (string), `memoryId` (string), `startDate` (string), `endDate` (string), `limit` (number)
+- **Outputs**: `ids` (json), `memories` (json), `searchResults` (json)
+
+## YAML Example
+
+```yaml
+mem0_1:
+  type: mem0
+  name: "Mem0"
+  inputs:
+    operation: "add"
+    userId: "{{start.input}}"
+    messages: '[{"role": "user", "content": "I love Zelaxy!"}]'
+    apiKey: "{{MEM0_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,7 +1,19 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowUp, Bot, Loader2, Network, Plus, Sparkles, Wrench } from 'lucide-react'
+import {
+  ArrowUp,
+  Bot,
+  FileIcon,
+  History,
+  Loader2,
+  Network,
+  Plus,
+  Sparkles,
+  Table,
+  Trash2,
+  Wrench,
+} from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,11 +48,16 @@ interface ChatMessage {
 }
 
 interface ResourceArtifact {
-  kind: 'workflow'
+  id: string
+  kind: 'workflow' | 'table' | 'file'
   title: string
-  yaml: string
-  /** Set once the workflow is persisted and openable in the editor. */
+  /** Workflow YAML (collapsed behind a toggle). */
+  yaml?: string
+  /** Set once a workflow is persisted and openable in the editor. */
   workflowId?: string
+  /** Download/preview URL for a file artifact. */
+  url?: string
+  subtitle?: string
 }
 
 const SUGGESTIONS = [
@@ -62,19 +79,121 @@ export function ZelaxyArena() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
-  const [artifact, setArtifact] = useState<ResourceArtifact | null>(null)
+  const [artifacts, setArtifacts] = useState<ResourceArtifact[]>([])
   const [model, setModel] = useState<string>(DEFAULT_CHAT_MODEL)
   // Dynamic API-key check: when the selected model's provider lacks credentials, prompt for the
   // missing fields (some providers need more than one — e.g. AWS Bedrock).
   const [missingCreds, setMissingCreds] = useState<MissingCred[]>([])
   const [keyInputs, setKeyInputs] = useState<Record<string, string>>({})
   const [savingKey, setSavingKey] = useState(false)
+  // Persisted conversation history.
+  const [chatId, setChatId] = useState<string | null>(null)
+  const [chatList, setChatList] = useState<Array<{ id: string; title: string; updatedAt: string }>>(
+    []
+  )
+  const [showHistory, setShowHistory] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const messagesRef = useRef<ChatMessage[]>([])
+  const chatIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
+  useEffect(() => {
+    chatIdRef.current = chatId
+  }, [chatId])
+  const prevStreamingRef = useRef(false)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages])
+
+  // Load the conversation list on mount.
+  const loadChatList = useCallback(async () => {
+    if (!workspaceId) return
+    try {
+      const res = await fetch(`/api/zelaxy-arena/chats?workspaceId=${workspaceId}`)
+      if (res.ok) setChatList((await res.json()).chats ?? [])
+    } catch {
+      /* ignore */
+    }
+  }, [workspaceId])
+
+  useEffect(() => {
+    loadChatList()
+  }, [loadChatList])
+
+  // Persist the current conversation (create on first save, update afterward).
+  const persistChat = useCallback(async () => {
+    const msgs = messagesRef.current.filter((m) => m.content || (m.tools && m.tools.length))
+    if (msgs.length === 0) return
+    const payload = msgs.map((m) => ({ role: m.role, content: m.content, tools: m.tools }))
+    try {
+      if (chatIdRef.current) {
+        await fetch(`/api/zelaxy-arena/chats/${chatIdRef.current}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: payload }),
+        })
+      } else {
+        const res = await fetch('/api/zelaxy-arena/chats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workspaceId, messages: payload }),
+        })
+        if (res.ok) {
+          const d = await res.json()
+          chatIdRef.current = d.id
+          setChatId(d.id)
+        }
+      }
+      loadChatList()
+    } catch {
+      /* ignore */
+    }
+  }, [workspaceId, loadChatList])
+
+  // Persist once a streamed turn finishes — by now the messages ref holds the final assistant text.
+  useEffect(() => {
+    if (prevStreamingRef.current && !isStreaming) void persistChat()
+    prevStreamingRef.current = isStreaming
+  }, [isStreaming, persistChat])
+
+  // Load a past conversation into the view.
+  const loadChat = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/zelaxy-arena/chats/${id}`)
+      if (!res.ok) return
+      const { chat } = await res.json()
+      const loaded: ChatMessage[] = (chat.messages || []).map((m: any) => ({
+        id: crypto.randomUUID(),
+        role: m.role,
+        content: m.content,
+        tools: m.tools,
+      }))
+      setMessages(loaded)
+      setChatId(id)
+      chatIdRef.current = id
+      setArtifacts([])
+      setShowHistory(false)
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  const deleteChat = useCallback(async (id: string) => {
+    try {
+      await fetch(`/api/zelaxy-arena/chats/${id}`, { method: 'DELETE' })
+    } finally {
+      setChatList((prev) => prev.filter((c) => c.id !== id))
+      if (chatIdRef.current === id) {
+        chatIdRef.current = null
+        setChatId(null)
+        setMessages([])
+      }
+    }
+  }, [])
 
   // When the selected model changes, check (in the background) whether credentials are available.
   useEffect(() => {
@@ -103,10 +222,15 @@ export function ZelaxyArena() {
     if (!requiredOk || entries.length === 0) return
     setSavingKey(true)
     try {
+      // GET returns { data: { NAME: { key, value } } } — flatten to { NAME: value } so we MERGE
+      // with (not overwrite) the user's existing variables.
       const existing = await fetch('/api/environment')
-        .then((r) => (r.ok ? r.json() : { variables: {} }))
-        .catch(() => ({ variables: {} }))
-      const variables = { ...(existing.variables || {}) }
+        .then((r) => (r.ok ? r.json() : { data: {} }))
+        .catch(() => ({ data: {} }))
+      const variables: Record<string, string> = {}
+      for (const [name, entry] of Object.entries(existing.data || {})) {
+        variables[name] = (entry as { value?: string })?.value ?? ''
+      }
       for (const [name, value] of entries) variables[name] = value.trim()
       const res = await fetch('/api/environment', {
         method: 'POST',
@@ -210,32 +334,65 @@ export function ZelaxyArena() {
                     : t
                 ),
               }))
-              // Surface a built workflow into the resource panel.
-              if (
-                (toolName === 'build_workflow' || toolName === 'edit_workflow') &&
-                event.success
-              ) {
+              // Surface created resources (workflows, tables, files) into the resource panel.
+              if (event.success) {
                 try {
                   const data = JSON.parse(event.result || '{}')
-                  if (data.yamlContent) {
-                    setArtifact({
-                      kind: 'workflow',
-                      title: data.description || 'Generated workflow',
-                      yaml: data.yamlContent,
-                    })
+                  if (
+                    (toolName === 'build_workflow' || toolName === 'edit_workflow') &&
+                    data.yamlContent
+                  ) {
+                    // Each build replaces ALL prior workflow cards (drop stale ones so
+                    // "Open in editor" always points at the workflow just built). Tables/files kept.
+                    setArtifacts((prev) => [
+                      {
+                        id: 'workflow:pending',
+                        kind: 'workflow',
+                        title: data.description || 'Generated workflow',
+                        yaml: data.yamlContent,
+                      },
+                      ...prev.filter((a) => a.kind !== 'workflow'),
+                    ])
+                  } else if (toolName === 'create_table' && data.id) {
+                    setArtifacts((prev) => [
+                      {
+                        id: `table:${data.id}`,
+                        kind: 'table',
+                        title: data.name || 'New table',
+                        subtitle: Array.isArray(data.columns)
+                          ? `${data.columns.length} columns`
+                          : undefined,
+                      },
+                      ...prev.filter((a) => a.id !== `table:${data.id}`),
+                    ])
+                  } else if (toolName === 'file_write' && data.id) {
+                    setArtifacts((prev) => [
+                      {
+                        id: `file:${data.id}`,
+                        kind: 'file',
+                        title: data.name || 'New file',
+                        url: data.url,
+                      },
+                      ...prev.filter((a) => a.id !== `file:${data.id}`),
+                    ])
                   }
                 } catch (e) {
-                  logger.warn('Failed to parse build_workflow result', { e })
+                  logger.warn('Failed to parse tool result for resource panel', { e })
                 }
               }
             } else if (event.type === 'workflow_created') {
-              // The agent persisted a real, openable workflow.
-              setArtifact((prev) => ({
-                kind: 'workflow',
-                title: event.name || prev?.title || 'New workflow',
-                yaml: prev?.yaml || '',
-                workflowId: event.workflowId,
-              }))
+              // The agent persisted a real, openable workflow — upgrade the pending workflow card.
+              setArtifacts((prev) => {
+                const pending = prev.find((a) => a.kind === 'workflow' && !a.workflowId)
+                const upgraded: ResourceArtifact = {
+                  id: `workflow:${event.workflowId}`,
+                  kind: 'workflow',
+                  title: event.name || pending?.title || 'New workflow',
+                  yaml: pending?.yaml,
+                  workflowId: event.workflowId,
+                }
+                return [upgraded, ...prev.filter((a) => a !== pending)]
+              })
             } else if (event.type === 'error') {
               updateAssistant((m) => ({ ...m, content: `${m.content}\n\n⚠️ ${event.error}` }))
             }
@@ -249,6 +406,8 @@ export function ZelaxyArena() {
       } finally {
         setIsStreaming(false)
         abortRef.current = null
+        // Persistence happens in an effect once streaming ends, so the final assistant text
+        // (set just before this) is included rather than a stale snapshot.
       }
     },
     [messages, isStreaming, workspaceId, model]
@@ -263,8 +422,10 @@ export function ZelaxyArena() {
     abortRef.current?.abort()
     setIsStreaming(false)
     setMessages([])
-    setArtifact(null)
+    setArtifacts([])
     setInput('')
+    setChatId(null)
+    chatIdRef.current = null
   }
 
   return (
@@ -283,18 +444,67 @@ export function ZelaxyArena() {
           </div>
           <div className='ml-auto flex items-center gap-2'>
             <ModelPicker value={model} onChange={setModel} disabled={isStreaming} />
-            {messages.length > 0 && (
+            {/* History */}
+            <div className='relative'>
               <Button
                 variant='outline'
                 size='sm'
                 className='h-8'
-                onClick={newChat}
-                disabled={isStreaming}
+                onClick={() => {
+                  setShowHistory((s) => !s)
+                  if (!showHistory) loadChatList()
+                }}
+                title='Conversation history'
               >
-                <Plus className='mr-1.5 h-3.5 w-3.5' />
-                New chat
+                <History className='mr-1.5 h-3.5 w-3.5' />
+                History
               </Button>
-            )}
+              {showHistory && (
+                <div className='absolute right-0 z-20 mt-1 max-h-80 w-72 overflow-auto rounded-lg border border-border/60 bg-popover p-1 shadow-lg'>
+                  {chatList.length === 0 ? (
+                    <p className='px-3 py-4 text-center text-[12px] text-muted-foreground'>
+                      No past conversations.
+                    </p>
+                  ) : (
+                    chatList.map((c) => (
+                      <div
+                        key={c.id}
+                        className={cn(
+                          'group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/60',
+                          c.id === chatId && 'bg-muted/40'
+                        )}
+                      >
+                        <button
+                          type='button'
+                          className='min-w-0 flex-1 truncate text-left text-[13px]'
+                          onClick={() => loadChat(c.id)}
+                        >
+                          {c.title}
+                        </button>
+                        <button
+                          type='button'
+                          className='opacity-0 group-hover:opacity-100'
+                          onClick={() => deleteChat(c.id)}
+                          title='Delete'
+                        >
+                          <Trash2 className='h-3.5 w-3.5 text-muted-foreground hover:text-destructive' />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            <Button
+              variant='outline'
+              size='sm'
+              className='h-8'
+              onClick={newChat}
+              disabled={isStreaming}
+            >
+              <Plus className='mr-1.5 h-3.5 w-3.5' />
+              New chat
+            </Button>
           </div>
         </div>
 
@@ -471,40 +681,72 @@ export function ZelaxyArena() {
           <span className='font-medium text-[13px]'>Resource panel</span>
         </div>
         <div className='min-h-0 flex-1 overflow-auto p-4'>
-          {artifact ? (
+          {artifacts.length > 0 ? (
             <div className='space-y-3'>
-              <div className='flex items-center justify-between gap-2'>
-                <h2 className='truncate font-medium text-sm'>{artifact.title}</h2>
-                {artifact.workflowId ? (
-                  <Button
-                    size='sm'
-                    onClick={() =>
-                      router.push(`/arena/${workspaceId}/zelaxy/${artifact.workflowId}`)
-                    }
+              {artifacts.map((a) => {
+                const Icon = a.kind === 'workflow' ? Network : a.kind === 'table' ? Table : FileIcon
+                return (
+                  <div
+                    key={a.id}
+                    className='space-y-2 rounded-xl border border-border/60 bg-background/40 p-3'
                   >
-                    Open in editor
-                  </Button>
-                ) : (
-                  <Button
-                    size='sm'
-                    variant='outline'
-                    onClick={() => router.push(`/arena/${workspaceId}/hub?tab=tables`)}
-                  >
-                    Open Hub
-                  </Button>
-                )}
-              </div>
-              {artifact.workflowId && (
-                <p className='rounded-lg border border-emerald-200/60 bg-emerald-50/50 px-3 py-2 text-[12px] text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-950/30 dark:text-emerald-300'>
-                  ✓ Created and saved to your workspace — click “Open in editor” to view it on the
-                  canvas.
-                </p>
-              )}
-              {artifact.yaml && (
-                <pre className='overflow-auto rounded-xl border border-border/50 bg-background/60 p-3 text-[12px] text-muted-foreground'>
-                  {artifact.yaml}
-                </pre>
-              )}
+                    <div className='flex items-center justify-between gap-2'>
+                      <div className='flex min-w-0 items-center gap-2'>
+                        <Icon className='h-4 w-4 flex-shrink-0 text-muted-foreground' />
+                        <div className='min-w-0'>
+                          <h2 className='truncate font-medium text-sm'>{a.title}</h2>
+                          {a.subtitle && (
+                            <p className='truncate text-[11px] text-muted-foreground'>
+                              {a.subtitle}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {a.kind === 'workflow' && a.workflowId ? (
+                        <Button
+                          size='sm'
+                          className='h-7 flex-shrink-0'
+                          onClick={() =>
+                            router.push(`/arena/${workspaceId}/zelaxy/${a.workflowId}`)
+                          }
+                        >
+                          Open in editor
+                        </Button>
+                      ) : a.kind === 'table' ? (
+                        <Button
+                          size='sm'
+                          variant='outline'
+                          className='h-7 flex-shrink-0'
+                          onClick={() => router.push(`/arena/${workspaceId}/hub?tab=tables`)}
+                        >
+                          Open
+                        </Button>
+                      ) : a.kind === 'file' && a.url ? (
+                        <a href={a.url} target='_blank' rel='noopener noreferrer'>
+                          <Button size='sm' variant='outline' className='h-7 flex-shrink-0'>
+                            Download
+                          </Button>
+                        </a>
+                      ) : null}
+                    </div>
+                    {a.kind === 'workflow' && !a.workflowId && (
+                      <p className='text-[11px] text-amber-600 dark:text-amber-400'>
+                        Draft — saving to your workspace…
+                      </p>
+                    )}
+                    {a.yaml && (
+                      <details className='group'>
+                        <summary className='cursor-pointer text-[11px] text-muted-foreground hover:text-foreground'>
+                          View YAML
+                        </summary>
+                        <pre className='mt-2 max-h-64 overflow-auto rounded-lg border border-border/50 bg-background/60 p-2.5 text-[11px] text-muted-foreground'>
+                          {a.yaml}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           ) : (
             <div className='flex h-full flex-col items-center justify-center gap-2 text-center'>
