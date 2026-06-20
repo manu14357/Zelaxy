@@ -215,14 +215,16 @@ function truncateMessages(messages: any[], budget: number): any[] {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getBedrockClient(): BedrockRuntimeClient {
-  const region = env.BEDROCK_REGION || 'us-east-1'
-  const accessKeyId = env.BEDROCK_ACCESS_KEY_ID
-  const secretAccessKey = env.BEDROCK_SECRET_ACCESS_KEY
+function getBedrockClient(envVars?: Record<string, string>): BedrockRuntimeClient {
+  // Prefer per-run environment variables (the user's stored credentials) over server env, so a
+  // user can run Bedrock with their own AWS keys without server configuration.
+  const region = envVars?.BEDROCK_REGION || env.BEDROCK_REGION || 'us-east-1'
+  const accessKeyId = envVars?.BEDROCK_ACCESS_KEY_ID || env.BEDROCK_ACCESS_KEY_ID
+  const secretAccessKey = envVars?.BEDROCK_SECRET_ACCESS_KEY || env.BEDROCK_SECRET_ACCESS_KEY
 
   if (!accessKeyId || !secretAccessKey) {
     throw new Error(
-      'AWS Bedrock credentials are required. Set BEDROCK_ACCESS_KEY_ID and BEDROCK_SECRET_ACCESS_KEY in your environment.'
+      'AWS Bedrock credentials are required. Set BEDROCK_ACCESS_KEY_ID and BEDROCK_SECRET_ACCESS_KEY (in your Environment Variables or the server environment).'
     )
   }
 
@@ -405,7 +407,7 @@ export const bedrockProvider: ProviderConfig = {
       stream: !!request.stream,
     })
 
-    const client = getBedrockClient()
+    const client = getBedrockClient(request.environmentVariables)
 
     // ── Build message list ─────────────────────────────────────────────
     const allMessages: any[] = []

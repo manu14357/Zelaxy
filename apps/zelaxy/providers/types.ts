@@ -12,6 +12,7 @@ export type ProviderId =
   | 'ollama'
   | 'nvidia'
   | 'bedrock'
+  | 'mimo'
 
 /**
  * Model pricing information per million tokens

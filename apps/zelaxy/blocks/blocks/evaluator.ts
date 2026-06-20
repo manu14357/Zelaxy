@@ -2,6 +2,7 @@ import { ChartBarIcon } from '@/components/icons'
 import { isHosted } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
 import type { BlockConfig, ParamType } from '@/blocks/types'
+import { DEFAULT_CHAT_MODEL } from '@/providers/models'
 import type { ProviderId } from '@/providers/types'
 import { getAllModelProviders, getBaseModelProviders, getHostedModels } from '@/providers/utils'
 import { useOllamaStore } from '@/stores/ollama/store'
@@ -259,7 +260,7 @@ export const EvaluatorBlock: BlockConfig<EvaluatorResponse> = {
     ],
     config: {
       tool: (params: Record<string, any>) => {
-        const model = params.model || 'gpt-4o'
+        const model = params.model || DEFAULT_CHAT_MODEL
         if (!model) {
           throw new Error('No model selected')
         }

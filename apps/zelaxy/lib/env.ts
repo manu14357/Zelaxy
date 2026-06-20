@@ -107,6 +107,9 @@ export const env = createEnv({
     // MCP
     ALLOWED_MCP_DOMAINS:                  z.string().optional(),                  // Comma-separated allowlist of MCP server domains (unset = all allowed)
 
+    // Additional LLM providers
+    XIAOMI_MIMO_API_KEY:                  z.string().optional(),                  // Xiaomi MiMo (OpenAI-compatible) API key
+
     // Monitoring & Telemetry
     SENTRY_DSN:                           z.string().url().optional(),             // Sentry DSN for server-side error tracking
     SENTRY_ORG:                           z.string().optional(),                  // Sentry organization slug

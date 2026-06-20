@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { createLogger } from '@/lib/logs/console/logger'
 import { executeProviderRequest } from '@/providers'
+import { DEFAULT_CHAT_MODEL } from '@/providers/models'
 import type { ProviderResponse } from '@/providers/types'
 import { getApiKey, getProviderFromModel } from '@/providers/utils'
 
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
   }
 
   const conversationId = body.conversationId || crypto.randomUUID()
-  const model = body.model || 'gpt-4o'
+  const model = body.model || DEFAULT_CHAT_MODEL
   const messages = normalizeMessages(body.messages)
 
   if (messages.length === 0) {

@@ -4,12 +4,22 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowUp, Bot, Loader2, Network, Plus, Sparkles, Wrench } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
 import CopilotMarkdownRenderer from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/panel/components/copilot/components/copilot-message/components/markdown-renderer'
+import { ModelPicker } from '@/app/arena/[workspaceId]/zelaxyarena/model-picker'
+import { DEFAULT_CHAT_MODEL } from '@/providers/models'
 
 const logger = createLogger('ZelaxyArena')
+
+interface MissingCred {
+  name: string
+  label: string
+  optional?: boolean
+  placeholder?: string
+}
 
 interface ToolAction {
   id: string
@@ -53,12 +63,64 @@ export function ZelaxyArena() {
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [artifact, setArtifact] = useState<ResourceArtifact | null>(null)
+  const [model, setModel] = useState<string>(DEFAULT_CHAT_MODEL)
+  // Dynamic API-key check: when the selected model's provider lacks credentials, prompt for the
+  // missing fields (some providers need more than one — e.g. AWS Bedrock).
+  const [missingCreds, setMissingCreds] = useState<MissingCred[]>([])
+  const [keyInputs, setKeyInputs] = useState<Record<string, string>>({})
+  const [savingKey, setSavingKey] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages])
+
+  // When the selected model changes, check (in the background) whether credentials are available.
+  useEffect(() => {
+    let cancelled = false
+    setMissingCreds([])
+    setKeyInputs({})
+    fetch(`/api/providers/key-status?model=${encodeURIComponent(model)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return
+        setMissingCreds(data.available ? [] : data.missing || [])
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [model])
+
+  // Save the entered credential fields into the user's Environment Variables (merged).
+  const saveKey = useCallback(async () => {
+    const entries = Object.entries(keyInputs).filter(([, v]) => v.trim())
+    // All required (non-optional) fields must be filled.
+    const requiredOk = missingCreds
+      .filter((c) => !c.optional)
+      .every((c) => (keyInputs[c.name] || '').trim())
+    if (!requiredOk || entries.length === 0) return
+    setSavingKey(true)
+    try {
+      const existing = await fetch('/api/environment')
+        .then((r) => (r.ok ? r.json() : { variables: {} }))
+        .catch(() => ({ variables: {} }))
+      const variables = { ...(existing.variables || {}) }
+      for (const [name, value] of entries) variables[name] = value.trim()
+      const res = await fetch('/api/environment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variables }),
+      })
+      if (res.ok) {
+        setMissingCreds([])
+        setKeyInputs({})
+      }
+    } finally {
+      setSavingKey(false)
+    }
+  }, [keyInputs, missingCreds])
 
   const send = useCallback(
     async (text: string) => {
@@ -92,6 +154,7 @@ export function ZelaxyArena() {
           signal: controller.signal,
           body: JSON.stringify({
             workspaceId,
+            model,
             messages: history.map((m) => ({ role: m.role, content: m.content })),
           }),
         })
@@ -188,7 +251,7 @@ export function ZelaxyArena() {
         abortRef.current = null
       }
     },
-    [messages, isStreaming, workspaceId]
+    [messages, isStreaming, workspaceId, model]
   )
 
   const stop = () => {
@@ -218,19 +281,65 @@ export function ZelaxyArena() {
               Describe what you want — it knows your workspace and takes action.
             </p>
           </div>
-          {messages.length > 0 && (
-            <Button
-              variant='outline'
-              size='sm'
-              className='ml-auto h-8'
-              onClick={newChat}
-              disabled={isStreaming}
-            >
-              <Plus className='mr-1.5 h-3.5 w-3.5' />
-              New chat
-            </Button>
-          )}
+          <div className='ml-auto flex items-center gap-2'>
+            <ModelPicker value={model} onChange={setModel} disabled={isStreaming} />
+            {messages.length > 0 && (
+              <Button
+                variant='outline'
+                size='sm'
+                className='h-8'
+                onClick={newChat}
+                disabled={isStreaming}
+              >
+                <Plus className='mr-1.5 h-3.5 w-3.5' />
+                New chat
+              </Button>
+            )}
+          </div>
         </div>
+
+        {missingCreds.length > 0 && (
+          <div className='flex flex-shrink-0 flex-col gap-2 border-amber-500/30 border-b bg-amber-500/10 px-5 py-2.5'>
+            <span className='text-[12px] text-foreground'>
+              {missingCreds.length > 1
+                ? 'This model’s provider needs credentials. Add them to run it:'
+                : 'No API key for this model. Add it to run:'}
+            </span>
+            <div className='flex flex-wrap items-end gap-2'>
+              {missingCreds.map((c) => (
+                <div key={c.name} className='flex flex-col gap-0.5'>
+                  <label className='text-[10px] text-muted-foreground' htmlFor={`cred-${c.name}`}>
+                    {c.label}
+                    {c.optional ? ' (optional)' : ''}
+                  </label>
+                  <Input
+                    id={`cred-${c.name}`}
+                    type={c.name.includes('REGION') ? 'text' : 'password'}
+                    value={keyInputs[c.name] || ''}
+                    onChange={(e) =>
+                      setKeyInputs((prev) => ({ ...prev, [c.name]: e.target.value }))
+                    }
+                    placeholder={c.placeholder || c.name}
+                    className='h-7 w-[220px] text-xs'
+                  />
+                </div>
+              ))}
+              <Button
+                size='sm'
+                className='h-7'
+                onClick={saveKey}
+                disabled={
+                  savingKey ||
+                  !missingCreds
+                    .filter((c) => !c.optional)
+                    .every((c) => (keyInputs[c.name] || '').trim())
+                }
+              >
+                {savingKey ? 'Saving…' : 'Save'}
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div ref={scrollRef} className='min-h-0 flex-1 overflow-auto'>
           <div className='mx-auto w-full max-w-3xl px-4 py-6'>
