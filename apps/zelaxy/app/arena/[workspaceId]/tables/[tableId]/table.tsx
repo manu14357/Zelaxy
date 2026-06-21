@@ -49,11 +49,19 @@ type RowModalState =
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function Table() {
+export function Table({
+  tableId: tableIdProp,
+  workspaceId: workspaceIdProp,
+}: {
+  tableId?: string
+  workspaceId?: string
+} = {}) {
   const params = useParams()
   const router = useRouter()
-  const workspaceId = params.workspaceId as string
-  const tableId = params.tableId as string
+  // Allow embedding outside the /tables/[tableId] route (e.g. the ZelaxyArena live panel) by passing
+  // ids explicitly; otherwise fall back to the route params.
+  const workspaceId = workspaceIdProp ?? (params.workspaceId as string)
+  const tableId = tableIdProp ?? (params.tableId as string)
 
   const userPermissions = useUserPermissionsContext()
 

@@ -19,6 +19,8 @@ const CreateSchema = z.object({
   workspaceId: z.string().min(1),
   title: z.string().optional(),
   messages: z.array(MessageSchema).optional(),
+  artifacts: z.array(z.any()).optional(),
+  consoleEntries: z.array(z.any()).optional(),
 })
 
 async function authorize(workspaceId: string) {
@@ -79,6 +81,8 @@ export async function POST(req: NextRequest) {
     userId: auth.userId!,
     title,
     messages: body.messages ?? [],
+    artifacts: body.artifacts ?? [],
+    consoleEntries: body.consoleEntries ?? [],
     createdAt: now,
     updatedAt: now,
   })

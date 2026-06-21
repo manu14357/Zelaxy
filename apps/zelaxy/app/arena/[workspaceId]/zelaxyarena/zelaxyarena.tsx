@@ -24,6 +24,27 @@ import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 
 const logger = createLogger('ZelaxyArena')
 
+// Console payload cap — generous so full tool output is visible (the box is collapsible), while still
+// guarding against a pathological multi-MB string freezing the UI.
+const CONSOLE_MAX_CHARS = 100_000
+
+/** Pretty-print a value (parsing JSON strings) so console input AND output render the same way. */
+function prettyJson(val: unknown): string {
+  if (val == null) return ''
+  if (typeof val === 'string') {
+    try {
+      return JSON.stringify(JSON.parse(val), null, 2)
+    } catch {
+      return val
+    }
+  }
+  try {
+    return JSON.stringify(val, null, 2)
+  } catch {
+    return String(val)
+  }
+}
+
 interface MissingCred {
   name: string
   label: string
@@ -87,10 +108,18 @@ export function ZelaxyArena() {
   const abortRef = useRef<AbortController | null>(null)
   const messagesRef = useRef<ChatMessage[]>([])
   const chatIdRef = useRef<string | null>(null)
+  const artifactsRef = useRef<ResourceArtifact[]>([])
+  const consoleRef = useRef<ConsoleEntry[]>([])
 
   useEffect(() => {
     messagesRef.current = messages
   }, [messages])
+  useEffect(() => {
+    artifactsRef.current = artifacts
+  }, [artifacts])
+  useEffect(() => {
+    consoleRef.current = consoleEntries
+  }, [consoleEntries])
   useEffect(() => {
     chatIdRef.current = chatId
   }, [chatId])
@@ -125,18 +154,29 @@ export function ZelaxyArena() {
     const msgs = messagesRef.current.filter((m) => m.content || m.tools?.length)
     if (msgs.length === 0) return
     const payload = msgs.map((m) => ({ role: m.role, content: m.content, tools: m.tools }))
+    const artifactsPayload = artifactsRef.current
+    const consolePayload = consoleRef.current
     try {
       if (chatIdRef.current) {
         await fetch(`/api/zelaxy-arena/chats/${chatIdRef.current}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: payload }),
+          body: JSON.stringify({
+            messages: payload,
+            artifacts: artifactsPayload,
+            consoleEntries: consolePayload,
+          }),
         })
       } else {
         const res = await fetch('/api/zelaxy-arena/chats', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ workspaceId, messages: payload }),
+          body: JSON.stringify({
+            workspaceId,
+            messages: payload,
+            artifacts: artifactsPayload,
+            consoleEntries: consolePayload,
+          }),
         })
         if (res.ok) {
           const d = await res.json()
@@ -171,8 +211,9 @@ export function ZelaxyArena() {
       setMessages(loaded)
       setChatId(id)
       chatIdRef.current = id
-      setArtifacts([])
-      setConsoleEntries([])
+      // Restore the live-session panel (workflow/table/file cards) + console/logs saved with the chat.
+      setArtifacts(Array.isArray(chat.artifacts) ? chat.artifacts : [])
+      setConsoleEntries(Array.isArray(chat.consoleEntries) ? chat.consoleEntries : [])
       setShowHistory(false)
     } catch {
       /* ignore */
@@ -336,7 +377,7 @@ export function ZelaxyArena() {
                   status: 'running',
                   startedAt: Date.now(),
                   args: event.data?.arguments
-                    ? JSON.stringify(event.data.arguments, null, 2).slice(0, 2000)
+                    ? prettyJson(event.data.arguments).slice(0, CONSOLE_MAX_CHARS)
                     : undefined,
                 },
               ])
@@ -364,7 +405,7 @@ export function ZelaxyArena() {
                         error: event.error || undefined,
                         result:
                           event.success && event.result
-                            ? String(event.result).slice(0, 2000)
+                            ? prettyJson(event.result).slice(0, CONSOLE_MAX_CHARS)
                             : e.result,
                       }
                     : e
@@ -431,8 +472,23 @@ export function ZelaxyArena() {
                 }
                 return [upgraded, ...prev.filter((a) => a !== pending)]
               })
-              // Refresh the global workflow registry so the new workflow shows in the editor/sidebar
-              // immediately (without a page reload).
+              // Make the new workflow show in the sidebar/list immediately. We optimistically add it
+              // to the registry (a full re-fetch can be skipped by the registry's in-flight guard,
+              // which is why it previously only appeared after a page reload), then reconcile.
+              useWorkflowRegistry.setState((s) => ({
+                workflows: {
+                  ...s.workflows,
+                  [event.workflowId]: {
+                    id: event.workflowId,
+                    name: event.name || 'New workflow',
+                    lastModified: new Date(),
+                    description: '',
+                    color: '#3B82F6',
+                    workspaceId,
+                    folderId: null,
+                  },
+                },
+              }))
               void useWorkflowRegistry.getState().loadWorkflows(workspaceId)
             } else if (event.type === 'error') {
               updateAssistant((m) => ({ ...m, content: `${m.content}\n\n⚠️ ${event.error}` }))

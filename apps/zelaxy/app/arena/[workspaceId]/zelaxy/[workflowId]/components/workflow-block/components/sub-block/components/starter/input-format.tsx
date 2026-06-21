@@ -76,9 +76,11 @@ export function FieldFormat({
   const [dragHighlight, setDragHighlight] = useState<Record<string, boolean>>({})
   const valueInputRefs = useRef<Record<string, HTMLInputElement>>({})
 
-  // Use preview value when in preview mode, otherwise use store value
+  // Use preview value when in preview mode, otherwise use store value.
+  // Guard against non-array values (e.g. an agent-generated workflow that emitted inputFormat as a
+  // string/object) — `value || []` only catches falsy, so a stray non-array would crash fields.map().
   const value = isPreview ? previewValue : storeValue
-  const fields: Field[] = value || []
+  const fields: Field[] = Array.isArray(value) ? value : []
 
   // Field operations
   const addField = () => {
