@@ -18,6 +18,8 @@ const UpdateSchema = z.object({
       })
     )
     .optional(),
+  artifacts: z.array(z.any()).optional(),
+  consoleEntries: z.array(z.any()).optional(),
 })
 
 async function getUserId() {
@@ -57,6 +59,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ chat
 
   const update: Record<string, unknown> = { updatedAt: new Date() }
   if (body.messages !== undefined) update.messages = body.messages
+  if (body.artifacts !== undefined) update.artifacts = body.artifacts
+  if (body.consoleEntries !== undefined) update.consoleEntries = body.consoleEntries
   if (body.title !== undefined) update.title = body.title.slice(0, 80)
 
   const result = await db

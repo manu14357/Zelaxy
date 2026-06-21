@@ -136,6 +136,8 @@ Every block lives UNDER \`blocks:\`, keyed by a short id, with \`type\` (a real 
 
 MODELS: for any agent/router/evaluator block's \`model\`, use ONLY a real Zelaxy model id. Valid ids include: claude-sonnet-4-6 (the default), claude-opus-4-8, claude-haiku-4-5, gpt-5.1, gpt-4o, gemini-3-pro-preview, mimo-v2.5-pro. Do NOT use dated ids (e.g. "claude-sonnet-4-20250514"), provider-prefixed ids (e.g. "anthropic/..."), or models from other platforms — they don't exist here. When unsure, use claude-sonnet-4-6.
 
+VARIABLES & SECRETS: reference an environment variable / API key / secret with double braces — \`{{VARIABLE_NAME}}\` — e.g. an apiKey input: \`apiKey: "{{OPENAI_API_KEY}}"\`, or a token: \`botToken: "{{TELEGRAM_BOT_TOKEN}}"\`. This is the ONLY valid syntax. NEVER inline a real secret value, and NEVER use any other form (\`env.X\`, \`$X\`, \`process.env.X\`, \`\${X}\`, \`{X}\`, or a bare name). Block-output references use the same \`{{block.field}}\` form shown above. Call get_environment_variables first to read the exact variable names that exist, and reference those names verbatim.
+
 Refer to workspace objects by name. Workflows currently in this workspace:
 ${workflowList}
 

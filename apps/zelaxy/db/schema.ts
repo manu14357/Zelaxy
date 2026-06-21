@@ -1984,6 +1984,10 @@ export const arenaChat = pgTable(
       .references(() => user.id, { onDelete: 'cascade' }),
     title: text('title').notNull().default('New chat'),
     messages: json('messages').notNull().default([]),
+    // Live-session resources (workflow/table/file cards) so History restores the right-side panel.
+    artifacts: json('artifacts').notNull().default([]),
+    // Console/Logs tool-event entries, so History restores the bottom panel too.
+    consoleEntries: json('console_entries').notNull().default([]),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
