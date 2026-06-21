@@ -270,7 +270,8 @@ export interface CopilotActions {
   handleStreamingResponse: (
     stream: ReadableStream,
     messageId: string,
-    isContinuation?: boolean
+    isContinuation?: boolean,
+    serverExecutesTools?: boolean
   ) => Promise<void>
   handleNewChatCreation: (newChatId: string) => Promise<void>
   updateDiffStore: (yamlContent: string, toolName?: string) => Promise<void>

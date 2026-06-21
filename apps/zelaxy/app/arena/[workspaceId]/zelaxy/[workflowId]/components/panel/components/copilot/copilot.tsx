@@ -16,10 +16,12 @@ import type {
   MessageFileAttachment,
   UserInputRef,
 } from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/panel/components/copilot/components/user-input/user-input'
+import { ModelKeyPrompt } from '@/app/arena/[workspaceId]/zelaxyarena/model-key-prompt'
 import { COPILOT_TOOL_IDS } from '@/stores/copilot/constants'
 import { usePreviewStore } from '@/stores/copilot/preview-store'
 import { useCopilotStore } from '@/stores/copilot/store'
 import type { CopilotChatContext } from '@/stores/copilot/types'
+import { useLLMSelectionStore } from '@/stores/llm-selection/store'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 
 const logger = createLogger('Copilot')
@@ -45,6 +47,7 @@ export const Copilot = forwardRef<CopilotRef, CopilotProps>(({ panelWidth }, ref
   const [showScrollButton, setShowScrollButton] = useState(false)
 
   const { activeWorkflowId } = useWorkflowRegistry()
+  const selectedModel = useLLMSelectionStore((s) => s.selectedModel)
 
   // Use preview store to track seen previews
   const { isToolCallSeen, markToolCallAsSeen } = usePreviewStore()
@@ -353,6 +356,9 @@ export const Copilot = forwardRef<CopilotRef, CopilotProps>(({ panelWidth }, ref
                 )}
               </div>
             )}
+
+            {/* Missing-API-key prompt for the selected model — enter once, saved to env vars. */}
+            {!showCheckpoints && <ModelKeyPrompt model={selectedModel} />}
 
             {/* Input area with integrated mode selector */}
             {!showCheckpoints && (

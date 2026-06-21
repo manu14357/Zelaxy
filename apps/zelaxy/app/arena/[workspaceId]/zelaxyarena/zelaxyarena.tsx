@@ -528,18 +528,18 @@ export function ZelaxyArena() {
   return (
     <div className='flex h-screen min-w-0 bg-background'>
       {/* Chat pane */}
-      <div className='flex min-w-0 flex-1 flex-col border-border/40 border-r'>
-        <div className='flex flex-shrink-0 items-center gap-3 border-border/40 border-b bg-card/30 px-5 py-3.5'>
-          <div className='flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10'>
+      <div className='arena-chat-pane flex min-w-0 flex-1 flex-col border-border/40 border-r'>
+        <div className='flex flex-shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-border/40 border-b bg-card/30 px-3 py-3 sm:px-5 sm:py-3.5'>
+          <div className='flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10'>
             <Sparkles className='h-4 w-4 text-primary' />
           </div>
-          <div>
+          <div className='min-w-0'>
             <h1 className='font-semibold text-[15px] leading-none'>ZelaxyArena</h1>
-            <p className='mt-1 text-[12px] text-muted-foreground'>
+            <p className='arena-header-desc mt-1 text-[12px] text-muted-foreground'>
               Describe what you want — it knows your workspace and takes action.
             </p>
           </div>
-          <div className='ml-auto flex items-center gap-2'>
+          <div className='ml-auto flex flex-wrap items-center gap-2'>
             {/* Ask / Agent mode toggle */}
             <div className='flex items-center rounded-lg border border-border/60 bg-card/40 p-0.5'>
               {(['agent', 'ask'] as const).map((mo) => (

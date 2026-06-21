@@ -207,6 +207,14 @@ export function ArenaResourcePanel({
     hDraggingRef.current = true
     document.body.style.userSelect = 'none'
   }, [])
+  // Keep the panel from overflowing on smaller windows — clamp its width on mount + on resize.
+  useEffect(() => {
+    const clamp = () =>
+      setPanelWidth((w) => Math.min(w, Math.max(MIN_PANEL_WIDTH, window.innerWidth - 360)))
+    clamp()
+    window.addEventListener('resize', clamp)
+    return () => window.removeEventListener('resize', clamp)
+  }, [])
 
   // ── Deploy & run a built workflow → real execution result streamed into Logs ──
   const [runEntries, setRunEntries] = useState<ConsoleEntry[]>([])
@@ -505,7 +513,8 @@ function ConsolePane({ entries, isStreaming }: { entries: ConsoleEntry[]; isStre
 
 /** A single console block — mirrors the editor's ConsoleEntry layout. */
 function ArenaConsoleEntry({ entry }: { entry: ConsoleEntry }) {
-  const [expanded, setExpanded] = useState(true)
+  // Collapsed by default — the JSON shows as `{...}` and only expands when the user clicks.
+  const [expanded, setExpanded] = useState(false)
   const [showInput, setShowInput] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -656,47 +665,67 @@ function LogsPane({ entries, isStreaming }: { entries: ConsoleEntry[]; isStreami
 
   return (
     <div ref={scrollRef} className='h-full overflow-auto p-2 font-mono text-[11px] leading-relaxed'>
-      {entries.map((e) => {
-        const dur = formatDuration(e.startedAt, e.endedAt)
-        // Raw log: show the FULL input AND output/error, untruncated.
-        const sections: Array<{ label: string; text: string; error?: boolean }> = []
-        if (e.args) sections.push({ label: 'input', text: e.args })
-        if (e.error) sections.push({ label: 'error', text: e.error, error: true })
-        else if (e.result) sections.push({ label: 'output', text: e.result })
-        return (
-          <div key={e.id} className='border-border/30 border-b py-1.5'>
-            <div className='flex flex-wrap items-center gap-2'>
-              <span className='flex-shrink-0 text-[10px] text-muted-foreground/60 tabular-nums'>
-                {formatClock(e.startedAt)}
-              </span>
-              <StatusIcon status={e.status} />
-              <span className='font-medium text-foreground'>{prettyToolName(e.name)}</span>
-              {dur && (
-                <span className='rounded bg-muted/60 px-1 text-[10px] text-muted-foreground/80'>
-                  {dur}
-                </span>
-              )}
-            </div>
-            {sections.map((s) => (
-              <pre
-                key={`${e.id}-${s.label}`}
-                className={cn(
-                  'mt-1 max-w-full overflow-x-auto whitespace-pre-wrap break-words pl-1',
-                  s.error ? 'text-destructive' : 'text-muted-foreground'
-                )}
-              >
-                <span className='text-muted-foreground/50'>{s.label}: </span>
-                {s.text}
-              </pre>
-            ))}
-          </div>
-        )
-      })}
+      {entries.map((e) => (
+        <LogEntry key={e.id} entry={e} />
+      ))}
       {isStreaming && (
         <div className='flex items-center gap-2 px-1.5 py-1 text-muted-foreground'>
           <Loader2 className='h-3 w-3 animate-spin' /> working…
         </div>
       )}
+    </div>
+  )
+}
+
+/** One log line — header always visible; the FULL input/output is collapsed until the user opens it. */
+function LogEntry({ entry: e }: { entry: ConsoleEntry }) {
+  const [open, setOpen] = useState(false)
+  const dur = formatDuration(e.startedAt, e.endedAt)
+  const sections: Array<{ label: string; text: string; error?: boolean }> = []
+  if (e.args) sections.push({ label: 'input', text: e.args })
+  if (e.error) sections.push({ label: 'error', text: e.error, error: true })
+  else if (e.result) sections.push({ label: 'output', text: e.result })
+  const hasBody = sections.length > 0
+
+  return (
+    <div className='border-border/30 border-b py-1.5'>
+      <button
+        type='button'
+        onClick={() => hasBody && setOpen((v) => !v)}
+        className={cn(
+          'flex w-full flex-wrap items-center gap-2 text-left',
+          hasBody ? 'cursor-pointer' : 'cursor-default'
+        )}
+      >
+        <span className='flex-shrink-0 text-[10px] text-muted-foreground/60 tabular-nums'>
+          {formatClock(e.startedAt)}
+        </span>
+        <StatusIcon status={e.status} />
+        <span className='font-medium text-foreground'>{prettyToolName(e.name)}</span>
+        {dur && (
+          <span className='rounded bg-muted/60 px-1 text-[10px] text-muted-foreground/80'>
+            {dur}
+          </span>
+        )}
+        {hasBody && (
+          <span className='ml-auto flex-shrink-0 text-muted-foreground/60'>
+            {open ? <ChevronUp className='h-3 w-3' /> : <ChevronDown className='h-3 w-3' />}
+          </span>
+        )}
+      </button>
+      {open &&
+        sections.map((s) => (
+          <pre
+            key={`${e.id}-${s.label}`}
+            className={cn(
+              'mt-1 max-w-full overflow-x-auto whitespace-pre-wrap break-words pl-1',
+              s.error ? 'text-destructive' : 'text-muted-foreground'
+            )}
+          >
+            <span className='text-muted-foreground/50'>{s.label}: </span>
+            {s.text}
+          </pre>
+        ))}
     </div>
   )
 }

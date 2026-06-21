@@ -10,9 +10,10 @@ import { getDecryptedEnvironmentVariables } from '@/lib/environment/utils'
 import { createLogger } from '@/lib/logs/console/logger'
 import { getUserEntityPermissions } from '@/lib/permissions/utils'
 import { getProviderApiKeyEnvVar } from '@/lib/providers/api-keys'
+import { listTables } from '@/lib/table'
 import { saveWorkflowToNormalizedTables } from '@/lib/workflows/db-helpers'
 import { db } from '@/db'
-import { workflow } from '@/db/schema'
+import { knowledgeBase, workflow } from '@/db/schema'
 import { executeProviderRequest } from '@/providers'
 import { isKnownModel } from '@/providers/models'
 import { getApiKey, getProviderFromModel } from '@/providers/utils'
@@ -44,6 +45,10 @@ const BodySchema = z.object({
 })
 
 const MAX_TOOL_ITERATIONS = 10
+// Tool results fed back to the model. The old 4000 cap cut off block metadata mid-result, so the
+// model kept re-fetching per block (and searching docs) to fill the gaps — slow + many tool calls.
+// A generous cap lets one batched get_blocks_metadata call carry full metadata for all needed blocks.
+const MAX_TOOL_RESULT_CHARS = 60000
 
 const sse = (event: Record<string, unknown>): Uint8Array =>
   new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`)
@@ -52,20 +57,45 @@ const sse = (event: Record<string, unknown>): Uint8Array =>
  * Build the ZelaxyArena system prompt with a lightweight workspace snapshot so the
  * agent can reference workflows by name (the "zelaxyarena knows your workspace" behavior).
  */
-async function buildSystemPrompt(workspaceId: string, nativeThinking = false): Promise<string> {
+async function buildSystemPrompt(
+  workspaceId: string,
+  nativeThinking = false,
+  envVarNames: string[] = []
+): Promise<string> {
+  // Pre-fetch the whole workspace snapshot in parallel and embed it below, so the agent does NOT
+  // have to spend tool calls discovering what exists (the slow "list_tables / get_env / list_kb"
+  // round-trips). Mirrors how the reference agent loads workspace state once, up front.
   let workflowList = '(none yet)'
-  try {
-    const rows = await db
+  let tableList = '(none yet)'
+  let kbList = '(none yet)'
+  const [workflowRes, tableRes, kbRes] = await Promise.allSettled([
+    db
       .select({ id: workflow.id, name: workflow.name })
       .from(workflow)
       .where(eq(workflow.workspaceId, workspaceId))
-      .limit(100)
-    if (rows.length > 0) {
-      workflowList = rows.map((r) => `- ${r.name} (id: ${r.id})`).join('\n')
-    }
-  } catch (e) {
-    logger.warn('Failed to load workspace workflow snapshot', { e })
+      .limit(100),
+    listTables(workspaceId),
+    db
+      .select({ id: knowledgeBase.id, name: knowledgeBase.name })
+      .from(knowledgeBase)
+      .where(eq(knowledgeBase.workspaceId, workspaceId))
+      .limit(100),
+  ])
+  if (workflowRes.status === 'fulfilled' && workflowRes.value.length > 0) {
+    workflowList = workflowRes.value.map((r) => `- ${r.name} (id: ${r.id})`).join('\n')
   }
+  if (tableRes.status === 'fulfilled' && tableRes.value.length > 0) {
+    tableList = tableRes.value
+      .map((t: any) => {
+        const cols = (t.schema?.columns ?? []).map((c: any) => `${c.name}:${c.type}`).join(', ')
+        return `- ${t.name} (id: ${t.id})${cols ? ` — columns: ${cols}` : ''}`
+      })
+      .join('\n')
+  }
+  if (kbRes.status === 'fulfilled' && kbRes.value.length > 0) {
+    kbList = kbRes.value.map((k) => `- ${k.name} (id: ${k.id})`).join('\n')
+  }
+  const envList = envVarNames.length > 0 ? envVarNames.map((n) => `- ${n}`).join('\n') : '(none)'
 
   // With native extended thinking the model reasons in its own channel — only request an explicit
   // <thinking> block when the provider lacks native reasoning.
@@ -90,9 +120,14 @@ ${reasoningInstruction}You can:
 
 When the user asks about data ("how many leads…", "add a row…", "create a table…"), use the table tools. Refer to tables by name.
 
-When the user asks you to create or modify a workflow, ALWAYS use the build_workflow or edit_workflow tool with a complete YAML definition — do not just describe it. After building, briefly summarize what you created and that it has opened in the resource panel for review.
+When the user asks you to create or modify a workflow, ALWAYS use the build_workflow or edit_workflow tool with a complete YAML definition — do not just describe it. Call build_workflow EXACTLY ONCE with the complete, correct YAML — do NOT call it again to "refine" or "fix" it unless the user explicitly asks for a change. After building, briefly summarize what you created and that it has opened in the resource panel for review.
 
-IMPORTANT — use only REAL block types. Before building a workflow, call get_blocks_and_tools to see the valid block types, and get_blocks_metadata for the exact inputs + a YAML example of each block you'll use. Never invent block types. Common ones: 'starter' (trigger), 'agent' (LLM step), 'api' (HTTP request — NOT 'api_call'), 'function' (code), 'condition'/'router' (branching), 'jina'/'firecrawl' (web scraping), 'slack'/'gmail' (messaging), 'knowledge' (RAG search).
+IMPORTANT — use only REAL block types. Before building a workflow, call get_blocks_and_tools to see the valid block types, and get_blocks_metadata for the exact inputs + a YAML example of each block you'll use. Never invent block types or inputs. Common ones: 'starter' (manual/API run), 'agent' (LLM step), 'api' (HTTP request — NOT 'api_call'), 'function' (code), 'condition'/'router' (branching), 'jina'/'firecrawl' (web scraping), 'slack'/'gmail' (messaging), 'knowledge' (RAG search).
+
+TRIGGERS — pick the right ENTRY block for HOW the workflow starts (exactly one):
+- Runs on a SCHEDULE ("every hour", "daily", cron, recurring) → use the \`schedule\` trigger block as the first block. The \`starter\` block does NOT have a schedule/cron/triggerConfig input — never put scheduling on \`starter\`. Fetch the \`schedule\` block's metadata for its exact cron/interval inputs.
+- Runs manually or via API → \`starter\` (startWorkflow: manual).
+- Triggered by an incoming event (webhook / chat / incoming email) → the matching trigger block (\`webhook\`, \`api_trigger\`, \`chat_trigger\`, or a provider block in trigger mode).
 
 The build_workflow YAML MUST be a single document with a top-level \`version\` and a \`blocks\` map (NOT a bare list of blocks). Exact shape:
 
@@ -136,10 +171,26 @@ Every block lives UNDER \`blocks:\`, keyed by a short id, with \`type\` (a real 
 
 MODELS: for any agent/router/evaluator block's \`model\`, use ONLY a real Zelaxy model id. Valid ids include: claude-sonnet-4-6 (the default), claude-opus-4-8, claude-haiku-4-5, gpt-5.1, gpt-4o, gemini-3-pro-preview, mimo-v2.5-pro. Do NOT use dated ids (e.g. "claude-sonnet-4-20250514"), provider-prefixed ids (e.g. "anthropic/..."), or models from other platforms — they don't exist here. When unsure, use claude-sonnet-4-6.
 
-VARIABLES & SECRETS: reference an environment variable / API key / secret with double braces — \`{{VARIABLE_NAME}}\` — e.g. an apiKey input: \`apiKey: "{{OPENAI_API_KEY}}"\`, or a token: \`botToken: "{{TELEGRAM_BOT_TOKEN}}"\`. This is the ONLY valid syntax. NEVER inline a real secret value, and NEVER use any other form (\`env.X\`, \`$X\`, \`process.env.X\`, \`\${X}\`, \`{X}\`, or a bare name). Block-output references use the same \`{{block.field}}\` form shown above. Call get_environment_variables first to read the exact variable names that exist, and reference those names verbatim.
+VARIABLES & SECRETS: reference an environment variable / API key / secret with double braces — \`{{VARIABLE_NAME}}\` — e.g. an apiKey input: \`apiKey: "{{OPENAI_API_KEY}}"\`, or a token: \`botToken: "{{TELEGRAM_BOT_TOKEN}}"\`. This is the ONLY valid syntax. NEVER inline a real secret value, and NEVER use any other form (\`env.X\`, \`$X\`, \`process.env.X\`, \`\${X}\`, \`{X}\`, or a bare name). Block-output references use the same \`{{block.field}}\` form shown above. The available variable names are in the WORKSPACE SNAPSHOT below — reference those names verbatim; only call get_environment_variables if you need a name not listed.
 
-Refer to workspace objects by name. Workflows currently in this workspace:
+WORKSPACE SNAPSHOT — current state, already loaded for you. Do NOT spend tool calls rediscovering this. Refer to these objects by name. Only call list_tables / get_environment_variables / list_knowledge_bases when you need FRESH row data or values beyond what's shown here.
+
+Workflows:
 ${workflowList}
+
+Data tables:
+${tableList}
+
+Knowledge bases:
+${kbList}
+
+Environment variables (names only — reference as {{NAME}}):
+${envList}
+
+EFFICIENCY — minimize tool calls so builds are fast:
+- get_blocks_metadata accepts an ARRAY of block ids. Call it ONCE with ALL the blocks you'll use in a single batch — never per-block, never repeatedly. One call returns full metadata for every requested block.
+- Call get_blocks_and_tools at most once. Do NOT call search_documentation unless block metadata is genuinely insufficient for what you need.
+- Never re-list workflows/tables/knowledge bases/env vars that already appear in the snapshot above.
 
 Be concise, take initiative, and prefer doing over asking.`
 }
@@ -242,7 +293,11 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const systemPrompt = await buildSystemPrompt(workspaceId, provider === 'anthropic')
+  const systemPrompt = await buildSystemPrompt(
+    workspaceId,
+    provider === 'anthropic',
+    Object.keys(envVars)
+  )
   // Ask mode answers and plans without executing anything — withhold tools so the model can't act.
   const mode = body.mode ?? 'agent'
   const tools =
@@ -357,10 +412,16 @@ export async function POST(req: NextRequest) {
         }
 
         let iteration = 0
+        // Remember exact (tool + args) calls so a model that re-requests identical data (some
+        // smaller models loop on this) gets the cached result + a nudge instead of a wasted turn.
+        const executedToolCalls = new Map<string, string>()
+        // The workflow persisted this turn (if any). If the model rebuilds, we UPDATE this one
+        // instead of inserting a duplicate.
+        let persistedWorkflowId: string | null = null
 
         // Tool-execution loop: call the model, run any tool calls, feed results back. The model
-        // turn is non-streaming so tool calls are reliable; the FINAL answer (the turn with no tool
-        // calls) is then streamed token-by-token via streamAnswer for realtime output.
+        // turn is non-streaming so tool calls are reliable. When the model stops calling tools, its
+        // turn already contains the final answer — we emit THAT directly (no extra model call).
         // eslint-disable-next-line no-constant-condition
         while (true) {
           iteration++
@@ -384,7 +445,15 @@ export async function POST(req: NextRequest) {
           const toolCalls = Array.isArray(response?.toolCalls) ? response.toolCalls : []
 
           if (toolCalls.length === 0 || iteration > MAX_TOOL_ITERATIONS) {
-            await streamAnswer(messages)
+            // This turn already produced the final answer — emit it directly rather than making
+            // ANOTHER (slow) model call to re-generate it. Only re-stream when the turn had no
+            // usable text (e.g. we force-broke at the iteration cap while it still wanted tools).
+            const finalText = typeof response?.content === 'string' ? response.content.trim() : ''
+            if (finalText) {
+              controller.enqueue(sse({ type: 'content', data: finalText }))
+            } else {
+              await streamAnswer(messages)
+            }
             break
           }
 
@@ -408,6 +477,33 @@ export async function POST(req: NextRequest) {
               })
             )
 
+            // If the model re-requests the exact same call, return the cached result + a nudge to
+            // stop re-fetching and proceed — avoids re-running the tool and breaks repeat loops.
+            const dedupeKey = `${toolCall.name}:${JSON.stringify(toolCall.arguments ?? {})}`
+            const cached = executedToolCalls.get(dedupeKey)
+            if (cached !== undefined) {
+              controller.enqueue(
+                sse({
+                  type: 'tool_result',
+                  toolCallId,
+                  name: toolCall.name,
+                  success: true,
+                  result: cached,
+                })
+              )
+              messages.push({
+                role: 'tool',
+                name: toolCall.name,
+                tool_call_id: toolCallId,
+                content:
+                  `You already called ${toolCall.name} with these exact arguments. Here is the same result again — do NOT call it a third time; use it and proceed with the task.\n${cached}`.slice(
+                    0,
+                    MAX_TOOL_RESULT_CHARS
+                  ),
+              })
+              continue
+            }
+
             const result = await executeLocalTool(toolCall.name, args)
 
             controller.enqueue(
@@ -425,16 +521,27 @@ export async function POST(req: NextRequest) {
             // The state may sit at result.data.workflowState (BaseCopilotTool wrap) or top-level.
             const builtState = result.data?.workflowState ?? (result as any).workflowState
             if (toolCall.name === 'build_workflow' && result.success && builtState) {
-              const created = await persistBuiltWorkflow(
-                workspaceId,
-                userId,
-                builtState,
-                result.data?.description ?? (result as any).description
-              )
-              if (created) {
-                controller.enqueue(
-                  sse({ type: 'workflow_created', workflowId: created.id, name: created.name })
+              const desc = result.data?.description ?? (result as any).description
+              if (persistedWorkflowId) {
+                // Model rebuilt — UPDATE the same workflow instead of creating a duplicate.
+                await saveWorkflowToNormalizedTables(persistedWorkflowId, builtState).catch((e) =>
+                  logger.error('Failed to update rebuilt workflow', { e })
                 )
+                controller.enqueue(
+                  sse({
+                    type: 'workflow_created',
+                    workflowId: persistedWorkflowId,
+                    name: desc || 'Workflow',
+                  })
+                )
+              } else {
+                const created = await persistBuiltWorkflow(workspaceId, userId, builtState, desc)
+                if (created) {
+                  persistedWorkflowId = created.id
+                  controller.enqueue(
+                    sse({ type: 'workflow_created', workflowId: created.id, name: created.name })
+                  )
+                }
               }
             }
 
@@ -445,7 +552,7 @@ export async function POST(req: NextRequest) {
                   const compact = { ...data }
                   // Drop the heavy workflowState from the model context (client uses it, model doesn't need it).
                   if (compact.workflowState) compact.workflowState = undefined
-                  return JSON.stringify(compact).slice(0, 4000)
+                  return JSON.stringify(compact).slice(0, MAX_TOOL_RESULT_CHARS)
                 })()
               : `Error: ${result.error}`
 
@@ -455,6 +562,8 @@ export async function POST(req: NextRequest) {
               tool_call_id: toolCallId,
               content: resultForModel,
             })
+            // Cache for de-dup on subsequent identical calls (only successful results worth reusing).
+            if (result.success) executedToolCalls.set(dedupeKey, resultForModel)
           }
         }
 

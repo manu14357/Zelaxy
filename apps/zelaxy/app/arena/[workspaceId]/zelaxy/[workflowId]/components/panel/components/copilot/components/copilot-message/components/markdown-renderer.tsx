@@ -6,6 +6,22 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
+/**
+ * Some models (e.g. mimo) occasionally emit a tool call as literal text in the answer
+ * (`<tool_call><function=...></function></tool_call>`) instead of a structured tool call. Strip
+ * that syntax so it never renders as chat content — including an unclosed tag still streaming in.
+ */
+const stripToolCallTags = (text: string): string => {
+  if (!text || (!text.includes('<tool_call') && !text.includes('<function='))) return text
+  return text
+    .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
+    .replace(/<function=[\s\S]*?<\/function>/gi, '')
+    .replace(/<function=[^>]*\/>/gi, '')
+    .replace(/<tool_call>[\s\S]*$/i, '')
+    .replace(/<function=[\s\S]*$/i, '')
+    .trimEnd()
+}
+
 const getTextContent = (element: React.ReactNode): string => {
   if (typeof element === 'string') {
     return element
@@ -349,7 +365,7 @@ export default function CopilotMarkdownRenderer({ content }: CopilotMarkdownRend
   return (
     <div className='copilot-markdown-wrapper min-w-0 max-w-full space-y-4 overflow-hidden break-words font-geist-sans text-foreground text-xs leading-relaxed [overflow-wrap:anywhere] [word-break:break-word] dark:text-gray-100'>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-        {content}
+        {stripToolCallTags(content)}
       </ReactMarkdown>
     </div>
   )

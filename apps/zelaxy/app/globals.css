@@ -1114,4 +1114,35 @@ ltrtxt-popup,
   background: transparent !important;
   --tw-ring-shadow: 0 0 0 transparent !important;
   --tw-ring-offset-shadow: 0 0 0 transparent !important;
+  /* Thin scrollbar with NO up/down arrow buttons (those were the "arrows in the input field"). */
+  scrollbar-width: thin;
+}
+.composer-bare-textarea::-webkit-scrollbar {
+  width: 8px;
+}
+.composer-bare-textarea::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.composer-bare-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+.composer-bare-textarea::-webkit-scrollbar-thumb {
+  background-color: rgb(120 120 120 / 0.35);
+  border-radius: 4px;
+}
+
+/*
+ * Container-query responsiveness for the ZelaxyArena chat pane. The pane can be narrow even on a wide
+ * viewport (when the live-session panel is open), which Tailwind's viewport breakpoints can't track —
+ * so we adapt to the PANE's own width via a CSS container query (no plugin needed).
+ */
+.arena-chat-pane {
+  container-type: inline-size;
+}
+@container (max-width: 640px) {
+  .arena-header-desc {
+    display: none;
+  }
 }

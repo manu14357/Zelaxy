@@ -38,7 +38,10 @@ async function updateToolCallStatus(
 
   try {
     const key = `tool_call:${toolCallId}`
-    const timeout = 60000 // 1 minute timeout
+    // Fail fast: in the live (direct-chat) flow the tool already ran server-side and there is no
+    // Redis waiter, so a missing key is EXPECTED — don't block for a full minute. The legacy
+    // interrupt flow sets the key up-front, so it is found on the first poll anyway.
+    const timeout = 4000
     const pollInterval = 100 // Poll every 100ms
     const startTime = Date.now()
 
@@ -79,25 +82,12 @@ async function updateToolCallStatus(
       timestamp: new Date().toISOString(),
     }
 
-    // Log what we're about to update in Redis
-    logger.info('About to update Redis with tool call data', {
-      toolCallId,
-      key,
-      toolCallData,
-      serializedData: JSON.stringify(toolCallData),
-      providedStatus: status,
-      providedMessage: message,
-      messageIsUndefined: message === undefined,
-      messageIsNull: message === null,
-    })
-
     await redis.set(key, JSON.stringify(toolCallData), 'EX', 86400) // Keep 24 hour expiry
 
     logger.info('Tool call status updated in Redis', {
       toolCallId,
       key,
       status,
-      message,
       pollDuration: Date.now() - startTime,
     })
     return true
@@ -135,21 +125,22 @@ export async function POST(req: NextRequest) {
       userId: authenticatedUserId,
       toolCallId,
       status,
-      message,
+      messageLength: message?.length ?? 0,
     })
 
     // Update the tool call status in Redis
     const updated = await updateToolCallStatus(toolCallId, status, message)
 
     if (!updated) {
-      logger.error(`[${tracker.requestId}] Failed to update tool call status`, {
+      // No Redis waiter for this tool call. In the live (direct-chat) flow the tool already ran
+      // server-side, so there is nothing to confirm — this is expected, NOT an error. Return a
+      // benign no-op so the client doesn't surface a failure.
+      logger.info(`[${tracker.requestId}] No waiter for tool call — treating confirm as no-op`, {
         userId: authenticatedUserId,
         toolCallId,
         status,
-        internalStatus: status,
-        message,
       })
-      return createBadRequestResponse('Failed to update tool call status or tool call not found')
+      return NextResponse.json({ success: true, noOp: true, toolCallId, status })
     }
 
     const duration = tracker.getDuration()

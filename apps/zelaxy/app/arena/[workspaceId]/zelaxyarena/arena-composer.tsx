@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowUp, Database, FileText, Loader2, Paperclip, Workflow, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -75,6 +75,15 @@ export function ArenaComposer({
   const [isDragging, setIsDragging] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const atIndexRef = useRef(-1)
+
+  // Auto-grow the textarea like ChatGPT: expand with content up to ~8 rows, then scroll. This also
+  // removes the native scrollbar's up/down arrow buttons that showed when text overflowed a fixed box.
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`
+  }, [text])
 
   const loadResources = useCallback(async () => {
     if (resources.length > 0) return
@@ -389,7 +398,7 @@ export function ArenaComposer({
             }}
             placeholder='Describe what you want — use @ to reference resources, or attach files…'
             rows={1}
-            className='composer-bare-textarea max-h-40 min-h-[24px] flex-1 resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0'
+            className='composer-bare-textarea max-h-[200px] min-h-[24px] flex-1 resize-none overflow-y-auto border-0 bg-transparent p-0 text-sm leading-6 shadow-none focus-visible:ring-0'
           />
           {isStreaming ? (
             <Button size='icon' variant='ghost' className='h-8 w-8 flex-shrink-0' onClick={onStop}>

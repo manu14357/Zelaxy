@@ -102,7 +102,7 @@ Note: The workflowId is automatically injected from the request context.`,
           type: 'array',
           items: { type: 'string' },
           description:
-            'List of block type IDs to get metadata for (e.g., ["agent", "api_call", "condition"])',
+            'List of ALL block type IDs you need, in one batched call (e.g., ["agent", "api", "condition"]). The HTTP block id is "api" (NOT "api_call"). Call this once with every block you will use — do not call per-block.',
         },
       },
       required: ['blockIds'],

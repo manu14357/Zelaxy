@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { createLogger } from '@/lib/logs/console/logger'
+import { applyLayeredLayout } from '@/lib/workflows/autolayout/layered-layout'
 import { type DiffAnalysis, WorkflowDiffEngine } from '@/lib/workflows/diff'
 import { useWorkflowRegistry } from '../workflows/registry/store'
 import { useSubBlockStore } from '../workflows/subblock/store'
@@ -58,8 +59,10 @@ interface WorkflowDiffActions {
   clearDiff: () => void
   getCurrentWorkflowForCanvas: () => WorkflowState
   toggleDiffView: () => void
-  acceptChanges: () => Promise<void>
+  acceptChanges: (autoLayout?: boolean) => Promise<void>
   rejectChanges: () => Promise<void>
+  // Apply changes DIRECTLY (no Accept/Reject diff UI) — used for Agie's live edit.
+  applyChangesLive: (yamlContent: string) => Promise<void>
   // PERFORMANCE OPTIMIZATION: Batched state updates
   _batchedStateUpdate: (updates: Partial<WorkflowDiffState>) => void
 }
@@ -200,7 +203,7 @@ export const useWorkflowDiffStore = create<WorkflowDiffState & WorkflowDiffActio
           }
         },
 
-        acceptChanges: async () => {
+        acceptChanges: async (autoLayout = false) => {
           const activeWorkflowId = useWorkflowRegistry.getState().activeWorkflowId
 
           if (!activeWorkflowId) {
@@ -215,6 +218,16 @@ export const useWorkflowDiffStore = create<WorkflowDiffState & WorkflowDiffActio
             if (!cleanState) {
               logger.warn('No diff to accept')
               return
+            }
+
+            // Recompute block positions from the graph so AI-generated coordinates can't leave the
+            // canvas messy. Linear workflows become a clean left-to-right line; branches fan out.
+            if (autoLayout && cleanState.blocks) {
+              try {
+                applyLayeredLayout(cleanState.blocks as any, (cleanState.edges as any) ?? [])
+              } catch (layoutError) {
+                logger.warn('Auto-layout after accept failed; keeping positions', { layoutError })
+              }
             }
 
             // Update the main workflow store state
@@ -307,6 +320,29 @@ export const useWorkflowDiffStore = create<WorkflowDiffState & WorkflowDiffActio
           } catch (error) {
             logger.warn('Failed to update copilot tool call state after reject:', error)
           }
+        },
+
+        applyChangesLive: async (yamlContent: string) => {
+          // Apply copilot changes straight to the open workflow with NO Accept/Reject diff UI.
+          // We build the diff in the engine WITHOUT calling setProposedChanges (which is what flips
+          // isShowingDiff and shows the bar), then accept it — so the bar never appears.
+          logger.info('Applying copilot changes live (no diff UI)')
+          diffEngine.clearDiff()
+          const result = await diffEngine.createDiffFromYaml(yamlContent)
+          if (!result.success || !result.diff) {
+            // A single intermediate edit can be inconsistent (e.g. an edge still pointing at a
+            // block the model just deleted). Don't throw — that would abort the whole edit flow and
+            // leave the canvas stale. Log the real reason and skip; the next valid edit will apply.
+            logger.warn('Skipping live apply — diff build failed', {
+              errors: result.errors ?? ['unknown error'],
+            })
+            diffEngine.clearDiff()
+            return
+          }
+          // acceptChanges() reads from diffEngine.acceptDiff() (not the store's isShowingDiff flag),
+          // so it applies + persists the proposed state directly. Pass autoLayout=true so the blocks
+          // are arranged into a clean layered line instead of the AI's ad-hoc coordinates.
+          await get().acceptChanges(true)
         },
 
         getCurrentWorkflowForCanvas: () => {

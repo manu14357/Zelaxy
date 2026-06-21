@@ -515,7 +515,7 @@ function setToolCallState(
 /**
  * Helper function to create a tool call object with proper initial state
  */
-function createToolCall(id: string, name: string, input: any = {}): any {
+function createToolCall(id: string, name: string, input: any = {}, skipAutoExecute = false): any {
   const toolCall = {
     id,
     name,
@@ -532,8 +532,10 @@ function createToolCall(id: string, name: string, input: any = {}): any {
 
   setToolCallState(toolCall, initialState, { preserveTerminalStates: false })
 
-  // Auto-execute client tools that don't require interrupt
-  if (!requiresInterrupt && toolRegistry.getTool(name)) {
+  // Auto-execute client tools that don't require interrupt.
+  // Skipped in the direct-chat flow: there the tool already ran server-side and its result is
+  // streamed back, so re-running it client-side would double-execute and spam confirm.
+  if (!skipAutoExecute && !requiresInterrupt && toolRegistry.getTool(name)) {
     logger.info('Auto-executing client tool:', name, toolCall.id)
     // Execute client tool asynchronously
     setTimeout(async () => {
@@ -677,6 +679,10 @@ interface StreamingContext {
   newChatId?: string
   doneEventCount: number
   streamComplete?: boolean
+  // True for the direct-chat flow, where tools run SERVER-SIDE and a tool_result is streamed for
+  // each call. In that case the client must NOT re-execute client tools (it would double-run them,
+  // race the streamed result, and spam /api/copilot/confirm with the full workflow payload).
+  serverExecutesTools?: boolean
   // PERFORMANCE OPTIMIZATION: Pre-allocated buffers and caching
   _tempBuffer?: string[]
   _lastUpdateTime?: number
@@ -862,7 +868,12 @@ const sseHandlers: Record<string, SSEHandler> = {
       return
     }
 
-    const toolCall = createToolCall(toolData.id, toolData.name, toolData.arguments)
+    const toolCall = createToolCall(
+      toolData.id,
+      toolData.name,
+      toolData.arguments,
+      context.serverExecutesTools
+    )
 
     context.toolCalls.push(toolCall)
 
@@ -1838,6 +1849,8 @@ export const useCopilotStore = create<CopilotStore>()(
           })
 
           let result
+          // True when tools run server-side (direct-chat agent mode) — see StreamingContext.
+          let serverExecutesTools = false
           if (shouldUseDirectChat && llmSelection.selectedProvider && llmSelection.selectedModel) {
             // Use direct provider API ONLY for Ask mode with custom selections
             // This provides faster responses for simple questions without tool overhead
@@ -1867,6 +1880,7 @@ export const useCopilotStore = create<CopilotStore>()(
           } else if (isCustomSelection && mode === 'agent') {
             // NEW: Agent mode with custom provider - use direct-chat WITH tools
             // This enables workflow creation with any LLM provider
+            serverExecutesTools = true // tools run server-side; don't re-execute client-side
             const customApiKey = llmSelection.getApiKey?.(llmSelection.selectedProvider)
 
             logger.info('Using direct provider API for Agent mode with local tools:', {
@@ -1923,7 +1937,12 @@ export const useCopilotStore = create<CopilotStore>()(
           }
 
           if (result.success && result.stream) {
-            await get().handleStreamingResponse(result.stream, streamingMessage.id)
+            await get().handleStreamingResponse(
+              result.stream,
+              streamingMessage.id,
+              false,
+              serverExecutesTools
+            )
 
             // Invalidate chat cache after successful message to ensure fresh ordering
             // since the chat's updatedAt timestamp would have changed
@@ -2184,9 +2203,12 @@ export const useCopilotStore = create<CopilotStore>()(
             llmSelection.selectedModel !== DEFAULT_CHAT_MODEL
 
           let result
+          // True when tools run server-side (direct-chat) — see StreamingContext.
+          let serverExecutesTools = false
           if (isCustomSelection && llmSelection.selectedProvider && llmSelection.selectedModel) {
             // Get custom API key if user provided one
             const customApiKey = llmSelection.getApiKey?.(llmSelection.selectedProvider)
+            serverExecutesTools = true // tools run server-side; don't re-execute client-side
 
             // Use direct provider API for custom selections
             result = await sendDirectMessage({
@@ -2217,7 +2239,12 @@ export const useCopilotStore = create<CopilotStore>()(
           }
 
           if (result.success && result.stream) {
-            await get().handleStreamingResponse(result.stream, newAssistantMessage.id, false)
+            await get().handleStreamingResponse(
+              result.stream,
+              newAssistantMessage.id,
+              false,
+              serverExecutesTools
+            )
           } else {
             if (result.error === 'Request was aborted') {
               logger.info('Implicit feedback sending was aborted by user')
@@ -2653,7 +2680,8 @@ export const useCopilotStore = create<CopilotStore>()(
       handleStreamingResponse: async (
         stream: ReadableStream,
         messageId: string,
-        isContinuation = false
+        isContinuation = false,
+        serverExecutesTools = false
       ) => {
         const reader = stream.getReader()
         const decoder = new TextDecoder()
@@ -2669,6 +2697,7 @@ export const useCopilotStore = create<CopilotStore>()(
           currentBlockType: null,
           toolCallBuffer: null,
           doneEventCount: 0,
+          serverExecutesTools,
           _tempBuffer: [],
           _lastUpdateTime: 0,
           _batchedUpdates: false,
@@ -2971,9 +3000,14 @@ export const useCopilotStore = create<CopilotStore>()(
             hasDiffWorkflow: !!diffStoreBefore.diffWorkflow,
           })
 
-          // Always use setProposedChanges to ensure the diff view fully overwrites with new changes
-          // This provides better UX as users expect to see the latest changes, not merged/cumulative changes
-          await diffStore.setProposedChanges(yamlContent, undefined)
+          // LIVE EDIT: apply the copilot's workflow changes DIRECTLY to the open canvas — no
+          // Accept/Reject prompt and no diff-bar flash (applyChangesLive builds + accepts the diff
+          // without ever flipping isShowingDiff). Undo/redo + checkpoints remain the safety net.
+          try {
+            await diffStore.applyChangesLive(yamlContent)
+          } catch (e) {
+            logger.error('Live apply of copilot workflow changes failed', { e })
+          }
 
           // Check diff store state after update
           const diffStoreAfter = useWorkflowDiffStore.getState()

@@ -113,22 +113,16 @@ export async function getBlocksMetadata(
     // Create result object
     const result: Record<string, any> = {}
 
-    logger.info('=== GET BLOCKS METADATA DEBUG ===')
-    logger.info('Requested block IDs:', blockIds)
-
     // Process each requested block ID
     for (const blockId of blockIds) {
-      logger.info(`\n--- Processing block: ${blockId} ---`)
       let metadata: any = {}
 
       // Check if it's a special block first
       if (SPECIAL_BLOCKS_METADATA[blockId]) {
-        logger.info(`✓ Found ${blockId} in SPECIAL_BLOCKS_METADATA`)
         // Start with the special block metadata
         metadata = { ...SPECIAL_BLOCKS_METADATA[blockId] }
         // Normalize tools structure to match regular blocks
         metadata.tools = metadata.tools?.access || []
-        logger.info(`Initial metadata keys for ${blockId}:`, Object.keys(metadata))
       } else {
         // Check if the block exists in the registry
         const blockConfig = blockRegistry[blockId]
@@ -152,21 +146,14 @@ export async function getBlocksMetadata(
 
         // Process and include subBlocks configuration
         if (blockConfig.subBlocks && Array.isArray(blockConfig.subBlocks)) {
-          logger.info(`Processing ${blockConfig.subBlocks.length} subBlocks for ${blockId}`)
           metadata.subBlocks = processSubBlocks(blockConfig.subBlocks)
-          logger.info(`✓ Processed subBlocks for ${blockId}:`, metadata.subBlocks.length)
         } else {
-          logger.info(`No subBlocks found for ${blockId}`)
           metadata.subBlocks = []
         }
       }
 
       // Read YAML schema from documentation if available (for both regular and special blocks)
       const docFileName = DOCS_FILE_MAPPING[blockId] || blockId
-      logger.info(
-        `Checking if ${blockId} is in CORE_BLOCKS_WITH_DOCS:`,
-        CORE_BLOCKS_WITH_DOCS.includes(blockId)
-      )
       try {
         // Resolve the monorepo root and find the docs content
         // cwd is typically apps/zelaxy in dev, so go up to the monorepo root
@@ -187,12 +174,8 @@ export async function getBlocksMetadata(
           'blocks',
           `${docFileName}.mdx`
         )
-        logger.info(`Looking for docs at: ${docPath}`)
-        logger.info(`File exists: ${existsSync(docPath)}`)
-
         if (existsSync(docPath)) {
           const docContent = readFileSync(docPath, 'utf-8')
-          logger.info(`Doc content length: ${docContent.length}`)
 
           // Extract only the configuration and YAML-relevant sections, not the full MDX
           // Truncate to keep token usage manageable
@@ -202,11 +185,6 @@ export async function getBlocksMetadata(
               ? `${docContent.substring(0, maxDocLength)}\n... [truncated]`
               : docContent
           metadata.yamlDocumentation = truncatedContent
-          logger.info(
-            `✓ Added YAML documentation for ${blockId} (${truncatedContent.length} chars)`
-          )
-        } else {
-          logger.warn(`Documentation file not found for ${blockId}`)
         }
       } catch (error) {
         logger.warn(`Failed to read documentation for ${blockId}:`, error)
@@ -233,24 +211,10 @@ export async function getBlocksMetadata(
         metadata.yamlExample = buildYamlExample(blockId, metadata)
       }
 
-      logger.info(`Final metadata keys for ${blockId}:`, Object.keys(metadata))
-      logger.info(`Has YAML documentation: ${!!metadata.yamlDocumentation}`)
-      logger.info(`Has subBlocks: ${!!metadata.subBlocks && metadata.subBlocks.length > 0}`)
-
       result[blockId] = metadata
     }
 
-    logger.info('\n=== FINAL RESULT ===')
     logger.info(`Successfully retrieved metadata for ${Object.keys(result).length} blocks`)
-    logger.info('Result keys:', Object.keys(result))
-
-    // Log the full result for parallel block if it's included
-    if (result.parallel) {
-      logger.info('\nParallel block metadata keys:', Object.keys(result.parallel))
-      if (result.parallel.yamlDocumentation) {
-        logger.info('YAML documentation length:', result.parallel.yamlDocumentation.length)
-      }
-    }
 
     return {
       success: true,

@@ -10,7 +10,9 @@ import {
 } from '@/lib/copilot/auth'
 import { ASK_MODE_SYSTEM_PROMPT, ENHANCED_DIRECT_CHAT_PROMPT } from '@/lib/copilot/prompts'
 import { executeLocalTool, getToolsForMode } from '@/lib/copilot/tools/local-tools'
+import { getDecryptedEnvironmentVariables } from '@/lib/environment/utils'
 import { createLogger } from '@/lib/logs/console/logger'
+import { getProviderApiKeyEnvVar } from '@/lib/providers/api-keys'
 import { toonEncodeForLLM } from '@/lib/toon/encoder'
 import { downloadFile } from '@/lib/uploads'
 import { downloadFromS3WithConfig } from '@/lib/uploads/s3/s3-client'
@@ -203,7 +205,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Build messages for the LLM (system prompt is sent via the systemPrompt param, not in messages)
-    const messages = []
+    const messages: any[] = []
 
     // Add conversation history
     for (const msg of conversationHistory) {
@@ -262,7 +264,20 @@ export async function POST(req: NextRequest) {
     // Get the appropriate API key for the provider (prefer custom API key if provided)
     let apiKey = customApiKey || '' // Use custom API key first
 
-    // If no custom API key, fall back to environment variables
+    // Next, the user's stored Environment Variables — this is where the in-app "add API key" prompt
+    // saves keys (same as ZelaxyArena). Read these BEFORE the server-side process.env fallback so a
+    // key the user entered in the UI actually takes effect.
+    if (!apiKey) {
+      try {
+        const userEnv = await getDecryptedEnvironmentVariables(authenticatedUserId)
+        const keyEnvVar = getProviderApiKeyEnvVar(provider)
+        if (keyEnvVar && userEnv[keyEnvVar]?.trim()) apiKey = userEnv[keyEnvVar].trim()
+      } catch (e) {
+        logger.warn(`[${tracker.requestId}] Failed to read user environment variables`, { e })
+      }
+    }
+
+    // If still none, fall back to server-side environment variables / rotating system keys.
     if (!apiKey) {
       switch (provider) {
         case 'nvidia':
@@ -483,334 +498,314 @@ export async function POST(req: NextRequest) {
         ...(fileAttachments && fileAttachments.length > 0 && { fileAttachments }),
       }
 
-      let finalContent = providerResponse.content || ''
-      const allToolResults: any[] = []
-      let workflowState: any = null
-
-      // Tool call loop - continue calling LLM until no more tool calls
-      const MAX_TOOL_ITERATIONS = 10
-      let currentResponse = providerResponse
-      const conversationMessages = [...messages] // Clone messages for the loop
-      let iteration = 0
-
-      while (
-        currentResponse.toolCalls &&
-        currentResponse.toolCalls.length > 0 &&
-        iteration < MAX_TOOL_ITERATIONS
-      ) {
-        iteration++
-        logger.info(
-          `[${tracker.requestId}] Tool call iteration ${iteration}: Processing ${currentResponse.toolCalls.length} tool calls`
-        )
-
-        // Execute all tool calls in this iteration
-        const iterationToolResults: any[] = []
-        const toolResultMessages: any[] = []
-
-        for (const toolCall of currentResponse.toolCalls) {
-          const toolCallId =
-            (toolCall as any).id || `tool_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
-
-          logger.info(`[${tracker.requestId}] Executing tool: ${toolCall.name}`, {
-            arguments: toolCall.arguments,
-          })
-
-          // Inject request context (workflowId, userId) into tool arguments
-          // Many tools need these but the LLM doesn't have them in its tool schema
-          const enrichedArguments = {
-            ...toolCall.arguments,
-            workflowId: toolCall.arguments.workflowId || workflowId,
-            userId: toolCall.arguments.userId || authenticatedUserId,
-          }
-
-          const toolResult = await executeLocalTool(toolCall.name, enrichedArguments)
-
-          iterationToolResults.push({
-            toolId: toolCall.name,
-            toolCallId,
-            result: toolResult,
-          })
-
-          allToolResults.push({
-            toolId: toolCall.name,
-            toolCallId,
-            result: toolResult,
-          })
-
-          logger.info(`[${tracker.requestId}] Tool result for ${toolCall.name}:`, {
-            success: toolResult.success,
-            hasData: !!toolResult.data,
-          })
-
-          // Extract workflowState from build_workflow or edit_workflow results
-          if (
-            (toolCall.name === 'build_workflow' || toolCall.name === 'edit_workflow') &&
-            toolResult.success &&
-            toolResult.data?.workflowState
-          ) {
-            workflowState = toolResult.data.workflowState
-            logger.info(
-              `[${tracker.requestId}] Extracted workflowState with ${Object.keys(workflowState.blocks || {}).length} blocks`
-            )
-          }
-
-          // Build tool result message for the LLM
-          // Smart truncation to prevent context_length_exceeded errors
-          let resultContent = toolResult.success
-            ? toonEncodeForLLM(toolResult.data || {})
-            : `Error: ${toolResult.error}`
-
-          // Use higher limits for important tools, lower for info tools
-          const toolResultLimits: Record<string, number> = {
-            get_blocks_metadata: 6000,
-            search_documentation: 6000,
-            get_user_workflow: 6000,
-            get_blocks_and_tools: 4000,
-            build_workflow: 2000,
-            edit_workflow: 2000,
-          }
-          const MAX_TOOL_RESULT_LENGTH = toolResultLimits[toolCall.name] || 4000
-          if (resultContent.length > MAX_TOOL_RESULT_LENGTH) {
-            logger.info(
-              `[${tracker.requestId}] Truncating large tool result for ${toolCall.name}: ${resultContent.length} -> ${MAX_TOOL_RESULT_LENGTH} chars`
-            )
-            // Try to truncate at a clean JSON boundary
-            let truncated = resultContent.substring(0, MAX_TOOL_RESULT_LENGTH)
-            const lastBrace = Math.max(truncated.lastIndexOf('}'), truncated.lastIndexOf(']'))
-            if (lastBrace > MAX_TOOL_RESULT_LENGTH * 0.7) {
-              truncated = truncated.substring(0, lastBrace + 1)
-            }
-            resultContent = `${truncated}\n... [truncated]`
-          }
-
-          toolResultMessages.push({
-            role: 'tool',
-            tool_call_id: toolCallId,
-            content: resultContent,
-          })
-        }
-
-        // Add assistant message with tool calls to conversation
-        conversationMessages.push({
-          role: 'assistant',
-          content: currentResponse.content || null,
-          tool_calls: currentResponse.toolCalls.map((tc: any, idx: number) => ({
-            id: iterationToolResults[idx]?.toolCallId || tc.id || `tool_${idx}`,
-            type: 'function',
-            function: {
-              name: tc.name,
-              arguments: JSON.stringify(tc.arguments || {}),
-            },
-          })),
-        } as any)
-
-        // Add tool result messages to conversation
-        conversationMessages.push(...toolResultMessages)
-
-        logger.info(
-          `[${tracker.requestId}] Sending tool results back to LLM, conversation now has ${conversationMessages.length} messages`
-        )
-
-        // Call the LLM again with tool results
-        // Dynamically reduce maxTokens based on conversation size to prevent context overflow
-        const estimatedTokens = JSON.stringify(conversationMessages).length / 4
-        const dynamicMaxTokens = Math.max(1000, Math.min(4000, 16000 - Math.ceil(estimatedTokens)))
-
-        try {
-          const nextResponse = await executeProviderRequest(provider as any, {
-            model,
-            messages: conversationMessages as any,
-            systemPrompt,
-            temperature: 0.7,
-            maxTokens: dynamicMaxTokens,
-            apiKey: apiKey,
-            stream: false, // Use non-streaming for tool loop
-            ...(tools && tools.length > 0 && { tools }),
-            workflowId,
-            userId: authenticatedUserId,
-            isCopilotRequest: true,
-          })
-
-          if (typeof nextResponse === 'object' && 'content' in nextResponse) {
-            currentResponse = nextResponse
-            // Accumulate content from each iteration
-            if (currentResponse.content) {
-              finalContent = currentResponse.content
-            }
-            logger.info(`[${tracker.requestId}] LLM response after tools:`, {
-              hasContent: !!currentResponse.content,
-              contentLength: currentResponse.content?.length || 0,
-              hasMoreToolCalls: !!(
-                currentResponse.toolCalls && currentResponse.toolCalls.length > 0
-              ),
-              toolCallCount: currentResponse.toolCalls?.length || 0,
-            })
-          } else {
-            logger.warn(
-              `[${tracker.requestId}] Unexpected response format from LLM after tool calls`
-            )
-            break
-          }
-        } catch (toolLoopError: any) {
-          // Handle context_length_exceeded by generating a response without tools
-          const errorMessage = toolLoopError?.message || toolLoopError?.error?.message || ''
-          if (
-            errorMessage.includes('context_length_exceeded') ||
-            errorMessage.includes('maximum context length')
-          ) {
-            logger.warn(
-              `[${tracker.requestId}] Context length exceeded in tool loop iteration ${iteration}, generating final response without tools`
-            )
-            try {
-              // Retry with minimal context: just the user message and a summary
-              const summaryMessages = [
-                { role: 'user' as const, content: message },
-                {
-                  role: 'assistant' as const,
-                  content: `I have completed the requested operations. Here is a summary of what was done:\n${allToolResults.map((r) => (r.result.success ? `✅ ${r.toolId}: Success` : `❌ ${r.toolId}: ${r.result.error}`)).join('\n')}`,
-                },
-                {
-                  role: 'user' as const,
-                  content: 'Please provide a brief summary of what was accomplished.',
-                },
-              ]
-              const retryResponse = await executeProviderRequest(provider as any, {
-                model,
-                messages: summaryMessages as any,
-                systemPrompt:
-                  'You are Agie, the AI assistant for Zelaxy. Summarize what was accomplished based on the tool results provided.',
-                temperature: 0.7,
-                maxTokens: 1000,
-                apiKey: apiKey,
-                stream: false,
-                workflowId,
-                userId: authenticatedUserId,
-                isCopilotRequest: true,
-              })
-              if (typeof retryResponse === 'object' && 'content' in retryResponse) {
-                finalContent =
-                  retryResponse.content ||
-                  allToolResults
-                    .map((r) =>
-                      r.result.success
-                        ? `✅ **${r.toolId}**: Success`
-                        : `❌ **${r.toolId}**: ${r.result.error}`
-                    )
-                    .join('\n')
-              }
-            } catch (retryError) {
-              logger.error(`[${tracker.requestId}] Retry also failed:`, retryError)
-              finalContent = `I completed the following operations:\n${allToolResults.map((r) => (r.result.success ? `✅ **${r.toolId}**: ${r.result.data?.message || 'Success'}` : `❌ **${r.toolId}**: ${r.result.error}`)).join('\n')}`
-            }
-            break // Exit the tool loop
-          }
-          throw toolLoopError // Re-throw non-context-length errors
-        }
-      }
-
-      if (iteration >= MAX_TOOL_ITERATIONS) {
-        logger.warn(
-          `[${tracker.requestId}] Reached maximum tool iterations (${MAX_TOOL_ITERATIONS})`
-        )
-      }
-
-      // Create SSE stream for client compatibility
-      const sseStream = new ReadableStream({
+      // Stream EVERYTHING live (tool calls + results + final answer) so the copilot shows real-time
+      // progress like the reference. The tool loop runs INSIDE the stream and emits as it executes.
+      const liveStream = new ReadableStream({
         async start(controller) {
           const encoder = new TextEncoder()
+          const send = (obj: unknown) =>
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`))
+          if (actualChatId) send({ type: 'chat_id', chatId: actualChatId })
+
+          let finalContent = providerResponse.content || ''
+          const allToolResults: any[] = []
+          let workflowState: any = null
+          const MAX_TOOL_ITERATIONS = 10
+          let currentResponse: any = providerResponse
+          const conversationMessages = [...messages] // Clone messages for the loop
+          let iteration = 0
 
           try {
-            // Send chatId as first event
-            if (actualChatId) {
-              const chatIdEvent = `data: ${JSON.stringify({
-                type: 'chat_id',
-                chatId: actualChatId,
-              })}\n\n`
-              controller.enqueue(encoder.encode(chatIdEvent))
-            }
+            while (
+              currentResponse.toolCalls &&
+              currentResponse.toolCalls.length > 0 &&
+              iteration < MAX_TOOL_ITERATIONS
+            ) {
+              iteration++
+              logger.info(
+                `[${tracker.requestId}] Tool call iteration ${iteration}: Processing ${currentResponse.toolCalls.length} tool calls`
+              )
 
-            // Send tool call events for each tool - use consistent IDs
-            for (let i = 0; i < allToolResults.length; i++) {
-              const toolResult = allToolResults[i]
-              const toolCallId = toolResult.toolCallId
+              // Execute all tool calls in this iteration
+              const iterationToolResults: any[] = []
+              const toolResultMessages: any[] = []
 
-              // Send tool_call event (store expects data.data with id, name, arguments)
-              const toolStartEvent = `data: ${JSON.stringify({
-                type: 'tool_call',
-                data: {
-                  id: toolCallId,
-                  name: toolResult.toolId,
-                  arguments: toolResult.result.data || {},
-                },
-              })}\n\n`
-              controller.enqueue(encoder.encode(toolStartEvent))
+              for (const toolCall of currentResponse.toolCalls) {
+                const toolCallId =
+                  (toolCall as any).id ||
+                  `tool_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
 
-              // Send tool_result event (store expects top-level toolCallId, result, success, error)
-              const resultData = toolResult.result.data || {}
-              const toolResultEvent = `data: ${JSON.stringify({
-                type: 'tool_result',
-                toolCallId: toolCallId,
-                success: toolResult.result.success,
-                result: typeof resultData === 'string' ? resultData : JSON.stringify(resultData),
-                error: toolResult.result.error || null,
-              })}\n\n`
-              controller.enqueue(encoder.encode(toolResultEvent))
-            }
+                logger.info(`[${tracker.requestId}] Executing tool: ${toolCall.name}`, {
+                  arguments: toolCall.arguments,
+                })
 
-            // Final answer. For thinking-capable providers, regenerate it as a streaming pass with
-            // native reasoning so the copilot renders a real thinking block; the reasoning + answer
-            // arrive as separate events. Otherwise emit the buffered answer in a single event.
-            if (useThinking) {
+                // Inject request context (workflowId, userId) into tool arguments
+                // Many tools need these but the LLM doesn't have them in its tool schema
+                const enrichedArguments = {
+                  ...toolCall.arguments,
+                  workflowId: toolCall.arguments.workflowId || workflowId,
+                  userId: toolCall.arguments.userId || authenticatedUserId,
+                }
+
+                // Emit the tool call LIVE (before running it) so the UI shows it in-flight.
+                send({
+                  type: 'tool_call',
+                  data: {
+                    id: toolCallId,
+                    name: toolCall.name,
+                    arguments: toolCall.arguments || {},
+                  },
+                })
+
+                const toolResult = await executeLocalTool(toolCall.name, enrichedArguments)
+
+                // Emit the tool result LIVE. Full data is included so the client can trigger the live
+                // workflow diff (build_workflow/edit_workflow yamlContent) and render the result.
+                const liveResultData = toolResult.data ?? {}
+                send({
+                  type: 'tool_result',
+                  toolCallId,
+                  name: toolCall.name,
+                  success: toolResult.success,
+                  result:
+                    typeof liveResultData === 'string'
+                      ? liveResultData
+                      : JSON.stringify(liveResultData),
+                  error: toolResult.error || null,
+                })
+
+                iterationToolResults.push({
+                  toolId: toolCall.name,
+                  toolCallId,
+                  result: toolResult,
+                })
+
+                allToolResults.push({
+                  toolId: toolCall.name,
+                  toolCallId,
+                  result: toolResult,
+                })
+
+                logger.info(`[${tracker.requestId}] Tool result for ${toolCall.name}:`, {
+                  success: toolResult.success,
+                  hasData: !!toolResult.data,
+                })
+
+                // Extract workflowState from build_workflow or edit_workflow results
+                if (
+                  (toolCall.name === 'build_workflow' || toolCall.name === 'edit_workflow') &&
+                  toolResult.success &&
+                  toolResult.data?.workflowState
+                ) {
+                  workflowState = toolResult.data.workflowState
+                  logger.info(
+                    `[${tracker.requestId}] Extracted workflowState with ${Object.keys(workflowState.blocks || {}).length} blocks`
+                  )
+                }
+
+                // Build tool result message for the LLM
+                // Smart truncation to prevent context_length_exceeded errors
+                let resultContent = toolResult.success
+                  ? toonEncodeForLLM(toolResult.data || {})
+                  : `Error: ${toolResult.error}`
+
+                // Generous limits so the model SEES the full data. The old small caps (4–6k) cut off the
+                // existing workflow + block metadata mid-result, so Agie couldn't analyze the current
+                // workflow and kept re-fetching. These now carry full content in one shot.
+                const toolResultLimits: Record<string, number> = {
+                  get_blocks_metadata: 60000,
+                  search_documentation: 16000,
+                  get_user_workflow: 40000,
+                  get_blocks_and_tools: 40000,
+                  build_workflow: 8000,
+                  edit_workflow: 8000,
+                }
+                const MAX_TOOL_RESULT_LENGTH = toolResultLimits[toolCall.name] || 16000
+                if (resultContent.length > MAX_TOOL_RESULT_LENGTH) {
+                  logger.info(
+                    `[${tracker.requestId}] Truncating large tool result for ${toolCall.name}: ${resultContent.length} -> ${MAX_TOOL_RESULT_LENGTH} chars`
+                  )
+                  // Try to truncate at a clean JSON boundary
+                  let truncated = resultContent.substring(0, MAX_TOOL_RESULT_LENGTH)
+                  const lastBrace = Math.max(truncated.lastIndexOf('}'), truncated.lastIndexOf(']'))
+                  if (lastBrace > MAX_TOOL_RESULT_LENGTH * 0.7) {
+                    truncated = truncated.substring(0, lastBrace + 1)
+                  }
+                  resultContent = `${truncated}\n... [truncated]`
+                }
+
+                toolResultMessages.push({
+                  role: 'tool',
+                  tool_call_id: toolCallId,
+                  content: resultContent,
+                })
+              }
+
+              // Add assistant message with tool calls to conversation
+              conversationMessages.push({
+                role: 'assistant',
+                content: currentResponse.content || null,
+                tool_calls: currentResponse.toolCalls.map((tc: any, idx: number) => ({
+                  id: iterationToolResults[idx]?.toolCallId || tc.id || `tool_${idx}`,
+                  type: 'function',
+                  function: {
+                    name: tc.name,
+                    arguments: JSON.stringify(tc.arguments || {}),
+                  },
+                })),
+              } as any)
+
+              // Add tool result messages to conversation
+              conversationMessages.push(...toolResultMessages)
+
+              logger.info(
+                `[${tracker.requestId}] Sending tool results back to LLM, conversation now has ${conversationMessages.length} messages`
+              )
+
+              // Call the LLM again with tool results
+              // Dynamically reduce maxTokens based on conversation size to prevent context overflow
+              const estimatedTokens = JSON.stringify(conversationMessages).length / 4
+              const dynamicMaxTokens = Math.max(
+                1000,
+                Math.min(4000, 16000 - Math.ceil(estimatedTokens))
+              )
+
               try {
-                const finalResp: any = await executeProviderRequest(provider as any, {
+                const nextResponse = await executeProviderRequest(provider as any, {
                   model,
                   messages: conversationMessages as any,
                   systemPrompt,
                   temperature: 0.7,
-                  maxTokens: 4000,
-                  apiKey,
-                  stream: true,
-                  thinking: true,
+                  maxTokens: dynamicMaxTokens,
+                  apiKey: apiKey,
+                  stream: false, // Use non-streaming for tool loop
+                  ...(tools && tools.length > 0 && { tools }),
                   workflowId,
                   userId: authenticatedUserId,
                   isCopilotRequest: true,
                 })
-                const finalReadable: ReadableStream | null =
-                  finalResp instanceof ReadableStream ? finalResp : (finalResp?.stream ?? null)
-                if (finalReadable) {
-                  const streamed = await pumpProviderStream(
-                    finalReadable,
-                    true,
-                    controller,
-                    encoder
+
+                if (typeof nextResponse === 'object' && 'content' in nextResponse) {
+                  currentResponse = nextResponse
+                  // Accumulate content from each iteration
+                  if (currentResponse.content) {
+                    finalContent = currentResponse.content
+                  }
+                  logger.info(`[${tracker.requestId}] LLM response after tools:`, {
+                    hasContent: !!currentResponse.content,
+                    contentLength: currentResponse.content?.length || 0,
+                    hasMoreToolCalls: !!(
+                      currentResponse.toolCalls && currentResponse.toolCalls.length > 0
+                    ),
+                    toolCallCount: currentResponse.toolCalls?.length || 0,
+                  })
+                } else {
+                  logger.warn(
+                    `[${tracker.requestId}] Unexpected response format from LLM after tool calls`
                   )
-                  if (streamed.trim()) finalContent = streamed
-                } else if (finalContent) {
-                  controller.enqueue(
-                    encoder.encode(
-                      `data: ${JSON.stringify({ type: 'content', data: finalContent })}\n\n`
-                    )
-                  )
+                  break
                 }
-              } catch (finalErr) {
-                logger.warn(
-                  `[${tracker.requestId}] Final streaming answer failed, falling back to buffered content`,
-                  { finalErr }
-                )
-                if (finalContent) {
-                  controller.enqueue(
-                    encoder.encode(
-                      `data: ${JSON.stringify({ type: 'content', data: finalContent })}\n\n`
-                    )
+              } catch (toolLoopError: any) {
+                // Handle context_length_exceeded by generating a response without tools
+                const errorMessage = toolLoopError?.message || toolLoopError?.error?.message || ''
+                if (
+                  errorMessage.includes('context_length_exceeded') ||
+                  errorMessage.includes('maximum context length')
+                ) {
+                  logger.warn(
+                    `[${tracker.requestId}] Context length exceeded in tool loop iteration ${iteration}, generating final response without tools`
                   )
+                  try {
+                    // Retry with minimal context: just the user message and a summary
+                    const summaryMessages = [
+                      { role: 'user' as const, content: message },
+                      {
+                        role: 'assistant' as const,
+                        content: `I have completed the requested operations. Here is a summary of what was done:\n${allToolResults.map((r) => (r.result.success ? `✅ ${r.toolId}: Success` : `❌ ${r.toolId}: ${r.result.error}`)).join('\n')}`,
+                      },
+                      {
+                        role: 'user' as const,
+                        content: 'Please provide a brief summary of what was accomplished.',
+                      },
+                    ]
+                    const retryResponse = await executeProviderRequest(provider as any, {
+                      model,
+                      messages: summaryMessages as any,
+                      systemPrompt:
+                        'You are Agie, the AI assistant for Zelaxy. Summarize what was accomplished based on the tool results provided.',
+                      temperature: 0.7,
+                      maxTokens: 1000,
+                      apiKey: apiKey,
+                      stream: false,
+                      workflowId,
+                      userId: authenticatedUserId,
+                      isCopilotRequest: true,
+                    })
+                    if (typeof retryResponse === 'object' && 'content' in retryResponse) {
+                      finalContent =
+                        retryResponse.content ||
+                        allToolResults
+                          .map((r) =>
+                            r.result.success
+                              ? `✅ **${r.toolId}**: Success`
+                              : `❌ **${r.toolId}**: ${r.result.error}`
+                          )
+                          .join('\n')
+                    }
+                  } catch (retryError) {
+                    logger.error(`[${tracker.requestId}] Retry also failed:`, retryError)
+                    finalContent = `I completed the following operations:\n${allToolResults.map((r) => (r.result.success ? `✅ **${r.toolId}**: ${r.result.data?.message || 'Success'}` : `❌ **${r.toolId}**: ${r.result.error}`)).join('\n')}`
+                  }
+                  break // Exit the tool loop
                 }
+                throw toolLoopError // Re-throw non-context-length errors
               }
-            } else if (finalContent) {
-              const contentEvent = `data: ${JSON.stringify({
-                type: 'content',
-                data: finalContent,
-              })}\n\n`
-              controller.enqueue(encoder.encode(contentEvent))
+            }
+
+            if (iteration >= MAX_TOOL_ITERATIONS) {
+              logger.warn(
+                `[${tracker.requestId}] Reached maximum tool iterations (${MAX_TOOL_ITERATIONS})`
+              )
+            }
+
+            // Tool calls + results were already streamed LIVE above as they executed — no re-emit.
+
+            // Final answer — ALWAYS stream it token-by-token (real streaming for EVERY provider, not
+            // just thinking-capable ones). Thinking providers also emit reasoning deltas. Falls back
+            // to the buffered content only if the streaming call fails or yields nothing.
+            try {
+              const finalResp: any = await executeProviderRequest(provider as any, {
+                model,
+                messages: conversationMessages as any,
+                systemPrompt,
+                temperature: 0.7,
+                maxTokens: 4000,
+                apiKey,
+                stream: true,
+                ...(useThinking ? { thinking: true } : {}),
+                workflowId,
+                userId: authenticatedUserId,
+                isCopilotRequest: true,
+              })
+              const finalReadable: ReadableStream | null =
+                finalResp instanceof ReadableStream ? finalResp : (finalResp?.stream ?? null)
+              if (finalReadable) {
+                const streamed = await pumpProviderStream(
+                  finalReadable,
+                  useThinking,
+                  controller,
+                  encoder
+                )
+                if (streamed.trim()) finalContent = streamed
+              } else if (finalContent) {
+                send({ type: 'content', data: finalContent })
+              }
+            } catch (finalErr) {
+              logger.warn(
+                `[${tracker.requestId}] Final streaming answer failed, falling back to buffered content`,
+                { finalErr }
+              )
+              if (finalContent) send({ type: 'content', data: finalContent })
             }
 
             // Send done event
@@ -861,7 +856,7 @@ export async function POST(req: NextRequest) {
         },
       })
 
-      return new Response(sseStream, {
+      return new Response(liveStream, {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',

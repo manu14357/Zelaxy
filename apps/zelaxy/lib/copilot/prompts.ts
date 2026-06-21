@@ -1171,10 +1171,19 @@ blocks:
 ## WORKFLOW EDITING PROTOCOL (for existing workflows)
 
 When the user wants to modify their existing workflow:
-1. Call get_user_workflow to see current state
-2. Call get_blocks_and_tools to check available blocks
-3. Call get_blocks_metadata for blocks involved
-4. Call edit_workflow with targeted operations
+1. Call get_user_workflow ONCE to see current state
+2. Call get_blocks_metadata ONCE, passing an ARRAY of every block id you need (not one call per block)
+3. Call edit_workflow with targeted operations
+
+### EDITING DISCIPLINE (avoid slow, messy edits)
+- To change a block's configuration or name, use a SINGLE \`edit\` operation on that block
+  (\`operation_type: "edit"\`). NEVER delete a block and re-add it to change its settings — that
+  is slower, breaks its connections, and scrambles its position.
+- Keep edges consistent: never leave a connection pointing at a block you deleted.
+- Do NOT keep re-positioning blocks by hand — the canvas auto-lays-out the workflow into a clean
+  ordered line after each edit. Set positions only when explicitly asked.
+- After a successful edit_workflow, you are DONE. Do NOT call get_user_workflow again "to verify".
+  Reply with a brief confirmation of what changed. Stop calling tools.
 
 ## Communication Style
 

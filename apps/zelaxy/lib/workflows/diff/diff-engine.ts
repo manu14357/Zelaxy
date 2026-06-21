@@ -78,12 +78,14 @@ export class WorkflowDiffEngine {
       body.options = {
         applyAutoLayout: true,
         layoutOptions: {
-          strategy: 'smart',
-          direction: 'auto',
+          // Layered + vertical gives a clean, aligned top-to-bottom line for linear workflows
+          // (smart/auto staggered the blocks so they didn't line up).
+          strategy: 'layered',
+          direction: 'vertical',
           spacing: {
-            horizontal: 500,
-            vertical: 400,
-            layer: 700,
+            horizontal: 400,
+            vertical: 250,
+            layer: 250,
           },
           alignment: 'center',
           padding: {
@@ -199,12 +201,14 @@ export class WorkflowDiffEngine {
       body.options = {
         applyAutoLayout: true,
         layoutOptions: {
-          strategy: 'smart',
-          direction: 'auto',
+          // Layered + vertical gives a clean, aligned top-to-bottom line for linear workflows
+          // (smart/auto staggered the blocks so they didn't line up).
+          strategy: 'layered',
+          direction: 'vertical',
           spacing: {
-            horizontal: 500,
-            vertical: 400,
-            layer: 700,
+            horizontal: 400,
+            vertical: 250,
+            layer: 250,
           },
           alignment: 'center',
           padding: {
