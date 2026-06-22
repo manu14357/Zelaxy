@@ -508,6 +508,20 @@ export function calculateNextRunTime(
       return nextRun
     }
 
+    case 'custom': {
+      // Custom cron: compute the next occurrence from the raw cron expression (timezone-aware).
+      const cronExpr = scheduleValues.cronExpression
+      if (!cronExpr?.trim()) {
+        throw new Error('Custom schedule requires a cron expression')
+      }
+      const cron = new Cron(cronExpr, { timezone })
+      const next = cron.nextRun(lastRanAt ? new Date(lastRanAt) : new Date())
+      if (!next) {
+        throw new Error(`Could not compute a next run time for cron expression "${cronExpr}"`)
+      }
+      return next
+    }
+
     default:
       throw new Error(`Unsupported schedule type: ${scheduleType}`)
   }

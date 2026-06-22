@@ -9,13 +9,17 @@
  * The key property: positions are recomputed PURELY from the graph topology, so whatever ad-hoc
  * coordinates an AI edit produced are discarded in favour of a tidy, deterministic arrangement.
  * Linear workflows therefore render as a straight horizontal line; branches fan out into columns.
+ *
+ * Container blocks (loop / parallel) get their children laid out RELATIVE to the container (React
+ * Flow child coordinates are parent-relative), and the container is then sized to fit its children
+ * so they render inside the box instead of spilling out.
  */
 
 export interface LayoutBlockLike {
   position: { x: number; y: number }
   height?: number
   type?: string
-  data?: { parentId?: string | null } | null
+  data?: { parentId?: string | null; width?: number; height?: number } | null
 }
 
 export interface LayoutEdgeLike {
@@ -29,35 +33,38 @@ const LAYER_X_STEP = 600
 const ROW_Y_GAP = 150
 /** Fallback block height when a block hasn't been measured yet. */
 const DEFAULT_BLOCK_HEIGHT = 120
+/** Approximate canvas block width — used to size containers around their children. */
+const BLOCK_WIDTH = 350
 /** Top-left origin of the laid-out graph. */
 const ORIGIN_X = 150
 const ORIGIN_Y = 200
 /** Block types that are free-form annotations and should keep their manual position. */
 const SKIP_TYPES = new Set(['note'])
+/** Padding inside a container: header space above children + margin around them. */
+const CONTAINER_HEADER = 60
+const CONTAINER_PAD = 40
+const CONTAINER_MIN_WIDTH = 360
+const CONTAINER_MIN_HEIGHT = 200
+
+interface GroupLayout {
+  positions: Record<string, { x: number; y: number }>
+  width: number
+  height: number
+}
 
 /**
- * Computes tidy layered positions for a workflow's root blocks.
- *
- * Only root-level blocks (no `parentId`) and non-note blocks are repositioned; children of
- * container blocks (loop/parallel) and notes are left untouched so their relative arrangement
- * is preserved.
- *
- * @returns a map of blockId -> new position for every block that should move.
+ * Lays out a set of block ids as a layered DAG starting at (originX, originY) and returns their
+ * positions plus the bounding width/height of the group.
  */
-export function computeLayeredPositions(
+function layoutGroup(
+  ids: string[],
   blocks: Record<string, LayoutBlockLike>,
-  edges: LayoutEdgeLike[]
-): Record<string, { x: number; y: number }> {
-  // Only lay out root, non-note blocks. Everything else keeps its current position.
-  const ids = Object.keys(blocks).filter((id) => {
-    const block = blocks[id]
-    if (!block) return false
-    if (block.data?.parentId) return false
-    if (block.type && SKIP_TYPES.has(block.type)) return false
-    return true
-  })
-
-  if (ids.length === 0) return {}
+  edges: LayoutEdgeLike[],
+  originX: number,
+  originY: number
+): GroupLayout {
+  const positions: Record<string, { x: number; y: number }> = {}
+  if (ids.length === 0) return { positions, width: 0, height: 0 }
 
   const idSet = new Set(ids)
   const incoming = new Map<string, Set<string>>()
@@ -121,18 +128,83 @@ export function computeLayeredPositions(
     byLayer.get(l)!.push(id)
   }
 
-  const positions: Record<string, { x: number; y: number }> = {}
   const layerNumbers = Array.from(byLayer.keys()).sort((a, b) => a - b)
+  let maxRight = originX
+  let maxBottom = originY
 
   for (const layerNum of layerNumbers) {
     const column = byLayer.get(layerNum)!
-    const x = ORIGIN_X + layerNum * LAYER_X_STEP
-    let y = ORIGIN_Y
+    const x = originX + layerNum * LAYER_X_STEP
+    let y = originY
     for (const id of column) {
       positions[id] = { x, y }
-      y += (blocks[id].height || DEFAULT_BLOCK_HEIGHT) + ROW_Y_GAP
+      const h = blocks[id].height || DEFAULT_BLOCK_HEIGHT
+      y += h + ROW_Y_GAP
+      maxBottom = Math.max(maxBottom, positions[id].y + h)
+    }
+    maxRight = Math.max(maxRight, x + BLOCK_WIDTH)
+  }
+
+  return { positions, width: maxRight - originX, height: maxBottom - originY }
+}
+
+/**
+ * Computes tidy layered positions for a workflow.
+ *
+ * Container (loop/parallel) children are laid out relative to their container and the container is
+ * sized to fit; root-level blocks (and the containers themselves) are then laid out as one DAG.
+ * Notes keep their manual positions.
+ *
+ * @returns a map of blockId -> new position for every block that should move. Container blocks may
+ * also have their `data.width`/`data.height` (and `height`) updated in place to fit their children.
+ */
+export function computeLayeredPositions(
+  blocks: Record<string, LayoutBlockLike>,
+  edges: LayoutEdgeLike[]
+): Record<string, { x: number; y: number }> {
+  const positions: Record<string, { x: number; y: number }> = {}
+
+  // Group children by their parent container.
+  const childrenByParent = new Map<string, string[]>()
+  for (const id of Object.keys(blocks)) {
+    const block = blocks[id]
+    if (!block) continue
+    const parentId = block.data?.parentId
+    if (!parentId) continue
+    if (block.type && SKIP_TYPES.has(block.type)) continue
+    if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, [])
+    childrenByParent.get(parentId)!.push(id)
+  }
+
+  // 1. Lay out each container's children (relative to the container) and size the container to fit.
+  for (const [containerId, childIds] of childrenByParent) {
+    const {
+      positions: childPositions,
+      width,
+      height,
+    } = layoutGroup(childIds, blocks, edges, CONTAINER_PAD, CONTAINER_HEADER)
+    Object.assign(positions, childPositions)
+
+    const container = blocks[containerId]
+    if (container) {
+      const w = Math.max(width + CONTAINER_PAD, CONTAINER_MIN_WIDTH)
+      const h = Math.max(height + CONTAINER_PAD, CONTAINER_MIN_HEIGHT)
+      container.data = { ...(container.data || {}), width: w, height: h }
+      // Reflect the computed size in `height` so the root pass spaces the container correctly.
+      container.height = h
     }
   }
+
+  // 2. Lay out root-level blocks (no parentId, non-note) — containers participate as sized nodes.
+  const rootIds = Object.keys(blocks).filter((id) => {
+    const block = blocks[id]
+    if (!block) return false
+    if (block.data?.parentId) return false
+    if (block.type && SKIP_TYPES.has(block.type)) return false
+    return true
+  })
+  const { positions: rootPositions } = layoutGroup(rootIds, blocks, edges, ORIGIN_X, ORIGIN_Y)
+  Object.assign(positions, rootPositions)
 
   return positions
 }

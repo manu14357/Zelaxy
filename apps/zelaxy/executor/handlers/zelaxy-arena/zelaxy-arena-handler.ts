@@ -219,6 +219,10 @@ export class ZelaxyArenaBlockHandler implements BlockHandler {
       tools: inputs.tools,
       temperature: inputs.temperature,
       maxTokens: inputs.maxTokens,
+      // Pass workspace context so the block runs as the FULL ZelaxyArena agent (tools + snapshot),
+      // not a bare LLM call — matching what the chat agent can do.
+      workspaceId: ctx.workspaceId,
+      userId: ctx.userId,
     }
 
     if (shouldStream) {

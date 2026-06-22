@@ -1077,6 +1077,7 @@ export function prepareToolExecution(
     workflowId?: string
     workspaceId?: string
     chatId?: string
+    userId?: string
     environmentVariables?: Record<string, any>
   }
 ): {
@@ -1089,20 +1090,94 @@ export function prepareToolExecution(
     ...llmArgs,
   }
 
-  // Add system parameters for execution
+  // Add system parameters for execution. Build _context from whatever identifiers are present
+  // (not just workflowId) so workspace-scoped callers and per-user tools get their context too.
+  const contextEntries: Record<string, string> = {
+    ...(request.workflowId ? { workflowId: request.workflowId } : {}),
+    ...(request.workspaceId ? { workspaceId: request.workspaceId } : {}),
+    ...(request.chatId ? { chatId: request.chatId } : {}),
+    ...(request.userId ? { userId: request.userId } : {}),
+  }
   const executionParams = {
     ...toolParams,
-    ...(request.workflowId
-      ? {
-          _context: {
-            workflowId: request.workflowId,
-            ...(request.workspaceId ? { workspaceId: request.workspaceId } : {}),
-            ...(request.chatId ? { chatId: request.chatId } : {}),
-          },
-        }
-      : {}),
+    ...(Object.keys(contextEntries).length > 0 ? { _context: contextEntries } : {}),
     ...(request.environmentVariables ? { envVars: request.environmentVariables } : {}),
   }
 
   return { toolParams, executionParams }
+}
+
+/**
+ * Some OpenAI-compatible models (notably Xiaomi MiMo) emit tool calls as literal markup in the
+ * message content instead of structured `tool_calls`. Two shapes are seen in the wild:
+ *   1. `<function=NAME>{json args}</function>`              (Hermes / Qwen style)
+ *   2. `<tool_call>{"name":"NAME","arguments":{...}}</tool_call>`  (OpenAI-ish JSON)
+ * This parser extracts those into the structured `tool_calls` shape so the agent actually runs
+ * them instead of treating the turn as a (broken) final answer.
+ */
+export function parseTextToolCalls(
+  content: string
+): Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }> {
+  if (!content || (!content.includes('<function=') && !content.includes('<tool_call'))) return []
+
+  const found: Array<{ name: string; argsRaw: string }> = []
+
+  // Shape 1: <function=NAME>BODY</function> (BODY is JSON args or empty)
+  const fnRe = /<function=([\w.-]+)\s*>([\s\S]*?)<\/function>/g
+  let m: RegExpExecArray | null
+  // biome-ignore lint/suspicious/noAssignInExpressions: standard regex exec loop
+  while ((m = fnRe.exec(content)) !== null) {
+    found.push({ name: m[1].trim(), argsRaw: (m[2] || '').trim() })
+  }
+
+  // Shape 2: <tool_call>{json}</tool_call> — only when it isn't just wrapping a <function=> block
+  const tcRe = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/g
+  // biome-ignore lint/suspicious/noAssignInExpressions: standard regex exec loop
+  while ((m = tcRe.exec(content)) !== null) {
+    const inner = (m[1] || '').trim()
+    if (inner.includes('<function=') || !inner.startsWith('{')) continue
+    try {
+      const obj = JSON.parse(inner)
+      if (obj && typeof obj.name === 'string') {
+        const args = obj.arguments ?? obj.parameters ?? {}
+        found.push({
+          name: obj.name,
+          argsRaw: typeof args === 'string' ? args : JSON.stringify(args),
+        })
+      }
+    } catch {
+      // not valid JSON — ignore
+    }
+  }
+
+  return found.map((r, i) => {
+    let argumentsJson = '{}'
+    const trimmed = r.argsRaw.trim()
+    if (trimmed.startsWith('{')) {
+      try {
+        JSON.parse(trimmed)
+        argumentsJson = trimmed
+      } catch {
+        argumentsJson = '{}'
+      }
+    }
+    return {
+      id: `call_text_${Date.now()}_${i}`,
+      type: 'function' as const,
+      function: { name: r.name, arguments: argumentsJson },
+    }
+  })
+}
+
+/**
+ * Removes the text-form tool-call markup ({@link parseTextToolCalls}) from a content string so the
+ * leftover prose can be used as the assistant's visible answer.
+ */
+export function stripTextToolCallMarkup(content: string): string {
+  if (!content) return content
+  return content
+    .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '')
+    .replace(/<function=[\s\S]*?<\/function>/g, '')
+    .replace(/<function=[^>]*\/>/g, '')
+    .trim()
 }

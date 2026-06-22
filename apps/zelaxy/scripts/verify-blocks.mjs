@@ -31,6 +31,22 @@ for (const f of files) {
   }
   const toolIds = [...m[1].matchAll(/['"`]([a-zA-Z0-9_]+)['"`]/g)].map((x) => x[1])
   const missing = toolIds.filter((t) => !ids.has(t))
+
+  // Also check LITERAL tool ids returned by config.tool(...) — e.g. `=> params.op || 'some_tool'`
+  // or `=> 'some_tool'`. A literal that isn't registered fails at runtime even though tools.access
+  // looks fine (the enrich bug class). Dynamic returns like `params.operation` aren't literals, so
+  // they're skipped here; verify-blocks-structure / the runtime registry covers those.
+  const toolFn = src.match(/tool:\s*\([^)]*\)\s*=>\s*([^\n]+)/)
+  if (toolFn) {
+    // Strip comparison operands (e.g. `params.operation === 'write'`) so only RETURNED tool-id
+    // literals remain — comparison values aren't tool ids and would be false positives.
+    const body = toolFn[1].replace(/[=!]==?\s*['"`][^'"`]*['"`]/g, '')
+    const cfgLiterals = [...body.matchAll(/['"`]([a-zA-Z0-9_]+)['"`]/g)].map((x) => x[1])
+    for (const t of cfgLiterals) {
+      if (!ids.has(t) && !missing.includes(t)) missing.push(t)
+    }
+  }
+
   if (missing.length) problems.push({ f, missing })
 }
 

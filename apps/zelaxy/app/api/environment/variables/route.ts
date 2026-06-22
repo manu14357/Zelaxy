@@ -1,12 +1,8 @@
-import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getEnvironmentVariableKeys } from '@/lib/environment/utils'
+import { getEnvironmentVariableKeys, setEnvironmentVariablesForUser } from '@/lib/environment/utils'
 import { createLogger } from '@/lib/logs/console/logger'
-import { decryptSecret, encryptSecret } from '@/lib/utils'
 import { getUserId } from '@/app/api/auth/oauth/utils'
-import { db } from '@/db'
-import { environment } from '@/db/schema'
 
 const logger = createLogger('EnvironmentVariablesAPI')
 
@@ -71,90 +67,17 @@ export async function PUT(request: NextRequest) {
     try {
       const { variables: validatedVariables } = EnvVarSchema.parse({ variables })
 
-      // Get existing environment variables for this user
-      const existingData = await db
-        .select()
-        .from(environment)
-        .where(eq(environment.userId, userId))
-        .limit(1)
-
-      // Start with existing encrypted variables or empty object
-      const existingEncryptedVariables =
-        (existingData[0]?.variables as Record<string, string>) || {}
-
-      // Determine which variables are new or changed by comparing with decrypted existing values
-      const variablesToEncrypt: Record<string, string> = {}
-      const addedVariables: string[] = []
-      const updatedVariables: string[] = []
-
-      for (const [key, newValue] of Object.entries(validatedVariables)) {
-        if (!(key in existingEncryptedVariables)) {
-          // New variable
-          variablesToEncrypt[key] = newValue
-          addedVariables.push(key)
-        } else {
-          // Check if the value has actually changed by decrypting the existing value
-          try {
-            const { decrypted: existingValue } = await decryptSecret(
-              existingEncryptedVariables[key]
-            )
-
-            if (existingValue !== newValue) {
-              // Value changed, needs re-encryption
-              variablesToEncrypt[key] = newValue
-              updatedVariables.push(key)
-            }
-            // If values are the same, keep the existing encrypted value
-          } catch (decryptError) {
-            // If we can't decrypt the existing value, treat as changed and re-encrypt
-            logger.warn(
-              `[${requestId}] Could not decrypt existing variable ${key}, re-encrypting`,
-              { error: decryptError }
-            )
-            variablesToEncrypt[key] = newValue
-            updatedVariables.push(key)
-          }
-        }
-      }
-
-      // Only encrypt the variables that are new or changed
-      const newlyEncryptedVariables = await Object.entries(variablesToEncrypt).reduce(
-        async (accPromise, [key, value]) => {
-          const acc = await accPromise
-          const { encrypted } = await encryptSecret(value)
-          return { ...acc, [key]: encrypted }
-        },
-        Promise.resolve({})
-      )
-
-      // Merge existing encrypted variables with newly encrypted ones
-      const finalEncryptedVariables = { ...existingEncryptedVariables, ...newlyEncryptedVariables }
-
-      // Update or insert environment variables for user
-      await db
-        .insert(environment)
-        .values({
-          id: crypto.randomUUID(),
-          userId: userId,
-          variables: finalEncryptedVariables,
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: [environment.userId],
-          set: {
-            variables: finalEncryptedVariables,
-            updatedAt: new Date(),
-          },
-        })
+      const { variableNames, addedVariables, updatedVariables, totalVariableCount } =
+        await setEnvironmentVariablesForUser(userId, validatedVariables)
 
       return NextResponse.json(
         {
           success: true,
           output: {
-            message: `Successfully processed ${Object.keys(validatedVariables).length} environment variable(s): ${addedVariables.length} added, ${updatedVariables.length} updated`,
-            variableCount: Object.keys(validatedVariables).length,
-            variableNames: Object.keys(validatedVariables),
-            totalVariableCount: Object.keys(finalEncryptedVariables).length,
+            message: `Successfully processed ${variableNames.length} environment variable(s): ${addedVariables.length} added, ${updatedVariables.length} updated`,
+            variableCount: variableNames.length,
+            variableNames,
+            totalVariableCount,
             addedVariables,
             updatedVariables,
           },

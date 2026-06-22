@@ -129,6 +129,11 @@ const DirectChatMessageSchema = z.object({
  * POST /api/copilot/direct-chat
  * Direct LLM chat without Python service dependency
  */
+// Tools that execute in the BROWSER (not on the server) — e.g. running the workflow that's open on
+// the canvas. For these the server only emits the tool_call so the client can run it (with its
+// confirmation UI); it must NOT call executeLocalTool (which would resolve a different server tool).
+const CLIENT_ONLY_TOOLS = new Set(['run_workflow'])
+
 export async function POST(req: NextRequest) {
   const tracker = createRequestTracker()
 
@@ -522,6 +527,12 @@ export async function POST(req: NextRequest) {
               iteration < MAX_TOOL_ITERATIONS
             ) {
               iteration++
+              // Server-authoritative abort: if the client stopped, do NOT run another tool round
+              // (build/edit tools mutate state) or issue another LLM call.
+              if (req.signal.aborted) {
+                logger.info(`[${tracker.requestId}] Request aborted — stopping tool loop`)
+                break
+              }
               logger.info(
                 `[${tracker.requestId}] Tool call iteration ${iteration}: Processing ${currentResponse.toolCalls.length} tool calls`
               )
@@ -556,6 +567,36 @@ export async function POST(req: NextRequest) {
                     arguments: toolCall.arguments || {},
                   },
                 })
+
+                // Don't run a state-mutating tool after the user pressed Stop.
+                if (req.signal.aborted) break
+
+                // Client-only tools run in the browser (the tool_call was emitted above so the
+                // client shows its Run/Skip confirmation and executes the open canvas). Don't run
+                // them server-side; feed the model a placeholder so it can finish its turn.
+                if (CLIENT_ONLY_TOOLS.has(toolCall.name)) {
+                  const placeholder = {
+                    clientExecuted: true,
+                    message:
+                      'The workflow run was handed to the canvas — the user will confirm and see the results there.',
+                  }
+                  iterationToolResults.push({
+                    toolId: toolCall.name,
+                    toolCallId,
+                    result: { success: true, data: placeholder },
+                  })
+                  allToolResults.push({
+                    toolId: toolCall.name,
+                    toolCallId,
+                    result: { success: true, data: placeholder },
+                  })
+                  toolResultMessages.push({
+                    role: 'tool',
+                    tool_call_id: toolCallId,
+                    content: JSON.stringify(placeholder),
+                  })
+                  continue
+                }
 
                 const toolResult = await executeLocalTool(toolCall.name, enrichedArguments)
 
@@ -608,6 +649,28 @@ export async function POST(req: NextRequest) {
                 let resultContent = toolResult.success
                   ? toonEncodeForLLM(toolResult.data || {})
                   : `Error: ${toolResult.error}`
+
+                // Surface validation errors + structural lint at the FRONT so they survive
+                // truncation of large workflow results — the model needs them to issue a corrective
+                // follow-up edit instead of declaring success on a broken graph.
+                const validationErrors = (toolResult.data as any)?.inputValidationErrors
+                const workflowLint = (toolResult.data as any)?.workflowLint
+                const feedbackLines: string[] = []
+                if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+                  feedbackLines.push(
+                    ...validationErrors.map(
+                      (e: any) => `- ${e.block ? `${e.block}.` : ''}${e.field}: ${e.message}`
+                    )
+                  )
+                }
+                if (Array.isArray(workflowLint) && workflowLint.length > 0) {
+                  feedbackLines.push(
+                    ...workflowLint.map((i: any) => `- [${i.severity}] ${i.message}`)
+                  )
+                }
+                if (feedbackLines.length > 0) {
+                  resultContent = `WORKFLOW ISSUES (fix ONLY these with one follow-up edit, then stop):\n${feedbackLines.join('\n')}\n\n${resultContent}`
+                }
 
                 // Generous limits so the model SEES the full data. The old small caps (4–6k) cut off the
                 // existing workflow + block metadata mid-result, so Agie couldn't analyze the current
@@ -773,7 +836,9 @@ export async function POST(req: NextRequest) {
             // Final answer — ALWAYS stream it token-by-token (real streaming for EVERY provider, not
             // just thinking-capable ones). Thinking providers also emit reasoning deltas. Falls back
             // to the buffered content only if the streaming call fails or yields nothing.
+            // Skip entirely if the user aborted — don't spend another LLM round-trip post-Stop.
             try {
+              if (req.signal.aborted) throw new Error('aborted')
               const finalResp: any = await executeProviderRequest(provider as any, {
                 model,
                 messages: conversationMessages as any,
@@ -801,11 +866,13 @@ export async function POST(req: NextRequest) {
                 send({ type: 'content', data: finalContent })
               }
             } catch (finalErr) {
-              logger.warn(
-                `[${tracker.requestId}] Final streaming answer failed, falling back to buffered content`,
-                { finalErr }
-              )
-              if (finalContent) send({ type: 'content', data: finalContent })
+              if (!req.signal.aborted) {
+                logger.warn(
+                  `[${tracker.requestId}] Final streaming answer failed, falling back to buffered content`,
+                  { finalErr }
+                )
+                if (finalContent) send({ type: 'content', data: finalContent })
+              }
             }
 
             // Send done event

@@ -384,6 +384,8 @@ export async function POST(req: NextRequest) {
           model,
           customApiKey: body.customApiKey, // Forward custom API key if provided
         }),
+        // Forward client cancellation so a Stop cancels the inner direct-chat loop too.
+        signal: req.signal,
       })
 
       return directResponse

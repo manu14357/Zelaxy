@@ -1,7 +1,18 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Bot, History, Loader2, Plus, Sparkles, Trash2, Wrench } from 'lucide-react'
+import {
+  Bot,
+  Check,
+  Copy,
+  History,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Sparkles,
+  Trash2,
+  Wrench,
+} from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +20,7 @@ import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
 import {
   ArenaComposer,
+  type ArenaContext,
   type ArenaImageAttachment,
 } from '@/app/arena/[workspaceId]/zelaxyarena/arena-composer'
 import {
@@ -68,6 +80,8 @@ interface ChatMessage {
   tools?: ToolAction[]
   /** Native extended-thinking reasoning streamed from capable models (separate from the answer). */
   reasoning?: string
+  /** Set when the user stopped this turn mid-stream. */
+  stopped?: boolean
 }
 
 const SUGGESTIONS = [
@@ -87,6 +101,17 @@ export function ZelaxyArena() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [suggestions, setSuggestions] = useState<string[]>(SUGGESTIONS)
+  // Messages the user sent while a turn was still streaming — auto-dispatched when it finishes.
+  const [queued, setQueued] = useState<
+    {
+      text: string
+      apiText?: string
+      attachments?: ArenaImageAttachment[]
+      contexts?: ArenaContext[]
+    }[]
+  >([])
   const [artifacts, setArtifacts] = useState<ResourceArtifact[]>([])
   // Live console feed (tool calls + results) shown in the resource panel's Console tab.
   const [consoleEntries, setConsoleEntries] = useState<ConsoleEntry[]>([])
@@ -168,11 +193,21 @@ export function ZelaxyArena() {
           }),
         })
       } else {
+        // Derive a tidy title from the first user message (word-boundary trim) instead of a raw slice.
+        const firstUser = msgs.find((m) => m.role === 'user')?.content?.trim() || 'New chat'
+        const title =
+          firstUser.length > 48
+            ? `${firstUser
+                .slice(0, 48)
+                .replace(/\s+\S*$/, '')
+                .trim()}…`
+            : firstUser
         const res = await fetch('/api/zelaxy-arena/chats', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             workspaceId,
+            title,
             messages: payload,
             artifacts: artifactsPayload,
             consoleEntries: consolePayload,
@@ -189,6 +224,33 @@ export function ZelaxyArena() {
       /* ignore */
     }
   }, [workspaceId, loadChatList])
+
+  // Personalize the empty-state suggestions from what's actually in this workspace.
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/zelaxy-arena/contexts?workspaceId=${workspaceId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !Array.isArray(data?.contexts)) return
+        const wf = data.contexts.filter((c: any) => c.type === 'workflow')
+        const tbl = data.contexts.filter((c: any) => c.type === 'table')
+        const personalized: string[] = []
+        if (wf[0])
+          personalized.push(`Explain and suggest improvements to my "${wf[0].label}" workflow`)
+        if (tbl[0]) personalized.push(`Show me what's in the "${tbl[0].label}" table`)
+        personalized.push(
+          'Build a workflow that scrapes a URL, summarizes it with Claude, and posts to Slack'
+        )
+        personalized.push(
+          wf.length > 0 ? 'List my workflows and what each one does' : 'What can you build for me?'
+        )
+        if (personalized.length > 0) setSuggestions(personalized.slice(0, 4))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [workspaceId])
 
   // Persist once a streamed turn finishes — by now the messages ref holds the final assistant text.
   useEffect(() => {
@@ -285,9 +347,20 @@ export function ZelaxyArena() {
   }, [keyInputs, missingCreds])
 
   const send = useCallback(
-    async (text: string, apiText?: string, attachments?: ArenaImageAttachment[]) => {
+    async (
+      text: string,
+      apiText?: string,
+      attachments?: ArenaImageAttachment[],
+      contexts?: ArenaContext[]
+    ) => {
       const trimmed = text.trim()
-      if (!trimmed || isStreaming) return
+      if (!trimmed) return
+      // A turn is still streaming — queue this message instead of dropping it. It auto-sends when
+      // the current turn finishes (see the auto-dispatch effect).
+      if (isStreaming) {
+        setQueued((q) => [...q, { text: trimmed, apiText, attachments, contexts }])
+        return
+      }
 
       const userMsg: ChatMessage = {
         id: crypto.randomUUID(),
@@ -303,7 +376,10 @@ export function ZelaxyArena() {
         tools: [],
       }
 
-      const history = [...messages, userMsg]
+      // Build from the ref (always the latest committed messages) so a Retry that just truncated
+      // the history is honoured immediately rather than using a stale closure snapshot.
+      const history = [...messagesRef.current, userMsg]
+      messagesRef.current = [...history, assistantMsg]
       setMessages([...history, assistantMsg])
       setIsStreaming(true)
 
@@ -324,6 +400,7 @@ export function ZelaxyArena() {
             mode,
             messages: history.map((m) => ({ role: m.role, content: m.apiContent ?? m.content })),
             ...(attachments?.length ? { attachments } : {}),
+            ...(contexts?.length ? { contexts } : {}),
           }),
         })
 
@@ -443,16 +520,6 @@ export function ZelaxyArena() {
                       },
                       ...prev.filter((a) => a.id !== `table:${data.id}`),
                     ])
-                  } else if (toolName === 'file_write' && data.id) {
-                    setArtifacts((prev) => [
-                      {
-                        id: `file:${data.id}`,
-                        kind: 'file',
-                        title: data.name || 'New file',
-                        url: data.url,
-                      },
-                      ...prev.filter((a) => a.id !== `file:${data.id}`),
-                    ])
                   }
                 } catch (e) {
                   logger.warn('Failed to parse tool result for resource panel', { e })
@@ -498,7 +565,13 @@ export function ZelaxyArena() {
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
           logger.error('ZelaxyArena stream error', { err })
-          updateAssistant((m) => ({ ...m, content: m.content || '⚠️ Connection error' }))
+          // Keep whatever streamed before the drop (it's persisted in the finally), and surface a
+          // clear, recoverable state — the user can Retry to regenerate from the same prompt.
+          updateAssistant((m) => ({
+            ...m,
+            content:
+              `${m.content || ''}\n\n⚠️ The connection dropped before the response finished — press Retry to regenerate.`.trim(),
+          }))
         }
       } finally {
         setIsStreaming(false)
@@ -510,9 +583,51 @@ export function ZelaxyArena() {
     [messages, isStreaming, workspaceId, model, mode]
   )
 
+  // Auto-dispatch the next queued message once the current turn finishes streaming.
+  useEffect(() => {
+    if (!isStreaming && queued.length > 0) {
+      const [head, ...rest] = queued
+      setQueued(rest)
+      void send(head.text, head.apiText, head.attachments, head.contexts)
+    }
+  }, [isStreaming, queued, send])
+
+  // Regenerate an assistant turn: drop it (and its prompting user message), then re-run that prompt.
+  const retryAssistant = useCallback(
+    (assistantIndex: number) => {
+      if (isStreaming) return
+      const msgs = messagesRef.current
+      let ui = assistantIndex - 1
+      while (ui >= 0 && msgs[ui].role !== 'user') ui--
+      if (ui < 0) return
+      const userMsg = msgs[ui]
+      const truncated = msgs.slice(0, ui)
+      messagesRef.current = truncated
+      setMessages(truncated)
+      void send(userMsg.content, userMsg.apiContent)
+    },
+    [isStreaming, send]
+  )
+
   const stop = () => {
     abortRef.current?.abort()
     setIsStreaming(false)
+    setQueued([])
+    // Mark the in-flight assistant turn as stopped and flip any still-running tools to a final state.
+    setMessages((prev) => {
+      if (prev.length === 0) return prev
+      const last = prev[prev.length - 1]
+      if (last.role !== 'assistant') return prev
+      const next = [...prev]
+      next[next.length - 1] = {
+        ...last,
+        stopped: true,
+        tools: last.tools?.map((t) =>
+          t.status === 'running' ? { ...t, status: 'error', summary: 'Stopped' } : t
+        ),
+      }
+      return next
+    })
   }
 
   const newChat = () => {
@@ -686,7 +801,7 @@ export function ZelaxyArena() {
                   </p>
                 </div>
                 <div className='grid w-full max-w-xl gap-2 sm:grid-cols-2'>
-                  {SUGGESTIONS.map((s) => (
+                  {suggestions.map((s) => (
                     <button
                       key={s}
                       type='button'
@@ -709,7 +824,7 @@ export function ZelaxyArena() {
                     )}
                     <div
                       className={cn(
-                        'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
+                        'group max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
                         m.role === 'user'
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted/50 text-foreground'
@@ -778,6 +893,43 @@ export function ZelaxyArena() {
                           </div>
                         )
                       )}
+                      {m.role === 'assistant' && m.stopped && (
+                        <div className='mt-1 text-[11px] text-muted-foreground italic'>
+                          ⏹ Stopped by you
+                        </div>
+                      )}
+                      {/* Copy action — assistant messages, once they're done streaming. */}
+                      {m.role === 'assistant' &&
+                        m.content &&
+                        !(isStreaming && i === messages.length - 1) && (
+                          <div className='mt-1.5 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100'>
+                            <button
+                              type='button'
+                              className='flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-background/60 hover:text-foreground'
+                              onClick={() => {
+                                navigator.clipboard.writeText(splitThinking(m.content).text)
+                                setCopiedId(m.id)
+                                setTimeout(() => setCopiedId((c) => (c === m.id ? null : c)), 1500)
+                              }}
+                            >
+                              {copiedId === m.id ? (
+                                <Check className='h-3 w-3' />
+                              ) : (
+                                <Copy className='h-3 w-3' />
+                              )}
+                              {copiedId === m.id ? 'Copied' : 'Copy'}
+                            </button>
+                            <button
+                              type='button'
+                              disabled={isStreaming}
+                              className='flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-background/60 hover:text-foreground disabled:opacity-40'
+                              onClick={() => retryAssistant(i)}
+                            >
+                              <RefreshCw className='h-3 w-3' />
+                              Retry
+                            </button>
+                          </div>
+                        )}
                     </div>
                   </div>
                 ))}
@@ -786,11 +938,36 @@ export function ZelaxyArena() {
           </div>
         </div>
 
+        {/* Queued messages (sent while a turn was streaming) — auto-dispatch when it finishes */}
+        {queued.length > 0 && (
+          <div className='mx-3 mb-1 flex flex-col gap-1'>
+            {queued.map((q, i) => (
+              <div
+                key={`${i}-${q.text.slice(0, 12)}`}
+                className='flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground text-xs'
+              >
+                <span className='text-[10px] uppercase opacity-60'>Queued</span>
+                <span className='flex-1 truncate'>{q.text}</span>
+                <button
+                  type='button'
+                  className='opacity-60 hover:opacity-100'
+                  onClick={() => setQueued((prev) => prev.filter((_, idx) => idx !== i))}
+                  aria-label='Remove queued message'
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Composer — @-mentions + file attachments */}
         <ArenaComposer
           workspaceId={workspaceId}
           isStreaming={isStreaming}
-          onSend={(displayText, apiText) => send(displayText, apiText)}
+          onSend={(displayText, apiText, attachments, contexts) =>
+            send(displayText, apiText, attachments, contexts)
+          }
           onStop={stop}
         />
       </div>

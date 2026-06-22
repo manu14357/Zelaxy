@@ -13,9 +13,6 @@ export const SERVER_TOOL_IDS = {
   EDIT_WORKFLOW: 'edit_workflow',
   GET_BLOCKS_AND_TOOLS: 'get_blocks_and_tools',
   GET_BLOCKS_METADATA: 'get_blocks_metadata',
-  GET_YAML_STRUCTURE: 'get_yaml_structure',
-  GET_EDIT_WORKFLOW_EXAMPLES: 'get_edit_workflow_examples',
-  GET_BUILD_WORKFLOW_EXAMPLES: 'get_build_workflow_examples',
   GET_ENVIRONMENT_VARIABLES: 'get_environment_variables',
   SET_ENVIRONMENT_VARIABLES: 'set_environment_variables',
   GET_WORKFLOW_CONSOLE: 'get_workflow_console',
@@ -137,60 +134,6 @@ export const SERVER_TOOL_METADATA: Record<ServerToolId, ToolMetadata> = {
     schema: {
       name: SERVER_TOOL_IDS.GET_BLOCKS_METADATA,
       description: 'Get metadata for blocks',
-    },
-    requiresInterrupt: false,
-  },
-
-  [SERVER_TOOL_IDS.GET_YAML_STRUCTURE]: {
-    id: SERVER_TOOL_IDS.GET_YAML_STRUCTURE,
-    displayConfig: {
-      states: {
-        executing: { displayName: 'Analyzing workflow structure', icon: 'spinner' },
-        success: { displayName: 'Analyzed workflow structure', icon: 'tree' },
-        rejected: { displayName: 'Skipped workflow structure analysis', icon: 'skip' },
-        errored: { displayName: 'Failed to analyze workflow structure', icon: 'error' },
-        aborted: { displayName: 'Workflow structure analysis aborted', icon: 'x' },
-      },
-    },
-    schema: {
-      name: SERVER_TOOL_IDS.GET_YAML_STRUCTURE,
-      description: 'Get workflow YAML structure',
-    },
-    requiresInterrupt: false,
-  },
-
-  [SERVER_TOOL_IDS.GET_EDIT_WORKFLOW_EXAMPLES]: {
-    id: SERVER_TOOL_IDS.GET_EDIT_WORKFLOW_EXAMPLES,
-    displayConfig: {
-      states: {
-        executing: { displayName: 'Viewing workflow examples', icon: 'spinner' },
-        success: { displayName: 'Viewed workflow examples', icon: 'gitbranch' },
-        rejected: { displayName: 'Skipped workflow examples', icon: 'skip' },
-        errored: { displayName: 'Failed to view workflow examples', icon: 'error' },
-        aborted: { displayName: 'Workflow examples viewing aborted', icon: 'x' },
-      },
-    },
-    schema: {
-      name: SERVER_TOOL_IDS.GET_EDIT_WORKFLOW_EXAMPLES,
-      description: 'Get workflow examples',
-    },
-    requiresInterrupt: false,
-  },
-
-  [SERVER_TOOL_IDS.GET_BUILD_WORKFLOW_EXAMPLES]: {
-    id: SERVER_TOOL_IDS.GET_BUILD_WORKFLOW_EXAMPLES,
-    displayConfig: {
-      states: {
-        executing: { displayName: 'Viewing workflow examples', icon: 'spinner' },
-        success: { displayName: 'Viewed workflow examples', icon: 'gitbranch' },
-        rejected: { displayName: 'Skipped workflow examples', icon: 'skip' },
-        errored: { displayName: 'Failed to view workflow examples', icon: 'error' },
-        aborted: { displayName: 'Workflow examples viewing aborted', icon: 'x' },
-      },
-    },
-    schema: {
-      name: SERVER_TOOL_IDS.GET_BUILD_WORKFLOW_EXAMPLES,
-      description: 'Get workflow examples',
     },
     requiresInterrupt: false,
   },

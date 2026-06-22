@@ -365,6 +365,51 @@ describe('Schedule Utilities', () => {
       expect(nextRun.getMinutes()).toBe(30)
     })
 
+    it.concurrent('should calculate next run for a custom cron schedule', () => {
+      const scheduleValues = {
+        scheduleTime: '',
+        scheduleStartAt: '',
+        timezone: 'UTC',
+        minutesInterval: 15,
+        hourlyMinute: 0,
+        dailyTime: [9, 0] as [number, number],
+        weeklyDay: 1,
+        weeklyTime: [9, 0] as [number, number],
+        monthlyDay: 1,
+        monthlyTime: [9, 0] as [number, number],
+        // every 2 hours
+        cronExpression: '0 */2 * * *',
+      }
+
+      // Must NOT throw "Unsupported schedule type: custom" and must return a future date.
+      const nextRun = calculateNextRunTime('custom', scheduleValues)
+      expect(nextRun).toBeInstanceOf(Date)
+      expect(nextRun.getTime()).toBeGreaterThan(Date.now())
+      // Cron "0 */2 * * *" fires on an even hour, at minute 0.
+      expect(nextRun.getUTCHours() % 2).toBe(0)
+      expect(nextRun.getUTCMinutes()).toBe(0)
+    })
+
+    it.concurrent(
+      'should throw a clear error when a custom schedule has no cron expression',
+      () => {
+        const scheduleValues = {
+          scheduleTime: '',
+          scheduleStartAt: '',
+          timezone: 'UTC',
+          minutesInterval: 15,
+          hourlyMinute: 0,
+          dailyTime: [9, 0] as [number, number],
+          weeklyDay: 1,
+          weeklyTime: [9, 0] as [number, number],
+          monthlyDay: 1,
+          monthlyTime: [9, 0] as [number, number],
+          cronExpression: null,
+        }
+        expect(() => calculateNextRunTime('custom', scheduleValues)).toThrow(/cron expression/i)
+      }
+    )
+
     it.concurrent('should consider lastRanAt for better interval calculation', () => {
       const scheduleValues = {
         scheduleTime: '',

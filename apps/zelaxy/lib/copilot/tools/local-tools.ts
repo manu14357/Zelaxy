@@ -171,6 +171,29 @@ Note: The workflowId is automatically injected from the request context.`,
     },
   },
   {
+    id: 'search_online',
+    name: 'search_online',
+    description: `Search the public web for up-to-date information. Use this to:
+- Answer questions that need current/external facts the model may not know
+- Look up API docs, services, or providers before building an integration
+- Verify details (pricing, endpoints, parameters) for a third-party service`,
+    params: {},
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The web search query' },
+        num: { type: 'number', description: 'Number of results to return (default 10)' },
+        type: {
+          type: 'string',
+          description: "Search type: 'search' (default), 'news', or 'images'",
+        },
+        gl: { type: 'string', description: 'Optional country code (e.g. "us")' },
+        hl: { type: 'string', description: 'Optional language code (e.g. "en")' },
+      },
+      required: ['query'],
+    },
+  },
+  {
     id: 'get_workflow_console',
     name: 'get_workflow_console',
     description: `Get recent execution logs and console output for the workflow. Use this to:
@@ -208,6 +231,22 @@ Note: Returns variable names only, not their values (for security).`,
     parameters: {
       type: 'object',
       properties: {},
+      required: [],
+    },
+  },
+  {
+    id: 'run_workflow',
+    name: 'run_workflow',
+    description: `Run the workflow that is currently OPEN on the canvas. Use this when the user asks to run / execute / test their current workflow. The user confirms before it runs, and results appear on the canvas. (This runs the live editor workflow — not a deployed one.)`,
+    params: {},
+    parameters: {
+      type: 'object',
+      properties: {
+        workflow_input: {
+          type: 'string',
+          description: 'Optional input/payload to pass to the workflow run',
+        },
+      },
       required: [],
     },
   },
@@ -270,6 +309,7 @@ export function getToolsForMode(mode: 'agent' | 'ask'): ProviderToolConfig[] {
     return LOCAL_COPILOT_TOOLS.filter(
       (tool) =>
         tool.id === 'search_documentation' ||
+        tool.id === 'search_online' ||
         tool.id === 'get_blocks_and_tools' ||
         tool.id === 'get_blocks_metadata' ||
         tool.id === 'get_user_workflow' ||

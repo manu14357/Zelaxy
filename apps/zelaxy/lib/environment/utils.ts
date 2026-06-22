@@ -1,10 +1,86 @@
 import { eq } from 'drizzle-orm'
 import { createLogger } from '@/lib/logs/console/logger'
-import { decryptSecret } from '@/lib/utils'
+import { decryptSecret, encryptSecret } from '@/lib/utils'
 import { db } from '@/db'
 import { environment } from '@/db/schema'
 
 const logger = createLogger('EnvironmentUtils')
+
+/**
+ * Merge + encrypt + upsert a user's environment variables IN-PROCESS (no HTTP round-trip).
+ * Only new/changed values are re-encrypted; unchanged ones keep their existing ciphertext.
+ * Shared by the /api/environment/variables PUT route and the copilot set_environment_variables tool.
+ */
+export async function setEnvironmentVariablesForUser(
+  userId: string,
+  variables: Record<string, string>
+): Promise<{
+  variableNames: string[]
+  addedVariables: string[]
+  updatedVariables: string[]
+  totalVariableCount: number
+}> {
+  const existingData = await db
+    .select()
+    .from(environment)
+    .where(eq(environment.userId, userId))
+    .limit(1)
+
+  const existingEncrypted = (existingData[0]?.variables as Record<string, string>) || {}
+
+  const toEncrypt: Record<string, string> = {}
+  const addedVariables: string[] = []
+  const updatedVariables: string[] = []
+
+  for (const [key, newValue] of Object.entries(variables)) {
+    if (!(key in existingEncrypted)) {
+      toEncrypt[key] = newValue
+      addedVariables.push(key)
+      continue
+    }
+    try {
+      const { decrypted: existingValue } = await decryptSecret(existingEncrypted[key])
+      if (existingValue !== newValue) {
+        toEncrypt[key] = newValue
+        updatedVariables.push(key)
+      }
+    } catch (decryptError) {
+      logger.warn(`Could not decrypt existing variable ${key}, re-encrypting`, {
+        error: decryptError,
+      })
+      toEncrypt[key] = newValue
+      updatedVariables.push(key)
+    }
+  }
+
+  const newlyEncrypted: Record<string, string> = {}
+  for (const [key, value] of Object.entries(toEncrypt)) {
+    const { encrypted } = await encryptSecret(value)
+    newlyEncrypted[key] = encrypted
+  }
+
+  const finalEncrypted = { ...existingEncrypted, ...newlyEncrypted }
+
+  await db
+    .insert(environment)
+    .values({
+      id: crypto.randomUUID(),
+      userId,
+      variables: finalEncrypted,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [environment.userId],
+      set: { variables: finalEncrypted, updatedAt: new Date() },
+    })
+
+  return {
+    variableNames: Object.keys(variables),
+    addedVariables,
+    updatedVariables,
+    totalVariableCount: Object.keys(finalEncrypted).length,
+  }
+}
 
 /**
  * Load a user's environment variables with values decrypted. Used server-side to resolve provider

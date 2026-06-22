@@ -1,10 +1,12 @@
-import { env } from '@/lib/env'
+import { setEnvironmentVariablesForUser } from '@/lib/environment/utils'
 import { createLogger } from '@/lib/logs/console/logger'
+import { getUserId } from '@/app/api/auth/oauth/utils'
 import { BaseCopilotTool } from '../base'
 
 interface SetEnvironmentVariablesParams {
   variables: Record<string, any>
   workflowId?: string
+  userId?: string
 }
 
 interface SetEnvironmentVariablesResult {
@@ -36,7 +38,7 @@ async function setEnvironmentVariables(
   params: SetEnvironmentVariablesParams
 ): Promise<SetEnvironmentVariablesResult> {
   const logger = createLogger('SetEnvironmentVariables')
-  const { variables, workflowId } = params
+  const { variables, workflowId, userId: directUserId } = params
 
   logger.info('Setting environment variables for copilot', {
     variableCount: Object.keys(variables).length,
@@ -44,30 +46,23 @@ async function setEnvironmentVariables(
     hasWorkflowId: !!workflowId,
   })
 
-  // Forward the request to the existing environment variables endpoint
-  const envUrl = `${env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/environment/variables`
-
-  const response = await fetch(envUrl, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ variables, workflowId }),
-  })
-
-  if (!response.ok) {
-    logger.error('Set environment variables API failed', {
-      status: response.status,
-      statusText: response.statusText,
-    })
-    throw new Error('Failed to set environment variables')
+  // Resolve the owner in-process (no self-HTTP round-trip / localhost fallback) — mirrors how
+  // get_environment_variables works, and works regardless of NEXT_PUBLIC_APP_URL.
+  const userId =
+    directUserId || (workflowId ? await getUserId('copilot-set-env-vars', workflowId) : undefined)
+  if (!userId) {
+    throw new Error('Either userId or workflowId is required to set environment variables')
   }
 
-  await response.json()
+  // Coerce values to strings (the schema accepts any) and persist in-process.
+  const stringVars: Record<string, string> = {}
+  for (const [k, v] of Object.entries(variables)) stringVars[k] = String(v)
+
+  const result = await setEnvironmentVariablesForUser(userId, stringVars)
 
   return {
-    message: 'Environment variables updated successfully',
-    updatedVariables: Object.keys(variables),
-    count: Object.keys(variables).length,
+    message: `Environment variables updated (${result.addedVariables.length} added, ${result.updatedVariables.length} changed)`,
+    updatedVariables: result.variableNames,
+    count: result.variableNames.length,
   }
 }

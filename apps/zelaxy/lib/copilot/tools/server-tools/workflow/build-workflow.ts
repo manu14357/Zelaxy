@@ -7,6 +7,7 @@ import { DEFAULT_CHAT_MODEL, isKnownModel } from '@/providers/models'
 import { generateLoopBlocks, generateParallelBlocks } from '@/stores/workflows/workflow/utils'
 import { convertYamlToWorkflow, parseWorkflowYaml } from '@/stores/workflows/yaml/importer'
 import { BaseCopilotTool } from '../base'
+import { type InputValidationError, lintWorkflowState, validateBlockSubBlocks } from './validation'
 
 /**
  * The workflow-builder LLM often emits model ids from its training data that don't exist in this
@@ -254,11 +255,18 @@ async function buildWorkflowLocal(
   })
 
   // Add blocks to preview workflow state
+  const inputValidationErrors: InputValidationError[] = []
   for (const block of blocks) {
     const previewBlockId = blockIdMapping.get(block.id)!
 
     // Convert flat inputs to proper subBlocks format
     const subBlocks = convertInputsToSubBlocks(block.type, block.inputs || {}, blockRegistry)
+
+    // Validate/normalize values against the block's sub-block config (catches invalid dropdown
+    // ids, out-of-range sliders, non-boolean switches) so the model can self-correct.
+    inputValidationErrors.push(
+      ...validateBlockSubBlocks(block.type, blockRegistry.get(block.type), subBlocks)
+    )
 
     previewWorkflowState.blocks[previewBlockId] = {
       id: previewBlockId,
@@ -311,7 +319,18 @@ async function buildWorkflowLocal(
   const blocksCount = Object.keys(previewWorkflowState.blocks).length
   const edgesCount = previewWorkflowState.edges.length
 
-  logger.info('Workflow built locally successfully', { blocksCount, edgesCount })
+  const workflowLint = lintWorkflowState(
+    previewWorkflowState.blocks,
+    previewWorkflowState.edges,
+    blockRegistry
+  )
+
+  logger.info('Workflow built locally successfully', {
+    blocksCount,
+    edgesCount,
+    inputValidationErrors: inputValidationErrors.length,
+    workflowLint: workflowLint.length,
+  })
 
   return {
     success: true,
@@ -319,9 +338,13 @@ async function buildWorkflowLocal(
     yamlContent,
     description: description || 'Built workflow',
     workflowState: previewWorkflowState,
+    ...(inputValidationErrors.length > 0 ? { inputValidationErrors } : {}),
+    ...(workflowLint.length > 0 ? { workflowLint } : {}),
     data: {
       blocksCount,
       edgesCount,
+      ...(inputValidationErrors.length > 0 ? { inputValidationErrors } : {}),
+      ...(workflowLint.length > 0 ? { workflowLint } : {}),
     },
   }
 }

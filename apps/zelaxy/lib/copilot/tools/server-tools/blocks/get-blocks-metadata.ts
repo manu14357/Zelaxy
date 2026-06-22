@@ -54,40 +54,42 @@ function processSubBlocks(subBlocks: any[]): any[] {
     return []
   }
 
-  return subBlocks
-    .filter((subBlock) => !subBlock.hidden) // Skip hidden subBlocks
-    .map((subBlock) => {
-      const processedSubBlock: any = {
-        id: subBlock.id,
-        type: subBlock.type,
+  // NOTE: hidden sub-blocks are kept (marked `hidden`). They are hidden from the canvas UI but are
+  // still real, configurable fields the copilot must set — e.g. the schedule block hides
+  // scheduleType/cronExpression, so dropping them left the model guessing invalid values.
+  return subBlocks.map((subBlock) => {
+    const processedSubBlock: any = {
+      id: subBlock.id,
+      type: subBlock.type,
+    }
+
+    if (subBlock.hidden) processedSubBlock.hidden = true
+    // Only include non-default fields to reduce size
+    if (subBlock.title) processedSubBlock.title = subBlock.title
+    if (subBlock.required) processedSubBlock.required = true
+    if (subBlock.placeholder) processedSubBlock.placeholder = subBlock.placeholder
+    if (subBlock.description) processedSubBlock.description = subBlock.description
+    if (subBlock.condition) processedSubBlock.condition = subBlock.condition
+
+    // Slider range
+    if (subBlock.min !== undefined) processedSubBlock.min = subBlock.min
+    if (subBlock.max !== undefined) processedSubBlock.max = subBlock.max
+
+    // Resolve options if present - only id and label
+    if (subBlock.options) {
+      try {
+        const resolvedOptions = resolveSubBlockOptions(subBlock.options)
+        processedSubBlock.options = resolvedOptions.map((option) => ({
+          label: option.label,
+          id: option.id,
+        }))
+      } catch (error) {
+        processedSubBlock.options = []
       }
+    }
 
-      // Only include non-default fields to reduce size
-      if (subBlock.title) processedSubBlock.title = subBlock.title
-      if (subBlock.required) processedSubBlock.required = true
-      if (subBlock.placeholder) processedSubBlock.placeholder = subBlock.placeholder
-      if (subBlock.description) processedSubBlock.description = subBlock.description
-      if (subBlock.condition) processedSubBlock.condition = subBlock.condition
-
-      // Slider range
-      if (subBlock.min !== undefined) processedSubBlock.min = subBlock.min
-      if (subBlock.max !== undefined) processedSubBlock.max = subBlock.max
-
-      // Resolve options if present - only id and label
-      if (subBlock.options) {
-        try {
-          const resolvedOptions = resolveSubBlockOptions(subBlock.options)
-          processedSubBlock.options = resolvedOptions.map((option) => ({
-            label: option.label,
-            id: option.id,
-          }))
-        } catch (error) {
-          processedSubBlock.options = []
-        }
-      }
-
-      return processedSubBlock
-    })
+    return processedSubBlock
+  })
 }
 
 // Implementation function

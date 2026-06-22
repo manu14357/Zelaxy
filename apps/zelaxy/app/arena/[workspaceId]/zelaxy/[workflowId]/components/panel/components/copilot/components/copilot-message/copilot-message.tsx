@@ -160,78 +160,59 @@ const SmoothStreamingText = memo(
   ({ content, isStreaming }: SmoothStreamingTextProps) => {
     const [displayedContent, setDisplayedContent] = useState('')
     const contentRef = useRef(content)
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const rafRef = useRef<number | null>(null)
     const indexRef = useRef(0)
-    const streamingStartTimeRef = useRef<number | null>(null)
     const isAnimatingRef = useRef(false)
 
+    // Cancel any in-flight animation frame on unmount only.
+    useEffect(
+      () => () => {
+        if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
+      },
+      []
+    )
+
     useEffect(() => {
-      // Update content reference
       contentRef.current = content
 
       if (content.length === 0) {
         setDisplayedContent('')
         indexRef.current = 0
-        streamingStartTimeRef.current = null
         return
       }
 
-      if (isStreaming) {
-        // Start timing when streaming begins
-        if (streamingStartTimeRef.current === null) {
-          streamingStartTimeRef.current = Date.now()
+      // Streaming finished — snap to the full content and stop the loop.
+      if (!isStreaming) {
+        if (rafRef.current != null) {
+          cancelAnimationFrame(rafRef.current)
+          rafRef.current = null
         }
-
-        // Continue animation if there's more content to show
-        if (indexRef.current < content.length) {
-          const animateText = () => {
-            const currentContent = contentRef.current
-            const currentIndex = indexRef.current
-
-            if (currentIndex < currentContent.length) {
-              // Add characters one by one for true character-by-character streaming
-              const chunkSize = 1
-              const newDisplayed = currentContent.slice(0, currentIndex + chunkSize)
-
-              setDisplayedContent(newDisplayed)
-              indexRef.current = currentIndex + chunkSize
-
-              // Consistent fast speed for all characters
-              const delay = 3 // Consistent fast delay in ms for all characters
-
-              timeoutRef.current = setTimeout(animateText, delay)
-            } else {
-              // Animation complete
-              isAnimatingRef.current = false
-            }
-          }
-
-          // Only start new animation if not already animating
-          if (!isAnimatingRef.current) {
-            // Clear any existing animation
-            if (timeoutRef.current) {
-              clearTimeout(timeoutRef.current)
-            }
-
-            isAnimatingRef.current = true
-            // Continue animation from current position
-            animateText()
-          }
-        }
-      } else {
-        // Not streaming, show all content immediately and reset timing
+        isAnimatingRef.current = false
         setDisplayedContent(content)
         indexRef.current = content.length
-        isAnimatingRef.current = false
-        streamingStartTimeRef.current = null
+        return
       }
 
-      // Cleanup on unmount
-      return () => {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
+      // Streaming: reveal via requestAnimationFrame (≤60fps) instead of a 3ms setTimeout per char,
+      // which re-parsed the entire markdown AST hundreds of times a second. Each frame reveals a
+      // chunk proportional to how far behind we are. The loop reads contentRef so it always sees the
+      // latest streamed text without restarting per token.
+      if (!isAnimatingRef.current && indexRef.current < content.length) {
+        isAnimatingRef.current = true
+        const tick = () => {
+          const full = contentRef.current
+          if (indexRef.current >= full.length) {
+            isAnimatingRef.current = false
+            rafRef.current = null
+            return
+          }
+          const remaining = full.length - indexRef.current
+          const step = Math.max(2, Math.ceil(remaining / 8))
+          indexRef.current = Math.min(full.length, indexRef.current + step)
+          setDisplayedContent(full.slice(0, indexRef.current))
+          rafRef.current = requestAnimationFrame(tick)
         }
-        isAnimatingRef.current = false
+        rafRef.current = requestAnimationFrame(tick)
       }
     }, [content, isStreaming])
 
@@ -295,19 +276,6 @@ const CopilotMessage: FC<CopilotMessageProps> = memo(
     const [showUpvoteSuccess, setShowUpvoteSuccess] = useState(false)
     const [showDownvoteSuccess, setShowDownvoteSuccess] = useState(false)
     const [showRestoreConfirmation, setShowRestoreConfirmation] = useState(false)
-
-    // Debug logging to check if messages are unique
-    useEffect(() => {
-      if (isAssistant) {
-        console.log('CopilotMessage Debug:', {
-          messageId: message.id,
-          contentLength: message.content?.length || 0,
-          contentPreview: `${message.content?.slice(0, 50)}...`,
-          contentBlocksCount: message.contentBlocks?.length || 0,
-          isStreaming,
-        })
-      }
-    }, [message.id, message.content, message.contentBlocks, isStreaming, isAssistant])
 
     // Get checkpoint functionality from copilot store
     const {

@@ -1,13 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowUp, Database, FileText, Loader2, Paperclip, Workflow, X } from 'lucide-react'
+import { ArrowUp, Database, FileText, Loader2, Paperclip, Table, Workflow, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
 export interface ArenaContext {
-  type: 'workflow' | 'knowledge' | 'file'
+  type: 'workflow' | 'knowledge' | 'file' | 'table'
   id: string
   label: string
 }
@@ -46,6 +46,7 @@ const TYPE_ICON: Record<ArenaContext['type'], typeof Workflow> = {
   workflow: Workflow,
   knowledge: Database,
   file: FileText,
+  table: Table,
 }
 
 /**
@@ -62,7 +63,12 @@ export function ArenaComposer({
 }: {
   workspaceId: string
   isStreaming: boolean
-  onSend: (displayText: string, apiText: string, attachments?: ArenaImageAttachment[]) => void
+  onSend: (
+    displayText: string,
+    apiText: string,
+    attachments?: ArenaImageAttachment[],
+    contexts?: ArenaContext[]
+  ) => void
   onStop: () => void
 }) {
   const [text, setText] = useState('')
@@ -202,7 +208,8 @@ export function ArenaComposer({
 
   const submit = () => {
     const trimmed = text.trim()
-    if ((!trimmed && attachments.length === 0) || isStreaming) return
+    // Note: we do NOT block on isStreaming — the parent queues messages sent mid-stream.
+    if (!trimmed && attachments.length === 0) return
     if (attachments.some((a) => a.uploading)) return
 
     let apiText = trimmed
@@ -228,7 +235,8 @@ export function ArenaComposer({
     onSend(
       displayText || '(see attachments)',
       apiText,
-      imageAttachments.length ? imageAttachments : undefined
+      imageAttachments.length ? imageAttachments : undefined,
+      contexts.length ? contexts : undefined
     )
     setText('')
     setContexts([])

@@ -63,6 +63,9 @@ interface WorkflowDiffActions {
   rejectChanges: () => Promise<void>
   // Apply changes DIRECTLY (no Accept/Reject diff UI) — used for Agie's live edit.
   applyChangesLive: (yamlContent: string) => Promise<void>
+  // Apply a full workflow state DIRECTLY, preserving block ids/positions (used for targeted edits
+  // where the tool already produced an id-stable state — avoids the lossy YAML→re-mint round-trip).
+  applyWorkflowStateLive: (workflowState: any, autoLayout?: boolean) => Promise<void>
   // PERFORMANCE OPTIMIZATION: Batched state updates
   _batchedStateUpdate: (updates: Partial<WorkflowDiffState>) => void
 }
@@ -343,6 +346,71 @@ export const useWorkflowDiffStore = create<WorkflowDiffState & WorkflowDiffActio
           // so it applies + persists the proposed state directly. Pass autoLayout=true so the blocks
           // are arranged into a clean layered line instead of the AI's ad-hoc coordinates.
           await get().acceptChanges(true)
+        },
+
+        applyWorkflowStateLive: async (workflowState: any, autoLayout = false) => {
+          // Apply a full, ALREADY id-stable workflow state straight to the canvas. Used for targeted
+          // edits (edit_workflow) whose returned state preserves existing block ids, handles, and
+          // positions — so we bypass the YAML→diff path that re-mints ids and full-replaces the graph.
+          const activeWorkflowId = useWorkflowRegistry.getState().activeWorkflowId
+          if (!activeWorkflowId) {
+            logger.error('No active workflow ID when applying live workflow state')
+            return
+          }
+          if (!workflowState || !workflowState.blocks) {
+            logger.warn('applyWorkflowStateLive called with no blocks — skipping')
+            return
+          }
+
+          const blocks = workflowState.blocks
+          const edges = workflowState.edges || []
+          const loops = workflowState.loops || {}
+          const parallels = workflowState.parallels || {}
+
+          // Only re-layout when explicitly asked (new builds). Targeted edits keep their positions.
+          if (autoLayout) {
+            try {
+              applyLayeredLayout(blocks, edges)
+            } catch (layoutError) {
+              logger.warn('Auto-layout during live apply failed; keeping positions', {
+                layoutError,
+              })
+            }
+          }
+
+          useWorkflowStore.setState({ blocks, edges, loops, parallels })
+
+          const subblockValues: Record<string, Record<string, any>> = {}
+          for (const [blockId, block] of Object.entries(blocks)) {
+            subblockValues[blockId] = {}
+            for (const [subId, sub] of Object.entries((block as any).subBlocks || {})) {
+              subblockValues[blockId][subId] = (sub as any).value
+            }
+          }
+          useSubBlockStore.setState((state) => ({
+            workflowValues: {
+              ...state.workflowValues,
+              [activeWorkflowId]: subblockValues,
+            },
+          }))
+
+          useWorkflowStore.getState().updateLastSaved()
+
+          try {
+            const response = await fetch(`/api/workflows/${activeWorkflowId}/state`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ blocks, edges, loops, parallels, lastSaved: Date.now() }),
+            })
+            if (!response.ok) {
+              logger.error('Failed to persist live workflow state', { status: response.status })
+            }
+          } catch (persistError) {
+            logger.error('Failed to persist live workflow state', { persistError })
+          }
+
+          // Make sure no stale diff lingers.
+          diffEngine.clearDiff()
         },
 
         getCurrentWorkflowForCanvas: () => {

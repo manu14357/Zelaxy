@@ -56,7 +56,7 @@ describe('computeLayeredPositions', () => {
     expect(positions.a.y).not.toBe(positions.b.y)
   })
 
-  it('ignores note blocks and container children', () => {
+  it('ignores note blocks but lays out container children', () => {
     const blocks: Record<string, LayoutBlockLike> = {
       start: block(),
       note: block({ type: 'note', position: { x: 999, y: 999 } }),
@@ -66,8 +66,28 @@ describe('computeLayeredPositions', () => {
     const positions = computeLayeredPositions(blocks, [])
 
     expect(positions.note).toBeUndefined()
-    expect(positions.child).toBeUndefined()
+    // Container children are now positioned (relative to their container), not skipped.
+    expect(positions.child).toBeDefined()
     expect(positions.start).toBeDefined()
+  })
+
+  it('lays out container children relative to the container and sizes the container', () => {
+    const blocks: Record<string, LayoutBlockLike> = {
+      loop1: block({ type: 'loop' }),
+      child1: block({ data: { parentId: 'loop1' } }),
+      child2: block({ data: { parentId: 'loop1' } }),
+    }
+    const edges = [{ source: 'child1', target: 'child2' }]
+    const positions = computeLayeredPositions(blocks, edges)
+
+    // Children get positions...
+    expect(positions.child1).toBeDefined()
+    expect(positions.child2).toBeDefined()
+    // ...laid out left-to-right by their edge...
+    expect(positions.child1.x).toBeLessThan(positions.child2.x)
+    // ...and the container was sized to fit them.
+    expect((blocks.loop1.data as any)?.width).toBeGreaterThan(0)
+    expect((blocks.loop1.data as any)?.height).toBeGreaterThan(0)
   })
 
   it('handles a cycle without throwing (every block still gets a position)', () => {

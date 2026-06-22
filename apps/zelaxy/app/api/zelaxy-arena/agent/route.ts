@@ -11,9 +11,12 @@ import { createLogger } from '@/lib/logs/console/logger'
 import { getUserEntityPermissions } from '@/lib/permissions/utils'
 import { getProviderApiKeyEnvVar } from '@/lib/providers/api-keys'
 import { listTables } from '@/lib/table'
-import { saveWorkflowToNormalizedTables } from '@/lib/workflows/db-helpers'
+import {
+  loadWorkflowFromNormalizedTables,
+  saveWorkflowToNormalizedTables,
+} from '@/lib/workflows/db-helpers'
 import { db } from '@/db'
-import { knowledgeBase, workflow } from '@/db/schema'
+import { account, knowledgeBase, workflow } from '@/db/schema'
 import { executeProviderRequest } from '@/providers'
 import { isKnownModel } from '@/providers/models'
 import { getApiKey, getProviderFromModel } from '@/providers/utils'
@@ -42,7 +45,43 @@ const BodySchema = z.object({
   attachments: z
     .array(z.object({ type: z.literal('image'), data: z.string(), mediaType: z.string() }))
     .optional(),
+  // Resources the user @-mentioned in the composer — resolved to real content server-side.
+  contexts: z.array(z.object({ type: z.string(), id: z.string(), label: z.string() })).optional(),
 })
+
+/**
+ * Resolve @-mentioned workspace resources into real content the agent can use, so "edit this
+ * workflow" / "use this data" actually carries the referenced content (not just a name + id).
+ */
+async function resolveMentionedContexts(
+  contexts: Array<{ type: string; id: string; label: string }> | undefined
+): Promise<string> {
+  if (!contexts || contexts.length === 0) return ''
+  const parts: string[] = []
+  for (const ctx of contexts.slice(0, 8)) {
+    try {
+      if (ctx.type === 'workflow') {
+        const state: any = await loadWorkflowFromNormalizedTables(ctx.id)
+        if (state?.blocks) {
+          const blocks = Object.values(state.blocks)
+            .map((b: any) => `  - ${b.name} (${b.type}, id: ${b.id})`)
+            .join('\n')
+          parts.push(`Workflow "${ctx.label}" (id: ${ctx.id}) — current blocks:\n${blocks}`)
+        } else {
+          parts.push(`Workflow "${ctx.label}" (id: ${ctx.id})`)
+        }
+      } else {
+        // knowledge / file — name the resource; the agent has tools to read it on demand.
+        parts.push(`${ctx.type} "${ctx.label}" (id: ${ctx.id})`)
+      }
+    } catch {
+      parts.push(`${ctx.type} "${ctx.label}" (id: ${ctx.id})`)
+    }
+  }
+  return parts.length > 0
+    ? `REFERENCED RESOURCES (the user @-mentioned these — act on them):\n${parts.join('\n')}`
+    : ''
+}
 
 const MAX_TOOL_ITERATIONS = 10
 // Tool results fed back to the model. The old 4000 cap cut off block metadata mid-result, so the
@@ -60,7 +99,8 @@ const sse = (event: Record<string, unknown>): Uint8Array =>
 async function buildSystemPrompt(
   workspaceId: string,
   nativeThinking = false,
-  envVarNames: string[] = []
+  envVarNames: string[] = [],
+  userId?: string
 ): Promise<string> {
   // Pre-fetch the whole workspace snapshot in parallel and embed it below, so the agent does NOT
   // have to spend tool calls discovering what exists (the slow "list_tables / get_env / list_kb"
@@ -68,7 +108,8 @@ async function buildSystemPrompt(
   let workflowList = '(none yet)'
   let tableList = '(none yet)'
   let kbList = '(none yet)'
-  const [workflowRes, tableRes, kbRes] = await Promise.allSettled([
+  let accountList = '(none connected)'
+  const [workflowRes, tableRes, kbRes, accountRes] = await Promise.allSettled([
     db
       .select({ id: workflow.id, name: workflow.name })
       .from(workflow)
@@ -80,6 +121,17 @@ async function buildSystemPrompt(
       .from(knowledgeBase)
       .where(eq(knowledgeBase.workspaceId, workspaceId))
       .limit(100),
+    userId
+      ? db
+          .select({
+            id: account.id,
+            providerId: account.providerId,
+            accountId: account.accountId,
+          })
+          .from(account)
+          .where(eq(account.userId, userId))
+          .limit(100)
+      : Promise.resolve([]),
   ])
   if (workflowRes.status === 'fulfilled' && workflowRes.value.length > 0) {
     workflowList = workflowRes.value.map((r) => `- ${r.name} (id: ${r.id})`).join('\n')
@@ -94,6 +146,18 @@ async function buildSystemPrompt(
   }
   if (kbRes.status === 'fulfilled' && kbRes.value.length > 0) {
     kbList = kbRes.value.map((k) => `- ${k.name} (id: ${k.id})`).join('\n')
+  }
+  if (accountRes.status === 'fulfilled' && Array.isArray(accountRes.value)) {
+    // Connected OAuth integrations (exclude the email/password login row). The `id` is the
+    // credentialId the integration tools (Slack/Gmail/etc.) need to pick the right account.
+    const integrations = (accountRes.value as any[]).filter(
+      (a) => a.providerId && a.providerId !== 'credential'
+    )
+    if (integrations.length > 0) {
+      accountList = integrations
+        .map((a) => `- ${a.providerId} (account: ${a.accountId}, credentialId: ${a.id})`)
+        .join('\n')
+    }
   }
   const envList = envVarNames.length > 0 ? envVarNames.map((n) => `- ${n}`).join('\n') : '(none)'
 
@@ -183,6 +247,9 @@ ${tableList}
 
 Knowledge bases:
 ${kbList}
+
+Connected integrations (OAuth accounts — pass the credentialId when an integration tool needs an account):
+${accountList}
 
 Environment variables (names only — reference as {{NAME}}):
 ${envList}
@@ -296,22 +363,44 @@ export async function POST(req: NextRequest) {
   const systemPrompt = await buildSystemPrompt(
     workspaceId,
     provider === 'anthropic',
-    Object.keys(envVars)
+    Object.keys(envVars),
+    userId
   )
   // Ask mode answers and plans without executing anything — withhold tools so the model can't act.
   const mode = body.mode ?? 'agent'
   const tools =
     mode === 'ask'
       ? undefined
-      : [...getToolsForMode('agent'), ...ARENA_EXTRA_TOOL_DEFS, ...INTEGRATION_TOOL_DEFS]
+      : [
+          // ZelaxyArena has no "open canvas", so drop the editor's run_workflow (open-canvas) tool —
+          // the workspace agent uses the DEPLOYED-by-name run_workflow from ARENA_EXTRA_TOOL_DEFS.
+          ...getToolsForMode('agent').filter((t) => t.id !== 'run_workflow'),
+          ...ARENA_EXTRA_TOOL_DEFS,
+          ...INTEGRATION_TOOL_DEFS,
+        ]
   const systemPromptForMode =
     mode === 'ask'
       ? `${systemPrompt}\n\nMODE: ASK — Do NOT call any tools or take actions. Answer questions, explain the workspace, and outline plans only. If the user asks you to build/run/change something, describe how you would do it and suggest switching to Agent mode to execute.`
       : systemPrompt
 
+  // Resolve any @-mentioned resources into real content and prepend it to the last user message
+  // (scoped to this turn — not persisted to the displayed history).
+  const resolvedContext = await resolveMentionedContexts(body.contexts)
+
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const messages: any[] = [...body.messages]
+      if (resolvedContext) {
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (messages[i].role === 'user') {
+            messages[i] = {
+              ...messages[i],
+              content: `${resolvedContext}\n\n${messages[i].content}`,
+            }
+            break
+          }
+        }
+      }
 
       // Stream a text answer over `msgs`, emitting each token chunk as a `content` event so the
       // client renders it in realtime (the client appends every `content` event as it arrives).
@@ -425,6 +514,11 @@ export async function POST(req: NextRequest) {
         // eslint-disable-next-line no-constant-condition
         while (true) {
           iteration++
+          // Server-authoritative abort: if the client stopped, don't run another LLM/tool round.
+          if (req.signal.aborted) {
+            logger.info('ZelaxyArena request aborted — stopping tool loop')
+            break
+          }
           const response = (await executeProviderRequest(provider, {
             model,
             systemPrompt: systemPromptForMode,
@@ -503,6 +597,9 @@ export async function POST(req: NextRequest) {
               })
               continue
             }
+
+            // Don't run a state-mutating tool after the user pressed Stop.
+            if (req.signal.aborted) break
 
             const result = await executeLocalTool(toolCall.name, args)
 

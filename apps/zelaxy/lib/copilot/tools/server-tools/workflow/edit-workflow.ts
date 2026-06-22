@@ -4,6 +4,12 @@ import { getAllBlocks } from '@/blocks/registry'
 import type { BlockConfig } from '@/blocks/types'
 import { resolveOutputType } from '@/blocks/utils'
 import { generateLoopBlocks, generateParallelBlocks } from '@/stores/workflows/workflow/utils'
+import {
+  type InputValidationError,
+  lintWorkflowState,
+  validateBlockSubBlocks,
+  type WorkflowLintIssue,
+} from './validation'
 
 const logger = createLogger('EditWorkflowAPI')
 
@@ -257,6 +263,8 @@ interface EditWorkflowResult {
   yamlContent: string
   workflowState?: any
   operations: Array<{ type: string; blockId: string }>
+  inputValidationErrors?: InputValidationError[]
+  workflowLint?: WorkflowLintIssue[]
 }
 
 class EditWorkflowTool extends BaseCopilotTool<EditWorkflowParams, EditWorkflowResult> {
@@ -424,6 +432,7 @@ async function editWorkflowLocal(
 
   // Build a simplified representation for operations
   const blockRegistry = new Map(getAllBlocks().map((block) => [block.type, block]))
+  const inputValidationErrors: InputValidationError[] = []
 
   for (const operation of operations) {
     const { operation_type, block_id, params } = operation
@@ -487,6 +496,14 @@ async function editWorkflowLocal(
                 value: inputValue,
               }
             }
+
+            // Validate/normalize ONLY the changed inputs against the block's sub-block config.
+            const changed: Record<string, any> = {}
+            for (const k of Object.keys(params.inputs)) {
+              if (block.subBlocks[k]) changed[k] = block.subBlocks[k]
+            }
+            inputValidationErrors.push(...validateBlockSubBlocks(block.type, blockConfig, changed))
+
             logger.info(`Updated inputs for block ${block_id}`)
           }
 
@@ -539,6 +556,10 @@ async function editWorkflowLocal(
                 value: inputValue,
               }
             }
+            // Validate/normalize the new block's input values against its sub-block config.
+            inputValidationErrors.push(
+              ...validateBlockSubBlocks(params.type, blockConfig, subBlocks)
+            )
           }
 
           // Position the new block
@@ -641,10 +662,24 @@ async function editWorkflowLocal(
     sortKeys: false,
   })
 
+  if (inputValidationErrors.length > 0) {
+    logger.info('Edit produced input validation errors', { count: inputValidationErrors.length })
+  }
+
+  // Structural lint (orphan blocks, edges to missing blocks, missing required fields) so the model
+  // can issue a corrective follow-up edit instead of declaring success on a broken graph.
+  const workflowLint = lintWorkflowState(
+    workflowState.blocks,
+    workflowState.edges || [],
+    blockRegistry
+  )
+
   return {
     yamlContent: modifiedYaml,
     workflowState,
     operations: operations.map((op) => ({ type: op.operation_type, blockId: op.block_id })),
+    ...(inputValidationErrors.length > 0 ? { inputValidationErrors } : {}),
+    ...(workflowLint.length > 0 ? { workflowLint } : {}),
   }
 }
 

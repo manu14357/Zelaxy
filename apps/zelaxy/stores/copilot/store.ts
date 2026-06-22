@@ -365,6 +365,21 @@ function ensureToolCallDisplayNames(messages: CopilotMessage[]): CopilotMessage[
  * Helper function to process workflow tool results (build_workflow or edit_workflow)
  */
 function processWorkflowToolResult(toolCall: any, result: any, get: () => CopilotStore): void {
+  // A targeted edit returns a full, ID-STABLE workflow state (existing block ids/handles/positions
+  // preserved, new blocks already positioned). Apply that DIRECTLY rather than round-tripping
+  // through YAML — which re-mints every id, drops handles, and full-replaces (then re-lays-out) the
+  // whole canvas. build_workflow keeps the YAML path (new graph that wants a fresh clean layout).
+  const workflowState = result?.workflowState || result?.data?.workflowState
+  if (toolCall.name === 'edit_workflow' && workflowState?.blocks) {
+    logger.info('Applying ID-stable workflow state from edit_workflow (no YAML re-mint)')
+    import('@/stores/workflow-diff/store')
+      .then(({ useWorkflowDiffStore }) =>
+        useWorkflowDiffStore.getState().applyWorkflowStateLive(workflowState, false)
+      )
+      .catch((e) => logger.error('Failed to apply live workflow state from edit_workflow', { e }))
+    return
+  }
+
   // Extract YAML content from various possible locations in the result
   const yamlContent =
     result?.yamlContent ||
@@ -1036,12 +1051,12 @@ const sseHandlers: Record<string, SSEHandler> = {
   done: (data, context) => {
     context.doneEventCount++
 
-    // Only complete after all tools are done and we've received multiple done events
-    // Check for both executing tools AND pending tools (waiting for user interaction)
+    // Complete on the first terminal done once no tools are still running or awaiting the user.
+    // (The server emits exactly ONE done; requiring >=2 left the stream relying on socket close.)
     const executingTools = context.toolCalls.filter((tc) => tc.state === 'executing')
     const pendingTools = context.toolCalls.filter((tc) => tc.state === 'pending')
 
-    if (executingTools.length === 0 && pendingTools.length === 0 && context.doneEventCount >= 2) {
+    if (executingTools.length === 0 && pendingTools.length === 0 && context.doneEventCount >= 1) {
       context.streamComplete = true
     }
   },

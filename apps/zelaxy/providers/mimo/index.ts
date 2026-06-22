@@ -9,7 +9,13 @@ import type {
   ProviderResponse,
   TimeSegment,
 } from '@/providers/types'
-import { prepareToolsWithUsageControl, trackForcedToolUsage } from '@/providers/utils'
+import {
+  parseTextToolCalls,
+  prepareToolExecution,
+  prepareToolsWithUsageControl,
+  stripTextToolCallMarkup,
+  trackForcedToolUsage,
+} from '@/providers/utils'
 import { executeTool } from '@/tools'
 
 const logger = createLogger('MiMoProvider')
@@ -143,7 +149,22 @@ export const mimoProvider: ProviderConfig = {
       const forcedTools = preparedTools?.forcedTools || []
       let usedForcedTools: string[] = []
 
+      // MiMo sometimes returns tool calls as literal text in `content` instead of structured
+      // `tool_calls`. When tools are available, synthesize the structured calls so they actually run.
+      const applyTextToolCallFallback = (resp: any) => {
+        const msg = resp?.choices?.[0]?.message
+        if (!msg || !tools?.length) return
+        if ((!msg.tool_calls || msg.tool_calls.length === 0) && typeof msg.content === 'string') {
+          const textCalls = parseTextToolCalls(msg.content)
+          if (textCalls.length > 0) {
+            msg.tool_calls = textCalls
+            msg.content = stripTextToolCallMarkup(msg.content)
+          }
+        }
+      }
+
       let currentResponse = await mimo.chat.completions.create(payload)
+      applyTextToolCallFallback(currentResponse)
       const firstResponseTime = Date.now() - initialCallTime
 
       let content = currentResponse.choices[0]?.message?.content || ''
@@ -214,80 +235,86 @@ export const mimoProvider: ProviderConfig = {
           if (!toolCallsInResponse || toolCallsInResponse.length === 0) break
 
           const toolsStartTime = Date.now()
+
+          // OpenAI message-history contract: ONE assistant message carrying ALL tool_calls, then
+          // one `tool` message per call id. Pushing an assistant message per call (the old shape)
+          // makes stricter backends reject with "tool_call_id did not have a tool response".
+          currentMessages.push({
+            role: 'assistant',
+            content: currentResponse.choices[0]?.message?.content ?? null,
+            tool_calls: toolCallsInResponse.map((tc: any) => ({
+              id: tc.id,
+              type: 'function',
+              function: { name: tc.function.name, arguments: tc.function.arguments },
+            })),
+          })
+
           for (const toolCall of toolCallsInResponse) {
+            const toolName = toolCall.function.name
+            let resultContent: any
             try {
-              const toolName = toolCall.function.name
-              const toolArgs = JSON.parse(toolCall.function.arguments)
+              const toolArgs = JSON.parse(toolCall.function.arguments || '{}')
               const tool = request.tools?.find((t) => t.id === toolName)
-              if (!tool) continue
-
-              const toolCallStartTime = Date.now()
-              const toolParams = { ...tool.params, ...toolArgs }
-              const executionParams = {
-                ...toolParams,
-                ...(request.workflowId
-                  ? {
-                      _context: {
-                        workflowId: request.workflowId,
-                        ...(request.workspaceId ? { workspaceId: request.workspaceId } : {}),
-                        ...(request.chatId ? { chatId: request.chatId } : {}),
-                      },
-                    }
-                  : {}),
-                ...(request.environmentVariables ? { envVars: request.environmentVariables } : {}),
-              }
-
-              const result = await executeTool(toolName, executionParams, true)
-              const toolCallEndTime = Date.now()
-              timeSegments.push({
-                type: 'tool',
-                name: toolName,
-                startTime: toolCallStartTime,
-                endTime: toolCallEndTime,
-                duration: toolCallEndTime - toolCallStartTime,
-              })
-
-              let resultContent: any
-              if (result.success) {
-                toolResults.push(result.output)
-                resultContent = result.output
-              } else {
+              if (!tool) {
                 resultContent = {
                   error: true,
-                  message: result.error || 'Tool execution failed',
+                  message: `Tool not found: ${toolName}`,
                   tool: toolName,
                 }
+              } else {
+                const toolCallStartTime = Date.now()
+                const { toolParams, executionParams } = prepareToolExecution(
+                  tool,
+                  toolArgs,
+                  request
+                )
+
+                const result = await executeTool(toolName, executionParams, true)
+                const toolCallEndTime = Date.now()
+                timeSegments.push({
+                  type: 'tool',
+                  name: toolName,
+                  startTime: toolCallStartTime,
+                  endTime: toolCallEndTime,
+                  duration: toolCallEndTime - toolCallStartTime,
+                })
+
+                if (result.success) {
+                  toolResults.push(result.output)
+                  resultContent = result.output
+                } else {
+                  resultContent = {
+                    error: true,
+                    message: result.error || 'Tool execution failed',
+                    tool: toolName,
+                  }
+                }
+
+                toolCalls.push({
+                  name: toolName,
+                  arguments: toolParams,
+                  startTime: new Date(toolCallStartTime).toISOString(),
+                  endTime: new Date(toolCallEndTime).toISOString(),
+                  duration: toolCallEndTime - toolCallStartTime,
+                  result: resultContent,
+                  success: result.success,
+                })
               }
-
-              toolCalls.push({
-                name: toolName,
-                arguments: toolParams,
-                startTime: new Date(toolCallStartTime).toISOString(),
-                endTime: new Date(toolCallEndTime).toISOString(),
-                duration: toolCallEndTime - toolCallStartTime,
-                result: resultContent,
-                success: result.success,
-              })
-
-              currentMessages.push({
-                role: 'assistant',
-                content: null,
-                tool_calls: [
-                  {
-                    id: toolCall.id,
-                    type: 'function',
-                    function: { name: toolName, arguments: toolCall.function.arguments },
-                  },
-                ],
-              })
-              currentMessages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: toonEncodeForLLM(resultContent),
-              })
             } catch (error) {
               logger.error('Error processing tool call:', { error })
+              resultContent = {
+                error: true,
+                message: error instanceof Error ? error.message : 'Tool execution failed',
+                tool: toolName,
+              }
             }
+
+            // Always answer every tool_call id, even skipped/errored ones, to keep the history valid.
+            currentMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: toonEncodeForLLM(resultContent),
+            })
           }
 
           toolsTime += Date.now() - toolsStartTime
@@ -307,6 +334,7 @@ export const mimoProvider: ProviderConfig = {
 
           const nextModelStartTime = Date.now()
           currentResponse = await mimo.chat.completions.create(nextPayload)
+          applyTextToolCallFallback(currentResponse)
 
           if (
             typeof nextPayload.tool_choice === 'object' &&

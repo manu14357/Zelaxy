@@ -268,11 +268,12 @@ describe('Copilot Confirm API Route', () => {
       expect(responseData.error).toBe('Failed to update tool call status or tool call not found')
     })
 
-    it('should return 400 when tool call is not found in Redis', async () => {
+    it('should return a benign no-op (200) when there is no waiter for the tool call', async () => {
       const authMocks = mockAuth()
       authMocks.setAuthenticated()
 
-      // Mock tool call as not existing in Redis
+      // Mock tool call as not existing in Redis — i.e. no waiter (the live direct-chat flow ran the
+      // tool server-side, so a missing key is EXPECTED, not an error).
       mockRedisExists.mockResolvedValue(0)
 
       const req = createMockRequest('POST', {
@@ -283,9 +284,10 @@ describe('Copilot Confirm API Route', () => {
       const { POST } = await import('@/app/api/copilot/confirm/route')
       const response = await POST(req)
 
-      expect(response.status).toBe(400)
+      expect(response.status).toBe(200)
       const responseData = await response.json()
-      expect(responseData.error).toBe('Failed to update tool call status or tool call not found')
+      expect(responseData.success).toBe(true)
+      expect(responseData.noOp).toBe(true)
     }, 10000) // 10 second timeout for this specific test
 
     it('should handle Redis errors gracefully', async () => {

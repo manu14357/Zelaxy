@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Brain, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -12,13 +12,22 @@ import { cn } from '@/lib/utils'
 export function ThinkingBlock({ content, isActive }: { content: string; isActive: boolean }) {
   const [open, setOpen] = useState(isActive)
   const [userToggled, setUserToggled] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   // Follow the stream (open while thinking, collapse when done) until the user takes manual control.
   useEffect(() => {
     if (!userToggled) setOpen(isActive)
   }, [isActive, userToggled])
 
-  if (!content.trim()) return null
+  // Auto-scroll the reasoning to the latest line while it streams in.
+  useEffect(() => {
+    if (open && isActive && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [content, open, isActive])
+
+  // Min-content gate: don't flash the panel for a trivial fragment of reasoning.
+  if (content.trim().length < 2) return null
 
   return (
     <div className='mb-2 overflow-hidden rounded-lg border border-border/50 bg-background/40'>
@@ -37,7 +46,10 @@ export function ThinkingBlock({ content, isActive }: { content: string; isActive
         />
       </button>
       {open && (
-        <div className='max-h-48 overflow-auto border-border/40 border-t px-2.5 py-2 text-[12px] text-muted-foreground leading-relaxed'>
+        <div
+          ref={scrollRef}
+          className='max-h-48 overflow-auto border-border/40 border-t px-2.5 py-2 text-[12px] text-muted-foreground leading-relaxed'
+        >
           <p className='whitespace-pre-wrap'>{content.trim()}</p>
         </div>
       )}

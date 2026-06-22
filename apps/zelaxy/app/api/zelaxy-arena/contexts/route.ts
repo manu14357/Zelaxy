@@ -2,6 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { getUserEntityPermissions } from '@/lib/permissions/utils'
+import { listTables } from '@/lib/table'
 import { db } from '@/db'
 import { knowledgeBase, workflow, workspaceFile } from '@/db/schema'
 
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
   const permission = await getUserEntityPermissions(session.user.id, 'workspace', workspaceId)
   if (permission === null) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const [workflows, kbs, files] = await Promise.all([
+  const [workflows, kbs, files, tables] = await Promise.all([
     db
       .select({ id: workflow.id, label: workflow.name })
       .from(workflow)
@@ -37,12 +38,14 @@ export async function GET(req: NextRequest) {
       .from(workspaceFile)
       .where(eq(workspaceFile.workspaceId, workspaceId))
       .limit(100),
+    listTables(workspaceId).catch(() => [] as any[]),
   ])
 
   const contexts = [
     ...workflows.map((w) => ({ type: 'workflow' as const, id: w.id, label: w.label })),
     ...kbs.map((k) => ({ type: 'knowledge' as const, id: k.id, label: k.label })),
     ...files.map((f) => ({ type: 'file' as const, id: f.id, label: f.label })),
+    ...(tables as any[]).map((t) => ({ type: 'table' as const, id: t.id, label: t.name })),
   ]
 
   return NextResponse.json({ contexts })

@@ -315,27 +315,15 @@ export const Copilot = forwardRef<CopilotRef, CopilotProps>(({ panelWidth }, ref
                         <CopilotWelcome onQuestionClick={handleSubmit} mode={mode} />
                       </div>
                     ) : (
-                      // Debug: Log all messages being rendered
-                      (() => {
-                        console.log(
-                          'Copilot Debug - All messages:',
-                          messages.map((m) => ({
-                            id: m.id,
-                            role: m.role,
-                            contentPreview: `${m.content?.slice(0, 30)}...`,
-                            contentLength: m.content?.length || 0,
-                          }))
-                        )
-                        return messages.map((message) => (
-                          <CopilotMessage
-                            key={message.id}
-                            message={message}
-                            isStreaming={
-                              isSendingMessage && message.id === messages[messages.length - 1]?.id
-                            }
-                          />
-                        ))
-                      })()
+                      messages.map((message) => (
+                        <CopilotMessage
+                          key={message.id}
+                          message={message}
+                          isStreaming={
+                            isSendingMessage && message.id === messages[messages.length - 1]?.id
+                          }
+                        />
+                      ))
                     )}
                   </div>
                 </ScrollArea>

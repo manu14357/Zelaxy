@@ -25,15 +25,17 @@ const ConfirmationSchema = z.object({
 /**
  * Update tool call status in Redis
  */
+type UpdateOutcome = 'updated' | 'no-waiter' | 'error'
+
 async function updateToolCallStatus(
   toolCallId: string,
   status: NotificationStatus,
   message?: string
-): Promise<boolean> {
+): Promise<UpdateOutcome> {
   const redis = getRedisClient()
   if (!redis) {
     logger.warn('updateToolCallStatus: Redis client not available')
-    return false
+    return 'error'
   }
 
   try {
@@ -72,7 +74,7 @@ async function updateToolCallStatus(
         timeout,
         pollDuration: Date.now() - startTime,
       })
-      return false
+      return 'no-waiter'
     }
 
     // Store both status and message as JSON
@@ -90,7 +92,7 @@ async function updateToolCallStatus(
       status,
       pollDuration: Date.now() - startTime,
     })
-    return true
+    return 'updated'
   } catch (error) {
     logger.error('Failed to update tool call status in Redis', {
       toolCallId,
@@ -98,7 +100,7 @@ async function updateToolCallStatus(
       message,
       error: error instanceof Error ? error.message : 'Unknown error',
     })
-    return false
+    return 'error'
   }
 }
 
@@ -129,9 +131,9 @@ export async function POST(req: NextRequest) {
     })
 
     // Update the tool call status in Redis
-    const updated = await updateToolCallStatus(toolCallId, status, message)
+    const outcome = await updateToolCallStatus(toolCallId, status, message)
 
-    if (!updated) {
+    if (outcome === 'no-waiter') {
       // No Redis waiter for this tool call. In the live (direct-chat) flow the tool already ran
       // server-side, so there is nothing to confirm — this is expected, NOT an error. Return a
       // benign no-op so the client doesn't surface a failure.
@@ -141,6 +143,16 @@ export async function POST(req: NextRequest) {
         status,
       })
       return NextResponse.json({ success: true, noOp: true, toolCallId, status })
+    }
+
+    if (outcome === 'error') {
+      // Genuine infra failure (Redis unavailable / set failed) — surface it.
+      logger.error(`[${tracker.requestId}] Failed to update tool call status`, {
+        userId: authenticatedUserId,
+        toolCallId,
+        status,
+      })
+      return createBadRequestResponse('Failed to update tool call status or tool call not found')
     }
 
     const duration = tracker.getDuration()

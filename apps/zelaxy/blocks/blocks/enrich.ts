@@ -17,17 +17,15 @@ export const EnrichBlock: BlockConfig = {
       title: 'Operation',
       type: 'dropdown',
       layout: 'full',
+      // Only operations with a registered tool (see tools.access below) are offered, so every
+      // selectable operation resolves at runtime.
       options: [
         { label: 'Email to Profile', id: 'enrich_email_to_profile' },
-        { label: 'Email to Person (Lite)', id: 'enrich_email_to_person_lite' },
-        { label: 'LinkedIn Profile', id: 'enrich_linkedin_profile' },
         { label: 'Find Email', id: 'enrich_find_email' },
-        { label: 'LinkedIn to Work Email', id: 'enrich_linkedin_to_work_email' },
         { label: 'Verify Email', id: 'enrich_verify_email' },
         { label: 'Phone Finder', id: 'enrich_phone_finder' },
         { label: 'Company Lookup', id: 'enrich_company_lookup' },
         { label: 'Search People', id: 'enrich_search_people' },
-        { label: 'Search Company', id: 'enrich_search_company' },
       ],
       required: true,
     },
@@ -48,7 +46,7 @@ export const EnrichBlock: BlockConfig = {
       placeholder: 'person@example.com',
       condition: {
         field: 'operation',
-        value: ['enrich_email_to_profile', 'enrich_email_to_person_lite', 'enrich_verify_email'],
+        value: ['enrich_email_to_profile', 'enrich_verify_email'],
       },
     },
     {
@@ -59,7 +57,7 @@ export const EnrichBlock: BlockConfig = {
       placeholder: 'https://linkedin.com/in/username',
       condition: {
         field: 'operation',
-        value: ['enrich_linkedin_profile', 'enrich_linkedin_to_work_email', 'enrich_phone_finder'],
+        value: ['enrich_phone_finder'],
       },
     },
   ],
