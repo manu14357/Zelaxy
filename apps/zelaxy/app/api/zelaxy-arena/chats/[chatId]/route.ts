@@ -15,6 +15,9 @@ const UpdateSchema = z.object({
         role: z.enum(['user', 'assistant']),
         content: z.string(),
         tools: z.array(z.any()).optional(),
+        // Structured render data (agent-group parts + thinking) so history replays the full turn.
+        parts: z.array(z.any()).optional(),
+        reasoning: z.string().optional(),
       })
     )
     .optional(),

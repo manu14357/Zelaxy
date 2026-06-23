@@ -12,14 +12,18 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
  * that syntax so it never renders as chat content — including an unclosed tag still streaming in.
  */
 const stripToolCallTags = (text: string): string => {
-  if (!text || (!text.includes('<tool_call') && !text.includes('<function='))) return text
-  return text
-    .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
-    .replace(/<function=[\s\S]*?<\/function>/gi, '')
-    .replace(/<function=[^>]*\/>/gi, '')
-    .replace(/<tool_call>[\s\S]*$/i, '')
-    .replace(/<function=[\s\S]*$/i, '')
-    .trimEnd()
+  if (!text || (!text.includes('tool_call') && !text.includes('<function'))) return text
+  return (
+    text
+      .replace(/<(?:seed:)?tool_call>[\s\S]*?<\/(?:seed:)?tool_call>/gi, '')
+      .replace(/<function>[\s\S]*?<\/function>/gi, '')
+      .replace(/<function=[\s\S]*?<\/function>/gi, '')
+      .replace(/<function=[^>]*\/>/gi, '')
+      // Unclosed openers still streaming in (e.g. "<seed:tool_call><function>{…").
+      .replace(/<(?:seed:)?tool_call>[\s\S]*$/i, '')
+      .replace(/<function[=>][\s\S]*$/i, '')
+      .trimEnd()
+  )
 }
 
 const getTextContent = (element: React.ReactNode): string => {

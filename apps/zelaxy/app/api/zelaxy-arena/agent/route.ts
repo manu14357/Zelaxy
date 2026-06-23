@@ -181,6 +181,8 @@ ${reasoningInstruction}You can:
 - Send Slack messages and emails via connected accounts (send_slack_message, send_email).
 - Read and set workspace environment variables.
 - Search the Zelaxy documentation.
+- RESEARCH anything: search the web (search_online), get a specific page's contents (scrape_page), or crawl a whole site (crawl_website). Figure out the best approach — search first, then get the contents of the most relevant page(s); crawl only when you need many pages. Cite the sources (URLs) you used.
+- Create FILES & DOCUMENTS in the workspace from text (create_file — e.g. a research report, notes, markdown, or CSV) and append to them (append_file). Use a clear name with an extension. When you research a topic and produce a substantial answer, save it as a document with create_file (a descriptive ".md" name) so the user keeps it — the document opens in the side panel.
 
 When the user asks about data ("how many leads…", "add a row…", "create a table…"), use the table tools. Refer to tables by name.
 
@@ -519,12 +521,37 @@ export async function POST(req: NextRequest) {
             logger.info('ZelaxyArena request aborted — stopping tool loop')
             break
           }
+          // Start this turn's text as a fresh segment, then stream the model's narration token-by-
+          // token via `onStreamText` (supporting providers emit text deltas live while still
+          // returning tool calls unexecuted). `streamedText` tracks whether anything streamed so we
+          // don't re-emit the whole content afterwards.
+          controller.enqueue(sse({ type: 'segment_break' }))
+          let streamedText = false
+          const onStreamText = async (delta: string) => {
+            if (!delta) return
+            streamedText = true
+            controller.enqueue(sse({ type: 'content', data: delta }))
+            // Flush this delta to the socket before the next one so the text streams visibly instead
+            // of buffering into one write (the reference's per-event setImmediate flush).
+            await new Promise<void>((r) => setImmediate(r))
+          }
+          // Stream a document's content LIVE into the side panel as the model writes it (the file is
+          // persisted later, when the create_file tool actually runs).
+          const onFileStream = async (info: { name?: string; delta: string }) => {
+            controller.enqueue(
+              sse({ type: 'file_stream', name: info.name ?? null, delta: info.delta })
+            )
+            await new Promise<void>((r) => setImmediate(r))
+          }
+
           const response = (await executeProviderRequest(provider, {
             model,
             systemPrompt: systemPromptForMode,
+            // Generous output budget so a large document (create_file with a long .md body) isn't
+            // truncated mid-content. It's a ceiling, not a fixed cost — short turns spend far less.
+            maxTokens: 16000,
             messages: messages as any,
             temperature: 0.4,
-            maxTokens: 8000,
             apiKey,
             stream: false,
             tools,
@@ -534,18 +561,17 @@ export async function POST(req: NextRequest) {
             workspaceId,
             environmentVariables: envVars,
             isCopilotRequest: true,
+            onStreamText,
+            onFileStream,
           })) as any
 
           const toolCalls = Array.isArray(response?.toolCalls) ? response.toolCalls : []
 
           if (toolCalls.length === 0 || iteration > MAX_TOOL_ITERATIONS) {
-            // This turn already produced the final answer — emit it directly rather than making
-            // ANOTHER (slow) model call to re-generate it. Only re-stream when the turn had no
-            // usable text (e.g. we force-broke at the iteration cap while it still wanted tools).
-            const finalText = typeof response?.content === 'string' ? response.content.trim() : ''
-            if (finalText) {
-              controller.enqueue(sse({ type: 'content', data: finalText }))
-            } else {
+            // Final answer. If it already streamed live via onStreamText, it's on screen. Otherwise
+            // the provider returned it whole (no live streaming this turn) — re-stream it token-by-
+            // token via the reliable no-tools streaming path so the user always sees it type in.
+            if (!streamedText) {
               await streamAnswer(messages)
             }
             break
@@ -553,6 +579,17 @@ export async function POST(req: NextRequest) {
 
           // Record the assistant turn that requested the tools.
           messages.push({ role: 'assistant', content: response.content || '', toolCalls })
+
+          // The pre-tool narration ("Let me pull the latest updates…") — already on screen if it
+          // streamed live; otherwise emit it whole so the client can interleave it with the tool
+          // groups that follow (the reference's messaging flow).
+          if (!streamedText) {
+            const interimText = typeof response.content === 'string' ? response.content.trim() : ''
+            if (interimText) {
+              controller.enqueue(sse({ type: 'content', data: interimText }))
+              await new Promise((r) => setTimeout(r, 0))
+            }
+          }
 
           for (const toolCall of toolCalls) {
             const toolCallId =
@@ -562,6 +599,16 @@ export async function POST(req: NextRequest) {
               workflowId: toolCall.arguments?.workflowId || workflowId,
               userId,
               workspaceId,
+              // Make workspace-configured API keys (set in the in-app Environment Variables) available
+              // to research/integration tools, which otherwise only see process env. Workspace keys
+              // win; tools fall back to process env when a key isn't set here.
+              _env: {
+                EXA_API_KEY: envVars.EXA_API_KEY,
+                SERPER_API_KEY: envVars.SERPER_API_KEY,
+                JINA_API_KEY: envVars.JINA_API_KEY,
+                FIRECRAWL_API_KEY: envVars.FIRECRAWL_API_KEY,
+                TAVILY_API_KEY: envVars.TAVILY_API_KEY,
+              },
             }
 
             controller.enqueue(
@@ -684,6 +731,12 @@ export async function POST(req: NextRequest) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
+      // Without these, the SSE body is gzip-buffered until the stream closes — so streamed text only
+      // appears all at once on stop/completion. `X-Accel-Buffering: no` disables proxy buffering and
+      // `Content-Encoding: none` disables compression (which buffers to fill frames). This matches
+      // the reference and every other streaming route in this app (copilot/chat, chat, tts, …).
+      'X-Accel-Buffering': 'no',
+      'Content-Encoding': 'none',
     },
   })
 }

@@ -13,6 +13,11 @@ const MessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
   content: z.string(),
   tools: z.array(z.any()).optional(),
+  // Structured render data so history shows the SAME agent groups + interleaved narration + thinking
+  // as the live turn (not just the final text). `parts` = ordered text/tool segments; `reasoning` =
+  // extended-thinking content.
+  parts: z.array(z.any()).optional(),
+  reasoning: z.string().optional(),
 })
 
 const CreateSchema = z.object({

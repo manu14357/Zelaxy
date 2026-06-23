@@ -181,6 +181,18 @@ export interface ProviderRequest {
   // returned stream emits NDJSON deltas (`{"reasoning":"..."}` / `{"text":"..."}`) so the caller can
   // surface real reasoning separately from the answer.
   thinking?: boolean
+  // Copilot live streaming: when provided on an `isCopilotRequest` with tools, a supporting provider
+  // streams assistant TEXT deltas through this callback as the model generates them, while STILL
+  // returning the tool calls unexecuted (so the caller runs them). Lets the agent loop show narration
+  // token-by-token instead of waiting for the whole non-streaming turn. Providers that don't
+  // implement it simply ignore it and behave as before. May be async — the provider must AWAIT it so
+  // the caller can flush each delta to the network before the next one (otherwise they coalesce).
+  onStreamText?: (delta: string) => void | Promise<void>
+  // Copilot file streaming: when a tool call that writes a document (create_file/append_file/…) is
+  // generated AS TEXT markup, the provider extracts the `content` field's value incrementally and
+  // streams it through this callback — so the caller can render the document LIVE in a side panel as
+  // the model writes it (instead of materializing it whole). `name` is the file name once known.
+  onFileStream?: (info: { name?: string; delta: string }) => void | Promise<void>
 }
 
 /** A multimodal attachment (currently images) sent to vision-capable models. */

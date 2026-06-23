@@ -1109,16 +1109,19 @@ export function prepareToolExecution(
 
 /**
  * Some OpenAI-compatible models (notably Xiaomi MiMo) emit tool calls as literal markup in the
- * message content instead of structured `tool_calls`. Two shapes are seen in the wild:
- *   1. `<function=NAME>{json args}</function>`              (Hermes / Qwen style)
- *   2. `<tool_call>{"name":"NAME","arguments":{...}}</tool_call>`  (OpenAI-ish JSON)
+ * message content instead of structured `tool_calls`. Shapes seen in the wild:
+ *   1. `<function=NAME>{json args}</function>`                       (Hermes / Qwen style)
+ *   2. `<tool_call>{"name":"NAME","arguments":{...}}</tool_call>`    (OpenAI-ish JSON)
+ *   3. `<seed:tool_call><function>{"name":"NAME","arguments":{...}}</function></seed:tool_call>`
+ *      and the bare `<function>{json}</function>` (MiMo / Seed style — `<function>` with NO name attr
+ *      wrapping a JSON object that carries name+arguments).
  * This parser extracts those into the structured `tool_calls` shape so the agent actually runs
  * them instead of treating the turn as a (broken) final answer.
  */
 export function parseTextToolCalls(
   content: string
 ): Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }> {
-  if (!content || (!content.includes('<function=') && !content.includes('<tool_call'))) return []
+  if (!content || (!content.includes('<function') && !content.includes('tool_call'))) return []
 
   const found: Array<{ name: string; argsRaw: string }> = []
 
@@ -1130,12 +1133,33 @@ export function parseTextToolCalls(
     found.push({ name: m[1].trim(), argsRaw: (m[2] || '').trim() })
   }
 
-  // Shape 2: <tool_call>{json}</tool_call> — only when it isn't just wrapping a <function=> block
-  const tcRe = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/g
+  // Shape 3: <function>{"name":...,"arguments":...}</function> (no name attr — JSON carries it). The
+  // capture runs to </function> so nested braces in `arguments` survive (JSON.parse handles nesting).
+  const fnJsonRe = /<function>\s*(\{[\s\S]*?\})\s*<\/function>/g
+  // biome-ignore lint/suspicious/noAssignInExpressions: standard regex exec loop
+  while ((m = fnJsonRe.exec(content)) !== null) {
+    const inner = (m[1] || '').trim()
+    try {
+      const obj = JSON.parse(inner)
+      if (obj && typeof obj.name === 'string') {
+        const args = obj.arguments ?? obj.parameters ?? {}
+        found.push({
+          name: obj.name,
+          argsRaw: typeof args === 'string' ? args : JSON.stringify(args),
+        })
+      }
+    } catch {
+      // not valid JSON — ignore
+    }
+  }
+
+  // Shape 2: <tool_call>{json}</tool_call> / <seed:tool_call>{json}</seed:tool_call> — only when the
+  // inner is bare JSON (a `<function>` wrapper is already handled by Shape 3 above).
+  const tcRe = /<(?:seed:)?tool_call>\s*([\s\S]*?)\s*<\/(?:seed:)?tool_call>/g
   // biome-ignore lint/suspicious/noAssignInExpressions: standard regex exec loop
   while ((m = tcRe.exec(content)) !== null) {
     const inner = (m[1] || '').trim()
-    if (inner.includes('<function=') || !inner.startsWith('{')) continue
+    if (inner.includes('<function') || !inner.startsWith('{')) continue
     try {
       const obj = JSON.parse(inner)
       if (obj && typeof obj.name === 'string') {
@@ -1175,9 +1199,15 @@ export function parseTextToolCalls(
  */
 export function stripTextToolCallMarkup(content: string): string {
   if (!content) return content
-  return content
-    .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '')
-    .replace(/<function=[\s\S]*?<\/function>/g, '')
-    .replace(/<function=[^>]*\/>/g, '')
-    .trim()
+  return (
+    content
+      .replace(/<(?:seed:)?tool_call>[\s\S]*?<\/(?:seed:)?tool_call>/g, '')
+      .replace(/<function>[\s\S]*?<\/function>/g, '')
+      .replace(/<function=[\s\S]*?<\/function>/g, '')
+      .replace(/<function=[^>]*\/>/g, '')
+      // Drop any dangling/unclosed opener still streaming in (e.g. "<seed:tool_call><function>{…").
+      .replace(/<(?:seed:)?tool_call>[\s\S]*$/g, '')
+      .replace(/<function[=>][\s\S]*$/g, '')
+      .trim()
+  )
 }

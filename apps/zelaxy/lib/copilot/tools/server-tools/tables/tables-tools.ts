@@ -400,6 +400,36 @@ export const runWorkflowTool = new RunWorkflowTool()
 /** LLM tool definitions exposed to the ZelaxyArena agent (not the in-editor copilot). */
 export const ARENA_EXTRA_TOOL_DEFS: ProviderToolConfig[] = [
   {
+    id: 'create_file',
+    name: 'create_file',
+    description:
+      'Create a document/file in the workspace from text content (e.g. a report, notes, markdown, CSV). The file appears in Files. Use a descriptive name with an extension (e.g. "Research summary.md").',
+    params: {},
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'File name including extension, e.g. "report.md"' },
+        content: { type: 'string', description: 'The full text content of the file' },
+      },
+      required: ['name', 'content'],
+    },
+  },
+  {
+    id: 'append_file',
+    name: 'append_file',
+    description:
+      'Append text to the end of an existing workspace file (by name). Creates it if it does not exist.',
+    params: {},
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'The name of the file to append to' },
+        content: { type: 'string', description: 'The text to append' },
+      },
+      required: ['name', 'content'],
+    },
+  },
+  {
     id: 'list_tables',
     name: 'list_tables',
     description: 'List all data tables in the workspace, with their columns and row counts.',

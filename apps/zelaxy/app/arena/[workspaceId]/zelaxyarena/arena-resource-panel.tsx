@@ -24,7 +24,10 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import CopilotMarkdownRenderer from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/panel/components/copilot/components/copilot-message/components/markdown-renderer'
 import { WorkflowPreview } from '@/app/arena/[workspaceId]/zelaxy/components/workflow-preview/workflow-preview'
+import { JsonTree } from '@/app/arena/[workspaceId]/zelaxyarena/json-tree'
+import { resolveToolStatusTitle } from '@/app/arena/[workspaceId]/zelaxyarena/tool-status'
 
 // The full table view, lazy-loaded only when a table resource is shown (it's heavy + client-only).
 const InlineTable = dynamic(
@@ -62,6 +65,10 @@ export interface ResourceArtifact {
   /** Download/preview URL for a file artifact. */
   url?: string
   subtitle?: string
+  /** File text content — rendered as a live document in the panel (markdown/plain). */
+  content?: string
+  /** True while the doc was just created — drives the typewriter reveal in the panel. */
+  streaming?: boolean
 }
 
 export interface ConsoleEntry {
@@ -90,10 +97,6 @@ function formatDuration(start?: number, end?: number): string {
   if (!start || !end || end < start) return ''
   const ms = end - start
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`
-}
-
-function prettyToolName(name: string): string {
-  return name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 function iconForKind(kind: ResourceKind) {
@@ -372,6 +375,8 @@ export function ArenaResourcePanel({
               onRun={runWorkflow}
               running={runningWorkflowId === active.workflowId}
             />
+          ) : active.kind === 'file' && active.content !== undefined ? (
+            <FilePane artifact={active} />
           ) : (
             <SimpleResourcePane artifact={active} workspaceId={workspaceId} onOpen={router.push} />
           )}
@@ -496,14 +501,12 @@ function ConsolePane({ entries, isStreaming }: { entries: ConsoleEntry[]; isStre
   }
 
   return (
-    <div ref={scrollRef} className='h-full divide-y divide-border/40 overflow-auto'>
+    <div ref={scrollRef} className='h-full overflow-auto p-1.5'>
       {entries.map((e) => (
-        <div key={e.id} className='px-3 py-3'>
-          <ArenaConsoleEntry entry={e} />
-        </div>
+        <ArenaConsoleEntry key={e.id} entry={e} />
       ))}
       {isStreaming && (
-        <div className='flex items-center gap-2 px-3 py-2 text-[11px] text-muted-foreground'>
+        <div className='flex items-center gap-2 px-2 py-1.5 text-[11px] text-muted-foreground'>
           <Loader2 className='h-3 w-3 animate-spin' /> working…
         </div>
       )}
@@ -517,14 +520,22 @@ function ArenaConsoleEntry({ entry }: { entry: ConsoleEntry }) {
   const [expanded, setExpanded] = useState(false)
   const [showInput, setShowInput] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [structured, setStructured] = useState(true)
 
-  const durationMs =
-    entry.startedAt && entry.endedAt && entry.endedAt >= entry.startedAt
-      ? entry.endedAt - entry.startedAt
-      : undefined
   const hasInput = Boolean(entry.args)
+  const hasBody = Boolean(entry.args || entry.error || entry.result)
   const body = showInput ? entry.args : entry.error || entry.result
   const isErrorBody = !showInput && Boolean(entry.error)
+  // Parse the body so we can show a structured JSON tree (falls back to raw text when not JSON).
+  const parsedBody = (() => {
+    if (!body) return null
+    try {
+      const v = JSON.parse(body)
+      return v && typeof v === 'object' ? v : null
+    } catch {
+      return null
+    }
+  })()
 
   const copy = () => {
     if (!body) return
@@ -542,105 +553,116 @@ function ArenaConsoleEntry({ entry }: { entry: ConsoleEntry }) {
     )
 
   return (
-    <div className='space-y-2'>
-      {/* Header */}
-      <div className='flex items-center gap-2'>
-        <StatusIcon status={entry.status} />
-        <span className='font-medium text-foreground text-sm'>{prettyToolName(entry.name)}</span>
-      </div>
-
-      {/* Tag row: status/duration · time · Input/Output */}
-      <div className='flex flex-wrap items-center gap-1.5'>
-        <span
-          className={cn(
-            'flex h-5 items-center gap-1 rounded-md px-2 font-medium text-[11px]',
-            entry.status === 'error'
-              ? 'bg-destructive/10 text-destructive'
-              : 'bg-muted text-muted-foreground'
-          )}
-        >
-          {entry.status === 'error' ? (
-            <>
-              <AlertCircle className='h-3 w-3' /> Error
-            </>
-          ) : entry.status === 'running' ? (
-            'running…'
-          ) : durationMs !== undefined ? (
-            `${durationMs}ms`
-          ) : (
-            'done'
-          )}
-        </span>
-        {entry.startedAt && (
-          <span className='flex h-5 items-center rounded-md bg-muted px-2 font-medium text-[11px] text-muted-foreground'>
-            {formatClock(entry.startedAt)}
+    <div>
+      {/* Compact row (reference terminal style): status icon + title on the left, status/duration
+          on the right; the whole row toggles the expanded output. */}
+      <button
+        type='button'
+        onClick={() => hasBody && setExpanded((v) => !v)}
+        className={cn(
+          'group flex w-full items-center justify-between gap-2 rounded-md px-1.5 py-1 text-left',
+          hasBody && 'cursor-pointer hover:bg-accent/50'
+        )}
+      >
+        <span className='flex min-w-0 flex-1 items-center gap-2'>
+          <StatusIcon status={entry.status} />
+          <span className='min-w-0 truncate font-medium text-foreground text-sm'>
+            {resolveToolStatusTitle(entry.name, entry.status, entry.args)}
           </span>
-        )}
-        {hasInput && (
-          <>
-            <button
-              type='button'
-              onClick={() => setShowInput(false)}
-              className={toggleTag(!showInput)}
-            >
-              Output
-            </button>
-            <button
-              type='button'
-              onClick={() => setShowInput(true)}
-              className={toggleTag(showInput)}
-            >
-              Input
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Content box */}
-      {body ? (
-        <div className='rounded-lg border border-border/40 bg-muted/50 p-3'>
-          <div className='relative'>
-            <div className='absolute top-0 right-0 z-10 flex items-center gap-1'>
-              <button
-                type='button'
-                onClick={copy}
-                className='text-muted-foreground hover:text-foreground'
-                title='Copy'
-              >
-                {copied ? <Check className='h-3 w-3' /> : <Clipboard className='h-3 w-3' />}
-              </button>
-              <button
-                type='button'
-                onClick={() => setExpanded((v) => !v)}
-                className='text-muted-foreground hover:text-foreground'
-                title={expanded ? 'Collapse' : 'Expand'}
-              >
-                {expanded ? <ChevronUp className='h-3 w-3' /> : <ChevronDown className='h-3 w-3' />}
-              </button>
-            </div>
-            {expanded ? (
-              <pre
-                className={cn(
-                  'max-w-full overflow-x-auto whitespace-pre-wrap break-words pr-12 font-mono text-[11px] leading-relaxed',
-                  isErrorBody ? 'text-destructive' : 'text-foreground/80'
-                )}
-              >
-                {body}
-              </pre>
+        </span>
+        <span className='flex flex-shrink-0 items-center gap-1.5'>
+          <span
+            className={cn(
+              'flex h-5 items-center gap-1 rounded-md px-2 font-medium text-[11px]',
+              entry.status === 'error'
+                ? 'bg-destructive/10 text-destructive'
+                : entry.status === 'running'
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-muted text-muted-foreground'
+            )}
+          >
+            {entry.status === 'error' ? (
+              <>
+                <AlertCircle className='h-3 w-3' /> Error
+              </>
+            ) : entry.status === 'running' ? (
+              <>
+                <Loader2 className='h-3 w-3 animate-spin' /> Running
+              </>
             ) : (
+              formatDuration(entry.startedAt, entry.endedAt) || 'Done'
+            )}
+          </span>
+          {hasBody &&
+            (expanded ? (
+              <ChevronUp className='h-3.5 w-3.5 text-muted-foreground' />
+            ) : (
+              <ChevronDown className='h-3.5 w-3.5 text-muted-foreground' />
+            ))}
+        </span>
+      </button>
+
+      {/* Expanded: Input/Output toggle + copy + the JSON body (indented like the editor console). */}
+      {expanded && hasBody && (
+        <div className='mt-1 ml-[3px] border-border/40 border-l pl-3'>
+          <div className='mb-1.5 flex items-center gap-1.5'>
+            {hasInput && (
+              <>
+                <button
+                  type='button'
+                  onClick={() => setShowInput(false)}
+                  className={toggleTag(!showInput)}
+                >
+                  Output
+                </button>
+                <button
+                  type='button'
+                  onClick={() => setShowInput(true)}
+                  className={toggleTag(showInput)}
+                >
+                  Input
+                </button>
+              </>
+            )}
+            {/* Structured (JSON tree) vs Raw text — only when the body is JSON. */}
+            {parsedBody && (
               <button
                 type='button'
-                onClick={() => setExpanded(true)}
-                className='font-mono text-[11px] text-foreground/60'
+                onClick={() => setStructured((s) => !s)}
+                className={toggleTag(structured)}
+                title='Toggle structured view'
               >
-                {'{...}'}
+                {structured ? 'Structured' : 'Raw'}
               </button>
             )}
+            {entry.startedAt && (
+              <span className='ml-auto text-[10px] text-muted-foreground/70 tabular-nums'>
+                {formatClock(entry.startedAt)}
+              </span>
+            )}
+            <button
+              type='button'
+              onClick={copy}
+              className='text-muted-foreground hover:text-foreground'
+              title='Copy'
+            >
+              {copied ? <Check className='h-3 w-3' /> : <Clipboard className='h-3 w-3' />}
+            </button>
           </div>
-        </div>
-      ) : (
-        <div className='rounded-lg border border-border/40 bg-muted/50 p-3 text-center font-normal text-[12px] text-muted-foreground'>
-          {entry.status === 'running' ? 'Running…' : 'No output'}
+          {parsedBody && structured ? (
+            <div className='max-w-full overflow-x-auto rounded-lg border border-border/40 bg-muted/50 p-3'>
+              <JsonTree data={parsedBody} />
+            </div>
+          ) : (
+            <pre
+              className={cn(
+                'max-w-full overflow-x-auto whitespace-pre-wrap break-words rounded-lg border border-border/40 bg-muted/50 p-3 font-mono text-[11px] leading-relaxed',
+                isErrorBody ? 'text-destructive' : 'text-foreground/80'
+              )}
+            >
+              {body || 'No output'}
+            </pre>
+          )}
         </div>
       )}
     </div>
@@ -664,16 +686,44 @@ function LogsPane({ entries, isStreaming }: { entries: ConsoleEntry[]; isStreami
   }
 
   return (
-    <div ref={scrollRef} className='h-full overflow-auto p-2 font-mono text-[11px] leading-relaxed'>
+    <div ref={scrollRef} className='h-full overflow-auto'>
+      {/* Column header — Status / Action / Time / Duration (reference logs table). */}
+      <div className='sticky top-0 z-10 grid grid-cols-[88px_1fr_64px_64px] items-center gap-3 border-border/40 border-b bg-background px-3 py-1.5 font-medium text-[10px] text-muted-foreground uppercase tracking-wide'>
+        <span>Status</span>
+        <span>Action</span>
+        <span className='text-right'>Time</span>
+        <span className='text-right'>Duration</span>
+      </div>
       {entries.map((e) => (
         <LogEntry key={e.id} entry={e} />
       ))}
       {isStreaming && (
-        <div className='flex items-center gap-2 px-1.5 py-1 text-muted-foreground'>
+        <div className='flex items-center gap-2 px-3 py-1.5 text-[11px] text-muted-foreground'>
           <Loader2 className='h-3 w-3 animate-spin' /> working…
         </div>
       )}
     </div>
+  )
+}
+
+/** Status pill with a colored dot — the reference logs table's StatusBadge. */
+function LogStatusBadge({ status }: { status: ConsoleEntry['status'] }) {
+  const cfg =
+    status === 'error'
+      ? { cls: 'bg-destructive/10 text-destructive', label: 'Error' }
+      : status === 'running'
+        ? { cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', label: 'Running' }
+        : { cls: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', label: 'Done' }
+  return (
+    <span
+      className={cn(
+        'flex h-5 w-fit items-center gap-1 rounded-md px-1.5 font-medium text-[10px]',
+        cfg.cls
+      )}
+    >
+      <span className='h-1.5 w-1.5 rounded-full bg-current' />
+      {cfg.label}
+    </span>
   )
 }
 
@@ -688,44 +738,50 @@ function LogEntry({ entry: e }: { entry: ConsoleEntry }) {
   const hasBody = sections.length > 0
 
   return (
-    <div className='border-border/30 border-b py-1.5'>
+    <div className='border-border/20 border-b'>
       <button
         type='button'
         onClick={() => hasBody && setOpen((v) => !v)}
         className={cn(
-          'flex w-full flex-wrap items-center gap-2 text-left',
-          hasBody ? 'cursor-pointer' : 'cursor-default'
+          'grid w-full grid-cols-[88px_1fr_64px_64px] items-center gap-3 px-3 py-1.5 text-left',
+          hasBody ? 'cursor-pointer hover:bg-accent/40' : 'cursor-default'
         )}
       >
-        <span className='flex-shrink-0 text-[10px] text-muted-foreground/60 tabular-nums'>
+        <LogStatusBadge status={e.status} />
+        <span className='flex min-w-0 items-center gap-1.5'>
+          <span className='min-w-0 truncate font-medium text-[12px] text-foreground'>
+            {resolveToolStatusTitle(e.name, e.status, e.args)}
+          </span>
+          {hasBody &&
+            (open ? (
+              <ChevronUp className='h-3 w-3 flex-shrink-0 text-muted-foreground/60' />
+            ) : (
+              <ChevronDown className='h-3 w-3 flex-shrink-0 text-muted-foreground/60' />
+            ))}
+        </span>
+        <span className='text-right text-[11px] text-muted-foreground/70 tabular-nums'>
           {formatClock(e.startedAt)}
         </span>
-        <StatusIcon status={e.status} />
-        <span className='font-medium text-foreground'>{prettyToolName(e.name)}</span>
-        {dur && (
-          <span className='rounded bg-muted/60 px-1 text-[10px] text-muted-foreground/80'>
-            {dur}
-          </span>
-        )}
-        {hasBody && (
-          <span className='ml-auto flex-shrink-0 text-muted-foreground/60'>
-            {open ? <ChevronUp className='h-3 w-3' /> : <ChevronDown className='h-3 w-3' />}
-          </span>
-        )}
+        <span className='text-right text-[11px] text-muted-foreground/70 tabular-nums'>
+          {dur || '—'}
+        </span>
       </button>
-      {open &&
-        sections.map((s) => (
-          <pre
-            key={`${e.id}-${s.label}`}
-            className={cn(
-              'mt-1 max-w-full overflow-x-auto whitespace-pre-wrap break-words pl-1',
-              s.error ? 'text-destructive' : 'text-muted-foreground'
-            )}
-          >
-            <span className='text-muted-foreground/50'>{s.label}: </span>
-            {s.text}
-          </pre>
-        ))}
+      {open && (
+        <div className='px-3 pb-2 font-mono text-[11px]'>
+          {sections.map((s) => (
+            <pre
+              key={`${e.id}-${s.label}`}
+              className={cn(
+                'mt-1 max-w-full overflow-x-auto whitespace-pre-wrap break-words',
+                s.error ? 'text-destructive' : 'text-muted-foreground'
+              )}
+            >
+              <span className='text-muted-foreground/50'>{s.label}: </span>
+              {s.text}
+            </pre>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -814,6 +870,65 @@ function WorkflowPane({
           </pre>
         </details>
       )}
+    </div>
+  )
+}
+
+/**
+ * File document view — renders a created file's content as a live document in the right panel
+ * (markdown for .md/.txt, raw text otherwise), the way the reference shows a generated document.
+ */
+function FilePane({ artifact }: { artifact: ResourceArtifact }) {
+  const content = artifact.content ?? ''
+  const ext = (artifact.title.split('.').pop() || '').toLowerCase()
+  const isMarkdown = ext === 'md' || ext === 'markdown' || ext === 'txt' || ext === ''
+  // The content streams in for real (server `file_stream` deltas grow `artifact.content`), so we
+  // render it DIRECTLY as it arrives — no client-side fake typewriter. `writing` = still streaming.
+  const writing = artifact.streaming === true
+  const scrollRef = useRef<HTMLDivElement>(null)
+  // Keep the latest streamed line in view while it writes.
+  useEffect(() => {
+    if (writing && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [content, writing])
+
+  return (
+    <div className='flex h-full flex-col'>
+      <div className='flex flex-shrink-0 items-center justify-between gap-2 border-border/40 border-b px-3 py-1.5'>
+        <div className='flex min-w-0 items-center gap-2'>
+          <FileText className='h-3.5 w-3.5 flex-shrink-0 text-muted-foreground' />
+          <span className='truncate font-medium text-[12px]'>{artifact.title}</span>
+          {writing ? (
+            <span className='flex flex-shrink-0 items-center gap-1 text-[10px] text-muted-foreground'>
+              <Loader2 className='h-2.5 w-2.5 animate-spin' /> writing…
+            </span>
+          ) : artifact.subtitle ? (
+            <span className='flex-shrink-0 text-[10px] text-muted-foreground'>
+              {artifact.subtitle}
+            </span>
+          ) : null}
+        </div>
+        {artifact.url && !writing ? (
+          <a href={artifact.url} target='_blank' rel='noopener noreferrer'>
+            <Button size='sm' variant='ghost' className='h-6 text-[11px]'>
+              <Download className='mr-1.5 h-3.5 w-3.5' />
+              Download
+            </Button>
+          </a>
+        ) : null}
+      </div>
+      <div ref={scrollRef} className='min-h-0 flex-1 overflow-auto px-5 py-4'>
+        {isMarkdown ? (
+          <div className='copilot-markdown text-sm'>
+            <CopilotMarkdownRenderer content={content} />
+          </div>
+        ) : (
+          <pre className='whitespace-pre-wrap break-words font-mono text-[12px] text-foreground/80'>
+            {content}
+          </pre>
+        )}
+      </div>
     </div>
   )
 }

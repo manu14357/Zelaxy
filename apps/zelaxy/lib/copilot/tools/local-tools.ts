@@ -194,6 +194,38 @@ Note: The workflowId is automatically injected from the request context.`,
     },
   },
   {
+    id: 'scrape_page',
+    name: 'scrape_page',
+    description: `Read a SPECIFIC web page and return its main content as clean text. Use this when:
+- You have a URL (from a search result or the user) and need the actual page content
+- You need to read documentation, an article, or a product page in detail`,
+    params: {},
+    parameters: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'The full URL of the page to read' },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    id: 'crawl_website',
+    name: 'crawl_website',
+    description: `Crawl a website (follow its links) and return the content of multiple pages. Use this to:
+- Gather information across a whole docs site or section
+- Build broader context than a single page (use scrape_page for one page).
+Requires a FIRECRAWL_API_KEY; if it's missing, use scrape_page instead.`,
+    params: {},
+    parameters: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'The starting URL to crawl' },
+        limit: { type: 'number', description: 'Max pages to crawl (default 20, max 100)' },
+      },
+      required: ['url'],
+    },
+  },
+  {
     id: 'get_workflow_console',
     name: 'get_workflow_console',
     description: `Get recent execution logs and console output for the workflow. Use this to:
@@ -310,6 +342,8 @@ export function getToolsForMode(mode: 'agent' | 'ask'): ProviderToolConfig[] {
       (tool) =>
         tool.id === 'search_documentation' ||
         tool.id === 'search_online' ||
+        tool.id === 'scrape_page' ||
+        tool.id === 'crawl_website' ||
         tool.id === 'get_blocks_and_tools' ||
         tool.id === 'get_blocks_metadata' ||
         tool.id === 'get_user_workflow' ||

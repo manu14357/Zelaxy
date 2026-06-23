@@ -78,7 +78,10 @@ export const env = createEnv({
     LM_STUDIO_URL:                        z.string().url().optional(),            // LM Studio local server URL (default: http://localhost:1234)
     DEFAULT_EMBEDDING_MODEL:              z.string().optional(),                  // Default embedding model (nomic-embed-text for Ollama or text-embedding-3-small for OpenAI)
     ELEVENLABS_API_KEY:                   z.string().min(1).optional(),           // ElevenLabs API key for text-to-speech in deployed chat
-    SERPER_API_KEY:                       z.string().min(1).optional(),           // Serper API key for online search
+    EXA_API_KEY:                          z.string().min(1).optional(),           // Exa AI key — primary provider for research (web search + page contents)
+    SERPER_API_KEY:                       z.string().min(1).optional(),           // Serper API key — fallback web search (Google)
+    JINA_API_KEY:                         z.string().min(1).optional(),           // Jina Reader key for reading specific pages (optional — r.jina.ai works without one)
+    FIRECRAWL_API_KEY:                    z.string().min(1).optional(),           // Firecrawl API key for crawling sites
 
     // Azure OpenAI Configuration
     AZURE_OPENAI_ENDPOINT:                z.string().url().optional(),            // Azure OpenAI service endpoint

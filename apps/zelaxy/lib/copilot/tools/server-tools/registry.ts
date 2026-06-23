@@ -5,8 +5,10 @@ import type { CopilotTool } from './base'
 import { getBlocksAndToolsTool } from './blocks/get-blocks-and-tools'
 import { getBlocksMetadataTool } from './blocks/get-blocks-metadata'
 import { searchDocsTool } from './docs/search-docs'
+import { appendFileTool, createFileTool } from './files/manage-file'
 import { noOpTool } from './other/no-op'
 import { onlineSearchTool } from './other/online-search'
+import { crawlWebsiteTool, scrapePageTool } from './other/research-tools'
 import {
   createKnowledgeBaseTool,
   createTableTool,
@@ -107,6 +109,10 @@ copilotToolRegistry.register(getBlocksMetadataTool)
 copilotToolRegistry.register(searchDocsTool)
 copilotToolRegistry.register(noOpTool)
 copilotToolRegistry.register(onlineSearchTool)
+copilotToolRegistry.register(scrapePageTool)
+copilotToolRegistry.register(crawlWebsiteTool)
+copilotToolRegistry.register(createFileTool)
+copilotToolRegistry.register(appendFileTool)
 copilotToolRegistry.register(getEnvironmentVariablesTool)
 copilotToolRegistry.register(setEnvironmentVariablesTool)
 copilotToolRegistry.register(getUserWorkflowTool)

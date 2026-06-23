@@ -4,20 +4,31 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Bot,
   Check,
+  CheckCircle2,
+  ChevronDown,
   Copy,
+  Database,
+  FileText,
   History,
   Loader2,
+  type LucideIcon,
+  Network,
   Plus,
   RefreshCw,
+  Search,
+  Settings2,
   Sparkles,
+  Table as TableIcon,
   Trash2,
   Wrench,
+  XCircle,
 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
+import CopilotMarkdownRenderer from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/panel/components/copilot/components/copilot-message/components/markdown-renderer'
 import {
   ArenaComposer,
   type ArenaContext,
@@ -29,8 +40,8 @@ import {
   type ResourceArtifact,
 } from '@/app/arena/[workspaceId]/zelaxyarena/arena-resource-panel'
 import { ModelPicker } from '@/app/arena/[workspaceId]/zelaxyarena/model-picker'
-import { SmoothStreamingText } from '@/app/arena/[workspaceId]/zelaxyarena/smooth-streaming-text'
 import { splitThinking, ThinkingBlock } from '@/app/arena/[workspaceId]/zelaxyarena/thinking-block'
+import { resolveToolStatusTitle } from '@/app/arena/[workspaceId]/zelaxyarena/tool-status'
 import { DEFAULT_CHAT_MODEL } from '@/providers/models'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 
@@ -69,6 +80,211 @@ interface ToolAction {
   name: string
   status: 'running' | 'done' | 'error'
   summary?: string
+  /** Raw tool arguments — used to derive a contextual status title (e.g. the search query). */
+  args?: any
+}
+
+/**
+ * An ordered piece of an assistant turn: either a run of narration text, or a single tool call.
+ * The stream delivers these interleaved (text → tools → text → tools …); rendering preserves order
+ * and groups consecutive tool calls under their derived "agent" — the reference's messaging flow.
+ */
+type MessagePart = { type: 'text'; content: string } | { type: 'tool'; tool: ToolAction }
+
+interface AgentInfo {
+  id: string
+  label: string
+  icon: LucideIcon
+}
+
+/** Map a tool id to the named "agent" that owns it, mirroring the reference's subagent labels. */
+function agentForTool(name: string): AgentInfo {
+  const research = [
+    'search_online',
+    'scrape_page',
+    'crawl_website',
+    'search_documentation',
+    'get_page_contents',
+    'deep_research',
+  ]
+  const file = ['create_file', 'append_file', 'write_file']
+  if (research.includes(name)) return { id: 'research', label: 'Research Agent', icon: Search }
+  if (file.includes(name)) return { id: 'file', label: 'File Agent', icon: FileText }
+  if (name.includes('knowledge'))
+    return { id: 'knowledge', label: 'Knowledge Agent', icon: Database }
+  if (name.includes('table')) return { id: 'table', label: 'Table Agent', icon: TableIcon }
+  if (name.includes('environment') || name.includes('scheduled'))
+    return { id: 'config', label: 'Config Agent', icon: Settings2 }
+  if (
+    name.includes('workflow') ||
+    name === 'get_blocks_and_tools' ||
+    name === 'get_blocks_metadata'
+  )
+    return { id: 'workflow', label: 'Workflow Agent', icon: Network }
+  return { id: 'tools', label: 'Tools Agent', icon: Wrench }
+}
+
+/** A step inside an agent group: a tool call, or a line of the agent's own (dimmed) narration. */
+type GroupItem = { type: 'tool'; tool: ToolAction } | { type: 'text'; content: string }
+
+/**
+ * A named, collapsible agent group — icon + agent label + chevron, with its steps listed underneath
+ * (indented, like the reference's "File Agent" / "Research Agent" blocks). Steps are tool calls AND
+ * any narration the agent emitted while working (shown dimmed, the reference's in-group text). Auto-
+ * expands while live and still working; collapses once every step is done. A click pins it.
+ */
+function AgentGroup({
+  agent,
+  items,
+  active,
+}: {
+  agent: AgentInfo
+  items: GroupItem[]
+  active: boolean
+}) {
+  const tools = items.filter((i): i is { type: 'tool'; tool: ToolAction } => i.type === 'tool')
+  const anyRunning = tools.some((i) => i.tool.status === 'running')
+  // Stay expanded for the whole live turn so the user can watch each step + narration appear; once
+  // the turn finishes (no longer active) the group auto-collapses to a tidy header. A click pins it.
+  const [manual, setManual] = useState<boolean | null>(null)
+  const expanded = manual ?? active
+  const Icon = agent.icon
+
+  return (
+    <div className='flex flex-col gap-1.5'>
+      <button
+        type='button'
+        onClick={() => setManual(!expanded)}
+        className='flex w-fit cursor-pointer items-center gap-2 text-left'
+      >
+        <span className='flex size-4 flex-shrink-0 items-center justify-center'>
+          {anyRunning ? (
+            <Loader2 className='size-[15px] animate-spin text-muted-foreground' />
+          ) : (
+            <Icon className='size-4 text-muted-foreground' />
+          )}
+        </span>
+        <span className='text-foreground text-sm'>{agent.label}</span>
+        <ChevronDown
+          className={cn(
+            'h-[7px] w-[9px] text-muted-foreground transition-transform duration-150',
+            !expanded && '-rotate-90'
+          )}
+        />
+      </button>
+      {expanded && (
+        <div className='flex flex-col gap-1.5 py-0.5'>
+          {items.map((item, i) =>
+            item.type === 'tool' ? (
+              <div key={item.tool.id} className='flex items-center gap-[8px] pl-[24px]'>
+                <span className='flex size-4 flex-shrink-0 items-center justify-center'>
+                  {item.tool.status === 'running' ? (
+                    <Loader2 className='size-[15px] animate-spin text-muted-foreground' />
+                  ) : item.tool.status === 'error' ? (
+                    <XCircle className='size-[15px] text-destructive' />
+                  ) : (
+                    <CheckCircle2 className='size-[15px] text-muted-foreground' />
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    'text-[13px]',
+                    item.tool.status === 'error' ? 'text-destructive' : 'text-muted-foreground'
+                  )}
+                >
+                  {resolveToolStatusTitle(item.tool.name, item.tool.status, item.tool.args)}
+                </span>
+                {item.tool.status === 'error' && item.tool.summary && (
+                  <span className='truncate text-[13px] text-destructive/80'>
+                    · {item.tool.summary}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: in-group narration has no stable id
+                key={`gt${i}`}
+                className='whitespace-pre-wrap pl-[24px] text-[13px] text-muted-foreground leading-[18px] opacity-60'
+              >
+                {item.content.trim()}
+              </span>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** One narration segment — markdown, with inline <thinking> peeled into a thinking block. Renders
+ * the markdown DIRECTLY (the server already streams the text token-by-token, so the text grows live
+ * as deltas arrive — no client-side reveal needed; the earlier RAF reveal failed to paint mid-stream
+ * which is why narration only appeared on stop). `[&_p]:my-0` keeps it tight against agent groups. */
+function TextSegment({ content, streaming }: { content: string; streaming: boolean }) {
+  const parsed = splitThinking(content)
+  if (!parsed.thinking && parsed.text.length === 0) return null
+  return (
+    <div className='copilot-markdown text-sm [&_ol]:my-1 [&_p]:my-0 [&_ul]:my-1'>
+      {parsed.thinking && (
+        <ThinkingBlock content={parsed.thinking} isActive={streaming && parsed.text.length === 0} />
+      )}
+      {parsed.text.length > 0 && <CopilotMarkdownRenderer content={parsed.text} />}
+    </div>
+  )
+}
+
+/**
+ * Render an assistant turn as the reference does: narration text and named agent groups interleaved
+ * in arrival order. Consecutive tool calls owned by the same agent collapse into one group.
+ */
+function MessageParts({ message, isActive }: { message: ChatMessage; isActive: boolean }) {
+  // Fallback for older messages (e.g. loaded from history) that only carry a content string.
+  const parts: MessagePart[] =
+    message.parts && message.parts.length > 0
+      ? message.parts
+      : message.content
+        ? [{ type: 'text', content: message.content }]
+        : []
+
+  type Segment =
+    | { kind: 'text'; content: string; key: string }
+    | { kind: 'group'; agent: AgentInfo; items: GroupItem[]; key: string }
+  const segments: Segment[] = []
+
+  // Narration is ALWAYS a top-level segment (stable + always visible — no tucking into groups, which
+  // caused it to flicker out of view mid-stream). A run of consecutive same-agent tool calls (with no
+  // narration between them) merges into ONE named group; a line of narration ends the current run, so
+  // the next tools start a fresh group — exactly the reference's "text → group → text → group" flow.
+  parts.forEach((part, idx) => {
+    if (part.type === 'tool') {
+      const agent = agentForTool(part.tool.name)
+      const last = segments[segments.length - 1]
+      if (last && last.kind === 'group' && last.agent.id === agent.id) {
+        last.items.push({ type: 'tool', tool: part.tool })
+      } else {
+        segments.push({
+          kind: 'group',
+          agent,
+          items: [{ type: 'tool', tool: part.tool }],
+          key: `g${idx}`,
+        })
+      }
+      return
+    }
+    if (part.content.trim()) segments.push({ kind: 'text', content: part.content, key: `t${idx}` })
+  })
+
+  return (
+    <div className='flex flex-col gap-[10px]'>
+      {segments.map((seg) =>
+        seg.kind === 'group' ? (
+          <AgentGroup key={seg.key} agent={seg.agent} items={seg.items} active={isActive} />
+        ) : (
+          <TextSegment key={seg.key} content={seg.content} streaming={isActive} />
+        )
+      )}
+    </div>
+  )
 }
 
 interface ChatMessage {
@@ -78,6 +294,8 @@ interface ChatMessage {
   /** Enriched content sent to the model (context preamble + parsed attachments); display uses `content`. */
   apiContent?: string
   tools?: ToolAction[]
+  /** Ordered narration + tool parts, interleaved as they streamed — the source for rendering. */
+  parts?: MessagePart[]
   /** Native extended-thinking reasoning streamed from capable models (separate from the answer). */
   reasoning?: string
   /** Set when the user stopped this turn mid-stream. */
@@ -91,9 +309,41 @@ const SUGGESTIONS = [
   'Create a lead-enrichment workflow that writes results to a table',
 ]
 
-function prettyToolName(name: string): string {
-  return name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-}
+/** "Building with ZelaxyArena" — the capability categories shown on the empty state. */
+const CAPABILITIES: { icon: typeof Network; label: string; description: string }[] = [
+  {
+    icon: Network,
+    label: 'Workflows',
+    description: 'Build and edit automations on the canvas from a plain-language description.',
+  },
+  {
+    icon: Search,
+    label: 'Research',
+    description:
+      'Research anything — it figures out the best approach: searching the web, reading specific pages, crawling sites, and looking up technical docs.',
+  },
+  {
+    icon: FileText,
+    label: 'Files & documents',
+    description: 'Create and edit documents and files in your workspace, or read ones you upload.',
+  },
+  {
+    icon: TableIcon,
+    label: 'Tables',
+    description: 'Create data tables, query them, and add, update, or export rows.',
+  },
+  {
+    icon: Settings2,
+    label: 'Automation & configuration',
+    description:
+      'Schedule recurring runs, manage environment variables and secrets, and connect accounts.',
+  },
+  {
+    icon: Database,
+    label: 'Knowledge bases',
+    description: 'Create knowledge bases and search them to ground answers in your own content.',
+  },
+]
 
 export function ZelaxyArena() {
   const params = useParams()
@@ -176,9 +426,17 @@ export function ZelaxyArena() {
 
   // Persist the current conversation (create on first save, update afterward).
   const persistChat = useCallback(async () => {
-    const msgs = messagesRef.current.filter((m) => m.content || m.tools?.length)
+    const msgs = messagesRef.current.filter((m) => m.content || m.tools?.length || m.parts?.length)
     if (msgs.length === 0) return
-    const payload = msgs.map((m) => ({ role: m.role, content: m.content, tools: m.tools }))
+    // Persist the structured render data too (parts = agent groups + interleaved narration,
+    // reasoning = thinking) so reopening from History replays the full turn, not just the final text.
+    const payload = msgs.map((m) => ({
+      role: m.role,
+      content: m.content,
+      tools: m.tools,
+      parts: m.parts,
+      reasoning: m.reasoning,
+    }))
     const artifactsPayload = artifactsRef.current
     const consolePayload = consoleRef.current
     try {
@@ -269,6 +527,10 @@ export function ZelaxyArena() {
         role: m.role,
         content: m.content,
         tools: m.tools,
+        // Restore the structured render data so history replays the agent groups, interleaved
+        // narration and thinking — not just the final text.
+        parts: Array.isArray(m.parts) ? m.parts : undefined,
+        reasoning: typeof m.reasoning === 'string' ? m.reasoning : undefined,
       }))
       setMessages(loaded)
       setChatId(id)
@@ -433,7 +695,46 @@ export function ZelaxyArena() {
             }
 
             if (event.type === 'content') {
-              updateAssistant((m) => ({ ...m, content: m.content + (event.data || '') }))
+              const data = event.data || ''
+              updateAssistant((m) => {
+                const parts = [...(m.parts ?? [])]
+                const last = parts[parts.length - 1]
+                if (last && last.type === 'text') {
+                  parts[parts.length - 1] = { type: 'text', content: last.content + data }
+                } else {
+                  parts.push({ type: 'text', content: data })
+                }
+                return { ...m, content: m.content + data, parts }
+              })
+            } else if (event.type === 'segment_break') {
+              // Force the next narration to start a fresh text part (separate from prior text).
+              updateAssistant((m) => {
+                const parts = [...(m.parts ?? [])]
+                const last = parts[parts.length - 1]
+                if (last && last.type === 'text' && last.content.trim()) {
+                  parts.push({ type: 'text', content: '' })
+                }
+                return { ...m, parts }
+              })
+            } else if (event.type === 'file_stream') {
+              // A document is being written by the model — stream its content LIVE into the side
+              // panel (the file is persisted later when create_file actually runs). Append each
+              // delta to the file artifact so it grows token-by-token, like the reference.
+              const fname = event.name || 'Document.md'
+              const delta = event.delta || ''
+              const fid = `file:${fname}`
+              setArtifacts((prev) => {
+                const existing = prev.find((a) => a.id === fid)
+                if (existing) {
+                  return prev.map((a) =>
+                    a.id === fid ? { ...a, content: (a.content ?? '') + delta } : a
+                  )
+                }
+                return [
+                  { id: fid, kind: 'file', title: fname, content: delta, streaming: true },
+                  ...prev,
+                ]
+              })
             } else if (event.type === 'reasoning') {
               updateAssistant((m) => ({
                 ...m,
@@ -444,8 +745,13 @@ export function ZelaxyArena() {
                 id: event.data?.id || crypto.randomUUID(),
                 name: event.data?.name || 'tool',
                 status: 'running',
+                args: event.data?.arguments,
               }
-              updateAssistant((m) => ({ ...m, tools: [...(m.tools || []), t] }))
+              updateAssistant((m) => ({
+                ...m,
+                tools: [...(m.tools || []), t],
+                parts: [...(m.parts ?? []), { type: 'tool', tool: t }],
+              }))
               setConsoleEntries((prev) => [
                 ...prev,
                 {
@@ -458,18 +764,51 @@ export function ZelaxyArena() {
                     : undefined,
                 },
               ])
+              // Live document: as soon as a file write begins, show the doc in the side panel from
+              // the streamed arguments — so the document appears while "Creating file" runs.
+              if (t.name === 'create_file' || t.name === 'append_file') {
+                const a =
+                  typeof t.args === 'string'
+                    ? (() => {
+                        try {
+                          return JSON.parse(t.args)
+                        } catch {
+                          return null
+                        }
+                      })()
+                    : t.args
+                if (a && typeof a.content === 'string' && a.name) {
+                  // Stable name-based id so the document view stays mounted from "Creating file"
+                  // through completion — letting the typewriter reveal play out uninterrupted.
+                  setArtifacts((prev) => [
+                    {
+                      id: `file:${a.name}`,
+                      kind: 'file',
+                      title: a.name,
+                      content: a.content,
+                      streaming: true,
+                    },
+                    ...prev.filter((x) => x.id !== `file:${a.name}`),
+                  ])
+                }
+              }
             } else if (event.type === 'tool_result') {
               const toolName = event.name
+              const nextStatus: ToolAction['status'] = event.success ? 'done' : 'error'
               updateAssistant((m) => ({
                 ...m,
                 tools: (m.tools || []).map((t) =>
                   t.id === event.toolCallId
-                    ? {
-                        ...t,
-                        status: event.success ? 'done' : 'error',
-                        summary: event.error || undefined,
-                      }
+                    ? { ...t, status: nextStatus, summary: event.error || undefined }
                     : t
+                ),
+                parts: (m.parts ?? []).map((p) =>
+                  p.type === 'tool' && p.tool.id === event.toolCallId
+                    ? {
+                        type: 'tool',
+                        tool: { ...p.tool, status: nextStatus, summary: event.error || undefined },
+                      }
+                    : p
                 ),
               }))
               setConsoleEntries((prev) =>
@@ -520,6 +859,31 @@ export function ZelaxyArena() {
                       },
                       ...prev.filter((a) => a.id !== `table:${data.id}`),
                     ])
+                  } else if (
+                    (toolName === 'create_file' || toolName === 'append_file') &&
+                    data.id
+                  ) {
+                    setArtifacts((prev) => {
+                      // Keep the SAME (name-based) id used by the optimistic card so the document
+                      // view doesn't remount — the typewriter reveal continues into completion.
+                      const fileId = `file:${data.name || 'New file'}`
+                      return [
+                        {
+                          id: fileId,
+                          kind: 'file',
+                          title: data.name || 'New file',
+                          url: data.url,
+                          content: typeof data.content === 'string' ? data.content : undefined,
+                          // Reveal already underway from the tool_call; don't restart it.
+                          streaming: false,
+                          subtitle:
+                            typeof data.size === 'number'
+                              ? `${(data.size / 1024).toFixed(1)} KB`
+                              : undefined,
+                        },
+                        ...prev.filter((a) => a.id !== fileId && a.id !== 'file:streaming'),
+                      ]
+                    })
                   }
                 } catch (e) {
                   logger.warn('Failed to parse tool result for resource panel', { e })
@@ -812,6 +1176,34 @@ export function ZelaxyArena() {
                     </button>
                   ))}
                 </div>
+
+                {/* Building with ZelaxyArena — what the workspace agent can do. */}
+                <div className='w-full max-w-xl pt-2'>
+                  <p className='mb-2 text-left font-medium text-[11px] text-muted-foreground uppercase tracking-wide'>
+                    Building with ZelaxyArena
+                  </p>
+                  <div className='flex flex-col gap-1.5'>
+                    {CAPABILITIES.map((c) => {
+                      const Icon = c.icon
+                      return (
+                        <div
+                          key={c.label}
+                          className='flex items-start gap-3 rounded-xl border border-border/50 bg-card/30 px-3 py-2.5 text-left'
+                        >
+                          <div className='mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10'>
+                            <Icon className='h-3.5 w-3.5 text-primary' />
+                          </div>
+                          <div>
+                            <p className='font-medium text-[13px] text-foreground'>{c.label}</p>
+                            <p className='text-[12px] text-muted-foreground leading-relaxed'>
+                              {c.description}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
             ) : (
               <div className='space-y-5'>
@@ -824,74 +1216,50 @@ export function ZelaxyArena() {
                     )}
                     <div
                       className={cn(
-                        'group max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
+                        'group text-sm leading-relaxed',
                         m.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted/50 text-foreground'
+                          ? 'max-w-[85%] rounded-2xl bg-primary px-4 py-2.5 text-primary-foreground'
+                          : 'min-w-0 flex-1 pt-0.5 text-foreground'
                       )}
                     >
-                      {m.tools && m.tools.length > 0 && (
-                        <div className='mb-2 space-y-1'>
-                          {m.tools.map((t) => (
-                            <div
-                              key={t.id}
-                              className='flex items-center gap-2 rounded-lg border border-border/50 bg-background/60 px-2 py-1 text-[12px]'
-                            >
-                              {t.status === 'running' ? (
-                                <Loader2 className='h-3 w-3 animate-spin text-primary' />
-                              ) : t.status === 'error' ? (
-                                <Wrench className='h-3 w-3 text-destructive' />
-                              ) : (
-                                <Wrench className='h-3 w-3 text-emerald-500' />
-                              )}
-                              <span className='text-muted-foreground'>
-                                {prettyToolName(t.name)}
-                              </span>
-                              {t.status === 'error' && t.summary && (
-                                <span className='truncate text-destructive'>· {t.summary}</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {m.content ? (
-                        m.role === 'assistant' ? (
-                          (() => {
-                            const streamingThis = isStreaming && i === messages.length - 1
-                            const parsed = splitThinking(m.content)
-                            // Prefer native extended-thinking reasoning (streamed separately);
-                            // fall back to <thinking> parsed from the answer for prompt-based models.
-                            const thinking = m.reasoning?.length ? m.reasoning : parsed.thinking
-                            const text = parsed.text
-                            return (
-                              <div className='copilot-markdown text-sm'>
-                                {thinking && (
-                                  <ThinkingBlock
-                                    content={thinking}
-                                    isActive={streamingThis && text.length === 0}
-                                  />
-                                )}
-                                {text.length > 0 && (
-                                  <SmoothStreamingText content={text} isStreaming={streamingThis} />
-                                )}
-                              </div>
-                            )
-                          })()
-                        ) : (
-                          <span className='whitespace-pre-wrap'>{m.content}</span>
-                        )
+                      {m.role === 'assistant' ? (
+                        (() => {
+                          const streamingThis = isStreaming && i === messages.length - 1
+                          const hasParts = Boolean(m.parts && m.parts.length > 0)
+                          return (
+                            <>
+                              {/* Native extended-thinking (streamed separately from the answer). */}
+                              {m.reasoning?.length ? (
+                                <ThinkingBlock
+                                  content={m.reasoning}
+                                  isActive={streamingThis && !m.content}
+                                />
+                              ) : null}
+                              {/* Narration text + named agent groups, interleaved in arrival order. */}
+                              <MessageParts message={m} isActive={streamingThis} />
+                              {/* Persistent activity indicator — stays visible for the WHOLE live
+                                  turn (including the model's silent thinking pauses between tool
+                                  rounds) so the user always knows ZelaxyArena is still working. */}
+                              {streamingThis &&
+                                (!hasParts && !m.content && !m.reasoning ? (
+                                  <div className='flex items-center gap-1.5 text-muted-foreground'>
+                                    <span className='inline-flex gap-1'>
+                                      <span className='h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]' />
+                                      <span className='h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]' />
+                                      <span className='h-1.5 w-1.5 animate-bounce rounded-full bg-current' />
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className='mt-2 flex items-center gap-2 text-[13px] text-muted-foreground'>
+                                    <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                                    <span>Working…</span>
+                                  </div>
+                                ))}
+                            </>
+                          )
+                        })()
                       ) : (
-                        m.role === 'assistant' &&
-                        isStreaming &&
-                        i === messages.length - 1 && (
-                          <div className='flex items-center gap-1.5 text-muted-foreground'>
-                            <span className='inline-flex gap-1'>
-                              <span className='h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]' />
-                              <span className='h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]' />
-                              <span className='h-1.5 w-1.5 animate-bounce rounded-full bg-current' />
-                            </span>
-                          </div>
-                        )
+                        <span className='whitespace-pre-wrap'>{m.content}</span>
                       )}
                       {m.role === 'assistant' && m.stopped && (
                         <div className='mt-1 text-[11px] text-muted-foreground italic'>
