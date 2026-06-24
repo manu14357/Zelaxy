@@ -59,19 +59,28 @@ class ScrapePageTool extends BaseCopilotTool<ScrapePageParams, ScrapePageResult>
     }
 
     // Fallback: Jina Reader (r.jina.ai) returns clean markdown and works without a key for basic use.
+    // It can throw on a non-JSON body (e.g. an "Authentication required" rate-limit message) — catch
+    // that and surface a clean, actionable error instead of a raw "SyntaxError: Unexpected token …".
     logger.info('Getting page contents via Jina', { url })
-    const result = await executeTool('jina_read_url', {
-      url,
-      apiKey: jinaKey,
-    })
-    if (!result.success) throw new Error(result.error || 'Failed to read the page')
-
-    const content = result.output?.content ?? result.output?.text ?? ''
-    return {
-      url,
-      content: typeof content === 'string' ? content : JSON.stringify(content),
-      title: result.output?.title,
+    try {
+      const result = await executeTool('jina_read_url', { url, apiKey: jinaKey })
+      if (result.success) {
+        const content = result.output?.content ?? result.output?.text ?? ''
+        return {
+          url,
+          content: typeof content === 'string' ? content : JSON.stringify(content),
+          title: result.output?.title,
+        }
+      }
+      logger.warn('Jina read returned failure', { url, error: result.error })
+    } catch (error) {
+      logger.warn('Jina read threw', { url, error })
     }
+    // Both Exa and Jina failed/empty — a clean message the model can act on (try another source),
+    // not an internal parse-error stack.
+    throw new Error(
+      `Could not read ${url} — the page blocked content extraction or returned no readable text. Try a different source URL.`
+    )
   }
 }
 export const scrapePageTool = new ScrapePageTool()

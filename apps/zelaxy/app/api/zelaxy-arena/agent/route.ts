@@ -235,6 +235,23 @@ blocks:
 
 Every block lives UNDER \`blocks:\`, keyed by a short id, with \`type\` (a real block type), \`name\`, \`inputs\` (real sub-block ids), and \`connections.outgoing[].target\`. Use the per-block \`yamlExample\` from get_blocks_metadata for each block's inputs.
 
+BRANCHING (condition / router blocks) — a \`condition\` block has exactly THREE connections: ONE incoming edge (the block feeding into it) plus TWO outgoing branches — \`if\` (true) and \`else\` (false). Each branch is its own output, so a plain \`outgoing.target\` SILENTLY FAILS TO CONNECT (the path dead-ends) — you MUST wire the branches under \`connections.conditions\`, keyed by \`if\` / \`else if\` / \`else\`. ALWAYS connect BOTH \`if\` AND \`else\` to a real downstream block (a condition with one branch left dangling looks broken on the canvas):
+\`\`\`yaml
+  gate:
+    type: condition
+    name: "Has updates?"
+    inputs:
+      conditions:
+        if: "{{format.result.hasUpdates}} == true"   # inputs.conditions is a MAP keyed by branch
+    connections:
+      conditions:
+        if: store_rows      # runs when the condition is true
+        else: done          # runs otherwise (omit if nothing should run)
+\`\`\`
+The branch keys in \`inputs.conditions\` and \`connections.conditions\` MUST match (\`if\` / \`else if\` / \`else\`). Only branch when the user needs a real fork — for a simple linear "do A then B then C", connect blocks straight through with \`outgoing\` and DON'T add a condition.
+
+USE DEDICATED INTEGRATION BLOCKS, not raw \`api\`, when one exists: to message Telegram use the \`telegram\` block (inputs: botToken, chatId, text) — NOT an \`api\` POST to api.telegram.org. Likewise prefer \`slack\`, \`gmail\`, etc. over hand-built HTTP. Only use the \`api\` block when there is no dedicated block for that service.
+
 BLOCK-OUTPUT REFERENCES (critical — this is where workflows silently break): to use one block's output in another, write \`{{<blockKey>.<field>}}\` where \`<blockKey>\` is the EXACT key you gave that block under \`blocks:\` (e.g. \`scrape\`, \`summarize\` — NOT a made-up name like \`search_sk\`), and \`<field>\` is a REAL output of that block per its get_blocks_metadata \`outputs\` (e.g. a jina/firecrawl block outputs \`.content\`; an agent outputs \`.content\`; an api outputs \`.data\` — do NOT invent fields like \`.context\` or \`.result\`). Every \`{{x.y}}\` you write MUST point at a block key that exists in THIS YAML. If you have three scrape blocks, give them distinct keys (e.g. \`scrape_sk\`, \`scrape_ats\`, \`scrape_tas\`) and reference each by its own key. The build result's \`workflowLint\` flags any reference whose block doesn't exist — fix those.
 
 SCHEDULES: for a recurring run, the FIRST block is a \`schedule\` trigger. Express the cadence as a cron expression in its config — e.g. every 6 hours = \`0 */6 * * *\`, hourly = \`0 * * * *\`, daily 9am = \`0 9 * * *\`. Fetch the \`schedule\` block's metadata for the exact input ids (e.g. \`scheduleType: "custom"\` + \`cronExpression: "0 */6 * * *"\`), and set BOTH so it actually saves.

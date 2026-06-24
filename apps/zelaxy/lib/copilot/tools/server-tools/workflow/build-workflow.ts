@@ -1,6 +1,7 @@
 import { env } from '@/lib/env'
 import { createLogger } from '@/lib/logs/console/logger'
 import { listTables } from '@/lib/table'
+import { applyLayeredLayout } from '@/lib/workflows/autolayout/layered-layout'
 import { getAllBlocks } from '@/blocks/registry'
 import type { BlockConfig, SubBlockConfig } from '@/blocks/types'
 import { resolveOutputType } from '@/blocks/utils'
@@ -314,6 +315,21 @@ async function buildWorkflowLocal(
     blockIdMapping.set(block.id, previewId)
   })
 
+  // What each block's references should point AT. The resolver matches a reference by block id OR
+  // normalized block NAME — so prefer the readable name (stable across id remaps + far clearer than
+  // `preview-…`), falling back to the preview id when a name is blank or shared by 2+ blocks.
+  const normName = (s: string) => s.toLowerCase().replace(/\s+/g, '')
+  const nameCounts = new Map<string, number>()
+  for (const b of blocks) {
+    const n = b.name ? normName(b.name) : ''
+    if (n) nameCounts.set(n, (nameCounts.get(n) || 0) + 1)
+  }
+  const refTargets = new Map<string, string>()
+  for (const b of blocks) {
+    const n = b.name ? normName(b.name) : ''
+    refTargets.set(b.id, n && nameCounts.get(n) === 1 ? n : blockIdMapping.get(b.id)!)
+  }
+
   // Add blocks to preview workflow state
   const inputValidationErrors: InputValidationError[] = []
   for (const block of blocks) {
@@ -322,14 +338,14 @@ async function buildWorkflowLocal(
     // Convert flat inputs to proper subBlocks format
     const subBlocks = convertInputsToSubBlocks(block.type, block.inputs || {}, blockRegistry)
 
-    // Rewrite block-output references ({{otherKey.field}}) to the new preview ids so block-to-block
-    // wiring survives the id reassignment above — otherwise every cross-block reference resolves to
-    // nothing at runtime.
+    // Rewrite block-output references ({{otherKey.field}}) from the model's YAML keys to the readable
+    // name (or id) the resolver understands — otherwise every cross-block reference resolves to
+    // nothing at runtime after the id reassignment above.
     for (const sb of Object.values(subBlocks)) {
-      if (typeof sb.value === 'string') sb.value = rewriteBlockRefsToIds(sb.value, blockIdMapping)
+      if (typeof sb.value === 'string') sb.value = rewriteBlockRefsToIds(sb.value, refTargets)
       else if (Array.isArray(sb.value)) {
         sb.value = sb.value.map((v) =>
-          typeof v === 'string' ? rewriteBlockRefsToIds(v, blockIdMapping) : v
+          typeof v === 'string' ? rewriteBlockRefsToIds(v, refTargets) : v
         )
       }
     }
@@ -383,14 +399,46 @@ async function buildWorkflowLocal(
   const tableFixes = await resolveTableBlockIds(previewWorkflowState.blocks, workspaceId)
   if (tableFixes.length > 0) logger.info('Resolved table ids', { tableFixes })
 
+  // A condition block's expanded `conditions` value ids embed the block's ORIGINAL key (like
+  // "<key>-if"/"<key>-else"). Binary branches wire to the node's `true`/`false` handles (set by
+  // createConditionHandle, key-independent), but the value ids still need remapping to the new
+  // preview id so the ConditionInput editor renders the right rows. remapConditionHandle below only
+  // touches any residual `condition-<key>-…` handles (a multi `else-if` with no binary node handle).
+  for (const [oldKey, previewId] of blockIdMapping) {
+    if (oldKey === previewId) continue
+    const block = previewWorkflowState.blocks[previewId]
+    const condVal = block?.subBlocks?.conditions?.value
+    if (block?.type === 'condition' && typeof condVal === 'string') {
+      block.subBlocks.conditions.value = condVal.replaceAll(`"${oldKey}-`, `"${previewId}-`)
+    }
+  }
+  const remapConditionHandle = (handle: string | undefined): string | undefined => {
+    if (!handle?.startsWith('condition-')) return handle
+    for (const [oldKey, previewId] of blockIdMapping) {
+      if (oldKey === previewId) continue
+      if (handle === `condition-${oldKey}` || handle.startsWith(`condition-${oldKey}-`)) {
+        return `condition-${previewId}${handle.slice(`condition-${oldKey}`.length)}`
+      }
+    }
+    return handle
+  }
+
   // Process edges with updated block IDs
   previewWorkflowState.edges = edges.map((edge) => ({
     id: `edge-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     source: blockIdMapping.get(edge.source) || edge.source,
     target: blockIdMapping.get(edge.target) || edge.target,
-    sourceHandle: edge.sourceHandle,
+    sourceHandle: remapConditionHandle(edge.sourceHandle),
     targetHandle: edge.targetHandle,
   }))
+
+  // Lay the graph out left-to-right in layers so multi-output blocks (a trigger fanning to several
+  // scrapers, a condition's if/else branches) fan out instead of stacking in one cramped column.
+  try {
+    applyLayeredLayout(previewWorkflowState.blocks, previewWorkflowState.edges)
+  } catch (e) {
+    logger.warn('Auto-layout failed; keeping default positions', { e })
+  }
 
   const blocksCount = Object.keys(previewWorkflowState.blocks).length
   const edgesCount = previewWorkflowState.edges.length

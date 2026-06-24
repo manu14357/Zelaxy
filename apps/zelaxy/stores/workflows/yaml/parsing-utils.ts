@@ -105,6 +105,15 @@ export function generateBlockConnections(
       successTargets.push(edge.target)
     } else if (handle === 'error') {
       errorTargets.push(edge.target)
+    } else if (handle === 'true' || handle === 'false') {
+      // A condition block's binary node handles map back onto the if/else condition keys.
+      const rawConditionId = handle === 'true' ? 'if' : 'else'
+      rawConditionIds.push(rawConditionId)
+
+      if (!conditionTargets[rawConditionId]) {
+        conditionTargets[rawConditionId] = []
+      }
+      conditionTargets[rawConditionId].push(edge.target)
     } else if (handle.startsWith('condition-')) {
       const rawConditionId = extractConditionId(handle)
       rawConditionIds.push(rawConditionId)
@@ -351,6 +360,17 @@ export function expandConditionInputs(
   inputs: Record<string, any>
 ): Record<string, any> {
   const expandedInputs = { ...inputs }
+
+  // Accept the common shorthand where the model writes the condition as a BARE expression string
+  // (e.g. `conditions: "{{x}} == true"`) instead of the `{ if: "..." }` map — treat it as the `if`
+  // branch. (A value that's already a JSON array — the editor's internal format — is left alone.)
+  if (
+    typeof expandedInputs.conditions === 'string' &&
+    expandedInputs.conditions.trim() &&
+    !expandedInputs.conditions.trim().startsWith('[')
+  ) {
+    expandedInputs.conditions = { if: expandedInputs.conditions }
+  }
 
   // Handle clean condition format
   if (
@@ -608,11 +628,16 @@ function createEdge(
 }
 
 function createConditionHandle(blockId: string, conditionId: string, blockType?: string): string {
-  // For condition blocks, create the handle format that the system expects
+  // A `condition` block renders two ALWAYS-VISIBLE source handles on its node: `true` (the `if`
+  // branch) and `false` (the `else` branch). An edge must target one of those ids to render as
+  // connected on the canvas — even when the block is collapsed — and to route at runtime via the
+  // executor's "simple mode". So map the binary branches straight onto `true`/`false`. Anything
+  // exotic (a multi `else-if`, which the node has no dedicated handle for) keeps the block-scoped
+  // `condition-<blockId>-<id>` form used by the expanded multi-condition editor.
   if (blockType === 'condition') {
-    // Map semantic condition IDs to the internal format the system expects
-    const actualConditionId = `${blockId}-${conditionId}`
-    return `condition-${actualConditionId}`
+    if (conditionId === 'if') return 'true'
+    if (conditionId === 'else') return 'false'
+    return `condition-${blockId}-${conditionId}`
   }
   // For other blocks that might have conditions, use a more explicit format
   return `condition-${blockId}-${conditionId}`

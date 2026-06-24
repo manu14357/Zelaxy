@@ -37,6 +37,9 @@ interface WorkflowPreviewProps {
   defaultPosition?: { x: number; y: number }
   defaultZoom?: number
   onNodeClick?: (blockId: string, mousePosition: { x: number; y: number }) => void
+  /** When true, reveal blocks one-by-one (in build order) the first time a workflow appears — the
+   * canvas stays fit to the full layout (nodes are hidden, not absent) so nothing jumps. */
+  animateReveal?: boolean
 }
 
 // Define node types - the components now handle preview mode internally
@@ -60,6 +63,7 @@ export function WorkflowPreview({
   defaultPosition,
   defaultZoom,
   onNodeClick,
+  animateReveal = false,
 }: WorkflowPreviewProps) {
   // Resolve dark mode for ReactFlow colorMode
   const [resolvedColorMode, setResolvedColorMode] = useState<'light' | 'dark'>('light')
@@ -259,6 +263,45 @@ export function WorkflowPreview({
     }))
   }, [edgesStructure, workflowState.edges, isValidWorkflowState])
 
+  // Block-by-block reveal: grow `revealCount` from 0 → all over the first appearance, then settle.
+  // Replays whenever the block set changes (a fresh build).
+  const totalNodes = nodes.length
+  const [revealCount, setRevealCount] = useState(animateReveal ? 0 : Number.POSITIVE_INFINITY)
+  useEffect(() => {
+    if (!animateReveal) {
+      setRevealCount(Number.POSITIVE_INFINITY)
+      return
+    }
+    setRevealCount(0)
+    if (totalNodes === 0) return
+    let i = 0
+    let timer: ReturnType<typeof setTimeout>
+    const tick = () => {
+      i += 1
+      setRevealCount(i)
+      if (i < totalNodes) timer = setTimeout(tick, 130)
+    }
+    timer = setTimeout(tick, 130)
+    return () => clearTimeout(timer)
+    // Replay the reveal only when the block set changes (a fresh build), not on every render.
+  }, [animateReveal, totalNodes, blocksStructure.ids])
+
+  const handleInit = useCallback((instance: ReactFlowInstance) => {
+    // Delay fitView to ensure nodes are measured in the DOM. `minZoom` stops a long workflow from
+    // shrinking to an unreadable hairline — it fits as much as it can at ≥0.55 scale (blocks stay
+    // legible) and the user pans to see the rest; `maxZoom` lets a tiny 1–2 block flow zoom IN.
+    // `includeHiddenNodes` keeps the view fit to the FULL layout during the block-by-block reveal.
+    requestAnimationFrame(() => {
+      instance.fitView({
+        padding: 0.18,
+        duration: 300,
+        minZoom: 0.55,
+        maxZoom: 1.25,
+        includeHiddenNodes: true,
+      })
+    })
+  }, [])
+
   // Handle migrated logs that don't have complete workflow state
   if (!isValidWorkflowState) {
     return (
@@ -276,20 +319,26 @@ export function WorkflowPreview({
     )
   }
 
-  const handleInit = useCallback((instance: ReactFlowInstance) => {
-    // Delay fitView to ensure nodes are measured in the DOM
-    requestAnimationFrame(() => {
-      instance.fitView({ padding: 0.3, duration: 300 })
-    })
-  }, [])
+  // During the reveal, hide (not remove) the not-yet-revealed blocks + their edges so the canvas
+  // stays fit to the full layout and blocks simply pop in one after another.
+  const revealing = animateReveal && revealCount < totalNodes
+  const displayNodes = revealing
+    ? nodes.map((n, i) => (i < revealCount ? n : { ...n, hidden: true }))
+    : nodes
+  const revealedIds = revealing ? new Set(nodes.slice(0, revealCount).map((n) => n.id)) : null
+  const displayEdges = revealedIds
+    ? edges.map((e) =>
+        revealedIds.has(e.source) && revealedIds.has(e.target) ? e : { ...e, hidden: true }
+      )
+    : edges
 
   return (
     <ReactFlowProvider>
       <div style={{ height, width }} className={cn('preview-mode')}>
         <ReactFlow
           colorMode={resolvedColorMode}
-          nodes={nodes}
-          edges={edges}
+          nodes={displayNodes}
+          edges={displayEdges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           connectionLineType={ConnectionLineType.Step}
@@ -301,7 +350,12 @@ export function WorkflowPreview({
             strokeLinejoin: 'round',
           }}
           fitView
-          fitViewOptions={{ padding: 0.3 }}
+          fitViewOptions={{
+            padding: 0.18,
+            minZoom: 0.55,
+            maxZoom: 1.25,
+            includeHiddenNodes: true,
+          }}
           onInit={handleInit}
           panOnScroll={false}
           panOnDrag={isPannable}

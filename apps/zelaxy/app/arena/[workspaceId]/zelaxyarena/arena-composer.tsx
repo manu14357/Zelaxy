@@ -1,10 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowUp, Database, FileText, Loader2, Paperclip, Table, Workflow, X } from 'lucide-react'
+import { ArrowUp, Database, FileText, Paperclip, Table, Workflow, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { AttachmentPreview, type MessageAttachment } from './arena-attachment-preview'
 
 export interface ArenaContext {
   type: 'workflow' | 'knowledge' | 'file' | 'table'
@@ -19,6 +20,7 @@ export interface ArenaAttachment {
   key?: string
   path?: string
   previewUrl?: string
+  size?: number
   uploading: boolean
   extractedText?: string
   /** Base64 image bytes (no data: prefix) for images — sent to the model as vision content. */
@@ -67,7 +69,8 @@ export function ArenaComposer({
     displayText: string,
     apiText: string,
     attachments?: ArenaImageAttachment[],
-    contexts?: ArenaContext[]
+    contexts?: ArenaContext[],
+    displayAttachments?: MessageAttachment[]
   ) => void
   onStop: () => void
 }) {
@@ -151,7 +154,7 @@ export function ArenaComposer({
         const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
         setAttachments((prev) => [
           ...prev,
-          { id, name: file.name, type: file.type, previewUrl, uploading: true },
+          { id, name: file.name, type: file.type, size: file.size, previewUrl, uploading: true },
         ])
         try {
           const fd = new FormData()
@@ -226,17 +229,26 @@ export function ArenaComposer({
       .join('')
     apiText += fileSections
 
-    const displayText =
-      trimmed +
-      (attachments.length ? `\n\n${attachments.map((a) => `📎 ${a.name}`).join('  ')}` : '')
+    // Attachments now render as visual previews in the sent message, so don't append "📎 name" text.
+    const displayText = trimmed
     const imageAttachments: ArenaImageAttachment[] = attachments
       .filter((a) => a.base64)
       .map((a) => ({ type: 'image', data: a.base64!, mediaType: a.type }))
+    const displayAttachments: MessageAttachment[] = attachments.map((a) => ({
+      id: a.id,
+      name: a.name,
+      type: a.type,
+      size: a.size,
+      previewUrl: a.previewUrl,
+    }))
+    // Pass the caption as-is (may be empty for an attachments-only message — the previews render
+    // on their own, no placeholder text bubble needed).
     onSend(
-      displayText || '(see attachments)',
+      displayText,
       apiText,
       imageAttachments.length ? imageAttachments : undefined,
-      contexts.length ? contexts : undefined
+      contexts.length ? contexts : undefined,
+      displayAttachments.length ? displayAttachments : undefined
     )
     setText('')
     setContexts([])
@@ -270,31 +282,19 @@ export function ArenaComposer({
         </div>
       )}
 
-      {/* Attachment chips */}
+      {/* Attachment previews — image thumbnails / file chips */}
       {attachments.length > 0 && (
-        <div className='mx-auto mb-2 flex w-full max-w-3xl flex-wrap gap-1.5'>
+        <div className='mx-auto mb-2 flex w-full max-w-3xl flex-wrap gap-2'>
           {attachments.map((a) => (
-            <span
+            <AttachmentPreview
               key={a.id}
-              className='flex items-center gap-1 rounded-md border border-border/60 bg-card/50 px-1.5 py-0.5 text-[11px]'
-            >
-              {a.uploading ? (
-                <Loader2 className='h-3 w-3 animate-spin text-primary' />
-              ) : a.previewUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={a.previewUrl} alt={a.name} className='h-4 w-4 rounded object-cover' />
-              ) : (
-                <FileText className='h-3 w-3 text-muted-foreground' />
-              )}
-              {a.name}
-              <button
-                type='button'
-                onClick={() => setAttachments((prev) => prev.filter((x) => x !== a))}
-                className='text-muted-foreground hover:text-foreground'
-              >
-                <X className='h-3 w-3' />
-              </button>
-            </span>
+              name={a.name}
+              type={a.type}
+              size={a.size}
+              previewUrl={a.previewUrl}
+              uploading={a.uploading}
+              onRemove={() => setAttachments((prev) => prev.filter((x) => x !== a))}
+            />
           ))}
         </div>
       )}

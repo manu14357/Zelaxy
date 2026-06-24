@@ -852,6 +852,7 @@ function WorkflowPane({
             isPannable
             height='100%'
             width='100%'
+            animateReveal
           />
         ) : (
           <div className='flex h-full items-center justify-center'>

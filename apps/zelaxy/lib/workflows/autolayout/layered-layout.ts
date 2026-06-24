@@ -27,10 +27,12 @@ export interface LayoutEdgeLike {
   target: string
 }
 
-/** Distance between layer columns (left edge of one column to the left edge of the next). */
-const LAYER_X_STEP = 600
-/** Vertical gap between blocks stacked in the same layer. */
-const ROW_Y_GAP = 150
+/** Distance between layer columns (left edge of one column to the left edge of the next). Kept just
+ * wider than a block (~350px) so columns sit close together — a long chain stays compact enough to
+ * read at a sensible zoom instead of stretching into a tiny hairline. */
+const LAYER_X_STEP = 440
+/** Vertical gap between blocks stacked in the same layer (e.g. parallel branches). */
+const ROW_Y_GAP = 110
 /** Fallback block height when a block hasn't been measured yet. */
 const DEFAULT_BLOCK_HEIGHT = 120
 /** Approximate canvas block width — used to size containers around their children. */

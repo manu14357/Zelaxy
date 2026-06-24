@@ -30,6 +30,10 @@ import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
 import CopilotMarkdownRenderer from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/panel/components/copilot/components/copilot-message/components/markdown-renderer'
 import {
+  AttachmentPreview,
+  type MessageAttachment,
+} from '@/app/arena/[workspaceId]/zelaxyarena/arena-attachment-preview'
+import {
   ArenaComposer,
   type ArenaContext,
   type ArenaImageAttachment,
@@ -50,6 +54,11 @@ const logger = createLogger('ZelaxyArena')
 // Console payload cap — generous so full tool output is visible (the box is collapsible), while still
 // guarding against a pathological multi-MB string freezing the UI.
 const CONSOLE_MAX_CHARS = 100_000
+
+/** One stable slot for the document being streamed. The placeholder (before the filename is known)
+ * and the finalized file share this id so they render as a SINGLE tab, not two. On completion the
+ * artifact is re-keyed to its permanent `file:<id>` and this slot is freed for the next file. */
+const STREAMING_FILE_ID = 'file:__streaming__'
 
 /** Pretty-print a value (parsing JSON strings) so console input AND output render the same way. */
 function prettyJson(val: unknown): string {
@@ -186,19 +195,24 @@ function AgentGroup({
                     <CheckCircle2 className='size-[15px] text-muted-foreground' />
                   )}
                 </span>
+                {/* Title + (optional) error on ONE truncating line so a long URL + error message
+                    never wraps/overflows the row; the full error stays in the Console. */}
                 <span
                   className={cn(
-                    'text-[13px]',
+                    'min-w-0 flex-1 truncate text-[13px]',
                     item.tool.status === 'error' ? 'text-destructive' : 'text-muted-foreground'
                   )}
+                  title={
+                    item.tool.status === 'error' && item.tool.summary
+                      ? item.tool.summary
+                      : undefined
+                  }
                 >
                   {resolveToolStatusTitle(item.tool.name, item.tool.status, item.tool.args)}
+                  {item.tool.status === 'error' && item.tool.summary ? (
+                    <span className='text-destructive/70'> · {item.tool.summary}</span>
+                  ) : null}
                 </span>
-                {item.tool.status === 'error' && item.tool.summary && (
-                  <span className='truncate text-[13px] text-destructive/80'>
-                    · {item.tool.summary}
-                  </span>
-                )}
               </div>
             ) : (
               <span
@@ -300,6 +314,8 @@ interface ChatMessage {
   reasoning?: string
   /** Set when the user stopped this turn mid-stream. */
   stopped?: boolean
+  /** Files the user attached to this message — rendered as image thumbnails / file chips. */
+  attachments?: MessageAttachment[]
 }
 
 const SUGGESTIONS = [
@@ -360,6 +376,7 @@ export function ZelaxyArena() {
       apiText?: string
       attachments?: ArenaImageAttachment[]
       contexts?: ArenaContext[]
+      displayAttachments?: MessageAttachment[]
     }[]
   >([])
   const [artifacts, setArtifacts] = useState<ResourceArtifact[]>([])
@@ -426,7 +443,9 @@ export function ZelaxyArena() {
 
   // Persist the current conversation (create on first save, update afterward).
   const persistChat = useCallback(async () => {
-    const msgs = messagesRef.current.filter((m) => m.content || m.tools?.length || m.parts?.length)
+    const msgs = messagesRef.current.filter(
+      (m) => m.content || m.tools?.length || m.parts?.length || m.attachments?.length
+    )
     if (msgs.length === 0) return
     // Persist the structured render data too (parts = agent groups + interleaved narration,
     // reasoning = thinking) so reopening from History replays the full turn, not just the final text.
@@ -436,6 +455,14 @@ export function ZelaxyArena() {
       tools: m.tools,
       parts: m.parts,
       reasoning: m.reasoning,
+      // Persist lightweight metadata only — the live object-URL preview can't survive a reload, so
+      // restored attachments render as file chips (the name/type/size are enough to identify them).
+      attachments: m.attachments?.map((a) => ({
+        id: a.id,
+        name: a.name,
+        type: a.type,
+        size: a.size,
+      })),
     }))
     const artifactsPayload = artifactsRef.current
     const consolePayload = consoleRef.current
@@ -531,6 +558,7 @@ export function ZelaxyArena() {
         // narration and thinking — not just the final text.
         parts: Array.isArray(m.parts) ? m.parts : undefined,
         reasoning: typeof m.reasoning === 'string' ? m.reasoning : undefined,
+        attachments: Array.isArray(m.attachments) ? m.attachments : undefined,
       }))
       setMessages(loaded)
       setChatId(id)
@@ -613,14 +641,19 @@ export function ZelaxyArena() {
       text: string,
       apiText?: string,
       attachments?: ArenaImageAttachment[],
-      contexts?: ArenaContext[]
+      contexts?: ArenaContext[],
+      displayAttachments?: MessageAttachment[]
     ) => {
       const trimmed = text.trim()
-      if (!trimmed) return
+      // Allow an attachments-only message (e.g. an image with no caption).
+      if (!trimmed && !displayAttachments?.length) return
       // A turn is still streaming — queue this message instead of dropping it. It auto-sends when
       // the current turn finishes (see the auto-dispatch effect).
       if (isStreaming) {
-        setQueued((q) => [...q, { text: trimmed, apiText, attachments, contexts }])
+        setQueued((q) => [
+          ...q,
+          { text: trimmed, apiText, attachments, contexts, displayAttachments },
+        ])
         return
       }
 
@@ -629,6 +662,7 @@ export function ZelaxyArena() {
         role: 'user',
         content: trimmed,
         apiContent: apiText?.trim() ? apiText : undefined,
+        attachments: displayAttachments?.length ? displayAttachments : undefined,
       }
       const assistantId = crypto.randomUUID()
       const assistantMsg: ChatMessage = {
@@ -718,20 +752,22 @@ export function ZelaxyArena() {
               })
             } else if (event.type === 'file_stream') {
               // A document is being written by the model — stream its content LIVE into the side
-              // panel (the file is persisted later when create_file actually runs). Append each
-              // delta to the file artifact so it grows token-by-token, like the reference.
-              const fname = event.name || 'Document.md'
+              // panel (the file is persisted later when create_file actually runs). All deltas go to
+              // ONE stable streaming slot; the filename often arrives AFTER the first content deltas,
+              // so we start with a placeholder title and upgrade it in place — never a second tab.
               const delta = event.delta || ''
-              const fid = `file:${fname}`
               setArtifacts((prev) => {
-                const existing = prev.find((a) => a.id === fid)
+                const existing = prev.find((a) => a.id === STREAMING_FILE_ID)
+                const title = event.name || existing?.title || 'Document.md'
                 if (existing) {
                   return prev.map((a) =>
-                    a.id === fid ? { ...a, content: (a.content ?? '') + delta } : a
+                    a.id === STREAMING_FILE_ID
+                      ? { ...a, title, content: (a.content ?? '') + delta }
+                      : a
                   )
                 }
                 return [
-                  { id: fid, kind: 'file', title: fname, content: delta, streaming: true },
+                  { id: STREAMING_FILE_ID, kind: 'file', title, content: delta, streaming: true },
                   ...prev,
                 ]
               })
@@ -778,18 +814,28 @@ export function ZelaxyArena() {
                       })()
                     : t.args
                 if (a && typeof a.content === 'string' && a.name) {
-                  // Stable name-based id so the document view stays mounted from "Creating file"
-                  // through completion — letting the typewriter reveal play out uninterrupted.
-                  setArtifacts((prev) => [
-                    {
-                      id: `file:${a.name}`,
-                      kind: 'file',
-                      title: a.name,
-                      content: a.content,
-                      streaming: true,
-                    },
-                    ...prev.filter((x) => x.id !== `file:${a.name}`),
-                  ])
+                  // Update the SAME streaming slot now that the real filename is known — the doc view
+                  // stays mounted from "Creating file" through completion (no remount, no 2nd tab).
+                  setArtifacts((prev) => {
+                    const existing = prev.find((x) => x.id === STREAMING_FILE_ID)
+                    if (existing) {
+                      return prev.map((x) =>
+                        x.id === STREAMING_FILE_ID
+                          ? { ...x, title: a.name, content: a.content, streaming: true }
+                          : x
+                      )
+                    }
+                    return [
+                      {
+                        id: STREAMING_FILE_ID,
+                        kind: 'file',
+                        title: a.name,
+                        content: a.content,
+                        streaming: true,
+                      },
+                      ...prev,
+                    ]
+                  })
                 }
               }
             } else if (event.type === 'tool_result') {
@@ -864,16 +910,19 @@ export function ZelaxyArena() {
                     data.id
                   ) {
                     setArtifacts((prev) => {
-                      // Keep the SAME (name-based) id used by the optimistic card so the document
-                      // view doesn't remount — the typewriter reveal continues into completion.
-                      const fileId = `file:${data.name || 'New file'}`
+                      // Re-key the streaming slot to its permanent, unique id and FREE the slot, so
+                      // the placeholder + final file are one tab and the next file streams cleanly.
+                      const fileId = `file:${data.id}`
+                      const streaming = prev.find((a) => a.id === STREAMING_FILE_ID)
                       return [
                         {
                           id: fileId,
                           kind: 'file',
-                          title: data.name || 'New file',
+                          title: data.name || streaming?.title || 'New file',
                           url: data.url,
-                          content: typeof data.content === 'string' ? data.content : undefined,
+                          // Prefer the result's content; fall back to what we already streamed.
+                          content:
+                            typeof data.content === 'string' ? data.content : streaming?.content,
                           // Reveal already underway from the tool_call; don't restart it.
                           streaming: false,
                           subtitle:
@@ -881,7 +930,7 @@ export function ZelaxyArena() {
                               ? `${(data.size / 1024).toFixed(1)} KB`
                               : undefined,
                         },
-                        ...prev.filter((a) => a.id !== fileId && a.id !== 'file:streaming'),
+                        ...prev.filter((a) => a.id !== fileId && a.id !== STREAMING_FILE_ID),
                       ]
                     })
                   }
@@ -952,7 +1001,7 @@ export function ZelaxyArena() {
     if (!isStreaming && queued.length > 0) {
       const [head, ...rest] = queued
       setQueued(rest)
-      void send(head.text, head.apiText, head.attachments, head.contexts)
+      void send(head.text, head.apiText, head.attachments, head.contexts, head.displayAttachments)
     }
   }, [isStreaming, queued, send])
 
@@ -1218,7 +1267,7 @@ export function ZelaxyArena() {
                       className={cn(
                         'group text-sm leading-relaxed',
                         m.role === 'user'
-                          ? 'max-w-[85%] rounded-2xl bg-primary px-4 py-2.5 text-primary-foreground'
+                          ? 'flex max-w-[85%] flex-col items-end gap-1.5'
                           : 'min-w-0 flex-1 pt-0.5 text-foreground'
                       )}
                     >
@@ -1259,7 +1308,26 @@ export function ZelaxyArena() {
                           )
                         })()
                       ) : (
-                        <span className='whitespace-pre-wrap'>{m.content}</span>
+                        <>
+                          {m.attachments?.length ? (
+                            <div className='flex flex-wrap justify-end gap-2'>
+                              {m.attachments.map((a) => (
+                                <AttachmentPreview
+                                  key={a.id}
+                                  name={a.name}
+                                  type={a.type}
+                                  size={a.size}
+                                  previewUrl={a.previewUrl}
+                                />
+                              ))}
+                            </div>
+                          ) : null}
+                          {m.content ? (
+                            <div className='whitespace-pre-wrap rounded-2xl bg-primary px-4 py-2.5 text-primary-foreground'>
+                              {m.content}
+                            </div>
+                          ) : null}
+                        </>
                       )}
                       {m.role === 'assistant' && m.stopped && (
                         <div className='mt-1 text-[11px] text-muted-foreground italic'>
@@ -1333,8 +1401,8 @@ export function ZelaxyArena() {
         <ArenaComposer
           workspaceId={workspaceId}
           isStreaming={isStreaming}
-          onSend={(displayText, apiText, attachments, contexts) =>
-            send(displayText, apiText, attachments, contexts)
+          onSend={(displayText, apiText, attachments, contexts, displayAttachments) =>
+            send(displayText, apiText, attachments, contexts, displayAttachments)
           }
           onStop={stop}
         />
