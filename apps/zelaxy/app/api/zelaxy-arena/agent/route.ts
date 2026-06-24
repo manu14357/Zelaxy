@@ -186,7 +186,7 @@ ${reasoningInstruction}You can:
 
 When the user asks about data ("how many leads…", "add a row…", "create a table…"), use the table tools. Refer to tables by name.
 
-When the user asks you to create or modify a workflow, ALWAYS use the build_workflow or edit_workflow tool with a complete YAML definition — do not just describe it. Call build_workflow EXACTLY ONCE with the complete, correct YAML — do NOT call it again to "refine" or "fix" it unless the user explicitly asks for a change. After building, briefly summarize what you created and that it has opened in the resource panel for review.
+When the user asks you to create or modify a workflow, ALWAYS use the build_workflow or edit_workflow tool with a complete YAML definition — do not just describe it. Call build_workflow once with the complete, correct YAML. If the result contains \`workflowLint\` warnings or \`inputValidationErrors\`, FIX exactly those issues (e.g. a reference to a block that doesn't exist, a missing required field, a bad schedule) and call build_workflow ONE more time with the corrected YAML — then stop. Do NOT otherwise rebuild to "refine" unless the user asks. After it's clean, briefly summarize what you created and that it has opened in the resource panel for review.
 
 IMPORTANT — use only REAL block types. Before building a workflow, call get_blocks_and_tools to see the valid block types, and get_blocks_metadata for the exact inputs + a YAML example of each block you'll use. Never invent block types or inputs. Common ones: 'starter' (manual/API run), 'agent' (LLM step), 'api' (HTTP request — NOT 'api_call'), 'function' (code), 'condition'/'router' (branching), 'jina'/'firecrawl' (web scraping), 'slack'/'gmail' (messaging), 'knowledge' (RAG search).
 
@@ -234,6 +234,18 @@ blocks:
 \`\`\`
 
 Every block lives UNDER \`blocks:\`, keyed by a short id, with \`type\` (a real block type), \`name\`, \`inputs\` (real sub-block ids), and \`connections.outgoing[].target\`. Use the per-block \`yamlExample\` from get_blocks_metadata for each block's inputs.
+
+BLOCK-OUTPUT REFERENCES (critical — this is where workflows silently break): to use one block's output in another, write \`{{<blockKey>.<field>}}\` where \`<blockKey>\` is the EXACT key you gave that block under \`blocks:\` (e.g. \`scrape\`, \`summarize\` — NOT a made-up name like \`search_sk\`), and \`<field>\` is a REAL output of that block per its get_blocks_metadata \`outputs\` (e.g. a jina/firecrawl block outputs \`.content\`; an agent outputs \`.content\`; an api outputs \`.data\` — do NOT invent fields like \`.context\` or \`.result\`). Every \`{{x.y}}\` you write MUST point at a block key that exists in THIS YAML. If you have three scrape blocks, give them distinct keys (e.g. \`scrape_sk\`, \`scrape_ats\`, \`scrape_tas\`) and reference each by its own key. The build result's \`workflowLint\` flags any reference whose block doesn't exist — fix those.
+
+SCHEDULES: for a recurring run, the FIRST block is a \`schedule\` trigger. Express the cadence as a cron expression in its config — e.g. every 6 hours = \`0 */6 * * *\`, hourly = \`0 * * * *\`, daily 9am = \`0 9 * * *\`. Fetch the \`schedule\` block's metadata for the exact input ids (e.g. \`scheduleType: "custom"\` + \`cronExpression: "0 */6 * * *"\`), and set BOTH so it actually saves.
+
+WORKFLOW VARIABLES vs TABLES: \`{{VAR}}\` (no dot) = a workspace environment variable/secret. \`{{variable.<name>}}\` = a workflow variable (declared in a \`variables\` block).
+
+STORING ROWS IN A DATA TABLE — the exact flow (the table id is NOT something a function holds; it lives in the \`table\` block):
+1. If the workflow needs to store into a table that doesn't exist yet, call create_table FIRST — it returns \`{ id, name }\`.
+2. In the build_workflow YAML, add a \`table\` block (NOT a function — a function only transforms data and has NO table access; NOT an agent — it can't write rows) with \`inputs: { operation: "batch_insert_rows" (for an array of rows) or "insert_row", tableId: "<the table>", rows/data: "{{<prevBlock>.<field>}}" }\`.
+3. For \`tableId\` you may put EITHER the id returned by create_table OR the table's NAME — build_workflow resolves a name to the real id automatically. So a \`function\` that shapes rows feeds the \`table\` block (\`rows: "{{format.result}}"\`); the \`table\` block does the actual write using its \`tableId\`.
+Do this in ONE turn: create_table, then build_workflow referencing that table. Don't reference a table/variable you didn't create. Get the \`table\` block's metadata for its exact inputs.
 
 MODELS: for any agent/router/evaluator block's \`model\`, use ONLY a real Zelaxy model id. Valid ids include: claude-sonnet-4-6 (the default), claude-opus-4-8, claude-haiku-4-5, gpt-5.1, gpt-4o, gemini-3-pro-preview, mimo-v2.5-pro. Do NOT use dated ids (e.g. "claude-sonnet-4-20250514"), provider-prefixed ids (e.g. "anthropic/..."), or models from other platforms — they don't exist here. When unsure, use claude-sonnet-4-6.
 
@@ -596,7 +608,10 @@ export async function POST(req: NextRequest) {
               toolCall.id || `tool_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
             const args = {
               ...(toolCall.arguments || {}),
-              workflowId: toolCall.arguments?.workflowId || workflowId,
+              // edit_workflow/run_workflow target the workflow JUST built this turn when the model
+              // didn't supply an id — otherwise they fail with "workflowId is required" because the
+              // arena has no ambient workflow context. `persistedWorkflowId` is set by build_workflow.
+              workflowId: toolCall.arguments?.workflowId || persistedWorkflowId || workflowId,
               userId,
               workspaceId,
               // Make workspace-configured API keys (set in the in-app Environment Variables) available

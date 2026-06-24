@@ -1,5 +1,6 @@
 import { env } from '@/lib/env'
 import { createLogger } from '@/lib/logs/console/logger'
+import { listTables } from '@/lib/table'
 import { getAllBlocks } from '@/blocks/registry'
 import type { BlockConfig, SubBlockConfig } from '@/blocks/types'
 import { resolveOutputType } from '@/blocks/utils'
@@ -29,6 +30,26 @@ function sanitizeWorkflowModels(blocks: Record<string, any>): string[] {
     fixed.push(`${block.name || block.type}: replaced unknown model "${raw}" with "${replacement}"`)
   }
   return fixed
+}
+
+/**
+ * Rewrite block-output references so they survive id reassignment. The YAML keys the model wrote
+ * (e.g. `search_sk`) become fresh `preview-…` ids; without this, `{{search_sk.content}}` keeps
+ * pointing at an id that no longer exists and silently resolves to nothing at runtime. Replaces the
+ * BLOCK part of every `{{oldKey}}` / `{{oldKey.field}}` with its new id (env vars like `{{VAR}}` are
+ * untouched — they aren't in the mapping).
+ */
+export function rewriteBlockRefsToIds(value: string, mapping: Map<string, string>): string {
+  if (typeof value !== 'string' || !value.includes('{{')) return value
+  let out = value
+  for (const [oldId, newId] of mapping) {
+    if (oldId === newId) continue
+    const escaped = oldId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    // Match {{oldId}} or {{oldId.field…}} (the field part — group 1 — is preserved verbatim).
+    const re = new RegExp(`\\{\\{\\s*${escaped}\\s*(\\.[^}]*)?\\}\\}`, 'g')
+    out = out.replace(re, (_m, field) => `{{${newId}${field ?? ''}}}`)
+  }
+  return out
 }
 
 // Zelaxy Agent API configuration - now optional
@@ -164,6 +185,44 @@ function convertInputsToSubBlocks(
 interface BuildWorkflowParams {
   yamlContent: string
   description?: string
+  // Injected by the arena route — lets a `table` block's `tableId` be given as the table NAME and
+  // resolved to the real id here (so the agent doesn't have to thread the exact id across tool calls).
+  workspaceId?: string
+}
+
+/**
+ * Resolve `table` blocks whose `tableId` was written as a table NAME (or left blank) to the real
+ * table id. The model creates a table with create_table and often references it by name in the
+ * workflow — this closes that gap. Mutates the blocks; returns a list of substitutions for warnings.
+ */
+async function resolveTableBlockIds(
+  blocks: Record<string, any>,
+  workspaceId: string | undefined
+): Promise<string[]> {
+  if (!workspaceId) return []
+  const tableBlocks = Object.values(blocks).filter((b) => b?.type === 'table')
+  if (tableBlocks.length === 0) return []
+  let tables: Array<{ id: string; name: string }> = []
+  try {
+    tables = (await listTables(workspaceId)) as Array<{ id: string; name: string }>
+  } catch {
+    return []
+  }
+  const ids = new Set(tables.map((t) => t.id))
+  const byName = new Map(tables.map((t) => [t.name.toLowerCase(), t.id]))
+  const fixes: string[] = []
+  for (const block of tableBlocks) {
+    const sb = block.subBlocks?.tableId
+    const val = typeof sb?.value === 'string' ? sb.value.trim() : ''
+    // Skip blanks, real ids, and `{{…}}` references — only resolve a plain table NAME.
+    if (!val || ids.has(val) || val.includes('{{')) continue
+    const resolved = byName.get(val.toLowerCase())
+    if (resolved) {
+      sb.value = resolved
+      fixes.push(`table "${val}" → ${resolved}`)
+    }
+  }
+  return fixes
 }
 
 interface BuildWorkflowResult {
@@ -195,7 +254,8 @@ export const buildWorkflowTool = new BuildWorkflowTool()
  */
 async function buildWorkflowLocal(
   yamlContent: string,
-  description?: string
+  description?: string,
+  workspaceId?: string
 ): Promise<BuildWorkflowResult> {
   const logger = createLogger('BuildWorkflowLocal')
 
@@ -262,6 +322,18 @@ async function buildWorkflowLocal(
     // Convert flat inputs to proper subBlocks format
     const subBlocks = convertInputsToSubBlocks(block.type, block.inputs || {}, blockRegistry)
 
+    // Rewrite block-output references ({{otherKey.field}}) to the new preview ids so block-to-block
+    // wiring survives the id reassignment above — otherwise every cross-block reference resolves to
+    // nothing at runtime.
+    for (const sb of Object.values(subBlocks)) {
+      if (typeof sb.value === 'string') sb.value = rewriteBlockRefsToIds(sb.value, blockIdMapping)
+      else if (Array.isArray(sb.value)) {
+        sb.value = sb.value.map((v) =>
+          typeof v === 'string' ? rewriteBlockRefsToIds(v, blockIdMapping) : v
+        )
+      }
+    }
+
     // Validate/normalize values against the block's sub-block config (catches invalid dropdown
     // ids, out-of-range sliders, non-boolean switches) so the model can self-correct.
     inputValidationErrors.push(
@@ -306,6 +378,10 @@ async function buildWorkflowLocal(
   // Replace any LLM model ids that don't exist in this Zelaxy install with real ones.
   const modelFixes = sanitizeWorkflowModels(previewWorkflowState.blocks)
   if (modelFixes.length > 0) logger.info('Sanitized workflow models', { modelFixes })
+
+  // Resolve `table` blocks whose tableId was given as a table NAME to the real id.
+  const tableFixes = await resolveTableBlockIds(previewWorkflowState.blocks, workspaceId)
+  if (tableFixes.length > 0) logger.info('Resolved table ids', { tableFixes })
 
   // Process edges with updated block IDs
   previewWorkflowState.edges = edges.map((edge) => ({
@@ -483,7 +559,7 @@ async function buildWorkflowRemote(
 // Main implementation - tries local first, then falls back to remote
 async function buildWorkflow(params: BuildWorkflowParams): Promise<BuildWorkflowResult> {
   const logger = createLogger('BuildWorkflow')
-  const { yamlContent, description } = params
+  const { yamlContent, description, workspaceId } = params
 
   logger.info('Building workflow for copilot', {
     yamlLength: yamlContent.length,
@@ -494,7 +570,7 @@ async function buildWorkflow(params: BuildWorkflowParams): Promise<BuildWorkflow
   try {
     // Always try LOCAL converter first - it's faster and doesn't require external service
     logger.info('Attempting local YAML conversion...')
-    const localResult = await buildWorkflowLocal(yamlContent, description)
+    const localResult = await buildWorkflowLocal(yamlContent, description, workspaceId)
 
     if (localResult.success) {
       logger.info('Local conversion succeeded')

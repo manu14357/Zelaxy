@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BlockConfig, SubBlockConfig } from '@/blocks/types'
-import {
-  lintWorkflowState,
-  validateBlockSubBlocks,
-  validateValueForSubBlock,
-} from './validation'
+import { lintWorkflowState, validateBlockSubBlocks, validateValueForSubBlock } from './validation'
 
 function sub(overrides: Partial<SubBlockConfig>): SubBlockConfig {
   return { id: 'x', type: 'short-input', ...overrides } as SubBlockConfig
@@ -64,7 +60,20 @@ describe('validateBlockSubBlocks', () => {
 describe('lintWorkflowState', () => {
   const registry = new Map<string, BlockConfig>([
     ['starter', { type: 'starter', category: 'triggers', subBlocks: [] } as any],
-    ['agent', { type: 'agent', category: 'blocks', subBlocks: [] } as any],
+    [
+      'agent',
+      {
+        type: 'agent',
+        category: 'blocks',
+        subBlocks: [],
+        outputs: { content: {}, context: {} },
+      } as any,
+    ],
+    ['jina', { type: 'jina', category: 'tools', subBlocks: [], outputs: { content: {} } } as any],
+    [
+      'function',
+      { type: 'function', category: 'blocks', subBlocks: [], outputs: { result: {} } } as any,
+    ],
   ])
 
   it('flags an edge to a missing block', () => {
@@ -91,5 +100,99 @@ describe('lintWorkflowState', () => {
     const edges = [{ source: 'a', target: 'b' }]
     const issues = lintWorkflowState(blocks, edges, registry)
     expect(issues).toHaveLength(0)
+  })
+
+  it('flags a {{block.field}} reference to a block that does not exist', () => {
+    const blocks = {
+      a: { type: 'starter', name: 'Start', subBlocks: {} },
+      b: {
+        type: 'agent',
+        name: 'Step',
+        subBlocks: { userPrompt: { value: 'Summarize: {{search_sk.content}}' } },
+      },
+    }
+    const edges = [{ source: 'a', target: 'b' }]
+    const issues = lintWorkflowState(blocks, edges, registry)
+    expect(issues.some((i) => i.severity === 'warning' && i.message.includes('search_sk'))).toBe(
+      true
+    )
+  })
+
+  it('accepts a {{block.field}} reference matching a block id or normalized name', () => {
+    const blocks = {
+      a: { type: 'starter', name: 'Start', subBlocks: {} },
+      scrape: { type: 'agent', name: 'Scrape SK', subBlocks: {} },
+      b: {
+        type: 'agent',
+        name: 'Step',
+        // `scrape` matches the block id; `scrapesk` matches normalized name "Scrape SK".
+        subBlocks: { userPrompt: { value: '{{scrape.content}} and {{scrapesk.content}}' } },
+      },
+    }
+    const edges = [
+      { source: 'a', target: 'scrape' },
+      { source: 'scrape', target: 'b' },
+    ]
+    const issues = lintWorkflowState(blocks, edges, registry)
+    expect(issues.some((i) => i.message.includes('references'))).toBe(false)
+  })
+
+  it('does not flag bare {{ENV_VAR}} (no dot) as a block reference', () => {
+    const blocks = {
+      a: { type: 'starter', name: 'Start', subBlocks: {} },
+      b: { type: 'agent', name: 'Step', subBlocks: { apiKey: { value: '{{OPENAI_API_KEY}}' } } },
+    }
+    const edges = [{ source: 'a', target: 'b' }]
+    const issues = lintWorkflowState(blocks, edges, registry)
+    expect(issues.some((i) => i.message.includes('references'))).toBe(false)
+  })
+
+  it('flags a {{block.field}} reference to a field the block does not output', () => {
+    const blocks = {
+      a: { type: 'starter', name: 'Start', subBlocks: {} },
+      jina_web: { type: 'jina', name: 'Scrape', subBlocks: {} },
+      b: {
+        type: 'agent',
+        name: 'Step',
+        subBlocks: { userPrompt: { value: '{{jina_web.context}}' } },
+      },
+    }
+    const edges = [
+      { source: 'a', target: 'jina_web' },
+      { source: 'jina_web', target: 'b' },
+    ]
+    const issues = lintWorkflowState(blocks, edges, registry)
+    // jina outputs `content`, not `context`.
+    expect(issues.some((i) => i.message.includes('context') && i.message.includes('content'))).toBe(
+      true
+    )
+  })
+
+  it('accepts a valid output field (agent.context is real)', () => {
+    const blocks = {
+      a: { type: 'starter', name: 'Start', subBlocks: {} },
+      ag: { type: 'agent', name: 'Brain', subBlocks: {} },
+      b: { type: 'agent', name: 'Step', subBlocks: { userPrompt: { value: '{{ag.context}}' } } },
+    }
+    const edges = [
+      { source: 'a', target: 'ag' },
+      { source: 'ag', target: 'b' },
+    ]
+    const issues = lintWorkflowState(blocks, edges, registry)
+    expect(issues.some((i) => i.message.includes('not an output'))).toBe(false)
+  })
+
+  it('does not field-validate a function block (dynamic output)', () => {
+    const blocks = {
+      a: { type: 'starter', name: 'Start', subBlocks: {} },
+      fn: { type: 'function', name: 'Fmt', subBlocks: {} },
+      b: { type: 'agent', name: 'Step', subBlocks: { userPrompt: { value: '{{fn.anything}}' } } },
+    }
+    const edges = [
+      { source: 'a', target: 'fn' },
+      { source: 'fn', target: 'b' },
+    ]
+    const issues = lintWorkflowState(blocks, edges, registry)
+    expect(issues.some((i) => i.message.includes('not an output'))).toBe(false)
   })
 })

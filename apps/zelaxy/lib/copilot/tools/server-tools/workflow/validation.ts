@@ -172,6 +172,71 @@ export function lintWorkflowState(
     })
   }
 
+  // Dangling block references: a `{{ref.field}}` input that points at a block which doesn't exist.
+  // The executor resolves refs by block id OR normalized name (lowercase, spaces stripped) — mirror
+  // that here so the model learns its reference doesn't match any block it created (the #1 cause of
+  // workflows that "build" but produce empty values at runtime).
+  const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, '')
+  const SYSTEM_REFS = new Set(['start', 'loop', 'parallel', 'variable', 'env'])
+  const validRefs = new Set<string>(SYSTEM_REFS)
+  const blockByRef = new Map<string, any>()
+  for (const [id, block] of Object.entries(blocks)) {
+    validRefs.add(normalize(id))
+    blockByRef.set(normalize(id), block)
+    if (block.name) {
+      validRefs.add(normalize(block.name))
+      blockByRef.set(normalize(block.name), block)
+    }
+  }
+  const reportedRefs = new Set<string>()
+  for (const [id, block] of Object.entries(blocks)) {
+    for (const sub of Object.values(block.subBlocks || {})) {
+      const val = (sub as any)?.value
+      if (typeof val !== 'string') continue
+      const refs = val.match(/\{\{\s*([^}]+?)\s*\}\}/g)
+      if (!refs) continue
+      for (const raw of refs) {
+        const inner = raw.slice(2, -2).trim()
+        if (!inner.includes('.')) continue // bare `{{VAR}}` is an env var, not a block ref
+        const parts = inner.split('.')
+        const ref = parts[0].trim()
+        const field = (parts[1] || '').trim()
+        const nRef = normalize(ref)
+
+        // (1) The referenced BLOCK must exist.
+        if (!validRefs.has(nRef)) {
+          const key = `${id}:${ref}`
+          if (!reportedRefs.has(key)) {
+            reportedRefs.add(key)
+            issues.push({
+              severity: 'warning',
+              message: `Block "${block.name || id}" references {{${inner}}}, but no block has id/name "${ref}". Reference the EXACT id or name of a block you created (names match case-insensitively with spaces removed), or add that block.`,
+            })
+          }
+          continue
+        }
+
+        // (2) The FIELD must be a real output of that block. Skip system refs and `function` (whose
+        // output shape is whatever its code returns), and only validate when the block declares a
+        // non-empty outputs schema (so we never false-flag a dynamic block).
+        if (SYSTEM_REFS.has(nRef) || !field) continue
+        const target = blockByRef.get(nRef)
+        if (!target || target.type === 'function') continue
+        const outputs = blockRegistry.get(target.type)?.outputs
+        if (outputs && Object.keys(outputs).length > 0 && !(field in outputs)) {
+          const fkey = `${id}:${ref}.${field}`
+          if (!reportedRefs.has(fkey)) {
+            reportedRefs.add(fkey)
+            issues.push({
+              severity: 'warning',
+              message: `Block "${block.name || id}" references {{${ref}.${field}}}, but "${field}" is not an output of "${ref}" (a ${target.type} block). Valid outputs: ${Object.keys(outputs).join(', ')}.`,
+            })
+          }
+        }
+      }
+    }
+  }
+
   return issues
 }
 
