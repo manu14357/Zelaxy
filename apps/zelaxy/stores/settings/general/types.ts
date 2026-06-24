@@ -1,3 +1,11 @@
+/** Email opt-OUT flags as stored in the DB (`true` = unsubscribed from that category). */
+export interface EmailPreferences {
+  unsubscribeAll?: boolean
+  unsubscribeMarketing?: boolean
+  unsubscribeUpdates?: boolean
+  unsubscribeNotifications?: boolean
+}
+
 export interface General {
   isAutoConnectEnabled: boolean
   isAutoPanEnabled: boolean
@@ -6,6 +14,11 @@ export interface General {
   theme: 'system' | 'light' | 'dark'
   telemetryEnabled: boolean
   telemetryNotifiedUser: boolean
+  emailPreferences: EmailPreferences
+  // Local preferences (persisted to localStorage; no server field yet).
+  timezone: string
+  autoSave: boolean
+  confirmations: boolean
   isLoading: boolean
   error: string | null
   // Individual loading states for optimistic updates
@@ -25,6 +38,10 @@ export interface GeneralActions {
   setTheme: (theme: 'system' | 'light' | 'dark') => Promise<void>
   setTelemetryEnabled: (enabled: boolean) => Promise<void>
   setTelemetryNotifiedUser: (notified: boolean) => void
+  setEmailPreference: (key: keyof EmailPreferences, value: boolean) => Promise<void>
+  setTimezone: (timezone: string) => void
+  setAutoSave: (enabled: boolean) => void
+  setConfirmations: (enabled: boolean) => void
   loadSettings: (force?: boolean) => Promise<void>
   updateSetting: <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => Promise<void>
 }
@@ -38,4 +55,5 @@ export type UserSettings = {
   consoleExpandedByDefault: boolean
   telemetryEnabled: boolean
   telemetryNotifiedUser: boolean
+  emailPreferences: EmailPreferences
 }

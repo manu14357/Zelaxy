@@ -24,6 +24,10 @@ export const useGeneralStore = create<GeneralStore>()(
           theme: 'system' as const,
           telemetryEnabled: false,
           telemetryNotifiedUser: true,
+          emailPreferences: {},
+          timezone: 'UTC',
+          autoSave: true,
+          confirmations: true,
           isLoading: false,
           error: null,
           // Individual loading states
@@ -100,24 +104,55 @@ export const useGeneralStore = create<GeneralStore>()(
           },
 
           setTheme: async (theme) => {
-            if (get().isThemeLoading) return
-            await updateSettingOptimistic('theme', theme, 'isThemeLoading', 'theme')
+            // Apply the theme to the UI INSTANTLY and persist in the background. The switch must
+            // never be gated by the settings API (it can take seconds) — gating it behind
+            // `isThemeLoading` made the theme feel stuck and blocked rapid re-clicks.
+            const previous = get().theme
+            set({ theme })
+            try {
+              await get().updateSetting('theme', theme)
+            } catch (error) {
+              // Roll back only if the user hasn't since picked a different theme.
+              if (get().theme === theme) set({ theme: previous })
+              logger.error('Failed to persist theme, rolled back:', error)
+            }
           },
 
           setTelemetryEnabled: async (enabled) => {
-            if (get().isTelemetryLoading) return
-            await updateSettingOptimistic(
-              'telemetryEnabled',
-              enabled,
-              'isTelemetryLoading',
-              'telemetryEnabled'
-            )
+            // Apply instantly + persist in the background (never gate the toggle on the API).
+            const previous = get().telemetryEnabled
+            set({ telemetryEnabled: enabled })
+            try {
+              await get().updateSetting('telemetryEnabled', enabled)
+            } catch (error) {
+              if (get().telemetryEnabled === enabled) set({ telemetryEnabled: previous })
+              logger.error('Failed to persist telemetry setting, rolled back:', error)
+            }
           },
 
           setTelemetryNotifiedUser: (notified) => {
             set({ telemetryNotifiedUser: notified })
             get().updateSetting('telemetryNotifiedUser', notified)
           },
+
+          setEmailPreference: async (key, value) => {
+            // Apply instantly, persist the FULL preferences object (the PATCH replaces it).
+            const previous = get().emailPreferences
+            const next = { ...previous, [key]: value }
+            set({ emailPreferences: next })
+            try {
+              await get().updateSetting('emailPreferences', next)
+            } catch (error) {
+              set({ emailPreferences: previous })
+              logger.error('Failed to persist email preference, rolled back:', error)
+            }
+          },
+
+          // Local-only preferences — persisted to localStorage via the persist middleware (no server
+          // field yet), so the choice survives reloads even though it isn't synced server-side.
+          setTimezone: (timezone) => set({ timezone }),
+          setAutoSave: (autoSave) => set({ autoSave }),
+          setConfirmations: (confirmations) => set({ confirmations }),
 
           // API Actions
           loadSettings: async (force = false) => {
@@ -159,6 +194,7 @@ export const useGeneralStore = create<GeneralStore>()(
                 theme: data.theme,
                 telemetryEnabled: data.telemetryEnabled,
                 telemetryNotifiedUser: data.telemetryNotifiedUser,
+                emailPreferences: data.emailPreferences ?? {},
                 isLoading: false,
               })
 

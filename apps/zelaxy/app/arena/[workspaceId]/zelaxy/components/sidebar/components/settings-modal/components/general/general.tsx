@@ -32,11 +32,15 @@ const TIMEZONE_OPTIONS = [
 
 export function General() {
   const [retryCount, setRetryCount] = useState(0)
-  const [timezone, setTimezone] = useState('UTC')
-  const [autoSave, setAutoSave] = useState(true)
-  const [confirmations, setConfirmations] = useState(true)
 
-  // Store selectors — each selector subscribes to exactly its slice (perf)
+  // Store selectors — each selector subscribes to exactly its slice (perf). timezone/autoSave/
+  // confirmations persist to localStorage via the store so they survive reloads (no longer reset).
+  const timezone = useGeneralStore((s) => s.timezone)
+  const setTimezone = useGeneralStore((s) => s.setTimezone)
+  const autoSave = useGeneralStore((s) => s.autoSave)
+  const setAutoSave = useGeneralStore((s) => s.setAutoSave)
+  const confirmations = useGeneralStore((s) => s.confirmations)
+  const setConfirmations = useGeneralStore((s) => s.setConfirmations)
   const isLoading = useGeneralStore((s) => s.isLoading)
   const error = useGeneralStore((s) => s.error)
   const theme = useGeneralStore((s) => s.theme)
@@ -49,7 +53,6 @@ export function General() {
   const isConsoleExpandedByDefaultLoading = useGeneralStore(
     (s) => s.isConsoleExpandedByDefaultLoading
   )
-  const isThemeLoading = useGeneralStore((s) => s.isThemeLoading)
 
   const setTheme = useGeneralStore((s) => s.setTheme)
   const toggleAutoConnect = useGeneralStore((s) => s.toggleAutoConnect)
@@ -118,7 +121,9 @@ export function General() {
           <ThemeSegmentedControl
             value={theme}
             onChange={handleThemeChange}
-            disabled={isLoading || isThemeLoading}
+            // Only disabled during the INITIAL settings load — never while persisting a theme, so
+            // the switch stays instant and re-clickable (persistence happens in the background).
+            disabled={isLoading}
           />
         )}
       </SettingSection>

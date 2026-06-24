@@ -10,7 +10,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui'
-import { useSession } from '@/lib/auth-client'
+import { client, useSession } from '@/lib/auth-client'
 import { checkEnterprisePlan } from '@/lib/billing/subscriptions/utils'
 import { env } from '@/lib/env'
 import { isBillingEnabled } from '@/lib/environment'
@@ -122,6 +122,20 @@ export function TeamManagement() {
       loadUserWorkspaces(session.user.id)
     }
   }, [session?.user?.id, activeOrgId, adminOrOwner])
+
+  // Initialize the org settings form with the active organization's CURRENT values when it loads or
+  // switches — so the inputs show the real name/slug/logo (not empty), and pressing Enter/Save can't
+  // accidentally blank them out. Keyed on the org id (activeOrgId) so it re-inits only when the
+  // active org changes, never clobbering in-progress edits.
+  useEffect(() => {
+    if (activeOrganization) {
+      setOrgFormData({
+        name: activeOrganization.name ?? '',
+        slug: activeOrganization.slug ?? '',
+        logo: activeOrganization.logo ?? '',
+      })
+    }
+  }, [activeOrgId])
 
   const handleOrgNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value
@@ -260,7 +274,24 @@ export function TeamManagement() {
     async (seats: number) => {
       if (!session?.user || !activeOrgId) return
       logger.info('Team upgrade requested', { seats, organizationId: activeOrgId })
-      alert(`Team upgrade to ${seats} seats - integration needed`)
+      try {
+        // Start the real team-plan subscription via better-auth → Stripe checkout (no
+        // subscriptionId = a NEW subscription). On success the user is redirected to checkout.
+        const { error } = await client.subscription.upgrade({
+          plan: 'team',
+          referenceId: activeOrgId,
+          seats,
+          successUrl: window.location.href,
+          cancelUrl: window.location.href,
+        })
+        if (error) throw new Error(error.message || 'Failed to start team subscription')
+        await useOrganizationStore.getState().refreshOrganization()
+      } catch (error) {
+        logger.error('Team upgrade failed', { error })
+        useOrganizationStore.setState({
+          error: error instanceof Error ? error.message : 'Failed to start team subscription',
+        })
+      }
     },
     [session?.user?.id, activeOrgId]
   )

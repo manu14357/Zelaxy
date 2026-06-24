@@ -1,4 +1,6 @@
+import { Loader2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Organization, OrganizationFormData } from '@/stores/organization'
@@ -121,6 +123,25 @@ export function OrganizationSettingsTab({
               className='h-9 rounded-lg text-[13px]'
             />
           </div>
+
+          {isAdminOrOwner && (
+            <div className='flex justify-end pt-1'>
+              <Button
+                onClick={onSaveOrgSettings}
+                disabled={isSavingOrgSettings}
+                size='sm'
+                className='h-8 rounded-lg text-[13px]'
+              >
+                {isSavingOrgSettings ? (
+                  <>
+                    <Loader2 className='mr-1.5 h-3.5 w-3.5 animate-spin' /> Saving…
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
