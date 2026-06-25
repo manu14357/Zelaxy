@@ -405,12 +405,11 @@ Return ONLY the sort JSON:`,
       params: (params) => {
         const { operation, ...rest } = params
         const transformer = paramTransformers[operation]
-
-        if (transformer) {
-          return transformer(rest as TableBlockParams)
-        }
-
-        return rest
+        const transformed = transformer ? transformer(rest as TableBlockParams) : rest
+        // Preserve `_context` (workspaceId / workflowId) — the per-operation transformers above
+        // return a curated object that drops it, but the tool bodies (e.g. batch_insert_rows) need
+        // it to resolve the workspace, otherwise they throw "Workspace ID is required".
+        return rest._context ? { ...transformed, _context: rest._context } : transformed
       },
     },
   },

@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import { createLogger } from '@/lib/logs/console/logger'
 import {
@@ -58,6 +59,12 @@ interface DebugValidationResult {
 export function useWorkflowExecution() {
   const currentWorkflow = useCurrentWorkflow()
   const { activeWorkflowId, workflows } = useWorkflowRegistry()
+  // The workspace id from the URL (/arena/[workspaceId]/...) — a reliable fallback when a freshly
+  // built/loaded workflow's registry metadata hasn't got `workspaceId` yet. Without it the executor
+  // context has no workspaceId and table/knowledge tools fail with "Workspace ID is required".
+  const routeParams = useParams()
+  const urlWorkspaceId =
+    typeof routeParams?.workspaceId === 'string' ? routeParams.workspaceId : undefined
   const { toggleConsole } = useConsoleStore()
   const { getAllVariables } = useEnvironmentStore()
   const { isDebugModeEnabled } = useGeneralStore()
@@ -259,8 +266,8 @@ export function useWorkflowExecution() {
     async (workflowInput?: any, enableDebug = false) => {
       if (!activeWorkflowId) return
 
-      // Get workspaceId from workflow metadata
-      const workspaceId = workflows[activeWorkflowId]?.workspaceId
+      // Get workspaceId from workflow metadata, falling back to the URL workspace id.
+      const workspaceId = workflows[activeWorkflowId]?.workspaceId || urlWorkspaceId
 
       if (!workspaceId) {
         logger.error('Cannot execute workflow without workspaceId')
@@ -659,8 +666,10 @@ export function useWorkflowExecution() {
       selectedOutputIds = chatStore.getState().getSelectedWorkflowOutput(activeWorkflowId)
     }
 
-    // Get workspaceId from workflow metadata
-    const workspaceId = activeWorkflowId ? workflows[activeWorkflowId]?.workspaceId : undefined
+    // Get workspaceId from workflow metadata, falling back to the URL workspace id (a freshly built
+    // workflow's registry entry may not carry workspaceId yet).
+    const workspaceId =
+      (activeWorkflowId ? workflows[activeWorkflowId]?.workspaceId : undefined) || urlWorkspaceId
 
     // Create executor options
     const executorOptions: ExecutorOptions = {

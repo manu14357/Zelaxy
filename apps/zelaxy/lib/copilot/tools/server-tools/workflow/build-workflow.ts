@@ -53,6 +53,35 @@ export function rewriteBlockRefsToIds(value: string, mapping: Map<string, string
   return out
 }
 
+const LLM_BLOCK_TYPES = new Set(['agent', 'evaluator', 'router', 'translate'])
+
+/**
+ * Clear LLM-block configs the model frequently gets WRONG and which silently break execution, so the
+ * safe defaults apply instead:
+ *  - `timeout` < 60s → cleared (the model loves the 10s slider minimum, which aborts a real call
+ *    with "signal timed out"; the default request timeout is 120s).
+ *  - `maxTokens` < 1000 → cleared (a tiny value like 100 truncates structured JSON output).
+ * Mutates the blocks in place; returns a list of human-readable fixes for logging.
+ */
+export function sanitizeLlmBlockConfigs(blocks: Record<string, any>): string[] {
+  const fixes: string[] = []
+  for (const block of Object.values(blocks)) {
+    if (!block || !LLM_BLOCK_TYPES.has(block.type)) continue
+    const sb: Record<string, any> = block.subBlocks || {}
+    const timeoutVal = Number(sb.timeout?.value)
+    if (sb.timeout && Number.isFinite(timeoutVal) && timeoutVal > 0 && timeoutVal < 60) {
+      sb.timeout.value = null
+      fixes.push(`${block.id}: cleared timeout=${timeoutVal}s`)
+    }
+    const maxTokensVal = Number(sb.maxTokens?.value)
+    if (sb.maxTokens && Number.isFinite(maxTokensVal) && maxTokensVal > 0 && maxTokensVal < 1000) {
+      sb.maxTokens.value = null
+      fixes.push(`${block.id}: cleared maxTokens=${maxTokensVal}`)
+    }
+  }
+  return fixes
+}
+
 // Zelaxy Agent API configuration - now optional
 const ZELAXY_AGENT_API_URL = env.ZELAXY_AGENT_API_URL // No fallback - use local converter if not configured
 const ZELAXY_AGENT_API_KEY = env.ZELAXY_AGENT_API_KEY
@@ -398,6 +427,11 @@ async function buildWorkflowLocal(
   // Resolve `table` blocks whose tableId was given as a table NAME to the real id.
   const tableFixes = await resolveTableBlockIds(previewWorkflowState.blocks, workspaceId)
   if (tableFixes.length > 0) logger.info('Resolved table ids', { tableFixes })
+
+  // Clear LLM-block configs the model often gets wrong (a 10s timeout that aborts with "signal timed
+  // out", a tiny maxTokens that truncates output) so the safe defaults apply instead.
+  const configFixes = sanitizeLlmBlockConfigs(previewWorkflowState.blocks)
+  if (configFixes.length > 0) logger.info('Sanitized LLM block configs', { configFixes })
 
   // A condition block's expanded `conditions` value ids embed the block's ORIGINAL key (like
   // "<key>-if"/"<key>-else"). Binary branches wire to the node's `true`/`false` handles (set by

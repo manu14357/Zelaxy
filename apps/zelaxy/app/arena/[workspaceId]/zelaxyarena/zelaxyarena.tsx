@@ -685,6 +685,13 @@ export function ZelaxyArena() {
       const controller = new AbortController()
       abortRef.current = controller
 
+      // Pass the workflow currently shown in the Live Session so the agent can analyze / edit / run
+      // "the workflow" the user is looking at — without needing an explicit @-mention. (persisted
+      // workflows carry a real workflowId; the pending preview doesn't.)
+      const activeWorkflowId = artifactsRef.current.find(
+        (a) => a.kind === 'workflow' && a.workflowId
+      )?.workflowId
+
       try {
         const res = await fetch(`/api/zelaxy-arena/agent`, {
           method: 'POST',
@@ -697,6 +704,7 @@ export function ZelaxyArena() {
             messages: history.map((m) => ({ role: m.role, content: m.apiContent ?? m.content })),
             ...(attachments?.length ? { attachments } : {}),
             ...(contexts?.length ? { contexts } : {}),
+            ...(activeWorkflowId ? { workflowId: activeWorkflowId } : {}),
           }),
         })
 

@@ -173,7 +173,7 @@ ${reasoningInstruction}You can:
 - Build and edit workflows from a natural-language description (use the build_workflow / edit_workflow tools).
 - Rename and delete workflows by name (rename_workflow, delete_workflow). Always confirm before deleting.
 - Run a deployed workflow by name (run_workflow) — the workflow must be deployed as an API.
-- Inspect the current workflow, available blocks/tools, and execution logs.
+- Inspect/analyze a workflow the user REFERENCES — its definition and recent execution logs (get_user_workflow, get_workflow_console). The arena has NO "current" workflow: a workflow is only in scope if the user @-mentioned it (by name) or you just built one this turn. If the user asks to analyze "the workflow" but hasn't referenced one, ASK them which workflow (tell them to @-mention it) — do NOT call the inspect tools with no workflow, they'll just error.
 - Create, query, add, update, delete, and export workspace data tables (list_tables, query_table, create_table, insert_table_row, update_table_row, delete_table_rows, export_table). To update or delete specific rows, call query_table first to get each row's _rowId.
 - List scheduled (cron) workflows in the workspace (list_scheduled_jobs).
 - Create and list knowledge bases (create_knowledge_base, list_knowledge_bases).
@@ -253,6 +253,10 @@ The branch keys in \`inputs.conditions\` and \`connections.conditions\` MUST mat
 USE DEDICATED INTEGRATION BLOCKS, not raw \`api\`, when one exists: to message Telegram use the \`telegram\` block (inputs: botToken, chatId, text) — NOT an \`api\` POST to api.telegram.org. Likewise prefer \`slack\`, \`gmail\`, etc. over hand-built HTTP. Only use the \`api\` block when there is no dedicated block for that service.
 
 BLOCK-OUTPUT REFERENCES (critical — this is where workflows silently break): to use one block's output in another, write \`{{<blockKey>.<field>}}\` where \`<blockKey>\` is the EXACT key you gave that block under \`blocks:\` (e.g. \`scrape\`, \`summarize\` — NOT a made-up name like \`search_sk\`), and \`<field>\` is a REAL output of that block per its get_blocks_metadata \`outputs\` (e.g. a jina/firecrawl block outputs \`.content\`; an agent outputs \`.content\`; an api outputs \`.data\` — do NOT invent fields like \`.context\` or \`.result\`). Every \`{{x.y}}\` you write MUST point at a block key that exists in THIS YAML. If you have three scrape blocks, give them distinct keys (e.g. \`scrape_sk\`, \`scrape_ats\`, \`scrape_tas\`) and reference each by its own key. The build result's \`workflowLint\` flags any reference whose block doesn't exist — fix those.
+
+FUNCTION BLOCK CODE (JavaScript) — the \`{{...}}\` reference form above is for normal inputs (text, url, rows, prompts). Inside a \`function\` block's \`code\` you read an upstream block's output from the provided \`inputs\` object, keyed by that block's \`name\`: \`const data = inputs['Analyze Updates'].content\` (use bracket notation with the EXACT \`name\` you gave the block; \`inputs.myblock\` also works if the name is a single lowercase word). Environment variables are on \`environment\`: \`environment.MY_API_KEY\`. NEVER reference \`params\`, \`data\`, \`context\`, a bare block key, or any variable you didn't declare — only \`inputs\`, \`environment\`, \`console\`, and \`fetch\` are available, and using anything else throws "X is not defined". The block returns an object (\`return { rows, hasUpdates }\`); reference its fields downstream as \`{{<functionKey>.result.<field>}}\` (a function's output is always under \`.result\`).
+
+AGENT / LLM BLOCKS: do NOT set a small \`timeout\` or \`maxTokens\` — leave them UNSET so safe defaults apply. A \`timeout\` of 10 (seconds) aborts a real model call with "signal timed out"; a \`maxTokens\` of 100 truncates the output and breaks any downstream JSON parsing. Only set them if the user explicitly asks, and then keep them generous (timeout ≥ 60, maxTokens ≥ 4000).
 
 SCHEDULES: for a recurring run, the FIRST block is a \`schedule\` trigger. Express the cadence as a cron expression in its config — e.g. every 6 hours = \`0 */6 * * *\`, hourly = \`0 * * * *\`, daily 9am = \`0 9 * * *\`. Fetch the \`schedule\` block's metadata for the exact input ids (e.g. \`scheduleType: "custom"\` + \`cronExpression: "0 */6 * * *"\`), and set BOTH so it actually saves.
 
@@ -539,6 +543,11 @@ export async function POST(req: NextRequest) {
         // instead of inserting a duplicate.
         let persistedWorkflowId: string | null = null
 
+        // A workflow the user @-mentioned (e.g. "analyze @My Workflow"). Lets read/inspect tools
+        // (get_user_workflow, get_workflow_console, run_workflow, edit_workflow) target it when
+        // nothing was built this turn — the arena otherwise has no ambient workflow.
+        const mentionedWorkflowId = body.contexts?.find((c) => c.type === 'workflow')?.id
+
         // Tool-execution loop: call the model, run any tool calls, feed results back. The model
         // turn is non-streaming so tool calls are reliable. When the model stops calling tools, its
         // turn already contains the final answer — we emit THAT directly (no extra model call).
@@ -628,7 +637,11 @@ export async function POST(req: NextRequest) {
               // edit_workflow/run_workflow target the workflow JUST built this turn when the model
               // didn't supply an id — otherwise they fail with "workflowId is required" because the
               // arena has no ambient workflow context. `persistedWorkflowId` is set by build_workflow.
-              workflowId: toolCall.arguments?.workflowId || persistedWorkflowId || workflowId,
+              workflowId:
+                toolCall.arguments?.workflowId ||
+                persistedWorkflowId ||
+                workflowId ||
+                mentionedWorkflowId,
               userId,
               workspaceId,
               // Make workspace-configured API keys (set in the in-app Environment Variables) available
@@ -747,7 +760,13 @@ export async function POST(req: NextRequest) {
         controller.close()
       } catch (error) {
         const message = error instanceof Error ? error.message : 'ZelaxyArena agent failed'
-        logger.error(`[${requestId}] agent error`, { message })
+        // A client Stop closes the stream mid-flush; the resulting "Controller is already closed"
+        // (or an abort) is EXPECTED, not a real failure — log it quietly, don't raise an error.
+        if (req.signal.aborted || message.includes('already closed')) {
+          logger.info(`[${requestId}] stream stopped by client`)
+        } else {
+          logger.error(`[${requestId}] agent error`, { message })
+        }
         try {
           controller.enqueue(sse({ type: 'error', error: message }))
           controller.close()

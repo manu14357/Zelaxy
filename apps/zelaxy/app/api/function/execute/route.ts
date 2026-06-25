@@ -463,9 +463,29 @@ export async function POST(req: NextRequest) {
       hasEnvVars: Object.keys(envVars).length > 0,
     })
 
+    // Build an `inputs` object so function code can read an UPSTREAM block's output by its block
+    // NAME — the reference that survives a build (the YAML block key gets reassigned to an id).
+    // Keyed by exact name, normalized name, AND id so `inputs['Analyze & Compare Updates']`,
+    // `inputs.analyzecompareupdates`, and `inputs['<id>']` all resolve. This is what makes
+    // LLM-generated `const x = inputs['My Block'].field` work instead of throwing "inputs is not
+    // defined". `environment` mirrors env vars for `environment.KEY` access.
+    const blockInputs: Record<string, any> = {}
+    for (const [name, id] of Object.entries(blockNameMapping as Record<string, string>)) {
+      const output = (blockData as Record<string, any>)[id]
+      if (output === undefined) continue
+      blockInputs[name] = output
+      const normalized = name.toLowerCase().replace(/\s+/g, '')
+      if (normalized && blockInputs[normalized] === undefined) blockInputs[normalized] = output
+    }
+    for (const [id, output] of Object.entries(blockData as Record<string, any>)) {
+      if (blockInputs[id] === undefined) blockInputs[id] = output
+    }
+
     // Create a secure context with console logging
     const context = createContext({
       params: executionParams,
+      inputs: blockInputs,
+      environment: envVars,
       environmentVariables: envVars,
       ...contextVariables, // Add resolved variables directly to context
       fetch: globalThis.fetch,

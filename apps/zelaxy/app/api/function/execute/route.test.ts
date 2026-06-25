@@ -138,6 +138,30 @@ describe('Function Execute API Route', () => {
       // The code should be resolved with the email object
     })
 
+    it('exposes upstream block outputs on `inputs`, keyed by exact + normalized name + id', async () => {
+      const req = createMockRequest('POST', {
+        code: "return inputs['Analyze Updates'].content",
+        blockData: { 'blk-1': { content: 'hello' } },
+        blockNameMapping: { 'Analyze Updates': 'blk-1' },
+      })
+
+      const { POST } = await import('@/app/api/function/execute/route')
+      await POST(req)
+
+      // The VM is mocked, so assert the sandbox CONTEXT was built with a usable `inputs` object —
+      // keyed by exact name, normalized name, and id — plus `environment`.
+      expect(mockCreateContext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inputs: expect.objectContaining({
+            'Analyze Updates': { content: 'hello' },
+            analyzeupdates: { content: 'hello' },
+            'blk-1': { content: 'hello' },
+          }),
+          environment: expect.any(Object),
+        })
+      )
+    })
+
     it('should NOT treat email addresses as template variables', async () => {
       const req = createMockRequest('POST', {
         code: 'return "Email sent to user"',

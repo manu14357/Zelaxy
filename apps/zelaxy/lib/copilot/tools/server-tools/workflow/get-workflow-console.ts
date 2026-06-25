@@ -116,6 +116,14 @@ async function getWorkflowConsole(
   const logger = createLogger('GetWorkflowConsole')
   const { workflowId, limit = 3, includeDetails = true } = params // Default to 3 executions and include details
 
+  // Guard: an undefined/empty workflowId would reach the SQL query as `undefined` and crash Postgres
+  // with "UNDEFINED_VALUE". Fail with a clear, actionable message instead.
+  if (!workflowId) {
+    throw new Error(
+      'No workflow specified. Open or @-mention a workflow first so I know which one to inspect.'
+    )
+  }
+
   logger.info('Fetching workflow console logs', { workflowId, limit, includeDetails })
 
   // Get recent execution logs for the workflow (past 3 executions by default)

@@ -1,5 +1,42 @@
 import { describe, expect, it } from 'vitest'
-import { rewriteBlockRefsToIds } from './build-workflow'
+import { rewriteBlockRefsToIds, sanitizeLlmBlockConfigs } from './build-workflow'
+
+describe('sanitizeLlmBlockConfigs', () => {
+  it('clears a too-short timeout and a tiny maxTokens on an agent block', () => {
+    const blocks = {
+      a: {
+        id: 'a',
+        type: 'agent',
+        subBlocks: { timeout: { value: 10 }, maxTokens: { value: 100 } },
+      },
+    }
+    const fixes = sanitizeLlmBlockConfigs(blocks)
+    expect(blocks.a.subBlocks.timeout.value).toBeNull()
+    expect(blocks.a.subBlocks.maxTokens.value).toBeNull()
+    expect(fixes).toHaveLength(2)
+  })
+
+  it('keeps generous values untouched', () => {
+    const blocks = {
+      a: {
+        id: 'a',
+        type: 'agent',
+        subBlocks: { timeout: { value: 120 }, maxTokens: { value: 8000 } },
+      },
+    }
+    sanitizeLlmBlockConfigs(blocks)
+    expect(blocks.a.subBlocks.timeout.value).toBe(120)
+    expect(blocks.a.subBlocks.maxTokens.value).toBe(8000)
+  })
+
+  it('ignores non-LLM blocks (e.g. a function block with a small timeout)', () => {
+    const blocks = {
+      f: { id: 'f', type: 'function', subBlocks: { timeout: { value: 5 } } },
+    }
+    sanitizeLlmBlockConfigs(blocks)
+    expect(blocks.f.subBlocks.timeout.value).toBe(5)
+  })
+})
 
 describe('rewriteBlockRefsToIds', () => {
   const mapping = new Map<string, string>([

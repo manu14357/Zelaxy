@@ -155,13 +155,16 @@ export const LogsBlock: BlockConfig = {
       },
       params: (params: Record<string, any>) => {
         const operation = params.operation || 'query'
+        // Preserve `_context` (workspaceId) — the curated returns below drop it, but the logs tools
+        // need it to resolve the workspace ("workspaceId is required in execution context").
+        const ctx = params._context ? { _context: params._context } : {}
 
         if (operation === 'get_log') {
-          return { id: params.logId }
+          return { ...ctx, id: params.logId }
         }
 
         if (operation === 'get_execution') {
-          return { executionId: params.executionIdLookup }
+          return { ...ctx, executionId: params.executionIdLookup }
         }
 
         const rawLimit =
@@ -171,6 +174,7 @@ export const LogsBlock: BlockConfig = {
         const limit = Number.isFinite(rawLimit) ? rawLimit : undefined
 
         return {
+          ...ctx,
           workflowIds: params.workflowIds || undefined,
           executionId: params.executionId || undefined,
           level: params.level && params.level !== 'all' ? params.level : undefined,
