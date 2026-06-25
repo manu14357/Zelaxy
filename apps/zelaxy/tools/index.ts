@@ -561,15 +561,26 @@ async function handleInternalRequest(
     // Clone the response for error checking while preserving original for transformResponse
     const responseForErrorCheck = response.clone()
 
-    // Parse response data for error checking
-    let responseData
+    // Parse response data for error checking. Read the body as TEXT first (always safe), THEN try
+    // JSON — many tools legitimately return non-JSON (Jina Reader returns markdown, some APIs return
+    // plain text or empty bodies). A non-JSON body must NOT fail here: we fall back to the raw text
+    // so status-based error detection still works, and the tool's transformResponse re-reads the
+    // ORIGINAL (untouched) response, so its body content is preserved regardless.
+    let responseData: any
+    let rawText = ''
     try {
-      responseData = await responseForErrorCheck.json()
-    } catch (jsonError) {
-      logger.error(`[${requestId}] JSON parse error for ${toolId}:`, {
-        error: jsonError instanceof Error ? jsonError.message : String(jsonError),
-      })
-      throw new Error(`Failed to parse response from ${toolId}: ${jsonError}`)
+      rawText = await responseForErrorCheck.text()
+    } catch {
+      rawText = ''
+    }
+    if (rawText) {
+      try {
+        responseData = JSON.parse(rawText)
+      } catch {
+        responseData = rawText
+      }
+    } else {
+      responseData = {}
     }
 
     // Check for error conditions

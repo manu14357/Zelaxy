@@ -742,7 +742,9 @@ describe('Centralized Error Handling', () => {
     )
 
     expect(result.success).toBe(false)
-    expect(result.error).toBe('Failed to parse response from function_execute: Error: Invalid JSON')
+    // A non-JSON error body no longer hard-fails parsing — it falls back to the HTTP status text
+    // (as the test name says). This is what lets text-returning tools like Jina Reader work.
+    expect(result.error).toBe('Internal Server Error')
   })
 
   it.concurrent('should handle complex nested error objects', async () => {
