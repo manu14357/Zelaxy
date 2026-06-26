@@ -1,0 +1,120 @@
+---
+title: Speech to Text Block
+description: Transcribe audio to text from a URL
+icon: Mic
+---
+
+# Speech to Text Block
+
+Transcribe audio or video from a public URL into text using the ElevenLabs speech-to-text API. Use this block whenever a workflow needs to convert spoken audio — podcasts, call recordings, video narration, or any publicly accessible media file — into structured text with word-level timestamps.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `stt` |
+| **Category** | `tools` |
+| **Color** | `#10B981` |
+
+## When to Use
+
+- Transcribe a podcast episode or audio recording hosted at a public URL into plain text.
+- Extract spoken content from a video file so downstream blocks can summarize or analyze it.
+- Detect the language of an unknown audio file automatically and obtain the transcript in one step.
+- Produce word-level segment data (start/end timestamps, speaker IDs) for subtitle generation or search indexing.
+- Feed transcribed text into an Agent block for further processing, classification, or routing.
+- Automate transcription pipelines triggered by webhooks that deliver a new audio URL.
+
+## Configuration
+
+### Operation
+
+| Option | ID |
+|--------|----|
+| Transcribe | `stt_transcribe` |
+
+Select the action the block should perform. Currently the only supported operation is **Transcribe**, which sends the audio to ElevenLabs and returns the full transcript with word-level segments.
+
+### Audio URL
+
+- **Sub-block ID**: `audioUrl`
+- **Type**: short text input
+- **Required**: yes (when operation is `stt_transcribe`)
+- **Placeholder**: `https://example.com/audio.mp3`
+
+The publicly accessible URL pointing to the audio or video file to transcribe. ElevenLabs fetches the file directly from this URL, so it must be reachable from the internet without authentication. Accepts any format ElevenLabs supports (MP3, WAV, MP4, M4A, etc.). Use `{{blockName.field}}` to pass a URL produced by an earlier block.
+
+*Visible when operation is `stt_transcribe`.*
+
+### Language
+
+- **Sub-block ID**: `language`
+- **Type**: short text input
+- **Required**: no
+- **Placeholder**: `auto`
+
+BCP-47 language code of the audio (e.g. `en`, `es`, `fr`, `de`). Leave blank or set to `auto` to let ElevenLabs detect the language automatically. When provided, skipping auto-detection can improve accuracy and speed.
+
+*Visible when operation is `stt_transcribe`.*
+
+### Model
+
+- **Sub-block ID**: `model`
+- **Type**: short text input
+- **Required**: no
+- **Placeholder**: `scribe_v2`
+
+ElevenLabs model ID to use for transcription. Defaults to `scribe_v2` when left blank. Consult the ElevenLabs documentation for available model IDs.
+
+*Visible when operation is `stt_transcribe`.*
+
+### ElevenLabs API Key
+
+- **Sub-block ID**: `apiKey`
+- **Type**: short text input (password)
+- **Required**: yes
+
+Your ElevenLabs API key. Store it as a workflow secret and reference it with `{{ELEVENLABS_API_KEY}}` rather than pasting the raw value.
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (`stt_transcribe`).
+- `apiKey` (string) — ElevenLabs API key used to authenticate the request.
+- `audioUrl` (string) — URL of the audio or video file to transcribe.
+- `language` (string) — Language code (e.g. `en`, `es`) or `auto` for auto-detection.
+- `model` (string) — ElevenLabs model ID (defaults to `scribe_v2`).
+
+**Outputs**
+
+- `data` (json) — Object containing:
+  - `transcript` (string) — Full transcribed text of the audio.
+  - `segments` (array) — Word-level segments, each with `text`, `start` (seconds), `end` (seconds), and `speaker` (speaker ID).
+  - `language` (string | null) — Detected or specified language code.
+- `metadata` (json) — Object containing:
+  - `language` (string | null) — Detected or specified language code.
+  - `segmentCount` (number) — Number of word-level segments returned.
+
+Reference outputs in downstream blocks with `{{stt_1.data}}`, `{{stt_1.data.transcript}}`, `{{stt_1.metadata}}`, etc.
+
+## Tools
+
+**Speech to Text Transcribe** (`stt_transcribe`) — Sends a form-encoded POST request to `https://api.elevenlabs.io/v1/speech-to-text` with the audio URL, model, and optional language code. Returns the full transcript plus word-level timing and speaker information. Always requests word-level timestamp granularity so the `segments` array is populated.
+
+## YAML Example
+
+```yaml
+stt_1:
+  type: stt
+  name: "Speech to Text"
+  inputs:
+    operation: "stt_transcribe"
+    audioUrl: "{{webhook_1.audioUrl}}"
+    language: "en"
+    model: "scribe_v2"
+    apiKey: "{{ELEVENLABS_API_KEY}}"
+  connections:
+    outgoing:
+      - target: summarize_block
+```

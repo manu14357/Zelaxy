@@ -1,0 +1,161 @@
+---
+title: Trigger.dev Block
+description: Trigger tasks and inspect runs in Trigger.dev
+icon: Box
+---
+
+# Trigger.dev Block
+
+Trigger tasks with a JSON payload, retrieve run details, and list runs through the Trigger.dev API. Authenticate with a Trigger.dev secret key. Reach for this block whenever a workflow needs to enqueue a background job, poll a run's status, or audit recently executed runs without leaving the Zelaxy canvas.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `trigger_dev` |
+| **Category** | `tools` |
+| **Color** | `#4F46E5` |
+
+## When to Use
+
+- Kick off a long-running Trigger.dev background task (e.g. `send-welcome-email`) with a dynamic JSON payload built from earlier blocks.
+- Ensure exactly-once task execution by supplying an idempotency key derived from an upstream record ID.
+- Retrieve the full run object for a known `runId` to check its status, output, or error details mid-workflow.
+- List and filter recent runs for a given task identifier to monitor failure rates or feed a reporting block.
+- Chain Trigger.dev tasks together — trigger one task, capture its `runId` from the output, then poll it with a second Trigger.dev block.
+- Gate downstream blocks on run status by feeding `data.status` from a "Get run" block into a Condition block.
+
+## Configuration
+
+### Operation
+
+Selects which Trigger.dev API action this block performs. The remaining fields shown in the editor depend on the chosen operation.
+
+| Label | ID |
+|-------|----|
+| Trigger task | `trigger_dev_trigger_task` |
+| Get run | `trigger_dev_get_run` |
+| List runs | `trigger_dev_list_runs` |
+
+**Default:** `trigger_dev_trigger_task`
+
+---
+
+### Task Identifier
+
+- **Sub-block id:** `taskIdentifier`
+- **Type:** short-input
+- **Placeholder:** `send-welcome-email`
+- **Shown when:** operation is `trigger_dev_trigger_task` or `trigger_dev_list_runs`
+
+The string identifier of the Trigger.dev task to trigger or filter by. Must match the `id` you gave the task in your Trigger.dev project (e.g. `send-welcome-email`, `process-invoice`).
+
+---
+
+### Payload
+
+- **Sub-block id:** `payload`
+- **Type:** long-input
+- **Placeholder:** `{"userId":"user_123"}`
+- **Shown when:** operation is `trigger_dev_trigger_task`
+
+A JSON object passed as the payload to the triggered run. Use `{{blockName.field}}` references to inject dynamic values from earlier blocks. Leave blank if the task requires no input.
+
+---
+
+### Idempotency Key
+
+- **Sub-block id:** `idempotencyKey`
+- **Type:** short-input
+- **Placeholder:** `optional`
+- **Shown when:** operation is `trigger_dev_trigger_task`
+
+An optional string that prevents the same task from being triggered more than once for a given key. Trigger.dev deduplicates requests sharing the same key. Useful when a workflow may retry and you want to avoid duplicate runs.
+
+---
+
+### Run ID
+
+- **Sub-block id:** `runId`
+- **Type:** short-input
+- **Placeholder:** `run_...`
+- **Shown when:** operation is `trigger_dev_get_run`
+
+The identifier of a specific run to retrieve. Typically sourced from a prior "Trigger task" block via `{{trigger_dev_1.data.id}}` or from an external system.
+
+---
+
+### Status
+
+- **Sub-block id:** `status`
+- **Type:** short-input
+- **Placeholder:** `COMPLETED`
+- **Shown when:** operation is `trigger_dev_list_runs`
+
+Optional status string to filter runs by. Common values include `COMPLETED`, `FAILED`, `EXECUTING`, `QUEUED`, and `CANCELED`. Leave blank to return runs of all statuses.
+
+---
+
+### Page Size
+
+- **Sub-block id:** `pageSize`
+- **Type:** short-input
+- **Placeholder:** `25`
+- **Shown when:** operation is `trigger_dev_list_runs`
+
+Number of runs to return per page. Maximum is 100; default is 25.
+
+---
+
+### Trigger.dev Secret Key
+
+- **Sub-block id:** `apiKey`
+- **Type:** short-input (password)
+- **Placeholder:** `tr_...`
+- **Required:** yes
+- **Shown when:** always
+
+Your Trigger.dev secret API key. Store it as an environment secret and reference it as `{{TRIGGER_DEV_API_KEY}}` rather than pasting the raw value.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`trigger_dev_trigger_task`, `trigger_dev_get_run`, or `trigger_dev_list_runs`)
+- `apiKey` (string) — Trigger.dev secret key
+- `taskIdentifier` (string) — Task identifier (used by Trigger task and List runs operations)
+- `payload` (json) — Task payload passed to the triggered run
+- `idempotencyKey` (string) — Idempotency key to prevent duplicate task triggers
+- `runId` (string) — Run ID to retrieve (used by Get run operation)
+- `status` (string) — Run status filter (used by List runs operation)
+- `pageSize` (number) — Number of runs per page (used by List runs operation)
+
+**Outputs:**
+
+- `data` (json) — Result object or array from Trigger.dev. For "Trigger task" and "Get run" this is the run object; for "List runs" this is an array of run objects.
+- `metadata` (json) — Response metadata. Contains `id` (string, the run ID) for single-run operations; contains `count` (number, runs returned) for list operations.
+
+## Tools
+
+**Trigger.dev Trigger Task** (`trigger_dev_trigger_task`) — Calls `POST https://api.trigger.dev/api/v1/tasks/{taskIdentifier}/trigger`. Sends an optional JSON `payload` and an optional `options.idempotencyKey`. Returns the triggered run object including its `id`.
+
+**Trigger.dev Get Run** (`trigger_dev_get_run`) — Calls `GET https://api.trigger.dev/api/v3/runs/{runId}`. Returns the full run object for the supplied run ID, including its status, output, and error details.
+
+**Trigger.dev List Runs** (`trigger_dev_list_runs`) — Calls `GET https://api.trigger.dev/api/v3/runs` with optional query filters `filter[status]`, `filter[taskIdentifier]`, and `page[size]`. Returns an array of run objects scoped to the API key's environment.
+
+## YAML Example
+
+```yaml
+trigger_dev_1:
+  type: trigger_dev
+  name: "Trigger.dev"
+  inputs:
+    operation: "trigger_dev_trigger_task"
+    apiKey: "{{TRIGGER_DEV_API_KEY}}"
+    taskIdentifier: "send-welcome-email"
+    payload: '{"userId":"{{user_lookup_1.data.id}}"}'
+    idempotencyKey: "{{user_lookup_1.data.id}}-welcome"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

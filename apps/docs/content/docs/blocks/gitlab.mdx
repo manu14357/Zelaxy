@@ -1,0 +1,190 @@
+---
+title: GitLab Block
+description: Manage projects, issues, and files in GitLab
+icon: Box
+---
+
+# GitLab Block
+
+List and inspect projects, list and create issues, and read repository files through the GitLab API. Authenticate with a GitLab Personal Access Token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `gitlab` |
+| **Category** | `tools` |
+| **Color** | `#FC6D26` |
+
+## When to Use
+
+- Browse and search GitLab projects the authenticated user belongs to
+- Retrieve detailed metadata about a specific project by ID or namespace path
+- List issues in a project, optionally filtered by state or labels
+- Programmatically create new issues with titles, descriptions, and labels
+- Read any file from a project repository at a specific branch, tag, or commit
+
+## Configuration
+
+### Operation
+
+Select the GitLab action to perform. Every other field shown depends on this choice.
+
+| Label | ID |
+|-------|----|
+| List projects | `gitlab_list_projects` |
+| Get project | `gitlab_get_project` |
+| List issues | `gitlab_list_issues` |
+| Create issue | `gitlab_create_issue` |
+| Get file | `gitlab_get_file` |
+
+---
+
+### Search
+
+- **Shown for**: `gitlab_list_projects`
+- **Type**: short-input
+- **Placeholder**: `Project name`
+
+Optional keyword to filter the projects list by name.
+
+---
+
+### Limit
+
+- **Shown for**: `gitlab_list_projects`
+- **Type**: short-input
+- **Placeholder**: `20`
+
+Maximum number of projects to return per page (default 20, max 100).
+
+---
+
+### Project ID or Path
+
+- **Shown for**: `gitlab_get_project`, `gitlab_list_issues`, `gitlab_create_issue`, `gitlab_get_file`
+- **Type**: short-input
+- **Placeholder**: `namespace/project or 12345`
+- **Required** for all four operations above
+
+The GitLab project identifier — either a numeric project ID (e.g. `12345`) or a URL-encoded namespace path (e.g. `mygroup/myrepo`).
+
+---
+
+### State
+
+- **Shown for**: `gitlab_list_issues`
+- **Type**: short-input
+- **Placeholder**: `opened, closed, all`
+
+Filter issues by their state. Accepted values: `opened`, `closed`, `all`.
+
+---
+
+### Labels
+
+- **Shown for**: `gitlab_list_issues`, `gitlab_create_issue`
+- **Type**: short-input
+- **Placeholder**: `bug,urgent`
+
+Comma-separated list of label names to filter (list issues) or apply (create issue).
+
+---
+
+### Title
+
+- **Shown for**: `gitlab_create_issue`
+- **Type**: short-input
+- **Placeholder**: `Issue title`
+- **Required** when creating an issue
+
+The title of the new issue.
+
+---
+
+### Description
+
+- **Shown for**: `gitlab_create_issue`
+- **Type**: long-input
+- **Placeholder**: `Issue description (Markdown supported)`
+
+Optional Markdown body for the new issue.
+
+---
+
+### File Path
+
+- **Shown for**: `gitlab_get_file`
+- **Type**: short-input
+- **Placeholder**: `src/index.ts`
+- **Required** when getting a file
+
+Path of the file within the repository (e.g. `src/index.ts`).
+
+---
+
+### Ref
+
+- **Shown for**: `gitlab_get_file`
+- **Type**: short-input
+- **Placeholder**: `main`
+- **Required** when getting a file
+
+The branch name, tag, or commit SHA to retrieve the file from (e.g. `main`).
+
+---
+
+### GitLab Personal Access Token
+
+- **Type**: short-input (password)
+- **Placeholder**: `glpat-...`
+- **Required**: always
+
+A GitLab Personal Access Token (PAT) with at least `read_api` scope. Use `{{GITLAB_API_KEY}}` to pull the value from an environment variable.
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (one of the tool IDs listed above)
+- `apiKey` (string) — GitLab Personal Access Token
+- `projectId` (string) — Project ID or URL-encoded path
+- `search` (string) — Search projects by name
+- `state` (string) — Issue state filter (`opened`, `closed`, `all`)
+- `labels` (string) — Comma-separated label names
+- `title` (string) — Issue title
+- `description` (string) — Issue description (Markdown supported)
+- `filePath` (string) — Path of the file in the repository
+- `ref` (string) — Branch, tag, or commit SHA
+- `limit` (number) — Result limit (max 100)
+
+**Outputs**
+
+- `data` (json) — Result object or array from GitLab (project object, project array, issue object, issue array, or file object depending on the operation)
+- `metadata` (json) — Response metadata (e.g. `count` for list operations, `id` for single-object operations)
+
+## Tools
+
+- **GitLab List Projects** (`gitlab_list_projects`) — Lists all GitLab projects the authenticated user is a member of, with optional keyword search and pagination limit.
+- **GitLab Get Project** (`gitlab_get_project`) — Retrieves the full project object for a single project identified by its numeric ID or namespace path.
+- **GitLab List Issues** (`gitlab_list_issues`) — Lists issues in a project, with optional filters for state and labels.
+- **GitLab Create Issue** (`gitlab_create_issue`) — Creates a new issue in a project with a required title and optional description and labels.
+- **GitLab Get File** (`gitlab_get_file`) — Retrieves a file from a project repository at a specified branch, tag, or commit; the response includes base64-encoded file content.
+
+## YAML Example
+
+```yaml
+gitlab_1:
+  type: gitlab
+  name: "GitLab"
+  inputs:
+    operation: "gitlab_create_issue"
+    apiKey: "{{GITLAB_API_KEY}}"
+    projectId: "myorg/my-repo"
+    title: "Bug: login fails on Safari"
+    description: "Steps to reproduce: ..."
+    labels: "bug,needs-triage"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

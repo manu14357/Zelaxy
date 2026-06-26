@@ -1,0 +1,156 @@
+---
+title: ServiceNow Tools
+description: Query, create, read, and update records in ServiceNow tables via the Table API
+icon: Box
+---
+
+# ServiceNow Tools
+
+The ServiceNow tools let a workflow work directly with the ServiceNow Table API: query records with encoded queries, create new records, read a single record by `sys_id`, and update existing records. Use these tools to automate ITSM and CMDB operations — for example, opening incidents, updating ticket state, or pulling records into downstream blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `servicenow` |
+| **Category** | `tools` |
+| **Auth** | Basic Auth (instance `username` + `password`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Query table | `servicenow_query_table` | Query records from a ServiceNow table using an encoded query |
+| Create record | `servicenow_create_record` | Create a new record in a ServiceNow table |
+| Get record | `servicenow_get_record` | Retrieve a single record from a ServiceNow table by `sys_id` |
+| Update record | `servicenow_update_record` | Update an existing record in a ServiceNow table |
+
+All operations call the ServiceNow Table API at `{instanceUrl}/api/now/table/{tableName}` and authenticate with an HTTP `Authorization: Basic` header built from the supplied `username` and `password`.
+
+## Configuration
+
+### `servicenow_query_table`
+
+`GET {instanceUrl}/api/now/table/{tableName}?sysparm_query={query}&sysparm_limit={limit}`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `instanceUrl` | string | Yes | ServiceNow instance URL (e.g. `https://dev12345.service-now.com`). |
+| `username` | string | Yes | ServiceNow username. |
+| `password` | string | Yes | **Secret** — ServiceNow password (rendered as a masked field). |
+| `tableName` | string | Yes | Table name to query (e.g. `incident`, `task`, `sys_user`). |
+| `query` | string | No | Encoded query string (e.g. `active=true^priority=1`). |
+| `limit` | number | No | Maximum number of records to return. Defaults to `10`. |
+
+### `servicenow_create_record`
+
+`POST {instanceUrl}/api/now/table/{tableName}`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `instanceUrl` | string | Yes | ServiceNow instance URL (e.g. `https://dev12345.service-now.com`). |
+| `username` | string | Yes | ServiceNow username. |
+| `password` | string | Yes | **Secret** — ServiceNow password (rendered as a masked field). |
+| `tableName` | string | Yes | Table name to create the record in (e.g. `incident`). |
+| `fields` | json | Yes | Field values as a JSON object (e.g. `{"short_description":"Issue"}`). Sent as the request body. |
+
+### `servicenow_get_record`
+
+`GET {instanceUrl}/api/now/table/{tableName}/{sysId}`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `instanceUrl` | string | Yes | ServiceNow instance URL (e.g. `https://dev12345.service-now.com`). |
+| `username` | string | Yes | ServiceNow username. |
+| `password` | string | Yes | **Secret** — ServiceNow password (rendered as a masked field). |
+| `tableName` | string | Yes | Table name (e.g. `incident`, `task`, `sys_user`). |
+| `sysId` | string | Yes | `sys_id` of the record to retrieve. |
+
+### `servicenow_update_record`
+
+`PATCH {instanceUrl}/api/now/table/{tableName}/{sysId}`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `instanceUrl` | string | Yes | ServiceNow instance URL (e.g. `https://dev12345.service-now.com`). |
+| `username` | string | Yes | ServiceNow username. |
+| `password` | string | Yes | **Secret** — ServiceNow password (rendered as a masked field). |
+| `tableName` | string | Yes | Table name (e.g. `incident`, `task`, `sys_user`). |
+| `sysId` | string | Yes | `sys_id` of the record to update. |
+| `fields` | json | Yes | Field values to update as a JSON object (e.g. `{"state":"2"}`). Sent as the request body. |
+
+## Outputs
+
+### `servicenow_query_table`
+
+- `data` (json) — Array of ServiceNow records matching the query.
+- `metadata` (json) — Query metadata, containing:
+  - `table` (string) — Table that was queried.
+  - `count` (number) — Number of records returned.
+
+### `servicenow_create_record`
+
+- `data` (json) — The created ServiceNow record.
+- `metadata` (json) — Record identifiers, containing:
+  - `table` (string) — Table the record was created in.
+  - `sysId` (string) — `sys_id` of the created record.
+
+### `servicenow_get_record`
+
+- `data` (json) — The requested ServiceNow record.
+- `metadata` (json) — Record identifiers, containing:
+  - `table` (string) — Table the record was read from.
+  - `sysId` (string) — `sys_id` of the record.
+
+### `servicenow_update_record`
+
+- `data` (json) — The updated ServiceNow record.
+- `metadata` (json) — Record identifiers, containing:
+  - `table` (string) — Table the record was updated in.
+  - `sysId` (string) — `sys_id` of the record.
+
+## YAML Example
+
+```yaml
+servicenow_1:
+  type: servicenow
+  name: "ServiceNow"
+  inputs:
+    operation: "servicenow_query_table"
+    instanceUrl: "https://dev12345.service-now.com"
+    username: "{{SERVICENOW_USERNAME}}"
+    password: "{{SERVICENOW_PASSWORD}}"
+    tableName: "incident"
+    query: "active=true^priority=1"
+    limit: 10
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Create-record example:
+
+```yaml
+servicenow_create:
+  type: servicenow
+  name: "Open Incident"
+  inputs:
+    operation: "servicenow_create_record"
+    instanceUrl: "https://dev12345.service-now.com"
+    username: "{{SERVICENOW_USERNAME}}"
+    password: "{{SERVICENOW_PASSWORD}}"
+    tableName: "incident"
+    fields:
+      short_description: "Login failure reported by user"
+      priority: "1"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth is Basic, not an API key.** Supply `instanceUrl`, `username`, and `password`; the tools build the `Authorization: Basic` header internally. Store the password as an environment secret and reference it with `{{SERVICENOW_PASSWORD}}` — never paste it inline.
+- **`fields` and `query` are LLM-fillable** (`user-or-llm` visibility), so an agent can construct them, but the connection credentials (`instanceUrl`, `username`, `password`) are `user-only` and must be set by the workflow author.
+- **Encoded query syntax** uses `^` to separate conditions (e.g. `active=true^priority=1`). The query is passed through as `sysparm_query`, and `limit` maps to `sysparm_limit` (default `10`).
+- **Get and update need the `sys_id`.** Chain a Query table operation first, then reference a returned record's id downstream, e.g. `{{servicenow_1.data}}` to pull the array and feed a specific `sys_id` into a get/update block.

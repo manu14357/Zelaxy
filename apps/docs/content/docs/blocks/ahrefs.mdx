@@ -18,33 +18,90 @@ The Ahrefs block pulls SEO data into your workflows, including domain ratings, b
 
 ## When to Use
 
-- Fetch a domain's Ahrefs Domain Rating to gate or score outreach prospects.
-- Pull a backlink profile for a target domain or URL to feed link-audit workflows.
+- Fetch a domain's Ahrefs Domain Rating (0-100) and Ahrefs Rank to score or gate outreach prospects.
+- Pull a full backlink profile for a target domain or URL to feed link-audit workflows.
 - Retrieve organic keyword rankings to monitor a site's search visibility over time.
 - List the top-performing pages of a competitor for content-gap analysis.
 - Count or enumerate referring domains to track link-building progress.
+- Use the `date` parameter to query historical snapshots for trend reporting.
 
 ## Configuration
 
-### Operation
-Choose which Ahrefs lookup to run: Domain Rating, Backlinks, Organic Keywords, Top Pages, or Referring Domains. Required.
+### Operation (required)
 
-### Target (Domain/URL)
-The domain or URL to analyze (for example, `example.com`). Required.
+Selects which Ahrefs lookup to run. Each option maps to a distinct tool:
+
+| Label | id |
+|-------|----|
+| Domain Rating | `ahrefs_domain_rating` |
+| Backlinks | `ahrefs_backlinks` |
+| Organic Keywords | `ahrefs_organic_keywords` |
+| Top Pages | `ahrefs_top_pages` |
+| Referring Domains | `ahrefs_referring_domains` |
+
+### Target (Domain/URL) (required)
+
+The domain or URL to analyze — for example, `example.com` or `https://example.com/page`. Accepts a plain string or a `{{blockName.field}}` reference.
 
 ### Mode
-How the target is interpreted: Domain, Subdomains, Prefix, or Exact.
+
+Controls how the target value is scoped. Available options:
+
+| Label | id |
+|-------|----|
+| Domain | `domain` |
+| Subdomains | `subdomains` |
+| Prefix | `prefix` |
+| Exact | `exact` |
+
+Not all operations use every mode; `domain` is the most common default.
 
 ### Limit
-Maximum number of results to return (for example, `100`).
+
+Maximum number of results to return (for example, `100`). Applies to Backlinks, Organic Keywords, Top Pages, and Referring Domains operations.
 
 ### Date
-Optional date for historical data, in `YYYY-MM-DD` format.
+
+Optional date for historical data queries, in `YYYY-MM-DD` format. Defaults to today when omitted.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `target` (string), `mode` (string), `limit` (string), `date` (string)
-- **Outputs**: `domainRating` (number), `backlinks` (json), `refDomains` (number), `keywords` (json)
+**Inputs** (all inputs are subBlock ids — pass values directly or via `{{blockName.field}}` references):
+
+- `operation` (string) — Operation to perform; must be one of the five operation ids listed above.
+- `target` (string) — Target domain or URL to analyze.
+- `mode` (string) — Target mode (`domain`, `subdomains`, `prefix`, or `exact`).
+- `limit` (string) — Result limit (numeric value as a string, e.g. `"100"`).
+- `date` (string) — Date for historical data in `YYYY-MM-DD` format.
+
+**Block-level outputs** (always present on the block's result object regardless of operation):
+
+- `domainRating` (number) — Domain rating score.
+- `backlinks` (json) — Backlink data.
+- `refDomains` (number) — Number of referring domains.
+- `keywords` (json) — Keyword rankings.
+
+**Per-operation tool outputs** (the fields actually populated depend on which operation ran):
+
+- **Domain Rating** → `domainRating` (number, 0-100), `ahrefsRank` (number — global rank by backlink strength).
+- **Backlinks** → `backlinks` (array of objects: `urlFrom`, `urlTo`, `anchor`, `domainRatingSource`, `isDofollow`, `firstSeen`, `lastVisited`).
+- **Organic Keywords** → `keywords` (array of objects: `keyword`, `volume`, `position`, `url`, `traffic`, `keywordDifficulty`).
+- **Top Pages** → `pages` (array of objects: `url`, `traffic`, `keywords`, `topKeyword`, `value`).
+- **Referring Domains** → `referringDomains` (array of objects: `domain`, `domainRating`, `backlinks`, `dofollowBacklinks`, `firstSeen`, `lastVisited`).
+
+## Tools
+
+**Ahrefs Domain Rating** (`ahrefs_domain_rating`) — Calls `GET https://api.ahrefs.com/v3/site-explorer/domain-rating`. Returns the Domain Rating (0-100) and Ahrefs Rank for a target domain. Requires `target` and `apiKey`; accepts optional `date`.
+
+**Ahrefs Backlinks** (`ahrefs_backlinks`) — Calls `GET https://api.ahrefs.com/v3/site-explorer/backlinks`. Returns a paginated list of backlinks pointing to the target with source URL, anchor text, domain rating, dofollow status, and discovery dates. Requires `target` and `apiKey`; accepts `mode`, `limit`, `offset`, and `date`.
+
+**Ahrefs Organic Keywords** (`ahrefs_organic_keywords`) — Calls `GET https://api.ahrefs.com/v3/site-explorer/organic-keywords`. Returns the organic keywords the target ranks for in Google, including search volume, ranking position, estimated traffic, and keyword difficulty. Requires `target` and `apiKey`; accepts `country`, `mode`, `limit`, `offset`, and `date`.
+
+**Ahrefs Top Pages** (`ahrefs_top_pages`) — Calls `GET https://api.ahrefs.com/v3/site-explorer/top-pages`. Returns the top pages of a domain sorted by organic traffic, with per-page traffic, keyword count, top keyword, and estimated traffic value. Requires `target` and `apiKey`; accepts `country`, `mode`, `limit`, `offset`, `select`, and `date`.
+
+**Ahrefs Referring Domains** (`ahrefs_referring_domains`) — Calls `GET https://api.ahrefs.com/v3/site-explorer/refdomains`. Returns unique domains that link to the target, with each domain's rating, total and dofollow backlink counts, and discovery dates. Requires `target` and `apiKey`; accepts `mode`, `limit`, `offset`, and `date`.
+
+All tools require an `apiKey` parameter that should be supplied as `{{AHREFS_API_KEY}}` (an environment variable or credential secret).
 
 ## YAML Example
 
@@ -53,10 +110,11 @@ ahrefs_1:
   type: ahrefs
   name: "Ahrefs"
   inputs:
-    operation: "ahrefs_domain_rating"
-    target: "{{start.input}}"
+    operation: "ahrefs_organic_keywords"
+    target: "{{start.domain}}"
     mode: "domain"
-    limit: "100"
+    limit: "50"
+    date: "2024-01-01"
   connections:
     outgoing:
       - target: next-block-id

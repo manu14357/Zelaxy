@@ -1,19 +1,19 @@
 ---
 title: 64 Block
 description: Find contact info and enrich leads with 64
-icon: Box
+icon: Users
 ---
 
 # 64 Block
 
-The 64 block uses the 64 API to find phone numbers and emails for people, and to enrich leads or companies with structured, AI-researched data. Reach for it when you need contact discovery or lead/company intelligence inside a workflow.
+The 64 block uses the 64 AI API to find phone numbers and emails for people, and to enrich leads or companies with structured, AI-researched data. Reach for it when you need contact discovery or lead/company intelligence inside a workflow.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `sixtyfour` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#000000` |
 
 ## When to Use
@@ -28,24 +28,174 @@ The 64 block uses the 64 API to find phone numbers and emails for people, and to
 ## Configuration
 
 ### Operation
-Dropdown selecting what to do: **Find Phone** (`find_phone`), **Find Email** (`find_email`), **Enrich Lead** (`enrich_lead`), or **Enrich Company** (`enrich_company`). Defaults to Find Phone.
+
+Dropdown that selects what the block will do. Required; defaults to **Find Phone**.
+
+| Label | ID |
+|-------|----|
+| Find Phone | `find_phone` |
+| Find Email | `find_email` |
+| Enrich Lead | `enrich_lead` |
+| Enrich Company | `enrich_company` |
 
 ### API Key
-Your 64 API key (required, stored securely).
 
-### Contact Fields (Find Phone / Find Email)
-First Name, Last Name, Company, and LinkedIn URL identify the person to look up. For Find Email you can also supply a known Email, Phone, Title, and an Email Mode (Professional or Personal).
+Your 64 API key. Required for every operation; stored securely (password field).
 
-### Lead Enrichment (Enrich Lead)
-Lead Info (the raw lead, required) and Lead Output Structure (JSON defining desired output fields, required), plus an optional Research Plan with extra instructions.
+### First Name
 
-### Company Enrichment (Enrich Company)
-Target Company (name or domain, required) and Company Output Structure (required). Toggle Find People to discover associated people, with optional People Focus, Full Org Chart, People Output Structure, and Research Plan.
+_(Visible for: `find_phone`, `find_email`)_
+
+First name of the person to look up.
+
+### Last Name
+
+_(Visible for: `find_phone`, `find_email`)_
+
+Last name of the person to look up.
+
+### Company
+
+_(Visible for: `find_phone`, `find_email`)_
+
+Company name to help identify the right contact.
+
+### LinkedIn URL
+
+_(Visible for: `find_phone`, `find_email`)_
+
+LinkedIn profile URL (e.g. `https://linkedin.com/in/...`). Greatly improves match accuracy.
+
+### Email
+
+_(Visible for: `find_email` — advanced)_
+
+A known email address to include as additional signal when searching for the person's email.
+
+### Phone
+
+_(Visible for: `find_email` — advanced)_
+
+A known phone number to include as additional signal.
+
+### Title
+
+_(Visible for: `find_email` — advanced)_
+
+Job title of the person.
+
+### Email Mode
+
+_(Visible for: `find_email`)_
+
+Controls which kind of email address to look for.
+
+| Label | ID |
+|-------|----|
+| Professional | `professional` |
+| Personal | `personal` |
+
+### Lead Info
+
+_(Visible for: `enrich_lead`, required)_
+
+The raw lead to enrich. Provide a JSON object or text containing details about the lead (name, company, LinkedIn URL, title, etc.).
+
+### Lead Output Structure
+
+_(Visible for: `enrich_lead`, required)_
+
+A JSON object defining which fields to return and what they mean, e.g. `{"email": "The individual's email address", "phone": "Phone number"}`.
+
+### Research Plan
+
+_(Visible for: `enrich_lead` — advanced)_
+
+Optional free-text instructions that guide how the AI agent should conduct its research.
+
+### Target Company
+
+_(Visible for: `enrich_company`, required)_
+
+Company name or domain to enrich (e.g. `Acme Inc` or `acme.com`).
+
+### Company Output Structure
+
+_(Visible for: `enrich_company`, required)_
+
+A JSON object defining which company fields to return and what they mean, e.g. `{"website": "Company website URL", "num_employees": "Employee count"}`.
+
+### Find People
+
+_(Visible for: `enrich_company`)_
+
+Toggle switch. When enabled, the block also discovers people associated with the target company.
+
+### People Focus
+
+_(Visible for: `enrich_company` — advanced)_
+
+Free-text prompt describing which people to find (e.g. `Focus on engineering leaders`). Only used when **Find People** is on.
+
+### Full Org Chart
+
+_(Visible for: `enrich_company` — advanced)_
+
+Toggle switch. When enabled, requests the complete organizational chart rather than a curated subset of people.
+
+### People Output Structure
+
+_(Visible for: `enrich_company` — advanced)_
+
+A JSON object defining which fields to return for each person found, e.g. `{"name": "Person name", "title": "Job title"}`.
+
+### Research Plan (Company)
+
+_(Visible for: `enrich_company` — advanced)_
+
+Optional strategy text describing how the agent should search for company information.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `firstName` (string), `lastName` (string), `company` (string), `linkedinUrl` (string), `emailInput` (string), `phone` (string), `title` (string), `mode` (string), `leadInfo` (string), `leadStruct` (string), `leadResearchPlan` (string), `targetCompany` (string), `companyStruct` (string), `findPeople` (boolean), `peopleFocusPrompt` (string), `fullOrgChart` (boolean), `companyLeadStruct` (string), `companyResearchPlan` (string)
-- **Outputs**: `result` (json), `phone` (string), `email` (string), `data` (json)
+**Inputs**
+
+- `operation` (string) — Operation to perform (`find_phone`, `find_email`, `enrich_lead`, `enrich_company`)
+- `apiKey` (string) — 64 API key
+- `firstName` (string) — First name (Find Phone / Find Email)
+- `lastName` (string) — Last name (Find Phone / Find Email)
+- `company` (string) — Company name (Find Phone / Find Email)
+- `linkedinUrl` (string) — LinkedIn profile URL (Find Phone / Find Email)
+- `emailInput` (string) — Known email address (Find Email, advanced)
+- `phone` (string) — Known phone number (Find Email, advanced)
+- `title` (string) — Job title (Find Email, advanced)
+- `mode` (string) — Email type: `professional` or `personal` (Find Email)
+- `leadInfo` (string) — Lead information for enrichment (Enrich Lead)
+- `leadStruct` (string) — Lead output structure definition (Enrich Lead)
+- `leadResearchPlan` (string) — Lead research instructions (Enrich Lead, advanced)
+- `targetCompany` (string) — Company name or domain (Enrich Company)
+- `companyStruct` (string) — Company output structure definition (Enrich Company)
+- `findPeople` (boolean) — Whether to find associated people (Enrich Company)
+- `peopleFocusPrompt` (string) — Focus instructions for people search (Enrich Company, advanced)
+- `fullOrgChart` (boolean) — Whether to build full org chart (Enrich Company, advanced)
+- `companyLeadStruct` (string) — People output structure definition (Enrich Company, advanced)
+- `companyResearchPlan` (string) — Company research instructions (Enrich Company, advanced)
+
+**Outputs**
+
+- `result` (json) — Enrichment or lookup result
+- `phone` (string) — Found phone number
+- `email` (string) — Found email address
+- `data` (json) — Enriched lead or company data
+
+## Tools
+
+**Sixtyfour Find Phone** (`sixtyfour_find_phone`) — POSTs to `https://api.sixtyfour.ai/find-phone` with the person's name and optional company, LinkedIn URL, domain, and email. Returns the discovered phone number(s), name, company, and LinkedIn URL.
+
+**Sixtyfour Find Email** (`sixtyfour_find_email`) — POSTs to `https://api.sixtyfour.ai/find-email` with the person's name and optional company, LinkedIn URL, domain, phone, title, and email mode. Returns a list of professional email addresses (and personal emails when mode is `personal`), along with name, company, title, and phone.
+
+**Sixtyfour Enrich Lead** (`sixtyfour_enrich_lead`) — POSTs to `https://api.sixtyfour.ai/enrich-lead` with a JSON lead object, a struct defining desired output fields, and an optional research plan. Returns `structuredData` matching the requested fields, source `references`, a `confidenceScore` (0–10), and optional research `notes`.
+
+**Sixtyfour Enrich Company** (`sixtyfour_enrich_company`) — POSTs to `https://api.sixtyfour.ai/enrich-company` with the target company, a struct, and optional flags for finding people (`findPeople`), full org chart (`fullOrgChart`), a people-focus prompt, a lead struct for people fields, and a research plan. Returns `structuredData`, source `references`, a `confidenceScore`, and optional `notes`.
 
 ## YAML Example
 
@@ -55,7 +205,7 @@ sixtyfour_1:
   name: "64"
   inputs:
     operation: "find_email"
-    apiKey: "{{secrets.SIXTYFOUR_API_KEY}}"
+    apiKey: "{{SIXTYFOUR_API_KEY}}"
     firstName: "{{start.firstName}}"
     lastName: "{{start.lastName}}"
     company: "{{start.company}}"

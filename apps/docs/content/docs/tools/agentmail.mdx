@@ -1,0 +1,162 @@
+---
+title: AgentMail
+description: Send, reply, forward, and manage email threads with AgentMail inboxes
+icon: Mail
+---
+
+# AgentMail
+
+AgentMail is an email automation service that exposes programmatic inboxes via API. Use this integration to send new messages, reply to or forward existing messages, create scheduled drafts, and list or inspect email threads — all without leaving a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `agentmail` |
+| **Category** | Tool — Email |
+| **Auth** | API Key (Bearer token, `user-only` visibility) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Send Message** | `agentmail_send_message` | Compose and send a new email from an AgentMail inbox |
+| **Reply to Message** | `agentmail_reply_message` | Reply to (or reply-all on) an existing message |
+| **Forward Message** | `agentmail_forward_message` | Forward an existing message to new recipients |
+| **List Threads** | `agentmail_list_threads` | Retrieve a paginated list of email threads in an inbox |
+| **Get Thread** | `agentmail_get_thread` | Fetch full thread details including all messages |
+| **Create Draft** | `agentmail_create_draft` | Create a draft (optionally scheduled for later delivery) |
+
+## Configuration
+
+| Setting | Type | Required | Operations | Description |
+|---------|------|----------|------------|-------------|
+| `apiKey` | `string` | Yes (all) | All | AgentMail API key. Treated as a secret — use `{{AGENTMAIL_API_KEY}}`. |
+| `inboxId` | `string` | Yes (all) | All | ID of the AgentMail inbox to operate on. |
+| `to` | `string` | Yes — Send, Forward; No — Reply, Draft | Send Message, Reply to Message, Forward Message, Create Draft | Recipient email addresses, comma-separated. For Reply, overrides the default reply-to address. |
+| `subject` | `string` | Yes — Send; No — Forward, Draft | Send Message, Forward Message, Create Draft | Email subject line. For Forward, overrides the original subject. |
+| `text` | `string` | No | Send Message, Reply to Message, Forward Message, Create Draft | Plain-text email body. For Forward/Reply, prepended before the original message. |
+| `html` | `string` | No | Send Message, Reply to Message, Forward Message, Create Draft | HTML email body. For Forward/Reply, prepended before the original message. |
+| `cc` | `string` | No | Send Message, Reply to Message, Forward Message, Create Draft | CC recipient email addresses, comma-separated. |
+| `bcc` | `string` | No | Send Message, Reply to Message, Forward Message, Create Draft | BCC recipient email addresses, comma-separated. |
+| `messageId` | `string` | Yes | Reply to Message, Forward Message | ID of the existing message to reply to or forward. |
+| `replyAll` | `boolean` | No | Reply to Message | When `true`, replies to all original recipients via the `reply-all` endpoint. `to`, `cc`, and `bcc` overrides are ignored when set. |
+| `threadId` | `string` | Yes | Get Thread | ID of the thread to retrieve. |
+| `inReplyTo` | `string` | No | Create Draft | Message ID this draft is in reply to (sets threading headers). |
+| `sendAt` | `string` | No | Create Draft | ISO 8601 timestamp to schedule the draft for future delivery (e.g. `2025-07-01T09:00:00Z`). |
+| `limit` | `number` | No | List Threads | Maximum number of threads to return per page. |
+| `pageToken` | `string` | No | List Threads | Pagination token from a previous List Threads response to fetch the next page. |
+| `labels` | `string` | No | List Threads | Comma-separated label names to filter threads (e.g. `inbox,unread`). |
+| `before` | `string` | No | List Threads | Return only threads with a last-message timestamp before this ISO 8601 value. |
+| `after` | `string` | No | List Threads | Return only threads with a last-message timestamp after this ISO 8601 value. |
+
+## Outputs
+
+### Send Message
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `threadId` | `string` | ID of the newly created thread |
+| `messageId` | `string` | ID of the sent message |
+| `subject` | `string` | Subject line of the sent email |
+| `to` | `string` | Recipient address(es) as provided |
+
+### Reply to Message
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `messageId` | `string` | ID of the sent reply message |
+| `threadId` | `string` | ID of the thread the reply belongs to |
+
+### Forward Message
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `messageId` | `string` | ID of the forwarded message |
+| `threadId` | `string` | ID of the thread |
+
+### List Threads
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `threads` | `array` | Array of thread summary objects (see below) |
+| `count` | `number` | Total number of threads returned |
+| `nextPageToken` | `string` | Pagination token for the next page; `null` when no more pages |
+
+**Thread summary object fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `threadId` | `string` | Unique identifier for the thread |
+| `subject` | `string` | Thread subject (may be `null`) |
+| `senders` | `array` | List of sender email addresses in the thread |
+| `recipients` | `array` | List of recipient email addresses in the thread |
+| `messageCount` | `number` | Number of messages in the thread |
+| `lastMessageAt` | `string` | Timestamp of the most recent message (ISO 8601, may be `null`) |
+| `createdAt` | `string` | Thread creation timestamp (ISO 8601) |
+| `updatedAt` | `string` | Last-updated timestamp (ISO 8601) |
+
+### Get Thread
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `threadId` | `string` | Unique identifier for the thread |
+| `subject` | `string` | Thread subject (may be `null`) |
+| `senders` | `array` | List of sender email addresses |
+| `recipients` | `array` | List of recipient email addresses |
+| `messageCount` | `number` | Number of messages in the thread |
+| `labels` | `array` | Labels assigned to the thread |
+| `lastMessageAt` | `string` | Timestamp of last message (ISO 8601, may be `null`) |
+| `createdAt` | `string` | Thread creation timestamp (ISO 8601) |
+| `updatedAt` | `string` | Last-updated timestamp (ISO 8601) |
+| `messages` | `array` | Full message objects (see below) |
+
+**Message object fields (inside `messages`):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `messageId` | `string` | Unique identifier for the message |
+| `from` | `string` | Sender email address (may be `null`) |
+| `to` | `array` | Recipient email addresses |
+| `cc` | `array` | CC email addresses |
+| `bcc` | `array` | BCC email addresses |
+| `subject` | `string` | Message subject (may be `null`) |
+| `text` | `string` | Plain-text body (may be `null`) |
+| `html` | `string` | HTML body (may be `null`) |
+| `createdAt` | `string` | Message creation timestamp (ISO 8601) |
+
+### Create Draft
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `draftId` | `string` | Unique identifier for the created draft |
+| `inboxId` | `string` | Inbox the draft belongs to |
+| `subject` | `string` | Draft subject (may be `null`) |
+| `to` | `array` | Recipient email addresses |
+| `cc` | `array` | CC email addresses |
+| `bcc` | `array` | BCC email addresses |
+| `text` | `string` | Plain-text body (may be `null`) |
+| `html` | `string` | HTML body (may be `null`) |
+| `preview` | `string` | Preview snippet of the draft (may be `null`) |
+| `labels` | `array` | Labels assigned to the draft |
+| `inReplyTo` | `string` | Message ID this draft is in reply to (may be `null`) |
+| `sendStatus` | `string` | Send status: `scheduled`, `sending`, or `failed` (may be `null`) |
+| `sendAt` | `string` | Scheduled send time (ISO 8601, may be `null`) |
+| `createdAt` | `string` | Draft creation timestamp (ISO 8601) |
+| `updatedAt` | `string` | Last-updated timestamp (ISO 8601) |
+
+## Example
+
+```
+[Starter: Webhook] → [AgentMail: Get Thread] → [Agent: Summarize and draft reply] → [AgentMail: Create Draft]
+```
+
+When a webhook delivers an inbound email event with an inbox ID and thread ID, the **Get Thread** block (configured with `{{AGENTMAIL_API_KEY}}`, `inboxId: {{starter.inboxId}}`, `threadId: {{starter.threadId}}`) retrieves the full conversation. An Agent block reads `{{agentmail.messages}}` to summarize the thread and compose a response. The **Create Draft** block then saves that response with `sendAt: {{agent.scheduledTime}}` so the reply goes out at the right time rather than immediately.
+
+## Tips
+
+- **`apiKey` is `user-only` visibility** — always supply it via an environment variable reference like `{{AGENTMAIL_API_KEY}}` rather than hardcoding it in the block. The value is never forwarded to LLM context.
+- **Comma-separated addresses** — `to`, `cc`, and `bcc` all accept multiple addresses as a single comma-separated string (e.g. `alice@example.com, bob@example.com`). The tool splits and trims them before sending to the API.
+- **Reply vs Reply-All** — the `agentmail_reply_message` tool routes to a different API endpoint (`/reply-all`) when `replyAll` is `true`. When using reply-all, any `to`, `cc`, or `bcc` overrides you provide are silently ignored by the tool.
+- **Scheduled drafts** — use `agentmail_create_draft` with a `sendAt` ISO 8601 timestamp to queue an email for future delivery. Check `sendStatus` in the output to confirm the draft reached `scheduled` state.
+- **Pagination for large inboxes** — `agentmail_list_threads` returns a `nextPageToken` when more results exist. Feed it back as the `pageToken` param in a subsequent call inside a Loop block to walk through all threads.

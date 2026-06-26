@@ -1,7 +1,7 @@
 ---
 title: Gamma Block
 description: Generate presentations, documents, and webpages with AI
-icon: Box
+icon: LayoutTemplate
 ---
 
 # Gamma Block
@@ -13,7 +13,7 @@ The Gamma block integrates Gamma into your workflow to generate presentations, d
 | Property | Value |
 |----------|-------|
 | **Type** | `gamma` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#002253` |
 
 ## When to Use
@@ -21,34 +21,190 @@ The Gamma block integrates Gamma into your workflow to generate presentations, d
 - Turn a block of text or AI-generated content into a finished presentation, document, or webpage
 - Produce social posts automatically from upstream workflow output
 - Re-use an existing gamma as a template and adapt it with a prompt
-- Poll the status of a long-running generation by its generation ID
+- Poll the status of a long-running generation job by its generation ID
 - Look up theme IDs to apply a specific visual style to a generation
-- List folders to organize where generated gammas are stored
+- List folders to discover where generated gammas can be organized and stored
 
 ## Configuration
 
 ### Operation
-Dropdown selecting what the block does: `generate`, `generate_from_template`, `check_status`, `list_themes`, or `list_folders`. The remaining fields are shown based on this selection.
+Dropdown that controls which Gamma API action the block executes. Every other field is shown or hidden based on this selection. Options:
+
+| Label | ID |
+|-------|----|
+| Generate | `generate` |
+| Generate from Template | `generate_from_template` |
+| Check Status | `check_status` |
+| List Themes | `list_themes` |
+| List Folders | `list_folders` |
 
 ### API Key
-Required Gamma API key (stored as a password field) used to authenticate every operation.
+Required for all operations. Your Gamma API key, stored as a password field and sent as the `X-API-KEY` header. Use `{{GAMMA_API_KEY}}` to pull it from environment variables.
 
 ### Input Text
-Required for `generate`. The text content the gamma is generated from. Pair it with **Text Mode** (`generate`, `condense`, `preserve`) and **Format** (`presentation`, `document`, `webpage`, `social`).
+Required when operation is `generate`. The source text (1–100,000 tokens) from which the gamma is created.
 
-### Generation Controls (advanced)
-For `generate`, optional fields tune the output: number of cards, additional instructions, text amount/tone/audience/language, card split and dimensions, and image source/model/style. You can also export the result as PDF or PPTX and assign a theme ID and folder IDs.
+### Text Mode
+Dropdown shown when operation is `generate`. Controls how the AI treats the input text:
 
-### Template Fields
-For `generate_from_template`, supply the required **Template Gamma ID** and a **Prompt** describing how to adapt it.
+| Label | ID |
+|-------|----|
+| Generate | `generate` |
+| Condense | `condense` |
+| Preserve | `preserve` |
 
-### Status & Listing
-For `check_status`, supply the required **Generation ID**. For `list_themes` / `list_folders`, optionally filter by **Search Query**, **Limit**, and a pagination cursor (**after**).
+### Format
+Dropdown shown when operation is `generate`. The type of gamma to produce:
+
+| Label | ID |
+|-------|----|
+| Presentation | `presentation` |
+| Document | `document` |
+| Webpage | `webpage` |
+| Social | `social` |
+
+### Number of Cards
+Advanced field shown when operation is `generate`. The number of cards/slides to generate (1–75). Defaults to Gamma's automatic value.
+
+### Additional Instructions
+Advanced long-text field shown when operation is `generate`. Extra instructions for the AI generation (max 2,000 characters).
+
+### Text Amount
+Advanced dropdown shown when operation is `generate`. Controls how much text appears per card:
+
+| Label | ID |
+|-------|----|
+| Brief | `brief` |
+| Medium | `medium` |
+| Detailed | `detailed` |
+| Extensive | `extensive` |
+
+### Tone
+Advanced short-input shown when operation is `generate`. The desired writing tone (e.g., `professional`, `casual`, `academic`).
+
+### Audience
+Advanced short-input shown when operation is `generate`. The intended audience (e.g., `executives`, `students`, `developers`).
+
+### Language
+Advanced short-input shown when operation is `generate`. BCP-47 language code for the output text (default: `en`).
+
+### Card Split
+Advanced dropdown shown when operation is `generate`. How to split content across cards:
+
+| Label | ID |
+|-------|----|
+| Auto | `auto` |
+| Input Text Breaks | `inputTextBreaks` |
+
+### Card Dimensions
+Advanced short-input shown when operation is `generate`. The aspect ratio for cards. Valid values depend on format:
+- Presentation: `fluid`, `16x9`, `4x3`
+- Document: `fluid`, `pageless`, `letter`, `a4`
+- Social: `1x1`, `4x5`, `9x16`
+
+### Image Source
+Advanced dropdown shown when operation is `generate`. Where images used in the gamma come from:
+
+| Label | ID |
+|-------|----|
+| AI Generated | `aiGenerated` |
+| Pictographic | `pictographic` |
+| Unsplash | `unsplash` |
+| Web (All Images) | `webAllImages` |
+| Web (Free to Use) | `webFreeToUse` |
+| Web (Free Commercial) | `webFreeToUseCommercially` |
+| Giphy | `giphy` |
+| Placeholder | `placeholder` |
+| No Images | `noImages` |
+
+### Image Model
+Advanced short-input shown when operation is `generate` or `generate_from_template`. The AI image generation model to use when `imageSource` is `aiGenerated`.
+
+### Image Style
+Advanced short-input shown when operation is `generate` or `generate_from_template`. A style directive for AI-generated images (e.g., `watercolor`, `photorealistic`, `minimalist`).
+
+### Export As
+Advanced dropdown shown when operation is `generate` or `generate_from_template`. Optionally export the finished gamma as a file:
+
+| Label | ID |
+|-------|----|
+| None | `` |
+| PDF | `pdf` |
+| PPTX | `pptx` |
+
+### Theme ID
+Advanced short-input shown when operation is `generate` or `generate_from_template`. The ID of a custom Gamma workspace theme. Use the **List Themes** operation to discover available IDs.
+
+### Folder IDs
+Advanced short-input shown when operation is `generate` or `generate_from_template`. Comma-separated list of folder IDs where the generated gamma should be stored. Use the **List Folders** operation to discover available IDs.
+
+### Template Gamma ID
+Required when operation is `generate_from_template`. The ID of the existing gamma to use as a template.
+
+### Prompt
+Required when operation is `generate_from_template`. Instructions describing how to adapt the template into a new gamma.
+
+### Generation ID
+Required when operation is `check_status`. The generation job ID returned by a previous **Generate** or **Generate from Template** call.
+
+### Search Query
+Advanced short-input shown when operation is `list_themes` or `list_folders`. Filters results by name.
+
+### Limit
+Advanced short-input shown when operation is `list_themes` or `list_folders`. Maximum number of results per page (max 50).
+
+### Pagination Cursor
+Advanced short-input (`after`) shown when operation is `list_themes` or `list_folders`. Pass the `nextCursor` from a previous response to retrieve the next page.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `inputText` (string), `textMode` (string), `format` (string), `numCards` (number), `additionalInstructions` (string), `textAmount` (string), `textTone` (string), `textAudience` (string), `textLanguage` (string), `cardSplit` (string), `cardDimensions` (string), `imageSource` (string), `imageModel` (string), `imageStyle` (string), `exportAs` (string), `themeId` (string), `folderIds` (string), `gammaId` (string), `prompt` (string), `generationId` (string), `query` (string), `limit` (number), `after` (string)
-- **Outputs**: `generationId` (string), `status` (string), `gammaUrl` (string), `credits` (json), `error` (json), `themes` (json), `folders` (json), `hasMore` (boolean), `nextCursor` (string)
+**Inputs** — every input id and its type:
+
+- `operation` (string) — Operation to perform
+- `apiKey` (string) — Gamma API key
+- `inputText` (string) — Text content for generation
+- `textMode` (string) — Text handling mode (`generate`, `condense`, `preserve`)
+- `format` (string) — Output format (`presentation`, `document`, `webpage`, `social`)
+- `numCards` (number) — Number of cards to generate
+- `additionalInstructions` (string) — Additional generation instructions
+- `textAmount` (string) — Amount of text per card (`brief`, `medium`, `detailed`, `extensive`)
+- `textTone` (string) — Tone of generated text
+- `textAudience` (string) — Target audience
+- `textLanguage` (string) — Language code (default: `en`)
+- `cardSplit` (string) — Card splitting strategy (`auto`, `inputTextBreaks`)
+- `cardDimensions` (string) — Card aspect ratio (e.g., `16x9`, `fluid`, `letter`)
+- `imageSource` (string) — Image source for generation
+- `imageModel` (string) — AI image model
+- `imageStyle` (string) — Image style directive
+- `exportAs` (string) — Export format (`pdf`, `pptx`, or empty for none)
+- `themeId` (string) — Theme ID
+- `folderIds` (string) — Comma-separated folder IDs
+- `gammaId` (string) — Template gamma ID (for `generate_from_template`)
+- `prompt` (string) — Template adaptation prompt
+- `generationId` (string) — Generation ID to check (for `check_status`)
+- `query` (string) — Search query (for `list_themes` / `list_folders`)
+- `limit` (number) — Result limit per page
+- `after` (string) — Pagination cursor
+
+**Outputs**:
+
+- `generationId` (string) — Generation job ID (from `generate` / `generate_from_template` / `check_status`)
+- `status` (string) — Generation status: `pending`, `completed`, or `failed` (from `check_status`)
+- `gammaUrl` (string) — URL of the generated gamma when `status` is `completed`
+- `credits` (json) — Credit usage with `deducted` and `remaining` fields
+- `error` (json) — Error details (`message`, `statusCode`) if generation failed
+- `themes` (json) — List of themes returned by `list_themes`
+- `folders` (json) — List of folders returned by `list_folders`
+- `hasMore` (boolean) — Whether more results are available (for list operations)
+- `nextCursor` (string) — Pagination cursor for the next page (for list operations)
+
+## Tools
+
+- **Gamma Generate** (`gamma_generate`) — Submits a new generation job to the Gamma API using input text, format, and optional image/text controls. Returns a `generationId` that must be polled with Check Status.
+- **Gamma Generate from Template** (`gamma_generate_from_template`) — Creates a new gamma by adapting an existing template gamma (identified by `gammaId`) using a text prompt. Returns a `generationId`.
+- **Gamma Check Status** (`gamma_check_status`) — Polls the status of a generation job. Returns `status` (`pending`, `completed`, or `failed`), `gammaUrl` (when complete), `credits`, and `error` details.
+- **Gamma List Themes** (`gamma_list_themes`) — Lists themes available in the Gamma workspace, with optional name filtering and pagination. Use this to find `themeId` values for generation.
+- **Gamma List Folders** (`gamma_list_folders`) — Lists folders available in the Gamma workspace, with optional name filtering and pagination. Use this to find `folderIds` values for generation.
 
 ## YAML Example
 
@@ -59,9 +215,11 @@ gamma_1:
   inputs:
     operation: "generate"
     apiKey: "{{GAMMA_API_KEY}}"
-    inputText: "{{start.input}}"
+    inputText: "{{agent_1.content}}"
     format: "presentation"
     textMode: "generate"
+    textAmount: "medium"
+    imageSource: "aiGenerated"
   connections:
     outgoing:
       - target: next-block-id

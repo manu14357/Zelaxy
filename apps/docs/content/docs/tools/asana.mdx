@@ -1,0 +1,115 @@
+---
+title: Asana
+description: Manage tasks, projects, and comments in Asana from your workflows
+icon: Box
+---
+
+# Asana
+
+Full Asana integration for project management — create, retrieve, update, and delete tasks, list workspace projects, search tasks by text or assignee, and add comments. Ideal for automating task creation from AI agents or syncing project status across tools.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `asana` |
+| **Category** | Tool — Project Management |
+| **Auth** | OAuth 2.0 (Asana) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Get Task** | `asana_get_task` | Retrieve a single task by GID, or list multiple tasks filtered by workspace or project |
+| **Create Task** | `asana_create_task` | Create a new task in an Asana workspace |
+| **Update Task** | `asana_update_task` | Update an existing task's name, notes, assignee, due date, or completion status |
+| **Delete Task** | `asana_delete_task` | Permanently delete a task by its GID |
+| **Get Projects** | `asana_get_projects` | Retrieve all projects in an Asana workspace |
+| **Search Tasks** | `asana_search_tasks` | Search for tasks across a workspace by text, assignee, project, or completion status |
+| **Add Comment** | `asana_add_comment` | Add a comment (story) to an existing task |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `accessToken` | `string` | Yes | OAuth access token for Asana. Injected automatically after connecting your Asana account — not entered manually. |
+| `taskGid` | `string` | Conditional | Globally unique identifier (GID) of the task. Required for `asana_get_task` (single-task mode), `asana_update_task`, `asana_delete_task`, and `asana_add_comment`. |
+| `workspace` | `string` | Conditional | Asana workspace GID. Required for `asana_create_task`, `asana_get_projects`, and `asana_search_tasks`. Also required for `asana_get_task` when `taskGid` is not provided. |
+| `name` | `string` | Conditional | Name of the task. Required for `asana_create_task`; optional for `asana_update_task`. |
+| `notes` | `string` | No | Notes or description for the task. Used by `asana_create_task` and `asana_update_task`. |
+| `assignee` | `string` | No | User GID to assign the task to. Used by `asana_create_task`, `asana_update_task`, and as a search filter in `asana_search_tasks`. |
+| `due_on` | `string` | No | Due date in `YYYY-MM-DD` format. Used by `asana_create_task` and `asana_update_task`. |
+| `completed` | `boolean` | No | Mark the task as completed (`true`) or incomplete (`false`). Used by `asana_update_task` and as a filter in `asana_search_tasks`. |
+| `project` | `string` | No | Project GID to filter tasks. Used by `asana_get_task` (multi-task mode). |
+| `projects` | `array` | No | Array of project GIDs to filter by. Used by `asana_search_tasks`. |
+| `text` | `string` | No | Text to search for in task names. Used by `asana_search_tasks`. |
+| `limit` | `number` | No | Maximum number of tasks to return (default: 50). Used by `asana_get_task` (multi-task mode). |
+
+## Outputs
+
+The fields returned depend on the operation selected.
+
+### Task operations (`asana_create_task`, `asana_update_task`, `asana_get_task`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ts` | `string` | Timestamp of the response |
+| `gid` | `string` | Task GID |
+| `name` | `string` | Task name |
+| `notes` | `string` | Task notes or description |
+| `completed` | `boolean` | Whether the task is completed |
+| `assignee` | `json` | Assignee details (present on `asana_get_task`) |
+| `due_on` | `string` | Due date in `YYYY-MM-DD` format (present on `asana_get_task`) |
+| `created_at` | `string` | Task creation timestamp |
+| `modified_at` | `string` | Task last modified timestamp (present on `asana_get_task` and `asana_update_task`) |
+| `permalink_url` | `string` | URL to the task in Asana (present on `asana_create_task`) |
+| `tasks` | `array` | Array of task objects when fetching multiple tasks via `asana_get_task` |
+
+### `asana_delete_task`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ts` | `string` | Timestamp of the response |
+| `deleted` | `boolean` | Whether the task was successfully deleted |
+| `taskGid` | `string` | GID of the deleted task |
+
+### `asana_get_projects`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ts` | `string` | Timestamp of the response |
+| `projects` | `array` | Array of project objects, each with `gid` (string), `name` (string), and `resource_type` (string) |
+
+### `asana_search_tasks`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ts` | `string` | Timestamp of the response |
+| `tasks` | `array` | Array of matching tasks, each with `gid`, `name`, `completed`, `due_on`, `created_at`, and `modified_at` |
+| `next_page` | `json` | Pagination info for retrieving additional results (optional) |
+
+### `asana_add_comment`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ts` | `string` | Timestamp of the response |
+| `gid` | `string` | Comment (story) GID |
+| `text` | `string` | Comment text content |
+| `created_at` | `string` | Comment creation timestamp |
+| `created_by` | `json` | Details of the user who created the comment |
+
+## Example
+
+```
+[Starter] → [Agent: Triage Request] → [Asana: Create Task] → [Asana: Add Comment]
+```
+
+Connect your Asana account, then configure the Create Task block with `workspace` set to your workspace GID (e.g. `{{starter.workspaceGid}}`), `name` set to `{{agent.content}}`, and `due_on` set to `{{starter.deadline}}`. After the task is created, pipe the returned `gid` into an Add Comment block — set `taskGid` to `{{asana_create_task.gid}}` and `text` to `{{agent.summary}}` — to attach an AI-generated summary directly to the new task.
+
+## Tips
+
+- **Find GIDs in Asana URLs** — when you open a task or project in Asana, the numeric segment in the URL is its GID (e.g. `https://app.asana.com/0/<project-gid>/<task-gid>`).
+- **Get Projects first** — use the `asana_get_projects` operation to look up project GIDs in your workspace before wiring Create Task or Search Tasks blocks.
+- **Search vs Get Task** — use `asana_search_tasks` for keyword or assignee-based discovery across the workspace; use `asana_get_task` with a known `taskGid` for fetching a specific task's full details.
+- **OAuth is automatic** — the `accessToken` param is hidden and injected from your connected Asana account; you only need to click "Connect Asana Account" in the block's credential field.
+- **Pagination** — `asana_search_tasks` returns a `next_page` object when more results exist; use its cursor value to page through large result sets.

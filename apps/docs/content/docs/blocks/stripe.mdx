@@ -1,0 +1,227 @@
+---
+title: Stripe Block
+description: Manage customers, payments, and refunds in Stripe
+icon: CreditCard
+---
+
+# Stripe Block
+
+Create and list customers, create payment intents, list charges, and issue refunds through the Stripe API. Authenticate with a Stripe secret key. Reach for this block whenever a workflow needs to automate billing operations — onboarding a new subscriber, initiating a payment collection, auditing recent charges, or processing a refund.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `stripe` |
+| **Category** | `tools` |
+| **Color** | `#635BFF` |
+
+## When to Use
+
+- Create a Stripe customer record when a new user signs up so downstream blocks can reference the customer ID.
+- Search or list existing customers by email to check whether a record already exists before creating a duplicate.
+- Create a PaymentIntent to collect a payment for a specific amount and currency, optionally tied to an existing customer.
+- Retrieve a list of recent charges for a workspace or a specific customer to power billing dashboards or audit workflows.
+- Issue a full or partial refund against a PaymentIntent or a Charge ID, with an optional machine-readable reason.
+
+## Configuration
+
+### Operation
+
+Select which Stripe action to perform. This dropdown is always visible and controls which additional fields appear.
+
+| Label | ID |
+|-------|----|
+| Create customer | `stripe_create_customer` |
+| List customers | `stripe_list_customers` |
+| Create payment intent | `stripe_create_payment_intent` |
+| List charges | `stripe_list_charges` |
+| Create refund | `stripe_create_refund` |
+
+---
+
+### Email
+
+- **Sub-block id**: `email`
+- **Type**: short-input
+- **Placeholder**: `customer@example.com`
+- **Shown for**: `stripe_create_customer`, `stripe_list_customers`
+
+For **Create customer**: the email address to attach to the new customer record (optional).
+For **List customers**: filter the returned list to only customers whose email matches exactly (optional).
+
+---
+
+### Name
+
+- **Sub-block id**: `name`
+- **Type**: short-input
+- **Placeholder**: `Jane Doe`
+- **Shown for**: `stripe_create_customer`
+
+Full name of the customer to store on the Stripe customer object (optional).
+
+---
+
+### Phone
+
+- **Sub-block id**: `phone`
+- **Type**: short-input
+- **Placeholder**: `+15551234567`
+- **Shown for**: `stripe_create_customer`
+
+Phone number in E.164 format to attach to the customer record (optional).
+
+---
+
+### Description
+
+- **Sub-block id**: `description`
+- **Type**: short-input
+- **Shown for**: `stripe_create_customer`, `stripe_create_payment_intent`
+
+A free-text description stored on the customer or payment intent object (optional).
+
+---
+
+### Amount (smallest unit, e.g. cents)
+
+- **Sub-block id**: `amount`
+- **Type**: short-input
+- **Placeholder**: `2000`
+- **Shown for**: `stripe_create_payment_intent`, `stripe_create_refund`
+
+For **Create payment intent**: the amount to collect, expressed in the smallest currency unit (e.g. 2000 = $20.00 USD). Required for this operation.
+For **Create refund**: the amount to refund in the same unit. Omit to refund the full charge (optional).
+
+---
+
+### Currency
+
+- **Sub-block id**: `currency`
+- **Type**: short-input
+- **Placeholder**: `usd`
+- **Shown for**: `stripe_create_payment_intent`
+
+Three-letter ISO 4217 currency code (e.g. `usd`, `eur`, `gbp`). Required for this operation.
+
+---
+
+### Customer ID
+
+- **Sub-block id**: `customer`
+- **Type**: short-input
+- **Placeholder**: `cus_...`
+- **Shown for**: `stripe_create_payment_intent`, `stripe_list_charges`
+
+For **Create payment intent**: attach the intent to an existing Stripe customer (optional).
+For **List charges**: filter the returned charges to only those for this customer ID (optional).
+
+---
+
+### Payment Intent ID
+
+- **Sub-block id**: `payment_intent`
+- **Type**: short-input
+- **Placeholder**: `pi_...`
+- **Shown for**: `stripe_create_refund`
+
+The ID of the PaymentIntent to refund. Provide either this or Charge ID (optional).
+
+---
+
+### Charge ID
+
+- **Sub-block id**: `charge`
+- **Type**: short-input
+- **Placeholder**: `ch_...`
+- **Shown for**: `stripe_create_refund`
+
+The ID of the Charge to refund. Provide either this or Payment Intent ID (optional).
+
+---
+
+### Refund Reason
+
+- **Sub-block id**: `reason`
+- **Type**: short-input
+- **Placeholder**: `requested_by_customer`
+- **Shown for**: `stripe_create_refund`
+
+Machine-readable reason for the refund. Accepted values: `duplicate`, `fraudulent`, `requested_by_customer` (optional).
+
+---
+
+### Limit
+
+- **Sub-block id**: `limit`
+- **Type**: short-input
+- **Placeholder**: `10`
+- **Shown for**: `stripe_list_customers`, `stripe_list_charges`
+
+Maximum number of records to return (default 10, max 100) (optional).
+
+---
+
+### Stripe Secret Key
+
+- **Sub-block id**: `apiKey`
+- **Type**: short-input (password)
+- **Placeholder**: `sk_live_... or sk_test_...`
+- **Required**: yes (always shown)
+
+Your Stripe secret key. Use `sk_test_...` keys during development and `sk_live_...` keys in production. Store this value as a workflow secret and reference it via `{{STRIPE_SECRET_KEY}}` rather than pasting it in plain text.
+
+## Inputs & Outputs
+
+### Inputs
+
+- `operation` (string) — Operation to perform; one of the five operation IDs listed above.
+- `apiKey` (string) — Stripe secret API key.
+- `email` (string) — Customer email (used by create customer and list customers).
+- `name` (string) — Customer name (used by create customer).
+- `phone` (string) — Customer phone number (used by create customer).
+- `description` (string) — Description attached to the customer or payment intent.
+- `amount` (number) — Amount in the smallest currency unit (used by create payment intent and create refund).
+- `currency` (string) — ISO currency code (used by create payment intent).
+- `customer` (string) — Customer ID (used by create payment intent and list charges).
+- `payment_intent` (string) — PaymentIntent ID (used by create refund).
+- `charge` (string) — Charge ID (used by create refund).
+- `reason` (string) — Refund reason (used by create refund).
+- `metadata` (json) — Key-value metadata to attach to the object (used by create customer and create payment intent).
+- `limit` (number) — Result limit (used by list customers and list charges).
+
+### Outputs
+
+- `data` (json) — Result object (for create operations) or result array (for list operations) returned by Stripe.
+- `metadata` (json) — Response metadata. For object operations: `{ id, object }`. For list operations: `{ count, has_more }`.
+
+## Tools
+
+**Stripe Create Customer** (`stripe_create_customer`) — POSTs to `/v1/customers` to create a new Stripe customer with optional email, name, phone, description, and metadata. Returns the full customer object plus `{ id, object }` metadata.
+
+**Stripe List Customers** (`stripe_list_customers`) — GETs `/v1/customers` with optional `email` and `limit` query parameters to retrieve a filtered list of customers. Returns an array of customer objects and `{ count, has_more }` metadata.
+
+**Stripe Create Payment Intent** (`stripe_create_payment_intent`) — POSTs to `/v1/payment_intents` to initiate a payment collection for a specific `amount` and `currency`. Supports optional `customer`, `description`, and `metadata`. Returns the full PaymentIntent object plus `{ id, object }` metadata.
+
+**Stripe List Charges** (`stripe_list_charges`) — GETs `/v1/charges` with optional `customer` and `limit` query parameters to retrieve a list of charges. Returns an array of charge objects and `{ count, has_more }` metadata.
+
+**Stripe Create Refund** (`stripe_create_refund`) — POSTs to `/v1/refunds` to refund a charge or payment intent. Accepts `payment_intent` or `charge` ID, an optional partial `amount`, and an optional `reason`. Returns the refund object plus `{ id, object }` metadata.
+
+## YAML Example
+
+```yaml
+stripe_1:
+  type: stripe
+  name: "Create Payment Intent"
+  inputs:
+    operation: "stripe_create_payment_intent"
+    apiKey: "{{STRIPE_SECRET_KEY}}"
+    amount: 4999
+    currency: "usd"
+    customer: "{{get_customer_1.data.id}}"
+    description: "Pro plan subscription"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

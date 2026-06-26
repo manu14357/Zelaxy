@@ -1,0 +1,171 @@
+---
+title: Ketch Block
+description: Manage consent and privacy rights in Ketch
+icon: Box
+---
+
+# Ketch Block
+
+Retrieve and update data-subject consent preferences and submit privacy rights requests through the Ketch API. Requests are addressed by organization, property, and environment codes. Reach for this block whenever a workflow needs to read a user's current consent state, record a new consent signal, or file a DSAR (data subject access request) such as an access, deletion, or correction request.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `ketch` |
+| **Category** | `tools` |
+| **Color** | `#1A1A2E` |
+
+## When to Use
+
+- Read a user's current consent preferences before deciding whether to process their data in downstream blocks.
+- Record an updated consent signal (opt-in or opt-out) immediately after a user interacts with a consent banner or preference centre.
+- Submit a data subject rights request (access, deletion, correction, restrict processing) as part of a DSAR intake workflow.
+- Automate periodic consent audits by fetching consent states for a list of identities and routing non-compliant records to a remediation path.
+- Propagate consent decisions captured in one system (e.g. a CRM) into Ketch to keep the consent platform in sync.
+- Gate marketing automation steps on a live consent check so that only users who have granted the relevant purpose are contacted.
+
+## Configuration
+
+### Operation
+
+Select which Ketch API action to perform. This dropdown controls which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| Get consent | `ketch_get_consent` |
+| Set consent | `ketch_set_consent` |
+| Invoke right | `ketch_invoke_right` |
+
+**Default:** `ketch_get_consent`
+
+---
+
+### Organization Code (required)
+
+The Ketch organization code that identifies your account (e.g. `acme`). Visible for all operations.
+
+---
+
+### Property Code (required)
+
+The digital property code configured in Ketch that identifies the surface where consent was collected (e.g. `website`). Visible for all operations.
+
+---
+
+### Environment Code (required)
+
+The Ketch environment code for the target environment (e.g. `production`, `staging`). Visible for all operations.
+
+---
+
+### Jurisdiction Code
+
+The jurisdiction code that governs the consent decision (e.g. `gdpr`, `ccpa`). Optional for **Get consent** and **Set consent**; required when using **Invoke right** (enforced at the tool level). Visible for all operations.
+
+---
+
+### Identities (required)
+
+A JSON object that maps one or more identity types to the data subject's identifier values.
+
+Example:
+```json
+{"email": "user@example.com"}
+```
+
+Visible for all operations.
+
+---
+
+### Purposes
+
+A JSON object that maps purpose codes to their consent settings. Used by both **Get consent** (as an optional filter) and **Set consent** (as a required payload describing the new consent state).
+
+Example:
+```json
+{"analytics": {"allowed": "granted", "legalBasisCode": "consent_optin"}}
+```
+
+Condition: visible when operation is `ketch_get_consent` or `ketch_set_consent`.
+
+---
+
+### Collected At (UNIX timestamp)
+
+A UNIX timestamp (integer seconds) recording when the consent signal was collected. If omitted, the tool defaults to the current server time.
+
+Example: `1700000000`
+
+Condition: visible only when operation is `ketch_set_consent`.
+
+---
+
+### Right Code
+
+The code identifying which privacy right to invoke (e.g. `access`, `delete`, `correct`, `restrict_processing`).
+
+Condition: visible only when operation is `ketch_invoke_right`.
+
+---
+
+### User Data
+
+An optional JSON object containing additional data-subject information to attach to the rights request.
+
+Example:
+```json
+{"email": "user@example.com", "firstName": "John", "lastName": "Doe"}
+```
+
+Condition: visible only when operation is `ketch_invoke_right`.
+
+---
+
+## Inputs & Outputs
+
+### Inputs
+
+- `operation` (string) — Operation to perform (`ketch_get_consent`, `ketch_set_consent`, or `ketch_invoke_right`).
+- `organizationCode` (string) — Ketch organization code.
+- `propertyCode` (string) — Digital property code.
+- `environmentCode` (string) — Environment code.
+- `jurisdictionCode` (string) — Jurisdiction code (optional for consent ops; required for invoke right).
+- `identities` (json) — Identity map keyed by identity type.
+- `purposes` (json) — Consent purposes map (used with get/set consent).
+- `collectedAt` (number) — Consent collection timestamp as UNIX seconds (set consent only; defaults to now if omitted).
+- `rightCode` (string) — Privacy right code to invoke (invoke right only).
+- `userData` (json) — Data subject information to include with a rights request (invoke right only, optional).
+
+### Outputs
+
+- `data` (json) — Result object from Ketch. For **Get consent** this contains the consent purposes and vendor statuses; for **Set consent** it contains the updated consent state (or an empty object on HTTP 204); for **Invoke right** it contains the rights-invocation acknowledgement (or empty object on HTTP 204).
+- `metadata` (json) — Response metadata. Always includes `organizationCode`; for **Invoke right** also includes `rightCode`.
+
+## Tools
+
+- **Ketch Get Consent** (`ketch_get_consent`) — Calls `POST https://global.ketchcdn.com/web/v2/consent/{organizationCode}/get` to retrieve the current consent preferences for a data subject. Accepts optional `jurisdictionCode` and `purposes` filters. Returns the full consent purposes object from Ketch.
+
+- **Ketch Set Consent** (`ketch_set_consent`) — Calls `POST https://global.ketchcdn.com/web/v2/consent/{organizationCode}/update` to write updated consent preferences for a data subject. Requires a `purposes` map and an optional `collectedAt` timestamp (defaults to current time). Returns the updated consent state (HTTP 204 returns an empty data object).
+
+- **Ketch Invoke Right** (`ketch_invoke_right`) — Calls `POST https://global.ketchcdn.com/web/v2/rights/{organizationCode}/invoke` to file a data subject rights request. Requires `jurisdictionCode` and `rightCode`; accepts optional `userData`. Returns the Ketch rights-invocation response (HTTP 204 returns an empty data object).
+
+## YAML Example
+
+```yaml
+ketch_1:
+  type: ketch
+  name: "Submit Deletion Request"
+  inputs:
+    operation: "ketch_invoke_right"
+    organizationCode: "acme"
+    propertyCode: "website"
+    environmentCode: "production"
+    jurisdictionCode: "gdpr"
+    rightCode: "delete"
+    identities: "{{intake_form.identities}}"
+    userData: "{{intake_form.userData}}"
+  connections:
+    outgoing:
+      - target: notify-requester
+```

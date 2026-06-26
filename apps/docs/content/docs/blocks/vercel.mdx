@@ -1,0 +1,129 @@
+---
+title: Vercel Block
+description: Manage Vercel projects and deployments
+icon: Box
+---
+
+# Vercel Block
+
+List projects and deployments, fetch deployment details, and create new deployments through the Vercel API. Authenticate with a Vercel access token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `vercel` |
+| **Category** | tools |
+| **Color** | `#000000` |
+
+## When to Use
+
+- Discover all projects in a Vercel team or personal account, optionally filtering by name
+- List recent deployments for a project and filter by environment (production/staging) or deployment state
+- Fetch the full details of a specific deployment by its ID or URL
+- Trigger a new deployment from a GitHub (or other Git) source programmatically
+- Drive CI/CD workflows that need to react to or initiate Vercel deployments
+- Monitor deployment pipelines by polling state until a deployment reaches READY or ERROR
+
+## Configuration
+
+### Operation
+
+Dropdown selecting which Vercel API action the block performs. Defaults to **List projects**.
+
+| Label | ID |
+|---|---|
+| List projects | `vercel_list_projects` |
+| List deployments | `vercel_list_deployments` |
+| Get deployment | `vercel_get_deployment` |
+| Create deployment | `vercel_create_deployment` |
+
+### Search
+
+Visible for **List projects** only. A project name substring to filter results (e.g., `my-app`). Optional.
+
+### Project ID (list)
+
+Visible for **List deployments** only. The Vercel project ID (`prj_...`) or name to scope the list. Optional.
+
+### State
+
+Visible for **List deployments** only. Filters deployments to a specific state. Valid values: `BUILDING`, `ERROR`, `INITIALIZING`, `QUEUED`, `READY`, `CANCELED`. Optional.
+
+### Deployment ID
+
+Visible for **Get deployment** only. The unique deployment identifier (`dpl_...`) or the deployment URL. Required for this operation.
+
+### Project Name
+
+Visible for **Create deployment** only. The name of the Vercel project to deploy. Required for this operation.
+
+### Project ID (create)
+
+Visible for **Create deployment** only. A project ID (`prj_...`) that overrides the name lookup when both are supplied. Optional.
+
+### Git Source
+
+Visible for **Create deployment** only. A JSON object describing the Git source to deploy. Example: `{"type":"github","repo":"owner/repo","ref":"main"}`. Optional.
+
+### Target
+
+Visible for **List deployments** and **Create deployment**. The target environment: `production` or `staging`. Optional.
+
+### Limit
+
+Visible for **List projects** and **List deployments**. Maximum number of results to return (e.g., `20`). Optional.
+
+### Team ID
+
+Available for all operations. Scopes the Vercel API request to a specific team (`team_...`). Omit for personal accounts. Optional.
+
+### Vercel Access Token
+
+Your Vercel personal access token used to authenticate all API calls. Required. Stored as a password field — use `{{VERCEL_ACCESS_TOKEN}}` to reference a workspace secret.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`vercel_list_projects`, `vercel_list_deployments`, `vercel_get_deployment`, or `vercel_create_deployment`)
+  - `apiKey` (string) — Vercel access token
+  - `search` (string) — Project name search (list projects)
+  - `projectId` (string) — Project ID filter (list deployments)
+  - `state` (string) — Deployment state filter (list deployments)
+  - `deploymentId` (string) — Deployment ID or URL (get deployment)
+  - `name` (string) — Project name (create deployment)
+  - `project` (string) — Project ID (create deployment)
+  - `gitSource` (json) — Git source object (create deployment)
+  - `target` (string) — Target environment (list deployments, create deployment)
+  - `teamId` (string) — Team ID
+  - `limit` (number) — Result limit (list projects, list deployments)
+
+- **Outputs**:
+  - `data` (json) — Result object or array from Vercel (project list, deployment list, or single deployment object depending on operation)
+  - `metadata` (json) — Response metadata. For list operations: `{ count: number, hasMore: boolean }`. For single-object operations: `{ id: string, name: string }`
+
+## Tools
+
+- **Vercel List Projects** (`vercel_list_projects`) — Calls `GET /v9/projects`. Returns an array of Vercel project objects scoped to the team or account. Supports name search, result limit, and team scoping.
+- **Vercel List Deployments** (`vercel_list_deployments`) — Calls `GET /v6/deployments`. Returns an array of deployment objects, filterable by project ID, target environment, deployment state, result limit, and team.
+- **Vercel Get Deployment** (`vercel_get_deployment`) — Calls `GET /v13/deployments/{idOrUrl}`. Returns the full details of a single deployment by its ID or URL, including status, build logs references, and metadata.
+- **Vercel Create Deployment** (`vercel_create_deployment`) — Calls `POST /v13/deployments`. Creates a new deployment for the named project, optionally from a specified Git source and targeting a specific environment. Returns the newly created deployment object.
+
+## YAML Example
+
+```yaml
+vercel_1:
+  type: vercel
+  name: "Vercel"
+  inputs:
+    operation: "vercel_create_deployment"
+    name: "my-app"
+    project: "prj_abc123"
+    gitSource: '{"type":"github","repo":"my-org/my-app","ref":"main"}'
+    target: "production"
+    teamId: "team_xyz"
+    apiKey: "{{VERCEL_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

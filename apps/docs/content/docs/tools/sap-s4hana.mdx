@@ -1,0 +1,110 @@
+---
+title: SAP S/4HANA Tools
+description: Read business partners and products from an SAP S/4HANA system via its OData v2 APIs.
+icon: Box
+---
+
+# SAP S/4HANA Tools
+
+The SAP S/4HANA provider lets a workflow read master data from an SAP S/4HANA system through its standard OData v2 APIs (`API_BUSINESS_PARTNER` and `API_PRODUCT_SRV`). Use these tools when a workflow needs to look up a specific business partner, list business partners, or list products (materials) from your S/4HANA host.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `sap-s4hana` |
+| **Category** | `tools` |
+| **Auth** | Basic Auth (username + password sent as an HTTP `Authorization: Basic` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Get business partners | `sap_s4hana_get_business_partners` | List business partners from `API_BUSINESS_PARTNER` (`A_BusinessPartner`) with optional OData `$filter`, `$top`, `$skip`, and `$select`. |
+| Get business partner | `sap_s4hana_get_business_partner` | Retrieve a single business partner by its `BusinessPartner` key from `API_BUSINESS_PARTNER` (`A_BusinessPartner`). |
+| List products | `sap_s4hana_list_products` | List products (materials) from `API_PRODUCT_SRV` (`A_Product`) with optional OData `$filter`, `$top`, `$skip`, and `$select`. |
+
+## Configuration
+
+All three operations authenticate with HTTP Basic credentials (`baseUrl`, `username`, `password`) against your S/4HANA host. `username` and `password` are configured per-workflow; the `password` is a secret and is sent base64-encoded in the `Authorization` header.
+
+### `sap_s4hana_get_business_partners`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `baseUrl` | string | Yes | Base URL of the S/4HANA host (e.g. `https://my000000.s4hana.cloud.sap`). |
+| `username` | string | Yes | Username for HTTP Basic authentication. |
+| `password` | string | Yes | **Secret.** Password for HTTP Basic authentication. |
+| `filter` | string | No | OData `$filter` expression (e.g. `BusinessPartnerCategory eq '1'`). |
+| `top` | number | No | Maximum results to return (`$top`, default `10`). |
+| `skip` | number | No | Number of results to skip (`$skip`). |
+| `select` | string | No | Comma-separated fields to return (`$select`). |
+
+### `sap_s4hana_get_business_partner`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `baseUrl` | string | Yes | Base URL of the S/4HANA host (e.g. `https://my000000.s4hana.cloud.sap`). |
+| `username` | string | Yes | Username for HTTP Basic authentication. |
+| `password` | string | Yes | **Secret.** Password for HTTP Basic authentication. |
+| `businessPartner` | string | Yes | `BusinessPartner` key (string, up to 10 characters). |
+| `select` | string | No | Comma-separated fields to return (`$select`). |
+
+### `sap_s4hana_list_products`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `baseUrl` | string | Yes | Base URL of the S/4HANA host (e.g. `https://my000000.s4hana.cloud.sap`). |
+| `username` | string | Yes | Username for HTTP Basic authentication. |
+| `password` | string | Yes | **Secret.** Password for HTTP Basic authentication. |
+| `filter` | string | No | OData `$filter` expression (e.g. `ProductType eq 'FERT'`). |
+| `top` | number | No | Maximum results to return (`$top`, default `10`). |
+| `skip` | number | No | Number of results to skip (`$skip`). |
+| `select` | string | No | Comma-separated fields to return (`$select`). |
+
+## Outputs
+
+### `sap_s4hana_get_business_partners`
+
+- `data` (json) — OData v2 envelope `{ d: { results: [...] } }` of `A_BusinessPartner` entities.
+- `metadata` (json) — Response metadata, with nested fields:
+  - `status` (number) — HTTP status code returned by SAP.
+  - `count` (number) — Number of business partners returned.
+
+### `sap_s4hana_get_business_partner`
+
+- `data` (json) — OData v2 envelope `{ d: {...} }` for the `A_BusinessPartner` entity.
+- `metadata` (json) — Response metadata, with nested fields:
+  - `status` (number) — HTTP status code returned by SAP.
+
+### `sap_s4hana_list_products`
+
+- `data` (json) — OData v2 envelope `{ d: { results: [...] } }` of `A_Product` entities.
+- `metadata` (json) — Response metadata, with nested fields:
+  - `status` (number) — HTTP status code returned by SAP.
+  - `count` (number) — Number of products returned.
+
+## YAML Example
+
+```yaml
+sap_s4hana_1:
+  type: sap_s4hana
+  name: "SAP S/4HANA"
+  inputs:
+    operation: "sap_s4hana_get_business_partners"
+    baseUrl: "https://my000000.s4hana.cloud.sap"
+    username: "{{SAP_S4HANA_USERNAME}}"
+    password: "{{SAP_S4HANA_PASSWORD}}"
+    filter: "BusinessPartnerCategory eq '1'"
+    top: 10
+    select: "BusinessPartner,BusinessPartnerName"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- This provider uses **HTTP Basic authentication**, not an API key. Provide `username` and `password` (store the password as a secret/environment variable, e.g. `{{SAP_S4HANA_PASSWORD}}`) plus the `baseUrl` of your S/4HANA host. The credentials are combined and base64-encoded into the `Authorization: Basic` header at request time.
+- `baseUrl` should be the host root only (e.g. `https://my000000.s4hana.cloud.sap`); the tools append the OData service path themselves (`/sap/opu/odata/sap/API_BUSINESS_PARTNER/...` or `/sap/opu/odata/sap/API_PRODUCT_SRV/...`). A trailing slash on `baseUrl` is stripped automatically.
+- Use `select` to limit the returned fields and `top`/`skip` to page through large result sets. For the list operations, `top` defaults to `10` if you do not set it. To reference a returned value downstream, use the OData envelope path, e.g. `{{sap_s4hana_1.data.d.results}}` for lists or `{{sap_s4hana_1.data.d}}` for a single business partner.

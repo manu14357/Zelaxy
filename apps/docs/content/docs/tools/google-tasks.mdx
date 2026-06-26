@@ -1,0 +1,138 @@
+---
+title: Google Tasks Tools
+description: List task lists, list tasks, create tasks, and complete tasks in Google Tasks
+icon: ListTodo
+---
+
+# Google Tasks Tools
+
+The Google Tasks provider lets a workflow read and write to a user's Google Tasks account through the Google Tasks API. Use these tools to enumerate task lists, list the tasks inside a list, create new tasks, and mark existing tasks as completed.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-tasks` |
+| **Category** | tools |
+| **Auth** | OAuth (Google OAuth 2.0 access token, sent as a Bearer token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List task lists | `google_tasks_list_tasklists` | Retrieve all task lists for the authenticated user |
+| List tasks | `google_tasks_list_tasks` | List all tasks in a Google Tasks list |
+| Create task | `google_tasks_create_task` | Create a new task in a Google Tasks list |
+| Complete task | `google_tasks_complete_task` | Mark a task as completed in a Google Tasks list |
+
+## Configuration
+
+### `google_tasks_list_tasklists`
+
+Retrieve all task lists for the authenticated user.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (secret — sent as `Authorization: Bearer`). Visibility: `user-only`. |
+| `maxResults` | number | No | Maximum number of task lists to return (max 100). Visibility: `user-or-llm`. |
+
+### `google_tasks_list_tasks`
+
+List all tasks in a Google Tasks list.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (secret — sent as `Authorization: Bearer`). Visibility: `user-only`. |
+| `tasklist` | string | No | Task list ID. Defaults to `@default`. Visibility: `user-or-llm`. |
+| `maxResults` | number | No | Maximum number of tasks to return (max 100). Visibility: `user-or-llm`. |
+| `showCompleted` | boolean | No | Whether to include completed tasks. Visibility: `user-or-llm`. |
+
+### `google_tasks_create_task`
+
+Create a new task in a Google Tasks list.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (secret — sent as `Authorization: Bearer`). Visibility: `user-only`. |
+| `tasklist` | string | No | Task list ID. Defaults to `@default`. Visibility: `user-or-llm`. |
+| `title` | string | Yes | Title of the task. Visibility: `user-or-llm`. |
+| `notes` | string | No | Notes/description for the task. Visibility: `user-or-llm`. |
+| `due` | string | No | Due date in RFC 3339 format (e.g. `2025-06-03T00:00:00.000Z`). Visibility: `user-or-llm`. |
+
+### `google_tasks_complete_task`
+
+Mark a task as completed in a Google Tasks list.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (secret — sent as `Authorization: Bearer`). Visibility: `user-only`. |
+| `tasklist` | string | No | Task list ID. Defaults to `@default`. Visibility: `user-or-llm`. |
+| `task` | string | Yes | The ID of the task to complete. Visibility: `user-or-llm`. |
+
+## Outputs
+
+### `google_tasks_list_tasklists`
+
+- `data` (json) — Array of task list objects returned by Google Tasks.
+- `metadata` (json) — List metadata containing:
+  - `count` (number) — Number of task lists returned.
+  - `nextPageToken` (string) — Token for the next page (null when there are no more pages).
+
+### `google_tasks_list_tasks`
+
+- `data` (json) — Array of task objects.
+- `metadata` (json) — List metadata containing:
+  - `count` (number) — Number of tasks returned.
+  - `nextPageToken` (string) — Token for the next page (null when there are no more pages).
+
+### `google_tasks_create_task`
+
+- `data` (json) — The created task object.
+- `metadata` (json) — Task identifiers containing:
+  - `id` (string) — Task ID.
+
+### `google_tasks_complete_task`
+
+- `data` (json) — The updated task object.
+- `metadata` (json) — Task identifiers containing:
+  - `id` (string) — Task ID.
+
+## YAML Example
+
+```yaml
+google_tasks_1:
+  type: google_tasks
+  name: "Google Tasks"
+  inputs:
+    operation: "google_tasks_list_tasklists"
+    maxResults: 20
+    accessToken: "{{GOOGLE_TASKS_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+A create-task example:
+
+```yaml
+google_tasks_create:
+  type: google_tasks
+  name: "Google Tasks"
+  inputs:
+    operation: "google_tasks_create_task"
+    tasklist: "@default"
+    title: "Follow up with customer"
+    notes: "Send the proposal deck"
+    due: "2025-06-03T00:00:00.000Z"
+    accessToken: "{{GOOGLE_TASKS_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Auth setup: every operation requires a Google OAuth 2.0 access token. It is passed as `accessToken` and sent to the Google Tasks API as `Authorization: Bearer <token>`. The token is a `user-only` secret, so supply it via an environment reference such as `{{GOOGLE_TASKS_ACCESS_TOKEN}}` rather than hardcoding it. The token must be granted a Google Tasks scope (e.g. `https://www.googleapis.com/auth/tasks`).
+- Default task list: `tasklist` is optional for list/create/complete operations and defaults to `@default` (the user's primary task list). To target another list, first run `google_tasks_list_tasklists` and feed an id from its output into `tasklist`, for example `{{google_tasks_1.data}}`.
+- Completing a task: `google_tasks_complete_task` needs the task's id in `task`. Obtain it from `google_tasks_list_tasks` (each item's `id`). The tool issues a PATCH that sets the task `status` to `completed`; it does not delete the task.
+- Paging and limits: `maxResults` caps at 100 per request for both list operations. When more results exist, `metadata.nextPageToken` is returned so you can detect additional pages.

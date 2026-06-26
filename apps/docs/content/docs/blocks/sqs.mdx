@@ -1,0 +1,136 @@
+---
+title: Amazon SQS Block
+description: Send, receive, and list messages on Amazon SQS queues
+icon: Box
+---
+
+# Amazon SQS Block
+
+Interact with Amazon Simple Queue Service (SQS): send messages, receive messages, and list queues. Authenticate with AWS access key credentials (SigV4 signed). Reach for this block whenever a workflow needs to enqueue work items, drain a queue for downstream processing, or discover available queues in an AWS account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `sqs` |
+| **Category** | `tools` |
+| **Color** | `#FF4F8B` |
+
+## When to Use
+
+- Send a task or event payload to an SQS queue so a consumer service can pick it up asynchronously.
+- Poll an SQS queue and pull pending messages into the workflow for processing.
+- Discover all queues in an AWS region, optionally filtered by a name prefix.
+- Fan-out events: place a message on multiple queues from a single workflow step.
+- Bridge Zelaxy workflows to AWS-native microservices that communicate over SQS.
+- Trigger downstream workflows by placing messages that another listener polls.
+
+## Configuration
+
+### Operation
+
+**Required.** Selects which SQS API action to perform. The visible fields below change based on this selection.
+
+| Label | ID |
+|---|---|
+| Send message | `sqs_send_message` |
+| Receive messages | `sqs_receive_message` |
+| List queues | `sqs_list_queues` |
+
+Default: `sqs_send_message`.
+
+---
+
+### Queue URL
+
+**Visible for:** `sqs_send_message`, `sqs_receive_message`.
+
+The full HTTPS URL of the target SQS queue, for example `https://sqs.us-east-1.amazonaws.com/123456789012/my-queue`. You can reference another block's output with `{{blockName.data.QueueUrl}}` or store the URL as a workflow variable and reference it with `{{variables.queueUrl}}`.
+
+---
+
+### Message Body
+
+**Visible for:** `sqs_send_message` only.
+
+The text content to send as the message body. Accepts any string, including JSON payloads produced by upstream blocks (e.g. `{{agent_1.data}}`).
+
+---
+
+### Max Messages
+
+**Visible for:** `sqs_receive_message` only. Optional.
+
+Maximum number of messages to return in a single call. Accepts values 1–10; defaults to `10` when left blank.
+
+---
+
+### Queue Name Prefix
+
+**Visible for:** `sqs_list_queues` only. Optional.
+
+Filter the returned queue list to queues whose names begin with this string. Leave blank to return all queues in the region.
+
+---
+
+### AWS Region
+
+**Required** (all operations). The AWS region where the queue exists, e.g. `us-east-1`. Store this in a workflow variable and reference it with `{{variables.awsRegion}}` to avoid hardcoding it.
+
+---
+
+### AWS Access Key ID
+
+**Required** (all operations). The AWS IAM access key ID with permission to call SQS. Store credentials as secrets and reference with `{{AWS_ACCESS_KEY_ID}}`.
+
+---
+
+### AWS Secret Access Key
+
+**Required** (all operations). The AWS IAM secret access key corresponding to the Access Key ID. Store credentials as secrets and reference with `{{AWS_SECRET_ACCESS_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`sqs_send_message`, `sqs_receive_message`, or `sqs_list_queues`)
+- `awsRegion` (string) — AWS region (e.g. `us-east-1`)
+- `awsAccessKeyId` (string) — AWS access key ID
+- `awsSecretAccessKey` (string) — AWS secret access key
+- `queueUrl` (string) — SQS queue URL (required for send and receive operations)
+- `messageBody` (string) — Message body (required for send operation)
+- `maxMessages` (number) — Max messages to receive (used for receive operation; 1–10, default 10)
+- `prefix` (string) — Queue name prefix filter (used for list operation)
+
+**Outputs:**
+
+- `data` (json) — Raw SQS API response object. Shape varies by operation:
+  - `sqs_send_message`: contains `MessageId`, `MD5OfMessageBody`, and related fields.
+  - `sqs_receive_message`: contains a `Messages` array where each item has `MessageId`, `Body`, `ReceiptHandle`, and more.
+  - `sqs_list_queues`: contains a `QueueUrls` array of queue URL strings.
+
+## Tools
+
+- **SQS Send Message** (`sqs_send_message`) — Posts a single message to the specified SQS queue using `AmazonSQS.SendMessage`. Requires `queueUrl` and `messageBody`.
+- **SQS Receive Messages** (`sqs_receive_message`) — Polls the specified SQS queue for up to `maxMessages` messages using `AmazonSQS.ReceiveMessage`. Returns a `Messages` array; messages are NOT automatically deleted after receipt.
+- **SQS List Queues** (`sqs_list_queues`) — Lists all SQS queues in the region using `AmazonSQS.ListQueues`, optionally filtered by a `prefix`. Returns a `QueueUrls` array.
+
+All three tools sign requests with AWS SigV4 (`awsJsonHeaders`).
+
+## YAML Example
+
+```yaml
+sqs_1:
+  type: sqs
+  name: "Amazon SQS"
+  inputs:
+    operation: "sqs_send_message"
+    awsRegion: "{{variables.awsRegion}}"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+    queueUrl: "https://sqs.us-east-1.amazonaws.com/123456789012/my-queue"
+    messageBody: "{{agent_1.data}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

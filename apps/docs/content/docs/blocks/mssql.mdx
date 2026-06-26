@@ -6,55 +6,134 @@ icon: Box
 
 # Microsoft MSSQL Block
 
-The Microsoft MSSQL block connects to a Microsoft SQL Server instance to execute T-SQL queries, manage data (insert/update/delete), and perform file operations. Reach for it when your workflow needs to read from or write to a SQL Server database with secure connections, automatic query parameterization, and connection pooling.
+The Microsoft MSSQL block connects to a Microsoft SQL Server instance to execute T-SQL queries, manage data (insert/update/delete), and perform file operations. Use it when a workflow needs to read from or write to a SQL Server database with secure connections, automatic query parameterization, and connection pooling.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `mssql` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#CC2927` |
 
 ## When to Use
 
-- Run ad-hoc T-SQL `SELECT` queries against a SQL Server database and feed results into downstream blocks.
-- Insert new records into a table from data produced earlier in the workflow.
-- Update existing rows based on JSON-defined WHERE conditions.
-- Delete rows that match specific conditions.
-- Create, read, edit, delete, or list files associated with the SQL Server operation (e.g., scripts, config files).
-- Integrate with on-prem or cloud SQL Server using SSL encryption and self-signed certificate trust.
+- Run ad-hoc T-SQL `SELECT` queries against a SQL Server database and pipe results into downstream blocks.
+- Insert new records into a table from data produced earlier in the workflow (single row or batch).
+- Update existing rows using JSON-defined field values and WHERE conditions.
+- Delete rows that match specific conditions without writing raw SQL.
+- Create, read, edit, delete, or list files associated with the SQL Server host (e.g., scripts, config files).
+- Connect to on-premises or cloud SQL Server over SSL/TLS, including environments that use self-signed certificates.
 
 ## Configuration
 
-### Connection Settings
+### Server
 
-Set the **Server** (hostname or IP), **Port** (default `1433`), **Database** name, **Username**, and **Password**. The **Enable SSL Encryption** and **Trust Server Certificate** switches control TLS behavior for the connection.
+**Required.** The SQL Server hostname or IP address (e.g. `localhost` or `server.domain.com`). Accepts `{{...}}` references.
+
+### Port
+
+SQL Server port. Defaults to `1433`. Override only when the instance listens on a non-standard port.
+
+### Database
+
+**Required.** The target database name (e.g. `MyDatabase`).
+
+### Username
+
+**Required.** The SQL Server login name (e.g. `sa` or `domain\user`).
+
+### Password
+
+**Required.** The database password. Store secrets as environment variables and reference them with `{{ENV_VAR_NAME}}` (e.g. `{{MSSQL_PASSWORD}}`).
+
+### Enable SSL Encryption
+
+Toggle (switch). Enables SSL/TLS encryption for the connection. Defaults to `true` in the underlying tool.
+
+### Trust Server Certificate
+
+Toggle (switch). When enabled, the driver accepts self-signed certificates without validation. Defaults to `false`.
 
 ### Action
 
-A dropdown that selects the operation: Execute Query, Insert Data, Update Data, Delete Data, Create File, Get File, Edit File, Delete File, or List Files. Defaults to Execute Query.
+**Required.** Dropdown that selects the operation to perform. Defaults to `execute`. Options:
+
+| Label | ID | Required additional fields |
+|---|---|---|
+| Execute Query | `execute` | `query` |
+| Insert Data | `insert` | `table`, `data` |
+| Update Data | `update` | `table`, `data`, `conditions` |
+| Delete Data | `delete` | `table`, `conditions` |
+| Create File | `create_file` | `filePath`, `content` |
+| Get File | `get_file` | `filePath` |
+| Edit File | `edit_file` | `filePath`, `content` |
+| Delete File | `delete_file` | `filePath` |
+| List Files | `list_files` | `folderPath` (optional) |
 
 ### SQL Query
 
-For the `execute` action, the T-SQL query to run. Supports AI-assisted generation and references to prior block outputs and variables.
+Visible when `action = execute`. The T-SQL statement to run (e.g. `SELECT * FROM Users WHERE active = 1`). Supports AI-assisted generation via the wand icon. Reference prior block outputs with `{{blockName.output.fieldName}}` and workflow variables with `{{variable.variableName}}`.
 
-### Table & Data
+### Table Name
 
-For `insert`, `update`, and `delete` actions, **Table Name** identifies the target table. **Data** holds the JSON payload for insert/update operations.
+Visible when `action` is `insert`, `update`, or `delete`. **Required** for those actions. The name of the target table (e.g. `Users`, `Products`).
 
-### Conditions
+### Data
 
-For `update` and `delete` actions, a JSON object defining the WHERE clause conditions.
+Visible when `action` is `insert` or `update`. **Required** for those actions. A JSON object (or array of objects) containing the field values to write. Example: `{"name": "John Doe", "email": "john@example.com", "active": true}`. Supports AI-assisted generation.
 
-### File Fields
+### Conditions (WHERE clause)
 
-For file actions, **File Path** points to the target file, **File Content** supplies content for create/edit, and **Folder Path** scopes the list-files operation.
+Visible when `action` is `update` or `delete`. **Required** for those actions. A JSON object defining the WHERE conditions (e.g. `{"id": 123}` or `{"status": "active"}`).
+
+### File Path
+
+Visible when `action` is `create_file`, `get_file`, `edit_file`, or `delete_file`. **Required** for those actions. Path to the target file (e.g. `scripts/backup.sql`).
+
+### File Content
+
+Visible when `action` is `create_file` or `edit_file`. **Required** for those actions. The content to write into the file.
+
+### Folder Path
+
+Visible when `action = list_files`. Optional. The folder to list files from (e.g. `scripts/`). Leave empty to list from the root.
 
 ## Inputs & Outputs
 
-- **Inputs**: `server` (string), `port` (number), `database` (string), `username` (string), `password` (string), `encrypt` (boolean), `trustServerCertificate` (boolean), `action` (string), `query` (string), `table` (string), `data` (json), `conditions` (json), `filePath` (string), `content` (string), `folderPath` (string)
-- **Outputs**: `data` (json), `affectedRows` (number), `metadata` (json), `fileName` (string), `filePath` (string), `content` (string), `files` (json), `error` (string), `errorDetails` (json)
+**Inputs:**
+
+- `server` (string) — SQL Server hostname or IP
+- `port` (number) — SQL Server port
+- `database` (string) — Database name
+- `username` (string) — Database username
+- `password` (string) — Database password
+- `encrypt` (boolean) — Enable SSL encryption
+- `trustServerCertificate` (boolean) — Trust server certificate
+- `action` (string) — Operation to perform
+- `query` (string) — SQL query to execute
+- `table` (string) — Table name for operations
+- `data` (json) — Data for insert/update operations
+- `conditions` (json) — WHERE conditions for update/delete
+- `filePath` (string) — File path for file operations
+- `content` (string) — File content
+- `folderPath` (string) — Folder path for listing files
+
+**Outputs:**
+
+- `data` (json) — Query results for SELECT operations
+- `affectedRows` (number) — Number of rows affected by INSERT/UPDATE/DELETE operations
+- `metadata` (json) — Query execution metadata including timing and row counts
+- `fileName` (string) — Name of the file for file operations
+- `filePath` (string) — Full path of the file
+- `content` (string) — File content for get/edit operations
+- `files` (json) — List of files and folders for list operations
+- `error` (string) — Error message if operation fails
+- `errorDetails` (json) — Detailed error information including type and execution time
+
+## Tools
+
+**Microsoft SQL Server** (`mssql_database`) — Executes SQL queries and manages files in a Microsoft SQL Server database. Dispatches to the `/api/tools/mssql` endpoint using connection parameters, the selected `action`, and any action-specific inputs. Handles all nine operations: `execute`, `insert`, `update`, `delete`, `create_file`, `get_file`, `edit_file`, `delete_file`, and `list_files`. Uses connection pooling (up to 10 connections per host) with parameterized queries to prevent SQL injection.
 
 ## YAML Example
 
@@ -67,7 +146,7 @@ mssql_1:
     port: 1433
     database: "MyDatabase"
     username: "sa"
-    password: "{{ENV_MSSQL_PASSWORD}}"
+    password: "{{MSSQL_PASSWORD}}"
     encrypt: true
     trustServerCertificate: false
     action: "execute"

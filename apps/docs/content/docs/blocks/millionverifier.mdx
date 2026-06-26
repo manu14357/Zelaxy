@@ -1,0 +1,102 @@
+---
+title: MillionVerifier Block
+description: Verify email deliverability with MillionVerifier
+icon: Box
+---
+
+# MillionVerifier Block
+
+Verify the deliverability of an email address and check remaining account credits through the MillionVerifier API. Authenticate with a MillionVerifier API key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `millionverifier` |
+| **Category** | tools |
+| **Color** | `#0EA5E9` |
+
+## When to Use
+
+- Validate that an email address is deliverable before sending campaigns or transactional mail.
+- Filter out invalid, disposable, or risky email addresses from a list before enrichment or outreach steps.
+- Check how many MillionVerifier verification credits remain on an account before kicking off a bulk verification workflow.
+- Gate downstream workflow steps on whether an email passed or failed verification.
+- Automate periodic credit-balance checks so a workflow can alert when credits are running low.
+- Combine with lead-capture or CRM blocks to verify new contacts at the moment they are created.
+
+## Configuration
+
+### Operation
+
+Selects which MillionVerifier API action to run. Required.
+
+| Label | ID |
+|-------|----|
+| Verify email | `millionverifier_verify_email` |
+| Get credits | `millionverifier_get_credits` |
+
+Default: `millionverifier_verify_email`.
+
+### Email
+
+- **Type**: short-input
+- **Placeholder**: `john@example.com`
+- **Condition**: visible only when **Operation** is `millionverifier_verify_email`
+
+The email address to verify. Accepts a literal value or a reference such as `{{previousBlock.email}}`.
+
+### API Key
+
+- **Type**: short-input (password)
+- **Required**: yes
+
+Your MillionVerifier API key. Store it as an environment secret and reference it with `{{MILLION_VERIFIER_API_KEY}}` rather than pasting the raw value.
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (`millionverifier_verify_email` or `millionverifier_get_credits`)
+- `apiKey` (string) — MillionVerifier API key
+- `email` (string) — Email address to verify (required for `millionverifier_verify_email` only)
+
+**Outputs**
+
+- `data` (json) — Full result object returned by MillionVerifier. For email verification this includes fields such as `email`, `result`, `subresult`, `free`, `role`, `disposable`, and `did_you_mean`. For get-credits it contains the raw credits payload.
+- `metadata` (json) — Condensed identifiers extracted from the response.
+  - For `millionverifier_verify_email`: `{ email: string, result: string }`
+  - For `millionverifier_get_credits`: `{ credits: number }`
+
+## Tools
+
+**MillionVerifier Verify Email** (`millionverifier_verify_email`) — Sends a GET request to `https://api.millionverifier.com/api/v3/` with the `api` and `email` query parameters. Returns the full verification result object and a metadata summary containing the email address and the verification result string.
+
+**MillionVerifier Get Credits** (`millionverifier_get_credits`) — Sends a GET request to `https://api.millionverifier.com/api/v3/credits` with the `api` query parameter. Returns the raw credits payload and a metadata object with the numeric `credits` value representing remaining verification credits.
+
+## YAML Example
+
+```yaml
+# Example 1 — verify a single email address
+millionverifier_1:
+  type: millionverifier
+  name: "Verify Email"
+  inputs:
+    operation: "millionverifier_verify_email"
+    apiKey: "{{MILLION_VERIFIER_API_KEY}}"
+    email: "{{lead_capture_1.email}}"
+  connections:
+    outgoing:
+      - target: condition_1
+
+# Example 2 — check remaining credits
+millionverifier_2:
+  type: millionverifier
+  name: "Check Credits"
+  inputs:
+    operation: "millionverifier_get_credits"
+    apiKey: "{{MILLION_VERIFIER_API_KEY}}"
+  connections:
+    outgoing:
+      - target: slack_1
+```

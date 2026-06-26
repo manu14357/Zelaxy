@@ -1,0 +1,67 @@
+---
+title: Skill Tools
+description: Load the full instructions for an Agent Skill on demand (progressive disclosure) inside an agent run.
+icon: Box
+---
+
+# Skill Tools
+
+The `skill` provider exposes a single internal tool, `load_skill`, that lets an agent pull in the full instructions for one of its attached Agent Skills at runtime. It implements progressive disclosure: the agent first sees only a short `<available_skills>` list (name + description), then calls `load_skill` to fetch the complete content for a skill that is relevant to the current task.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `skill` |
+| **Category** | `tools` |
+| **Auth** | none (internal Zelaxy endpoint — uses the run's session; `workspaceId` is injected automatically) |
+
+This is not a standalone block. The tool is added to an agent's tool list automatically when one or more skills are attached to an [Agent](/docs/blocks/agent) block via its **Skills** sub-block (a `skill-selector`). You do not place a `skill` block on the canvas yourself.
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Load skill | `load_skill` | Load the full instructions for one of the available skills by its name. Call when a skill is relevant to the current task. |
+
+## Configuration
+
+### `load_skill`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `skill_name` | string | Yes | The name of the skill to load, taken from the available skills list (`user-only` visibility). |
+| `workspaceId` | string | No | Workspace context, injected automatically by the executor (`hidden` visibility — never set this by hand). |
+
+No API key, token, or password is required. The tool calls the internal Zelaxy API (`POST /api/skills/load`) with only a `Content-Type: application/json` header; authorization comes from the workflow run context, and `workspaceId` is supplied for you.
+
+## Outputs
+
+### `load_skill`
+
+- `name` (string) — Skill name.
+- `description` (string) — Skill description.
+- `content` (string) — Full skill instructions for the agent to follow.
+
+## YAML Example
+
+```yaml
+skill_1:
+  type: skill
+  name: "Skill"
+  inputs:
+    operation: "load_skill"
+    skill_name: "sql-expert"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+> In practice you do not author this block manually. Attach skills to an Agent block's **Skills** field and the agent decides when to call `load_skill` itself; the example above just shows the tool's input/output shape. There is no `apiKey` input — this tool authenticates through the run context, not an environment variable.
+
+## Tips
+
+- There is nothing to configure for auth: `load_skill` hits an internal Zelaxy route, so there is no API key or environment variable to set. The `workspaceId` is injected automatically — leave it unset.
+- Attach skills via the Agent block's **Skills** sub-block (the `skill-selector`). Only skills with a non-empty name are passed through to the agent; the agent then sees them in its `<available_skills>` list and calls `load_skill` by `skill_name` when relevant.
+- The returned `content` field holds the full skill instructions. Downstream you can reference the loaded values with `{{skill_1.content}}`, `{{skill_1.name}}`, and `{{skill_1.description}}`, but typically the agent consumes the content internally during the same run rather than passing it on.
+- If the named skill cannot be found or loading fails, the tool throws (the underlying `/api/skills/load` response was not successful), so make sure `skill_name` exactly matches a name from the available skills list.

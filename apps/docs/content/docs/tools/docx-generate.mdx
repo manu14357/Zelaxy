@@ -1,0 +1,54 @@
+---
+title: DOCX Generate
+description: Generate Word (.docx) documents server-side from title and body text, returned as base64
+icon: FileText
+---
+
+# DOCX Generate
+
+Generate a Word (.docx) document directly inside your workflow — no external API required. Provide a title and body text; the tool returns the file as a base64 string that you can pass downstream to a file-save step, an email attachment, or an HTTP response.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `docx_generate` |
+| **Category** | Tool — Document Generation |
+| **Auth** | None (runs server-side, no API key required) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Generate DOCX** | `docx_generate` | Converts a title and newline-separated body text into a Word document and returns it as a base64-encoded string |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `title` | `string` | No | Heading placed at the top of the document (Heading 1 style) and used as the filename. Defaults to `document` if omitted. |
+| `content` | `string` | Yes | Body text for the document. Each newline-separated line becomes a separate paragraph. |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `base64` | `string` | Base64-encoded contents of the generated `.docx` file |
+| `filename` | `string` | Suggested filename for the file (e.g. `My Report.docx`). Derived from `title`, or `document.docx` when no title is set. |
+| `mimeType` | `string` | MIME type of the file: `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
+
+## Example
+
+```
+[Starter] → [Document Generator: DOCX (Word)] → [Agent: email the report]
+```
+
+Set the **Title** to `{{starter.reportTitle}}` and the **Content** to `{{agent.summary}}` (output from an upstream Agent block that produced the text). The DOCX Generate block returns `{{docxGenerate.base64}}` — pass this to a Resend or Gmail block as an attachment payload together with `{{docxGenerate.filename}}` and `{{docxGenerate.mimeType}}` to deliver the file by email.
+
+## Tips
+
+- **No API key needed** — this tool runs entirely on the Zelaxy server using the `docx` library; there are no usage limits or credentials to manage.
+- **Title doubles as filename** — whatever you put in the `title` field becomes the suggested download name. Use a descriptive value like `{{starter.clientName}} Proposal` to produce clean filenames dynamically.
+- **One line = one paragraph** — the `content` field splits on newlines. To create multiple distinct paragraphs, make sure your upstream text already has newlines between sections (e.g. Agent output with `\n\n` between paragraphs).
+- **Attaching the file** — most email and storage blocks accept base64 file payloads. Pass `{{docxGenerate.base64}}` as the attachment content, `{{docxGenerate.filename}}` as the filename, and `{{docxGenerate.mimeType}}` as the content type.
+- **Part of Document Generator** — in the visual editor, `docx_generate` is the **DOCX (Word)** option inside the **Document Generator** block. The same block also offers **PDF** (`pdf_generate`) and **PowerPoint** (`pptx_generate`) formats if you need a different output type.

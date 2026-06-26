@@ -1,0 +1,124 @@
+---
+title: Webflow Block
+description: Manage sites, collections, and CMS items in Webflow
+icon: Box
+---
+
+# Webflow Block
+
+List sites and collections, and list and create CMS collection items through the Webflow API. Authenticate with a Webflow API token to connect your Zelaxy workflow directly to your Webflow CMS.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `webflow` |
+| **Category** | `tools` |
+| **Color** | `#4353FF` |
+
+## When to Use
+
+- Retrieve a list of all Webflow sites accessible to your API token to discover available projects.
+- Enumerate the CMS collections in a specific site before reading or writing content.
+- Fetch all items in a CMS collection to power downstream filtering, enrichment, or export steps.
+- Automatically publish new entries to a Webflow CMS collection from any upstream block (form submissions, database records, agent output, etc.).
+- Audit or mirror Webflow content into another system by listing sites → collections → items in a chained workflow.
+
+## Configuration
+
+### Operation
+
+**Required.** Selects which Webflow API action the block executes. Every other field's visibility depends on the chosen operation.
+
+| Label | ID |
+|-------|----|
+| List sites | `webflow_list_sites` |
+| List collections | `webflow_list_collections` |
+| List collection items | `webflow_list_collection_items` |
+| Create collection item | `webflow_create_collection_item` |
+
+Default: `webflow_list_sites`.
+
+### Site ID
+
+*Shown only when Operation is **List collections**.*
+
+The unique identifier of the Webflow site whose collections you want to retrieve.
+
+- Type: short text input
+- Placeholder: `580e63e98c9a982ac9b8b741`
+- Obtain the site ID from the Webflow Designer URL or from the output of a prior **List sites** step (`{{webflow_1.data[0].id}}`).
+
+### Collection ID
+
+*Shown only when Operation is **List collection items** or **Create collection item**.*
+
+The unique identifier of the CMS collection to read from or write to.
+
+- Type: short text input
+- Placeholder: `580e63fc8c9a982ac9b8b745`
+- Obtain the collection ID from the output of a **List collections** step (`{{webflow_1.data[0].id}}`).
+
+### Field Data
+
+*Shown only when Operation is **Create collection item**.*
+
+A JSON object whose keys match the field slugs defined in the target CMS collection. Must include at minimum `name` and `slug`.
+
+- Type: long text / JSON input
+- Placeholder: `{ "name": "My Item", "slug": "my-item" }`
+- Keys must match the collection's field slugs exactly (case-sensitive).
+
+### API Token
+
+**Required for all operations.**
+
+Your Webflow API personal access token. Stored as a password field (value is masked in the UI).
+
+- Type: short text input (password)
+- Placeholder: `Bearer token`
+- Recommended: store the token in a Zelaxy secret and reference it as `{{WEBFLOW_API_TOKEN}}`.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform; one of `webflow_list_sites`, `webflow_list_collections`, `webflow_list_collection_items`, `webflow_create_collection_item`.
+- `apiKey` (string) — Webflow API token used to authenticate every request.
+- `site_id` (string) — Webflow site ID; required when operation is `webflow_list_collections`.
+- `collection_id` (string) — Webflow CMS collection ID; required when operation is `webflow_list_collection_items` or `webflow_create_collection_item`.
+- `fieldData` (json) — Field data object for the new item; required when operation is `webflow_create_collection_item`.
+
+**Outputs:**
+
+- `data` (json) — Result object or array from Webflow. For list operations this is an array of site/collection/item objects; for `webflow_create_collection_item` this is the newly created item object.
+- `metadata` (json) — Response metadata. For list operations contains `count` (number of items returned); for `webflow_create_collection_item` contains `id` (the new item's ID string).
+
+## Tools
+
+**Webflow List Sites** (`webflow_list_sites`) — Issues a `GET /v2/sites` request and returns an array of all Webflow site objects accessible to the authenticated API token. Only requires `apiKey`.
+
+**Webflow List Collections** (`webflow_list_collections`) — Issues a `GET /v2/sites/{site_id}/collections` request and returns an array of all CMS collections for the specified site. Requires `apiKey` and `site_id`.
+
+**Webflow List Collection Items** (`webflow_list_collection_items`) — Issues a `GET /v2/collections/{collection_id}/items` request and returns an array of all items in the specified CMS collection. Requires `apiKey` and `collection_id`.
+
+**Webflow Create Collection Item** (`webflow_create_collection_item`) — Issues a `POST /v2/collections/{collection_id}/items` request with a `fieldData` body and returns the newly created item object along with its ID. Requires `apiKey`, `collection_id`, and `fieldData`.
+
+## YAML Example
+
+```yaml
+webflow_1:
+  type: webflow
+  name: "Create Blog Post in Webflow"
+  inputs:
+    operation: "webflow_create_collection_item"
+    apiKey: "{{WEBFLOW_API_TOKEN}}"
+    collection_id: "580e63fc8c9a982ac9b8b745"
+    fieldData:
+      name: "{{agent_1.output}}"
+      slug: "new-post"
+      body: "{{agent_1.output}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

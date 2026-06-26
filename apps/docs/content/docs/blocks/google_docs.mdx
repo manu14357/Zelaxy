@@ -52,8 +52,14 @@ The `content` long-input holds the text to write (required for write) or the opt
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `documentId` (string), `manualDocumentId` (string), `title` (string), `folderSelector` (string), `folderId` (string), `content` (string)
-- **Outputs**: `content` (string), `metadata` (json), `updatedContent` (boolean)
+- **Inputs**: `operation` (string) — Operation to perform, `credential` (string) — Google Docs access token, `documentId` (string) — Document identifier (basic mode), `manualDocumentId` (string) — Manual document identifier (advanced mode), `title` (string) — Document title (create only), `folderSelector` (string) — Selected folder (basic mode, create only), `folderId` (string) — Folder identifier (advanced mode, create only), `content` (string) — Document content (write/create)
+- **Outputs**: `content` (string) — Document content (read operation), `metadata` (json) — Document metadata including documentId, title, mimeType, and URL, `updatedContent` (boolean) — Content update status (write operation)
+
+## Tools
+
+- **Read Google Docs Document** (`google_docs_read`) — Fetches the full text and metadata of an existing Google Docs document via the Docs API (`GET /v1/documents/{documentId}`). Requires `documentId` and an OAuth access token.
+- **Write to Google Docs Document** (`google_docs_write`) — Appends text to an existing document using the Docs API batchUpdate endpoint (`POST /v1/documents/{documentId}:batchUpdate`). Inserts content at the end of the document. Requires `documentId`, `content`, and an OAuth access token.
+- **Create Google Docs Document** (`google_docs_create`) — Creates a new Google Docs document via the Drive API (`POST /drive/v3/files`) and, if `content` is provided, immediately writes it using `google_docs_write`. Requires `title`; optionally accepts `folderId` or `folderSelector` to place the document in a specific Drive folder.
 
 ## YAML Example
 

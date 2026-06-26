@@ -23,43 +23,77 @@ The Tavily block taps into Tavily's AI-powered search engine to find relevant in
 - Extract the clean, readable content from a specific URL for summarization or analysis.
 - Pull source titles and URLs to cite or link back to in generated output.
 - Choose between basic and advanced extraction depth depending on how thorough the content parse needs to be.
+- Process multiple URLs in a single Extract Content call and receive structured error reports for any that fail.
 
 ## Configuration
 
 ### Operation
-Dropdown selecting the action: `Search` (`tavily_search`) or `Extract Content` (`tavily_extract`). Defaults to Search.
+
+Dropdown selecting the action to perform. Defaults to Search.
+
+| Label | id |
+|-------|----|
+| Search | `tavily_search` |
+| Extract Content | `tavily_extract` |
 
 ### Search Query
-Long input for the search terms. Required when the operation is Search.
+
+Long text input for the search terms sent to Tavily. Required when the operation is `tavily_search`. Supports `{{blockName.field}}` references from earlier blocks.
 
 ### Max Results
-Short input limiting the number of search results returned (Search only).
+
+Short input limiting the number of search results returned (1–20). Applies to `tavily_search` only. Optional; Tavily defaults to 5 when omitted.
 
 ### URL
-Long input for the URL to extract content from. Required when the operation is Extract Content.
+
+Long text input for the URL (or URLs) to extract content from. Required when the operation is `tavily_extract`. A single URL string is accepted; Tavily's API also accepts arrays. Supports `{{blockName.field}}` references.
 
 ### Extract Depth
-Dropdown choosing `basic` or `advanced` extraction depth (Extract Content only). Defaults to basic.
+
+Dropdown controlling how thoroughly Tavily parses the page. Applies to `tavily_extract` only. Defaults to basic.
+
+| Label | id | Credit cost |
+|-------|----|-------------|
+| basic | `basic` | 1 credit per 5 URLs |
+| advanced | `advanced` | 2 credits per 5 URLs |
 
 ### API Key
-Required, password-protected field holding your Tavily API key.
+
+Required, password-protected field for your Tavily API key. Use `{{TAVILY_API_KEY}}` to reference an environment secret.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `query` (string), `maxResults` (number), `urls` (string), `extract_depth` (string)
-- **Outputs**: `results` (json), `answer` (string), `query` (string), `content` (string), `title` (string), `url` (string)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`tavily_search` or `tavily_extract`)
+  - `apiKey` (string) — Tavily API key
+  - `query` (string) — Search query terms (Search only)
+  - `maxResults` (number) — Maximum number of search results (Search only)
+  - `urls` (string) — URL to extract content from (Extract Content only)
+  - `extract_depth` (string) — Extraction depth level: `basic` or `advanced` (Extract Content only)
+
+- **Outputs**:
+  - `results` (json) — Search results data (Search) or successfully extracted content per URL (Extract)
+  - `answer` (string) — Synthesized search answer returned by Tavily (Search only)
+  - `query` (string) — The query string that was executed (Search only)
+  - `content` (string) — Extracted page content (Extract only)
+  - `title` (string) — Page title of the extracted URL (Extract only)
+  - `url` (string) — Source URL (Extract only)
+
+## Tools
+
+**Tavily Search** (`tavily_search`) — Performs an AI-powered web search via `POST https://api.tavily.com/search`. Returns an array of results (each with `title`, `url`, `snippet`, and optional `raw_content`), the echoed `query`, and `response_time`. Key params: `query` (required), `max_results` (optional, 1–20), `apiKey` (required).
+
+**Tavily Extract** (`tavily_extract`) — Extracts raw text content from one or more web pages via `POST https://api.tavily.com/extract`. Returns a `results` array (each with `url` and `raw_content`), an optional `failed_results` array (each with `url` and `error`), and `response_time`. Key params: `urls` (required — string or array of strings), `extract_depth` (optional, `basic` or `advanced`), `apiKey` (required).
 
 ## YAML Example
 
-Use the block's REAL `type` and REAL sub-block ids. This is the workflow YAML format the agent builder uses:
-
 ```yaml
-tavily-1:
+tavily_1:
   type: tavily
   name: "Tavily"
   inputs:
     operation: "tavily_search"
-    query: {{start.input}}
+    query: "{{trigger.userQuery}}"
     maxResults: 5
     apiKey: "{{TAVILY_API_KEY}}"
   connections:

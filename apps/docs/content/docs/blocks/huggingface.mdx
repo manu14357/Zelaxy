@@ -69,6 +69,10 @@ Required Hugging Face API token (stored as a password field).
   - `model` (string) — Model used
   - `usage` (json) — Token usage stats
 
+## Tools
+
+**Hugging Face Chat** (`huggingface_chat`) — Sends a chat-completion request to the Hugging Face Inference Router. Builds a messages array from the optional system prompt and required user message, then posts to the provider-specific endpoint under `https://router.huggingface.co/<provider>/...`. Returns the generated text, the model name that was used, and prompt/completion/total token counts.
+
 ## YAML Example
 
 ```yaml
@@ -77,7 +81,7 @@ huggingface_1:
   name: "Hugging Face"
   inputs:
     systemPrompt: "You are a helpful assistant."
-    content: {{start.input}}
+    content: "{{start.input}}"
     provider: "novita"
     model: "deepseek/deepseek-v3-0324"
     temperature: 0.7

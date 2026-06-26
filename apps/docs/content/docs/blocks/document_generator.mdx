@@ -1,0 +1,139 @@
+---
+title: Document Generator Block
+description: Generate PDF, DOCX, or PPTX files and return them as base64
+icon: FileText
+---
+
+# Document Generator Block
+
+Generate documents server-side and return the file as a base64 string. Choose PDF, Word (DOCX), or PowerPoint (PPTX) — provide a title and body content, or for presentations a list of slides (one per line) or a JSON array of `{title, body}` objects.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `document_generator` |
+| **Category** | `tools` |
+| **Color** | `#E11D48` |
+
+## When to Use
+
+- Generate a formatted PDF report from AI-produced text and pass it downstream as a base64 payload
+- Produce a Word document (DOCX) from template-style content for users to download
+- Build a PowerPoint presentation programmatically from a list of slide titles or a structured JSON array
+- Attach a generated file to an email or upload it to cloud storage in the same workflow
+- Automate recurring document creation (weekly summaries, invoices, briefings) without a human in the loop
+- Convert plain-text output from an Agent block into a shareable file format in one step
+
+## Configuration
+
+### Format
+
+**Required.** Selects which document format to produce. Controls which tool is invoked and which content fields are shown.
+
+| Label | Option ID |
+|-------|-----------|
+| PDF | `pdf_generate` |
+| DOCX (Word) | `docx_generate` |
+| PPTX (PowerPoint) | `pptx_generate` |
+
+Default: `pdf_generate`.
+
+### Title
+
+**Optional.** A short text field for the document or presentation title.
+
+- For PDF and DOCX: the title is rendered as a bold heading at the top of the first page.
+- For PPTX: the title is used as the filename; it does not automatically create a title slide unless the `slides` input is empty.
+- If omitted, the filename falls back to `document.pdf`, `document.docx`, or `presentation.pptx`.
+
+Accepts `{{block.field}}` references to pull a title from a previous block's output.
+
+### Content
+
+**Shown when Format is `pdf_generate` or `docx_generate`.** A multi-line text area for the document body.
+
+Each newline-separated line becomes a separate paragraph. Long lines are word-wrapped automatically. Accepts `{{block.field}}` references so you can pipe Agent or Function block output directly into this field.
+
+### Slides
+
+**Shown when Format is `pptx_generate`.** A multi-line text area describing the slides.
+
+Accepts two formats:
+
+1. **Plain text — one slide per line.** Each non-empty line becomes a slide whose title is that line's text. No body text is added.
+
+   ```
+   Introduction
+   Problem Statement
+   Our Solution
+   Key Results
+   Next Steps
+   ```
+
+2. **JSON array of objects.** Each object may have a `title` and/or `body` key. This format lets you set both the slide heading and its body text.
+
+   ```json
+   [
+     {"title": "Introduction", "body": "Welcome to our quarterly review."},
+     {"title": "Key Results", "body": "Revenue up 20%, churn down 5%."}
+   ]
+   ```
+
+If `slides` is empty or resolves to an empty string, one placeholder slide is created using the Title value (or "Presentation" if that is also absent).
+
+## Inputs & Outputs
+
+### Inputs
+
+- `operation` (string) — Document format to generate. One of `pdf_generate`, `docx_generate`, or `pptx_generate`.
+- `title` (string) — Document or presentation title. Used as the heading and the base filename.
+- `content` (string) — Body content (newline-separated paragraphs). Used by `pdf_generate` and `docx_generate`.
+- `slides` (string) — Slides: one per line or a JSON array of `{title, body}`. Used by `pptx_generate`.
+
+### Outputs
+
+- `base64` (string) — Base64-encoded file contents. Pass this to an email attachment field, a storage-upload block, or decode it in a Function block.
+- `filename` (string) — Suggested filename derived from the title (e.g. `My Report.pdf`).
+- `mimeType` (string) — MIME type of the generated file. Values by format:
+  - PDF: `application/pdf`
+  - DOCX: `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+  - PPTX: `application/vnd.openxmlformats-officedocument.presentationml.presentation`
+
+## Tools
+
+**Generate PDF** (`pdf_generate`) — Builds an A4 PDF using `pdf-lib`. Accepts `title` (optional) and `content` (required). Long lines and paragraphs are word-wrapped to fit within 50-point margins. Multi-page documents are handled automatically. Runs server-side only via `directExecution`.
+
+**Generate DOCX** (`docx_generate`) — Builds a Word-compatible `.docx` file using the `docx` library. Renders `title` as a `HEADING_1` paragraph followed by one paragraph per content line. Runs server-side only via `directExecution`.
+
+**Generate PPTX** (`pptx_generate`) — Builds a PowerPoint presentation using `pptxgenjs`. Parses the `slides` input as either a JSON array of `{title, body}` objects or plain newline-delimited text. Each item becomes one slide. If no slides are provided, a single title slide is emitted. Runs server-side only via `directExecution`.
+
+## YAML Example
+
+```yaml
+# Example: generate a PDF report from an Agent block's output
+document_generator_1:
+  type: document_generator
+  name: "Generate PDF Report"
+  inputs:
+    operation: "pdf_generate"
+    title: "{{agent_1.content}}"
+    content: "{{agent_1.content}}"
+  connections:
+    outgoing:
+      - target: email_block_1
+```
+
+```yaml
+# Example: generate a PowerPoint from structured slide data
+document_generator_2:
+  type: document_generator
+  name: "Build Presentation"
+  inputs:
+    operation: "pptx_generate"
+    title: "Q3 Review"
+    slides: "{{function_1.result}}"
+  connections:
+    outgoing:
+      - target: google_drive_1
+```

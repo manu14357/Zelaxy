@@ -1,65 +1,117 @@
 ---
 title: Response Block
-description: Return output to the user or calling system
-icon: MessageSquare
+description: Send structured API response
+icon: Box
 ---
 
 # Response Block
 
-The Response block is the final output point of a workflow. It returns results to the user interface, API caller, or parent workflow. It supports text, markdown, structured data, and file outputs.
+Transform your workflow's variables into a structured HTTP response for API calls. Define response data, status code, and headers. This is the final block in a workflow and cannot have further connections.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `response` |
-| **Category** | Core Block |
-| **Color** | `#2563EB` (Blue) |
+| **Category** | `blocks` |
+| **Color** | `#EA580C` |
 
 ## When to Use
 
-- Return a final answer to the user in the chat interface
-- Send structured data back to an API caller
-- Output files, images, or formatted content
-- End a workflow with a summary
+- End an API-triggered workflow by returning a structured JSON payload to the caller
+- Set a custom HTTP status code (e.g. `201 Created`, `400 Bad Request`) on the response
+- Attach extra HTTP headers (e.g. `Content-Type`, `X-Request-Id`) to the response
+- Build a response body interactively using the visual Builder, referencing upstream block outputs via `{{blockName.field}}`
+- Compose a raw JSON response body in the Editor when you need full control over the payload structure
+- Finalize any workflow that is invoked as a webhook or via the Zelaxy public API
 
 ## Configuration
 
-| Setting | Type | Description |
-|---------|------|-------------|
-| Response Content | Long text | The content to return (supports `{{variables}}` and markdown) |
-| Response Type | Dropdown | `text`, `markdown`, `json`, `file` |
+### Response Data Mode (`dataMode`)
 
-## Outputs
+Controls how you define the response body. This is a required dropdown with two options:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `content` | `string` | The final response content |
-
-## Example: Formatted Summary Response
-
-**Workflow:**
-```
-[Starter] → [Agent: Analyze] → [Response]
-```
-
-**Response Content:**
-```markdown
-## Analysis Results
-
-{{agent.content}}
+| Label | ID | Description |
+|-------|----|-------------|
+| Builder | `structured` | Visual field builder — add named fields and map them to workflow variables using `{{variable.name}}` syntax |
+| Editor | `json` | Raw JSON code editor — write the full JSON payload directly |
 
 ---
-*Processed at {{function.result.timestamp}}*
+
+### Response Structure (`builderData`)
+
+**Visible when `dataMode` is `structured`.**
+
+A visual response-format builder where you define named output fields and their values. Reference upstream block outputs using `{{blockName.field}}` and workflow variables using `{{variable.name}}`.
+
+---
+
+### Response Data (`data`)
+
+**Visible when `dataMode` is `json`.**
+
+A JSON code editor for the full response body. Use `{{blockName.field}}` to inject values from upstream blocks and `{{ENV_VAR_NAME}}` to reference environment variables.
+
+Example placeholder:
+```json
+{
+  "message": "Hello world",
+  "userId": "{{variable.userId}}"
+}
 ```
 
-**How it works:**
-1. Agent analyzes the user's input
-2. Response block formats the output with markdown headers and timestamps
-3. User sees a nicely formatted summary in the chat
+An AI wand is available to generate or revise the JSON body from a plain-language prompt.
 
-## Tips
+---
 
-- **Use markdown** for rich formatting — headers, bold, lists, code blocks all render in the chat
-- **Include multiple block outputs** — combine results from different branches: `Summary: {{agent1.content}}\n\nDetails: {{agent2.content}}`
-- **JSON response type** is useful when workflows are called via API — returns parseable data
+### Status Code (`status`)
+
+Optional. HTTP status code to return with the response. Defaults to `200` if left blank. Accepts any valid HTTP integer code (e.g. `200`, `201`, `400`, `404`, `500`).
+
+---
+
+### Response Headers (`headers`)
+
+Optional. A key-value table of additional HTTP headers to include in the response (e.g. `Content-Type: application/json`, `X-Custom-Header: value`).
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `dataMode` (string) — Response data definition mode (`structured` or `json`)
+- `builderData` (json) — Structured response data built with the visual builder
+- `data` (json) — JSON response body written in the raw editor
+- `status` (number) — HTTP status code
+- `headers` (json) — Response headers as key-value pairs
+
+**Outputs:**
+
+- `data` (json) — Response data that was sent as the body
+- `status` (number) — HTTP status code that was returned
+- `headers` (json) — Response headers that were sent
+
+## Tools
+
+This block does not call any external tools. It is a terminal block that packages the workflow's results into an HTTP response and returns them directly to the caller.
+
+## YAML Example
+
+```yaml
+response_1:
+  type: response
+  name: "Response"
+  inputs:
+    dataMode: "json"
+    data: |
+      {
+        "userId": "{{trigger.params.userId}}",
+        "result": "{{agent1.content}}",
+        "score": {{evaluator1.result.score}}
+      }
+    status: 200
+    headers:
+      - key: "Content-Type"
+        value: "application/json"
+  connections:
+    outgoing: []
+```

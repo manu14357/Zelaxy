@@ -1,0 +1,124 @@
+---
+title: AWS CodePipeline Block
+description: List pipelines, get pipeline structure, and inspect pipeline state
+icon: Box
+---
+
+# AWS CodePipeline Block
+
+Interact with AWS CodePipeline to list pipelines, retrieve a pipeline's full structure, and inspect a pipeline's current execution state. Authentication uses AWS access key credentials signed with SigV4. Reach for this block whenever a workflow needs to discover, inspect, or monitor CI/CD delivery pipelines on AWS.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `codepipeline` |
+| **Category** | `tools` |
+| **Color** | `#4D27A8` |
+
+## When to Use
+
+- Discover all CodePipeline pipelines in an AWS account without leaving a Zelaxy workflow.
+- Fetch the full stage/action structure of a named pipeline to understand its configuration.
+- Check the real-time execution state (stage statuses, action results) of a pipeline before or after a deployment.
+- Drive conditional logic downstream by branching on pipeline state (e.g. only continue if the last run succeeded).
+- Audit multiple pipelines in sequence using a Loop block to iterate over a list returned by **List pipelines**.
+- Surface pipeline health in a workflow that monitors and notifies on CI/CD failures.
+
+## Configuration
+
+### Operation
+
+The **Operation** dropdown selects which AWS CodePipeline API action to invoke. It is always shown and defaults to **List pipelines**.
+
+| Label | ID |
+|-------|----|
+| List pipelines | `codepipeline_list_pipelines` |
+| Get pipeline | `codepipeline_get_pipeline` |
+| Get pipeline state | `codepipeline_get_pipeline_state` |
+
+---
+
+### Pipeline Name
+
+- **Sub-block id**: `name`
+- **Type**: short-input
+- **Placeholder**: `my-pipeline`
+- **Shown when**: `operation` is `codepipeline_get_pipeline` or `codepipeline_get_pipeline_state`
+
+The exact name of the pipeline to query. Not required for **List pipelines** — that operation returns all pipelines in the account and takes no name.
+
+---
+
+### AWS Region
+
+- **Sub-block id**: `awsRegion`
+- **Type**: short-input
+- **Required**: yes
+- **Placeholder**: `us-east-1`
+
+The AWS region where the CodePipeline endpoint is located (e.g. `us-east-1`, `eu-west-1`). All three operations require this field.
+
+---
+
+### AWS Access Key ID
+
+- **Sub-block id**: `awsAccessKeyId`
+- **Type**: short-input (password)
+- **Required**: yes
+
+The AWS access key ID used to sign API requests with SigV4. Store this as a secret and reference it with `{{AWS_ACCESS_KEY_ID}}`.
+
+---
+
+### AWS Secret Access Key
+
+- **Sub-block id**: `awsSecretAccessKey`
+- **Type**: short-input (password)
+- **Required**: yes
+
+The AWS secret access key paired with the access key ID above. Store this as a secret and reference it with `{{AWS_SECRET_ACCESS_KEY}}`.
+
+---
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform; one of `codepipeline_list_pipelines`, `codepipeline_get_pipeline`, or `codepipeline_get_pipeline_state`.
+- `awsRegion` (string) — AWS region (e.g. `us-east-1`).
+- `awsAccessKeyId` (string) — AWS access key ID.
+- `awsSecretAccessKey` (string) — AWS secret access key.
+- `name` (string) — Pipeline name; required for **Get pipeline** and **Get pipeline state**, omitted for **List pipelines**.
+
+**Outputs**
+
+- `data` (json) — The raw CodePipeline API response. Shape varies by operation:
+  - **List pipelines**: `{ pipelines: [...] }` — array of pipeline summary objects (name, version, created, updated).
+  - **Get pipeline**: `{ pipeline: { name, roleArn, stages: [...], ... } }` — full pipeline structure including all stages and actions.
+  - **Get pipeline state**: `{ stageStates: [...] }` — current execution state for every stage, including action results and latest execution details.
+
+## Tools
+
+**CodePipeline List Pipelines** (`codepipeline_list_pipelines`) — Calls `CodePipeline_20150709.ListPipelines` to return all pipelines in the account for the given region. Requires `awsRegion`, `awsAccessKeyId`, `awsSecretAccessKey`.
+
+**CodePipeline Get Pipeline** (`codepipeline_get_pipeline`) — Calls `CodePipeline_20150709.GetPipeline` to return the full stage/action structure of a named pipeline. Requires `awsRegion`, `awsAccessKeyId`, `awsSecretAccessKey`, and `name`.
+
+**CodePipeline Get Pipeline State** (`codepipeline_get_pipeline_state`) — Calls `CodePipeline_20150709.GetPipelineState` to return the current execution state (stage statuses and action results) for a named pipeline. Requires `awsRegion`, `awsAccessKeyId`, `awsSecretAccessKey`, and `name`.
+
+## YAML Example
+
+```yaml
+codepipeline_1:
+  type: codepipeline
+  name: "AWS CodePipeline"
+  inputs:
+    operation: "codepipeline_get_pipeline_state"
+    name: "{{trigger.pipelineName}}"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

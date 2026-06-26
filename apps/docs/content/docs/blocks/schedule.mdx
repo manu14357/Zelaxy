@@ -30,19 +30,69 @@ The Schedule block starts a workflow automatically on a recurring timetable. Use
 ### Schedule Status
 Displays the current schedule configuration and status. The schedule itself is configured through the modal opened from this status display.
 
-### Frequency
-Dropdown (`scheduleType`) selecting how often the workflow runs: Every X Minutes, Hourly, Daily, Weekly, Monthly, or Custom Cron. Defaults to `daily`.
+### Frequency (`scheduleType`)
+Dropdown selecting how often the workflow runs. Defaults to `daily`. Options:
+
+| Label | id |
+|-------|----|
+| Every X Minutes | `minutes` |
+| Hourly | `hourly` |
+| Daily | `daily` |
+| Weekly | `weekly` |
+| Monthly | `monthly` |
+| Custom Cron | `custom` |
 
 ### Timing Fields
-Depending on the selected frequency, you set the relevant value: `minutesInterval` (Every X Minutes), `hourlyMinute` (Hourly), `dailyTime` (Daily), `weeklyDay` + `weeklyDayTime` (Weekly), `monthlyDay` + `monthlyTime` (Monthly), or `cronExpression` (Custom Cron).
+Depending on the selected frequency, you set the relevant timing field(s):
 
-### Timezone
-Dropdown (`timezone`) that anchors the schedule to a region (UTC, US Eastern/Central/Mountain/Pacific, London, Paris, Singapore, Tokyo, Sydney). Defaults to `UTC`.
+| Frequency | Field(s) | Description |
+|-----------|----------|-------------|
+| `minutes` | `minutesInterval` | Interval in minutes between runs |
+| `hourly` | `hourlyMinute` | Minute past the hour to fire (e.g. `15` for :15) |
+| `daily` | `dailyTime` | Time of day in HH:MM format (e.g. `09:00`) |
+| `weekly` | `weeklyDay` + `weeklyDayTime` | Day of week + time of day |
+| `monthly` | `monthlyDay` + `monthlyTime` | Day of month (1–31) + time of day |
+| `custom` | `cronExpression` | Full cron expression (e.g. `0 9 * * MON-FRI`) |
+
+#### Weekly Day (`weeklyDay`)
+Dropdown selecting the day of week. Options:
+
+| Label | id |
+|-------|----|
+| Monday | `MON` |
+| Tuesday | `TUE` |
+| Wednesday | `WED` |
+| Thursday | `THU` |
+| Friday | `FRI` |
+| Saturday | `SAT` |
+| Sunday | `SUN` |
+
+Defaults to `MON`.
+
+### Timezone (`timezone`)
+Dropdown anchoring the schedule to a timezone. Defaults to `UTC`. Options:
+
+| Label | id |
+|-------|----|
+| UTC | `UTC` |
+| US Eastern (UTC-4) | `America/New_York` |
+| US Central (UTC-5) | `America/Chicago` |
+| US Mountain (UTC-6) | `America/Denver` |
+| US Pacific (UTC-7) | `America/Los_Angeles` |
+| London (UTC+1) | `Europe/London` |
+| Paris (UTC+2) | `Europe/Paris` |
+| Singapore (UTC+8) | `Asia/Singapore` |
+| Tokyo (UTC+9) | `Asia/Tokyo` |
+| Sydney (UTC+10) | `Australia/Sydney` |
 
 ## Inputs & Outputs
 
 - **Inputs**: none — the Schedule block initiates workflows and takes no inputs.
 - **Outputs**: none — the Schedule block starts workflow execution and produces no direct outputs.
+
+## Tools
+
+The Schedule block does not call any external tools. It is a trigger-only block that initiates workflow execution on a timetable; all scheduling logic is handled internally by the platform.
 
 ## YAML Example
 

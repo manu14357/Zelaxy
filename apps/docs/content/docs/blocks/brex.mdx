@@ -1,0 +1,90 @@
+---
+title: Brex Block
+description: List cash accounts, transactions, and users in Brex
+icon: Box
+---
+
+# Brex Block
+
+The Brex block connects your workflows to the Brex API so you can retrieve cash account balances, paginate through account transactions, and list workspace users — all authenticated with a Brex user token. Reach for it whenever a workflow needs live financial data from Brex without leaving the canvas.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `brex` |
+| **Category** | tools |
+| **Color** | `#161616` |
+
+## When to Use
+
+- Pull all cash account balances into a report or downstream block after a scheduled trigger.
+- Fetch recent transactions for a specific cash account to reconcile spend or detect anomalies.
+- Filter transactions by a start date to scope a time-bound financial summary.
+- Look up all Brex users in your workspace, optionally narrowing by email address.
+- Page through large result sets using cursor-based pagination across any of the three operations.
+- Feed account or transaction data into an Agent block for AI-powered analysis or categorization.
+
+## Configuration
+
+### Operation
+
+Selects which Brex action to run. Required. Default: `brex_list_cash_accounts`.
+
+| Label | ID |
+|-------|----|
+| List cash accounts | `brex_list_cash_accounts` |
+| List cash transactions | `brex_list_cash_transactions` |
+| List users | `brex_list_users` |
+
+### Cash Account ID
+
+The ID of the cash account whose transactions you want to retrieve. Only shown when Operation is **List cash transactions**. Required for that operation.
+
+### Posted At Start
+
+ISO 8601 timestamp (e.g. `2026-01-01T00:00:00`). Only transactions posted at or after this time are returned. Only shown when Operation is **List cash transactions**. Optional.
+
+### Email
+
+Filter the user list to an exact email address match. Only shown when Operation is **List users**. Optional.
+
+### Limit
+
+Maximum number of items to return per page (default 100, max 1000). Available for all three operations. Optional.
+
+### Cursor
+
+Pagination cursor returned by a previous response. Pass this value to retrieve the next page of results. Available for all three operations. Optional.
+
+### Brex User Token
+
+Your Brex user token, generated from Developer Settings in the Brex dashboard. Stored as a password field and sent as `Bearer` authorization on every request. Required for all operations.
+
+## Inputs & Outputs
+
+- **Inputs**: `operation` (string) — Operation to perform; `apiKey` (string) — Brex user token; `accountId` (string) — Cash account ID; `postedAtStart` (string) — ISO 8601 start timestamp; `email` (string) — Filter users by email; `limit` (string) — Result limit; `cursor` (string) — Pagination cursor
+- **Outputs**: `data` (json) — Result array from Brex; `metadata` (json) — Response metadata including `count` (number of items returned) and `next_cursor` (cursor for the next page, or null)
+
+## Tools
+
+- **Brex List Cash Accounts** (`brex_list_cash_accounts`) — Calls `GET https://api.brex.com/v2/accounts/cash` and returns an array of cash account objects with balances and account details, plus pagination metadata.
+- **Brex List Cash Transactions** (`brex_list_cash_transactions`) — Calls `GET https://api.brex.com/v2/transactions/cash/{accountId}` and returns an array of transaction objects for the specified cash account, optionally filtered by `postedAtStart`.
+- **Brex List Users** (`brex_list_users`) — Calls `GET https://api.brex.com/v2/users` and returns an array of user objects in the Brex workspace, optionally filtered by exact email address.
+
+## YAML Example
+
+```yaml
+brex_1:
+  type: brex
+  name: "Brex"
+  inputs:
+    operation: "brex_list_cash_transactions"
+    apiKey: "{{BREX_USER_TOKEN}}"
+    accountId: "{{get_account.data[0].id}}"
+    postedAtStart: "2026-06-01T00:00:00"
+    limit: "50"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

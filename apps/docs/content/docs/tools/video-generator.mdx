@@ -1,0 +1,190 @@
+---
+title: Video Generator Tools
+description: Generate AI videos from text and images using Runway, Luma, MiniMax, fal.ai, and Google Veo
+icon: Video
+---
+
+# Video Generator Tools
+
+The Video Generator provider turns text prompts and reference images into AI-generated videos through five underlying engines: Runway, Luma AI, MiniMax, fal.ai, and Google Veo. Use these tools in a workflow when you need to produce short marketing clips, animations, or image-to-video sequences without leaving the canvas.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `video-generator` |
+| **Category** | tools |
+| **Auth** | API Key (each tool takes a provider-specific `apiKey`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Generate Video with Runway | `runway_generate_video` | Generate a video using Runway AI models (Gen4 Turbo) |
+| Generate Video with Luma AI | `luma_generate_video` | Generate a video using Luma AI Dream Machine models |
+| Generate Video with MiniMax | `minimax_generate_video` | Generate a video using MiniMax Hailuo video generation models |
+| Generate Video with fal.ai | `falai_generate_video` | Generate a video using fal.ai video generation models |
+| Generate Video with Google Veo | `veo_generate_video` | Generate a video using Google Veo video generation models |
+
+## Configuration
+
+### `runway_generate_video`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Your Runway API key. **Secret** — store as an environment variable. Visibility: user-only. |
+| `model` | string | No | Model to use (default: `gen4_turbo`). |
+| `prompt` | string | Yes | Text prompt describing the video to generate. |
+| `duration` | number | No | Duration in seconds (`5` or `10`). |
+| `aspectRatio` | string | No | Aspect ratio: `16:9`, `9:16`, or `1:1`. |
+| `imageUrl` | string | No | URL of an image to use as the first frame (image-to-video). |
+| `imageFile` | json | No | Image file object to use as the first frame. |
+| `endImageUrl` | string | No | URL of an image to use as the last frame. |
+| `negativePrompt` | string | No | Text describing what to avoid in the video. |
+| `seed` | number | No | Random seed for reproducible results. |
+
+### `luma_generate_video`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Your Luma AI API key. **Secret** — store as an environment variable. Visibility: user-only. |
+| `model` | string | No | Model to use (e.g., `ray-2`, `ray-flash-2`). |
+| `prompt` | string | Yes | Text prompt describing the video to generate. |
+| `duration` | number | No | Duration in seconds. |
+| `aspectRatio` | string | No | Aspect ratio (e.g., `16:9`, `9:16`, `1:1`). |
+| `resolution` | string | No | Resolution (e.g., `720p`, `1080p`). |
+| `imageUrl` | string | No | URL of an image to use as reference. |
+| `imageFile` | json | No | Image file object to use as reference. |
+| `cameraMotion` | json | No | Camera motion configuration object. |
+| `negativePrompt` | string | No | Text describing what to avoid in the video. |
+| `seed` | number | No | Random seed for reproducible results. |
+
+### `minimax_generate_video`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Your MiniMax API key. **Secret** — store as an environment variable. Visibility: user-only. |
+| `model` | string | No | Model: `MiniMax-Hailuo-02` or `MiniMax-Hailuo-2.3`. |
+| `prompt` | string | Yes | Text prompt describing the video to generate. |
+| `duration` | number | No | Duration in seconds. |
+| `resolution` | string | No | Resolution: `768P` or `1080P`. |
+| `imageUrl` | string | No | URL of an image to use as reference. |
+| `imageFile` | json | No | Image file object to use as reference. |
+| `promptOptimizer` | boolean | No | Whether to auto-optimize the prompt. |
+| `negativePrompt` | string | No | Text describing what to avoid in the video. |
+| `seed` | number | No | Random seed for reproducible results. |
+
+### `falai_generate_video`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Your fal.ai API key. **Secret** — store as an environment variable. Visibility: user-only. |
+| `model` | string | Yes | fal.ai model endpoint (e.g., `fal-ai/kling-video/v2.1/standard/text-to-video`). |
+| `prompt` | string | Yes | Text prompt describing the video to generate. |
+| `duration` | number | No | Duration in seconds. |
+| `aspectRatio` | string | No | Aspect ratio (e.g., `16:9`, `9:16`, `1:1`). |
+| `imageUrl` | string | No | URL of an image to use as reference. |
+| `imageFile` | json | No | Image file object to use as reference. |
+| `generateAudio` | boolean | No | Whether to generate audio for the video. |
+| `negativePrompt` | string | No | Text describing what to avoid in the video. |
+| `seed` | number | No | Random seed for reproducible results. |
+
+### `veo_generate_video`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Your Google AI API key. **Secret** — store as an environment variable. Visibility: user-only. |
+| `model` | string | No | Veo model: `veo-3`, `veo-3-fast`, or `veo-3.1` (default: `veo-3`). |
+| `prompt` | string | Yes | Text prompt describing the video to generate. |
+| `duration` | number | No | Duration in seconds. |
+| `aspectRatio` | string | No | Aspect ratio (e.g., `16:9`, `9:16`). |
+| `resolution` | string | No | Resolution (e.g., `720p`, `1080p`). |
+| `imageUrl` | string | No | URL of an image to use as reference. |
+| `imageFile` | json | No | Image file object to use as reference. |
+| `enableAudio` | boolean | No | Whether to enable audio generation. |
+| `negativePrompt` | string | No | Text describing what to avoid in the video. |
+| `seed` | number | No | Random seed for reproducible results. |
+
+## Outputs
+
+All five tools share the same output schema.
+
+### `runway_generate_video`
+
+- `videoUrl` (string) — URL of the generated video.
+- `videoFile` (json) — Generated video file object.
+- `duration` (number) — Duration of the video in seconds.
+- `width` (number) — Width of the video in pixels.
+- `height` (number) — Height of the video in pixels.
+- `provider` (string) — Provider used for generation.
+- `model` (string) — Model used for generation.
+- `jobId` (string) — Job ID of the generation request.
+
+### `luma_generate_video`
+
+- `videoUrl` (string) — URL of the generated video.
+- `videoFile` (json) — Generated video file object.
+- `duration` (number) — Duration of the video in seconds.
+- `width` (number) — Width of the video in pixels.
+- `height` (number) — Height of the video in pixels.
+- `provider` (string) — Provider used for generation.
+- `model` (string) — Model used for generation.
+- `jobId` (string) — Job ID of the generation request.
+
+### `minimax_generate_video`
+
+- `videoUrl` (string) — URL of the generated video.
+- `videoFile` (json) — Generated video file object.
+- `duration` (number) — Duration of the video in seconds.
+- `width` (number) — Width of the video in pixels.
+- `height` (number) — Height of the video in pixels.
+- `provider` (string) — Provider used for generation.
+- `model` (string) — Model used for generation.
+- `jobId` (string) — Job ID of the generation request.
+
+### `falai_generate_video`
+
+- `videoUrl` (string) — URL of the generated video.
+- `videoFile` (json) — Generated video file object.
+- `duration` (number) — Duration of the video in seconds.
+- `width` (number) — Width of the video in pixels.
+- `height` (number) — Height of the video in pixels.
+- `provider` (string) — Provider used for generation.
+- `model` (string) — Model used for generation.
+- `jobId` (string) — Job ID of the generation request.
+
+### `veo_generate_video`
+
+- `videoUrl` (string) — URL of the generated video.
+- `videoFile` (json) — Generated video file object.
+- `duration` (number) — Duration of the video in seconds.
+- `width` (number) — Width of the video in pixels.
+- `height` (number) — Height of the video in pixels.
+- `provider` (string) — Provider used for generation.
+- `model` (string) — Model used for generation.
+- `jobId` (string) — Job ID of the generation request.
+
+## YAML Example
+
+```yaml
+video_generator_1:
+  type: video_generator
+  name: "Video Generator"
+  inputs:
+    operation: "runway_generate_video"
+    apiKey: "{{RUNWAY_API_KEY}}"
+    prompt: "A cinematic drone shot flying over a misty mountain range at sunrise"
+    duration: 5
+    aspectRatio: "16:9"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Each provider needs its own API key. Store the relevant secret (`RUNWAY_API_KEY`, `LUMA_API_KEY`, `MINIMAX_API_KEY`, `FALAI_API_KEY`, or `GOOGLE_AI_API_KEY`) as an environment variable and reference it with `{{ENV_VAR}}` — never paste keys inline. The `apiKey` param is `user-only`, so an LLM can never fill it.
+- Only `falai_generate_video` requires a `model` value (a full fal.ai endpoint such as `fal-ai/kling-video/v2.1/standard/text-to-video`); the other tools fall back to sensible defaults (Runway `gen4_turbo`, Veo `veo-3`).
+- For image-to-video, pass either an `imageUrl` or an `imageFile` object as the first frame. Runway additionally supports `endImageUrl` for first-to-last-frame interpolation, and Luma exposes a `cameraMotion` object for directing camera movement.
+- All tools route through the shared `/api/tools/video` endpoint and return a `videoUrl` plus a `jobId`; set a consistent `seed` to reproduce a result across runs.
+- The `video_generator` block itself is legacy and hidden from the toolbar — for fine-grained control, prefer the individual provider blocks, but these tools remain fully available via the operation IDs above.

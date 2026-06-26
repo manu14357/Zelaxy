@@ -18,59 +18,112 @@ The Notion block integrates with Notion to read content from pages and databases
 
 ## When to Use
 
-- Read the content of a specific Notion page or database into your workflow.
-- Append generated content (summaries, notes, results) to an existing page.
-- Create a new Notion page under a parent page with a title and content.
-- Create a new database under a parent page with custom properties.
-- Query a database with JSON filter and sort criteria, paging through results.
-- Search the workspace for pages and/or databases matching a query.
+- Read the full text content of a specific Notion page into your workflow.
+- Retrieve the schema and metadata of a Notion database.
+- Append generated content (summaries, notes, AI results) to an existing page.
+- Create a new Notion page under a parent page with an optional title and body.
+- Create a new database under a parent page with custom column properties.
+- Query a database with JSON filter and sort criteria to retrieve matching entries.
+- Search the workspace for pages and/or databases matching a keyword query.
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting the action: Read Page (`notion_read`), Read Database (`notion_read_database`), Create Page (`notion_create_page`), Create Database (`notion_create_database`), Append Content (`notion_write`), Query Database (`notion_query_database`), or Search Workspace (`notion_search`). Defaults to Read Page.
+Required dropdown selecting which action to run. Defaults to `notion_read`.
+
+| Label | ID |
+|-------|----|
+| Read Page | `notion_read` |
+| Read Database | `notion_read_database` |
+| Create Page | `notion_create_page` |
+| Create Database | `notion_create_database` |
+| Append Content | `notion_write` |
+| Query Database | `notion_query_database` |
+| Search Workspace | `notion_search` |
 
 ### Notion Account
 
-Required OAuth credential connecting the Notion account used to authorize requests.
+Required OAuth credential connecting the Notion account used to authorise all API requests. Scopes requested: `workspace.content`, `workspace.name`, `page.read`, `page.write`.
 
 ### Page ID
 
-The target page identifier. Required for Read Page and Append Content operations.
+The ID of the Notion page to target. Required for **Read Page** and **Append Content** operations.
 
 ### Database ID
 
-The target database identifier. Required for Read Database and Query Database operations.
+The ID of the Notion database to target. Required for **Read Database** and **Query Database** operations.
 
 ### Parent Page ID
 
-ID of the parent page under which a new page or database is created. Required for Create Page and Create Database.
+The ID of the parent page under which a new child page or database is created. Required for **Create Page** and **Create Database** operations.
 
-### Title
+### Page Title / Database Title
 
-Title for the new page (Create Page) or new database (Create Database, required).
+Title for the new resource. Optional for **Create Page**; required for **Create Database**.
 
 ### Content
 
-The content to add. Required for Append Content and Create Page operations.
+The text content to add to the page. Appears as a paragraph block. Required for **Append Content**; available (optional) for **Create Page**.
 
-### Filter / Sort Criteria / Page Size
+### Filter (JSON)
 
-JSON filter (required), optional JSON sort array, and result page size for Query Database operations.
+Notion filter conditions expressed as a JSON object. Required for **Query Database**. The value is parsed and sent as the `filter` body parameter to the Notion API.
 
-### Search Query / Filter Type
+### Sort Criteria (JSON)
 
-Search terms and a Filter Type dropdown (All, Pages Only, Databases Only) for Search Workspace.
+Notion sort criteria expressed as a JSON array. Optional for **Query Database**. Example: `[{"property": "Name", "direction": "ascending"}]`.
 
-### Database Properties
+### Page Size
 
-JSON object defining database properties when creating a database.
+Number of results to return. Optional for **Query Database**; capped at 100 by the Notion API. Default is 100.
+
+### Search Query
+
+Keyword search terms for **Search Workspace**. Leave empty to list all pages and databases the integration can access.
+
+### Filter Type
+
+Dropdown restricting search results by object type. Only shown for **Search Workspace**.
+
+| Label | ID |
+|-------|----|
+| All | `all` |
+| Pages Only | `page` |
+| Databases Only | `database` |
+
+### Database Properties (JSON)
+
+JSON object defining the column schema for the new database. Optional for **Create Database**; defaults to a single `Name` (title) property if omitted.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `pageId` (string), `content` (string), `parentId` (string), `title` (string), `databaseId` (string), `filter` (string), `sorts` (string), `pageSize` (number), `query` (string), `filterType` (string)
-- **Outputs**: `content` (string), `metadata` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform
+  - `credential` (string) — Notion OAuth access token
+  - `pageId` (string) — Page identifier (Read Page, Append Content)
+  - `databaseId` (string) — Database identifier (Read Database, Query Database)
+  - `parentId` (string) — Parent page identifier (Create Page, Create Database)
+  - `title` (string) — Page or database title
+  - `content` (string) — Page content to add
+  - `filter` (string) — Filter criteria as JSON (Query Database)
+  - `sorts` (string) — Sort criteria as JSON array (Query Database)
+  - `pageSize` (number) — Page size limit (Query Database)
+  - `query` (string) — Search query (Search Workspace)
+  - `filterType` (string) — Filter type (`all`, `page`, or `database`) (Search Workspace)
+- **Outputs**:
+  - `content` (string) — Page content, search results, or confirmation messages
+  - `metadata` (json) — Operation-specific details including page/database info, results, and pagination data
+
+## Tools
+
+- **Notion Reader** (`notion_read`) — Reads a page's properties and all child block content, returning it as Markdown-formatted text (headings, paragraphs, bullet lists, numbered lists, to-dos) plus metadata (title, URL, timestamps).
+- **Read Notion Database** (`notion_read_database`) — Retrieves the schema and metadata of a Notion database including all column names and their types.
+- **Notion Content Appender** (`notion_write`) — Appends a paragraph block containing the supplied text to an existing Notion page.
+- **Notion Page Creator** (`notion_create_page`) — Creates a new sub-page under a specified parent page with an optional title and initial paragraph content.
+- **Query Notion Database** (`notion_query_database`) — Queries a Notion database with optional JSON filter and sort criteria, returning matching entries as formatted text and a raw results array with pagination metadata.
+- **Search Notion Workspace** (`notion_search`) — Searches all pages and databases accessible to the integration, optionally filtered by object type and keyword.
+- **Create Notion Database** (`notion_create_database`) — Creates a new database as a child of a specified parent page with a title and a custom or default column schema.
 
 ## YAML Example
 
@@ -80,9 +133,9 @@ notion_1:
   name: "Notion"
   inputs:
     operation: "notion_write"
-    credential: "{{credentials.notion}}"
-    pageId: "your-notion-page-id"
-    content: "{{start.input}}"
+    credential: "{{NOTION_ACCESS_TOKEN}}"
+    pageId: "{{start.pageId}}"
+    content: "{{agent_1.content}}"
   connections:
     outgoing:
       - target: next-block-id

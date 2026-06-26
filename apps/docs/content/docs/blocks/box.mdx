@@ -13,7 +13,7 @@ The Box block integrates Box file storage into your workflows. Use it to upload 
 | Property | Value |
 |----------|-------|
 | **Type** | `box` |
-| **Category** | Tools |
+| **Category** | tools |
 | **Color** | `#0061FF` |
 
 ## When to Use
@@ -23,32 +23,77 @@ The Box block integrates Box file storage into your workflows. Use it to upload 
 - List the contents of a Box folder to drive iteration or selection
 - Create folders to organize workflow output
 - Delete obsolete files as part of cleanup steps
-- Generate a shareable link for a file to send to collaborators
+- Fetch file metadata (size, timestamps, parent, SHA1) without downloading the content
+- Generate a publicly-accessible shared link for a file to send to collaborators
 
 ## Configuration
 
 ### Operation
-Dropdown selecting the action to perform: Upload File, Download File, List Folder, Create Folder, Delete File, Get File Info, or Create Shared Link. This drives which other fields are shown.
+
+Dropdown (`operation`) — required. Selects the action the block will perform. All other fields are shown or hidden based on this value.
+
+| Label | ID |
+|-------|----|
+| Upload File | `box_upload_file` |
+| Download File | `box_download_file` |
+| List Folder | `box_list_folder` |
+| Create Folder | `box_create_folder` |
+| Delete File | `box_delete_file` |
+| Get File Info | `box_get_file_info` |
+| Create Shared Link | `box_create_shared_link` |
 
 ### Box Account
-OAuth connection (`credential`, provider `box`) authorizing access to your Box storage. Required for all operations.
 
-### File ID
-The target file identifier. Shown for Download File, Delete File, Get File Info, and Create Shared Link.
+OAuth connection (`credential`, provider `box`) — required for all operations. Connect your Box account to authorize the block.
 
-### Folder ID
-The target folder identifier (use `0` for root). Shown for List Folder, Create Folder, and Upload File.
+### File ID (`fileId`)
 
-### File/Folder Name
-Name for the new file or folder. Shown for Upload File and Create Folder.
+Short text input. The numeric ID of the target Box file (e.g. `123456789`). Shown when the operation is one of: Download File, Delete File, Get File Info, Create Shared Link.
 
-### File
-File-upload input providing the file contents. Shown for Upload File.
+### Folder ID (`folderId`)
+
+Short text input. The numeric ID of the target Box folder. Enter `0` to target the root folder. Shown when the operation is one of: List Folder, Create Folder, Upload File.
+
+### File/Folder Name (`fileName`)
+
+Short text input. The name for the new file or folder (e.g. `report.pdf`). Shown when the operation is one of: Upload File, Create Folder.
+
+### File (`uploadFile`)
+
+File-upload input. The file content to upload. Shown only for the Upload File operation.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `oauthCredential` (string), `fileId` (string), `folderId` (string), `fileName` (string)
-- **Outputs**: `file` (json — file metadata), `files` (json — file list), `folder` (json — folder data)
+**Inputs:**
+
+- `operation` (string) — Operation to perform (one of the operation IDs listed above)
+- `oauthCredential` (string) — OAuth credential for Box authentication
+- `fileId` (string) — File ID (required for Download File, Delete File, Get File Info, Create Shared Link)
+- `folderId` (string) — Folder ID (required for List Folder, Create Folder, Upload File)
+- `fileName` (string) — File or folder name (required for Upload File, Create Folder)
+- `uploadFile` (file) — File to upload (required for Upload File)
+
+**Outputs:**
+
+- `file` (json) — File metadata returned by the operation
+- `files` (json) — File list (used for list operations)
+- `folder` (json) — Folder data returned by folder operations
+
+## Tools
+
+**Box Upload File** (`box_upload_file`) — Uploads a file to a specified Box folder. Params: `folderId` (target folder, `"0"` for root), `fileName` (optional name override), `uploadFile` (the file). Returns: `id`, `name`, `size` (bytes), `parentId`.
+
+**Box Download File** (`box_download_file`) — Downloads a file from Box by its ID. Params: `fileId`. Returns: `file` (object with `name`, `mimeType`, `data` as base64, `size`) and `content` (base64 string of the file).
+
+**Box List Folder** (`box_list_folder`) — Lists the items (files and sub-folders) inside a Box folder, up to 100 entries. Params: `folderId`. Returns: `entries` (array of objects with `type`, `id`, `name`, `size`, `createdAt`, `modifiedAt`) and `totalCount`.
+
+**Box Create Folder** (`box_create_folder`) — Creates a new sub-folder inside a given Box folder. Params: `fileName` (the new folder name), `folderId` (parent folder ID). Returns: `id`, `name`, `createdAt`, `parentId`.
+
+**Box Delete File** (`box_delete_file`) — Permanently deletes a file from Box. Params: `fileId`. Returns: `deleted` (boolean) and `message` (confirmation string).
+
+**Box Get File Info** (`box_get_file_info`) — Fetches detailed metadata for a file without downloading its content. Params: `fileId`. Returns: `id`, `name`, `size`, `sha1`, `createdAt`, `modifiedAt`, `parentId`, `sharedLink`.
+
+**Box Create Shared Link** (`box_create_shared_link`) — Creates an open-access shared link for a file, making it publicly accessible via URL. Params: `fileId`. Returns: `url`, `downloadUrl`, `access`.
 
 ## YAML Example
 
@@ -58,9 +103,10 @@ box_1:
   name: "Box"
   inputs:
     operation: "box_upload_file"
-    credential: "{{box_account}}"
+    oauthCredential: "{{BOX_OAUTH_CREDENTIAL}}"
     folderId: "0"
     fileName: "report.pdf"
+    uploadFile: "{{generate_report.file}}"
   connections:
     outgoing:
       - target: next-block-id

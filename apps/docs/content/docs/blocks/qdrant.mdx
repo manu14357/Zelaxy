@@ -18,46 +18,89 @@ The Qdrant block lets you store, search, and retrieve vector embeddings using a 
 
 ## When to Use
 
-- Upsert embeddings (with optional payloads) into a Qdrant collection.
-- Run semantic similarity searches over a collection using a query vector.
-- Filter search results by payload metadata (e.g. only points matching a city).
-- Fetch specific points by their IDs to retrieve stored payloads or vectors.
-- Power RAG pipelines that read from or write to a self-hosted or cloud Qdrant instance.
+- Upsert embeddings (with optional payloads) into a Qdrant collection after generating them with an Agent or embedding provider.
+- Run semantic similarity searches over a collection using a query vector to power RAG pipelines.
+- Filter search results by payload metadata (e.g. only points where `city` matches `London`).
+- Fetch specific points by their IDs to retrieve stored payloads or raw vectors on demand.
+- Write embeddings from one step and read them back in a later step of the same workflow.
+- Connect to a self-hosted Qdrant instance or Qdrant Cloud with an API key.
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting the action to perform: `Upsert`, `Search`, or `Fetch`. Defaults to `upsert`.
+Dropdown that selects the action to perform. Defaults to `upsert`.
 
-### Qdrant URL
+| Label | ID | Description |
+|-------|----|-------------|
+| Upsert | `upsert` | Insert or update points in a collection |
+| Search | `search` | Find similar vectors using a query vector |
+| Fetch | `fetch` | Retrieve specific points by their IDs |
 
-The Qdrant server endpoint (e.g. `http://localhost:6333`). Required for all operations.
+---
 
-### Collection
+### Upsert operation fields
 
-The name of the target Qdrant collection. Required for all operations.
+| Sub-block | ID | Type | Required | Description |
+|-----------|----|------|----------|-------------|
+| Qdrant URL | `url` | short-input | Yes | Qdrant server endpoint, e.g. `http://localhost:6333` |
+| Collection | `collection` | short-input | Yes | Name of the target collection |
+| Points | `points` | long-input | Yes | JSON array of points, each with `id`, `vector`, and optional `payload` |
 
-### Points (Upsert)
+### Search operation fields
 
-JSON array of points to insert or update, each with `id`, `vector`, and optional `payload`.
+| Sub-block | ID | Type | Required | Description |
+|-----------|----|------|----------|-------------|
+| Qdrant URL | `url` | short-input | Yes | Qdrant server endpoint |
+| Collection | `collection` | short-input | Yes | Name of the target collection |
+| Query Vector | `vector` | long-input | Yes | Float array used as the similarity query, e.g. `[0.1, 0.2]` |
+| Limit | `limit` | short-input | No | Maximum number of results to return (defaults to 10 in the tool) |
+| Filter | `filter` | long-input | No | Qdrant filter object, e.g. `{"must":[{"key":"city","match":{"value":"London"}}]}` |
+| With Payload | `with_payload` | switch | No | When enabled, includes point payload in results |
+| With Vector | `with_vector` | switch | No | When enabled, includes the raw vector in results |
 
-### Query Vector (Search)
+### Fetch operation fields
 
-The vector used as the similarity query, with optional `Limit` and `Filter` to constrain results, plus `With Payload` / `With Vector` switches to control returned fields.
-
-### IDs (Fetch)
-
-JSON array of point identifiers to retrieve, with `With Payload` / `With Vector` switches.
+| Sub-block | ID | Type | Required | Description |
+|-----------|----|------|----------|-------------|
+| Qdrant URL | `url` | short-input | Yes | Qdrant server endpoint |
+| Collection | `collection` | short-input | Yes | Name of the target collection |
+| IDs | `ids` | long-input | Yes | JSON array of point identifiers to retrieve, e.g. `["370446a3-310f-58db-8ce7-31db947c6c1e"]` |
+| With Payload | `with_payload` | switch | No | When enabled, includes point payload in results |
+| With Vector | `with_vector` | switch | No | When enabled, includes the raw vector in results |
 
 ### API Key
 
-Optional Qdrant API key (stored as a secret) used to authenticate requests.
+| Sub-block | ID | Type | Required | Description |
+|-----------|----|------|----------|-------------|
+| API Key | `apiKey` | short-input | Yes | Qdrant API key used to authenticate requests. Stored as a secret; use `{{QDRANT_API_KEY}}`. Pass empty string if your instance has no auth. |
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `url` (string), `apiKey` (string), `collection` (string), `points` (json), `vector` (json), `limit` (number), `filter` (json), `ids` (json), `with_payload` (boolean), `with_vector` (boolean)
-- **Outputs**: `matches` (json), `upsertedCount` (number), `data` (json), `status` (string)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`upsert`, `search`, or `fetch`)
+  - `url` (string) — Qdrant server URL
+  - `apiKey` (string) — Qdrant API key
+  - `collection` (string) — Collection name
+  - `points` (json) — Points to upsert (upsert operation)
+  - `vector` (json) — Query vector (search operation)
+  - `limit` (number) — Result limit (search operation)
+  - `filter` (json) — Search filter (search operation)
+  - `ids` (json) — Point identifiers to fetch (fetch operation)
+  - `with_payload` (boolean) — Include payload in response (search and fetch)
+  - `with_vector` (boolean) — Include vectors in response (search and fetch)
+
+- **Outputs**:
+  - `matches` (json) — Search matches
+  - `upsertedCount` (number) — Number of points upserted
+  - `data` (json) — Response data (search results array or fetched points array)
+  - `status` (string) — Operation status reported by Qdrant
+
+## Tools
+
+- **Qdrant Upsert Points** (`qdrant_upsert_points`) — Sends a `PUT` request to `/collections/{collection}/points` to insert or update an array of points. Each point must have an `id`, a `vector`, and an optional `payload` map. Returns `status` and `data` (the raw result from Qdrant).
+- **Qdrant Search Vector** (`qdrant_search_vector`) — Sends a `POST` request to `/collections/{collection}/points/query` with a query vector and optional `limit`, `filter`, `with_payload`, and `with_vector` params. Returns `data` (array of scored result points) and `status`.
+- **Qdrant Fetch Points** (`qdrant_fetch_points`) — Sends a `POST` request to `/collections/{collection}/points` with an array of IDs and optional `with_payload` / `with_vector` flags. Returns `data` (array of matching points) and `status`.
 
 ## YAML Example
 
@@ -69,7 +112,7 @@ qdrant_1:
     operation: "search"
     url: "http://localhost:6333"
     collection: "my-collection"
-    vector: {{start.embedding}}
+    vector: "{{embedder.vector}}"
     limit: 10
     with_payload: true
     apiKey: "{{QDRANT_API_KEY}}"

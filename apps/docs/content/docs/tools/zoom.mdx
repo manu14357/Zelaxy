@@ -1,0 +1,132 @@
+---
+title: Zoom Tools
+description: Manage Zoom meetings and users through the Zoom API
+icon: Video
+---
+
+# Zoom Tools
+
+The Zoom tools let a workflow create and inspect Zoom meetings and look up users on a Zoom account. Use them when a workflow needs to schedule a meeting, fetch a meeting's join details, or enumerate meetings and users for an account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `zoom` |
+| **Category** | tools |
+| **Auth** | OAuth (Bearer access token) |
+
+All requests authenticate against `https://api.zoom.us/v2` using `Authorization: Bearer <token>`. The token is supplied via the `apiKey` parameter and must be a valid Zoom OAuth access token.
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List meetings | `zoom_list_meetings` | List all meetings for a Zoom user |
+| Create meeting | `zoom_create_meeting` | Create a new Zoom meeting for a user |
+| Get meeting | `zoom_get_meeting` | Get details of a specific Zoom meeting |
+| List users | `zoom_list_users` | List users on a Zoom account |
+
+## Configuration
+
+### zoom_list_meetings
+
+`GET https://api.zoom.us/v2/users/{userId}/meetings`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Zoom OAuth access token. **Secret** — sent as `Authorization: Bearer <token>`. |
+| `userId` | string | No | The user ID or email address. Use `me` for the authenticated user (defaults to `me`). |
+| `type` | string | No | Meeting type filter. One of: `scheduled`, `live`, `upcoming`, `previous_meetings`. |
+| `page_size` | number | No | Number of records per page (1-300). |
+
+### zoom_create_meeting
+
+`POST https://api.zoom.us/v2/users/{userId}/meetings`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Zoom OAuth access token. **Secret** — sent as `Authorization: Bearer <token>`. |
+| `userId` | string | No | The user ID or email address. Use `me` for the authenticated user (defaults to `me`). |
+| `topic` | string | Yes | Meeting topic. |
+| `type` | number | No | Meeting type: `1`=instant, `2`=scheduled, `3`=recurring, `8`=recurring fixed time (defaults to `2`). |
+| `start_time` | string | No | Meeting start time in ISO 8601 format (e.g. `2025-06-03T10:00:00Z`). |
+| `duration` | number | No | Meeting duration in minutes. |
+| `timezone` | string | No | Timezone for the meeting (e.g. `America/Los_Angeles`). |
+| `agenda` | string | No | Meeting agenda or description. |
+
+### zoom_get_meeting
+
+`GET https://api.zoom.us/v2/meetings/{meetingId}`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Zoom OAuth access token. **Secret** — sent as `Authorization: Bearer <token>`. |
+| `meetingId` | string | Yes | The Zoom meeting ID. |
+
+### zoom_list_users
+
+`GET https://api.zoom.us/v2/users`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Zoom OAuth access token. **Secret** — sent as `Authorization: Bearer <token>`. |
+| `status` | string | No | User status filter. One of: `active`, `inactive`, `pending`. |
+| `page_size` | number | No | Number of records per page (1-300). |
+
+## Outputs
+
+### zoom_list_meetings
+
+- `data` (json) — Array of Zoom meeting objects.
+- `metadata` (json) — List metadata:
+  - `count` (number) — Number of items returned.
+  - `total_records` (number) — Total number of records available.
+
+### zoom_create_meeting
+
+- `data` (json) — The created Zoom meeting object.
+- `metadata` (json) — Meeting identifiers:
+  - `id` (string) — Meeting ID.
+  - `topic` (string) — Meeting topic.
+
+### zoom_get_meeting
+
+- `data` (json) — The Zoom meeting object.
+- `metadata` (json) — Meeting identifiers:
+  - `id` (string) — Meeting ID.
+  - `topic` (string) — Meeting topic.
+
+### zoom_list_users
+
+- `data` (json) — Array of Zoom user objects.
+- `metadata` (json) — List metadata:
+  - `count` (number) — Number of items returned.
+  - `total_records` (number) — Total number of records available.
+
+## YAML Example
+
+```yaml
+zoom_1:
+  type: zoom
+  name: "Zoom"
+  inputs:
+    operation: "zoom_create_meeting"
+    userId: "me"
+    topic: "Weekly Team Standup"
+    type: 2
+    start_time: "2025-06-03T10:00:00Z"
+    duration: 60
+    timezone: "America/Los_Angeles"
+    apiKey: "{{ZOOM_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** `apiKey` must be a Zoom OAuth access token, not an API key/secret pair. Create a Server-to-Server OAuth or OAuth app in the Zoom Marketplace, mint an access token, and pass it as `apiKey`. The token is sent as a `Bearer` credential, so it needs the relevant `meeting:read`/`meeting:write` and `user:read` scopes for the operations you call.
+- **Default user:** `userId` defaults to `me` (the authenticated user) for `zoom_list_meetings` and `zoom_create_meeting`. Pass an email or Zoom user ID to act on behalf of another account user.
+- **Chaining:** The created meeting's join details live in `data` — reference them downstream with `{{zoom_1.data.join_url}}` or grab the id from `{{zoom_1.metadata.id}}` to feed a later `zoom_get_meeting` step.
+- **Paging:** `page_size` accepts 1-300; Zoom returns `total_records` in `metadata` so you can detect when more records exist than were returned.

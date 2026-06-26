@@ -1,0 +1,127 @@
+---
+title: Quartr Tools
+description: Retrieve company financial data and list financial documents from the Quartr API
+icon: Box
+---
+
+# Quartr Tools
+
+Quartr provides programmatic access to public-company financial data — company profiles plus the documents (reports, slide decks, transcripts) tied to their earnings events. Use these tools in a workflow when you need to look up a company by ID, discover companies by ticker/ISIN/country, or pull a filtered list of financial documents for downstream analysis.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `quartr` |
+| **Category** | tools |
+| **Auth** | API Key (sent as the `x-api-key` request header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Get company | `quartr_get_company` | Retrieve a single company from Quartr by its company ID |
+| List companies | `quartr_list_companies` | List companies covered by Quartr, filterable by ticker, ISIN, and country |
+| List documents | `quartr_list_documents` | List documents (reports, slide decks, transcripts) from Quartr, filterable by company, event, type, and date range |
+
+## Configuration
+
+### `quartr_get_company`
+
+Retrieve a single company from Quartr by its company ID. Calls `GET https://api.quartr.com/public/v3/companies/{companyId}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Quartr API key. Sent as the `x-api-key` header. Visibility `user-only` — store as `{{QUARTR_API_KEY}}`. |
+| `companyId` | `string` | Yes | Quartr company ID (e.g. `4742`). Visibility `user-or-llm`. |
+
+### `quartr_list_companies`
+
+List companies covered by Quartr, filterable by ticker, ISIN, and country. Calls `GET https://api.quartr.com/public/v3/companies` with the filters applied as query parameters.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Quartr API key. Sent as the `x-api-key` header. Visibility `user-only` — store as `{{QUARTR_API_KEY}}`. |
+| `tickers` | `string` | No | Comma-separated list of company tickers (e.g. `AAPL,MSFT`). Visibility `user-or-llm`. |
+| `isins` | `string` | No | Comma-separated list of ISINs (e.g. `US0378331005`). Visibility `user-or-llm`. |
+| `countries` | `string` | No | Comma-separated list of ISO 3166-1 alpha-2 country codes (e.g. `US,SE`). Visibility `user-or-llm`. |
+| `limit` | `number` | No | Maximum number of items to return (default `10`, max `500`). Visibility `user-or-llm`. |
+| `cursor` | `number` | No | Pagination cursor from a previous response (`nextCursor`). Visibility `user-or-llm`. |
+
+### `quartr_list_documents`
+
+List documents (reports, slide decks, transcripts) from Quartr, filterable by company, event, type, and date range. Calls `GET https://api.quartr.com/public/v3/documents` with the filters applied as query parameters. Note: `documentTypeIds` is sent to the API as the `typeIds` query parameter.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Quartr API key. Sent as the `x-api-key` header. Visibility `user-only` — store as `{{QUARTR_API_KEY}}`. |
+| `companyIds` | `string` | No | Comma-separated list of Quartr company IDs (e.g. `4742,128`). Visibility `user-or-llm`. |
+| `eventIds` | `string` | No | Comma-separated list of Quartr event IDs (e.g. `128301`). Visibility `user-or-llm`. |
+| `documentTypeIds` | `string` | No | Comma-separated list of document type IDs (e.g. `7,10`). Sent to the API as `typeIds`. Visibility `user-or-llm`. |
+| `startDate` | `string` | No | Only return documents dated on or after this ISO 8601 date (e.g. `2024-01-01`). Visibility `user-or-llm`. |
+| `endDate` | `string` | No | Only return documents dated on or before this ISO 8601 date (e.g. `2024-12-31`). Visibility `user-or-llm`. |
+| `limit` | `number` | No | Maximum number of items to return (default `10`, max `500`). Visibility `user-or-llm`. |
+| `cursor` | `number` | No | Pagination cursor from a previous response (`nextCursor`). Visibility `user-or-llm`. |
+
+## Outputs
+
+### `quartr_get_company`
+
+- `data` (json) — The requested Quartr company object.
+- `metadata` (json) — Company identifiers. Contains:
+  - `id` (number) — Quartr company ID.
+
+### `quartr_list_companies`
+
+- `data` (json) — Array of Quartr company objects.
+- `metadata` (json) — List metadata. Contains:
+  - `count` (number) — Number of companies returned.
+  - `nextCursor` (number) — Cursor for the next page (`null` when none).
+
+### `quartr_list_documents`
+
+- `data` (json) — Array of Quartr document objects.
+- `metadata` (json) — List metadata. Contains:
+  - `count` (number) — Number of documents returned.
+  - `nextCursor` (number) — Cursor for the next page (`null` when none).
+
+## YAML Example
+
+```yaml
+quartr_1:
+  type: quartr
+  name: "Quartr"
+  inputs:
+    operation: "quartr_get_company"
+    companyId: "4742"
+    apiKey: "{{QUARTR_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+List documents for a company over a date range:
+
+```yaml
+quartr_2:
+  type: quartr
+  name: "Quartr"
+  inputs:
+    operation: "quartr_list_documents"
+    companyIds: "4742,128"
+    documentTypeIds: "7,10"
+    startDate: "2024-01-01"
+    endDate: "2024-12-31"
+    limit: 50
+    apiKey: "{{QUARTR_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth is a plain API key in a header.** All three operations send your key as the `x-api-key` header (not a Bearer token). Store it as an environment variable and reference it as `{{QUARTR_API_KEY}}` — never paste the raw key into a block.
+- **Discover IDs before fetching documents.** Company IDs are not the same as tickers. Use `quartr_list_companies` with `tickers` (e.g. `AAPL,MSFT`) to resolve the numeric Quartr company IDs, then feed `{{quartr_1.metadata.count}}` / the returned `data` IDs into `quartr_list_documents` via `companyIds`.
+- **Paginate with the cursor.** List operations return `metadata.nextCursor`; pass it back as `cursor` on the next call (inside a Loop block) to page through results. `limit` defaults to `10` and caps at `500`.
+- **All filter params are comma-separated strings.** `tickers`, `isins`, `countries`, `companyIds`, `eventIds`, and `documentTypeIds` each accept multiple values in one call (e.g. `"7,10"`), so you can batch lookups instead of running one block per value.

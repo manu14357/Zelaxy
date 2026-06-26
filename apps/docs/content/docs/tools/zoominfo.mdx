@@ -1,0 +1,124 @@
+---
+title: ZoomInfo Tools
+description: Enrich and search contacts and companies with verified ZoomInfo B2B data
+icon: Search
+---
+
+# ZoomInfo Tools
+
+ZoomInfo provides verified B2B contact and company intelligence — emails, phone numbers, job titles, firmographics, industry, and financials. Use these tools in a workflow to enrich leads, append missing contact details, or search for people by name, title, and company before routing them to a CRM, an email step, or an AI agent.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `zoominfo` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token |
+
+The Bearer token is passed via the `apiKey` parameter and sent as an `Authorization: Bearer <token>` header. Mark it as a secret.
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Enrich contact | `zoominfo_enrich_contact` | Enrich contacts with verified emails, phone numbers, and job details |
+| Enrich company | `zoominfo_enrich_company` | Enrich companies with firmographics, industry, financials, and more |
+| Search contact | `zoominfo_search_contact` | Search ZoomInfo for contacts by name, job title, and company |
+
+## Configuration
+
+### `zoominfo_enrich_contact`
+
+Enrich contacts with verified emails, phone numbers, and job details. Calls `POST https://api.zoominfo.com/enrich/contact`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | ZoomInfo Bearer token. **Secret** — store as an environment variable, do not hardcode. |
+| `matchPersonInput` | json | Yes | Array of contact match criteria, e.g. `[{"firstName":"Jane","lastName":"Doe","companyName":"Acme"}]`. |
+| `outputFields` | json | No | Array of fields to return, e.g. `["email","phone","jobTitle"]`. |
+
+### `zoominfo_enrich_company`
+
+Enrich companies with firmographics, industry, financials, and more. Calls `POST https://api.zoominfo.com/enrich/company`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | ZoomInfo Bearer token. **Secret** — store as an environment variable, do not hardcode. |
+| `matchCompanyInput` | json | Yes | Array of company match criteria, e.g. `[{"companyName":"Acme","companyWebsite":"acme.com"}]`. |
+| `outputFields` | json | No | Array of fields to return, e.g. `["name","website","revenue"]`. |
+
+### `zoominfo_search_contact`
+
+Search ZoomInfo for contacts by name, job title, and company. Calls `POST https://api.zoominfo.com/search/contact`. All search filters are optional, but supply at least one to get meaningful results.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | ZoomInfo Bearer token. **Secret** — store as an environment variable, do not hardcode. |
+| `firstName` | string | No | First name to search for. |
+| `lastName` | string | No | Last name to search for. |
+| `jobTitle` | string | No | Job title to filter by. |
+| `companyName` | string | No | Company name to filter by. |
+| `rpp` | number | No | Results per page (1-100, default 25). |
+
+## Outputs
+
+### `zoominfo_enrich_contact`
+
+- `data` (json) — The enrichment result object from ZoomInfo.
+- `metadata` (json) — Response metadata.
+  - `metadata.count` (number) — Number of enriched contact results.
+
+### `zoominfo_enrich_company`
+
+- `data` (json) — The enrichment result object from ZoomInfo.
+- `metadata` (json) — Response metadata.
+  - `metadata.count` (number) — Number of enriched company results.
+
+### `zoominfo_search_contact`
+
+- `data` (json) — The search result object from ZoomInfo.
+- `metadata` (json) — Response metadata.
+  - `metadata.count` (number) — Number of contacts returned.
+
+## YAML Example
+
+```yaml
+zoominfo_1:
+  type: zoominfo
+  name: "ZoomInfo"
+  inputs:
+    operation: "zoominfo_enrich_contact"
+    matchPersonInput: '[{"firstName":"Jane","lastName":"Doe","companyName":"Acme"}]'
+    outputFields: '["email","phone","jobTitle"]'
+    apiKey: "{{ZOOMINFO_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Search-contact example:
+
+```yaml
+zoominfo_search_1:
+  type: zoominfo
+  name: "ZoomInfo"
+  inputs:
+    operation: "zoominfo_search_contact"
+    firstName: "Jane"
+    lastName: "Doe"
+    jobTitle: "VP of Sales"
+    companyName: "Acme"
+    rpp: 25
+    apiKey: "{{ZOOMINFO_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup**: Authentication is a Bearer token, not an OAuth flow. Generate a token from your ZoomInfo API account and pass it through `apiKey` (sent as `Authorization: Bearer <token>`). Store it as an environment variable such as `{{ZOOMINFO_API_KEY}}` and never hardcode it into the workflow.
+- **Match inputs are arrays**: `matchPersonInput` and `matchCompanyInput` are JSON arrays of objects, even when you only enrich one record. Pass a single-element array like `[{...}]`, not a bare object.
+- **Trim the payload with `outputFields`**: For the enrich operations, set `outputFields` to limit the response to the fields you actually consume downstream (e.g. `["email","phone"]`), which keeps the result smaller and easier to reference.
+- **Reference results downstream** with double-brace syntax, e.g. `{{zoominfo_1.data}}` for the result object or `{{zoominfo_1.metadata.count}}` to branch on how many records matched (useful with a Condition block when an enrichment returns zero results).

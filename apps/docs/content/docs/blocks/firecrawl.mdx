@@ -28,41 +28,56 @@ The Firecrawl block extracts clean, structured content from any website with adv
 ## Configuration
 
 ### Operation
-Dropdown selecting what Firecrawl does: **Scrape** (single page), **Search** (web query), or **Crawl** (multi-page site). Defaults to `scrape`. The remaining fields are shown based on this choice.
+Dropdown selecting what Firecrawl does. Defaults to `scrape`. The remaining fields are shown based on this choice.
+
+| Label | ID |
+|-------|----|
+| Scrape | `scrape` |
+| Search | `search` |
+| Crawl | `crawl` |
 
 ### Website URL
-Required for Scrape and Crawl. The target page or site URL to extract.
+Required for `scrape` and `crawl` operations. The target page or site URL to extract content from.
 
 ### Only Main Content
-Switch (Scrape only). When enabled, returns just the primary content of the page, dropping navigation, footers, and other boilerplate.
+Switch shown for the `scrape` operation only. When enabled, returns just the primary content of the page, dropping navigation, footers, and other boilerplate.
 
 ### Page Limit
-Crawl only. Maximum number of pages to crawl (e.g. `100`).
+Short input shown for the `crawl` operation only. Maximum number of pages to crawl. Defaults to `100` when not specified.
 
 ### Search Query
-Required for Search. The query terms used to search the web.
+Required for the `search` operation. The query terms used to search the web.
 
 ### API Key
-Required. Your Firecrawl API key (stored securely).
+Required for all operations. Your Firecrawl API key (stored securely as a password field).
 
 ## Inputs & Outputs
 
 - **Inputs**:
   - `apiKey` (string) — Firecrawl API key
-  - `operation` (string) — Operation to perform
-  - `url` (string) — Target website URL
-  - `limit` (string) — Page crawl limit
-  - `query` (string) — Search query terms
-  - `scrapeOptions` (json) — Scraping options
+  - `operation` (string) — Operation to perform (`scrape`, `search`, or `crawl`)
+  - `url` (string) — Target website URL (used by scrape and crawl)
+  - `limit` (string) — Page crawl limit (used by crawl)
+  - `query` (string) — Search query terms (used by search)
+  - `scrapeOptions` (json) — Scraping options (e.g. custom formats; hidden from UI)
+
 - **Outputs**:
-  - `markdown` (string) — Page content markdown
-  - `html` (string) — Raw HTML content
-  - `metadata` (json) — Page metadata
-  - `data` (json) — Search results data
-  - `warning` (string) — Warning messages
-  - `pages` (json) — Crawled pages data
-  - `total` (number) — Total pages found
-  - `creditsUsed` (number) — Credits consumed
+  - `markdown` (string) — Page content in markdown format (scrape)
+  - `html` (string) — Raw HTML content (scrape)
+  - `metadata` (json) — Page metadata including SEO and Open Graph information (scrape)
+  - `data` (json) — Search results data; each item contains title, description, url, markdown, html, rawHtml, links, screenshot, and metadata (search)
+  - `warning` (string) — Warning messages from the operation (search)
+  - `pages` (json) — Array of crawled pages, each with markdown, html, and metadata (crawl)
+  - `total` (number) — Total number of pages found during crawl (crawl)
+  - `creditsUsed` (number) — Number of credits consumed by the crawl operation (crawl)
+
+## Tools
+
+**Firecrawl Website Scraper** (`firecrawl_scrape`) — Extracts structured content from a single web page. Converts the page to markdown and/or HTML while capturing SEO metadata, Open Graph tags, and status information. Uses params: `url`, `apiKey`, and optionally `scrapeOptions` (formats array).
+
+**Firecrawl Search** (`firecrawl_search`) — Searches the web using Firecrawl and returns an array of structured result objects (title, description, url, markdown, html, rawHtml, links, screenshot, metadata). Uses params: `query` and `apiKey`.
+
+**Firecrawl Crawl** (`firecrawl_crawl`) — Crawls an entire website asynchronously and extracts structured content from all accessible pages up to a configurable limit. Submits a crawl job and polls for completion (up to 5 minutes). Uses params: `url`, `apiKey`, `limit` (max pages, default 100), and `onlyMainContent` (boolean).
 
 ## YAML Example
 
@@ -73,7 +88,6 @@ firecrawl_1:
   inputs:
     operation: "scrape"
     url: "{{start.input}}"
-    onlyMainContent: true
     apiKey: "{{FIRECRAWL_API_KEY}}"
   connections:
     outgoing:

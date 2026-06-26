@@ -1,0 +1,97 @@
+---
+title: NeverBounce Block
+description: Verify email deliverability with NeverBounce
+icon: Box
+---
+
+# NeverBounce Block
+
+Verify the deliverability of an email address and fetch account info and remaining credits through the NeverBounce API. Authenticate with a NeverBounce API key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `neverbounce` |
+| **Category** | tools |
+| **Color** | `#00C16E` |
+
+## When to Use
+
+- Validate a single email address before sending to avoid hard bounces.
+- Check whether an email is deliverable before adding it to a mailing list or CRM.
+- Filter out invalid or risky email addresses in a lead-enrichment workflow.
+- Retrieve your NeverBounce account status and remaining verification credits.
+- Gate downstream workflow steps on whether an email passes deliverability checks.
+- Surface the raw NeverBounce result (valid, invalid, disposable, catchall, unknown) for custom routing logic.
+
+## Configuration
+
+### Operation
+
+The operation to perform. Selecting an operation controls which additional fields appear.
+
+| Label | ID |
+|-------|----|
+| Verify email | `neverbounce_verify_email` |
+| Get account | `neverbounce_get_account` |
+
+Default: `neverbounce_verify_email`.
+
+**Verify email** requires the **Email** field.
+**Get account** requires only the **API Key** — no email field is shown.
+
+### Email
+
+| Property | Value |
+|----------|-------|
+| **Sub-block id** | `email` |
+| **Type** | short-input |
+| **Required** | when operation is `neverbounce_verify_email` |
+| **Placeholder** | `john@example.com` |
+| **Shown when** | `operation` = `neverbounce_verify_email` |
+
+The email address to verify. Accepts a literal address or a reference such as `{{previousBlock.email}}`.
+
+### API Key
+
+| Property | Value |
+|----------|-------|
+| **Sub-block id** | `apiKey` |
+| **Type** | short-input (password) |
+| **Required** | always |
+| **Placeholder** | Your NeverBounce API key |
+
+Your NeverBounce API key. Store it as an environment variable and reference it with `{{NEVERBOUNCE_API_KEY}}` rather than pasting the raw value.
+
+## Inputs & Outputs
+
+**Inputs:**
+- `operation` (string) — Operation to perform (`neverbounce_verify_email` or `neverbounce_get_account`)
+- `apiKey` (string) — NeverBounce API key
+- `email` (string) — Email address to verify (only used by the `neverbounce_verify_email` operation)
+
+**Outputs:**
+- `data` (json) — Result object from NeverBounce (full API response body)
+- `metadata` (json) — Response metadata (contains `email` + `result` for email verification; contains `status` for account info)
+
+## Tools
+
+**NeverBounce Verify Email** (`neverbounce_verify_email`) — Calls `GET https://api.neverbounce.com/v4/single/check` with the provided API key and email address. Returns the full verification object in `data` and a summary (`email`, `result`) in `metadata.`
+
+**NeverBounce Get Account** (`neverbounce_get_account`) — Calls `GET https://api.neverbounce.com/v4/account/info` with the provided API key. Returns the full account info object in `data` and a `status` field in `metadata`.
+
+## YAML Example
+
+```yaml
+neverbounce_1:
+  type: neverbounce
+  name: "NeverBounce"
+  inputs:
+    operation: "neverbounce_verify_email"
+    apiKey: "{{NEVERBOUNCE_API_KEY}}"
+    email: "{{leadBlock.email}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

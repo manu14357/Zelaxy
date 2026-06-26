@@ -1,0 +1,96 @@
+---
+title: Google Groups Block
+description: Manage groups and members in Google Workspace
+icon: Box
+---
+
+# Google Groups Block
+
+The Google Groups block lets you list and inspect Google Groups, enumerate group members, and add members to a group through the Google Workspace Admin Directory API. Reach for it whenever an automated workflow needs to audit, query, or modify group membership in a Google Workspace domain, authenticated via a Google OAuth access token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_groups` |
+| **Category** | tools |
+| **Color** | `#1A73E8` |
+
+## When to Use
+
+- Enumerate all groups in a Google Workspace domain (e.g. to build a directory or audit access).
+- Fetch the full details of a specific group by its email address or unique group ID.
+- List all members of a group to check who has access to a shared resource or mailing list.
+- Add a new user to a group with a defined role (MEMBER, MANAGER, or OWNER) as part of an onboarding or provisioning flow.
+- Drive downstream blocks with group or member data returned as structured JSON.
+
+## Configuration
+
+### Operation
+
+Choose which action the block performs. The selected operation controls which additional fields are shown.
+
+| Label | ID |
+|-------|-----|
+| List groups | `google_groups_list_groups` |
+| Get group | `google_groups_get_group` |
+| List members | `google_groups_list_members` |
+| Add member | `google_groups_add_member` |
+
+### Group Key
+
+The group's email address (e.g. `team@example.com`) or its unique Google-assigned group ID. Required for the **Get group**, **List members**, and **Add member** operations. Hidden when **List groups** is selected.
+
+### Member Email
+
+The email address of the user to add (e.g. `user@example.com`). Shown only for the **Add member** operation.
+
+### Role
+
+The membership role to assign when adding a member. Accepts `MEMBER`, `MANAGER`, or `OWNER`; defaults to `MEMBER` if left blank. Shown only for the **Add member** operation.
+
+### Max Results
+
+Optional integer that caps the number of results returned (1–200). Shown for the **List groups** and **List members** operations. Leave blank to use the API default.
+
+### Access Token
+
+Required. A Google OAuth access token with Admin SDK Directory API scope. Treated as a secret (masked in the UI). Pass it using `{{GOOGLE_ACCESS_TOKEN}}` or another secret reference.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`google_groups_list_groups`, `google_groups_get_group`, `google_groups_list_members`, or `google_groups_add_member`)
+  - `accessToken` (string) — Google OAuth access token
+  - `groupKey` (string) — Group email or unique group ID (required for get/list members/add member)
+  - `email` (string) — Member email address (required for add member)
+  - `role` (string) — Member role: MEMBER, MANAGER, or OWNER (optional, add member only)
+  - `maxResults` (number) — Maximum number of results to return (optional, list operations only)
+
+- **Outputs**:
+  - `data` (json) — Result object or array from Google Groups. For list operations this is an array of group or member objects; for get/add operations this is a single object.
+  - `metadata` (json) — Response metadata. For list operations includes `count` (number of items returned) and optionally `nextPageToken`; for get/add operations includes `id` and `email` of the returned resource.
+
+## Tools
+
+- **Google Groups List Groups** (`google_groups_list_groups`) — Lists all groups in the caller's Google Workspace domain via a GET to the Admin Directory API. Accepts `accessToken` and optional `maxResults`.
+- **Google Groups Get Group** (`google_groups_get_group`) — Retrieves the full details of a single Google Group by `groupKey` (email or ID). Returns the group object and its `id`/`email` in metadata.
+- **Google Groups List Members** (`google_groups_list_members`) — Lists all members of the group identified by `groupKey`. Accepts optional `maxResults` and returns an array of member objects with count metadata.
+- **Google Groups Add Member** (`google_groups_add_member`) — Adds a user (`email`) to the group identified by `groupKey` with the specified `role` (defaults to `MEMBER`) via a POST to the Admin Directory API.
+
+## YAML Example
+
+```yaml
+google_groups_1:
+  type: google_groups
+  name: "Google Groups"
+  inputs:
+    operation: "google_groups_add_member"
+    accessToken: "{{GOOGLE_ACCESS_TOKEN}}"
+    groupKey: "engineering@example.com"
+    email: "newengineer@example.com"
+    role: "MEMBER"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

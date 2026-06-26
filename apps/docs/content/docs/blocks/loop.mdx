@@ -1,75 +1,108 @@
 ---
 title: Loop Block
-description: Iterate over arrays or repeat actions a fixed number of times
+description: Execute workflow blocks in a loop iteration
 icon: Repeat
 ---
 
 # Loop Block
 
-The Loop block repeats a set of actions either a fixed number of times or once for each item in an array. It's essential for batch processing — sending multiple emails, processing lists, or iterating over API results.
+Container block that executes child workflow blocks in a loop. Supports both count-based loops (for) and collection-based loops (forEach). Child blocks placed inside the loop container will be executed for each iteration — reach for it whenever you need to process a list of items or repeat an action a fixed number of times.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `loop` |
-| **Category** | Core Block |
-| **Color** | `#F59E0B` (Yellow) |
+| **Category** | `blocks` |
+| **Color** | `#F97316` |
 
 ## When to Use
 
-- Process each item in a list (emails, records, search results)
-- Repeat an action N times
-- Batch-send messages to multiple recipients
-- Iterate over API pagination results
+- Process every item in an array (emails, records, API results) with a forEach loop
+- Repeat an action a fixed number of times with a count-based for loop
+- Batch-send messages or notifications to multiple recipients
+- Iterate over pages of API results one at a time
+- Run a sub-workflow step for each element in a structured output from an Agent block
+- Apply a transformation or enrichment to each row in a data collection
 
 ## Configuration
 
-| Setting | Type | Description |
-|---------|------|-------------|
-| Loop Type | Dropdown | `forEach` (iterate array) or `for` (fixed count) |
-| Array Input | Short input | Array to iterate over (forEach mode): `{{agent.content}}` |
-| Iterations | Slider | Number of repetitions (for mode): 1–100 |
+### Loop Type
 
-### Inside the Loop
-Blocks placed inside the loop's container execute once per iteration. Inside the loop, use `{{loop.currentItem}}` to access the current array element and `{{loop.index}}` for the iteration index.
+A **dropdown** that selects the iteration strategy. Required to determine which additional fields appear.
 
-## Outputs
+| Option | id |
+|--------|----|
+| For Loop (Count) | `for` |
+| For Each (Collection) | `forEach` |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `results` | `array` | Array of all iteration results |
-| `currentItem` | `any` | Current item (during iteration) |
-| `index` | `number` | Current index (during iteration) |
-| `totalItems` | `number` | Total number of items |
+### Iterations
 
-## Example: Send Personalized Emails
+A **short-input** field (id: `count`) that specifies how many times the loop should run. Only shown when **Loop Type** is `for`.
 
-**Goal:** Send a welcome email to each new signup from a list.
+- Placeholder: `5`
+- Required when `loopType` = `for`
 
-**Workflow:**
+### Collection Items
+
+A **long-input** field (id: `collection`) for the array or object to iterate over. Only shown when **Loop Type** is `forEach`.
+
+- Placeholder: `['item1', 'item2', 'item3'] or {{previous_block.output}}`
+- Description: Array or object to iterate over. Use `{{block_id.output}}` to reference other blocks.
+- Required when `loopType` = `forEach`
+
+### Max Iterations
+
+A **slider** (id: `maxIterations`) that sets a safety ceiling on the number of iterations to prevent runaway loops.
+
+- Range: 1 – 100
+- Description: Safety limit to prevent infinite loops
+
+### Parallel Execution
+
+A **switch** (id: `parallelExecution`) that controls whether iterations run concurrently.
+
+- Description: Execute iterations in parallel (faster but uses more resources)
+
+### Stop on Error
+
+A **switch** (id: `stopOnError`) that controls whether a failing iteration halts the entire loop.
+
+- Description: Stop loop execution if any iteration fails
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `collection` (json) — Collection of items to iterate over (for forEach loops)
+- `count` (number) — Number of iterations (for count-based loops)
+
+**Outputs:**
+
+- `iterations` (number) — Total number of iterations completed
+- `results` (json) — Array of results from each iteration
+- `executionTime` (number) — Total execution time in milliseconds
+- `status` (string) — Loop execution status (`completed`, `error`, or `cancelled`)
+- `currentIteration` (number) — Current iteration number (available during execution)
+- `currentItem` (json) — Current item being processed (for forEach loops, available during execution)
+
+## Tools
+
+This block has no external tool integrations. It is a container block handled directly by the loop executor — no `tools.access` entries are needed.
+
+## YAML Example
+
+```yaml
+loop_1:
+  type: loop
+  name: "Loop"
+  inputs:
+    loopType: "forEach"
+    collection: "{{api_fetch_1.response.items}}"
+    maxIterations: 50
+    parallelExecution: false
+    stopOnError: true
+  connections:
+    outgoing:
+      - target: next-block-id
 ```
-[Starter: JSON array of users] → [Loop (forEach)] → [Gmail: Send] → [Response]
-```
-
-**Configuration:**
-- **Loop Type:** `forEach`
-- **Array Input:** `{{starter.input}}` (expects `[{"name": "Alice", "email": "alice@example.com"}, ...]`)
-
-**Gmail block inside the loop:**
-- **To:** `{{loop.currentItem.email}}`
-- **Subject:** `Welcome, {{loop.currentItem.name}}!`
-- **Body:** `Hi {{loop.currentItem.name}}, welcome to our platform!`
-
-**How it works:**
-1. Starter receives a JSON array of user objects
-2. Loop iterates over each user
-3. Gmail sends a personalized email to each user
-4. Results array contains all send confirmations
-
-## Tips
-
-- **`forEach` is most common** — use it for arrays from Agent (structured output) or API responses
-- **Access nested fields** with dot notation: `{{loop.currentItem.user.email}}`
-- **Combine with Function block** to prepare the array before looping
-- **Loop results** are collected as `{{loop.results}}` — an array of each iteration's output

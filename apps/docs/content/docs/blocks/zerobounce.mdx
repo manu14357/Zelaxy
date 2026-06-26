@@ -1,0 +1,99 @@
+---
+title: ZeroBounce Block
+description: Validate email deliverability with ZeroBounce
+icon: Box
+---
+
+# ZeroBounce Block
+
+Validate the deliverability of an email address in real time and check remaining account credits through the ZeroBounce API. Use this block whenever a workflow needs to confirm that an email address is reachable before sending, or to monitor how many validation credits remain on the account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `zerobounce` |
+| **Category** | `tools` |
+| **Color** | `#FF6B35` |
+
+## When to Use
+
+- Verify an email address is deliverable before adding a contact to a mailing list.
+- Filter out invalid or disposable addresses collected through lead-capture forms.
+- Gate downstream blocks on email validity so invalid addresses never reach your CRM or ESP.
+- Check remaining ZeroBounce credit balance at the start of a high-volume validation pipeline.
+- Surface the raw ZeroBounce validation result (status, sub-status, SMTP provider, etc.) for audit or logging.
+- Build branching logic that routes valid and invalid emails to different follow-up paths.
+
+## Configuration
+
+### Operation
+
+Selects which ZeroBounce API action to perform. Choosing an operation shows or hides the fields that are only relevant to that action.
+
+| Label | ID |
+|-------|----|
+| Validate email | `zerobounce_validate_email` |
+| Get credits | `zerobounce_get_credits` |
+
+Default: `zerobounce_validate_email`.
+
+---
+
+### Email
+
+**Shown when**: `operation` is `zerobounce_validate_email`.
+
+The email address to validate. Accepts a literal value or a reference such as `{{previous_block.email}}`.
+
+| Property | Detail |
+|----------|--------|
+| Type | `short-input` |
+| Placeholder | `john@example.com` |
+| Required | Yes (for the Validate email operation) |
+
+---
+
+### API Key
+
+The secret ZeroBounce API key used to authenticate every request. Store it as an environment variable and reference it with `{{ZEROBOUNCE_API_KEY}}`.
+
+| Property | Detail |
+|----------|--------|
+| Type | `short-input` (password) |
+| Placeholder | `Your ZeroBounce API key` |
+| Required | Yes (all operations) |
+
+## Inputs & Outputs
+
+### Inputs
+
+- `operation` (string) — Operation to perform (`zerobounce_validate_email` or `zerobounce_get_credits`).
+- `apiKey` (string) — ZeroBounce API key.
+- `email` (string) — Email address to validate (used only by the Validate email operation).
+
+### Outputs
+
+- `data` (json) — Result object from ZeroBounce. For email validation this is the full ZeroBounce validation object (address, status, sub\_status, free\_email, mx\_found, mx\_record, smtp\_provider, did\_you\_mean, etc.). For get credits this is the raw credits response object.
+- `metadata` (json) — Response metadata. For email validation: `{ email: string, status: string }`. For get credits: `{ credits: number }`.
+
+## Tools
+
+**ZeroBounce Validate Email** (`zerobounce_validate_email`) — Calls `GET https://api.zerobounce.net/v2/validate` with the API key and target email address. Returns a full deliverability result including the validation status (`valid`, `invalid`, `catch-all`, `unknown`, `spamtrap`, `abuse`, `do_not_mail`) and supporting metadata.
+
+**ZeroBounce Get Credits** (`zerobounce_get_credits`) — Calls `GET https://api.zerobounce.net/v2/getcredits` with the API key only. Returns the number of remaining validation credits for the account.
+
+## YAML Example
+
+```yaml
+zerobounce_1:
+  type: zerobounce
+  name: "ZeroBounce"
+  inputs:
+    operation: "zerobounce_validate_email"
+    apiKey: "{{ZEROBOUNCE_API_KEY}}"
+    email: "{{form_block.email}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

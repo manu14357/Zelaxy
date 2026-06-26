@@ -1,0 +1,220 @@
+---
+title: ZoomInfo Block
+description: Enrich and search contacts and companies with ZoomInfo
+icon: Box
+---
+
+# ZoomInfo Block
+
+Enrich contacts and companies with verified emails, phone numbers, firmographics, and job details, or search for contacts by name, title, and company through the ZoomInfo API. Authenticate with a Bearer token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `zoominfo` |
+| **Category** | `tools` |
+| **Color** | `#E22E20` |
+
+## When to Use
+
+- Enrich a known contact (first name, last name, company) with their verified email, phone number, and job details from ZoomInfo.
+- Enrich a company by name or website to retrieve firmographics, industry classification, revenue estimates, and headcount.
+- Search the ZoomInfo database for contacts matching a name, job title, and/or company to build prospect lists.
+- Pipe enriched contact or company data downstream to a CRM write block, email-sequence block, or AI agent.
+- Retrieve only the fields you need by specifying an `outputFields` list, reducing response payload size.
+- Use the results metadata (record count) to drive conditional branching or loop logic in your workflow.
+
+## Configuration
+
+### Operation
+
+Selects which ZoomInfo API call to execute. This field is **required** and defaults to `Enrich contact`.
+
+| Label | ID |
+|-------|----|
+| Enrich contact | `zoominfo_enrich_contact` |
+| Enrich company | `zoominfo_enrich_company` |
+| Search contact | `zoominfo_search_contact` |
+
+The remaining fields shown in the editor change depending on the selected operation (see conditions below).
+
+---
+
+### Match Person Input
+
+- **Shown when**: Operation = `Enrich contact`
+- **Sub-block id**: `matchPersonInput`
+- **Type**: long-input (JSON)
+- **Required for the enrich-contact tool**: yes
+
+A JSON array of contact-match objects. Each object can contain any combination of `firstName`, `lastName`, `companyName`, `emailAddress`, `phone`, etc. ZoomInfo uses the provided fields to locate and match the record.
+
+**Example value**: `[{"firstName":"Jane","lastName":"Doe","companyName":"Acme"}]`
+
+---
+
+### Match Company Input
+
+- **Shown when**: Operation = `Enrich company`
+- **Sub-block id**: `matchCompanyInput`
+- **Type**: long-input (JSON)
+- **Required for the enrich-company tool**: yes
+
+A JSON array of company-match objects. Each object can contain `companyName`, `companyWebsite`, `ticker`, etc.
+
+**Example value**: `[{"companyName":"Acme","companyWebsite":"acme.com"}]`
+
+---
+
+### Output Fields
+
+- **Shown when**: Operation = `Enrich contact` or `Enrich company`
+- **Sub-block id**: `outputFields`
+- **Type**: long-input (JSON)
+- **Required**: no
+
+A JSON array of field names you want ZoomInfo to return. When omitted, the API returns its default field set.
+
+**Example for contacts**: `["email","phone","jobTitle"]`
+
+**Example for companies**: `["name","website","revenue"]`
+
+---
+
+### First Name
+
+- **Shown when**: Operation = `Search contact`
+- **Sub-block id**: `firstName`
+- **Type**: short-input (string)
+- **Required**: no
+
+First name of the person to search for. Example: `Jane`
+
+---
+
+### Last Name
+
+- **Shown when**: Operation = `Search contact`
+- **Sub-block id**: `lastName`
+- **Type**: short-input (string)
+- **Required**: no
+
+Last name of the person to search for. Example: `Doe`
+
+---
+
+### Job Title
+
+- **Shown when**: Operation = `Search contact`
+- **Sub-block id**: `jobTitle`
+- **Type**: short-input (string)
+- **Required**: no
+
+Job title filter. Example: `VP of Sales`
+
+---
+
+### Company Name
+
+- **Shown when**: Operation = `Search contact`
+- **Sub-block id**: `companyName`
+- **Type**: short-input (string)
+- **Required**: no
+
+Company name filter. Example: `Acme`
+
+---
+
+### Results Per Page
+
+- **Shown when**: Operation = `Search contact`
+- **Sub-block id**: `rpp`
+- **Type**: short-input (number)
+- **Required**: no
+
+Number of contacts to return per page. Valid range: 1–100. Defaults to `25` when not set.
+
+---
+
+### ZoomInfo Bearer Token
+
+- **Sub-block id**: `apiKey`
+- **Type**: short-input (password)
+- **Required**: yes (all operations)
+
+Your ZoomInfo Bearer token used for API authentication. Store it as a workspace secret and reference it with `{{ZOOMINFO_API_KEY}}` rather than pasting the raw value.
+
+## Inputs & Outputs
+
+**Inputs**:
+
+- `operation` (string) — Operation to perform (`zoominfo_enrich_contact`, `zoominfo_enrich_company`, or `zoominfo_search_contact`)
+- `apiKey` (string) — ZoomInfo Bearer token
+- `matchPersonInput` (json) — Array of contact match criteria (used by Enrich contact)
+- `matchCompanyInput` (json) — Array of company match criteria (used by Enrich company)
+- `outputFields` (json) — Array of fields to return (used by Enrich contact and Enrich company)
+- `firstName` (string) — First name (used by Search contact)
+- `lastName` (string) — Last name (used by Search contact)
+- `jobTitle` (string) — Job title (used by Search contact)
+- `companyName` (string) — Company name (used by Search contact)
+- `rpp` (number) — Results per page (used by Search contact)
+
+**Outputs**:
+
+- `data` (json) — Result object returned by ZoomInfo (enriched contact/company record or search result list)
+- `metadata` (json) — Response metadata; contains `count` (number) — the number of records returned
+
+## Tools
+
+- **ZoomInfo Enrich Contact** (`zoominfo_enrich_contact`) — POSTs to `https://api.zoominfo.com/enrich/contact` with a `matchPersonInput` array and optional `outputFields`. Returns verified email addresses, direct-dial phone numbers, job titles, and other personal details for each matched contact.
+
+- **ZoomInfo Enrich Company** (`zoominfo_enrich_company`) — POSTs to `https://api.zoominfo.com/enrich/company` with a `matchCompanyInput` array and optional `outputFields`. Returns firmographic data such as industry, headcount, revenue, website, and company description.
+
+- **ZoomInfo Search Contact** (`zoominfo_search_contact`) — POSTs to `https://api.zoominfo.com/search/contact` with optional `firstName`, `lastName`, `jobTitle`, `companyName`, and `rpp` filters. Returns a list of matching contacts with their profile information.
+
+## YAML Example
+
+```yaml
+# Example 1 — Enrich a contact
+zoominfo_1:
+  type: zoominfo
+  name: "Enrich Contact"
+  inputs:
+    operation: "zoominfo_enrich_contact"
+    apiKey: "{{ZOOMINFO_API_KEY}}"
+    matchPersonInput: "[{\"firstName\":\"Jane\",\"lastName\":\"Doe\",\"companyName\":\"Acme\"}]"
+    outputFields: "[\"email\",\"phone\",\"jobTitle\"]"
+  connections:
+    outgoing:
+      - target: next-block-id
+
+# Example 2 — Search for contacts
+zoominfo_2:
+  type: zoominfo
+  name: "Search VP of Sales at Acme"
+  inputs:
+    operation: "zoominfo_search_contact"
+    apiKey: "{{ZOOMINFO_API_KEY}}"
+    firstName: "Jane"
+    lastName: "Doe"
+    jobTitle: "VP of Sales"
+    companyName: "Acme"
+    rpp: "10"
+  connections:
+    outgoing:
+      - target: next-block-id
+
+# Example 3 — Enrich a company
+zoominfo_3:
+  type: zoominfo
+  name: "Enrich Company"
+  inputs:
+    operation: "zoominfo_enrich_company"
+    apiKey: "{{ZOOMINFO_API_KEY}}"
+    matchCompanyInput: "[{\"companyName\":\"Acme\",\"companyWebsite\":\"acme.com\"}]"
+    outputFields: "[\"name\",\"website\",\"revenue\"]"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,12 +1,12 @@
 ---
 title: Microsoft Teams Block
-description: Read, write, and create Microsoft Teams chat and channel messages
+description: Read, write, and create messages
 icon: Box
 ---
 
 # Microsoft Teams Block
 
-The Microsoft Teams block integrates Microsoft Teams messaging into your workflows. Using OAuth authentication, it can read messages from chats and channels and post new messages to them. Reach for it when a workflow needs to pull conversation content or notify a team.
+The Microsoft Teams block integrates Microsoft Teams messaging into your workflows using OAuth authentication. It can read messages from chats and channels and post new messages to them. Reach for it when a workflow needs to pull conversation content, notify a team, or react to incoming Teams events via a webhook trigger.
 
 ## Overview
 
@@ -22,33 +22,130 @@ The Microsoft Teams block integrates Microsoft Teams messaging into your workflo
 - Post a chat message to notify a person or group
 - Read messages from a specific channel within a team
 - Send a channel message to broadcast updates to a team
-- Pull message metadata and attachments for downstream processing
-- Trigger workflows from incoming Teams messages via the webhook trigger
+- Pull message metadata and attachment information for downstream processing
+- Start workflows from incoming Teams messages via the `microsoftteams_webhook` trigger
 
 ## Configuration
 
 ### Operation
-Dropdown selecting what the block does: **Read Chat Messages** (`read_chat`), **Write Chat Message** (`write_chat`), **Read Channel Messages** (`read_channel`), or **Write Channel Message** (`write_channel`). Defaults to `read_chat`.
+
+Dropdown (`operation`) selecting what the block does. Defaults to `read_chat`.
+
+| Label | ID |
+|-------|----|
+| Read Chat Messages | `read_chat` |
+| Write Chat Message | `write_chat` |
+| Read Channel Messages | `read_channel` |
+| Write Channel Message | `write_channel` |
 
 ### Microsoft Account
-Required OAuth credential (`credential`) connecting your Microsoft account with the necessary Teams scopes (chat read/write, channel message send/read, team and group access).
 
-### Chat
-For chat operations, select a chat (`chatId`) in basic mode or enter a chat ID manually (`manualChatId`) in advanced mode.
+Required OAuth credential (`credential`) connecting your Microsoft account to Teams. The connection requests the following scopes: `openid`, `profile`, `email`, `User.Read`, `Chat.Read`, `Chat.ReadWrite`, `Chat.ReadBasic`, `Channel.ReadBasic.All`, `ChannelMessage.Send`, `ChannelMessage.Read.All`, `Group.Read.All`, `Group.ReadWrite.All`, `Team.ReadBasic.All`, `offline_access`.
 
-### Team & Channel
-For channel operations, select a team (`teamId`) and channel (`channelId`) in basic mode, or enter them manually (`manualTeamId`, `manualChannelId`) in advanced mode.
+### Select Chat (`chatId`)
 
-### Message
-The message body (`content`), required for the write operations.
+_Visible for `read_chat` and `write_chat` operations — basic mode._
 
-### Trigger Configuration
-Configures the `microsoftteams_webhook` trigger so the block can start workflows from incoming Teams events.
+File-selector that lets you pick a chat from your Microsoft account. Resolves to the chat ID used by the underlying tool.
+
+### Chat ID (`manualChatId`)
+
+_Visible for `read_chat` and `write_chat` operations — advanced mode._
+
+Short text input for entering the chat ID directly when you prefer not to use the selector.
+
+### Select Team (`teamId`)
+
+_Visible for `read_channel` and `write_channel` operations — basic mode._
+
+File-selector that lets you pick a team from your Microsoft account.
+
+### Team ID (`manualTeamId`)
+
+_Visible for `read_channel` and `write_channel` operations — advanced mode._
+
+Short text input for entering the team ID directly.
+
+### Select Channel (`channelId`)
+
+_Visible for `read_channel` and `write_channel` operations — basic mode._
+
+File-selector that lets you pick a channel within the selected team.
+
+### Channel ID (`manualChannelId`)
+
+_Visible for `read_channel` and `write_channel` operations — advanced mode._
+
+Short text input for entering the channel ID directly.
+
+### Message (`content`)
+
+_Required for `write_chat` and `write_channel` operations._
+
+Long-text input for the message body to send to the chat or channel.
+
+### Trigger Configuration (`triggerConfig`)
+
+Configures the `microsoftteams_webhook` trigger so the block can start workflows from incoming Microsoft Teams events.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `messageId` (string), `chatId` (string), `manualChatId` (string), `channelId` (string), `manualChannelId` (string), `teamId` (string), `manualTeamId` (string), `content` (string)
-- **Outputs**: `content` (string), `metadata` (json), `messageCount` (number), `messages` (json), `totalAttachments` (number), `attachmentTypes` (json), `updatedContent` (boolean), `messageId` (string), `createdTime` (string), `url` (string), `sender` (string), `messageTimestamp` (string), `messageType` (string), `type` (string), `id` (string), `timestamp` (string), `localTimestamp` (string), `serviceUrl` (string), `channelId` (string), `from_id` (string), `from_name` (string), `conversation_id` (string), `text` (string)
+### Inputs
+
+- `operation` (string) — Operation to perform (`read_chat`, `write_chat`, `read_channel`, or `write_channel`)
+- `credential` (string) — Microsoft Teams OAuth access token
+- `messageId` (string) — Message identifier
+- `chatId` (string) — Chat identifier (from the selector)
+- `manualChatId` (string) — Manual chat identifier (advanced mode)
+- `channelId` (string) — Channel identifier (from the selector)
+- `manualChannelId` (string) — Manual channel identifier (advanced mode)
+- `teamId` (string) — Team identifier (from the selector)
+- `manualTeamId` (string) — Manual team identifier (advanced mode)
+- `content` (string) — Message content to send (write operations)
+
+### Outputs
+
+Read operation outputs:
+
+- `content` (string) — Formatted message content from the chat or channel
+- `metadata` (json) — Message metadata with full details
+- `messageCount` (number) — Number of messages retrieved
+- `messages` (json) — Array of message objects
+- `totalAttachments` (number) — Total number of attachments across all messages
+- `attachmentTypes` (json) — Array of unique attachment content types found
+
+Write operation outputs:
+
+- `updatedContent` (boolean) — Whether content was successfully sent
+- `messageId` (string) — ID of the created/sent message
+- `createdTime` (string) — Timestamp when the message was created
+- `url` (string) — Web URL to the message
+
+Individual message field outputs (from read operations):
+
+- `sender` (string) — Message sender display name
+- `messageTimestamp` (string) — Individual message timestamp
+- `messageType` (string) — Type of message (e.g. `message`, `systemEventMessage`)
+
+Trigger (webhook) outputs:
+
+- `type` (string) — Type of Teams message event
+- `id` (string) — Unique message identifier
+- `timestamp` (string) — Message timestamp
+- `localTimestamp` (string) — Local timestamp of the message
+- `serviceUrl` (string) — Microsoft Teams service URL
+- `channelId` (string) — Teams channel ID where the event occurred
+- `from_id` (string) — User ID who sent the message
+- `from_name` (string) — Username who sent the message
+- `conversation_id` (string) — Conversation/thread ID
+- `text` (string) — Message text content
+
+## Tools
+
+- **Read Microsoft Teams Chat** (`microsoft_teams_read_chat`) — Fetches the 50 most recent messages from a Teams chat via `GET /chats/{chatId}/messages`. Returns formatted text, message objects, sender names, timestamps, and attachment statistics.
+- **Write to Microsoft Teams Chat** (`microsoft_teams_write_chat`) — Posts a new text message to a Teams chat via `POST /chats/{chatId}/messages`. Returns the new message ID, creation time, and web URL.
+- **Read Microsoft Teams Channel** (`microsoft_teams_read_channel`) — Fetches messages from a Teams channel via `GET /teams/{teamId}/channels/{channelId}/messages`. Returns formatted text, message objects, sender names, timestamps, and attachment statistics.
+- **Write to Microsoft Teams Channel** (`microsoft_teams_write_channel`) — Posts a new text message to a Teams channel via `POST /teams/{teamId}/channels/{channelId}/messages`. Returns the new message ID, creation time, and web URL.
 
 ## YAML Example
 

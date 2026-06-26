@@ -6,7 +6,7 @@ icon: Box
 
 # Dagster Block
 
-The Dagster block integrates Dagster data orchestration into your workflows. Use it to launch runs, monitor their status, manage jobs and schedules, and retrieve run logs directly from a Dagster deployment.
+The Dagster block integrates Dagster data orchestration into your workflows. Use it to launch runs, monitor their status, retrieve run logs, list recent executions, terminate stuck runs, and enumerate available jobs and schedules in a Dagster deployment.
 
 ## Overview
 
@@ -18,67 +18,117 @@ The Dagster block integrates Dagster data orchestration into your workflows. Use
 
 ## When to Use
 
-- Launch a Dagster job run as part of an automated workflow.
-- Poll or inspect the status of an existing run.
-- Pull run logs to diagnose pipeline failures or feed results downstream.
-- List runs to find recent or in-progress executions.
-- Terminate a run that is stuck or no longer needed.
-- Enumerate available jobs or schedules in a repository location.
+- Launch a Dagster job run with a custom run configuration as part of an automated pipeline.
+- Poll or inspect the status and metadata of an existing run by its ID.
+- Pull structured execution event logs to diagnose pipeline failures or pass results to downstream blocks.
+- List recent runs, filtered by job name or status, to find in-progress or failed executions.
+- Terminate a run that is stuck, timed out, or no longer needed.
+- Enumerate all jobs across repositories or list all schedules (with their cron expressions and status) in a Dagster instance.
 
 ## Configuration
 
 ### Operation
 
-Choose which Dagster action to perform: Launch Run, Get Run, Get Run Logs, List Runs, Terminate Run, List Jobs, or List Schedules.
+**Required.** Choose which Dagster action to perform. Every other field is shown or hidden based on this selection.
 
-### Dagster URL
+| Label | ID |
+|-------|-----|
+| Launch Run | `dagster_launch_run` |
+| Get Run | `dagster_get_run` |
+| Get Run Logs | `dagster_get_run_logs` |
+| List Runs | `dagster_list_runs` |
+| Terminate Run | `dagster_terminate_run` |
+| List Jobs | `dagster_list_jobs` |
+| List Schedules | `dagster_list_schedules` |
 
-The base URL of your Dagster deployment (e.g. `https://dagster.example.com`). Required for all operations.
+### Dagster URL (`baseUrl`)
 
-### Repository Location
+**Required for all operations.** The base URL of your Dagster deployment, for example `https://dagster.example.com`. The block appends `/graphql` to this URL for all API calls.
 
-The repository location name. Used when launching a run or listing jobs.
+To keep the URL out of plain text, store it in an environment variable and reference it as `{{DAGSTER_BASE_URL}}`.
 
-### Repository Name
+### Repository Location (`repositoryLocationName`)
 
-The repository name (e.g. `__repository__`). Used when launching a run or listing jobs.
+Shown for: `dagster_launch_run`, `dagster_list_jobs`.
 
-### Job Name
+The code-location (repository location) name as configured in your Dagster workspace, for example `my_repo_location`. Required when launching a run or listing jobs.
 
-The name of the job/pipeline to launch. Required for Launch Run.
+### Repository Name (`repositoryName`)
 
-### Run Config (JSON)
+Shown for: `dagster_launch_run`, `dagster_list_jobs`.
 
-The Dagster run configuration as JSON. Used with Launch Run.
+The repository name within the code location, for example `__repository__`. Required when launching a run or listing jobs.
 
-### Run ID
+### Job Name (`jobName`)
 
-The identifier of an existing run. Required for Get Run, Get Run Logs, and Terminate Run.
+Shown for: `dagster_launch_run`.
+
+The name of the Dagster job (pipeline) to launch, for example `my_pipeline`. Required for Launch Run.
+
+### Run Config (JSON) (`runConfigJson`)
+
+Shown for: `dagster_launch_run`.
+
+Optional run configuration passed to the job as a JSON object, for example:
+
+```json
+{"ops": {"my_op": {"config": {"param": "value"}}}}
+```
+
+Leave blank to use the job's default configuration.
+
+### Run ID (`runId`)
+
+Shown for: `dagster_get_run`, `dagster_get_run_logs`, `dagster_terminate_run`.
+
+The globally unique identifier of an existing run. Required for Get Run, Get Run Logs, and Terminate Run. You can pass the output of a Launch Run step using `{{dagster_1.runId}}`.
 
 ## Inputs & Outputs
 
 - **Inputs**:
-  - `operation` (string) — Operation to perform
+  - `operation` (string) — Operation to perform (one of the operation IDs above)
   - `baseUrl` (string) — Dagster URL
-  - `repositoryLocationName` (string) — Repository location name
-  - `repositoryName` (string) — Repository name
-  - `jobName` (string) — Job name
-  - `runConfigJson` (json) — Run configuration
-  - `runId` (string) — Run ID
-- **Outputs**:
-  - `runId` (string) — Run ID
-  - `status` (string) — Run status
+  - `repositoryLocationName` (string) — Repository location name (Launch Run, List Jobs, List Schedules)
+  - `repositoryName` (string) — Repository name (Launch Run, List Jobs, List Schedules)
+  - `jobName` (string) — Job name (Launch Run)
+  - `runConfigJson` (json) — Run configuration as a JSON object (Launch Run, optional)
+  - `runId` (string) — Run ID (Get Run, Get Run Logs, Terminate Run)
+
+- **Outputs** (block-level, operation-dependent):
+  - `runId` (string) — Run ID of the launched or terminated run
+  - `status` (string) — Run status (e.g. `SUCCESS`, `FAILURE`, `STARTED`, `TERMINATED`)
   - `logs` (json) — Run logs
+
+  Detailed per-operation outputs from the underlying tools are documented in the Tools section below.
+
+## Tools
+
+**Dagster Launch Run** (`dagster_launch_run`) — Launches a new Dagster job run via GraphQL mutation. Accepts `repositoryLocationName`, `repositoryName`, `jobName`, an optional `runConfigJson` (JSON string), and optional `tags` (JSON array of `{key, value}` objects). Returns `runId` (string) — the globally unique ID of the launched run. Optionally accepts `apiKey` (Dagster+ API token; omit for OSS).
+
+**Dagster Get Run** (`dagster_get_run`) — Retrieves the status and full metadata of a run by ID. Returns `runId` (string), `jobName` (string, optional), `status` (string), `startTime` (number — Unix timestamp, optional), `endTime` (number — Unix timestamp, optional), `runConfigYaml` (string, optional), and `tags` (json, optional).
+
+**Dagster Get Run Logs** (`dagster_get_run_logs`) — Fetches execution event logs for a run. Supports pagination via `afterCursor` and a `limit` parameter. Returns `events` (json — array of log event objects each with `type`, `message`, `timestamp`, `level`, `stepKey`, `eventType`), `cursor` (string, optional — pass to the next call for pagination), and `hasMore` (boolean).
+
+**Dagster List Runs** (`dagster_list_runs`) — Lists recent runs, optionally filtered by `jobName` (string) and/or `statuses` (comma-separated string such as `"SUCCESS,FAILURE"`). Accepts a `limit` parameter (default 20). Returns `runs` (json — array of objects each with `runId`, `jobName`, `status`, `tags`, `startTime`, `endTime`).
+
+**Dagster Terminate Run** (`dagster_terminate_run`) — Terminates an in-progress run. Returns `runId` (string — the run that was terminated) and `status` (string — `TERMINATED`).
+
+**Dagster List Jobs** (`dagster_list_jobs`) — Lists all jobs across all repositories in the Dagster instance. Returns `jobs` (json — array of objects each with `name` and `repositoryName`).
+
+**Dagster List Schedules** (`dagster_list_schedules`) — Lists all schedules defined in a repository. Requires `repositoryLocationName` and `repositoryName`. Accepts an optional `scheduleStatus` filter (`RUNNING` or `STOPPED`). Returns `schedules` (json — array of objects each with `name`, `cronSchedule`, `jobName`, `status`, `id`, `description`, `executionTimezone`).
+
+All tools accept an optional `apiKey` param (Dagster+ API token). Leave it blank for open-source Dagster deployments; pass `{{DAGSTER_API_KEY}}` for Dagster Cloud.
 
 ## YAML Example
 
 ```yaml
+# Launch a Dagster job run and pass its ID to the next block
 dagster_1:
   type: dagster
-  name: "Dagster"
+  name: "Launch ETL Pipeline"
   inputs:
     operation: "dagster_launch_run"
-    baseUrl: "https://dagster.example.com"
+    baseUrl: "{{DAGSTER_BASE_URL}}"
     repositoryLocationName: "my_repo_location"
     repositoryName: "__repository__"
     jobName: "my_pipeline"

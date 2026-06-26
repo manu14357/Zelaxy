@@ -1,0 +1,80 @@
+---
+title: DuckDuckGo
+description: Privacy-respecting web, news, and image search with no API key required
+icon: Search
+---
+
+# DuckDuckGo
+
+DuckDuckGo provides free, privacy-respecting search across web content, news, and images via the DuckDuckGo Instant Answers API. Use it in workflows when you need search results without tracking and without managing an API key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `duckduckgo` |
+| **Category** | Tool — Search & Research |
+| **Auth** | None |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Web Search** | `duckduckgo_text_search` | Query the DuckDuckGo Instant Answers API and return instant answers, abstracts, and related topics |
+| **News Search** | `duckduckgo_news_search` | Search for recent news articles and return titles, URLs, sources, and excerpts |
+| **Image Search** | `duckduckgo_images_search` | Search for images and return titles, URLs, thumbnails, and dimensions |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `query` | string | Yes | The search query to execute. Accepted by all three operations. |
+| `noHtml` | boolean | No | (Web Search only) Strip HTML tags from result text. Defaults to `true`. |
+| `skipDisambig` | boolean | No | (Web Search only) Skip disambiguation pages and return the best single match. Defaults to `false`. |
+| `maxResults` | number | No | (News Search, Image Search) Maximum number of results to return. Defaults to `10`. |
+| `region` | string | No | (News Search, Image Search) BCP-47 region/locale code for localized results — e.g., `us-en`, `wt-wt` (worldwide). |
+
+## Outputs
+
+### Web Search (`duckduckgo_text_search`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `heading` | string | Heading or title of the instant answer |
+| `abstract` | string | Short abstract summary of the topic |
+| `abstractText` | string | Plain-text version of the abstract (HTML stripped) |
+| `abstractSource` | string | Name of the source for the abstract (e.g., `Wikipedia`) |
+| `abstractURL` | string | URL to the abstract source page |
+| `image` | string | URL to an image related to the topic |
+| `answer` | string | Direct answer string when one is available |
+| `answerType` | string | Type identifier for the direct answer |
+| `type` | string | Response type: `A` (article), `D` (disambiguation), `C` (category) |
+| `relatedTopics` | array | Array of related topics, each with `FirstURL`, `Text`, and `Result` fields |
+| `results` | array | Array of external link results, each with `FirstURL`, `Text`, and `Result` fields |
+
+### News Search (`duckduckgo_news_search`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | array | Array of news items, each with `title`, `url`, `source`, `date`, and `excerpt` fields |
+
+### Image Search (`duckduckgo_images_search`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | array | Array of image results, each with `title`, `url`, `thumbnail`, `source`, `width`, and `height` fields |
+
+## Example
+
+```
+[Starter] → [DuckDuckGo: Web Search] → [Agent: summarize the results]
+```
+
+A user provides a topic via `{{starter.topic}}`. The DuckDuckGo block runs a Web Search with `query` set to `{{starter.topic}}` and `noHtml` set to `true`. The Agent block receives `{{duckduckgo.abstractText}}` and `{{duckduckgo.relatedTopics}}` and produces a concise summary. Because no API key is needed, no credentials block is required in the workflow.
+
+## Tips
+
+- **No API key needed** — all three operations call `https://api.duckduckgo.com/` with no authentication headers, so you can use them in any workflow without a credentials block.
+- **Web Search returns instant answers, not a list of URLs** — the `abstractText` and `answer` fields are most useful for feeding into an Agent. For a ranked list of links, prefer the `relatedTopics` or `results` arrays.
+- **News Search and Image Search** use DuckDuckGo's topic-based results rather than a dedicated news or image index, so result quality varies by query specificity. Set `maxResults` to a low value (5–10) and pass `region` (e.g., `us-en`) to improve relevance.
+- **`skipDisambig: true`** is useful when you know the exact entity you are searching for and want to skip DuckDuckGo's disambiguation page (which would return `type: D` and an empty `abstractText`).

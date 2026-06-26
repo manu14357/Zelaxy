@@ -1,100 +1,173 @@
 ---
 title: Condition Block
-description: Branch workflow execution with boolean expressions or LLM-as-a-Judge
+description: Advanced condition evaluation with LLM-as-a-Judge
 icon: GitBranch
 ---
 
 # Condition Block
 
-The Condition block adds IF/ELSE branching to your workflow. It evaluates a condition and routes execution down one of two paths — **True** or **False**. It supports two modes: traditional boolean expressions and AI-powered LLM judging for complex, natural-language decisions.
+The Condition block adds IF/ELSE branching to a workflow by evaluating a condition and routing execution down one of two paths — **True** or **False**. It supports boolean expressions for simple comparisons and LLM-as-a-Judge for complex, natural-language decisions that require AI reasoning.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `condition` |
-| **Category** | Core Block |
-| **Color** | `#FF752F` (Orange) |
+| **Category** | `blocks` |
+| **Color** | `#FF752F` |
 
 ## When to Use
 
-- You need IF/ELSE logic based on a previous block's output
-- You want to filter, validate, or classify data before processing
-- You need AI to make a subjective judgment (tone, quality, relevance)
-- You want to branch based on API response codes, string matches, or numeric comparisons
+- Branch execution based on a previous block's output using a boolean expression
+- Filter, validate, or classify data before sending it to downstream blocks
+- Use AI to make a subjective judgment (tone, quality, relevance, sentiment) via LLM-as-a-Judge
+- Route based on API response codes, string matches, or numeric comparisons
+- Gate publishing or delivery steps on a confidence threshold from an LLM decision
+- Replace a series of conditional checks with a single natural-language criteria prompt
 
 ## Configuration
 
-### Evaluation Mode
+### Evaluation Mode (`evaluationMode`)
 
-**Boolean Expression** — Standard comparisons using block references:
+**Type:** dropdown — required to select before other fields appear.
+
+| Label | ID |
+|-------|----|
+| Boolean Expression | `expression` |
+| LLM as Judge | `llm` |
+
+Selecting `expression` shows the **Boolean Expression** input. Selecting `llm` shows the LLM Judge fields (prompt, context, model, API key, and optional Azure fields).
+
+---
+
+### Boolean Expression (`conditions`)
+
+**Type:** condition-input  
+**Visible when:** `evaluationMode` = `expression`
+
+Enter one or more boolean expressions. Each row is evaluated and the combined result determines the True or False path. Expressions support `==`, `!=`, `>`, `<`, `>=`, `<=`, `&&`, `||`, and `.length` checks against block outputs referenced with `{{blockName.field}}`.
+
+Example placeholder: `{{agent1.content}}==1 or content.length > 10`
+
+---
+
+### LLM Judge Prompt (`llmPrompt`)
+
+**Type:** long-input (4 rows)  
+**Visible when:** `evaluationMode` = `llm`
+
+Describe the criteria for the LLM to evaluate. The LLM will respond YES or NO based on this prompt. Be specific and unambiguous.
+
+Example: `Is the content positive and professional in tone?`
+
+---
+
+### Context for Evaluation (`llmContext`)
+
+**Type:** long-input (3 rows)  
+**Visible when:** `evaluationMode` = `llm`
+
+Provide the data you want the LLM to judge. Reference a previous block's output using `{{blockName.field}}`.
+
+Example: `{{agent1.content}}`
+
+---
+
+### LLM Model (`llmModel`)
+
+**Type:** combobox — **required** when using LLM mode  
+**Visible when:** `evaluationMode` = `llm`
+
+Select or type the model name to use for judging. Options are populated dynamically from all configured base model providers plus any locally running Ollama models. Examples include `gpt-4o-mini`, `claude-3-5-haiku-20241022`, `gemini-2.0-flash`, and any Ollama model name.
+
+---
+
+### API Key (`apiKey`)
+
+**Type:** short-input (password)  
+**Visible when:** `evaluationMode` = `llm` AND the selected model is not a hosted/Ollama model (i.e., requires an explicit API key)
+
+Enter the API key for the chosen model's provider. Use an environment variable reference such as `{{OPENAI_API_KEY}}` rather than pasting the key directly.
+
+---
+
+### Azure OpenAI Endpoint (`azureEndpoint`)
+
+**Type:** short-input (password)  
+**Visible when:** `evaluationMode` = `llm` AND an Azure OpenAI model is selected
+
+The full Azure OpenAI resource endpoint URL.
+
+Example: `https://your-resource.openai.azure.com`
+
+---
+
+### Azure API Version (`azureApiVersion`)
+
+**Type:** short-input  
+**Visible when:** `evaluationMode` = `llm` AND an Azure OpenAI model is selected
+
+The Azure OpenAI API version string.
+
+Example: `2024-07-01-preview`
+
+---
+
+### Require High Confidence (`requireConfidence`)
+
+**Type:** switch  
+**Visible when:** `evaluationMode` = `llm`
+
+When enabled, the block only treats an LLM YES decision as True if the model's reported confidence score exceeds 80%. Decisions below that threshold fall through to the False path.
+
+## Inputs & Outputs
+
+- **Inputs**: none — the Condition block has no declared inputs; all data comes from sub-block fields referencing other blocks via `{{blockName.field}}` syntax.
+
+- **Outputs**:
+  - `content` (string) — Condition evaluation content or LLM reasoning text
+  - `conditionResult` (boolean) — Boolean result of the condition evaluation (`true` routes to the True path, `false` to the False path)
+  - `selectedPath` (json) — Information about the execution path that was selected, including `blockId`, `blockType`, and `blockTitle` of the downstream block
+  - `selectedConditionId` (string) — Identifier of the selected path (`true` or `false`)
+  - `llmJudgement` (json) — LLM judgement details when using LLM mode; contains `reasoning` (string), `confidence` (number 0–1), `model` (string), and `decision` (`yes` or `no`)
+
+## Tools
+
+This block uses no external tools. In **expression** mode the evaluation runs entirely in the executor. In **llm** mode the block calls a provider directly through the Zelaxy provider layer (not the tool registry) using the credentials and model configured in the sub-blocks.
+
+## YAML Example
+
+```yaml
+# Boolean expression mode — route based on an agent's classification output
+condition_1:
+  type: condition
+  name: "Check Urgency"
+  inputs:
+    evaluationMode: expression
+    conditions:
+      - left: "{{agent1.content}}"
+        operator: "=="
+        right: "urgent"
+  connections:
+    outgoing:
+      - target: slack_notify        # True path
+      - target: log_low_priority    # False path
 ```
-{{agent.content}} == "approved"
-{{api.status}} >= 200 && {{api.status}} < 300
-{{starter.input}}.length > 10
+
+```yaml
+# LLM-as-a-Judge mode — AI evaluates tone and professionalism
+condition_2:
+  type: condition
+  name: "Content Quality Check"
+  inputs:
+    evaluationMode: llm
+    llmPrompt: "Is this content professional, factual, and free of harmful language?"
+    llmContext: "{{agent1.content}}"
+    llmModel: gpt-4o-mini
+    apiKey: "{{OPENAI_API_KEY}}"
+    requireConfidence: true
+  connections:
+    outgoing:
+      - target: publish_block      # True path (YES with >80% confidence)
+      - target: rejection_response # False path
 ```
-
-**LLM as Judge** — Use an AI model to evaluate complex criteria:
-- Provide a **prompt** describing what to evaluate
-- Provide **context** (the data to judge)
-- Select a **model** (GPT-4o-mini is fast and cost-effective)
-- Optionally **require high confidence** (>80%)
-
-### LLM Judge Settings
-
-| Setting | Type | Description |
-|---------|------|-------------|
-| LLM Judge Prompt | Long text | Criteria for the LLM (responds YES/NO) |
-| Context for Evaluation | Long text | Data to evaluate, e.g., `{{agent.content}}` |
-| LLM Model | Dropdown | Model for judging |
-| Require High Confidence | Toggle | Only accept >80% confidence decisions |
-
-## Outputs
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `content` | `string` | Evaluation content or reasoning |
-| `conditionResult` | `boolean` | `true` or `false` |
-| `selectedPath` | `json` | Which path was taken |
-| `selectedConditionId` | `string` | Path ID (`true` or `false`) |
-| `llmJudgement` | `json` | LLM reasoning + confidence (LLM mode only) |
-
-## Example: Content Moderation Pipeline
-
-**Goal:** Check if AI-generated content is appropriate before publishing.
-
-**Workflow:**
-```
-[Starter] → [Agent] → [Condition] → [Slack] (approved)
-                                   → [Response: "Rejected"] (rejected)
-```
-
-**Configuration (LLM Judge mode):**
-- **Prompt:** `Is this content professional, factual, and free of harmful language? Consider tone, accuracy, and appropriateness for a business audience.`
-- **Context:** `{{agent.content}}`
-- **Model:** `gpt-4o-mini`
-- **Require High Confidence:** ✅
-
-**How it works:**
-1. Agent generates content from user input
-2. Condition block sends content to GPT-4o-mini for review
-3. If approved (YES with >80% confidence) → content goes to Slack
-4. If rejected → user gets a "Content flagged for review" response
-
-## Example: Boolean Expression
-
-**Goal:** Route customer inquiries based on urgency level.
-
-**Configuration (Boolean Expression mode):**
-```
-{{agent.content}} == "urgent"
-```
-
-The Agent uses structured output to return an urgency classification. The Condition checks the string and routes accordingly.
-
-## Tips
-
-- **Boolean mode is faster and free** — use it for simple comparisons
-- **LLM Judge mode costs tokens** but handles nuanced decisions (tone, quality, relevance)
-- **Use `gpt-4o-mini`** for LLM judging — it's fast and cheap for YES/NO decisions
-- **Chain conditions** for multi-level branching, or use a Router block for 3+ paths

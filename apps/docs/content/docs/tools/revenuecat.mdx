@@ -1,0 +1,97 @@
+---
+title: RevenueCat Tools
+description: Retrieve customers, list customers, and fetch customer subscriptions through the RevenueCat v2 API.
+icon: Box
+---
+
+# RevenueCat Tools
+
+RevenueCat is a subscription management platform for mobile and web apps. Use these tools in a workflow to look up a customer, page through a project's customers, or fetch a customer's subscriptions via the RevenueCat v2 API.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `revenuecat` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (RevenueCat v2 secret API key, `sk_...`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Get customer | `revenuecat_get_customer` | Retrieve a RevenueCat customer by ID within a project |
+| List customers | `revenuecat_list_customers` | List customers within a RevenueCat project |
+| Get subscription | `revenuecat_get_subscription` | List subscriptions for a RevenueCat customer within a project |
+
+## Configuration
+
+### `revenuecat_get_customer`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | RevenueCat v2 secret API key (`sk_...`). **Secret** — passed as the Bearer token. Visibility: user-only. |
+| `projectId` | string | Yes | RevenueCat project ID. Visibility: user-only. |
+| `customerId` | string | Yes | The customer (app user) ID. Visibility: user-or-llm. |
+
+### `revenuecat_list_customers`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | RevenueCat v2 secret API key (`sk_...`). **Secret** — passed as the Bearer token. Visibility: user-only. |
+| `projectId` | string | Yes | RevenueCat project ID. Visibility: user-only. |
+| `limit` | number | No | Number of results to return (default 20, max 100). Visibility: user-or-llm. |
+| `startingAfter` | string | No | Cursor for pagination (customer ID to start after). Sent as the `starting_after` query param. Visibility: user-or-llm. |
+
+### `revenuecat_get_subscription`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | RevenueCat v2 secret API key (`sk_...`). **Secret** — passed as the Bearer token. Visibility: user-only. |
+| `projectId` | string | Yes | RevenueCat project ID. Visibility: user-only. |
+| `customerId` | string | Yes | The customer (app user) ID. Visibility: user-or-llm. |
+
+## Outputs
+
+### `revenuecat_get_customer`
+
+- `data` (json) — The RevenueCat customer object.
+- `metadata` (json) — Customer identifiers.
+  - `id` (string) — Customer ID.
+  - `object` (string) — Object type.
+
+### `revenuecat_list_customers`
+
+- `data` (json) — Array of RevenueCat customer objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of items returned.
+  - `next_page` (string) — URL or cursor for the next page, if any.
+
+### `revenuecat_get_subscription`
+
+- `data` (json) — Array of RevenueCat subscription objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of items returned.
+  - `next_page` (string) — URL or cursor for the next page, if any.
+
+## YAML Example
+
+```yaml
+revenuecat_1:
+  type: revenuecat
+  name: "RevenueCat"
+  inputs:
+    operation: "revenuecat_get_customer"
+    projectId: "projXXXXXXXX"
+    customerId: "app_user_123"
+    apiKey: "{{REVENUECAT_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Use a RevenueCat **v2 secret API key** (`sk_...`), not a public/SDK key. It is passed as `Authorization: Bearer <apiKey>` and should be stored as a secret/environment variable and referenced with `{{REVENUECAT_API_KEY}}` rather than hardcoded.
+- The `projectId` (e.g. `projXXXXXXXX`) is required for every operation. Find it in your RevenueCat dashboard under the project's settings; it scopes all customer and subscription lookups.
+- For `revenuecat_list_customers`, paginate by passing the `next_page` cursor from a prior response into `startingAfter` on the next call, and keep `limit` at or below 100. The `customerId` is your app user ID and is used by both `revenuecat_get_customer` and `revenuecat_get_subscription`.

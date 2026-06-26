@@ -1,0 +1,63 @@
+---
+title: AWS AppConfig
+description: List applications, environments, and configuration profiles in AWS AppConfig
+icon: Settings
+---
+
+# AWS AppConfig
+
+Query the AWS AppConfig control plane to discover applications, their deployment environments, and stored configuration profiles. Use this integration when a workflow needs to look up runtime configuration resources — for example, to feed an application ID or environment name into a downstream deployment or audit step.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `appconfig` |
+| **Category** | Tool — Cloud Infrastructure |
+| **Auth** | AWS SigV4 (Access Key ID + Secret Access Key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **List Applications** | `appconfig_list_applications` | List all applications registered in AWS AppConfig for the given region |
+| **List Environments** | `appconfig_list_environments` | List deployment environments for a specific AppConfig application |
+| **List Configuration Profiles** | `appconfig_list_configuration_profiles` | List configuration profiles (hosted, SSM Parameter Store, S3, etc.) for a specific application |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `awsRegion` | `string` | Yes | AWS region where AppConfig resources live (e.g. `us-east-1`). Determines the API endpoint. |
+| `awsAccessKeyId` | `string` | Yes | AWS IAM access key ID used to sign requests. Treat as a secret — store in an environment variable such as `{{AWS_ACCESS_KEY_ID}}`. |
+| `awsSecretAccessKey` | `string` | Yes | AWS IAM secret access key paired with the access key ID. Treat as a secret — store in an environment variable such as `{{AWS_SECRET_ACCESS_KEY}}`. |
+| `applicationId` | `string` | Conditional | The AppConfig application ID (e.g. `abcd123`). Required for **List Environments** and **List Configuration Profiles**; not used by **List Applications**. Can be supplied by an upstream block using `{{appconfig.data}}` output or entered directly. |
+
+## Outputs
+
+All three operations return the same output shape:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | Raw AWS AppConfig API response object. Contains an `Items` array of resources and an optional `NextToken` for paginated results. |
+
+### `data` shape by operation
+
+- **List Applications** — `data.Items` is an array of application objects, each with `Id`, `Name`, and `Description`.
+- **List Environments** — `data.Items` is an array of environment objects, each with `ApplicationId`, `Id`, `Name`, `State`, and `Monitors`.
+- **List Configuration Profiles** — `data.Items` is an array of profile objects, each with `ApplicationId`, `Id`, `Name`, `LocationUri`, `Type`, and `ValidatorTypes`.
+
+## Example
+
+```
+[Starter] → [AWS AppConfig: List Applications] → [AWS AppConfig: List Environments] → [Agent: summarise deployment status]
+```
+
+A scheduled workflow first calls **List Applications** with `{{AWS_ACCESS_KEY_ID}}` and `{{AWS_SECRET_ACCESS_KEY}}` to discover all AppConfig applications. It then passes the `Id` of a specific application — referenced as `{{listApplications.data}}` — into a second **List Environments** block to retrieve that application's environments. An Agent block finally summarises the environment states for an on-call Slack report.
+
+## Tips
+
+- **Least-privilege IAM** — the credentials only need `appconfig:ListApplications`, `appconfig:ListEnvironments`, and `appconfig:ListConfigurationProfiles`. Avoid using root or admin keys.
+- **Application ID flow** — use **List Applications** first to obtain the `applicationId` dynamically, then wire `{{listApplications.data}}` into downstream **List Environments** or **List Configuration Profiles** blocks so the ID is never hard-coded.
+- **Pagination** — AWS returns up to 50 items per call and a `NextToken` when more pages exist. If you expect more resources than that, use a Loop block to iterate with the token until it is absent.
+- **Region matters** — AppConfig resources are region-scoped. Make sure `awsRegion` matches the region where your applications were created, otherwise the API returns an empty `Items` array rather than an error.

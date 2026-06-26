@@ -1,0 +1,110 @@
+---
+title: Tailscale Tools
+description: List devices and auth keys in a Tailscale tailnet and fetch individual device details
+icon: Network
+---
+
+# Tailscale Tools
+
+Tailscale is a mesh VPN built on WireGuard that connects your devices into a private network (a "tailnet"). Use these tools in a workflow to inventory the devices in a tailnet, look up details for a specific device, or list the auth keys and API access tokens issued for the tailnet via the Tailscale API.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `tailscale` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Tailscale API access token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List devices | `tailscale_list_devices` | List all devices in a Tailscale tailnet |
+| Get device | `tailscale_get_device` | Get details for a single Tailscale device by ID |
+| List keys | `tailscale_list_keys` | List the auth keys and API access tokens for a Tailscale tailnet |
+
+## Configuration
+
+### `tailscale_list_devices`
+
+List all devices in a Tailscale tailnet.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Tailscale API access token. **Secret** — provide via an environment variable, never hard-code. Visibility: `user-only`. |
+| `tailnet` | string | No | Tailnet name. Use `-` for the default tailnet (the default when omitted). Visibility: `user-or-llm`. |
+
+### `tailscale_get_device`
+
+Get details for a single Tailscale device by ID.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Tailscale API access token. **Secret** — provide via an environment variable, never hard-code. Visibility: `user-only`. |
+| `deviceId` | string | Yes | The ID of the device to retrieve (e.g. a `nodekey:...` value). Visibility: `user-or-llm`. |
+
+### `tailscale_list_keys`
+
+List the auth keys and API access tokens for a Tailscale tailnet.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Tailscale API access token. **Secret** — provide via an environment variable, never hard-code. Visibility: `user-only`. |
+| `tailnet` | string | No | Tailnet name. Use `-` for the default tailnet (the default when omitted). Visibility: `user-or-llm`. |
+
+## Outputs
+
+### `tailscale_list_devices`
+
+- `data` (json) — Array of Tailscale device objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of devices returned.
+
+### `tailscale_get_device`
+
+- `data` (json) — The Tailscale device object.
+- `metadata` (json) — Device identifiers.
+  - `id` (string) — Device ID.
+
+### `tailscale_list_keys`
+
+- `data` (json) — Array of Tailscale key objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of keys returned.
+
+## YAML Example
+
+```yaml
+tailscale_1:
+  type: tailscale
+  name: "Tailscale"
+  inputs:
+    operation: "tailscale_list_devices"
+    tailnet: "-"
+    apiKey: "{{TAILSCALE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Get a single device by ID:
+
+```yaml
+tailscale_2:
+  type: tailscale
+  name: "Tailscale"
+  inputs:
+    operation: "tailscale_get_device"
+    deviceId: "{{tailscale_1.data}}"
+    apiKey: "{{TAILSCALE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** Create a Tailscale API access token (`tskey-api-...`) in the Tailscale admin console under Settings → Keys, and supply it as the `apiKey` parameter. All three operations authenticate via the `Authorization: Bearer <apiKey>` header against `https://api.tailscale.com/api/v2`.
+- **Default tailnet:** Leave `tailnet` empty or set it to `-` to target the default tailnet associated with your token. Provide an explicit tailnet name only if your token spans multiple tailnets.
+- **Chaining device lookups:** `tailscale_list_devices` returns an array of device objects in `data`. Pull a device's `id` from that array and pass it to `tailscale_get_device` via `{{tailscale_list_devices.data}}` references to fetch full details for that specific device.

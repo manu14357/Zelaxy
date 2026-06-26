@@ -1,0 +1,135 @@
+---
+title: LeadMagic Block
+description: Find emails, enrich profiles, and validate emails with LeadMagic
+icon: Box
+---
+
+# LeadMagic Block
+
+Find verified work emails from a name and company, enrich LinkedIn profiles, and validate email deliverability through the LeadMagic API. Authenticate with an API key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `leadmagic` |
+| **Category** | `tools` |
+| **Color** | `#6E56CF` |
+
+## When to Use
+
+- Discover a verified work email address when you know a person's name and company domain.
+- Enrich a LinkedIn profile URL with work history, education, and contact data for lead qualification.
+- Validate whether an email address is deliverable before sending outreach to avoid bounces.
+- Build lead-generation pipelines that move from a name + company to a confirmed email in one step.
+- Gate downstream blocks on email validity by routing on the validation result.
+- Combine profile enrichment and email finding to build a complete prospect record automatically.
+
+## Configuration
+
+### Operation
+
+Selects which LeadMagic action to perform. This field is always visible.
+
+| Label | ID |
+|-------|----|
+| Find email | `leadmagic_email_finder` |
+| Profile search | `leadmagic_profile_search` |
+| Validate email | `leadmagic_email_validate` |
+
+---
+
+### First Name
+
+**Visible when**: `operation` = `leadmagic_email_finder`
+
+The given name of the person whose work email you want to find. Example: `Jane`.
+
+---
+
+### Last Name
+
+**Visible when**: `operation` = `leadmagic_email_finder`
+
+The family name of the person. Example: `Doe`.
+
+---
+
+### Domain
+
+**Visible when**: `operation` = `leadmagic_email_finder`
+
+The company's web domain used to look up the email pattern. Example: `stripe.com`. Preferred over `company_name` when available.
+
+---
+
+### Company Name
+
+**Visible when**: `operation` = `leadmagic_email_finder`
+
+The company name used as a fallback when the domain is unavailable. Example: `Stripe`.
+
+---
+
+### Profile URL
+
+**Visible when**: `operation` = `leadmagic_profile_search`
+
+The full LinkedIn profile URL or username to enrich. Example: `https://linkedin.com/in/janedoe`.
+
+---
+
+### Email
+
+**Visible when**: `operation` = `leadmagic_email_validate`
+
+The email address to check for deliverability. Example: `jane@example.com`.
+
+---
+
+### LeadMagic API Key
+
+**Always required.**
+
+Your LeadMagic API key used to authenticate all requests. This field is treated as a secret (password-masked). Provide it directly or reference a workflow secret: `{{LEADMAGIC_API_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs**:
+
+- `operation` (string) — Operation to perform; must be one of `leadmagic_email_finder`, `leadmagic_profile_search`, or `leadmagic_email_validate`.
+- `apiKey` (string) — LeadMagic API key used to authenticate the request.
+- `first_name` (string) — First name of the target person (email finder only).
+- `last_name` (string) — Last name of the target person (email finder only).
+- `domain` (string) — Company domain, e.g. `stripe.com` (email finder only).
+- `company_name` (string) — Company name as a fallback when domain is unavailable (email finder only).
+- `profile_url` (string) — LinkedIn profile URL or username (profile search only).
+- `email` (string) — Email address to validate (email validate only).
+
+**Outputs**:
+
+- `data` (json) — Result object returned by LeadMagic; shape varies by operation (found email details, enriched profile data, or validation result).
+- `metadata` (json) — Response metadata including `credits_consumed` (number of API credits charged for the request).
+
+## Tools
+
+- **LeadMagic Email Finder** (`leadmagic_email_finder`) — POSTs to `https://api.leadmagic.io/email-finder` with a person's name and company domain/name to return a verified work email address.
+- **LeadMagic Profile Search** (`leadmagic_profile_search`) — POSTs to `https://api.leadmagic.io/profile-search` with a LinkedIn profile URL to return enriched profile data including work history and education.
+- **LeadMagic Email Validate** (`leadmagic_email_validate`) — POSTs to `https://api.leadmagic.io/email-validate` with an email address to verify its deliverability status.
+
+## YAML Example
+
+```yaml
+leadmagic_1:
+  type: leadmagic
+  name: "Find Work Email"
+  inputs:
+    operation: "leadmagic_email_finder"
+    apiKey: "{{LEADMAGIC_API_KEY}}"
+    first_name: "{{prospect_block.first_name}}"
+    last_name: "{{prospect_block.last_name}}"
+    domain: "{{prospect_block.domain}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,79 +1,131 @@
 ---
 title: ZelaxyArena Block
 description: Stream AI completions via the ZelaxyArena execution engine
-icon: Box
+icon: Bot
 ---
 
 # ZelaxyArena Block
 
-The ZelaxyArena block executes AI model completions through the ZelaxyArena streaming engine. Reach for it when you need multi-turn conversations, system prompts, tool calls, and full token/cost tracking with responses streamed in real time.
+Execute AI model completions using the ZelaxyArena streaming engine. Supports multi-turn conversations, system prompts, tool calls, and full token cost tracking — with the response streamed in real time. Reach for this block when you want to run a completion through the full ZelaxyArena agent (including its workspace tools and snapshot), rather than a bare provider call.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `zelaxy-arena` |
-| **Category** | blocks |
+| **Category** | `blocks` |
 | **Color** | `#7C3AED` |
 
 ## When to Use
 
-- Run a model completion and stream the output token-by-token to the UI.
-- Maintain a multi-turn conversation by passing a `conversationId` between runs.
-- Apply system-level instructions to steer the model's behavior.
-- Capture token usage and an estimated cost breakdown for each completion.
-- Inspect tool calls the model makes during a completion.
-- Control output length and randomness via max tokens and temperature.
+- Run multi-turn AI conversations that need to carry forward a `conversationId` between workflow steps
+- Stream token-by-token responses to the Zelaxy UI during long generations
+- Invoke the full ZelaxyArena agent with workspace-scoped tools, rather than a standalone LLM provider
+- Pass a custom `systemPrompt` to shape model behavior without modifying the global agent configuration
+- Control sampling creativity with `temperature` and cap output length with `maxTokens`
+- Capture detailed token usage and cost breakdowns for billing or analytics workflows
 
 ## Configuration
 
 ### Model
 
-The model identifier to use for the completion (e.g. `gpt-4o`). Required.
+ID: `model` | Type: `short-input` | Layout: half | **Required**
+
+The model identifier to use for the completion, for example `gpt-4o` or `claude-3-5-sonnet-20241022`. This value is forwarded directly to the ZelaxyArena execution API, so use any model string that the engine supports.
+
+---
 
 ### Conversation ID
 
-Reuse an existing conversation context to continue a multi-turn exchange; leave blank to start a new conversation.
+ID: `conversationId` | Type: `short-input` | Layout: half | Optional
+
+Pass an existing conversation ID (format: `conv_xxxxxxxx`) to continue a prior exchange, reusing the conversation's stored context. Leave blank to let the block generate a new UUID and start a fresh conversation. The generated or provided ID is always echoed back in the `conversationId` output so you can thread it into later blocks.
+
+---
 
 ### System Prompt
 
-Optional system-level instructions that shape how the model responds.
+ID: `systemPrompt` | Type: `long-input` | Layout: full | Optional
+
+Optional system-level instructions sent to the model before the user messages. Use this to define the assistant's persona, constraints, or task-specific guidance. Supports `{{blockName.field}}` references to inject dynamic values from upstream blocks.
+
+---
 
 ### Messages
 
-A JSON array of message objects, each with `role` and `content` fields. Required.
+ID: `messages` | Type: `long-input` | Layout: full | **Required**
+
+A JSON array of message objects, each with a `role` (`"user"`, `"assistant"`, or `"system"`) and a `content` field. Example:
+
+```json
+[{"role": "user", "content": "Summarize this document."}]
+```
+
+You can pass the output of an upstream block using `{{blockName.messages}}`, or construct the array inline. This is the primary conversation payload sent to the model.
+
+---
 
 ### Temperature
 
-Sampling temperature from 0 (deterministic) to 2 (creative).
+ID: `temperature` | Type: `slider` | Layout: half | Range: 0–2 | Step: 0.1 | Optional
+
+Sampling temperature controlling response randomness. `0` produces deterministic, focused output; `2` produces highly varied, creative output. Most tasks work well between `0.2` and `0.8`.
+
+---
 
 ### Max Tokens
 
-Maximum number of tokens to generate in the response.
+ID: `maxTokens` | Type: `short-input` | Layout: half | Optional
+
+Maximum number of tokens to generate in the response. Leave blank to use the model's default limit. Set a value (e.g. `1024`) to cap output length and control cost.
+
+---
 
 ### Enable Streaming
 
-Toggle to stream the response token-by-token to the UI.
+ID: `stream` | Type: `switch` | Layout: half | Optional
+
+When enabled, the block streams the response token-by-token to the Zelaxy UI. The execution engine uses NDJSON framing internally; chunk, heartbeat, and final events are handled automatically. Enable this for long completions where you want live feedback in the canvas.
 
 ## Inputs & Outputs
 
-- **Inputs**: `model` (string), `conversationId` (string), `systemPrompt` (string), `messages` (json), `temperature` (number), `maxTokens` (number), `stream` (boolean)
-- **Outputs**: `content` (string), `model` (string), `conversationId` (string), `tokens` (json), `toolCalls` (json), `cost` (json)
+### Inputs
+
+- `model` (string) — Model identifier for the completion
+- `conversationId` (string) — Conversation ID for multi-turn context; omit for a new conversation
+- `systemPrompt` (string) — System-level prompt text
+- `messages` (json) — Array of `{role, content}` message objects
+- `temperature` (number) — Sampling temperature between 0 and 2
+- `maxTokens` (number) — Maximum number of tokens to generate
+- `stream` (boolean) — Whether to stream the response token-by-token
+
+### Outputs
+
+- `content` (string) — Generated text content from the model
+- `model` (string) — Model that was used for the completion
+- `conversationId` (string) — Conversation ID to pass to subsequent turns for multi-turn continuity
+- `tokens` (json) — Token usage breakdown: `{ prompt, completion, total }`
+- `toolCalls` (json) — Tool calls made during the completion, if any: `{ list: [{name, arguments, result, error, duration}], count }`
+- `cost` (json) — Estimated cost breakdown: `{ input, output, total, currency }`
+
+## Tools
+
+The ZelaxyArena block has **no entries in `tools.access`**. It does not call the Zelaxy tool registry directly. Instead, it posts to the internal `/api/zelaxy-arena/execute` endpoint via the dedicated `ZelaxyArenaBlockHandler`. That endpoint runs the full ZelaxyArena agent — including any workspace-scoped tools attached to the agent — and streams results back over NDJSON. Tool calls made by the model during execution are surfaced in the `toolCalls` output.
 
 ## YAML Example
 
 ```yaml
-arena1:
+zelaxy_arena_1:
   type: zelaxy-arena
-  name: "ZelaxyArena"
+  name: "ZelaxyArena Completion"
   inputs:
     model: "gpt-4o"
-    systemPrompt: "You are a helpful assistant."
-    messages: '[{"role": "user", "content": "Hello!"}]'
-    temperature: 0.7
-    maxTokens: 1024
+    systemPrompt: "You are a concise summarizer. Respond with a 3-sentence summary."
+    messages: "{{starter.messages}}"
+    temperature: 0.3
+    maxTokens: 512
     stream: true
   connections:
     outgoing:
-      - target: next-block-id
+      - target: response_1
 ```

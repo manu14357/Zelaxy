@@ -4,11 +4,9 @@
   "pages": [
     "---Getting Started---",
     "index",
-    "---Core Blocks---",
+    "---Reference---",
     "blocks",
-    "---Tool Integrations---",
     "tools",
-    "---Triggers---",
     "triggers",
     "---Support---",
     "sponsors"

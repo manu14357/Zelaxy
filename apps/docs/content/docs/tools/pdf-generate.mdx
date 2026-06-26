@@ -1,0 +1,66 @@
+---
+title: PDF Generate Tools
+description: Generate a PDF document server-side from a title and paragraphs, returned as base64.
+icon: FileText
+---
+
+# PDF Generate Tools
+
+The PDF Generate provider builds a simple, paginated PDF document entirely server-side (using `pdf-lib`) from a title and newline-separated paragraphs, and returns the file as a base64 string. Use it in a workflow when you need to turn generated or collected text into a downloadable PDF without calling an external API. This tool backs the PDF format option of the Document Generator block.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `pdf-generate` |
+| **Category** | `tools` |
+| **Auth** | none (runs server-side, no API key or external API call) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Generate PDF | `pdf_generate` | Generate a PDF document from a title and newline-separated paragraphs, returned as base64. |
+
+## Configuration
+
+### `pdf_generate`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `title` | string | No | Title shown at the top of the document and used to build the filename. Rendered in bold at the top of the first page. |
+| `content` | string | Yes | Body text. Each newline-separated line becomes its own paragraph. Long lines are word-wrapped to fit the A4 page width; very long single words are hard-broken by character. |
+
+Notes:
+- Both `title` and `content` have `user-or-llm` visibility, so they can be filled in manually or produced by an upstream LLM/agent block.
+- No secret parameters. This tool does not take an `apiKey`, token, or password and makes no outbound HTTP request.
+
+## Outputs
+
+### `pdf_generate`
+
+- `base64` (string) — Base64-encoded PDF file contents.
+- `filename` (string) — Suggested filename for the PDF. Derived from `title` (e.g. `My Report.pdf`); falls back to `document.pdf` when no title is provided.
+- `mimeType` (string) — MIME type of the generated file. Always `application/pdf`.
+
+## YAML Example
+
+```yaml
+pdf_generate_1:
+  type: pdf_generate
+  name: "PDF Generate"
+  inputs:
+    operation: "pdf_generate"
+    title: "Quarterly Summary"
+    content: "First paragraph of the report.\nSecond paragraph with more detail."
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- No authentication required: this tool runs entirely server-side via `pdf-lib`, so there is no API key, token, or external API to configure.
+- Use newlines to control paragraphs: every `\n` in `content` starts a new paragraph. Content automatically flows onto additional A4 pages when it overruns the current page.
+- Consume the result by reference: downstream blocks read the file via `{{pdf_generate_1.base64}}` (for example to upload or email an attachment), and `{{pdf_generate_1.filename}}` / `{{pdf_generate_1.mimeType}}` for metadata.
+- In the visual builder this is exposed as the Document Generator block; selecting the PDF format maps to the `pdf_generate` tool id. The same block also offers `docx_generate` and `pptx_generate` for other formats.

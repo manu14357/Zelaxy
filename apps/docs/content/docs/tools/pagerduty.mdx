@@ -1,0 +1,92 @@
+---
+title: PagerDuty Tools
+description: Trigger and manage PagerDuty incidents from a workflow (integration not yet available).
+icon: Box
+---
+
+# PagerDuty Tools
+
+<Callout type="warn">
+**This provider is not currently implemented in Zelaxy.** No PagerDuty tool files exist under
+`apps/zelaxy/tools/pagerduty/`, there is no block at `apps/zelaxy/blocks/blocks/pagerduty.ts`, and
+the string `pagerduty` does not appear anywhere in the codebase. The page below is a placeholder
+describing the intended shape only. **Do not reference `pagerduty` from a workflow** — the
+operation is unresolvable at runtime and the executor will fail to find the tool in
+`tools/registry.ts`.
+</Callout>
+
+PagerDuty is an incident-response and on-call alerting platform. When this integration exists, these
+tools would let a workflow create/trigger incidents, acknowledge or resolve them, and send Events API
+v2 alerts so an AI agent can page an on-call responder as part of an automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `pagerduty` |
+| **Category** | `tools` |
+| **Auth** | API Key (PagerDuty REST API token via `Authorization: Token token=...`) — not yet wired |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| _none_ | _none_ | No tools are registered for this provider. |
+
+## Configuration
+
+No tool files were found, so there are no parameters to document. A typical PagerDuty REST API
+integration would expose:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | PagerDuty REST API token. **Secret** — store as an environment variable, never inline. |
+| `from` | string | Yes | Email of a valid PagerDuty user (required `From` header for write operations). |
+| `serviceId` | string | Yes (create) | ID of the service the incident is opened against. |
+| `title` | string | Yes (create) | Incident title / summary. |
+| `urgency` | string | No | `high` or `low`. |
+
+These are illustrative only — confirm exact names against the tool files once the integration is added.
+
+## Outputs
+
+No tool files were found, so there are no outputs to document. A real implementation would typically return:
+
+- `incidentId` (string) — the created/updated incident ID.
+- `status` (string) — `triggered`, `acknowledged`, or `resolved`.
+- `htmlUrl` (string) — link to the incident in the PagerDuty web UI.
+
+## YAML Example
+
+<Callout type="error">
+The following will **not run** — `pagerduty` is not a registered tool. It shows only the shape a
+future integration would take.
+</Callout>
+
+```yaml
+pagerduty_1:
+  type: pagerduty
+  name: "PagerDuty"
+  inputs:
+    operation: "create_incident"
+    serviceId: "PXXXXXX"
+    title: "Workflow detected a failure"
+    from: "oncall@example.com"
+    apiKey: "{{PAGERDUTY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Do not use this provider yet.** Pick an implemented alerting integration instead (for example
+  Discord or Slack-style providers that exist under `apps/zelaxy/tools/`).
+- To add PagerDuty for real: create `apps/zelaxy/tools/pagerduty/*.ts` with each tool's `id`,
+  `params`, `outputs`, and `request`; register every tool id in
+  [tools/registry.ts](../../../../apps/zelaxy/tools/registry.ts); add a block in
+  [blocks/blocks/pagerduty.ts](../../../../apps/zelaxy/blocks/blocks/pagerduty.ts) and register it in
+  [blocks/registry.ts](../../../../apps/zelaxy/blocks/registry.ts); then run
+  `node scripts/verify-blocks.mjs` to confirm the `tools.access` ids resolve.
+- PagerDuty REST API auth uses the header `Authorization: Token token=<API_KEY>`, and write
+  endpoints require a `From` header set to a valid PagerDuty user email.

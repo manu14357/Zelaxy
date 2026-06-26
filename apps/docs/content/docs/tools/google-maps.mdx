@@ -1,0 +1,138 @@
+---
+title: Google Maps Tools
+description: Geocode addresses, reverse-geocode coordinates, search places, and get directions via the Google Maps Platform APIs.
+icon: MapPin
+---
+
+# Google Maps Tools
+
+The Google Maps provider lets a workflow convert addresses to coordinates (and back), search for places by text query, and compute directions between two locations using the Google Maps Platform APIs. Use these tools when a workflow needs to resolve, enrich, or route based on real-world locations.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-maps` |
+| **Category** | `tools` |
+| **Auth** | API Key (Google Maps API key, sent as the `key` query parameter) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Geocode | `google_maps_geocode` | Convert an address into geographic coordinates. |
+| Reverse geocode | `google_maps_reverse_geocode` | Convert `lat,lng` coordinates into a human-readable address. |
+| Place search | `google_maps_place_search` | Search for places using a free-text query (Places Text Search API). |
+| Directions | `google_maps_directions` | Get directions and route information between two locations. |
+
+## Configuration
+
+### `google_maps_geocode`
+
+Convert an address into geographic coordinates using the Google Maps Geocoding API.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Google Maps API key. **Secret** — store as an environment variable, not inline. Visibility: user-only. |
+| `address` | string | Yes | The address to geocode. Visibility: user-or-llm. |
+
+### `google_maps_reverse_geocode`
+
+Convert geographic coordinates into a human-readable address using the Google Maps Geocoding API.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Google Maps API key. **Secret** — store as an environment variable, not inline. Visibility: user-only. |
+| `latlng` | string | Yes | Latitude and longitude as `"lat,lng"` (e.g., `"40.714,-73.961"`). Visibility: user-or-llm. |
+
+### `google_maps_place_search`
+
+Search for places using a text query with the Google Maps Places Text Search API.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Google Maps API key. **Secret** — store as an environment variable, not inline. Visibility: user-only. |
+| `query` | string | Yes | Search query (e.g., `"restaurants in Times Square"`). Visibility: user-or-llm. |
+
+### `google_maps_directions`
+
+Get directions and route information between two locations using the Google Maps Directions API.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Google Maps API key. **Secret** — store as an environment variable, not inline. Visibility: user-only. |
+| `origin` | string | Yes | Starting location (address or `"lat,lng"`). Visibility: user-or-llm. |
+| `destination` | string | Yes | Destination location (address or `"lat,lng"`). Visibility: user-or-llm. |
+| `mode` | string | No | Travel mode. One of `driving`, `walking`, `bicycling`, or `transit`. Visibility: user-or-llm. |
+
+## Outputs
+
+All four operations return the same output shape: a `data` array and a `metadata` object.
+
+### `google_maps_geocode`
+
+- `data` (json) — Array of geocoding results.
+- `metadata` (json) — Response metadata.
+  - `status` (string) — API response status.
+  - `count` (number) — Number of results returned.
+
+### `google_maps_reverse_geocode`
+
+- `data` (json) — Array of reverse geocoding results.
+- `metadata` (json) — Response metadata.
+  - `status` (string) — API response status.
+  - `count` (number) — Number of results returned.
+
+### `google_maps_place_search`
+
+- `data` (json) — Array of places matching the query.
+- `metadata` (json) — Response metadata.
+  - `status` (string) — API response status.
+  - `count` (number) — Number of results returned.
+
+### `google_maps_directions`
+
+- `data` (json) — Array of route options.
+- `metadata` (json) — Response metadata.
+  - `status` (string) — API response status.
+  - `count` (number) — Number of routes returned.
+
+## YAML Example
+
+```yaml
+google_maps_1:
+  type: google_maps
+  name: "Google Maps"
+  inputs:
+    operation: "google_maps_geocode"
+    address: "1600 Amphitheatre Parkway, Mountain View, CA"
+    apiKey: "{{GOOGLE_MAPS_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Directions example:
+
+```yaml
+google_maps_2:
+  type: google_maps
+  name: "Google Maps"
+  inputs:
+    operation: "google_maps_directions"
+    origin: "New York, NY"
+    destination: "Boston, MA"
+    mode: "driving"
+    apiKey: "{{GOOGLE_MAPS_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Enable the relevant APIs in Google Cloud for your key: Geocoding API (covers both geocode and reverse geocode), Places API (place search), and Directions API. A single API key can serve all four operations once those APIs are enabled and billing is set up.
+- The API key is a secret. Reference it with `{{GOOGLE_MAPS_API_KEY}}` rather than pasting the raw value, and keep it in your workspace environment variables.
+- Always check `metadata.status` on the downstream block. Google Maps returns HTTP 200 even for logical errors like `ZERO_RESULTS` or `REQUEST_DENIED`, so `count` of `0` means no matches were found rather than a transport failure.
+- For reverse geocode and `"lat,lng"`-style origins/destinations, pass coordinates as a single comma-separated string (e.g., `"40.714,-73.961"`), not separate fields.
+- Consume results downstream with reference syntax such as `{{google_maps_1.data}}` and `{{google_maps_1.metadata.status}}`.

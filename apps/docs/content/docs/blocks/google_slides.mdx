@@ -1,0 +1,97 @@
+---
+title: Google Slides Block
+description: Read, create, and update Google Slides presentations
+icon: Box
+---
+
+# Google Slides Block
+
+The Google Slides block connects your workflow to the Google Slides API so you can retrieve presentation content and metadata, create new presentations, or apply a batch of structured update requests to an existing presentation. Reach for it when a workflow needs to inspect slide content, programmatically generate a presentation, or push rich edits (add slides, insert text, replace images, and more) via a Google OAuth access token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_slides` |
+| **Category** | tools |
+| **Color** | `#F4B400` |
+
+## When to Use
+
+- Retrieve the full JSON structure of an existing presentation — slides, shapes, text runs, and metadata.
+- Create a blank presentation with a specified title and get back its ID for downstream steps.
+- Apply a batch of Slides API Request objects to modify slide content in a single round-trip.
+- Chain with an Agent block to generate presentation content and then write it via batch update.
+- Extract a presentation's `presentationId` to reference in later workflow steps.
+- Automate slide decks as part of report-generation or content-publishing workflows.
+
+## Configuration
+
+### Operation
+
+Dropdown that selects what the block does. Defaults to `google_slides_get_presentation`.
+
+| Label | ID |
+|-------|----|
+| Get presentation | `google_slides_get_presentation` |
+| Create presentation | `google_slides_create_presentation` |
+| Batch update | `google_slides_batch_update` |
+
+### Presentation ID
+
+Short text input (`presentationId`). The unique ID of the target presentation — found in the Google Slides URL between `/d/` and `/edit`. Required for **Get presentation** and **Batch update** operations. Not shown for Create presentation.
+
+Placeholder: `1Abc...`
+
+### Title
+
+Short text input (`title`). The display name for the new presentation. Required for the **Create presentation** operation only.
+
+Placeholder: `My Presentation`
+
+### Requests
+
+Long text / JSON input (`requests`). A JSON array of [Slides API Request objects](https://developers.google.com/slides/api/reference/rest/v1/presentations/batchUpdate#Request) to apply atomically. Required for the **Batch update** operation only.
+
+Placeholder: `[{"createSlide": {}}]`
+
+### Google Access Token
+
+Short text input (`accessToken`). A valid Google OAuth 2.0 Bearer token with at least the `https://www.googleapis.com/auth/presentations` scope. The value is stored as a password field and never displayed after entry. Required for all operations.
+
+Placeholder: `ya29....`
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`google_slides_get_presentation`, `google_slides_create_presentation`, or `google_slides_batch_update`)
+  - `accessToken` (string) — Google OAuth access token
+  - `presentationId` (string) — Google Slides presentation ID (Get presentation and Batch update)
+  - `title` (string) — Presentation title (Create presentation)
+  - `requests` (json) — Array of batch update request objects (Batch update)
+
+- **Outputs**:
+  - `data` (json) — Result object from Google Slides (presentation object or batch update response with replies)
+  - `metadata` (json) — Response metadata, including `presentationId`
+
+## Tools
+
+- **Google Slides Get Presentation** (`google_slides_get_presentation`) — Sends a `GET` request to `https://slides.googleapis.com/v1/presentations/{presentationId}` and returns the full presentation object along with its ID in `metadata`.
+- **Google Slides Create Presentation** (`google_slides_create_presentation`) — Sends a `POST` request to `https://slides.googleapis.com/v1/presentations` with the given `title` in the body, creating a new empty presentation and returning its object and ID.
+- **Google Slides Batch Update** (`google_slides_batch_update`) — Sends a `POST` request to `https://slides.googleapis.com/v1/presentations/{presentationId}:batchUpdate` with the provided `requests` array, applying all changes atomically and returning the response (including per-request replies) and presentation ID.
+
+## YAML Example
+
+```yaml
+google_slides_1:
+  type: google_slides
+  name: "Google Slides"
+  inputs:
+    operation: "google_slides_batch_update"
+    accessToken: "{{GOOGLE_ACCESS_TOKEN}}"
+    presentationId: "{{get_presentation_block.data.presentationId}}"
+    requests: "{{agent_block.result}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

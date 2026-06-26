@@ -1,0 +1,397 @@
+---
+title: Profound Tools
+description: Track AI visibility, sentiment, citations, bot traffic, and prompt volume across AI platforms with Profound
+icon: Activity
+---
+
+# Profound Tools
+
+Profound measures how your brand appears across AI platforms (ChatGPT, Gemini, Perplexity, and more): visibility scores, sentiment, citations, bot traffic, referrals, content optimization, and prompt volume. Use these tools in a workflow to pull AI-search analytics for categories, assets, and domains and feed them into downstream reporting or alerting blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `profound` |
+| **Category** | tools |
+| **Auth** | API Key (sent as the `X-API-Key` request header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List Categories | `profound_list_categories` | List all organization categories |
+| List Assets | `profound_list_assets` | List all assets |
+| List Domains | `profound_list_domains` | List all domains |
+| List Models | `profound_list_models` | List all AI models tracked |
+| List Personas | `profound_list_personas` | List all personas |
+| List Regions | `profound_list_regions` | List all regions |
+| Category Assets | `profound_category_assets` | List assets for a specific category |
+| Category Personas | `profound_category_personas` | List personas for a specific category |
+| Category Prompts | `profound_category_prompts` | List prompts for a specific category |
+| Category Tags | `profound_category_tags` | List tags for a specific category |
+| Category Topics | `profound_category_topics` | List topics for a specific category |
+| List Optimizations | `profound_list_optimizations` | List content optimization entries for an asset |
+| Optimization Analysis | `profound_optimization_analysis` | Get detailed content optimization analysis for a content item |
+| Citation Prompts | `profound_citation_prompts` | Get prompts that cite a specific domain across AI platforms |
+| Visibility Report | `profound_visibility_report` | Query AI visibility report for a category |
+| Citations Report | `profound_citations_report` | Query citations report for a category |
+| Sentiment Report | `profound_sentiment_report` | Query sentiment report for a category |
+| Query Fanouts | `profound_query_fanouts` | Query fanout report showing how AI models expand prompts into sub-queries |
+| Prompt Answers | `profound_prompt_answers` | Get raw prompt answers data for a category |
+| Prompt Volume | `profound_prompt_volume` | Query prompt volume / search demand across AI platforms |
+| Bots Report | `profound_bots_report` | Query bot traffic report for a domain |
+| Referrals Report | `profound_referrals_report` | Query human referral traffic report for a domain |
+| Bot Logs | `profound_bot_logs` | Get identified bot visit logs with filters for a domain |
+| Raw Logs | `profound_raw_logs` | Get raw traffic logs with filters for a domain |
+
+## Configuration
+
+Every operation requires an `apiKey` (secret) sent as the `X-API-Key` header. It is marked `user-only` (it is never supplied by the LLM).
+
+### profound_list_categories
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+
+### profound_list_assets
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+
+### profound_list_domains
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+
+### profound_list_models
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+
+### profound_list_personas
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+
+### profound_list_regions
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+
+### profound_category_assets
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `categoryId` | string | Yes | Category ID (UUID) |
+
+### profound_category_personas
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `categoryId` | string | Yes | Category ID (UUID) |
+
+### profound_category_prompts
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `categoryId` | string | Yes | Category ID (UUID) |
+| `limit` | number | No | Max results |
+| `cursor` | string | No | Pagination cursor |
+| `orderDir` | string | No | Sort direction: `asc` or `desc` |
+| `promptType` | string | No | Comma-separated prompt types: `visibility`, `sentiment` |
+| `topicId` | string | No | Comma-separated topic IDs |
+| `tagId` | string | No | Comma-separated tag IDs |
+| `regionId` | string | No | Comma-separated region IDs |
+| `platformId` | string | No | Comma-separated platform IDs |
+
+### profound_category_tags
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `categoryId` | string | Yes | Category ID (UUID) |
+
+### profound_category_topics
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `categoryId` | string | Yes | Category ID (UUID) |
+
+### profound_list_optimizations
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `assetId` | string | Yes | Asset ID (UUID) |
+| `limit` | number | No | Max results |
+| `offset` | number | No | Offset for pagination |
+
+### profound_optimization_analysis
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `assetId` | string | Yes | Asset ID (UUID) |
+| `contentId` | string | Yes | Content/optimization ID (UUID) |
+
+### profound_citation_prompts
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `inputDomain` | string | Yes | Domain to look up citations for (e.g. `ramp.com`) |
+
+### profound_visibility_report
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `categoryId` | string | Yes | Category ID (UUID) |
+| `startDate` | string | Yes | Start date (`YYYY-MM-DD`) |
+| `endDate` | string | Yes | End date (`YYYY-MM-DD`) |
+| `metrics` | string | Yes | Comma-separated metrics: `share_of_voice`, `mentions_count`, `visibility_score`, `executions`, `average_position` |
+| `dimensions` | string | No | Comma-separated dimensions |
+| `dateInterval` | string | No | Date interval: `hour`, `day`, `week`, `month`, `year` |
+| `filters` | string | No | JSON array of filter objects |
+| `limit` | number | No | Max results |
+
+### profound_citations_report
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `categoryId` | string | Yes | Category ID (UUID) |
+| `startDate` | string | Yes | Start date (`YYYY-MM-DD`) |
+| `endDate` | string | Yes | End date (`YYYY-MM-DD`) |
+| `metrics` | string | Yes | Comma-separated metrics: `count`, `citation_share` |
+| `dimensions` | string | No | Comma-separated dimensions |
+| `dateInterval` | string | No | Date interval |
+| `filters` | string | No | JSON array of filter objects |
+| `limit` | number | No | Max results |
+
+### profound_sentiment_report
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `categoryId` | string | Yes | Category ID (UUID) |
+| `startDate` | string | Yes | Start date (`YYYY-MM-DD`) |
+| `endDate` | string | Yes | End date (`YYYY-MM-DD`) |
+| `metrics` | string | Yes | Comma-separated metrics: `positive`, `negative`, `occurrences` |
+| `dimensions` | string | No | Comma-separated dimensions |
+| `dateInterval` | string | No | Date interval |
+| `filters` | string | No | JSON array of filter objects |
+| `limit` | number | No | Max results |
+
+### profound_query_fanouts
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `categoryId` | string | Yes | Category ID (UUID) |
+| `startDate` | string | Yes | Start date (`YYYY-MM-DD`) |
+| `endDate` | string | Yes | End date (`YYYY-MM-DD`) |
+| `metrics` | string | Yes | Comma-separated metrics: `fanouts_per_execution`, `total_fanouts`, `share` |
+| `dimensions` | string | No | Comma-separated dimensions: `prompt`, `query`, `model`, `region`, `date` |
+| `dateInterval` | string | No | Date interval |
+| `filters` | string | No | JSON array of filter objects |
+| `limit` | number | No | Max results |
+
+### profound_prompt_answers
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `categoryId` | string | Yes | Category ID (UUID) |
+| `startDate` | string | Yes | Start date (`YYYY-MM-DD`) |
+| `endDate` | string | Yes | End date (`YYYY-MM-DD`) |
+| `filters` | string | No | JSON array of filter objects |
+| `limit` | number | No | Max results |
+
+### profound_prompt_volume
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `startDate` | string | Yes | Start date (`YYYY-MM-DD`) |
+| `endDate` | string | Yes | End date (`YYYY-MM-DD`) |
+| `metrics` | string | Yes | Comma-separated metrics: `volume`, `change` |
+| `dimensions` | string | No | Comma-separated dimensions: `keyword`, `date`, `platform`, `country_code`, `matching_type`, `frequency` |
+| `dateInterval` | string | No | Date interval |
+| `filters` | string | No | JSON array of filter objects |
+| `limit` | number | No | Max results |
+
+### profound_bots_report
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `domain` | string | Yes | Domain (e.g. `example.com`) |
+| `startDate` | string | Yes | Start date (`YYYY-MM-DD`) |
+| `endDate` | string | No | End date (`YYYY-MM-DD`) |
+| `metrics` | string | Yes | Comma-separated metrics: `count`, `citations`, `indexing`, `training`, `last_visit` |
+| `dimensions` | string | No | Comma-separated dimensions |
+| `dateInterval` | string | No | Date interval |
+| `filters` | string | No | JSON array of filter objects |
+| `limit` | number | No | Max results |
+
+### profound_referrals_report
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `domain` | string | Yes | Domain (e.g. `example.com`) |
+| `startDate` | string | Yes | Start date (`YYYY-MM-DD`) |
+| `endDate` | string | No | End date (`YYYY-MM-DD`) |
+| `metrics` | string | Yes | Comma-separated metrics: `visits`, `last_visit` |
+| `dimensions` | string | No | Comma-separated dimensions |
+| `dateInterval` | string | No | Date interval |
+| `filters` | string | No | JSON array of filter objects |
+| `limit` | number | No | Max results |
+
+### profound_bot_logs
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `domain` | string | Yes | Domain (e.g. `example.com`) |
+| `startDate` | string | Yes | Start date (`YYYY-MM-DD`) |
+| `endDate` | string | No | End date (`YYYY-MM-DD`) |
+| `dimensions` | string | No | Comma-separated dimensions: `timestamp`, `method`, `host`, `path`, `status_code`, `ip`, `user_agent`, `referer`, `bytes_sent`, `duration_ms`, `query_params`, `bot_name`, `bot_provider`, `bot_types` |
+| `filters` | string | No | JSON array of filter objects |
+| `limit` | number | No | Max results |
+
+### profound_raw_logs
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Profound API Key (secret) |
+| `domain` | string | Yes | Domain (e.g. `example.com`) |
+| `startDate` | string | Yes | Start date (`YYYY-MM-DD`) |
+| `endDate` | string | No | End date (`YYYY-MM-DD`) |
+| `dimensions` | string | No | Comma-separated dimensions: `timestamp`, `method`, `host`, `path`, `status_code`, `ip`, `user_agent`, `referer`, `bytes_sent`, `duration_ms`, `query_params` |
+| `filters` | string | No | JSON array of filter objects |
+| `limit` | number | No | Max results |
+
+## Outputs
+
+### profound_list_categories
+- `categories` (json) — List of organization categories (each with `id`, `name`)
+
+### profound_list_assets
+- `assets` (json) — List of assets (each with `id`, `name`, `website`, `alternateDomains`, `isOwned`, `createdAt`, `logoUrl`)
+
+### profound_list_domains
+- `domains` (json) — List of domains
+
+### profound_list_models
+- `models` (json) — List of AI models
+
+### profound_list_personas
+- `personas` (json) — List of personas
+
+### profound_list_regions
+- `regions` (json) — List of regions
+
+### profound_category_assets
+- `assets` (json) — List of assets in the category (each with `id`, `name`, `website`, `alternateDomains`, `isOwned`, `createdAt`, `logoUrl`)
+
+### profound_category_personas
+- `personas` (json) — List of personas in the category
+
+### profound_category_prompts
+- `prompts` (json) — List of prompts in the category
+- `cursor` (string) — Pagination cursor
+- `hasMore` (boolean) — Whether more results are available
+
+### profound_category_tags
+- `tags` (json) — List of tags in the category (each with `id`, `name`)
+
+### profound_category_topics
+- `topics` (json) — List of topics in the category (each with `id`, `name`)
+
+### profound_list_optimizations
+- `totalRows` (number) — Total number of optimization entries
+- `optimizations` (json) — List of content optimization entries (each with `id`, `title`, `createdAt`, `extractedInput`, `type`, `status`)
+
+### profound_optimization_analysis
+- `analysis` (json) — Detailed content optimization analysis
+
+### profound_citation_prompts
+- `data` (json) — Citation prompt data for the queried domain
+
+### profound_visibility_report
+- `totalRows` (number) — Total number of rows in the report
+- `data` (json) — Report data rows, each with `metrics` (array of metric values) and `dimensions` (array of dimension values)
+
+### profound_citations_report
+- `totalRows` (number) — Total number of rows in the report
+- `data` (json) — Report data rows, each with `metrics` and `dimensions`
+
+### profound_sentiment_report
+- `totalRows` (number) — Total number of rows in the report
+- `data` (json) — Report data rows, each with `metrics` and `dimensions`
+
+### profound_query_fanouts
+- `totalRows` (number) — Total number of rows in the report
+- `data` (json) — Report data rows, each with `metrics` and `dimensions`
+
+### profound_prompt_answers
+- `totalRows` (number) — Total number of rows in the report
+- `data` (json) — Report data rows, each with `metrics` and `dimensions`
+
+### profound_prompt_volume
+- `totalRows` (number) — Total number of rows in the report
+- `data` (json) — Report data rows, each with `metrics` and `dimensions`
+
+### profound_bots_report
+- `totalRows` (number) — Total number of rows in the report
+- `data` (json) — Report data rows, each with `metrics` and `dimensions`
+
+### profound_referrals_report
+- `totalRows` (number) — Total number of rows in the report
+- `data` (json) — Report data rows, each with `metrics` and `dimensions`
+
+### profound_bot_logs
+- `totalRows` (number) — Total number of rows in the report
+- `data` (json) — Report data rows, each with `metrics` and `dimensions`
+
+### profound_raw_logs
+- `totalRows` (number) — Total number of rows in the report
+- `data` (json) — Report data rows, each with `metrics` and `dimensions`
+
+## YAML Example
+
+```yaml
+profound_1:
+  type: profound
+  name: "Profound"
+  inputs:
+    operation: "visibility_report"
+    apiKey: "{{PROFOUND_API_KEY}}"
+    categoryId: "00000000-0000-0000-0000-000000000000"
+    startDate: "2026-05-01"
+    endDate: "2026-05-31"
+    visibilityMetrics: "share_of_voice, visibility_score, mentions_count"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Store your Profound API key as an environment variable or workspace secret and reference it with `{{PROFOUND_API_KEY}}` — it is sent as the `X-API-Key` header and never passed by the LLM.
+- Category-scoped reports (visibility, sentiment, citations, query fanouts, prompt answers) need a `categoryId` UUID — pull it first from `profound_list_categories` and reference it like `{{profound_categories.categories}}`. Domain reports (bots, referrals, raw logs, bot logs) need a `domain` instead.
+- The metrics and dimensions fields are comma-separated strings; valid values differ per report (e.g. `share_of_voice` for visibility, `positive,negative,occurrences` for sentiment). The optional `filters` field must be a JSON array of `{"field","operator","value"}` objects — invalid JSON throws an "Invalid JSON in filters parameter" error.
+- Report tools return rows under `data` as parallel `metrics`/`dimensions` arrays (column order matches the order you requested), so map the returned arrays back to your requested metric/dimension names downstream. Bots and referrals reports use the Profound v2 API; everything else uses v1.

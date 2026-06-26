@@ -1,0 +1,97 @@
+---
+title: AWS IAM Identity Center Tools
+description: List users and groups, and resolve user IDs in an AWS IAM Identity Center identity store
+icon: Users
+---
+
+# AWS IAM Identity Center Tools
+
+The AWS IAM Identity Center provider talks to the AWS Identity Store API to list users, list groups, and resolve a user ID by user name. Use these tools in a workflow when you need to look up identity-store directory data — for example, to enrich a record with a user's identity-store `UserId` or to audit who belongs to a directory.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `identity-center` |
+| **Category** | tools |
+| **Auth** | AWS SigV4 (AWS Access Key ID + Secret Access Key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List users | `identity_center_list_users` | List users in an AWS IAM Identity Center identity store |
+| List groups | `identity_center_list_groups` | List groups in an AWS IAM Identity Center identity store |
+| Get user ID | `identity_center_get_user_id` | Resolve a user ID by user name in an AWS IAM Identity Center identity store |
+
+All three operations issue a signed `POST` to `https://identitystore.{awsRegion}.amazonaws.com/` against the `identitystore` service (AWS SigV4), using the `AWSIdentityStore.ListUsers`, `AWSIdentityStore.ListGroups`, and `AWSIdentityStore.GetUserId` API targets respectively.
+
+## Configuration
+
+### `identity_center_list_users`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | `string` | Yes | AWS region (e.g. `us-east-1`). User-only — not exposed to the LLM. |
+| `awsAccessKeyId` | `string` | Yes | **Secret.** AWS access key ID. User-only — not exposed to the LLM. |
+| `awsSecretAccessKey` | `string` | Yes | **Secret.** AWS secret access key. User-only — not exposed to the LLM. |
+| `identityStoreId` | `string` | Yes | The identity store ID (e.g. `d-1234567890`). User-or-LLM. |
+
+### `identity_center_list_groups`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | `string` | Yes | AWS region (e.g. `us-east-1`). User-only — not exposed to the LLM. |
+| `awsAccessKeyId` | `string` | Yes | **Secret.** AWS access key ID. User-only — not exposed to the LLM. |
+| `awsSecretAccessKey` | `string` | Yes | **Secret.** AWS secret access key. User-only — not exposed to the LLM. |
+| `identityStoreId` | `string` | Yes | The identity store ID (e.g. `d-1234567890`). User-or-LLM. |
+
+### `identity_center_get_user_id`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | `string` | Yes | AWS region (e.g. `us-east-1`). User-only — not exposed to the LLM. |
+| `awsAccessKeyId` | `string` | Yes | **Secret.** AWS access key ID. User-only — not exposed to the LLM. |
+| `awsSecretAccessKey` | `string` | Yes | **Secret.** AWS secret access key. User-only — not exposed to the LLM. |
+| `identityStoreId` | `string` | Yes | The identity store ID (e.g. `d-1234567890`). User-or-LLM. |
+| `userName` | `string` | Yes | The user name to resolve (e.g. `jdoe`). User-or-LLM. |
+
+## Outputs
+
+### `identity_center_list_users`
+
+- `data` (json) — Identity Store ListUsers result (`Users`, `NextToken`).
+
+### `identity_center_list_groups`
+
+- `data` (json) — Identity Store ListGroups result (`Groups`, `NextToken`).
+
+### `identity_center_get_user_id`
+
+- `data` (json) — Identity Store GetUserId result (`UserId`, `IdentityStoreId`).
+
+## YAML Example
+
+```yaml
+identity_center_1:
+  type: identity_center
+  name: "AWS IAM Identity Center"
+  inputs:
+    operation: "identity_center_list_users"
+    identityStoreId: "d-1234567890"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To resolve a single user ID instead, set `operation: "identity_center_get_user_id"` and add `userName: "jdoe"`. Downstream blocks can reference the result with `{{identity_center_1.data}}`.
+
+## Tips
+
+- **Auth is AWS SigV4, not an API key.** Supply `awsRegion`, `awsAccessKeyId`, and `awsSecretAccessKey` from an IAM user or role; the request is signed against the `identitystore` service. Keep the access key and secret in environment variables (e.g. `{{AWS_ACCESS_KEY_ID}}` / `{{AWS_SECRET_ACCESS_KEY}}`) rather than hardcoding them — both are secret credentials.
+- **Find your `identityStoreId`** in the AWS IAM Identity Center console (Settings) or via the SSO Admin API; it looks like `d-1234567890` and is required for every operation.
+- **Common pattern:** call `identity_center_get_user_id` with a `userName` to obtain the `UserId`, then feed `{{identity_center_1.data}}` into an Agent or downstream block. List Users / List Groups return paginated results — watch for `NextToken` in the response when the directory is large.
+- **IAM permissions needed:** the credentials must allow `identitystore:ListUsers`, `identitystore:ListGroups`, and `identitystore:GetUserId` on the target identity store.

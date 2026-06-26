@@ -1,5 +1,5 @@
 {
   "title": "Triggers",
   "icon": "Zap",
-  "pages": ["index", "generic-webhook", "schedule", "webhook"]
+  "pages": ["generic-webhook", "schedule", "webhook"]
 }

@@ -1,0 +1,60 @@
+---
+title: Context.dev
+description: Search, scrape, and crawl the web for LLM-ready markdown content
+icon: Globe
+---
+
+# Context.dev
+
+Context.dev provides web intelligence APIs that return clean, LLM-ready content. Use it to search the web with natural language, scrape any URL to markdown, or crawl an entire site — all returning structured output ready for an Agent to reason over.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `context_dev` |
+| **Category** | Tool — Web Scraping |
+| **Auth** | API Key (Bearer token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Search** | `context_dev_search` | Search the web with a natural-language query and optionally scrape each result page to markdown |
+| **Scrape Markdown** | `context_dev_scrape_markdown` | Scrape a single URL and return clean, LLM-ready markdown content |
+| **Crawl** | `context_dev_crawl` | Crawl an entire website starting from a URL and return each discovered page as clean markdown |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | string (secret) | Yes | Context.dev API key. Passed as a Bearer token. Store as a secret and reference with `{{CONTEXT_DEV_API_KEY}}`. |
+| `query` | string | Yes (Search only) | Natural-language search query, e.g. `"latest AI research 2025"`. |
+| `markdownEnabled` | boolean | No | When `true`, each search result page is scraped and returned as markdown. Defaults to `false`. Applies to Search only. |
+| `url` | string | Yes (Scrape / Crawl) | The full URL to scrape or crawl. Must include `http://` or `https://`. |
+| `useMainContentOnly` | boolean | No | When `true`, strips headers, footers, and navigation from the scraped output. Applies to Scrape Markdown only. |
+| `includeLinks` | boolean | No | When `true`, hyperlinks are preserved in the markdown output. Defaults to `true`. Applies to Scrape Markdown only. |
+| `maxPages` | number | No | Maximum number of pages to crawl (1–500). Defaults to `100`. Applies to Crawl only. |
+| `maxDepth` | number | No | Maximum link depth from the starting URL. Set to `0` to crawl only the start page. Applies to Crawl only. |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | **Search / Crawl:** array of result objects (each containing page content and metadata). **Scrape Markdown:** object with `markdown` (string) and `url` (string) fields. |
+| `metadata` | `json` | Credit accounting object with `creditsConsumed` (number) and `creditsRemaining` (number) fields. |
+
+## Example
+
+```
+[Starter] → [Context.dev: Search] → [Agent: summarize findings] → [Response]
+```
+
+Connect a Starter block that accepts a user question, then pass `{{starter.input}}` as the `query` to the Context.dev Search block authenticated with `{{CONTEXT_DEV_API_KEY}}`. Enable `markdownEnabled` if you want full page content alongside snippets. The Agent block receives `{{contextDev.data}}` — an array of web results — and synthesizes a grounded answer from real-time sources.
+
+## Tips
+
+- **Choose the right operation** — Search is best for open-ended questions where you do not know the exact URL. Scrape Markdown is best when you already have a URL and need its content. Crawl is best for ingesting an entire docs site or product website.
+- **Credit awareness** — every operation consumes API credits. Monitor `{{contextDev.metadata.creditsRemaining}}` in downstream blocks or logs to avoid unexpected quota exhaustion.
+- **Main content only** — for Scrape Markdown, set `useMainContentOnly` to `true` when passing content to an Agent; it removes nav and footer noise that wastes tokens.
+- **Crawl depth vs breadth** — use `maxDepth: 0` or `maxDepth: 1` with a high `maxPages` to breadth-crawl a large site; use a deeper `maxDepth` with a low `maxPages` to follow a single content thread deeply.

@@ -1,0 +1,122 @@
+---
+title: File Tools
+description: Read, parse, write, and append files in workflows using local uploads, URLs, or workspace storage.
+icon: Box
+---
+
+# File Tools
+
+The File provider lets you work with files at every stage of a workflow: parse uploaded or URL-hosted documents into text, download and parse remote files, create new workspace files from generated content, or append text to existing files. Use these tools whenever a workflow needs to ingest, produce, or update file-based data.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `file` |
+| **Category** | `tools` |
+| **Auth** | None (workspace-scoped; uses execution context) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Read / Get Content / Fetch | `file_parser` | Parse one or more files (uploaded or from a URL) into text and structured metadata |
+| Write | `file_write` | Create a new workspace file from text content |
+| Append | `file_append` | Append text to the end of an existing workspace file (creates it if absent) |
+
+## Configuration
+
+### `file_parser`
+
+Parses one or more files. Accepts a file path string, an array of paths, or an external URL. Supports PDF, CSV, DOCX, Word/Excel, CAD formats (DWG, DXF, STEP, IGES), images, plain text, and Markdown. File type is auto-detected when not supplied.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `filePath` | string or string[] | Yes | Path, URL, or array of paths/URLs pointing to the file(s) to parse. Can be a single URL string (e.g. `https://example.com/doc.pdf`) or an array for batch parsing. |
+| `fileType` | string | No | Hint for the parser (e.g. `pdf`, `csv`, `auto`). Auto-detected from the file extension or content when omitted. |
+
+**Notes:**
+- When the block input method is set to **Upload**, `filePath` is derived from the uploaded file objects automatically — you do not need to set it manually.
+- The `fileType` parameter is hidden in the UI and is rarely needed; the parser identifies file types automatically.
+
+### `file_write`
+
+Creates a new file in the workspace Files store from a text string. The file becomes visible to every workflow in the workspace.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `fileName` | string | Yes | Name (and extension) for the new file, e.g. `summary.md` or `report.csv`. |
+| `content` | string | Yes | The full text content to write to the file. |
+| `contentType` | string | No | MIME type override, e.g. `text/markdown`. Auto-detected from the file extension when omitted. |
+| `workspaceId` | string | No (hidden) | Injected automatically from the execution context. Do not set this manually. |
+
+### `file_append`
+
+Appends text to the end of an existing workspace file. If the named file does not exist it is created automatically.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `fileName` | string | Yes | Name of the existing workspace file to append to, e.g. `log.txt`. |
+| `content` | string | Yes | Text to add to the end of the file. |
+| `workspaceId` | string | No (hidden) | Injected automatically from the execution context. Do not set this manually. |
+
+## Outputs
+
+### `file_parser`
+
+- `files` (array) — Array of parsed file objects. Each object contains:
+  - `content` (string) — Extracted text content of the file.
+  - `fileType` (string) — Detected file type (e.g. `pdf`, `csv`).
+  - `size` (number) — File size in bytes.
+  - `name` (string) — Original file name.
+  - `binary` (boolean) — Whether the file was treated as binary.
+  - `metadata` (object, optional) — Additional file-specific metadata (e.g. page count for PDFs).
+- `combinedContent` (string) — All file contents merged into a single text string, separated by dividers. Convenient when you want to pass the full content of multiple files to an LLM block.
+- `file1`, `file2`, … (object) — Named shortcuts to individual file results in multi-file parses (e.g. `{{file_block.file1.content}}`).
+
+### `file_write`
+
+- `id` (string) — Workspace file ID assigned to the newly created file.
+- `name` (string) — Final file name after any deduplication applied by the platform.
+- `size` (number) — File size in bytes.
+- `type` (string) — MIME type of the created file.
+- `url` (string) — URL to access or download the file.
+
+### `file_append`
+
+- `id` (string) — Workspace file ID of the file that was appended to.
+- `name` (string) — File name.
+- `size` (number) — New file size in bytes after the append.
+- `type` (string) — MIME type of the file.
+- `url` (string) — URL to access or download the file.
+
+## YAML Example
+
+```yaml
+file_1:
+  type: file
+  name: "File"
+  inputs:
+    operation: "file_parser"
+    filePath: "https://example.com/report.pdf"
+  connections:
+    outgoing:
+      - target: next-block-id
+
+file_2:
+  type: file
+  name: "File"
+  inputs:
+    operation: "file_write"
+    fileName: "summary.md"
+    content: "{{agent_1.content}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **No API key required.** The File tools call internal Zelaxy APIs (`/api/files/parse`, `/api/files/write`, `/api/files/append`). Auth is handled by the workspace session. `workspaceId` is injected automatically from the execution context — you never need to supply it.
+- **Batch parsing.** Pass an array of URLs or upload multiple files at once. The `combinedContent` output merges all text with clear dividers, while individual files are accessible via `{{file_block.files[0].content}}` or the named shortcuts `{{file_block.file1.content}}`, `{{file_block.file2.content}}`, etc.
+- **Write then read in the same workflow.** `file_write` returns a `url` you can pass directly into a downstream `file_parser` block to verify or further process the file you just created.

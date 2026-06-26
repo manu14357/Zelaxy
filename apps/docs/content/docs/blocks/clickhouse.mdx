@@ -1,0 +1,93 @@
+---
+title: ClickHouse Block
+description: Run SQL queries against ClickHouse over HTTP
+icon: Box
+---
+
+# ClickHouse Block
+
+Execute SQL queries and health checks against a ClickHouse instance through its HTTP interface. Authenticate with username and password over Basic auth. Reach for this block whenever a workflow needs to read from or verify connectivity to a ClickHouse database without leaving the Zelaxy canvas.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `clickhouse` |
+| **Category** | tools |
+| **Color** | `#FFCC01` |
+
+## When to Use
+
+- Run a `SELECT` or any SQL statement against a ClickHouse database and return JSON results.
+- Check whether a remote ClickHouse instance is reachable before executing dependent workflow steps.
+- Query ClickHouse Cloud or self-hosted ClickHouse via the HTTP interface (port 8123 or 8443).
+- Pass query results downstream to an Agent, Condition, or Response block.
+- Validate connection credentials as part of a setup or diagnostic workflow.
+
+## Configuration
+
+### Operation
+
+Choose what the block does. Required. Default is `clickhouse_query`.
+
+| Label | Id |
+|-------|----|
+| Query | `clickhouse_query` |
+| Ping  | `clickhouse_ping`  |
+
+### SQL
+
+The SQL statement to execute against ClickHouse. Shown only when **Operation** is `clickhouse_query`. Results are returned in ClickHouse's `FORMAT JSON` format.
+
+Example: `SELECT * FROM system.tables LIMIT 10`
+
+### Host
+
+The full base URL of the ClickHouse instance including protocol and port. Required for both operations.
+
+Example: `https://xxx.clickhouse.cloud:8443`
+
+### Username
+
+The ClickHouse username used for Basic authentication. Required. Layout: half-width.
+
+Example: `default`
+
+### Password
+
+The ClickHouse password used for Basic authentication. Required. Stored as a secret (masked in the UI). Layout: half-width.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`clickhouse_query` or `clickhouse_ping`)
+  - `host` (string) — Full base URL of the ClickHouse instance
+  - `username` (string) — ClickHouse username
+  - `password` (string) — ClickHouse password
+  - `sql` (string) — SQL query to execute (used only by `clickhouse_query`)
+
+- **Outputs**:
+  - `data` (json) — Result object from ClickHouse. For a query: `{ data: [...], rows: N, statistics: {...} }`. For a ping: `{ response: "Ok.\n" }`.
+  - `metadata` (json) — Response metadata. For a query: `{ rows: N, statistics: {...} }`. For a ping: `{ ok: true/false }`.
+
+## Tools
+
+- **ClickHouse Query** (`clickhouse_query`) — Runs a SQL statement via a GET request to `<host>/?query=<sql> FORMAT JSON` with Basic auth. Returns the full ClickHouse JSON response as `data` and a summary of row count and statistics as `metadata`.
+- **ClickHouse Ping** (`clickhouse_ping`) — Sends a GET request to `<host>/ping` with Basic auth. Returns the raw response text as `data.response` and a boolean `metadata.ok` indicating whether the instance responded successfully.
+
+## YAML Example
+
+```yaml
+clickhouse_1:
+  type: clickhouse
+  name: "ClickHouse"
+  inputs:
+    operation: "clickhouse_query"
+    host: "https://xxx.clickhouse.cloud:8443"
+    username: "default"
+    password: "{{CLICKHOUSE_PASSWORD}}"
+    sql: "SELECT name, engine FROM system.tables WHERE database = 'default' LIMIT 20"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

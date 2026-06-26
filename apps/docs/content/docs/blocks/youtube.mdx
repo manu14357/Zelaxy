@@ -48,6 +48,10 @@ A slider (0–20) that caps how many video results are returned.
   - `items` (json) — the items returned by the YouTube search
   - `totalResults` (number) — the total number of results returned by the YouTube search
 
+## Tools
+
+**YouTube Search** (`youtube_search`) — Calls the YouTube Data API v3 search endpoint to find videos matching a query. Accepts `query` (required), `apiKey` (required), and `maxResults` (optional, default 5). Returns an array of video objects — each containing `videoId`, `title`, `description`, and `thumbnail` — plus a `totalResults` count and an optional `nextPageToken` for pagination.
+
 ## YAML Example
 
 ```yaml

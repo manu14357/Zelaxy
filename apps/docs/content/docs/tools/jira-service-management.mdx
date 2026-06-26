@@ -1,0 +1,132 @@
+---
+title: Jira Service Management Tools
+description: List service desks and create, retrieve, and list customer requests in Jira Service Management
+icon: Headphones
+---
+
+# Jira Service Management Tools
+
+Manage IT service desks and customer requests through the Jira Service Management REST API. Use these tools in a workflow to discover service desks, raise new customer requests, fetch a single request, and list existing requests — for example, to triage support tickets or open requests automatically from another system.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `jira-service-management` |
+| **Category** | tools |
+| **Auth** | Basic Auth (Atlassian email + API token, sent as a base64-encoded `Authorization: Basic` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List Service Desks | `jira_service_management_list_servicedesks` | List the service desks available in Jira Service Management |
+| Create Request | `jira_service_management_create_request` | Create a new customer request in a Jira Service Management service desk |
+| Get Request | `jira_service_management_get_request` | Retrieve a single customer request by issue ID or key |
+| List Requests | `jira_service_management_list_requests` | List customer requests, optionally scoped to a service desk |
+
+## Configuration
+
+### `jira_service_management_list_servicedesks`
+
+List the service desks available in Jira Service Management.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `siteUrl` | string | Yes | Atlassian site URL (e.g. `https://your-domain.atlassian.net`) |
+| `email` | string | Yes | Atlassian account email |
+| `apiToken` | string | Yes | Atlassian API token. **Secret** — treat as a credential and supply via an environment variable. |
+| `limit` | number | No | Maximum number of service desks to return |
+
+### `jira_service_management_create_request`
+
+Create a new customer request in a Jira Service Management service desk.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `siteUrl` | string | Yes | Atlassian site URL (e.g. `https://your-domain.atlassian.net`) |
+| `email` | string | Yes | Atlassian account email |
+| `apiToken` | string | Yes | Atlassian API token. **Secret** — treat as a credential and supply via an environment variable. |
+| `serviceDeskId` | string | Yes | ID of the service desk to create the request in |
+| `requestTypeId` | string | Yes | ID of the request type |
+| `requestFieldValues` | json | Yes | Field values for the request as a JSON object (e.g. `{"summary":"...","description":"..."}`) |
+
+### `jira_service_management_get_request`
+
+Retrieve a single customer request by issue ID or key.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `siteUrl` | string | Yes | Atlassian site URL (e.g. `https://your-domain.atlassian.net`) |
+| `email` | string | Yes | Atlassian account email |
+| `apiToken` | string | Yes | Atlassian API token. **Secret** — treat as a credential and supply via an environment variable. |
+| `issueIdOrKey` | string | Yes | Issue ID or key of the request (e.g. `SD-123`) |
+
+### `jira_service_management_list_requests`
+
+List customer requests, optionally scoped to a service desk.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `siteUrl` | string | Yes | Atlassian site URL (e.g. `https://your-domain.atlassian.net`) |
+| `email` | string | Yes | Atlassian account email |
+| `apiToken` | string | Yes | Atlassian API token. **Secret** — treat as a credential and supply via an environment variable. |
+| `serviceDeskId` | string | No | Filter requests by service desk ID |
+| `limit` | number | No | Maximum number of requests to return |
+
+## Outputs
+
+### `jira_service_management_list_servicedesks`
+
+- `data` (json) — Array of service desk objects
+- `metadata` (json) — List metadata, with properties:
+  - `count` (number) — Number of service desks returned
+  - `isLastPage` (boolean) — Whether this is the last page
+
+### `jira_service_management_create_request`
+
+- `data` (json) — The created customer request object
+- `metadata` (json) — Request identifiers, with properties:
+  - `id` (string) — Issue ID
+  - `issueKey` (string) — Issue key
+
+### `jira_service_management_get_request`
+
+- `data` (json) — The requested customer request object
+- `metadata` (json) — Request identifiers, with properties:
+  - `id` (string) — Issue ID
+  - `issueKey` (string) — Issue key
+
+### `jira_service_management_list_requests`
+
+- `data` (json) — Array of customer request objects
+- `metadata` (json) — List metadata, with properties:
+  - `count` (number) — Number of requests returned
+  - `isLastPage` (boolean) — Whether this is the last page
+
+## YAML Example
+
+```yaml
+jira_service_management_1:
+  type: jira_service_management
+  name: "Jira Service Management"
+  inputs:
+    operation: "jira_service_management_create_request"
+    siteUrl: "https://your-domain.atlassian.net"
+    email: "you@example.com"
+    apiToken: "{{JIRA_SERVICE_MANAGEMENT_API_TOKEN}}"
+    serviceDeskId: "1"
+    requestTypeId: "25"
+    requestFieldValues: '{"summary": "Need help", "description": "Details here"}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authentication is Basic Auth: provide your Atlassian account `email` and an `apiToken` you generate at id.atlassian.com (Security → API tokens). The tool combines `email:apiToken` and base64-encodes it into the `Authorization: Basic` header — never the password to your Atlassian login. Keep the token in an environment variable like `{{JIRA_SERVICE_MANAGEMENT_API_TOKEN}}`.
+- Run `jira_service_management_list_servicedesks` first to discover a `serviceDeskId`, then use that ID (plus a `requestTypeId`) when calling `jira_service_management_create_request`. You can reference the discovered value downstream with `{{jira_service_management_1.data}}`.
+- `requestFieldValues` must be a JSON object — at minimum it usually needs `summary` and `description`. The exact fields depend on the request type configured in your service desk.
+- `siteUrl` is trimmed and any trailing slash is removed automatically, so both `https://your-domain.atlassian.net` and `https://your-domain.atlassian.net/` work.
+```

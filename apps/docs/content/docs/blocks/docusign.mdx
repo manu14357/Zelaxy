@@ -6,7 +6,7 @@ icon: Box
 
 # DocuSign Block
 
-The DocuSign block integrates DocuSign e-signature into your workflows. Use it to create and send envelopes for signing, retrieve envelope status, list envelopes, generate signing URLs, and void envelopes.
+The DocuSign block integrates DocuSign e-signature into your workflows. Use it to create and send envelopes for signing, retrieve envelope status, list envelopes, generate embedded signing URLs, and void envelopes that are no longer needed.
 
 ## Overview
 
@@ -18,39 +18,73 @@ The DocuSign block integrates DocuSign e-signature into your workflows. Use it t
 
 ## When to Use
 
-- Create and send an envelope for signature as part of an automated document workflow
-- Check the current status of an envelope (sent, delivered, completed, voided)
-- List envelopes in a DocuSign account for auditing or follow-up
-- Generate a recipient signing URL to embed signing into your own application flow
-- Void an envelope that is no longer needed or was sent in error
-- Trigger downstream actions once a document reaches a particular signing state
+- Create a draft envelope (`docusign_create_envelope`) and send it later in a separate step
+- Create and immediately send a signature request in one shot (`docusign_send_envelope`)
+- Check the current status of an envelope (sent, delivered, completed, voided) with `docusign_get_envelope`
+- List envelopes in a DocuSign account for auditing, dashboards, or follow-up workflows
+- Generate an embedded signing URL (`docusign_get_signing_url`) to let a signer sign without leaving your application
+- Void an envelope that was sent in error or is no longer required (`docusign_void_envelope`)
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting the DocuSign action to perform: Create Envelope, Get Envelope, List Envelopes, Send Envelope, Get Signing URL, or Void Envelope.
+Required dropdown. Selects which DocuSign action to execute.
+
+| Label | ID |
+|-------|-----|
+| Create Envelope | `docusign_create_envelope` |
+| Get Envelope | `docusign_get_envelope` |
+| List Envelopes | `docusign_list_envelopes` |
+| Send Envelope | `docusign_send_envelope` |
+| Get Signing URL | `docusign_get_signing_url` |
+| Void Envelope | `docusign_void_envelope` |
 
 ### DocuSign Account
 
-OAuth connection to your DocuSign account (`docusign` provider) used to authorize the request.
+OAuth connection to your DocuSign account (`docusign` provider). Authorizes all API requests made by this block.
 
 ### Account ID
 
-Required. Your DocuSign account ID under which envelopes are managed.
+Required. Your DocuSign account ID under which envelopes are managed. Shown for all operations.
 
 ### Email Subject
 
-The subject line for the signing request email. Shown for Create Envelope and Send Envelope operations.
+The subject line for the signing request email. Visible when the operation is `docusign_create_envelope` or `docusign_send_envelope`.
 
 ### Envelope ID
 
-The target envelope identifier. Shown for Get Envelope, Send Envelope, Get Signing URL, and Void Envelope operations.
+The target envelope identifier. Visible when the operation is `docusign_get_envelope`, `docusign_send_envelope`, `docusign_get_signing_url`, or `docusign_void_envelope`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `oauthCredential` (string), `accountId` (string), `emailSubject` (string), `envelopeId` (string)
-- **Outputs**: `envelopeId` (string), `status` (string), `signingUrl` (string)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (one of the operation IDs listed above)
+  - `oauthCredential` (string) — OAuth credential from the DocuSign Account connection
+  - `accountId` (string) — Account ID
+  - `emailSubject` (string) — Email subject (used by Create Envelope and Send Envelope)
+  - `envelopeId` (string) — Envelope ID (used by Get Envelope, Send Envelope, Get Signing URL, Void Envelope)
+
+- **Outputs** (available fields vary by operation; the block exposes the union):
+  - `envelopeId` (string) — Envelope ID
+  - `status` (string) — Envelope status
+  - `signingUrl` (string) — Signing URL (populated by Get Signing URL)
+
+## Tools
+
+Each operation maps to one tool. All tools require a DocuSign OAuth access token (supplied automatically from the credential sub-block).
+
+**DocuSign Create Envelope** (`docusign_create_envelope`) — Creates a new envelope in draft or sent state. Key params: `emailSubject` (required), `signerEmail` (required), `signerName` (required), `status` (optional, `"created"` or `"sent"`, defaults to `"created"`). Outputs: `envelopeId`, `status`, `statusDateTime`, `uri`.
+
+**DocuSign Get Envelope** (`docusign_get_envelope`) — Retrieves full details for an envelope by its ID. Key params: `envelopeId` (required). Outputs: `envelopeId`, `status`, `emailSubject`, `sentDateTime`, `completedDateTime`, `createdDateTime`, `statusChangedDateTime`.
+
+**DocuSign List Envelopes** (`docusign_list_envelopes`) — Lists envelopes with optional filters. Key params: `fromDate`, `toDate`, `envelopeStatus` (e.g., `sent`, `completed`, `voided`), `count` (all optional). Outputs: `envelopes` (array), `totalSetSize` (number), `resultSetSize` (number).
+
+**DocuSign Send Envelope** (`docusign_send_envelope`) — Creates and immediately sends a new envelope in a single call. Key params: `emailSubject`, `signerEmail`, `signerName` (all required). Outputs: `envelopeId`, `status`.
+
+**DocuSign Get Signing URL** (`docusign_get_signing_url`) — Generates an embedded signing URL so a recipient can sign without leaving your application. Key params: `envelopeId`, `signerEmail`, `signerName` (all required), `returnUrl` (optional redirect after signing). Outputs: `signingUrl`, `envelopeId`.
+
+**DocuSign Void Envelope** (`docusign_void_envelope`) — Voids an envelope to cancel the signing process. Key params: `envelopeId`, `voidedReason` (both required). Outputs: `envelopeId`, `status`.
 
 ## YAML Example
 
@@ -60,9 +94,8 @@ docusign_1:
   name: "DocuSign"
   inputs:
     operation: "docusign_send_envelope"
-    accountId: "{{start.input}}"
-    emailSubject: "Please sign this document"
-    envelopeId: "{{start.envelopeId}}"
+    accountId: "{{ENV_DOCUSIGN_ACCOUNT_ID}}"
+    emailSubject: "Please sign this contract"
   connections:
     outgoing:
       - target: next-block-id

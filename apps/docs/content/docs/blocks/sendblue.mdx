@@ -1,0 +1,104 @@
+---
+title: Sendblue Block
+description: Send iMessage/SMS and read messages with Sendblue
+icon: MessageCircle
+---
+
+# Sendblue Block
+
+Send messages and retrieve account messages through the Sendblue API. Authenticate with a Sendblue API key ID and secret. Use this block whenever a workflow needs to dispatch an iMessage or SMS via Sendblue, or fetch the full message history from a Sendblue account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `sendblue` |
+| **Category** | `tools` |
+| **Color** | `#1976FF` |
+
+## When to Use
+
+- Send an iMessage or SMS to a specific phone number as part of an automated workflow
+- Notify customers, teammates, or external parties via text message from a workflow step
+- Retrieve the full message history from a Sendblue account for auditing or analysis
+- Feed incoming Sendblue messages into downstream blocks (conditions, agents, logs) after fetching them
+- Trigger outbound messages in response to form submissions, webhook events, or agent decisions
+- Build two-way messaging pipelines by combining Send and Get Messages operations in sequence
+
+## Configuration
+
+### Operation
+
+Selects which Sendblue action to perform. This is a required dropdown that controls which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| Send message | `sendblue_send_message` |
+| Get messages | `sendblue_get_messages` |
+
+Default: `sendblue_send_message`
+
+---
+
+### Number
+
+*Shown only when Operation = `sendblue_send_message`*
+
+The recipient phone number in E.164 format. Example placeholder: `+19998887777`.
+
+---
+
+### Content
+
+*Shown only when Operation = `sendblue_send_message`*
+
+The text body of the message to send. Accepts multi-line input. Placeholder: `Message text`.
+
+---
+
+### API Key ID
+
+**Required** for all operations. The Sendblue API key ID used to authenticate requests. Stored as a secret (password field). Placeholder: `Sendblue API key ID`.
+
+---
+
+### API Secret
+
+**Required** for all operations. The Sendblue API secret key used alongside the API Key ID to authenticate requests. Stored as a secret (password field). Placeholder: `Sendblue API secret`.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`sendblue_send_message` or `sendblue_get_messages`)
+- `apiKeyId` (string) — Sendblue API key ID
+- `apiSecret` (string) — Sendblue API secret key
+- `number` (string) — Recipient phone number (required for Send message operation)
+- `content` (string) — Message content (required for Send message operation)
+
+**Outputs:**
+
+- `data` (json) — Result object (Send message) or array of message objects (Get messages) returned by Sendblue
+- `metadata` (json) — Response metadata; for Send message contains `status` (string); for Get messages contains `count` (number of messages returned)
+
+## Tools
+
+- **Sendblue Send Message** (`sendblue_send_message`) — POSTs to `https://api.sendblue.co/api/send-message` with the recipient number and message content. Returns the Sendblue message object and a `status` field in metadata.
+- **Sendblue Get Messages** (`sendblue_get_messages`) — GETs `https://api.sendblue.co/api/accounts/messages` to retrieve all messages in the account. Returns an array of message objects in `data` and the message count in `metadata.count`.
+
+## YAML Example
+
+```yaml
+sendblue_1:
+  type: sendblue
+  name: "Send SMS Notification"
+  inputs:
+    operation: "sendblue_send_message"
+    apiKeyId: "{{SENDBLUE_API_KEY_ID}}"
+    apiSecret: "{{SENDBLUE_API_SECRET}}"
+    number: "{{trigger.phoneNumber}}"
+    content: "{{agent_1.response}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

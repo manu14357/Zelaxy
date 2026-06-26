@@ -1,0 +1,109 @@
+---
+title: Instantly Tools
+description: List campaigns, create leads, and list leads through the Instantly V2 API.
+icon: Box
+---
+
+# Instantly Tools
+
+Instantly is a cold-email outreach platform. These tools let a workflow read its campaigns, add leads to a campaign, and list leads through the Instantly V2 API. Use them to feed new prospects into an outreach sequence or to pull campaign and lead data into downstream blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `instantly` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Instantly API key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List campaigns | `instantly_list_campaigns` | List campaigns in Instantly |
+| Create lead | `instantly_create_lead` | Create a lead in an Instantly campaign |
+| List leads | `instantly_list_leads` | List leads in Instantly |
+
+## Configuration
+
+### `instantly_list_campaigns`
+
+Sends a `GET` request to `https://api.instantly.ai/api/v2/campaigns`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Instantly API key. **Secret** — sent as `Authorization: Bearer <apiKey>`. Visibility: user-only. |
+
+### `instantly_create_lead`
+
+Sends a `POST` request to `https://api.instantly.ai/api/v2/leads`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Instantly API key. **Secret** — sent as `Authorization: Bearer <apiKey>`. Visibility: user-only. |
+| `campaign` | string | Yes | Campaign ID to add the lead to. Visibility: user-or-llm. |
+| `email` | string | Yes | Lead email address. Visibility: user-or-llm. |
+
+### `instantly_list_leads`
+
+Sends a `POST` request to `https://api.instantly.ai/api/v2/leads/list` (with an empty JSON body).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Instantly API key. **Secret** — sent as `Authorization: Bearer <apiKey>`. Visibility: user-only. |
+
+## Outputs
+
+### `instantly_list_campaigns`
+
+- `data` (json) — Array of Instantly campaign objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of campaigns returned.
+
+### `instantly_create_lead`
+
+- `data` (json) — The created Instantly lead object.
+- `metadata` (json) — Lead identifiers.
+  - `id` (string) — Lead ID.
+
+### `instantly_list_leads`
+
+- `data` (json) — Array of Instantly lead objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of leads returned.
+
+## YAML Example
+
+```yaml
+instantly_1:
+  type: instantly
+  name: "Instantly"
+  inputs:
+    operation: "instantly_list_campaigns"
+    apiKey: "{{INSTANTLY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Create a lead in a campaign:
+
+```yaml
+instantly_create_lead_1:
+  type: instantly
+  name: "Instantly"
+  inputs:
+    operation: "instantly_create_lead"
+    campaign: "{{instantly_1.data.0.id}}"
+    email: "lead@example.com"
+    apiKey: "{{INSTANTLY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authentication uses a single Instantly API key, passed as a `Bearer` token in the `Authorization` header. Store it as an environment variable and reference it with `{{INSTANTLY_API_KEY}}` rather than hardcoding the secret.
+- To add a lead, you need a valid `campaign` ID. A common pattern is to run `instantly_list_campaigns` first, then pass a campaign ID into `instantly_create_lead` with a reference like `{{instantly_1.data.0.id}}`.
+- All three tools normalize the response list under `data`: `instantly_list_campaigns` and `instantly_list_leads` return an array (with `metadata.count`), while `instantly_create_lead` returns the single created object (with `metadata.id`).

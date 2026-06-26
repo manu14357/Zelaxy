@@ -20,40 +20,88 @@ The Jira block connects to Jira workspaces to read, write, and update issues. Re
 
 - Read a single Jira issue's summary, description, and timestamps into your workflow.
 - Bulk-read all issues from a Jira project for reporting or triage.
-- Create a new Jira issue (write) from upstream workflow data.
-- Update an existing issue's summary and description automatically.
+- Create a new Jira issue (Write Issue) from upstream workflow data such as an AI agent's output.
+- Update an existing issue's summary and description automatically when conditions change.
 - Integrate Jira documentation and issue metadata into AI-driven workflows.
+- Chain Jira reads into an agent block to generate summaries, changelogs, or release notes.
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting the action to perform: Read Issue (`read`), Read Issues (`read-bulk`), Update Issue (`update`), or Write Issue (`write`). Defaults to `read`.
+Dropdown selecting the action to perform. Defaults to `read`.
+
+| Label | ID |
+|---|---|
+| Read Issue | `read` |
+| Read Issues | `read-bulk` |
+| Update Issue | `update` |
+| Write Issue | `write` |
 
 ### Domain
 
-The Jira domain to connect to, e.g. `zelaxy.atlassian.net`. Required.
+The Jira domain to connect to (e.g. `zelaxy.atlassian.net`). Required for every operation. Type: `short-input`.
 
 ### Jira Account
 
-OAuth credential for authenticating against Jira. Required.
+OAuth credential (`oauth-input`) for authenticating against Jira. Required for every operation. Requests the following OAuth scopes: `read:jira-work`, `read:jira-user`, `write:jira-work`, `read:issue-event:jira`, `write:issue:jira`, `read:me`, `offline_access`.
 
 ### Select Project / Project ID
 
-Pick a project with the project selector (basic mode) or enter a project ID manually (advanced mode). Required for write and read-bulk operations.
+Two mutually-exclusive ways to identify the project:
+
+- **Select Project** (`projectId`) — project-selector widget shown in basic mode.
+- **Project ID** (`manualProjectId`) — free-text `short-input` shown in advanced mode.
+
+Required for the `write`, `update`, and `read-bulk` operations.
 
 ### Select Issue / Issue Key
 
-Pick an issue with the file selector (basic mode) or enter an issue key manually (advanced mode). Shown for read and update operations.
+Two mutually-exclusive ways to identify a single issue. Shown only for the `read` and `update` operations.
 
-### New Summary / New Description
+- **Select Issue** (`issueKey`) — file-selector widget shown in basic mode.
+- **Issue Key** (`manualIssueKey`) — free-text `short-input` shown in advanced mode (e.g. `PROJ-123`).
 
-The summary (required) and description to set when writing or updating an issue.
+### New Summary
+
+`short-input` for the issue summary. Required. Shown only for the `update` and `write` operations.
+
+### New Description
+
+`long-input` for the issue description. Optional. Shown only for the `update` and `write` operations.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `domain` (string), `credential` (string), `issueKey` (string), `projectId` (string), `manualProjectId` (string), `manualIssueKey` (string), `summary` (string), `description` (string), `issueType` (string)
-- **Outputs**: `ts` (string), `issueKey` (string), `summary` (string), `description` (string), `created` (string), `updated` (string), `success` (boolean), `url` (string)
+**Inputs** (all `string` unless noted):
+
+- `operation` (string) — Operation to perform (`read`, `read-bulk`, `update`, or `write`).
+- `domain` (string) — Jira domain (e.g. `zelaxy.atlassian.net`).
+- `credential` (string) — Jira OAuth access token.
+- `issueKey` (string) — Issue key identifier selected via the UI picker (basic mode).
+- `manualIssueKey` (string) — Issue key entered manually (advanced mode), e.g. `PROJ-123`.
+- `projectId` (string) — Project identifier selected via the UI picker (basic mode).
+- `manualProjectId` (string) — Project identifier entered manually (advanced mode).
+- `summary` (string) — Issue summary (used for `update` and `write`).
+- `description` (string) — Issue description (used for `update` and `write`).
+- `issueType` (string) — Issue type for new issues, e.g. `Task` (used for `write`).
+
+**Outputs**:
+
+- `ts` (string) — Timestamp of the operation (ISO 8601).
+- `issueKey` (string) — Issue key, e.g. `PROJ-123` (populated by `read` and `update`).
+- `summary` (string) — Issue summary/title (populated by `read`).
+- `description` (string) — Issue description content (populated by `read`).
+- `created` (string) — Issue creation date (populated by `read`).
+- `updated` (string) — Issue last update date (populated by `read`).
+- `success` (boolean) — Whether the operation was successful (populated by `update` and `write`).
+- `url` (string) — URL to the created or accessed issue (populated by `write`).
+
+## Tools
+
+- **Jira Retrieve** (`jira_retrieve`) — Fetches detailed information about a single Jira issue by key, returning its summary, description, and timestamps. Used by the `read` operation.
+- **Jira Bulk Read** (`jira_bulk_read`) — Retrieves multiple issues from a Jira project using the issue picker and bulk-fetch APIs, returning an array of issue objects each with summary, description, created, and updated. Used by the `read-bulk` operation.
+- **Jira Update** (`jira_update`) — Updates an existing Jira issue's summary, description, status, priority, and assignee via an internal API route. Used by the `update` operation.
+- **Jira Write** (`jira_write`) — Creates a new Jira issue in the specified project with a given summary, description, and issue type via an internal API route. Used by the `write` operation.
 
 ## YAML Example
 
@@ -64,7 +112,7 @@ jira_1:
   inputs:
     operation: "read"
     domain: "zelaxy.atlassian.net"
-    credential: "{{credentials.jira}}"
+    credential: "{{JIRA_ACCESS_TOKEN}}"
     issueKey: "PROJ-123"
   connections:
     outgoing:

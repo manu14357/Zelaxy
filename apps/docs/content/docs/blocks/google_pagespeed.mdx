@@ -1,0 +1,116 @@
+---
+title: Google PageSpeed Block
+description: Analyze webpage performance with PageSpeed Insights
+icon: Box
+---
+
+# Google PageSpeed Block
+
+Analyze a webpage for performance, accessibility, SEO, and best practices using the Google PageSpeed Insights API. Authenticate with a Google API key to run Lighthouse audits against any public URL from within a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_pagespeed` |
+| **Category** | `tools` |
+| **Color** | `#0F9D58` |
+
+## When to Use
+
+- Automatically audit a landing page's Lighthouse performance score after each deploy.
+- Run accessibility and SEO checks on URLs submitted by users or pulled from another block's output.
+- Compare mobile versus desktop scores for the same URL in parallel branches.
+- Gate a deployment workflow on a minimum performance score by feeding the output into a Condition block.
+- Collect historical PageSpeed data by routing results to a database or spreadsheet block.
+- Validate third-party URLs before including them in marketing campaigns.
+
+## Configuration
+
+### Operation
+
+Selects which PageSpeed action to run. Currently one option is available:
+
+| Label | ID |
+|-------|----|
+| Analyze | `google_pagespeed_analyze` |
+
+Defaults to `google_pagespeed_analyze`.
+
+### URL
+
+- **Sub-block id**: `url`
+- **Type**: short-input
+- **Placeholder**: `https://example.com`
+- **Shown when**: operation is `google_pagespeed_analyze`
+
+The fully-qualified URL of the webpage to analyze. Accepts a literal value or a reference to another block's output using `{{blockName.field}}`.
+
+### Strategy
+
+- **Sub-block id**: `strategy`
+- **Type**: short-input
+- **Placeholder**: `mobile or desktop`
+- **Shown when**: operation is `google_pagespeed_analyze`
+
+The device strategy to simulate. Accepted values are `mobile` (default when omitted) and `desktop`. Controls the Lighthouse form factor used for the audit.
+
+### Category
+
+- **Sub-block id**: `category`
+- **Type**: short-input
+- **Placeholder**: `performance`
+- **Shown when**: operation is `google_pagespeed_analyze`
+
+The Lighthouse category to include in the audit. Accepted values are:
+
+- `performance` (default when omitted)
+- `accessibility`
+- `best-practices`
+- `seo`
+
+### Google API Key
+
+- **Sub-block id**: `apiKey`
+- **Type**: short-input (password / masked)
+- **Required**: yes
+
+Your Google Cloud API key with the PageSpeed Insights API enabled. Store it as a workflow secret and reference it with `{{GOOGLE_PAGESPEED_API_KEY}}` rather than hard-coding the value.
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (always `google_pagespeed_analyze` for this block)
+- `apiKey` (string) — Google API key
+- `url` (string) — URL of the webpage to analyze
+- `strategy` (string) — Analysis strategy: `mobile` or `desktop`
+- `category` (string) — Lighthouse category to analyze (`performance`, `accessibility`, `best-practices`, or `seo`)
+
+**Outputs**
+
+- `data` (json) — The full PageSpeed Insights analysis result returned by the API (complete Lighthouse report object)
+- `metadata` (json) — Response metadata containing:
+  - `id` (string) — The analyzed URL as echoed back by the API
+  - `strategy` (string) — The form factor / strategy that was used (`mobile` or `desktop`)
+
+## Tools
+
+**Google PageSpeed Analyze** (`google_pagespeed_analyze`) — Calls the Google PageSpeed Insights v5 API (`https://www.googleapis.com/pagespeedonline/v5/runPagespeed`) via an HTTP GET request. Requires `apiKey` and `url`; `strategy` and `category` are optional and default to `mobile` and `performance` respectively. Returns the full Lighthouse result object plus a compact metadata summary.
+
+## YAML Example
+
+```yaml
+google_pagespeed_1:
+  type: google_pagespeed
+  name: "Analyze Homepage Performance"
+  inputs:
+    operation: google_pagespeed_analyze
+    url: "https://example.com"
+    strategy: "desktop"
+    category: "performance"
+    apiKey: "{{GOOGLE_PAGESPEED_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

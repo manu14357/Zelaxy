@@ -1,0 +1,129 @@
+---
+title: RSS Block
+description: Fetch and parse RSS and Atom feeds
+icon: Rss
+---
+
+# RSS Block
+
+Fetch an RSS or Atom feed by URL and parse it into a list of items (title, link, date, description), or read channel-level feed info. No authentication required — reach for this block whenever a workflow needs to monitor news sources, blogs, podcasts, or any standard syndication feed.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `rss` |
+| **Category** | `tools` |
+| **Color** | `#F26522` |
+
+## When to Use
+
+- Pull the latest articles from a news site or blog into a downstream summarization or notification workflow.
+- Monitor a podcast feed and trigger processing when new episodes appear.
+- Read channel-level metadata (title, homepage link, description) before deciding whether to subscribe or ingest a feed.
+- Limit the number of items returned to keep downstream processing manageable (e.g. only the 5 most recent posts).
+- Chain into an Agent block to summarize or classify feed items automatically.
+- Use in a scheduled workflow to periodically poll a feed and detect new content.
+
+## Configuration
+
+### Operation
+
+Selects which RSS action to perform. This dropdown is always visible and controls which other fields appear.
+
+| Label | ID |
+|-------|----|
+| Fetch feed | `rss_fetch_feed` |
+| Get feed info | `rss_get_feed_info` |
+
+**Default:** `rss_fetch_feed`
+
+### Feed URL
+
+- **Sub-block id:** `url`
+- **Type:** short-input
+- **Required:** yes
+- **Placeholder:** `https://example.com/feed.xml`
+- **Visible for:** both `rss_fetch_feed` and `rss_get_feed_info`
+
+The full URL of the RSS 2.0 or Atom feed to retrieve. Both `http` and `https` URLs are supported. Accepts `{{block.output}}` references and `{{ENV_VAR}}` substitutions.
+
+### Limit
+
+- **Sub-block id:** `limit`
+- **Type:** short-input
+- **Required:** no
+- **Placeholder:** `10`
+- **Visible for:** `rss_fetch_feed` only
+
+Maximum number of feed items to return. When omitted, all items found in the feed are returned. Must be a positive integer. Has no effect when the operation is `rss_get_feed_info`.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`rss_fetch_feed` or `rss_get_feed_info`)
+- `url` (string) — RSS or Atom feed URL
+- `limit` (number) — Maximum number of items to return
+
+**Outputs:**
+
+- `data` (json) — Parsed feed items (array) when using `rss_fetch_feed`; channel title, link, and description object when using `rss_get_feed_info`
+- `metadata` (json) — Response metadata: `{ count, title }` for `rss_fetch_feed`; `{ itemCount }` for `rss_get_feed_info`
+
+### Output shapes by operation
+
+**`rss_fetch_feed` — `data`** is an array of objects, each with:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | string | Item title |
+| `link` | string | Item URL |
+| `pubDate` | string | Publication date (raw string from feed) |
+| `description` | string | Item summary or description |
+
+**`rss_fetch_feed` — `metadata`:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `count` | number | Number of items returned |
+| `title` | string | Feed (channel) title |
+
+**`rss_get_feed_info` — `data`:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | string | Channel title |
+| `link` | string | Channel homepage URL |
+| `description` | string | Channel description or subtitle |
+
+**`rss_get_feed_info` — `metadata`:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `itemCount` | number | Total number of items in the feed |
+
+## Tools
+
+**RSS Fetch Feed** (`rss_fetch_feed`) — Fetches an RSS or Atom feed via HTTP GET and parses all `<item>` (RSS) and `<entry>` (Atom) elements into a structured array of items. Handles CDATA sections and XML entity escaping. Accepts an optional `limit` to cap the number of items returned.
+
+**RSS Get Feed Info** (`rss_get_feed_info`) — Fetches an RSS or Atom feed via HTTP GET and extracts only the channel-level metadata: title, homepage link, and description/subtitle. Also reports the total item count in `metadata.itemCount`. No `limit` parameter.
+
+Neither tool requires authentication credentials.
+
+## YAML Example
+
+```yaml
+rss_1:
+  type: rss
+  name: "Fetch Latest Articles"
+  inputs:
+    operation: "rss_fetch_feed"
+    url: "https://feeds.example.com/blog.xml"
+    limit: 5
+  connections:
+    outgoing:
+      - target: summarize_block
+```
+
+To reference the fetched items in a downstream block, use `{{rss_1.data}}`. To access metadata such as the feed title, use `{{rss_1.metadata.title}}`.

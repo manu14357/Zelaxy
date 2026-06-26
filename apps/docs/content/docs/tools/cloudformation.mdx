@@ -1,0 +1,137 @@
+---
+title: CloudFormation Tools
+description: Manage AWS CloudFormation stacks and templates from your workflows.
+icon: Box
+---
+
+# CloudFormation Tools
+
+AWS CloudFormation tools let you inspect, validate, and monitor infrastructure-as-code stacks directly from a workflow. Use these tools when you need to query stack status, audit deployed resources, detect configuration drift, retrieve templates, or validate new templates before deployment.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `cloudformation` |
+| **Category** | `tools` |
+| **Auth** | AWS Access Key ID + Secret Access Key (IAM credentials) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Describe Stacks | `cloudformation_describe_stacks` | List and describe one or all CloudFormation stacks |
+| List Stack Resources | `cloudformation_list_stack_resources` | List all resources deployed in a stack |
+| Describe Stack Events | `cloudformation_describe_stack_events` | Retrieve the event history for a stack |
+| Detect Stack Drift | `cloudformation_detect_stack_drift` | Initiate drift detection on a stack |
+| Get Template | `cloudformation_get_template` | Retrieve the template body for a deployed stack |
+| Validate Template | `cloudformation_validate_template` | Validate a CloudFormation template for syntax and structural correctness |
+
+## Configuration
+
+### cloudformation_describe_stacks
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g., `us-east-1`) |
+| `awsAccessKeyId` | string | Yes | AWS access key ID |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key |
+| `stackName` | string | No | Stack name or stack ID to describe. Omit to list all stacks in the region |
+
+### cloudformation_list_stack_resources
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g., `us-east-1`) |
+| `awsAccessKeyId` | string | Yes | AWS access key ID |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key |
+| `stackName` | string | Yes | Stack name or stack ID |
+
+### cloudformation_describe_stack_events
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g., `us-east-1`) |
+| `awsAccessKeyId` | string | Yes | AWS access key ID |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key |
+| `stackName` | string | Yes | Stack name or stack ID |
+| `limit` | number | No | Maximum number of events to return (default: 50) |
+
+### cloudformation_detect_stack_drift
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g., `us-east-1`) |
+| `awsAccessKeyId` | string | Yes | AWS access key ID |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key |
+| `stackName` | string | Yes | Stack name or stack ID to detect drift on |
+
+### cloudformation_get_template
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g., `us-east-1`) |
+| `awsAccessKeyId` | string | Yes | AWS access key ID |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key |
+| `stackName` | string | Yes | Stack name or stack ID |
+
+### cloudformation_validate_template
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g., `us-east-1`) |
+| `awsAccessKeyId` | string | Yes | AWS access key ID |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key |
+| `templateBody` | string | Yes | The CloudFormation template body (JSON or YAML format) |
+
+## Outputs
+
+### cloudformation_describe_stacks
+
+- `stacks` (array) — List of CloudFormation stack objects, each containing stack metadata such as name, status, creation time, parameters, outputs, and tags.
+
+### cloudformation_list_stack_resources
+
+- `resources` (array) — List of resource summary objects for every resource in the stack, including logical ID, physical ID, resource type, and resource status.
+
+### cloudformation_describe_stack_events
+
+- `events` (array) — List of stack event objects in reverse chronological order, each containing the event ID, stack name, logical/physical resource IDs, resource type, timestamp, and resource status.
+
+### cloudformation_detect_stack_drift
+
+- `stackDriftDetectionId` (string) — The detection operation ID. Use this ID with the AWS SDK or another CloudFormation call to poll for the detection result once the asynchronous operation completes.
+
+### cloudformation_get_template
+
+- `templateBody` (string) — The template body as a JSON or YAML string.
+- `stagesAvailable` (array) — List of template stages available (e.g., `Original`, `Processed`).
+
+### cloudformation_validate_template
+
+- `description` (string) — The description declared in the template.
+- `parameters` (array) — List of template parameter declarations found in the template.
+- `capabilities` (array) — List of capabilities the template requires (e.g., `CAPABILITY_IAM`, `CAPABILITY_NAMED_IAM`).
+
+## YAML Example
+
+```yaml
+cloudformation_1:
+  type: cloudformation
+  name: "CloudFormation"
+  inputs:
+    operation: "cloudformation_describe_stacks"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+    stackName: "my-production-stack"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Store `awsAccessKeyId` and `awsSecretAccessKey` as environment variables (e.g., `{{AWS_ACCESS_KEY_ID}}` and `{{AWS_SECRET_ACCESS_KEY}}`) and reference them from the block inputs rather than hardcoding credentials in the workflow.
+- `cloudformation_detect_stack_drift` is an asynchronous operation — it returns a `stackDriftDetectionId` immediately, but the actual drift results are not available until AWS completes detection (typically seconds to minutes). Chain a wait block or a polling loop before consuming drift results.
+- When using `cloudformation_describe_stacks` without a `stackName`, the response includes all stacks in the region. Use a downstream block to filter by status (e.g., `CREATE_COMPLETE`, `UPDATE_COMPLETE`) when you only care about active stacks.

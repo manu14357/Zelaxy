@@ -1,0 +1,104 @@
+---
+title: Logs Tools
+description: Query, fetch, and inspect workflow execution logs in the current workspace
+icon: Library
+---
+
+# Logs Tools
+
+The Logs provider lets a workflow read its own platform's execution history: search workflow run logs across the current workspace, fetch a single log entry by id, or load full execution details with the per-block state snapshot. Use these tools to build monitoring, alerting, auditing, or self-debugging workflows that react to past runs.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `logs` |
+| **Category** | `blocks` |
+| **Auth** | none (internal `/api/logs` endpoint; scoped by the workspace in execution context) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Query Logs | `logs_query` | Query workflow execution logs in the current workspace with filters and pagination. |
+| Get Log by ID | `logs_get` | Fetch a single workflow execution log entry by its log ID. |
+| Get Execution Details | `logs_get_execution` | Fetch full execution details for a workflow run, including the per-block state snapshot. |
+
+## Configuration
+
+### `logs_query`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `workflowIds` | string | No | Comma-separated workflow IDs to filter by. |
+| `executionId` | string | No | Filter logs to a single execution ID. |
+| `level` | string | No | Log level filter. One of `all`, `info`, `error`, `running`, `pending` (`all` is treated as no filter). |
+| `triggers` | string | No | Comma-separated triggers to filter by: `api`, `webhook`, `schedule`, `manual`, `chat`. |
+| `limit` | number | No | Max logs to return (default `100`, max `200`). |
+| `cursor` | string | No | Opaque pagination cursor returned by a previous query (`nextCursor`). |
+| `sortBy` | string | No | Sort field: `date` (default), `duration`, `cost`, `status`. |
+| `sortOrder` | string | No | Sort order: `desc` (default) or `asc`. |
+| `startDate` | string | No | ISO 8601 timestamp; only logs at or after this time. |
+| `endDate` | string | No | ISO 8601 timestamp; only logs at or before this time. |
+| `search` | string | No | Free-text search across log fields. |
+
+The workspace is resolved from the execution context (`_context.workspaceId`) automatically — it is not a user-facing parameter. The tool throws `workspaceId is required in execution context` when it is missing.
+
+### `logs_get`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | string | Yes | Log entry ID to fetch. |
+
+The workspace is resolved from the execution context (`_context.workspaceId`) automatically.
+
+### `logs_get_execution`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `executionId` | string | Yes | Execution ID returned by a workflow run. |
+
+No additional parameters or secrets are required.
+
+## Outputs
+
+### `logs_query`
+
+- `logs` (array) — Array of workflow execution log entries.
+- `nextCursor` (string) — Pagination cursor for the next page; `null` when no more results.
+
+### `logs_get`
+
+- `log` (json) — Workflow execution log entry.
+
+### `logs_get_execution`
+
+- `executionId` (string) — Execution ID.
+- `workflowId` (string) — Workflow ID this execution belongs to.
+- `workflowState` (json) — Per-block state snapshot for the execution.
+- `executionMetadata` (json) — Trigger, timestamps, `totalDurationMs`, and cost for the run.
+
+## YAML Example
+
+```yaml
+logs_1:
+  type: logs
+  name: "Logs"
+  inputs:
+    operation: "query"
+    level: "error"
+    triggers: "api,schedule"
+    limit: 50
+    sortBy: "date"
+    sortOrder: "desc"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- No API key or OAuth is needed — these tools call the internal `/api/logs` endpoint and are automatically scoped to the workspace running the workflow via the execution context.
+- Page through large result sets by feeding the `nextCursor` from a `logs_query` response back in as the `cursor` parameter on the next call; stop when `nextCursor` is `null`.
+- Set `level` to `error` and `triggers` to the relevant entry points to build lightweight self-monitoring or alerting workflows that flag failed runs.
+- Use `logs_query` to discover an `executionId`, then chain `logs_get_execution` to pull the full per-block `workflowState` snapshot for deeper debugging or auditing.

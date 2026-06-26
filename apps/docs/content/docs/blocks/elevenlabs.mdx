@@ -44,8 +44,17 @@ Your ElevenLabs API key, stored as a password field. Required.
 
 ## Inputs & Outputs
 
-- **Inputs**: `text` (string), `voiceId` (string), `modelId` (string), `apiKey` (string)
-- **Outputs**: `audioUrl` (string)
+- **Inputs**:
+  - `text` (string) — Text to convert to speech
+  - `voiceId` (string) — Voice identifier
+  - `modelId` (string) — Model identifier
+  - `apiKey` (string) — ElevenLabs API key
+- **Outputs**:
+  - `audioUrl` (string) — Generated audio URL
+
+## Tools
+
+**ElevenLabs TTS** (`elevenlabs_tts`) — Sends the text, voice ID, model ID, and API key to the ElevenLabs API via a proxy and returns a URL pointing to the generated audio file. The `modelId` defaults to `eleven_monolingual_v1` when not specified.
 
 ## YAML Example
 

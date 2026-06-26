@@ -1,66 +1,118 @@
 ---
 title: Evaluator Block
-description: Score and assess content quality with AI-powered evaluation
-icon: Award
+description: Evaluate content quality using customizable metrics and AI-powered numeric scoring
+icon: ChartColumn
 ---
 
 # Evaluator Block
 
-The Evaluator block uses an LLM to score and assess content against defined criteria. It returns a numerical score, detailed feedback, and pass/fail determination — useful for quality gates, content ranking, and automated review pipelines.
+The Evaluator block uses a large language model to assess content against a set of named, numeric metrics you define — each with its own description and min/max range. Reach for it whenever you need an objective, repeatable quality signal: content grading, model-output comparison, automated review gates, or A/B ranking.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `evaluator` |
-| **Category** | Core Block |
-| **Color** | `#10B981` (Emerald) |
+| **Category** | `tools` |
+| **Color** | `#C2410C` |
 
 ## When to Use
 
-- You need to score content quality (1–10 scale)
-- You want to create quality gates ("only proceed if score ≥ 7")
-- You need to compare and rank multiple outputs
-- You want automated feedback on generated content
+- Score LLM-generated text (e.g., clarity, accuracy, relevance) before routing it downstream
+- Build quality gates — only continue a workflow when all metric scores exceed a threshold
+- Compare two outputs by running both through the same Evaluator and comparing results
+- Rank or filter items in a loop based on AI-assigned numeric scores
+- Replace hard-coded rubrics with dynamic, per-run evaluation criteria passed in as JSON
 
 ## Configuration
 
-| Setting | Type | Description |
-|---------|------|-------------|
-| Evaluation Prompt | Long text | Criteria for scoring (e.g., "Rate clarity, accuracy, and completeness") |
-| Content to Evaluate | Long text | The content to score (e.g., `{{agent.content}}`) |
-| Model | Dropdown | LLM model for evaluation |
-| API Key | Password | Provider API key |
+### Evaluation Metrics (`metrics`)
 
-## Outputs
+**Required.** The metrics definition drives everything the Evaluator does. Each metric is an object with:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `score` | `number` | Numerical score |
-| `feedback` | `string` | Detailed evaluation feedback |
-| `passed` | `boolean` | Whether content met the criteria |
-| `reasoning` | `string` | Step-by-step evaluation reasoning |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | yes | Metric name (used as the output key, lowercased) |
+| `description` | string | yes | What the metric measures — give the LLM clear guidance |
+| `range.min` | number | yes | Minimum possible score |
+| `range.max` | number | yes | Maximum possible score |
 
-## Example: Content Quality Gate
+Pass a JSON array of metric objects. Example:
 
-**Goal:** Only publish blog posts that score 7+ on quality.
-
-**Workflow:**
-```
-[Starter] → [Agent: Writer] → [Evaluator] → [Condition] → [Publish] / [Agent: Rewrite]
+```json
+[
+  { "name": "Clarity", "description": "How clear and readable is the text?", "range": { "min": 0, "max": 10 } },
+  { "name": "Accuracy", "description": "Are the facts correct?", "range": { "min": 0, "max": 10 } }
+]
 ```
 
-**Configuration:**
-- **Evaluation Prompt:** `Rate this blog post on a scale of 1-10 based on: clarity (is it easy to understand?), accuracy (are facts correct?), engagement (is it interesting to read?), and completeness (does it cover the topic fully?).`
-- **Content:** `{{agent.content}}`
-- **Model:** `gpt-4o`
+You can pass this from another block's output with `{{blockName.content}}` or define it inline in the eval-input sub-block.
 
-**Follow-up Condition:** `{{evaluator.score}} >= 7`
-- True → Publish the post
-- False → Send back to a rewrite Agent with `{{evaluator.feedback}}` as guidance
+The block auto-generates a structured LLM prompt and a JSON Schema response format from these metrics. The LLM is forced to return only numeric scores (no prose) for each metric, keyed by the lowercased metric name.
 
-## Tips
+### Content (`content`)
 
-- **Use GPT-4o** for evaluation — it provides more nuanced and accurate scoring than mini models
-- **Be specific in your criteria** — vague prompts lead to inconsistent scores
-- **Chain with Condition** — use `{{evaluator.score}} >= threshold` to create quality gates
+**Required.** The text (or JSON string) to be evaluated. Reference another block's output with `{{blockName.content}}` — for example `{{agent_1.content}}` to evaluate an agent's response. The block detects JSON and pretty-prints it for the LLM automatically.
+
+### Model (`model`)
+
+**Required.** The LLM model to run evaluation against. The dropdown lists all base provider models plus any locally configured Ollama models. Choose a capable model (e.g., `gpt-4o`, `claude-3-7-sonnet-20250219`) for more reliable and nuanced scoring.
+
+### API Key (`apiKey`)
+
+**Required when using a non-hosted model.** The API key for the chosen model's provider. Use the secret reference syntax `{{PROVIDER_API_KEY}}` rather than pasting the key literally. This field is hidden when a hosted/managed model is selected (controlled by the `isHosted` environment flag).
+
+### System Prompt (`systemPrompt`)
+
+Internal hidden sub-block — not shown in the UI. It is computed automatically from `metrics` and `content` at serialization time and passed to the LLM as a structured prompt + JSON Schema response format. You do not configure this directly.
+
+## Inputs & Outputs
+
+### Inputs
+
+- `metrics` (json) — Array of metric objects, each with `name`, `description`, and `range` (`min`/`max`)
+- `content` (string) — The text or JSON content to evaluate
+- `model` (string) — LLM model identifier (e.g., `gpt-4o`, `claude-3-7-sonnet-20250219`)
+- `apiKey` (string) — Provider API key for the selected model
+
+### Outputs
+
+- `content` (string) — Raw evaluation result from the LLM (JSON object with lowercase metric names as keys and numeric scores as values)
+- `model` (string) — The model that was used to perform the evaluation
+- `tokens` (json) — Token usage breakdown: `{ prompt, completion, total }`
+- `cost` (json) — Cost breakdown: `{ input, output, total }` (in USD)
+
+The per-metric scores are embedded in `content` as a JSON string. To use an individual score downstream, parse `{{evaluator_1.content}}` in a Function block or reference it with a Condition block's expression (e.g., `JSON.parse({{evaluator_1.content}}).clarity >= 7`).
+
+## Tools
+
+The Evaluator block is an **LLM block** — it does not use the standard tool registry. Instead it dispatches through `executeProviderRequest` using whichever provider owns the selected model. The provider IDs listed in `tools.access` are:
+
+- **OpenAI Chat** (`openai_chat`) — GPT-4o, GPT-4.1, and other OpenAI chat models
+- **Anthropic Chat** (`anthropic_chat`) — Claude 3.x and Claude 3.5/3.7 Sonnet/Haiku/Opus models
+- **Google Chat** (`google_chat`) — Gemini 2.x and Gemini 1.5 Pro/Flash models
+- **xAI Chat** (`xai_chat`) — Grok models from xAI
+- **DeepSeek Chat** (`deepseek_chat`) — DeepSeek chat/instruct models
+- **DeepSeek Reasoner** (`deepseek_reasoner`) — DeepSeek R1 reasoning models
+
+These IDs are intentionally absent from `tools/registry.ts` — that is by design. They are resolved via the provider dispatch layer, not the generic tool executor.
+
+## YAML Example
+
+```yaml
+evaluator_1:
+  type: evaluator
+  name: "Evaluator"
+  inputs:
+    metrics: |
+      [
+        { "name": "Clarity", "description": "Is the response clear and easy to understand?", "range": { "min": 0, "max": 10 } },
+        { "name": "Relevance", "description": "Does the response address the original question?", "range": { "min": 0, "max": 10 } }
+      ]
+    content: "{{agent_1.content}}"
+    model: "gpt-4o"
+    apiKey: "{{OPENAI_API_KEY}}"
+  connections:
+    outgoing:
+      - target: condition_1
+```

@@ -1,0 +1,124 @@
+---
+title: Grafana Block
+description: Search dashboards and inspect data sources and alerts in Grafana
+icon: Box
+---
+
+# Grafana Block
+
+Search dashboards, fetch a dashboard by UID, list data sources, and list provisioned alert rules through the Grafana HTTP API. Authenticate with a service account token to integrate Grafana observability data into your workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `grafana` |
+| **Category** | `tools` |
+| **Color** | `#F46800` |
+
+## When to Use
+
+- Search for dashboards by title to surface relevant monitoring views in an automated pipeline.
+- Retrieve the full JSON definition of a specific dashboard by its UID for programmatic inspection or cloning.
+- Enumerate all configured data sources in a Grafana instance to audit or document your observability stack.
+- List all provisioned alert rules to build automated incident-management or reporting workflows.
+- Feed Grafana alert data into downstream notification, ticketing, or remediation blocks.
+- Combine with agent blocks to let an AI assistant query and interpret Grafana monitoring state.
+
+## Configuration
+
+### Operation
+
+Selects which Grafana API action to perform. This is a required dropdown that controls which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| Search dashboards | `grafana_search_dashboards` |
+| Get dashboard | `grafana_get_dashboard` |
+| List datasources | `grafana_list_datasources` |
+| List alerts | `grafana_list_alerts` |
+
+Default value: `grafana_search_dashboards`.
+
+---
+
+### Query
+
+- **Shown when**: Operation is `grafana_search_dashboards`
+- **Type**: Short text input
+- **Placeholder**: `Filter dashboards by title`
+- **Required**: No
+
+An optional search string that filters the dashboard list by title. Leave blank to return all dashboards.
+
+---
+
+### Dashboard UID
+
+- **Shown when**: Operation is `grafana_get_dashboard`
+- **Type**: Short text input
+- **Placeholder**: `abc123def`
+- **Required**: Yes (when operation is `grafana_get_dashboard`)
+
+The unique identifier of the Grafana dashboard to retrieve. You can find the UID in the dashboard URL or via the Search dashboards operation.
+
+---
+
+### Instance URL
+
+- **Type**: Short text input
+- **Placeholder**: `https://your.grafana.net`
+- **Required**: Yes (all operations)
+
+The base URL of your Grafana instance. Do not include a trailing slash. Use `{{GRAFANA_INSTANCE_URL}}` to reference a workflow environment variable.
+
+---
+
+### Service Account Token
+
+- **Type**: Short text input (password masked)
+- **Placeholder**: `glsa_...`
+- **Required**: Yes (all operations)
+
+A Grafana service account token with at least Viewer permissions. Use `{{GRAFANA_API_KEY}}` to reference a secret environment variable rather than embedding the token directly.
+
+## Inputs & Outputs
+
+### Inputs
+
+- `operation` (string) — Operation to perform (`grafana_search_dashboards`, `grafana_get_dashboard`, `grafana_list_datasources`, or `grafana_list_alerts`)
+- `apiKey` (string) — Grafana service account token
+- `instanceUrl` (string) — Grafana instance URL
+- `query` (string) — Dashboard search query (used by `grafana_search_dashboards`)
+- `uid` (string) — Dashboard UID (used by `grafana_get_dashboard`)
+
+### Outputs
+
+- `data` (json) — Result object or array from Grafana. For list operations this is an array of objects; for `grafana_get_dashboard` this is a single dashboard object.
+- `metadata` (json) — Response metadata. For list operations includes `count` (number of items returned). For `grafana_get_dashboard` includes `uid` (the dashboard UID).
+
+## Tools
+
+**Grafana Search Dashboards** (`grafana_search_dashboards`) — Searches and lists dashboards in a Grafana instance by calling `GET /api/search?type=dash-db`. Accepts an optional `query` param to filter by title. Returns an array of matching dashboard summaries and a `count` in metadata.
+
+**Grafana Get Dashboard** (`grafana_get_dashboard`) — Retrieves the full JSON model of a single Grafana dashboard by UID via `GET /api/dashboards/uid/{uid}`. Returns the complete dashboard object and metadata containing the `uid`.
+
+**Grafana List Datasources** (`grafana_list_datasources`) — Lists all data sources configured in the Grafana instance via `GET /api/datasources`. Returns an array of data source objects and a `count` in metadata.
+
+**Grafana List Alerts** (`grafana_list_alerts`) — Lists all provisioned alert rules via `GET /api/v1/provisioning/alert-rules`. Returns an array of alert rule objects and a `count` in metadata.
+
+## YAML Example
+
+```yaml
+grafana_1:
+  type: grafana
+  name: "Search Grafana Dashboards"
+  inputs:
+    operation: "grafana_search_dashboards"
+    instanceUrl: "{{GRAFANA_INSTANCE_URL}}"
+    apiKey: "{{GRAFANA_API_KEY}}"
+    query: "infrastructure"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

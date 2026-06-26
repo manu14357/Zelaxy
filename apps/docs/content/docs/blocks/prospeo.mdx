@@ -1,0 +1,149 @@
+---
+title: Prospeo Block
+description: Find verified emails and mobile numbers
+icon: Mail
+---
+
+# Prospeo Block
+
+Find verified professional emails from a name and company or a LinkedIn URL, and reveal mobile numbers from a LinkedIn profile using the Prospeo API. Authenticate with a Prospeo API key to enrich contact data in your workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `prospeo` |
+| **Category** | `tools` |
+| **Color** | `#FF5C35` |
+
+## When to Use
+
+- Look up a verified work email address when you have a person's full name and company domain
+- Retrieve the email of a LinkedIn contact directly from their profile URL
+- Find a mobile phone number linked to a LinkedIn profile for outreach
+- Enrich a list of leads with contact details fetched from Prospeo
+- Build sales or recruiting workflows that need verified contact information before sending a message
+- Validate that a prospect exists on LinkedIn before passing data to a downstream block
+
+## Configuration
+
+### Operation
+
+Select which Prospeo lookup to perform. The remaining fields shown depend on this choice.
+
+| Label | ID |
+|-------|----|
+| Email finder | `prospeo_email_finder` |
+| Mobile finder | `prospeo_mobile_finder` |
+| LinkedIn email finder | `prospeo_linkedin_email_finder` |
+
+---
+
+### First Name
+
+**Shown when**: Operation is `prospeo_email_finder`
+
+The prospect's first name. Required for the Email finder operation.
+
+- Type: short text input
+- Required: yes
+- Placeholder: `Jane`
+
+---
+
+### Last Name
+
+**Shown when**: Operation is `prospeo_email_finder`
+
+The prospect's last name. Required for the Email finder operation.
+
+- Type: short text input
+- Required: yes
+- Placeholder: `Doe`
+
+---
+
+### Company
+
+**Shown when**: Operation is `prospeo_email_finder`
+
+The prospect's company name or domain (e.g. `acme.com`). Required for the Email finder operation.
+
+- Type: short text input
+- Required: yes
+- Placeholder: `acme.com`
+
+---
+
+### LinkedIn URL
+
+**Shown when**: Operation is `prospeo_mobile_finder` or `prospeo_linkedin_email_finder`
+
+The full LinkedIn profile URL of the person whose contact details you want to look up.
+
+- Type: short text input
+- Required: yes
+- Placeholder: `https://www.linkedin.com/in/janedoe`
+
+---
+
+### Prospeo API Key
+
+Your Prospeo API key, used to authenticate all requests. The value is stored as a password field and never displayed in plain text after saving.
+
+- Type: short text input (password)
+- Required: yes
+- Placeholder: `Enter your Prospeo API key`
+
+Use `{{PROSPEO_API_KEY}}` to reference a workspace environment variable rather than hard-coding the key.
+
+## Inputs & Outputs
+
+### Inputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `operation` | string | The operation to perform: `prospeo_email_finder`, `prospeo_mobile_finder`, or `prospeo_linkedin_email_finder` |
+| `apiKey` | string | Prospeo API key used to authenticate the request |
+| `first_name` | string | First name of the person to look up (Email finder only) |
+| `last_name` | string | Last name of the person to look up (Email finder only) |
+| `company` | string | Company name or domain to search within (Email finder only) |
+| `url` | string | LinkedIn profile URL (Mobile finder and LinkedIn email finder only) |
+
+### Outputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `data` | json | Result object returned by Prospeo (email record, mobile record, or LinkedIn email record depending on operation) |
+| `metadata` | json | Response metadata; includes `error` (boolean) indicating whether the API reported an error |
+
+## Tools
+
+**Prospeo Email Finder** (`prospeo_email_finder`) — Calls `POST https://api.prospeo.io/email-finder` with `first_name`, `last_name`, and `company`. Returns a verified professional email address for the named person at the given company.
+
+**Prospeo Mobile Finder** (`prospeo_mobile_finder`) — Calls `POST https://api.prospeo.io/mobile-finder` with a LinkedIn profile `url`. Returns the mobile phone number associated with that LinkedIn profile.
+
+**Prospeo LinkedIn Email Finder** (`prospeo_linkedin_email_finder`) — Calls `POST https://api.prospeo.io/linkedin-email-finder` with a LinkedIn profile `url`. Returns a verified professional email address resolved from the LinkedIn profile.
+
+All three tools authenticate via the `X-KEY` header populated from the `apiKey` parameter.
+
+## YAML Example
+
+```yaml
+prospeo_1:
+  type: prospeo
+  name: "Find Email by Name"
+  inputs:
+    operation: "prospeo_email_finder"
+    apiKey: "{{PROSPEO_API_KEY}}"
+    first_name: "{{lead_block.first_name}}"
+    last_name: "{{lead_block.last_name}}"
+    company: "{{lead_block.domain}}"
+  connections:
+    outgoing:
+      - target: send_email_block
+```
+
+> To use the LinkedIn email finder instead, set `operation` to `prospeo_linkedin_email_finder` and supply `url` (e.g. `{{lead_block.linkedin_url}}`), omitting `first_name`, `last_name`, and `company`.
+>
+> To find a mobile number, set `operation` to `prospeo_mobile_finder` and supply `url`.

@@ -1,0 +1,103 @@
+---
+title: Greptile Tools
+description: Query, search, and index code repositories with natural language using Greptile.
+icon: Box
+---
+
+# Greptile Tools
+
+Greptile indexes your code repositories and lets you ask natural-language questions, run semantic searches, and submit new repositories for indexing through the Greptile API. Use these tools in a workflow when you need an agent to reason over a codebase, find relevant files, or onboard a repository before querying it.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `greptile` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Greptile API key) plus a GitHub access token in the `X-GitHub-Token` header |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Query | `greptile_query` | Ask a natural-language question about indexed repositories and get an answer |
+| Search | `greptile_search` | Search indexed repositories for relevant files and code references |
+| Index repository | `greptile_index_repository` | Submit a repository to Greptile for indexing so it can be queried and searched |
+
+## Configuration
+
+### greptile_query
+
+Ask a natural-language question about one or more indexed repositories.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Greptile API key. **Secret** — sent as the `Authorization: Bearer` token. |
+| `githubToken` | string | Yes | GitHub access token with read access to the repositories. **Secret** — sent in the `X-GitHub-Token` header. |
+| `query` | string | Yes | The natural-language question to ask. |
+| `repositories` | json | Yes | Array of repository objects to query (e.g. `[{ remote, repository, branch }]`). |
+
+### greptile_search
+
+Search indexed repositories for relevant files and code references.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Greptile API key. **Secret** — sent as the `Authorization: Bearer` token. |
+| `githubToken` | string | Yes | GitHub access token with read access to the repositories. **Secret** — sent in the `X-GitHub-Token` header. |
+| `query` | string | Yes | The search query. |
+| `repositories` | json | Yes | Array of repository objects to search (e.g. `[{ remote, repository, branch }]`). |
+
+### greptile_index_repository
+
+Submit a repository to Greptile for indexing so it can later be queried and searched.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Greptile API key. **Secret** — sent as the `Authorization: Bearer` token. |
+| `githubToken` | string | Yes | GitHub access token with read access to the repository. **Secret** — sent in the `X-GitHub-Token` header. |
+| `remote` | string | Yes | Source host of the repository (e.g. `github`). |
+| `repository` | string | Yes | Repository identifier (e.g. `owner/repo`). |
+| `branch` | string | No | Branch to index (defaults to the repository's default branch). |
+
+## Outputs
+
+### greptile_query
+
+- `data` (json) — The Greptile query answer and sources.
+- `metadata` (json) — Response metadata. Contains `status` (string) — query status (returned as `completed`).
+
+### greptile_search
+
+- `data` (json) — The Greptile search results.
+- `metadata` (json) — Response metadata. Contains `status` (string) — search status (returned as `completed`).
+
+### greptile_index_repository
+
+- `data` (json) — The Greptile indexing job response.
+- `metadata` (json) — Response metadata. Contains `status` (string) — the indexing job status returned by Greptile.
+
+## YAML Example
+
+```yaml
+greptile_1:
+  type: greptile
+  name: "Greptile"
+  inputs:
+    operation: "greptile_query"
+    query: "How does authentication work?"
+    repositories: '[{ "remote": "github", "repository": "owner/repo", "branch": "main" }]'
+    githubToken: "{{GITHUB_TOKEN}}"
+    apiKey: "{{GREPTILE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- This provider needs two secrets: a Greptile API key (sent as `Authorization: Bearer <apiKey>`) and a GitHub access token (sent in the `X-GitHub-Token` header). Store both as environment variables and reference them with `{{GREPTILE_API_KEY}}` and `{{GITHUB_TOKEN}}` rather than hardcoding them.
+- A repository must be indexed before you can query or search it. Run `greptile_index_repository` first, then use `greptile_query` or `greptile_search` once the indexing job has completed.
+- The `repositories` parameter is a JSON array of objects, each shaped like `{ "remote": "github", "repository": "owner/repo", "branch": "main" }`. You can pass multiple repositories in one query or search.
+- For `greptile_index_repository`, `branch` is optional — omit it to index the repository's default branch.
+- All three tools call `https://api.greptile.com/v2/...` over HTTPS POST. The downstream `data` output is the raw Greptile JSON, so reference fields from it as `{{greptile_1.data.<field>}}` in later blocks.

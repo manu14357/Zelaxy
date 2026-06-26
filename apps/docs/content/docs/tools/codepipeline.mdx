@@ -1,0 +1,63 @@
+---
+title: AWS CodePipeline
+description: List, inspect, and monitor AWS CodePipeline pipelines from a workflow
+icon: GitPullRequest
+---
+
+# AWS CodePipeline
+
+Query the AWS CodePipeline control plane to list pipelines, retrieve their full structure, and inspect their current execution state. Use this integration when a workflow needs to audit CI/CD status, gate deployments on pipeline health, or surface pipeline metadata to an Agent for analysis.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `codepipeline` |
+| **Category** | Tool — Cloud Infrastructure |
+| **Auth** | AWS SigV4 (Access Key ID + Secret Access Key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **List Pipelines** | `codepipeline_list_pipelines` | List all CodePipeline pipelines in the account for the given region |
+| **Get Pipeline** | `codepipeline_get_pipeline` | Retrieve the full structure (stages, actions, artifacts) of a named pipeline |
+| **Get Pipeline State** | `codepipeline_get_pipeline_state` | Get the current execution state of every stage in a named pipeline |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `awsRegion` | `string` | Yes | AWS region where your pipelines live (e.g. `us-east-1`). Determines the API endpoint (`codepipeline.<region>.amazonaws.com`). |
+| `awsAccessKeyId` | `string` | Yes | AWS IAM access key ID used to sign requests. Treat as a secret — store in an environment variable such as `{{AWS_ACCESS_KEY_ID}}`. |
+| `awsSecretAccessKey` | `string` | Yes | AWS IAM secret access key paired with the access key ID. Treat as a secret — store in an environment variable such as `{{AWS_SECRET_ACCESS_KEY}}`. |
+| `name` | `string` | Conditional | The name of the pipeline. Required for **Get Pipeline** and **Get Pipeline State**; not used by **List Pipelines**. Can be supplied dynamically from an upstream block, e.g. `{{listPipelines.data}}`, or entered directly. |
+
+## Outputs
+
+All three operations return the same output shape:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | Raw AWS CodePipeline API response object. Content varies by operation — see the shape breakdown below. |
+
+### `data` shape by operation
+
+- **List Pipelines** — `data.pipelines` is an array of pipeline summary objects, each with `name`, `version`, `created`, and `updated` fields.
+- **Get Pipeline** — `data.pipeline` is a pipeline structure object with `name`, `roleArn`, `artifactStore`, and a `stages` array. Each stage contains `name` and an `actions` array.
+- **Get Pipeline State** — `data.stageStates` is an array of stage state objects. Each entry includes `stageName`, `inboundTransitionState`, `actionStates` (with `actionName`, `currentRevision`, `latestExecution`, and `entityUrl`), and `latestExecution` with `status` (`InProgress`, `Succeeded`, `Failed`, etc.).
+
+## Example
+
+```
+[Starter] → [AWS CodePipeline: List Pipelines] → [AWS CodePipeline: Get Pipeline State] → [Agent: summarise deployment health]
+```
+
+A scheduled workflow first calls **List Pipelines** using `{{AWS_ACCESS_KEY_ID}}` and `{{AWS_SECRET_ACCESS_KEY}}` to enumerate all pipelines in `us-east-1`. A second block calls **Get Pipeline State**, passing the name of the target pipeline — referenced as `{{listPipelines.data}}` after extracting it in a Function block — to retrieve per-stage execution status. An Agent block then summarises any failed stages and posts an alert to Slack.
+
+## Tips
+
+- **Least-privilege IAM** — the credentials only need `codepipeline:ListPipelines`, `codepipeline:GetPipeline`, and `codepipeline:GetPipelineState`. Avoid using root or admin keys.
+- **Dynamic pipeline names** — use **List Pipelines** first to discover pipeline names programmatically, then wire `{{listPipelines.data}}` through a Function block to extract the desired `name` before passing it into **Get Pipeline** or **Get Pipeline State**.
+- **Polling for status** — to wait until a pipeline run completes, combine **Get Pipeline State** with a Loop block that checks `stageStates[*].latestExecution.status` and exits when all stages show `Succeeded` (or any shows `Failed`).
+- **Region scoping** — CodePipeline resources are region-specific. Ensure `awsRegion` matches the region where your pipelines were created; a wrong region returns an empty list rather than an error.

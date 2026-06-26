@@ -20,35 +20,44 @@ The S3 block retrieves and views files from Amazon S3 buckets using presigned UR
 
 - Generate a presigned URL for an object stored in an Amazon S3 bucket.
 - Fetch a file from S3 so a downstream block can read or display it.
-- Pull object metadata for a specific S3 object.
+- Pull object metadata (file type, size, name, last-modified date) for a specific S3 object.
 - Pass an S3-hosted asset (image, document, data file) into a later step via a temporary link.
 - Access private S3 objects without making the bucket publicly readable.
+- Surface a short-lived download link to an end user without exposing AWS credentials.
 
 ## Configuration
 
 ### Access Key ID
 
-Your AWS Access Key ID, used to authenticate the request. Required and stored as a secret.
+Your AWS Access Key ID, used to sign the request. This field is required and treated as a secret (value is masked in the UI).
 
 ### Secret Access Key
 
-Your AWS Secret Access Key, paired with the Access Key ID. Required and stored as a secret.
+Your AWS Secret Access Key, paired with the Access Key ID to produce AWS Signature Version 4 authentication headers. Required and treated as a secret.
 
 ### S3 Object URL
 
-The full URL of the S3 object, e.g. `https://bucket-name.s3.region.amazonaws.com/path/to/file`. The bucket name, region, and object key are parsed from this URL. Required.
+The full HTTPS URL of the S3 object in the format `https://bucket-name.s3.region.amazonaws.com/path/to/file`. The block automatically parses the bucket name, AWS region, and object key from this URL. Required.
 
 ## Inputs & Outputs
 
-- **Inputs**: `accessKeyId` (string), `secretAccessKey` (string), `s3Uri` (string)
-- **Outputs**: `url` (string — presigned URL), `metadata` (json — object metadata)
+- **Inputs**:
+  - `accessKeyId` (string) — AWS access key ID
+  - `secretAccessKey` (string) — AWS secret access key
+  - `s3Uri` (string) — S3 object URL
+
+- **Outputs**:
+  - `url` (string) — Presigned URL valid for 3600 seconds that allows downloading the S3 object
+  - `metadata` (json) — Object metadata including `fileType`, `size` (bytes), `name`, and `lastModified`
+
+## Tools
+
+**S3 Get Object** (`s3_get_object`) — Issues a signed HEAD request to Amazon S3 to verify the object exists and retrieve its metadata, then generates an AWS Signature Version 4 presigned GET URL (1-hour expiry) for downloading the object. Returns the presigned URL and a metadata object containing the file type, byte size, file name, and last-modified timestamp.
 
 ## YAML Example
 
-Use the block's real `type` and sub-block ids. This is the workflow YAML format the agent builder uses:
-
 ```yaml
-get_file:
+s3_1:
   type: s3
   name: "S3"
   inputs:

@@ -1,0 +1,99 @@
+---
+title: SAP Concur Block
+description: List expense reports and users in SAP Concur
+icon: Box
+---
+
+# SAP Concur Block
+
+The SAP Concur block lets you query expense reports and users from SAP Concur via the v3.0 Expense and Common APIs. Use it when a workflow needs to retrieve, filter, or inspect expense data or look up employees without leaving the automation canvas.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `sap_concur` |
+| **Category** | tools |
+| **Color** | `#D9272E` |
+
+## When to Use
+
+- Fetch a paginated list of expense reports across your organisation, optionally filtered by owner or approval status.
+- Retrieve a single expense report by its ID to read its current state before routing it to an approver or archiving it.
+- Look up SAP Concur users by primary email to resolve identities from upstream data sources.
+- Drive approval workflows by filtering reports with a specific approval status code (e.g. `A_PEND` for pending reports).
+- Pass expense report data to downstream blocks (Agent, Function, API) for enrichment, formatting, or notification.
+- Combine with a scheduler trigger to produce daily or weekly expense summaries automatically.
+
+## Configuration
+
+### Operation
+
+Selects which API call the block makes. This field drives which other configuration fields are shown.
+
+| Label | ID |
+|-------|----|
+| List reports | `sap_concur_list_reports` |
+| Get report | `sap_concur_get_report` |
+| List users | `sap_concur_list_users` |
+
+### Report ID
+
+The unique identifier of a single expense report to retrieve (e.g. `39BD9F7C5C3F4986A6A5`). Shown when **Operation** is `sap_concur_get_report`. Required for that operation.
+
+### User
+
+Login ID (email) of the report owner to filter by, or the literal string `ALL` to include all users. Shown when **Operation** is `sap_concur_list_reports` or `sap_concur_get_report`. When used with Get Report, this field identifies the owner on whose behalf you are acting (required when impersonating another user).
+
+### Approval Status Code
+
+Filters the report list to a specific approval state. Shown when **Operation** is `sap_concur_list_reports`. Common values: `A_NOTF` (not submitted), `A_PEND` (pending approval), `A_APPR` (approved).
+
+### Primary Email
+
+Filters the user list to accounts with the given primary email address. Shown when **Operation** is `sap_concur_list_users`.
+
+### Limit
+
+Maximum number of records to return (default 25, max 100). Shown when **Operation** is `sap_concur_list_reports` or `sap_concur_list_users`.
+
+### Access Token
+
+SAP Concur OAuth bearer access token used to authenticate every request. This field is always required and is treated as a secret (password-masked). Supply it as an environment variable reference such as `{{SAP_CONCUR_ACCESS_TOKEN}}`.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`sap_concur_list_reports`, `sap_concur_get_report`, or `sap_concur_list_users`)
+  - `accessToken` (string) — SAP Concur bearer access token
+  - `reportId` (string) — Expense report ID (used with Get Report)
+  - `user` (string) — User login ID filter (used with List Reports and Get Report)
+  - `approvalStatusCode` (string) — Approval status code filter (used with List Reports)
+  - `primaryEmail` (string) — Primary email filter (used with List Users)
+  - `limit` (number) — Result limit (used with List Reports and List Users)
+
+- **Outputs**:
+  - `data` (json) — Result object or array from SAP Concur. For list operations this is an array of items; for Get Report it is the single expense report header object.
+  - `metadata` (json) — Response metadata. For list operations includes `count` (number of items returned) and `status` (HTTP status code). For Get Report includes `id` (report ID) and `status` (HTTP status code).
+
+## Tools
+
+- **SAP Concur List Reports** (`sap_concur_list_reports`) — Calls `GET /api/v3.0/expense/reports` to return a paginated list of expense report headers. Accepts optional `user`, `approvalStatusCode`, and `limit` filters. Returns `data` (array of report objects) and `metadata` with item count and HTTP status.
+- **SAP Concur Get Report** (`sap_concur_get_report`) — Calls `GET /api/v3.0/expense/reports/{id}` to retrieve a single expense report by its ID. Accepts an optional `user` parameter for impersonation. Returns `data` (report header object) and `metadata` with report ID and HTTP status.
+- **SAP Concur List Users** (`sap_concur_list_users`) — Calls `GET /api/v3.0/common/users` to return a list of SAP Concur users. Accepts optional `primaryEmail` and `limit` filters. Returns `data` (array of user objects) and `metadata` with item count and HTTP status.
+
+## YAML Example
+
+```yaml
+sap_concur_1:
+  type: sap_concur
+  name: "SAP Concur"
+  inputs:
+    operation: "sap_concur_list_reports"
+    accessToken: "{{SAP_CONCUR_ACCESS_TOKEN}}"
+    approvalStatusCode: "A_PEND"
+    limit: 50
+  connections:
+    outgoing:
+      - target: next-block-id
+```

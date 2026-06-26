@@ -25,7 +25,7 @@ function parseJSON(value: string | unknown, fieldName: string): unknown {
 
     if (unquotedValueMatch) {
       hint =
-        'It looks like a string value is not quoted. When using block references in JSON, wrap them in double quotes: {"field": "<blockName.output>"} not {"field": <blockName.output>}.'
+        'It looks like a string value is not quoted. When using block references in JSON, wrap them in double quotes: {"field": "{{blockName.field}}"} not {"field": {{blockName.field}}}.'
     }
 
     throw new Error(`Invalid JSON in ${fieldName}: ${errorMsg}. ${hint}`)

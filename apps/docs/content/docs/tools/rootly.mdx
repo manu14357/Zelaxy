@@ -1,0 +1,94 @@
+---
+title: Rootly Tools
+description: List, create, and retrieve incidents in Rootly via the Rootly v1 API
+icon: Siren
+---
+
+# Rootly Tools
+
+Rootly is an incident-management platform. These tools let a workflow list existing incidents, create new ones, and fetch a single incident by ID through the Rootly v1 REST API. Use them to automate incident creation from alerts or to pull incident data into downstream steps.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `rootly` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Rootly API key sent as `Authorization: Bearer <apiKey>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List incidents | `rootly_list_incidents` | List incidents from Rootly |
+| Create incident | `rootly_create_incident` | Create a new incident in Rootly |
+| Get incident | `rootly_get_incident` | Get a single incident by ID |
+
+## Configuration
+
+### `rootly_list_incidents`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Rootly API key. **Secret** — sent as a Bearer token; visibility `user-only` (never exposed to the LLM). |
+| `pageSize` | `number` | No | Number of results to return per page. Mapped to the `page[size]` query parameter. |
+
+### `rootly_create_incident`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Rootly API key. **Secret** — sent as a Bearer token; visibility `user-only`. |
+| `title` | `string` | Yes | The title of the incident. |
+| `summary` | `string` | No | A summary describing the incident. |
+
+### `rootly_get_incident`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Rootly API key. **Secret** — sent as a Bearer token; visibility `user-only`. |
+| `incidentId` | `string` | Yes | The ID of the incident to retrieve. |
+
+## Outputs
+
+### `rootly_list_incidents`
+
+- `data` (json) — Array of incident objects.
+- `metadata` (json) — List metadata, with properties:
+  - `count` (number) — Number of incidents returned.
+  - `total` (number) — Total number of incidents available (from the API `meta.total_count`).
+
+### `rootly_create_incident`
+
+- `data` (json) — The created incident object.
+- `metadata` (json) — Incident identifiers, with properties:
+  - `id` (string) — Incident ID.
+  - `type` (string) — Resource type.
+
+### `rootly_get_incident`
+
+- `data` (json) — The incident object.
+- `metadata` (json) — Incident identifiers, with properties:
+  - `id` (string) — Incident ID.
+  - `type` (string) — Resource type.
+
+## YAML Example
+
+```yaml
+rootly_1:
+  type: rootly
+  name: "Rootly"
+  inputs:
+    operation: "rootly_create_incident"
+    title: "API latency spike"
+    summary: "Elevated p99 latency on the checkout API"
+    apiKey: "{{ROOTLY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup**: Generate an API key in your Rootly account settings and store it as an environment variable (e.g. `ROOTLY_API_KEY`). The key is sent as `Authorization: Bearer <apiKey>` against `https://api.rootly.com/v1/incidents`; it is `user-only`, so the LLM never sees it.
+- **Chaining incidents**: After `rootly_create_incident`, reference the new incident's ID downstream with `{{rootly_1.metadata.id}}`, or pass the full object with `{{rootly_1.data}}` to an Agent or notification block.
+- **Pagination**: `rootly_list_incidents` only exposes `pageSize` (mapped to `page[size]`). Check `{{rootly_1.metadata.total}}` to see how many incidents exist versus how many were returned in `{{rootly_1.metadata.count}}`.

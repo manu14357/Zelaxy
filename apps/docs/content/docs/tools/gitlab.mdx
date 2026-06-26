@@ -1,0 +1,128 @@
+---
+title: GitLab Tools
+description: Manage projects, issues, and repository files through the GitLab API
+icon: Box
+---
+
+# GitLab Tools
+
+Interact with GitLab to list and inspect projects, manage issues, and read repository files. Use these tools in workflows that automate software development lifecycle operations — triaging bugs, auditing repositories, or syncing project data.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `gitlab` |
+| **Category** | tools |
+| **Auth** | API Key (GitLab Personal Access Token via `PRIVATE-TOKEN` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List Projects | `gitlab_list_projects` | List GitLab projects the authenticated user is a member of |
+| Get Project | `gitlab_get_project` | Get details of a specific GitLab project |
+| List Issues | `gitlab_list_issues` | List issues in a GitLab project |
+| Create Issue | `gitlab_create_issue` | Create a new issue in a GitLab project |
+| Get File | `gitlab_get_file` | Get a file from a GitLab project repository |
+
+## Configuration
+
+### gitlab_list_projects
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | GitLab Personal Access Token (e.g., `glpat-...`) |
+| `search` | string | No | Search projects by name |
+| `limit` | number | No | Number of results per page (default 20, max 100) |
+
+### gitlab_get_project
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | GitLab Personal Access Token |
+| `projectId` | string | Yes | Project ID or URL-encoded path (e.g., `namespace/project` or `12345`) |
+
+### gitlab_list_issues
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | GitLab Personal Access Token |
+| `projectId` | string | Yes | Project ID or URL-encoded path |
+| `state` | string | No | Filter by issue state — `opened`, `closed`, or `all` |
+| `labels` | string | No | Comma-separated list of label names to filter by (e.g., `bug,urgent`) |
+
+### gitlab_create_issue
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | GitLab Personal Access Token |
+| `projectId` | string | Yes | Project ID or URL-encoded path |
+| `title` | string | Yes | Issue title |
+| `description` | string | No | Issue description (Markdown supported) |
+| `labels` | string | No | Comma-separated list of label names to assign (e.g., `bug,urgent`) |
+
+### gitlab_get_file
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | GitLab Personal Access Token |
+| `projectId` | string | Yes | Project ID or URL-encoded path |
+| `filePath` | string | Yes | Path of the file in the repository (e.g., `src/index.ts`) |
+| `ref` | string | Yes | The branch, tag, or commit SHA to retrieve the file from (e.g., `main`) |
+
+## Outputs
+
+### gitlab_list_projects
+
+- `data` (json) — Array of GitLab project objects returned by the API
+- `metadata` (json) — List metadata
+  - `metadata.count` (number) — Number of projects returned
+
+### gitlab_get_project
+
+- `data` (json) — The GitLab project object
+- `metadata` (json) — Project identifiers
+  - `metadata.id` (number) — Project ID
+
+### gitlab_list_issues
+
+- `data` (json) — Array of GitLab issue objects
+- `metadata` (json) — List metadata
+  - `metadata.count` (number) — Number of issues returned
+
+### gitlab_create_issue
+
+- `data` (json) — The created GitLab issue object
+- `metadata` (json) — Issue identifiers
+  - `metadata.id` (number) — Issue ID
+
+### gitlab_get_file
+
+- `data` (json) — The GitLab file object, including base64-encoded content in the `content` field
+- `metadata` (json) — File identifiers
+  - `metadata.id` (string) — File path or blob ID
+
+## YAML Example
+
+```yaml
+gitlab_1:
+  type: gitlab
+  name: "GitLab"
+  inputs:
+    operation: "gitlab_create_issue"
+    projectId: "myorg/myproject"
+    title: "{{agent_1.output}}"
+    description: "Automatically created by workflow."
+    labels: "bug,auto"
+    apiKey: "{{GITLAB_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Generate a Personal Access Token at **GitLab > User Settings > Access Tokens**. Grant at minimum the `api` scope for full read/write access, or `read_api` for read-only operations.
+- `projectId` accepts either a numeric ID (e.g., `12345`) or a URL-encoded namespace/path (e.g., `myorg/myrepo`). Both forms are supported across all tools.
+- File content returned by `gitlab_get_file` is base64-encoded in the `data.content` field. Use a Function block with `atob({{gitlab_1.data.content}})` to decode it to plain text before passing it to an Agent block.

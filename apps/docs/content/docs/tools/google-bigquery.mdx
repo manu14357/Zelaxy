@@ -1,0 +1,103 @@
+---
+title: Google BigQuery Tools
+description: Run SQL queries and explore datasets and tables in Google BigQuery.
+icon: Box
+---
+
+# Google BigQuery Tools
+
+Google BigQuery tools let you run SQL queries and browse your data warehouse directly from a workflow. Use these tools when you need to query large datasets, enumerate available datasets in a project, or inspect the tables within a dataset.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-bigquery` |
+| **Category** | `tools` |
+| **Auth** | OAuth Bearer Token (`accessToken`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Run Query | `google_bigquery_query` | Execute a StandardSQL query against BigQuery and return rows plus job metadata |
+| List Datasets | `google_bigquery_list_datasets` | List all datasets available in a Google Cloud project |
+| List Tables | `google_bigquery_list_tables` | List all tables inside a specific BigQuery dataset |
+
+## Configuration
+
+### google_bigquery_query
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth 2.0 Bearer access token for Google BigQuery. Kept user-only (never sent to the LLM). |
+| `projectId` | string | Yes | Google Cloud project ID that owns the dataset being queried. |
+| `query` | string | Yes | StandardSQL query to execute (legacy SQL is disabled). Example: `SELECT * FROM \`dataset.table\` LIMIT 10` |
+
+Calls `POST https://bigquery.googleapis.com/bigquery/v2/projects/{projectId}/queries` with `useLegacySql: false`.
+
+### google_bigquery_list_datasets
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth 2.0 Bearer access token for Google BigQuery. |
+| `projectId` | string | Yes | Google Cloud project ID whose datasets you want to list. |
+| `maxResults` | number | No | Maximum number of dataset entries to return in a single response. |
+
+Calls `GET https://bigquery.googleapis.com/bigquery/v2/projects/{projectId}/datasets`.
+
+### google_bigquery_list_tables
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth 2.0 Bearer access token for Google BigQuery. |
+| `projectId` | string | Yes | Google Cloud project ID that contains the target dataset. |
+| `datasetId` | string | Yes | BigQuery dataset ID whose tables you want to list. |
+| `maxResults` | number | No | Maximum number of table entries to return in a single response. |
+
+Calls `GET https://bigquery.googleapis.com/bigquery/v2/projects/{projectId}/datasets/{datasetId}/tables`.
+
+## Outputs
+
+### google_bigquery_query
+
+- `data` (json) — The full BigQuery query result object returned by the API, including a `rows` array and schema information.
+- `metadata` (json) — Query execution metadata.
+  - `metadata.jobComplete` (boolean) — Whether the query job finished synchronously.
+  - `metadata.totalRows` (string) — Total number of rows matched by the query.
+
+### google_bigquery_list_datasets
+
+- `data` (json) — Array of BigQuery dataset objects (each contains `datasetReference`, `location`, etc.).
+- `metadata` (json) — List response metadata.
+  - `metadata.count` (number) — Number of dataset entries returned.
+  - `metadata.nextPageToken` (string) — Pagination token for fetching the next page; absent when there are no more results.
+
+### google_bigquery_list_tables
+
+- `data` (json) — Array of BigQuery table objects (each contains `tableReference`, `type`, `creationTime`, etc.).
+- `metadata` (json) — List response metadata.
+  - `metadata.count` (number) — Number of table entries returned.
+  - `metadata.nextPageToken` (string) — Pagination token for fetching the next page; absent when there are no more results.
+
+## YAML Example
+
+```yaml
+google_bigquery_1:
+  type: google_bigquery
+  name: "Google BigQuery"
+  inputs:
+    operation: "google_bigquery_query"
+    projectId: "my-gcp-project"
+    query: "SELECT id, name, created_at FROM `my_dataset.users` WHERE created_at > '2024-01-01' LIMIT 100"
+    accessToken: "{{GOOGLE_BIGQUERY_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup**: The `accessToken` must be a valid Google OAuth 2.0 short-lived access token with the `https://www.googleapis.com/auth/bigquery` scope. Obtain one via the Google OAuth flow or the `gcloud auth print-access-token` CLI command and store it as a workspace secret referenced with `{{GOOGLE_BIGQUERY_ACCESS_TOKEN}}`.
+- **Pagination**: `list_datasets` and `list_tables` return a `nextPageToken` in their `metadata` output when more results exist. Chain a second block referencing `{{google_bigquery_1.metadata.nextPageToken}}` to page through large result sets.
+- **Query syntax**: All queries run with `useLegacySql: false`, so use StandardSQL syntax. Fully-qualify table names as `` `project.dataset.table` `` or just `` `dataset.table` `` when the project is already set via `projectId`.

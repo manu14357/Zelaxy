@@ -1,0 +1,103 @@
+---
+title: SendGrid Tools
+description: Send transactional emails and manage marketing contacts through the SendGrid API.
+icon: Mail
+---
+
+# SendGrid Tools
+
+SendGrid is an email delivery and marketing platform. Use these tools in a workflow to send transactional emails and to add, update, or list marketing contacts in your SendGrid account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `sendgrid` |
+| **Category** | tools |
+| **Auth** | API Key (sent as a Bearer token in the `Authorization` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Send email | `sendgrid_send_email` | Send an email through the SendGrid API |
+| Add contact | `sendgrid_add_contact` | Add or update a marketing contact in SendGrid |
+| List contacts | `sendgrid_list_contacts` | List marketing contacts in SendGrid |
+
+## Configuration
+
+### `sendgrid_send_email`
+
+Sends a plain-text email. Calls `POST https://api.sendgrid.com/v3/mail/send`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | SendGrid API key. **Secret** — provide via an environment variable, not inline. |
+| `to` | string | Yes | Recipient email address. |
+| `from` | string | Yes | Verified sender email address. Must be a verified sender or domain in your SendGrid account. |
+| `subject` | string | Yes | Email subject line. |
+| `content` | string | Yes | Plain text email body. Sent with content type `text/plain`. |
+
+### `sendgrid_add_contact`
+
+Adds or updates a marketing contact (upsert by email). Calls `PUT https://api.sendgrid.com/v3/marketing/contacts`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | SendGrid API key. **Secret** — provide via an environment variable, not inline. |
+| `email` | string | Yes | Contact email address. Acts as the unique key for upsert. |
+| `firstName` | string | No | Contact first name (mapped to `first_name`). |
+| `lastName` | string | No | Contact last name (mapped to `last_name`). |
+
+### `sendgrid_list_contacts`
+
+Lists marketing contacts. Calls `GET https://api.sendgrid.com/v3/marketing/contacts`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | SendGrid API key. **Secret** — provide via an environment variable, not inline. |
+
+## Outputs
+
+### `sendgrid_send_email`
+
+- `data` (json) — Send status. Returns `{ "status": "sent" }` on success.
+- `metadata` (json) — Response metadata.
+  - `statusCode` (number) — HTTP status code.
+
+### `sendgrid_add_contact`
+
+- `data` (json) — The SendGrid contact job response (the parsed JSON body returned by SendGrid).
+- `metadata` (json) — Response metadata.
+  - `statusCode` (number) — HTTP status code.
+
+### `sendgrid_list_contacts`
+
+- `data` (json) — Array of SendGrid contact objects (the `result` array from the API response).
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of contacts returned.
+
+## YAML Example
+
+```yaml
+sendgrid_1:
+  type: sendgrid
+  name: "SendGrid"
+  inputs:
+    operation: "sendgrid_send_email"
+    to: "recipient@example.com"
+    from: "sender@yourdomain.com"
+    subject: "Welcome to Zelaxy"
+    content: "Thanks for signing up. Your workflow is live."
+    apiKey: "{{SENDGRID_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Auth setup: Create an API key in the SendGrid dashboard (Settings → API Keys) with at least Mail Send and Marketing permissions, then store it as an environment variable and reference it as `{{SENDGRID_API_KEY}}`. The key is sent as `Authorization: Bearer <apiKey>`.
+- The `from` address for `sendgrid_send_email` must be a verified sender or belong to a verified domain in SendGrid, otherwise the send is rejected.
+- `sendgrid_add_contact` is an upsert: passing an existing `email` updates that contact rather than creating a duplicate. SendGrid processes this asynchronously, so `data` contains a job reference rather than the final contact record.
+- `sendgrid_send_email` only supports a single recipient and plain-text bodies; for HTML, multiple recipients, or templates use the SMTP block or a custom HTTP request.

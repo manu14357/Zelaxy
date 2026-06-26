@@ -1,0 +1,140 @@
+---
+title: Okta Tools
+description: List, retrieve, and create users and list groups in your Okta organization via the Okta Management API.
+icon: Users
+---
+
+# Okta Tools
+
+The Okta tools let a workflow manage identities in your Okta organization: list users, look up a single user, create and activate a new user, and list groups. Use them when a workflow needs to read directory data or provision accounts as part of onboarding, access reviews, or HR automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `okta` |
+| **Category** | `tools` |
+| **Auth** | API Token (sent as `Authorization: SSWS <token>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List users | `okta_list_users` | List users in your Okta organization with optional search |
+| Get user | `okta_get_user` | Retrieve a single Okta user by ID or login |
+| Create user | `okta_create_user` | Create and activate a new user in your Okta organization |
+| List groups | `okta_list_groups` | List groups in your Okta organization with optional search |
+
+## Configuration
+
+Every operation requires `orgUrl` and `apiToken`. The `apiToken` is a secret and is passed in the `Authorization: SSWS <apiToken>` header — keep it in an environment variable rather than inline.
+
+### okta_list_users
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `orgUrl` | string | Yes | Okta org URL (e.g. `https://your-org.okta.com`). |
+| `apiToken` | string | Yes | **Secret.** Okta API token used as the `SSWS` bearer credential. |
+| `search` | string | No | Okta search expression (e.g. `profile.email co "example.com"`). |
+| `limit` | number | No | Maximum number of users to return (max 200). |
+
+### okta_get_user
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `orgUrl` | string | Yes | Okta org URL (e.g. `https://your-org.okta.com`). |
+| `apiToken` | string | Yes | **Secret.** Okta API token used as the `SSWS` bearer credential. |
+| `userId` | string | Yes | User ID or login (email) to look up. |
+
+### okta_create_user
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `orgUrl` | string | Yes | Okta org URL (e.g. `https://your-org.okta.com`). |
+| `apiToken` | string | Yes | **Secret.** Okta API token used as the `SSWS` bearer credential. |
+| `firstName` | string | Yes | First name of the user. |
+| `lastName` | string | Yes | Last name of the user. |
+| `email` | string | Yes | Email address of the user. |
+| `login` | string | No | Login for the user (defaults to `email` if not provided). |
+
+The user is created with `?activate=true`, so the account is created and activated in a single call.
+
+### okta_list_groups
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `orgUrl` | string | Yes | Okta org URL (e.g. `https://your-org.okta.com`). |
+| `apiToken` | string | Yes | **Secret.** Okta API token used as the `SSWS` bearer credential. |
+| `search` | string | No | Okta search expression (e.g. `profile.name sw "Engineering"`). |
+| `limit` | number | No | Maximum number of groups to return. |
+
+## Outputs
+
+### okta_list_users
+
+- `data` (json) — Array of Okta user objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of users returned.
+
+### okta_get_user
+
+- `data` (json) — The requested Okta user object.
+- `metadata` (json) — User identifiers.
+  - `id` (string) — User ID.
+  - `status` (string) — User status.
+
+### okta_create_user
+
+- `data` (json) — The created Okta user object.
+- `metadata` (json) — User identifiers.
+  - `id` (string) — User ID.
+  - `status` (string) — User status.
+
+### okta_list_groups
+
+- `data` (json) — Array of Okta group objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of groups returned.
+
+## YAML Example
+
+```yaml
+okta_1:
+  type: okta
+  name: "Okta"
+  inputs:
+    operation: "okta_list_users"
+    orgUrl: "https://your-org.okta.com"
+    search: 'profile.email co "example.com"'
+    limit: 50
+    apiToken: "{{OKTA_API_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Create-and-activate a user:
+
+```yaml
+okta_create:
+  type: okta
+  name: "Okta"
+  inputs:
+    operation: "okta_create_user"
+    orgUrl: "https://your-org.okta.com"
+    firstName: "Jane"
+    lastName: "Doe"
+    email: "jane.doe@example.com"
+    login: "jane.doe@example.com"
+    apiToken: "{{OKTA_API_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** Generate an API token in the Okta Admin console (Security → API → Tokens). The token is sent as `Authorization: SSWS <token>`, not OAuth or a standard Bearer header. Store it as an environment variable and reference it with `{{OKTA_API_TOKEN}}` so it never appears in plaintext.
+- **org URL format:** Use your full org domain (e.g. `https://your-org.okta.com` or a custom domain). A trailing slash is trimmed automatically.
+- **Search expressions:** Both `okta_list_users` and `okta_list_groups` accept Okta's filter/search syntax. Operators include `sw` (starts with), `co` (contains), `eq` (equals) — e.g. `profile.email co "example.com"` for users or `profile.name sw "Engineering"` for groups. The users list caps at 200 results per call via `limit`.
+- **Chaining outputs:** After `okta_get_user` or `okta_create_user`, downstream blocks can read `{{okta_1.metadata.id}}` and `{{okta_1.metadata.status}}`; list operations expose the array on `{{okta_1.data}}` and a `{{okta_1.metadata.count}}`.

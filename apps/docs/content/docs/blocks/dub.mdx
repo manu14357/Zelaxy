@@ -20,37 +20,107 @@ The Dub block integrates Dub.co link management into your workflows. Use it to c
 
 - Programmatically create branded short links when new content or campaigns go live.
 - Update the destination URL of an existing short link as part of a workflow.
-- Retrieve a specific link's details by domain and key/slug.
+- Retrieve a specific link's details by link ID, external ID, or domain + key/slug.
 - Delete short links that are no longer needed.
-- List all links in your Dub workspace for reporting or cleanup.
-- Fetch click analytics for a link to drive downstream decisions.
+- List all links in your Dub workspace for reporting, auditing, or cleanup.
+- Fetch click, lead, and sales analytics for a link to drive downstream decisions (e.g. routing, scoring).
 
 ## Configuration
 
 ### Operation
 
-Select the action to perform: Create Link, Get Link, Update Link, Delete Link, List Links, or Get Analytics. This determines which other fields are required.
+**Required.** Dropdown — selects the action to perform. Every other visible field depends on this value.
+
+| Label | id |
+|-------|----|
+| Create Link | `dub_create_link` |
+| Get Link | `dub_get_link` |
+| Update Link | `dub_update_link` |
+| Delete Link | `dub_delete_link` |
+| List Links | `dub_list_links` |
+| Get Analytics | `dub_get_analytics` |
 
 ### API Key
 
-Your Dub.co API key, used to authenticate every request. Required.
+**Required.** Your Dub.co API key, used to authenticate every request. Store it as an environment variable and reference it as `{{DUB_API_KEY}}`. The field is masked (password mode).
 
 ### Destination URL
 
-The long URL the short link points to. Shown for Create Link and Update Link operations.
+The long URL the short link points to. Visible for **Create Link** and **Update Link** operations. Placeholder: `https://example.com/long-url`.
 
 ### Domain
 
-The short link domain (e.g. `dub.sh`). Shown for Create Link and Get Link operations.
+The short link domain (e.g. `dub.sh`). Visible for **Create Link** and **Get Link** operations.
 
 ### Key (slug)
 
-The link key/slug that identifies the short link. Shown for Create, Get, Update, and Delete Link operations.
+The link key/slug that identifies the short link. Visible for **Create Link**, **Get Link**, **Update Link**, and **Delete Link** operations. Placeholder: `my-link`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `url` (string), `domain` (string), `key` (string)
-- **Outputs**: `shortLink` (string), `clicks` (number), `links` (json)
+The block exposes the following inputs (sub-block fields passed at runtime):
+
+- `operation` (string) — Operation to perform (one of the six tool ids above)
+- `apiKey` (string) — API key
+- `url` (string) — Destination URL
+- `domain` (string) — Link domain
+- `key` (string) — Link key/slug
+
+The block declares these top-level outputs (actual fields available depend on the operation chosen; see Tools section for per-tool output details):
+
+- `shortLink` (string) — Short link URL
+- `clicks` (number) — Click count
+- `links` (json) — Link list (populated by List Links)
+
+## Tools
+
+### Dub Create Link (`dub_create_link`)
+
+Creates a new short link via `POST https://api.dub.co/links`. Supports custom domains, slugs, UTM parameters, tags, expiration, password protection, and link cloaking.
+
+Key params: `apiKey` (required), `url` (required), `domain`, `key`, `externalId`, `tagIds` (comma-separated), `comments`, `expiresAt` (ISO 8601), `password`, `rewrite` (boolean — link cloaking), `archived` (boolean), `title` (OG title), `description` (OG description), `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`.
+
+Outputs: `id`, `domain`, `key`, `url`, `shortLink`, `qrCode`, `archived`, `externalId`, `title`, `description`, `tags` (json — id/name/color), `clicks`, `leads`, `sales`, `saleAmount`, `lastClicked`, `createdAt`, `updatedAt`, `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`.
+
+### Dub Get Link (`dub_get_link`)
+
+Retrieves information about a short link by link ID, external ID, or domain + key combination via `GET https://api.dub.co/links/info`.
+
+Key params: `apiKey` (required), `linkId`, `externalId`, `domain`, `key`. At least one of these identifiers must be provided.
+
+Outputs: same rich link fields as Create Link (`id`, `domain`, `key`, `url`, `shortLink`, `qrCode`, `archived`, `externalId`, `title`, `description`, `tags`, `clicks`, `leads`, `sales`, `saleAmount`, `lastClicked`, `createdAt`, `updatedAt`, UTM fields).
+
+### Dub Update Link (`dub_update_link`)
+
+Updates an existing short link via `PATCH https://api.dub.co/links/{linkId}`. Modify destination URL, slug, metadata, UTM parameters, tags, expiration, and more.
+
+Key params: `apiKey` (required), `linkId` (required — link ID or external ID prefixed with `ext_`), `url`, `domain`, `key`, `title`, `description`, `externalId`, `tagIds`, `comments`, `expiresAt`, `password`, `rewrite`, `archived`, `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`.
+
+Outputs: same rich link fields as Create Link.
+
+### Dub Delete Link (`dub_delete_link`)
+
+Deletes a short link by its link ID or external ID (prefixed with `ext_`) via `DELETE https://api.dub.co/links/{linkId}`.
+
+Key params: `apiKey` (required), `linkId` (required).
+
+Outputs: `id` (string) — ID of the deleted link.
+
+### Dub List Links (`dub_list_links`)
+
+Retrieves a paginated list of short links for the authenticated workspace via `GET https://api.dub.co/links`. Supports filtering by domain, search query, tags, archived status, and sorting.
+
+Key params: `apiKey` (required), `domain`, `search` (matched against slug and destination URL), `tagIds` (comma-separated), `showArchived` (boolean), `sortBy` (`createdAt` | `clicks` | `saleAmount` | `lastClicked`), `sortOrder` (`asc` | `desc`), `page` (default: 1), `pageSize` (default/max: 100).
+
+Outputs: `links` (json — array of link objects with id, domain, key, url, shortLink, clicks, tags, createdAt, etc.), `count` (number — number of links returned).
+
+### Dub Get Analytics (`dub_get_analytics`)
+
+Retrieves analytics for links including clicks, leads, and sales via `GET https://api.dub.co/analytics`. Supports filtering by link, time range, and grouping by various dimensions.
+
+Key params: `apiKey` (required), `event` (`clicks` | `leads` | `sales` | `composite` — default: `clicks`), `groupBy` (`count` | `timeseries` | `countries` | `cities` | `devices` | `browsers` | `os` | `referers` | `top_links` | `top_urls` — default: `count`), `linkId`, `externalId`, `domain`, `interval` (`24h` | `7d` | `30d` | `90d` | `1y` | `mtd` | `qtd` | `ytd` | `all` — default: `24h`), `start` (ISO 8601, overrides interval), `end` (ISO 8601, defaults to now), `country` (ISO 3166-1 alpha-2), `timezone` (IANA, defaults to UTC).
+
+Outputs: `clicks` (number), `leads` (number), `sales` (number), `saleAmount` (number — in cents), `data` (json — grouped analytics array for timeseries/breakdown groupBy values, null for count groupBy).
 
 ## YAML Example
 
@@ -60,7 +130,7 @@ dub_1:
   name: "Dub"
   inputs:
     operation: "dub_create_link"
-    apiKey: "{{secrets.DUB_API_KEY}}"
+    apiKey: "{{DUB_API_KEY}}"
     url: "https://example.com/long-url"
     domain: "dub.sh"
     key: "my-link"

@@ -1,0 +1,85 @@
+---
+title: LaTeX Tools
+description: Compile LaTeX source into PDFs and search TeX Live packages via the public LaTeX-on-HTTP service.
+icon: FileText
+---
+
+# LaTeX Tools
+
+The LaTeX provider turns LaTeX source into a rendered PDF and lets you search the TeX Live packages available to the compiler. Use it in a workflow whenever you need to generate documents (reports, invoices, papers) from templated LaTeX or discover which packages you can `\usepackage` before compiling.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `latex` |
+| **Category** | `tools` |
+| **Auth** | none (public LaTeX-on-HTTP service at `latex.ytotech.com`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Compile | `latex_compile` | Compile a LaTeX document into a PDF (returns base64 + data URL). Supports pdflatex, xelatex, lualatex, platex, uplatex, and context. |
+| Search packages | `latex_search_packages` | Search the TeX Live packages available to the compiler by name or short description. |
+
+## Configuration
+
+### `latex_compile`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `content` | string | Yes | LaTeX source of the main document, from `\documentclass` to `\end{document}`. |
+| `compiler` | string | No | LaTeX compiler to use. One of: `pdflatex` (default), `xelatex`, `lualatex`, `platex`, `uplatex`, `context`. |
+| `resources` | json | No | Array of additional supporting files. Each entry has a `path` plus one of `content`, `file` (base64), or `url`. Example: `[{"path":"refs.bib","content":"..."}]`. |
+
+No secrets or API keys are required for this tool.
+
+### `latex_search_packages`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | Yes | Search terms matched against package names and short descriptions. |
+
+No secrets or API keys are required for this tool.
+
+## Outputs
+
+### `latex_compile`
+
+- `data` (json) — Compiled PDF object.
+  - `data.pdfBase64` (string) — Base64-encoded PDF bytes.
+  - `data.dataUrl` (string) — Base64 data URL of the PDF (`data:application/pdf;base64,...`).
+- `metadata` (json) — Compilation metadata.
+  - `metadata.compiler` (string) — LaTeX compiler used for the build.
+  - `metadata.status` (number) — HTTP status code returned by the service.
+
+### `latex_search_packages`
+
+- `data` (json) — Array of TeX Live packages matching the query (each package object includes fields such as `name` and `shortdesc`).
+- `metadata` (json) — Search metadata.
+  - `metadata.count` (number) — Number of matching packages.
+  - `metadata.status` (number) — HTTP status code returned by the service.
+
+## YAML Example
+
+```yaml
+latex_1:
+  type: latex
+  name: "LaTeX"
+  inputs:
+    operation: "latex_compile"
+    content: "\\documentclass{article}\\begin{document}Hello, world!\\end{document}"
+    compiler: "pdflatex"
+    resources: []
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- No authentication is needed — the provider calls the public `latex.ytotech.com` service, so there is no API key to configure. Be mindful that document content is sent to that external service.
+- The compiled PDF is returned as base64. Use `{{latex_1.data.pdfBase64}}` to attach the raw bytes, or `{{latex_1.data.dataUrl}}` for an inline `data:application/pdf` URL in downstream blocks.
+- For multi-file documents (bibliographies, images, included `.tex` files), pass them via `resources` as `[{"path":"refs.bib","content":"..."}]`; the main document you put in `content` is automatically marked as the entry point.
+- If a compile fails because of a missing package, run `latex_search_packages` with a `query` like `tikz` first to confirm the package is available in TeX Live before adding `\usepackage`.

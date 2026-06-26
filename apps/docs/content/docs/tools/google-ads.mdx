@@ -1,0 +1,83 @@
+---
+title: Google Ads Tools
+description: Query campaigns and run GAQL searches against Google Ads accounts using the Google Ads API.
+icon: Box
+---
+
+## Overview
+
+Google Ads tools let you retrieve campaign data and run Google Ads Query Language (GAQL) queries directly from your workflow. Use these tools to pull performance reports, list active campaigns, or feed ad data into downstream analysis and automation blocks.
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-ads` |
+| **Category** | `tools` |
+| **Auth** | OAuth (Bearer Token) + Developer Token |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Search (GAQL) | `google_ads_search` | Run an arbitrary Google Ads Query Language query against a customer account |
+| List Campaigns | `google_ads_list_campaigns` | List all campaigns in a Google Ads customer account |
+
+## Configuration
+
+### google_ads_search
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for the Google Ads API (user-only, treated as secret) |
+| `developerToken` | string | Yes | Google Ads API developer token (user-only, treated as secret) |
+| `customerId` | string | Yes | Google Ads customer ID — numeric only, no dashes (e.g. `1234567890`) |
+| `loginCustomerId` | string | No | Manager account customer ID; required when authenticating through a Google Ads manager (MCC) account |
+| `query` | string | Yes | GAQL query to execute (e.g. `SELECT campaign.id, campaign.name FROM campaign`) |
+
+### google_ads_list_campaigns
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for the Google Ads API (user-only, treated as secret) |
+| `developerToken` | string | Yes | Google Ads API developer token (user-only, treated as secret) |
+| `customerId` | string | Yes | Google Ads customer ID — numeric only, no dashes (e.g. `1234567890`) |
+| `loginCustomerId` | string | No | Manager account customer ID; required when authenticating through a Google Ads manager (MCC) account |
+| `limit` | number | No | Maximum number of campaigns to return; omit to return all campaigns |
+
+## Outputs
+
+### google_ads_search
+
+- `data` (json) — Array of result rows returned by the GAQL query. Each row shape depends on the fields selected in the query.
+- `metadata` (json) — Search metadata object:
+  - `count` (number) — Number of result rows returned in this response
+  - `nextPageToken` (string) — Pagination token for the next page of results; `null` if there are no more pages
+
+### google_ads_list_campaigns
+
+- `data` (json) — Array of campaign result rows. Each row contains `campaign.id` and `campaign.name`.
+- `metadata` (json) — List metadata object:
+  - `count` (number) — Number of campaigns returned in this response
+  - `nextPageToken` (string) — Pagination token for the next page of results; `null` if there are no more pages
+
+## YAML Example
+
+```yaml
+google_ads_1:
+  type: google_ads
+  name: "Google Ads"
+  inputs:
+    operation: "google_ads_search"
+    customerId: "1234567890"
+    query: "SELECT campaign.id, campaign.name, campaign.status FROM campaign WHERE campaign.status = 'ENABLED'"
+    accessToken: "{{GOOGLE_ADS_ACCESS_TOKEN}}"
+    developerToken: "{{GOOGLE_ADS_DEVELOPER_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup**: You need two credentials — an OAuth 2.0 access token (obtained by completing the Google OAuth flow for the `https://www.googleapis.com/auth/adwords` scope) and a developer token from the Google Ads API Center. Both are required on every request.
+- **Manager accounts (MCC)**: If your developer token is approved under a manager account and you are querying a sub-account, set `loginCustomerId` to the manager account's numeric ID. Omitting it when needed causes a `401` or permission error.
+- **GAQL queries**: The `google_ads_search` tool accepts any valid GAQL query — use it for custom reporting (metrics, ad groups, keywords, conversions) beyond what `google_ads_list_campaigns` covers. Reference the [Google Ads Query Language grammar](https://developers.google.com/google-ads/api/docs/query/grammar) for field names and filtering syntax.

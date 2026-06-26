@@ -1,0 +1,84 @@
+---
+title: DocuSign
+description: Create, send, and manage e-signature envelopes in DocuSign
+icon: Signature
+---
+
+# DocuSign
+
+Integrate DocuSign e-signature into your workflows. Create draft envelopes, send them for signing, retrieve status, generate embedded signing URLs, list envelopes with filters, and void envelopes when needed — all without leaving Zelaxy.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `docusign` |
+| **Category** | Tool — Document Signing |
+| **Auth** | OAuth 2.0 (DocuSign) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Create Envelope** | `docusign_create_envelope` | Create a new envelope as a draft (`created`) or send it immediately (`sent`) |
+| **Get Envelope** | `docusign_get_envelope` | Retrieve full details of an envelope by its ID, including timestamps and current status |
+| **List Envelopes** | `docusign_list_envelopes` | List envelopes with optional date range and status filters |
+| **Send Envelope** | `docusign_send_envelope` | Create and immediately send an envelope to the signer in one step |
+| **Get Signing URL** | `docusign_get_signing_url` | Generate an embedded signing URL so signers can sign inside your own app |
+| **Void Envelope** | `docusign_void_envelope` | Cancel an in-flight envelope and record a reason for voiding |
+
+## Configuration
+
+The parameters below cover all operations. Each tool uses only the subset of params marked as applicable.
+
+| Setting | Type | Required | Operations | Description |
+|---------|------|----------|------------|-------------|
+| `accessToken` | `string` (hidden) | Yes | All | DocuSign OAuth access token — supplied automatically by the connected OAuth credential; never enter manually. |
+| `emailSubject` | `string` | Yes | Create Envelope, Send Envelope | Subject line of the signing-request email sent to signers. |
+| `signerEmail` | `string` | Yes | Create Envelope, Send Envelope, Get Signing URL | Email address of the recipient who must sign. |
+| `signerName` | `string` | Yes | Create Envelope, Send Envelope, Get Signing URL | Full name of the signer as it appears on the signing ceremony. |
+| `status` | `string` | No | Create Envelope | Envelope disposition: `"created"` (save as draft, default) or `"sent"` (dispatch immediately). |
+| `envelopeId` | `string` | Yes | Get Envelope, Get Signing URL, Void Envelope | The DocuSign envelope ID to operate on. |
+| `returnUrl` | `string` | No | Get Signing URL | URL DocuSign redirects the signer to after they finish signing. |
+| `fromDate` | `string` | No | List Envelopes | ISO 8601 date — only return envelopes created on or after this date (e.g. `2024-01-01T00:00:00Z`). |
+| `toDate` | `string` | No | List Envelopes | ISO 8601 date — only return envelopes created on or before this date. |
+| `envelopeStatus` | `string` | No | List Envelopes | Filter by envelope status: `sent`, `completed`, `voided`, `declined`, etc. |
+| `count` | `number` | No | List Envelopes | Maximum number of envelopes to return in a single call. |
+| `voidedReason` | `string` | Yes | Void Envelope | Human-readable explanation for why the envelope is being voided (required by DocuSign). |
+
+## Outputs
+
+Each operation returns only the fields relevant to it. The full set of output fields across all operations is:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `envelopeId` | `string` | DocuSign envelope ID — present in all operations that touch a single envelope. |
+| `status` | `string` | Current envelope status (e.g. `created`, `sent`, `completed`, `voided`). |
+| `statusDateTime` | `string` | Timestamp of the most recent status change (Create Envelope). |
+| `uri` | `string` | Relative DocuSign API URI for the envelope (Create Envelope). |
+| `emailSubject` | `string` | Email subject of the envelope (Get Envelope). |
+| `sentDateTime` | `string` | When the envelope was sent (Get Envelope; `null` if not yet sent). |
+| `completedDateTime` | `string` | When all parties completed signing (Get Envelope; `null` if not yet complete). |
+| `createdDateTime` | `string` | When the envelope was first created (Get Envelope). |
+| `statusChangedDateTime` | `string` | Timestamp of the last status change (Get Envelope). |
+| `signingUrl` | `string` | Embedded signing URL for the signer to use inside your application (Get Signing URL). |
+| `envelopes` | `json` | Array of envelope objects matching the filters (List Envelopes). |
+| `totalSetSize` | `number` | Total number of envelopes matching the filters before pagination (List Envelopes). |
+| `resultSetSize` | `number` | Number of envelopes actually returned in this response (List Envelopes). |
+
+## Example
+
+```
+[Starter: contract data] → [DocuSign: Send Envelope] → [Agent: confirm dispatch]
+```
+
+When a new contract is ready, the Starter block supplies the recipient details. The DocuSign block uses `{{starter.signerEmail}}` and `{{starter.signerName}}` to send the envelope immediately, setting the email subject to `"Please sign your {{starter.contractType}} agreement"`. After sending, an Agent block reads `{{docusign.envelopeId}}` and `{{docusign.status}}` to compose a confirmation message back to the customer.
+
+To later check whether the signer completed the document, add a second DocuSign block set to **Get Envelope** and pass `{{docusign.envelopeId}}` as the Envelope ID — the `completedDateTime` output will be non-null once signing is done.
+
+## Tips
+
+- **Draft vs. immediate send** — use **Create Envelope** with `status = "created"` to build the envelope in DocuSign first (e.g. attach tabs or additional documents via the DocuSign API), then transition it to `"sent"` in a follow-up step. Use **Send Envelope** when you want to skip the draft stage entirely.
+- **Embedded signing** — call **Get Signing URL** right after creating or sending an envelope to obtain a one-time URL you can embed in an iframe or redirect users to, keeping the signing experience inside your own application. Always supply a `returnUrl` so users are not stranded on a DocuSign page after signing.
+- **OAuth credential** — the `accessToken` param is injected automatically from the connected DocuSign OAuth account. Connect your DocuSign account once via the **DocuSign Account** credential selector; you do not need to pass a token manually in any block.
+- **Voiding envelopes** — DocuSign requires a non-empty `voidedReason` (max 200 characters) to void an envelope. Envelopes can only be voided while they are in `sent` or `delivered` status; already-completed envelopes cannot be voided.

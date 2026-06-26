@@ -45,6 +45,10 @@ Sets up the webhook endpoint and provider-specific options (URL, verification, f
 - **Inputs**: none — the webhook receives data externally
 - **Outputs**: none — the incoming webhook payload is injected directly into the workflow context
 
+## Tools
+
+This block uses no external tools (`tools.access` is empty). The incoming HTTP request payload is injected directly into the workflow execution context by the trigger infrastructure, not via the tool registry.
+
 ## YAML Example
 
 ```yaml

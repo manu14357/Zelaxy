@@ -1,0 +1,85 @@
+---
+title: Agiloft
+description: Create, read, update, delete, and query records in Agiloft Contract Lifecycle Management
+icon: Box
+---
+
+# Agiloft
+
+Full Agiloft CLM integration for managing contracts and records — create, read, update, delete, and search across any table in your knowledge base. Ideal for automating contract lifecycle operations, syncing CLM data with other systems, and building AI-powered contract workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `agiloft` |
+| **Category** | Tool — CRM / Contract Lifecycle Management |
+| **Auth** | Username + Password (session token exchange via Agiloft REST login endpoint) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Create Record** | `agiloft_create_record` | Create a new record in an Agiloft table |
+| **Read Record** | `agiloft_read_record` | Fetch a single record by ID from an Agiloft table |
+| **Update Record** | `agiloft_update_record` | Modify field values on an existing record |
+| **Delete Record** | `agiloft_delete_record` | Permanently delete a record by ID |
+| **Query Records** | `agiloft_query_records` | Search for records using Agiloft query syntax with optional pagination |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `instanceUrl` | `string` | Yes | Base URL of your Agiloft instance, e.g. `https://mycompany.agiloft.com`. No trailing slash. |
+| `knowledgeBase` | `string` | Yes | Name of the Agiloft knowledge base to operate against. |
+| `login` | `string` | Yes | Agiloft username used to authenticate. Store this as a secret and reference it with `{{AGILOFT_LOGIN}}`. |
+| `password` | `string` | Yes | Agiloft password. Store this as a secret and reference it with `{{AGILOFT_PASSWORD}}`. |
+| `table` | `string` | Yes | Table (object type) to operate on, e.g. `Contract`, `contacts.employees`. Supports dotted sub-table paths. |
+| `recordId` | `string` | Yes (Read / Update / Delete) | ID of the record to read, update, or delete. Not used for Create or Query operations. |
+| `data` | `string` | Yes (Create / Update) | JSON object of field names and values to write, e.g. `{"first_name": "Jane", "status": "Active"}`. Must be valid JSON. |
+| `query` | `string` | Yes (Query Records) | Agiloft query expression to filter results, e.g. `status='Active'`. |
+| `fields` | `string` | No (Read / Query) | Comma-separated list of field names to include in the response. Omit to return all fields. |
+| `page` | `string` | No (Query Records) | Zero-based page number for paginated results. Defaults to `0`. |
+| `limit` | `string` | No (Query Records) | Maximum number of records to return per page. Defaults to `25`. |
+
+## Outputs
+
+### Create Record / Read Record / Update Record
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | ID of the created, read, or updated record. |
+| `fields` | `json` | Full field values of the record as returned by Agiloft. |
+
+### Delete Record
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | ID of the deleted record (echoed from the input). |
+| `deleted` | `boolean` | `true` when the deletion succeeded; `false` on failure. |
+
+### Query Records
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `records` | `json` | Array of matching record objects, each containing field names and values. |
+| `totalCount` | `number` | Total number of records matching the query (may exceed the current page). |
+| `page` | `number` | Current page number (zero-based). |
+| `limit` | `number` | Number of records returned per page. |
+
+## Example
+
+```
+[Starter] → [Agiloft: Query Records] → [Agent: Summarize contracts] → [Agiloft: Update Record]
+```
+
+Connect a scheduled Starter to an Agiloft Query Records block configured with `table` = `Contract` and `query` = `status='Under Review'` using credentials `{{AGILOFT_LOGIN}}` and `{{AGILOFT_PASSWORD}}`. Pass `{{agiloft.records}}` to an Agent that summarizes each contract and determines the next action. Feed the Agent's decision back into an Update Record block, setting `recordId` = `{{starter.contractId}}` and `data` = `{"status": "Approved", "notes": "{{agent.content}}"}` to write the result back to Agiloft.
+
+## Tips
+
+- **Credentials are exchanged for a session token on each call.** The integration logs in, performs the operation, and logs out automatically. Store `login` and `password` as workspace secrets and reference them as `{{AGILOFT_LOGIN}}` and `{{AGILOFT_PASSWORD}}` to keep them out of your workflow definition.
+- **Table names are case-sensitive** and must match the object type name in your Agiloft knowledge base exactly. Sub-tables use dotted notation, e.g. `contacts.employees`.
+- **`data` must be valid JSON.** For Create and Update operations the block will return an error (`Invalid JSON in data parameter`) if the string cannot be parsed. Use a JSON object literal or reference structured output from an upstream block with `{{agent.content}}`.
+- **Use `fields` to limit response size.** When reading or querying large records, pass a comma-separated list to `fields` (e.g. `id,status,contract_value`) instead of fetching the full object, which can be large.
+- **Paginate large query result sets.** The default page size is 25. For bulk operations, loop over pages by incrementing `page` starting from `0` until `records` returns fewer items than `limit`.
+- **Query syntax** follows Agiloft's EWSEARCH expression language. Simple equality looks like `status='Active'`; use `AND`/`OR` to combine conditions, e.g. `status='Active' AND contract_type='MSA'`.

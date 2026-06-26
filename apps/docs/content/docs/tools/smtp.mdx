@@ -1,0 +1,83 @@
+---
+title: SMTP Tools
+description: Send emails through any SMTP server (Gmail, Outlook, Yahoo, Amazon SES, or custom) directly from a workflow
+icon: Mail
+---
+
+# SMTP Tools
+
+The SMTP provider sends emails through any standard SMTP server — Gmail, Outlook/Office 365, Yahoo, Amazon SES, SendGrid, Mailgun, or your own custom server. Use it when you want to send transactional or notification emails from a workflow using plain SMTP credentials, with no OAuth flow required.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `smtp` |
+| **Category** | tools |
+| **Auth** | SMTP credentials (username + password / app password, supplied per request) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **SMTP Send Email** | `smtp_send` | Send an email via any SMTP server with STARTTLS/SSL support |
+
+## Configuration
+
+### `smtp_send`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `host` | `string` | Yes | SMTP server hostname (e.g., `smtp.gmail.com`, `smtp.office365.com`). |
+| `port` | `number` | No | SMTP server port. Default `587` (STARTTLS); use `465` for SSL. |
+| `username` | `string` | Yes | SMTP authentication username (usually your email address). |
+| `password` | `string` | Yes | **Secret** — SMTP authentication password or app-specific password. Supply via `{{SMTP_PASSWORD}}`. |
+| `secure` | `boolean` | No | Use SSL/TLS. Default `false`. Set `true` for port `465`, `false` for STARTTLS on port `587`. |
+| `from` | `string` | No | Sender email address. Defaults to `username` if not provided. |
+| `fromName` | `string` | No | Sender display name. |
+| `to` | `string` | Yes | Recipient email addresses (comma-separated for multiple). |
+| `cc` | `string` | No | CC recipients (comma-separated). |
+| `bcc` | `string` | No | BCC recipients (comma-separated). |
+| `replyTo` | `string` | No | Reply-to email address (if different from sender). |
+| `subject` | `string` | Yes | Email subject line. |
+| `body` | `string` | Yes | Email body content. |
+| `isHtml` | `boolean` | No | Whether the body content is HTML. Default `false` (plain text). |
+
+## Outputs
+
+### `smtp_send`
+
+- `messageId` (string) — Message ID assigned by the SMTP server.
+- `accepted` (array) — List of accepted recipient addresses.
+- `rejected` (array) — List of rejected recipient addresses.
+- `status` (string) — SMTP server response status.
+- `error` (string, optional) — Error message if sending failed.
+
+## YAML Example
+
+```yaml
+smtp_1:
+  type: smtp
+  name: "SMTP Email"
+  inputs:
+    operation: "smtp_send"
+    host: "smtp.gmail.com"
+    port: 587
+    username: "your-email@gmail.com"
+    password: "{{SMTP_PASSWORD}}"
+    secure: false
+    to: "recipient@example.com"
+    subject: "Workflow notification"
+    body: "Your workflow completed successfully."
+    isHtml: false
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **No OAuth needed** — SMTP uses plain credentials. For Gmail and most modern providers you must create an **app-specific password** (regular account passwords are rejected when 2FA is on). Store it in an environment variable and reference it as `{{SMTP_PASSWORD}}` rather than hardcoding it.
+- **Match port and `secure`** — use port `587` with `secure: false` for STARTTLS (the default), or port `465` with `secure: true` for implicit SSL. Mismatching these is the most common cause of connection failures.
+- **Multiple recipients** — `to`, `cc`, and `bcc` each accept a single comma-separated string (e.g. `alice@example.com, bob@example.com`). Check the `rejected` output array to see which addresses the server refused.
+- **HTML emails** — set `isHtml: true` and pass HTML markup in `body` to send rich emails; leave it `false` for plain text.

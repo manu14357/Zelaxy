@@ -1,7 +1,7 @@
 ---
 title: Polymarket Block
 description: Browse and analyze Polymarket prediction markets
-icon: Box
+icon: ChartColumn
 ---
 
 # Polymarket Block
@@ -18,47 +18,424 @@ The Polymarket block lets you access Polymarket prediction market data inside a 
 
 ## When to Use
 
-- Pull a list of active or closed markets and events, with sorting by volume, liquidity, or date.
+- Pull a list of active or closed markets or events, with sorting by volume, liquidity, or date.
 - Look up a single market or event by its ID or URL slug.
 - Search markets by keyword and paginate through the results.
-- Track a wallet's positions, trades, or activity by Ethereum address.
+- Track a wallet's open positions, trade history, or on-chain activity by Ethereum address.
 - Query CLOB pricing data: orderbook, price, midpoint, spread, tick size, last trade price, or price history for a token.
-- Inspect token holders or fetch the trader leaderboard for a category or time period.
+- Inspect token holders or fetch the trader leaderboard by category and time period.
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting which Polymarket query to run (Get Markets, Get Market, Get Events, Get Event, Get Tags, Search, Get Series, Get Series by ID, Get Orderbook, Get Price, Get Midpoint, Get Price History, Get Last Trade Price, Get Spread, Get Tick Size, Get Positions, Get Trades, Get Activity, Get Leaderboard, Get Holders). Defaults to Get Markets. The remaining fields appear based on this selection.
+Dropdown (required). Selects which Polymarket query to run. Defaults to **Get Markets**. All other fields are conditional on this selection.
 
-### Market / Event / Series identifiers
+| Label | ID |
+|-------|----|
+| Get Markets | `get_markets` |
+| Get Market | `get_market` |
+| Get Events | `get_events` |
+| Get Event | `get_event` |
+| Get Tags | `get_tags` |
+| Search | `search` |
+| Get Series | `get_series` |
+| Get Series by ID | `get_series_by_id` |
+| Get Orderbook | `get_orderbook` |
+| Get Price | `get_price` |
+| Get Midpoint | `get_midpoint` |
+| Get Price History | `get_price_history` |
+| Get Last Trade Price | `get_last_trade_price` |
+| Get Spread | `get_spread` |
+| Get Tick Size | `get_tick_size` |
+| Get Positions | `get_positions` |
+| Get Trades | `get_trades` |
+| Get Activity | `get_activity` |
+| Get Leaderboard | `get_leaderboard` |
+| Get Holders | `get_holders` |
 
-`marketId` and optional `marketSlug` for Get Market; `eventId` and optional `eventSlug` for Get Event; `seriesId` for Get Series by ID.
+### Market ID
+
+`marketId` (short-input, required) — The market condition ID. Shown when operation is **Get Market**.
+
+### Market Slug
+
+`marketSlug` (short-input) — Market URL slug (e.g. `will-trump-win`). Shown when operation is **Get Market**; can be used instead of `marketId`.
+
+### Event ID
+
+`eventId` (short-input, required) — The event ID. Shown when operation is **Get Event**.
+
+### Event Slug
+
+`eventSlug` (short-input) — Event URL slug. Shown when operation is **Get Event**; can be used instead of `eventId`.
+
+### Series ID
+
+`seriesId` (short-input, required) — The series ID. Shown when operation is **Get Series by ID**.
 
 ### Search Query
 
-`query` (required) for the Search operation, with an optional `page` for pagination.
+`query` (short-input, required) — Full-text search query (e.g. `presidential election`). Shown when operation is **Search**.
 
 ### User Address
 
-`user` (required) Ethereum wallet address for Get Positions, Get Trades, Get Activity, and Get Leaderboard.
+`user` (short-input, required) — Ethereum wallet address (0x-prefixed). Shown when operation is **Get Positions**, **Get Trades**, **Get Activity**, or **Get Leaderboard**.
+
+### Condition ID (positions / trades filter)
+
+`market` (short-input) — Condition ID to filter positions or trades. Shown when operation is **Get Positions** or **Get Trades**.
+
+### Event ID (positions / trades filter) — Advanced
+
+`positionEventId` (short-input, advanced) — Event ID to filter positions or trades. Shown when operation is **Get Positions** or **Get Trades**.
+
+### Holders Condition ID
+
+`holdersMarket` (short-input, required) — Comma-separated condition IDs whose holders to retrieve. Shown when operation is **Get Holders**.
+
+### Holders Min Balance — Advanced
+
+`holdersMinBalance` (short-input, advanced) — Minimum balance threshold (default: `1`). Shown when operation is **Get Holders**.
 
 ### Token ID
 
-`tokenId` (required) CLOB token ID for the price/orderbook operations (Get Orderbook, Get Price, Get Midpoint, Get Price History, Get Last Trade Price, Get Spread, Get Tick Size). Get Price also requires a `side` (buy/sell).
+`tokenId` (short-input, required) — CLOB token ID (from a market's `clobTokenIds` array). Shown when operation is **Get Orderbook**, **Get Price**, **Get Midpoint**, **Get Price History**, **Get Last Trade Price**, **Get Spread**, or **Get Tick Size**.
 
-### Holders
+### Side
 
-`holdersMarket` (required, comma-separated condition IDs) plus optional `holdersMinBalance` for Get Holders.
+`side` (dropdown, required) — Order side for the price query. Shown when operation is **Get Price**.
 
-### Advanced filters
+| Label | ID |
+|-------|----|
+| Buy | `buy` |
+| Sell | `sell` |
 
-Operation-specific advanced fields cover sorting (`order`, `orderEvents`, `ascending`), status (`closed`), price history range (`interval`, `fidelity`, `startTs`, `endTs`), position/trade/activity/leaderboard filters, and pagination (`limit`, `offset`).
+### Interval — Advanced
+
+`interval` (dropdown, advanced) — Duration ending at the current time for price history. Shown when operation is **Get Price History**.
+
+| Label | ID |
+|-------|----|
+| None (use timestamps) | `` (empty) |
+| 1 Minute | `1m` |
+| 1 Hour | `1h` |
+| 6 Hours | `6h` |
+| 1 Day | `1d` |
+| 1 Week | `1w` |
+| Max | `max` |
+
+### Fidelity (minutes) — Advanced
+
+`fidelity` (short-input, advanced) — Data resolution in minutes (e.g. `60` for hourly). Shown when operation is **Get Price History**.
+
+### Start Timestamp — Advanced
+
+`startTs` (short-input, advanced) — Start of the price history window as a Unix timestamp (seconds UTC). Shown when operation is **Get Price History**. Supports AI-assisted generation via wand.
+
+### End Timestamp — Advanced
+
+`endTs` (short-input, advanced) — End of the price history window as a Unix timestamp (seconds UTC). Shown when operation is **Get Price History**. Supports AI-assisted generation via wand.
+
+### Closed Status — Advanced
+
+`closed` (dropdown, advanced) — Filter markets or events by resolved/open state. Shown when operation is **Get Markets** or **Get Events**.
+
+| Label | ID |
+|-------|----|
+| All | `` (empty) |
+| Open Only | `false` |
+| Closed Only | `true` |
+
+### Sort By (Markets) — Advanced
+
+`order` (dropdown, advanced) — Sort field for market listings. Shown when operation is **Get Markets**.
+
+| Label | ID |
+|-------|----|
+| Default | `` (empty) |
+| Volume | `volumeNum` |
+| Liquidity | `liquidityNum` |
+| Start Date | `startDate` |
+| End Date | `endDate` |
+| Created At | `createdAt` |
+| Updated At | `updatedAt` |
+
+### Sort By (Events) — Advanced
+
+`orderEvents` (dropdown, advanced) — Sort field for event listings. Shown when operation is **Get Events**.
+
+| Label | ID |
+|-------|----|
+| Default | `` (empty) |
+| Volume | `volume` |
+| Liquidity | `liquidity` |
+| Start Date | `startDate` |
+| End Date | `endDate` |
+| Created At | `createdAt` |
+| Updated At | `updatedAt` |
+
+### Sort Order — Advanced
+
+`ascending` (dropdown, advanced) — Direction for market/event sort. Shown when operation is **Get Markets** or **Get Events**.
+
+| Label | ID |
+|-------|----|
+| Descending | `false` |
+| Ascending | `true` |
+
+### Tag ID — Advanced
+
+`tagId` (short-input, advanced) — Filter markets or events by a specific tag ID. Shown when operation is **Get Markets** or **Get Events**.
+
+### Size Threshold — Advanced
+
+`sizeThreshold` (short-input, advanced) — Minimum position size to include. Shown when operation is **Get Positions**.
+
+### Redeemable — Advanced
+
+`redeemable` (dropdown, advanced) — Filter positions by redeemability. Shown when operation is **Get Positions**.
+
+| Label | ID |
+|-------|----|
+| All | `` (empty) |
+| Yes | `true` |
+| No | `false` |
+
+### Mergeable — Advanced
+
+`mergeable` (dropdown, advanced) — Filter positions by mergeability. Shown when operation is **Get Positions**.
+
+| Label | ID |
+|-------|----|
+| All | `` (empty) |
+| Yes | `true` |
+| No | `false` |
+
+### Sort By (Positions) — Advanced
+
+`positionSortBy` (short-input, advanced) — Sort field for positions (e.g. `current_value`). Shown when operation is **Get Positions**.
+
+### Sort Direction (Positions) — Advanced
+
+`positionSortDirection` (dropdown, advanced) — Sort direction for positions. Shown when operation is **Get Positions**.
+
+| Label | ID |
+|-------|----|
+| Default | `` (empty) |
+| Ascending | `ASC` |
+| Descending | `DESC` |
+
+### Title Filter (Positions) — Advanced
+
+`positionTitle` (short-input, advanced) — Filter positions by market title substring. Shown when operation is **Get Positions**.
+
+### Side (Trades) — Advanced
+
+`tradeSide` (dropdown, advanced) — Filter trades by direction. Shown when operation is **Get Trades**.
+
+| Label | ID |
+|-------|----|
+| All | `` (empty) |
+| Buy | `BUY` |
+| Sell | `SELL` |
+
+### Taker Only — Advanced
+
+`takerOnly` (dropdown, advanced) — Restrict results to taker-only trades. Shown when operation is **Get Trades**.
+
+| Label | ID |
+|-------|----|
+| No | `` (empty) |
+| Yes | `true` |
+
+### Filter Type — Advanced
+
+`filterType` (dropdown, advanced) — Trade amount filter unit. Shown when operation is **Get Trades**.
+
+| Label | ID |
+|-------|----|
+| None | `` (empty) |
+| Cash | `CASH` |
+| Tokens | `TOKENS` |
+
+### Min Amount — Advanced
+
+`filterAmount` (short-input, advanced) — Minimum trade amount (used with Filter Type). Shown when operation is **Get Trades**.
+
+### Activity User — Advanced
+
+`activityUser` (short-input, advanced) — Additional user address filter. Shown when operation is **Get Activity**.
+
+### Activity Type — Advanced
+
+`activityType` (short-input, advanced) — Activity type: `TRADE`, `SPLIT`, `MERGE`, `REDEEM`, `REWARD`, `CONVERSION`, `MAKER_REBATE`. Shown when operation is **Get Activity**.
+
+### Activity Market Filter — Advanced
+
+`activityMarket` (short-input, advanced) — Comma-separated condition IDs to filter activity. Shown when operation is **Get Activity**.
+
+### Activity Event ID Filter — Advanced
+
+`activityEventId` (short-input, advanced) — Comma-separated event IDs to filter activity. Shown when operation is **Get Activity**.
+
+### Side (Activity) — Advanced
+
+`activitySide` (dropdown, advanced) — Direction filter for activity records. Shown when operation is **Get Activity**.
+
+| Label | ID |
+|-------|----|
+| All | `` (empty) |
+| Buy | `BUY` |
+| Sell | `SELL` |
+
+### Sort By (Activity) — Advanced
+
+`activitySortBy` (short-input, advanced) — Sort field (e.g. `TIMESTAMP`, `TOKENS`, `CASH`). Shown when operation is **Get Activity**.
+
+### Sort Direction (Activity) — Advanced
+
+`activitySortDirection` (dropdown, advanced) — Sort direction for activity. Shown when operation is **Get Activity**.
+
+| Label | ID |
+|-------|----|
+| Descending | `` (empty) |
+| Ascending | `ASC` |
+
+### Activity Start Timestamp — Advanced
+
+`activityStart` (short-input, advanced) — Start of activity window as Unix timestamp. Shown when operation is **Get Activity**.
+
+### Activity End Timestamp — Advanced
+
+`activityEnd` (short-input, advanced) — End of activity window as Unix timestamp. Shown when operation is **Get Activity**.
+
+### Leaderboard Category — Advanced
+
+`leaderboardCategory` (short-input, advanced) — Category slug (e.g. `politics`, `sports`, `crypto`). Shown when operation is **Get Leaderboard**.
+
+### Leaderboard Time Period — Advanced
+
+`leaderboardTimePeriod` (dropdown, advanced) — Time period for leaderboard ranking. Shown when operation is **Get Leaderboard**.
+
+| Label | ID |
+|-------|----|
+| All Time | `` (empty) |
+| 1 Day | `1d` |
+| 1 Week | `1w` |
+| 1 Month | `1m` |
+
+### Leaderboard Order By — Advanced
+
+`leaderboardOrderBy` (short-input, advanced) — Rank metric (e.g. `pnl`, `vol`). Shown when operation is **Get Leaderboard**.
+
+### Leaderboard User Address — Advanced
+
+`leaderboardUser` (short-input, advanced) — Filter leaderboard to a specific wallet address. Shown when operation is **Get Leaderboard**.
+
+### Leaderboard Username — Advanced
+
+`leaderboardUserName` (short-input, advanced) — Filter leaderboard to a specific username. Shown when operation is **Get Leaderboard**.
+
+### Limit — Advanced
+
+`limit` (short-input, advanced) — Maximum number of results (default `50`). Applies to: **Get Markets**, **Get Events**, **Get Tags**, **Search**, **Get Series**, **Get Trades**, **Get Positions**, **Get Activity**, **Get Leaderboard**, **Get Holders**.
+
+### Offset — Advanced
+
+`offset` (short-input, advanced) — Pagination offset (number of records to skip). Applies to: **Get Markets**, **Get Events**, **Get Tags**, **Get Series**, **Get Trades**, **Get Positions**, **Get Activity**, **Get Leaderboard**.
+
+### Page — Advanced
+
+`page` (short-input, advanced) — Page number (1-indexed) for search pagination. Shown when operation is **Search**.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `marketId` (string), `marketSlug` (string), `eventId` (string), `eventSlug` (string), `seriesId` (string), `query` (string), `user` (string), `market` (string), `tokenId` (string), `side` (string), `interval` (string), `fidelity` (number), `startTs` (number), `endTs` (number), `limit` (string), `offset` (string), `page` (string)
-- **Outputs**: `markets` (json), `events` (json), `tags` (json), `series` (json), `market` (json), `event` (json), `orderbook` (json), `price` (number), `midpoint` (number), `history` (json), `lastTradePrice` (number), `spread` (number), `tickSize` (number), `positions` (json), `trades` (json), `activity` (json), `leaderboard` (json), `holders` (json), `results` (json), `data` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform
+  - `marketId` (string) — Market ID
+  - `marketSlug` (string) — Market slug
+  - `eventId` (string) — Event ID
+  - `eventSlug` (string) — Event slug
+  - `seriesId` (string) — Series ID
+  - `query` (string) — Search query
+  - `user` (string) — User wallet address
+  - `market` (string) — Condition ID filter
+  - `tokenId` (string) — CLOB Token ID
+  - `side` (string) — Order side
+  - `interval` (string) — Price history interval
+  - `fidelity` (number) — Data resolution in minutes
+  - `startTs` (number) — Start timestamp (Unix)
+  - `endTs` (number) — End timestamp (Unix)
+  - `limit` (string) — Result limit
+  - `offset` (string) — Pagination offset
+  - `page` (string) — Page number for search
+
+- **Outputs**:
+  - `markets` (json) — Array of market objects
+  - `events` (json) — Array of event objects
+  - `tags` (json) — Array of tag objects
+  - `series` (json) — Array of series objects or single series
+  - `market` (json) — Single market object
+  - `event` (json) — Single event object
+  - `orderbook` (json) — Orderbook with bids and asks
+  - `price` (number) — Current price
+  - `midpoint` (number) — Midpoint price
+  - `history` (json) — Price history data
+  - `lastTradePrice` (number) — Last trade price
+  - `spread` (number) — Bid-ask spread
+  - `tickSize` (number) — Minimum price increment
+  - `positions` (json) — User positions
+  - `trades` (json) — Trade history
+  - `activity` (json) — User activity
+  - `leaderboard` (json) — Leaderboard entries
+  - `holders` (json) — Token holders
+  - `results` (json) — Search results
+  - `data` (json) — Raw API response data
+
+## Tools
+
+The block routes to one of 20 tools depending on the selected operation. All tools call Polymarket public APIs — no API key is required.
+
+**Get Markets from Polymarket** (`polymarket_get_markets`) — Retrieves a paginated list of prediction markets from the Gamma API with optional filtering by closed status, tag, sort field, and sort direction.
+
+**Get Market from Polymarket** (`polymarket_get_market`) — Retrieves details of a single prediction market by condition ID or URL slug.
+
+**Get Events from Polymarket** (`polymarket_get_events`) — Retrieves a paginated list of events from the Gamma API with optional filtering by closed status, tag, sort field, and sort direction.
+
+**Get Event from Polymarket** (`polymarket_get_event`) — Retrieves details of a single Polymarket event by ID or URL slug.
+
+**Get Tags from Polymarket** (`polymarket_get_tags`) — Retrieves available category tags for filtering markets and events.
+
+**Search Polymarket** (`polymarket_search`) — Full-text searches markets, events, and profiles using the Gamma public-search endpoint.
+
+**Get Series from Polymarket** (`polymarket_get_series`) — Retrieves a paginated list of series (related market groups).
+
+**Get Series by ID from Polymarket** (`polymarket_get_series_by_id`) — Retrieves a single series by its ID.
+
+**Get Orderbook from Polymarket** (`polymarket_get_orderbook`) — Retrieves the CLOB order book (bids, asks, tick size) for a specific token.
+
+**Get Price from Polymarket** (`polymarket_get_price`) — Retrieves the current best buy or sell price for a specific CLOB token.
+
+**Get Midpoint Price from Polymarket** (`polymarket_get_midpoint`) — Retrieves the midpoint between best bid and best ask for a token.
+
+**Get Price History from Polymarket** (`polymarket_get_price_history`) — Retrieves historical price data (`[{t, p}]` entries) for a token over a given interval or timestamp range.
+
+**Get Last Trade Price from Polymarket** (`polymarket_get_last_trade_price`) — Retrieves the price and side of the most recent trade for a token.
+
+**Get Spread from Polymarket** (`polymarket_get_spread`) — Retrieves the bid-ask spread for a token.
+
+**Get Tick Size from Polymarket** (`polymarket_get_tick_size`) — Retrieves the minimum price increment (tick size) for a token.
+
+**Get Positions from Polymarket** (`polymarket_get_positions`) — Retrieves open positions held by a wallet address from the Data API, with optional market/event/size filtering and sorting.
+
+**Get Trades from Polymarket** (`polymarket_get_trades`) — Retrieves trade history from the Data API, filterable by user, market, event, side, and minimum amount.
+
+**Get Activity from Polymarket** (`polymarket_get_activity`) — Retrieves on-chain activity (trades, splits, merges, redemptions, rewards) for a wallet from the Data API.
+
+**Get Leaderboard from Polymarket** (`polymarket_get_leaderboard`) — Retrieves the trader leaderboard by profit/loss or volume from the Data API, with category and time-period filters.
+
+**Get Market Holders from Polymarket** (`polymarket_get_holders`) — Retrieves the top holders of one or more market tokens from the Data API.
 
 ## YAML Example
 

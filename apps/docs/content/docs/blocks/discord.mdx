@@ -21,36 +21,81 @@ The Discord block connects your workflow to Discord, letting you send messages, 
 - Post automated notifications or alerts into a Discord channel.
 - Send dynamic, workflow-generated messages to a community server.
 - Pull recent channel messages to feed downstream steps (e.g., summarization or moderation).
-- Fetch server information for onboarding or reporting flows.
-- Look up a specific user's information by ID.
+- Fetch server metadata (name, icon, member count, roles, channels) for onboarding or reporting flows.
+- Look up a specific user's profile information by ID.
+- Drive community management automation entirely from workflow logic.
 
 ## Configuration
 
 ### Operation
-Choose what the block does: Send Message, Get Channel Messages, Get Server Information, or Get User Information. Defaults to Send Message.
+
+Selects which Discord action to perform. Defaults to `discord_send_message`.
+
+| Label | ID |
+|-------|----|
+| Send Message | `discord_send_message` |
+| Get Channel Messages | `discord_get_messages` |
+| Get Server Information | `discord_get_server` |
+| Get User Information | `discord_get_user` |
 
 ### Bot Token
-The Discord bot token used to authenticate requests. Required for every operation.
 
-### Server
-Select a Discord server (basic mode) or enter a server ID manually (advanced mode). Required for sending messages, getting messages, and getting server info.
+The Discord bot token used to authenticate all requests. Required for every operation. Treat this as a secret — pass it as an environment variable reference (e.g., `{{DISCORD_BOT_TOKEN}}`).
 
-### Channel
-Select a Discord channel (basic mode) or enter a channel ID manually (advanced mode). Required for sending and getting messages.
+### Server (basic mode) / Server ID (advanced mode)
+
+Identifies the Discord server (guild) to act on.
+
+- **Server** (`serverId`) — use the server selector (basic mode) to pick a server from an OAuth-authorized list. Shown for `discord_send_message`, `discord_get_messages`, and `discord_get_server`.
+- **Server ID** (`manualServerId`) — enter the server's snowflake ID directly (advanced mode). Shown for the same three operations.
+
+Both fields resolve to the same parameter at runtime; the block uses whichever is populated.
+
+### Channel (basic mode) / Channel ID (advanced mode)
+
+Identifies the Discord channel to read from or write to.
+
+- **Channel** (`channelId`) — use the channel selector (basic mode). Shown for `discord_send_message` and `discord_get_messages`.
+- **Channel ID** (`manualChannelId`) — enter the channel's snowflake ID directly (advanced mode). Shown for the same two operations.
 
 ### User ID
-The Discord user ID to look up. Used by the Get User Information operation.
+
+The Discord user's snowflake ID. Required for the `discord_get_user` operation only.
 
 ### Message Content
-The text to post. Used by the Send Message operation.
+
+The text body to post. Required for `discord_send_message`. Supports `{{blockName.field}}` references to inject upstream output.
 
 ### Message Limit
-Number of messages to retrieve (default 10, max 100). Used by the Get Channel Messages operation.
+
+Maximum number of messages to retrieve for `discord_get_messages`. Accepts 1–100; defaults to 10.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `botToken` (string), `serverId` (string), `manualServerId` (string), `channelId` (string), `manualChannelId` (string), `content` (string), `limit` (number), `userId` (string)
-- **Outputs**: `message` (string), `data` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`discord_send_message` | `discord_get_messages` | `discord_get_server` | `discord_get_user`)
+  - `botToken` (string) — Discord bot token
+  - `serverId` (string) — Discord server identifier (from server selector)
+  - `manualServerId` (string) — Manual server identifier (snowflake ID entered by hand)
+  - `channelId` (string) — Discord channel identifier (from channel selector)
+  - `manualChannelId` (string) — Manual channel identifier (snowflake ID entered by hand)
+  - `content` (string) — Message content to send
+  - `limit` (number) — Maximum number of messages to retrieve
+  - `userId` (string) — Discord user identifier
+
+- **Outputs**:
+  - `message` (string) — Human-readable success or status message
+  - `data` (json) — Full response payload from the Discord API (shape varies by operation — see Tools section below)
+
+## Tools
+
+**Discord Send Message** (`discord_send_message`) — Posts a text message to a specified channel using the Discord v10 REST API (`POST /channels/{channelId}/messages`). Requires `botToken`, `serverId`, and `channelId`. The `content` field is optional; if omitted the tool sends a default placeholder. The `data` output contains the created message object with fields: `id`, `content`, `channel_id`, `author` (id, username, avatar, bot), `timestamp`, `edited_timestamp`, `embeds`, `attachments`, `mentions`, `mention_roles`, and `mention_everyone`.
+
+**Discord Get Messages** (`discord_get_messages`) — Retrieves up to 100 recent messages from a channel (`GET /channels/{channelId}/messages?limit=N`). Requires `botToken`, `serverId`, and `channelId`. The `data` output contains `messages` (array of message objects) and `channel_id`.
+
+**Discord Get Server** (`discord_get_server`) — Fetches metadata about a Discord server/guild (`GET /guilds/{serverId}`). Requires `botToken` and `serverId`. The `data` output contains `id`, `name`, `icon`, `description`, `owner_id`, `roles`, `channels`, and `member_count`.
+
+**Discord Get User** (`discord_get_user`) — Retrieves a user's profile (`GET /users/{userId}`). Requires `botToken` and `userId`. The `data` output contains `id`, `username`, `discriminator`, `avatar`, `bot`, `system`, `email`, and `verified`.
 
 ## YAML Example
 
@@ -60,10 +105,10 @@ discord_1:
   name: "Discord"
   inputs:
     operation: "discord_send_message"
-    botToken: "{{secrets.DISCORD_BOT_TOKEN}}"
+    botToken: "{{DISCORD_BOT_TOKEN}}"
     serverId: "123456789012345678"
     channelId: "234567890123456789"
-    content: "{{start.input}}"
+    content: "{{previous_block.output}}"
   connections:
     outgoing:
       - target: next-block-id

@@ -13,44 +13,87 @@ The Sharepoint block integrates Microsoft SharePoint into your workflows so you 
 | Property | Value |
 |----------|-------|
 | **Type** | `sharepoint` |
-| **Category** | Tools |
+| **Category** | tools |
 | **Color** | `#E0E0E0` |
 
 ## When to Use
 
 - Create a new SharePoint page with custom content from upstream workflow data
 - Read the contents of an existing page by name or page ID
-- List the SharePoint sites accessible to the connected Microsoft account
+- List all SharePoint sites accessible to the connected Microsoft account
 - Publish AI-generated summaries or reports directly to a SharePoint site
 - Pull page content into a workflow for downstream processing or analysis
+- Discover site IDs to wire into other SharePoint operations
 
 ## Configuration
 
 ### Operation
-Dropdown that selects what the block does: **Create Page**, **Read Page**, or **List Sites**. The remaining fields show or hide based on this choice.
+Dropdown (`dropdown`) that selects what the block does. Required. Options:
+
+| Label | ID |
+|-------|----|
+| Create Page | `create_page` |
+| Read Page | `read_page` |
+| List Sites | `list_sites` |
+
+The remaining fields show or hide based on this choice.
 
 ### Microsoft Account
-OAuth credential (`oauth-input`) for connecting your Microsoft account. Required scopes include `Files.Read`, `Files.ReadWrite`, and `offline_access`.
+OAuth credential (`oauth-input`) for connecting your Microsoft account. Required scopes include `openid`, `profile`, `email`, `Files.Read`, `Files.ReadWrite`, and `offline_access`. Shown for all operations.
 
-### Select Site
-File selector for choosing the target SharePoint site. Available for all operations; falls back to the manual Site ID when not set.
+### Select Site (`siteSelector`)
+File selector (`file-selector`) for choosing the target SharePoint site from a visual picker (mode: basic). Available for all three operations. When set, its value takes precedence over the manual Site ID field. If not set the tools fall back to the root site.
 
-### Page Name
-Short input for the page name. Used by Create Page and Read Page.
+- Condition: shown when `operation` is `create_page`, `read_page`, or `list_sites`
 
-### Page ID
-Advanced short input that reads a page by its ID instead of its name (Read Page only).
+### Page Name (`pageName`)
+Short text input for the page name. Used when creating or looking up a page by name (an alternative to using the Page ID on Read Page). Both `.aspx` and bare names are accepted on reads.
 
-### Page Content
-Long input holding the body content of the page to create (Create Page only).
+- Condition: shown when `operation` is `create_page` or `read_page`
 
-### Site ID
-Advanced short input to enter a site ID manually; leave empty to target the root site (Create Page only).
+### Page ID (`pageId`)
+Advanced short text input that identifies a page by its Microsoft Graph page ID instead of its name. Takes precedence over Page Name when both are supplied.
+
+- Condition: shown when `operation` is `read_page` (advanced mode)
+
+### Page Content (`pageContent`)
+Long text input holding the body content of the page to create. Rendered as a single-column article layout in SharePoint.
+
+- Condition: shown when `operation` is `create_page`
+
+### Site ID (`manualSiteId`)
+Advanced short text input to enter a SharePoint site ID manually. Leave empty to target the root site. Ignored when `siteSelector` is set.
+
+- Condition: shown when `operation` is `create_page` (advanced mode)
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `pageName` (string), `pageContent` (string), `pageTitle` (string), `pageId` (string), `siteSelector` (string), `manualSiteId` (string), `pageSize` (number)
-- **Outputs**: `sites` (json) — an array of SharePoint site objects, each containing details such as id, name, and more.
+**Inputs** (all sub-block ids that can be wired from other blocks):
+
+- `operation` (string) — Operation to perform (`create_page`, `read_page`, or `list_sites`)
+- `credential` (string) — Microsoft account OAuth credential (access token)
+- `pageName` (string) — Page name (create or read by name)
+- `pageContent` (string) — Page content (create only)
+- `pageTitle` (string) — Page title; defaults to page name when omitted (create only)
+- `pageId` (string) — Page ID (read by ID, advanced)
+- `siteSelector` (string) — Site selector from the visual file picker
+- `manualSiteId` (string) — Manual site ID; overridden by siteSelector when both are set
+- `pageSize` (number) — Results per page for list operations
+
+**Outputs** (vary by operation):
+
+- `sites` (json) — Array of SharePoint site objects, each containing `id`, `name`, `displayName`, `webUrl`, `description`, `createdDateTime`, and `lastModifiedDateTime`. Returned by **List Sites** when the search returns multiple results.
+- `site` (json) — Single SharePoint site object with the same fields plus `isPersonalSite`, `root`, and `siteCollection`. Returned by **List Sites** when targeting a specific site by ID or group.
+- `page` (json) — SharePoint page object with `id`, `name`, `title`, `webUrl`, `pageLayout`, `createdDateTime`, and `lastModifiedDateTime`. Returned by **Create Page** and **Read Page** (single-page result).
+- `content` (json) — Page content object with `content` (extracted plain text) and `canvasLayout` (raw Microsoft Graph canvas structure). Returned by **Read Page** for a single page.
+- `pages` (json) — Array of `{ page, content }` objects. Returned by **Read Page** when listing all pages on a site (no `pageId` or `pageName` supplied).
+- `totalPages` (number) — Total count of pages returned when listing all pages.
+
+## Tools
+
+- **Create SharePoint Page** (`sharepoint_create_page`) — POSTs a new article-layout page to `https://graph.microsoft.com/v1.0/sites/{siteId}/pages` via the Microsoft Graph API. Accepts `pageName` (required), optional `pageTitle`, and optional `pageContent` (wrapped in a one-column canvas section). Returns the created page metadata.
+- **Read SharePoint Page** (`sharepoint_read_page`) — GETs one or more pages from a SharePoint site. When `pageId` is supplied it fetches that specific page with canvas content expanded. When `pageName` is supplied it filters by name and fetches content for the first match. When neither is supplied it lists up to `pageSize` pages (default 10, max 50) and fetches content for each. Returns `page`/`content` for a single result or `pages`/`totalPages` for a list.
+- **List SharePoint Sites** (`sharepoint_list_sites`) — GETs SharePoint sites via the Microsoft Graph API. Without a `siteSelector` or `groupId` it searches all accessible sites (`?search=*`). With a site ID or group ID it returns that specific site's details. Returns `sites` (array) or `site` (object) accordingly.
 
 ## YAML Example
 

@@ -1,7 +1,7 @@
 ---
 title: Grain Block
 description: Access meeting recordings, transcripts, and AI summaries
-icon: Box
+icon: Mic
 ---
 
 # Grain Block
@@ -22,38 +22,117 @@ The Grain block integrates Grain into your workflow so you can access meeting re
 - Fetch a single recording's details, including highlights, participants, AI summary, calendar event, or HubSpot data.
 - Retrieve the full transcript of a recording for downstream summarization or analysis.
 - Enumerate available Grain views, teams, or meeting types for filtering and routing.
-- Create, list, or delete webhooks to react to Grain recording events in real time.
+- Create webhooks to subscribe to recording events in real time from a specific Grain view.
+- List or delete existing webhooks to manage event subscriptions programmatically.
 
 ## Configuration
 
 ### Operation
 
-A dropdown selecting which Grain action to run: List Recordings, Get Recording, Get Transcript, List Views, List Teams, List Meeting Types, Create Webhook, List Webhooks, or Delete Webhook. Defaults to List Recordings.
+Selects which Grain action the block runs. Defaults to `grain_list_recordings`.
+
+| Label | ID |
+|-------|----|
+| List Recordings | `grain_list_recordings` |
+| Get Recording | `grain_get_recording` |
+| Get Transcript | `grain_get_transcript` |
+| List Views | `grain_list_views` |
+| List Teams | `grain_list_teams` |
+| List Meeting Types | `grain_list_meeting_types` |
+| Create Webhook | `grain_create_hook` |
+| List Webhooks | `grain_list_hooks` |
+| Delete Webhook | `grain_delete_hook` |
 
 ### API Key
 
-Your Grain API key (Personal Access Token). Required for every operation and stored as a password field.
+Your Grain API key (Personal Access Token). Required for every operation and stored as a password field. Use `{{GRAIN_API_KEY}}` to pull it from an environment variable.
 
 ### Recording ID
 
-The recording UUID. Required for Get Recording and Get Transcript.
+The recording UUID. Required for **Get Recording** (`grain_get_recording`) and **Get Transcript** (`grain_get_transcript`). Sub-block id: `recordingId`.
 
-### List Recordings filters
+### Pagination Cursor
 
-When listing recordings you can supply a pagination cursor, before/after ISO8601 timestamps, participant scope (all/internal/external), title search, team ID, and meeting type ID, plus toggles to include highlights, participants, and AI summary.
+A cursor string returned by a previous List Recordings call, used to fetch the next page. Optional. Shown only for **List Recordings**. Sub-block id: `cursor`.
 
-### Get Recording options
+### Before Date
 
-Switches to include highlights, participants, AI summary, calendar event, and HubSpot data on the returned recording.
+Filter recordings created before this ISO8601 timestamp (e.g. `2024-01-01T00:00:00Z`). Optional. Shown only for **List Recordings**. Sub-block id: `beforeDatetime`.
 
-### Webhook fields
+### After Date
 
-Create Webhook requires a View ID and a Webhook URL. Delete Webhook requires a Webhook ID.
+Filter recordings created after this ISO8601 timestamp. Optional. Shown only for **List Recordings**. Sub-block id: `afterDatetime`.
+
+### Participant Scope
+
+Narrow the recording list to a specific participant category. Optional. Shown only for **List Recordings**. Sub-block id: `participantScope`.
+
+| Label | ID |
+|-------|----|
+| All | `` (empty string — no filter) |
+| Internal | `internal` |
+| External | `external` |
+
+### Title Search
+
+A free-text search term to filter recordings by their title. Optional. Shown only for **List Recordings**. Sub-block id: `titleSearch`.
+
+### Team ID
+
+Filter recordings by team UUID. Optional. Shown only for **List Recordings**. Sub-block id: `teamId`.
+
+### Meeting Type ID
+
+Filter recordings by meeting type UUID. Optional. Shown only for **List Recordings**. Sub-block id: `meetingTypeId`.
+
+### Include Highlights
+
+Toggle to embed highlights/clips in the response. Shown for **List Recordings** and **Get Recording**. Sub-block id: `includeHighlights`.
+
+### Include Participants
+
+Toggle to embed the participant list in the response. Shown for **List Recordings** and **Get Recording**. Sub-block id: `includeParticipants`.
+
+### Include AI Summary
+
+Toggle to embed the AI-generated summary in the response. Shown for **List Recordings** and **Get Recording**. Sub-block id: `includeAiSummary`.
+
+### Include Calendar Event
+
+Toggle to embed the associated calendar event data on the recording. Shown only for **Get Recording**. Sub-block id: `includeCalendarEvent`.
+
+### Include HubSpot Data
+
+Toggle to embed HubSpot CRM associations on the recording. Shown only for **Get Recording**. Sub-block id: `includeHubspot`.
+
+### View ID
+
+The Grain view UUID to scope a new webhook to. Required for **Create Webhook**. Sub-block id: `viewId`.
+
+### Webhook URL
+
+The endpoint URL that Grain will POST events to. Required for **Create Webhook**. Sub-block id: `hookUrl`.
+
+### Webhook ID
+
+The UUID of an existing webhook. Required for **Delete Webhook**. Sub-block id: `hookId`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `recordingId` (string), `cursor` (string), `viewId` (string), `beforeDatetime` (string), `afterDatetime` (string), `participantScope` (string), `titleSearch` (string), `teamId` (string), `meetingTypeId` (string), `includeHighlights` (boolean), `includeParticipants` (boolean), `includeAiSummary` (boolean), `includeCalendarEvent` (boolean), `includeHubspot` (boolean), `hookUrl` (string), `hookId` (string)
-- **Outputs**: `recordings` (json), `recording` (json), `transcript` (json), `views` (json), `teams` (json), `meetingTypes` (json), `hooks` (json), `hook` (json)
+- **Inputs**: `operation` (string) — Operation to perform; `apiKey` (string) — Grain API key (Personal Access Token); `recordingId` (string) — Recording UUID; `cursor` (string) — Pagination cursor; `viewId` (string) — Grain view UUID for webhook subscriptions; `beforeDatetime` (string) — Filter recordings before this ISO8601 timestamp; `afterDatetime` (string) — Filter recordings after this ISO8601 timestamp; `participantScope` (string) — Filter by participant scope (internal/external); `titleSearch` (string) — Search recordings by title; `teamId` (string) — Filter by team UUID; `meetingTypeId` (string) — Filter by meeting type UUID; `includeHighlights` (boolean) — Include highlights in response; `includeParticipants` (boolean) — Include participants in response; `includeAiSummary` (boolean) — Include AI summary in response; `includeCalendarEvent` (boolean) — Include calendar event in response; `includeHubspot` (boolean) — Include HubSpot data in response; `hookUrl` (string) — Webhook endpoint URL; `hookId` (string) — Webhook UUID to delete
+- **Outputs**: `recordings` (json) — List of recordings; `recording` (json) — Single recording details; `transcript` (json) — Recording transcript; `views` (json) — List of views; `teams` (json) — List of teams; `meetingTypes` (json) — List of meeting types; `hooks` (json) — List of webhooks; `hook` (json) — Created webhook details
+
+## Tools
+
+- **Grain List Recordings** (`grain_list_recordings`) — Lists recordings from Grain with optional filters (date range, team, meeting type, title search, participant scope) and cursor-based pagination. Optionally embeds highlights, participants, and AI summary.
+- **Grain Get Recording** (`grain_get_recording`) — Returns full details for a single recording by UUID. Optionally embeds highlights, participants, AI summary, calendar event, and HubSpot associations.
+- **Grain Get Transcript** (`grain_get_transcript`) — Returns the full transcript of a recording as an array of sections, each containing speaker, text, and start/end timestamps.
+- **Grain List Views** (`grain_list_views`) — Lists saved views in the Grain workspace, optionally filtered by type (recordings, highlights, or stories).
+- **Grain List Teams** (`grain_list_teams`) — Returns all teams in the Grain workspace, providing ids and names for use as filter inputs.
+- **Grain List Meeting Types** (`grain_list_meeting_types`) — Returns all meeting types configured in the Grain workspace.
+- **Grain Create Hook** (`grain_create_hook`) — Creates a webhook scoped to a Grain view; Grain will POST recording events (added, updated, removed) to the given URL.
+- **Grain List Hooks** (`grain_list_hooks`) — Returns all webhooks registered in the Grain workspace.
+- **Grain Delete Hook** (`grain_delete_hook`) — Deletes a webhook by its UUID.
 
 ## YAML Example
 

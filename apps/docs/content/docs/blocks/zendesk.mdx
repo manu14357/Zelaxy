@@ -1,0 +1,163 @@
+---
+title: Zendesk Block
+description: Manage support tickets in Zendesk
+icon: Box
+---
+
+# Zendesk Block
+
+Create, list, retrieve, update, and search support tickets through the Zendesk API. Authenticate with your subdomain, account email, and an API token to integrate Zendesk into any workflow that needs customer support ticket management.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `zendesk` |
+| **Category** | `tools` |
+| **Color** | `#03363D` |
+
+## When to Use
+
+- Automatically create a new support ticket when a customer submits a form or triggers an event in another block.
+- List all tickets in your Zendesk account for audit, reporting, or downstream processing.
+- Retrieve a single ticket by ID to read its current state before making a decision or routing it.
+- Update a ticket's status (e.g. mark it solved or put it on hold) as part of an automated triage workflow.
+- Search tickets, users, and organizations using Zendesk's search syntax to find relevant records dynamically.
+- Chain multiple Zendesk blocks together — for example, search for an open ticket, then update its status based on an AI evaluation.
+
+## Configuration
+
+### Operation
+
+Selects which Zendesk API action the block executes. Every other field is conditional on this choice.
+
+| Label | ID |
+|-------|----|
+| Create ticket | `zendesk_create_ticket` |
+| List tickets | `zendesk_list_tickets` |
+| Get ticket | `zendesk_get_ticket` |
+| Update ticket | `zendesk_update_ticket` |
+| Search | `zendesk_search` |
+
+---
+
+### Subject
+
+- **Shown for**: `Create ticket`
+- **Type**: Short text input
+- **Required**: Yes (for Create ticket)
+- The subject line of the new ticket. Example: `Cannot log in`.
+
+---
+
+### Body
+
+- **Shown for**: `Create ticket`
+- **Type**: Long text input
+- **Required**: Yes (for Create ticket)
+- The body of the first comment on the ticket. Describe the customer issue in full.
+
+---
+
+### Ticket ID
+
+- **Shown for**: `Get ticket`, `Update ticket`
+- **Type**: Short text input
+- **Required**: Yes (for Get ticket and Update ticket)
+- The numeric ID of the ticket to retrieve or modify. Example: `12345`.
+
+---
+
+### Status
+
+- **Shown for**: `Update ticket`
+- **Type**: Dropdown
+- **Required**: No (defaults to `open`)
+- The new status to set on the ticket.
+
+| Label | ID |
+|-------|----|
+| New | `new` |
+| Open | `open` |
+| Pending | `pending` |
+| Hold | `hold` |
+| Solved | `solved` |
+| Closed | `closed` |
+
+---
+
+### Query
+
+- **Shown for**: `Search`
+- **Type**: Short text input
+- **Required**: Yes (for Search)
+- A Zendesk search query string. Supports all Zendesk search syntax. Example: `type:ticket status:open`.
+
+---
+
+### Subdomain
+
+- **Type**: Short text input (stored as a secret)
+- **Required**: Yes (all operations)
+- Your Zendesk subdomain — the part before `.zendesk.com`. For `acme.zendesk.com` enter `acme`. Use `{{ZENDESK_SUBDOMAIN}}` to pull from an environment variable.
+
+---
+
+### Account Email
+
+- **Type**: Short text input (stored as a secret)
+- **Required**: Yes (all operations)
+- The email address of the Zendesk agent account used for API authentication. Use `{{ZENDESK_EMAIL}}` to pull from an environment variable.
+
+---
+
+### API Token
+
+- **Type**: Short text input (stored as a secret)
+- **Required**: Yes (all operations)
+- A Zendesk API token (not the account password). Generated from **Admin > Apps and Integrations > Zendesk API**. Use `{{ZENDESK_API_TOKEN}}` to pull from an environment variable.
+
+---
+
+## Inputs & Outputs
+
+**Inputs**:
+- `operation` (string) — Operation to perform; one of the five tool IDs listed above.
+- `subdomain` (string) — Zendesk subdomain.
+- `email` (string) — Zendesk account email.
+- `apiToken` (string) — Zendesk API token.
+- `subject` (string) — Ticket subject (Create ticket only).
+- `body` (string) — Ticket body / first comment (Create ticket only).
+- `ticketId` (string) — Ticket ID (Get ticket and Update ticket only).
+- `status` (string) — Ticket status to set (Update ticket only).
+- `query` (string) — Search query string (Search only).
+
+**Outputs**:
+- `data` (json) — For object operations (Create, Get, Update): the Zendesk ticket object. For list operations (List, Search): an array of Zendesk objects.
+- `metadata` (json) — For object operations: `{ id: <ticketId> }`. For list/search operations: `{ count: <number> }`.
+
+## Tools
+
+- **Zendesk Create Ticket** (`zendesk_create_ticket`) — POSTs to `/api/v2/tickets.json` and creates a new support ticket with the given subject and body comment. Returns the created ticket object and its ID.
+- **Zendesk List Tickets** (`zendesk_list_tickets`) — GETs `/api/v2/tickets.json` and returns all tickets visible to the authenticated agent along with a count of results.
+- **Zendesk Get Ticket** (`zendesk_get_ticket`) — GETs `/api/v2/tickets/{id}.json` and returns a single ticket by its numeric ID.
+- **Zendesk Update Ticket** (`zendesk_update_ticket`) — PUTs to `/api/v2/tickets/{id}.json` and updates the ticket's status field. Returns the updated ticket object.
+- **Zendesk Search** (`zendesk_search`) — GETs `/api/v2/search.json?query=...` and searches across tickets, users, and organizations using Zendesk's full search syntax. Returns an array of matching results and a total count.
+
+## YAML Example
+
+```yaml
+zendesk_1:
+  type: zendesk
+  name: "Create Support Ticket"
+  inputs:
+    operation: zendesk_create_ticket
+    subdomain: "{{ZENDESK_SUBDOMAIN}}"
+    email: "{{ZENDESK_EMAIL}}"
+    apiToken: "{{ZENDESK_API_TOKEN}}"
+    subject: "{{form_block.subject}}"
+    body: "{{form_block.message}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

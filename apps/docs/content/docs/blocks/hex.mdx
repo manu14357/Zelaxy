@@ -1,12 +1,12 @@
 ---
 title: Hex Block
 description: Run and manage Hex projects
-icon: Box
+icon: ChartColumn
 ---
 
 # Hex Block
 
-The Hex block integrates Hex into your workflow so you can trigger project runs, track run status, and manage Hex resources programmatically. Reach for it when you need to kick off a Hex notebook/app, poll its execution, or administer collections, groups, users, and data connections. Requires a Hex API token.
+The Hex block integrates Hex into your workflow so you can trigger project runs, track execution status, and administer Hex workspace resources programmatically. Reach for it when you need to kick off a Hex notebook or published app, poll its status, manage collections, groups, users, and data connections — all from inside a Zelaxy workflow.
 
 ## Overview
 
@@ -18,40 +18,214 @@ The Hex block integrates Hex into your workflow so you can trigger project runs,
 
 ## When to Use
 
-- Run a Hex project with custom input parameters and capture its run URL/status
-- Poll a run's status or list a project's recent runs to monitor execution
-- Cancel an in-progress run
-- List or fetch project details, and update a project's status
-- Inspect the tables a project queried (`get_queried_tables`)
-- Administer Hex resources: list/get users, groups, collections, and data connections, or create a new collection
+- Trigger a Hex project run with dynamic input parameters and capture the run URL for downstream use
+- Poll a run's status (pending, running, completed, errored, killed) or list all runs for a project
+- Cancel an in-progress run to prevent unnecessary compute
+- Fetch or update project metadata, including custom workspace status labels
+- Inspect the database tables queried by a Hex project (`get_queried_tables`)
+- Administer Hex resources: list or get users, groups, collections, and data connections, or create a new collection
 
 ## Configuration
 
 ### Operation
-Dropdown that selects which Hex action to perform. Options: Run Project, Get Run Status, Get Project Runs, Cancel Run, List Projects, Get Project, Update Project, Get Queried Tables, List Users, List Groups, Get Group, List Collections, Get Collection, Create Collection, List Data Connections, Get Data Connection. Defaults to `run_project`.
+
+Selects which Hex API action to perform. Required; defaults to `run_project`.
+
+| Label | ID |
+|-------|----|
+| Run Project | `run_project` |
+| Get Run Status | `get_run_status` |
+| Get Project Runs | `get_project_runs` |
+| Cancel Run | `cancel_run` |
+| List Projects | `list_projects` |
+| Get Project | `get_project` |
+| Update Project | `update_project` |
+| Get Queried Tables | `get_queried_tables` |
+| List Users | `list_users` |
+| List Groups | `list_groups` |
+| Get Group | `get_group` |
+| List Collections | `list_collections` |
+| Get Collection | `get_collection` |
+| Create Collection | `create_collection` |
+| List Data Connections | `list_data_connections` |
+| Get Data Connection | `get_data_connection` |
 
 ### API Key
-Required Hex API token (stored as a password field).
+
+Your Hex API token. Required for all operations. Stored as a password (hidden) field. Use `{{HEX_API_TOKEN}}` to inject from your environment.
 
 ### Project ID
-Project UUID. Required for run/status/project operations (run_project, get_run_status, get_project_runs, cancel_run, get_project, update_project, get_queried_tables).
+
+The project UUID. Required for: `run_project`, `get_run_status`, `get_project_runs`, `cancel_run`, `get_project`, `update_project`, `get_queried_tables`. Placeholder: `Enter project UUID`.
 
 ### Run ID
-Run UUID. Required for `get_run_status` and `cancel_run`.
+
+The run UUID. Required for: `get_run_status`, `cancel_run`. Placeholder: `Enter run UUID`.
 
 ### Input Parameters
-JSON object of project input parameters, used when running a project. Supports AI-assisted generation.
 
-### Resource fields
-Operation-specific identifiers: Status (update_project), Group ID (get_group), Collection ID (get_collection), Collection Name/Description (create_collection), and Data Connection ID (get_data_connection).
+JSON object of input parameter values to pass into a project run. Only shown for `run_project`. Supports AI-assisted generation (Wand) to produce the JSON object from a natural-language description. Placeholder: `{"param_name": "value"}`.
 
-### Advanced options
-Run flags (Dry Run, Update Cache, Update Published Results, Use Cached SQL Results) for runs, plus pagination/filtering (Limit, Offset, Include Archived, Status Filter, Filter by Group) for list operations.
+### Status
+
+The new project status name (a custom workspace status label). Required for `update_project`. Placeholder: `Enter status name (e.g., custom workspace status label)`.
+
+### Status Filter (runs)
+
+Filters runs returned by `get_project_runs`. Only shown for that operation.
+
+| Label | ID |
+|-------|----|
+| All | `` (empty) |
+| Pending | `PENDING` |
+| Running | `RUNNING` |
+| Completed | `COMPLETED` |
+| Errored | `ERRORED` |
+| Killed | `KILLED` |
+
+### Group ID
+
+The group UUID. Required for `get_group`. Placeholder: `Enter group UUID`.
+
+### Collection ID
+
+The collection UUID. Required for `get_collection`. Placeholder: `Enter collection UUID`.
+
+### Collection Name
+
+The name of the new collection. Required for `create_collection`. Placeholder: `Enter collection name`.
+
+### Description
+
+An optional description for the new collection. Only shown for `create_collection`. Placeholder: `Optional description for the collection`.
+
+### Data Connection ID
+
+The data connection UUID. Required for `get_data_connection`. Placeholder: `Enter data connection UUID`.
+
+### Advanced: Dry Run
+
+Toggle (switch). When enabled, performs a dry run of the project without actually executing notebook cells. Only shown for `run_project`.
+
+### Advanced: Update Cache
+
+Toggle (switch). When enabled, updates cached results after execution. Deprecated. Only shown for `run_project`.
+
+### Advanced: Update Published Results
+
+Toggle (switch). When enabled, updates the published app's results after execution. Only shown for `run_project`.
+
+### Advanced: Use Cached SQL Results
+
+Toggle (switch). When enabled, reuses cached SQL results instead of re-running queries. Only shown for `run_project`.
+
+### Advanced: Limit
+
+Maximum number of results to return. Shown for: `list_projects`, `get_project_runs`, `get_queried_tables`, `list_users`, `list_groups`, `list_collections`, `list_data_connections`. Placeholder: `25`.
+
+### Advanced: Offset
+
+Offset for paginated results. Only shown for `get_project_runs`. Placeholder: `0`.
+
+### Advanced: Include Archived
+
+Toggle (switch). When enabled, includes archived projects in the results. Only shown for `list_projects`.
+
+### Advanced: Status Filter (projects)
+
+Filters projects returned by `list_projects` by publish status.
+
+| Label | ID |
+|-------|----|
+| All | `` (empty) |
+| Published | `PUBLISHED` |
+| Draft | `DRAFT` |
+
+### Advanced: Filter by Group
+
+Optional group UUID used to filter users by group membership. Only shown for `list_users`. Placeholder: `Group UUID (optional)`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `projectId` (string), `runId` (string), `inputParams` (json), `dryRun` (boolean), `updateCache` (boolean), `updatePublishedResults` (boolean), `useCachedSqlResults` (boolean), `projectStatus` (string), `limit` (number), `offset` (number), `includeArchived` (boolean), `statusFilter` (string), `runStatusFilter` (string), `groupId` (string), `groupIdInput` (string), `collectionId` (string), `collectionName` (string), `collectionDescription` (string), `dataConnectionId` (string)
-- **Outputs**: `projectId` (string), `runId` (string), `runUrl` (string), `runStatusUrl` (string), `projectVersion` (number), `status` (json), `startTime` (string), `endTime` (string), `elapsedTime` (number), `traceId` (string), `id` (string), `title` (string), `name` (string), `description` (string), `type` (string), `createdAt` (string), `updatedAt` (string), `lastEditedAt` (string), `lastPublishedAt` (string), `archivedAt` (string), `trashedAt` (string), `projects` (json), `runs` (json), `users` (json), `groups` (json), `collections` (json), `connections` (json), `tables` (json), `categories` (json), `creator` (json), `owner` (json), `total` (number), `success` (boolean), `connectViaSsh` (boolean), `includeMagic` (boolean), `allowWritebackCells` (boolean)
+- **Inputs**:
+  - `operation` (string) — Operation to perform
+  - `apiKey` (string) — Hex API token
+  - `projectId` (string) — Project UUID
+  - `runId` (string) — Run UUID
+  - `inputParams` (json) — Input parameters for project run
+  - `dryRun` (boolean) — Perform a dry run without executing the project
+  - `updateCache` (boolean) — (Deprecated) Update cached results after execution
+  - `updatePublishedResults` (boolean) — Update published app results after execution
+  - `useCachedSqlResults` (boolean) — Use cached SQL results instead of re-running queries
+  - `projectStatus` (string) — New project status name
+  - `limit` (number) — Max number of results to return
+  - `offset` (number) — Offset for paginated results
+  - `includeArchived` (boolean) — Include archived projects
+  - `statusFilter` (string) — Filter projects by status
+  - `runStatusFilter` (string) — Filter runs by status
+  - `groupId` (string) — Filter users by group UUID
+  - `groupIdInput` (string) — Group UUID for get group
+  - `collectionId` (string) — Collection UUID
+  - `collectionName` (string) — Collection name
+  - `collectionDescription` (string) — Collection description
+  - `dataConnectionId` (string) — Data connection UUID
+
+- **Outputs**:
+  - `projectId` (string) — Project UUID
+  - `runId` (string) — Run UUID
+  - `runUrl` (string) — URL to view the run
+  - `runStatusUrl` (string) — URL to check run status
+  - `projectVersion` (number) — Project version number
+  - `status` (json) — Project status object or run status string
+  - `startTime` (string) — Run start time
+  - `endTime` (string) — Run end time
+  - `elapsedTime` (number) — Elapsed time in seconds
+  - `traceId` (string) — Trace ID for debugging
+  - `id` (string) — Resource ID
+  - `title` (string) — Project title
+  - `name` (string) — Resource name
+  - `description` (string) — Resource description
+  - `type` (string) — Project type (PROJECT or COMPONENT)
+  - `createdAt` (string) — Creation timestamp
+  - `updatedAt` (string) — Last update timestamp
+  - `lastEditedAt` (string) — Last edited timestamp
+  - `lastPublishedAt` (string) — Last published timestamp
+  - `archivedAt` (string) — Archived timestamp
+  - `trashedAt` (string) — Trashed timestamp
+  - `projects` (json) — List of projects
+  - `runs` (json) — List of runs
+  - `users` (json) — List of users
+  - `groups` (json) — List of groups
+  - `collections` (json) — List of collections
+  - `connections` (json) — List of data connections
+  - `tables` (json) — List of queried tables
+  - `categories` (json) — Project categories
+  - `creator` (json) — Creator details
+  - `owner` (json) — Owner details
+  - `total` (number) — Total results returned
+  - `success` (boolean) — Whether the operation succeeded
+  - `connectViaSsh` (boolean) — SSH tunneling enabled
+  - `includeMagic` (boolean) — Magic AI features enabled
+  - `allowWritebackCells` (boolean) — Writeback cells allowed
+
+## Tools
+
+- **Run Project** (`hex_run_project`) — Triggers a run of a Hex project via POST to `/projects/{projectId}/runs`. Accepts optional input parameters, dry-run flag, cache settings, and published-results flag. Returns `projectId`, `runId`, `runUrl`, `runStatusUrl`, `traceId`, and `projectVersion`.
+- **Get Run Status** (`hex_get_run_status`) — Gets the current status of a specific run (GET `/projects/{projectId}/runs/{runId}`). Returns status, start/end times, elapsed time, and trace ID.
+- **Get Project Runs** (`hex_get_project_runs`) — Lists all runs for a project with optional pagination (`limit`, `offset`) and status filtering. Returns `runs` array and `total`.
+- **Cancel Run** (`hex_cancel_run`) — Cancels an in-progress run via DELETE to `/projects/{projectId}/runs/{runId}`. Returns `success`, `projectId`, and `runId`.
+- **List Projects** (`hex_list_projects`) — Lists all Hex projects with optional `limit`, `includeArchived`, and `statusFilter` query params. Returns `projects` array and `total`.
+- **Get Project** (`hex_get_project`) — Fetches full metadata for a single project by ID. Returns `id`, `title`, `description`, `status`, `type`, `creator`, `owner`, `categories`, timestamps.
+- **Update Project** (`hex_update_project`) — Updates a project's status via PATCH to `/projects/{projectId}`. Returns the full updated project object.
+- **Get Queried Tables** (`hex_get_queried_tables`) — Returns the list of database tables queried by a project (`tables` array and `total`).
+- **List Users** (`hex_list_users`) — Lists workspace users with optional `limit`, sort, and `groupId` filter. Returns `users` array and `total`.
+- **List Groups** (`hex_list_groups`) — Lists workspace groups with optional `limit` and sort params. Returns `groups` array and `total`.
+- **Get Group** (`hex_get_group`) — Fetches a single group by ID. Returns `id`, `name`, `createdAt`.
+- **List Collections** (`hex_list_collections`) — Lists Hex collections with optional `limit` and `sortBy`. Returns `collections` array and `total`.
+- **Get Collection** (`hex_get_collection`) — Fetches a single collection by ID. Returns `id`, `name`, `description`, `creator`.
+- **Create Collection** (`hex_create_collection`) — Creates a new collection with a required `name` and optional `description`. Returns `id`, `name`, `description`, `creator`.
+- **List Data Connections** (`hex_list_data_connections`) — Lists data connections with optional `limit`, `sortBy`, `sortDirection`. Returns `connections` array and `total`.
+- **Get Data Connection** (`hex_get_data_connection`) — Fetches a single data connection by ID. Returns `id`, `name`, `type`, `description`, `connectViaSsh`, `includeMagic`, `allowWritebackCells`.
 
 ## YAML Example
 
@@ -65,6 +239,7 @@ hex_1:
     projectId: "00000000-0000-0000-0000-000000000000"
     inputParams: '{"date_range": "2024-01-01", "department": "engineering"}'
     dryRun: false
+    updatePublishedResults: true
   connections:
     outgoing:
       - target: next-block-id

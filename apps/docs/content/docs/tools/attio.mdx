@@ -1,0 +1,106 @@
+---
+title: Attio
+description: List, create, update, delete records and manage notes in Attio CRM
+icon: Box
+---
+
+# Attio
+
+Read and write records across any Attio object type (people, companies, deals, or custom objects), and manage notes attached to those records. Use this integration to keep your CRM in sync with the rest of your workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `attio` |
+| **Category** | Tool — CRM |
+| **Auth** | OAuth 2.0 (Bearer token injected automatically after connecting your Attio account) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **List Records** | `attio_list_records` | Query and page through records for a given object type, with optional filter and sort |
+| **Get Record** | `attio_get_record` | Fetch a single record by its ID |
+| **Create Record** | `attio_create_record` | Create a new record with the supplied attribute values |
+| **Update Record** | `attio_update_record` | Patch an existing record; multiselect attributes are appended, not replaced |
+| **Delete Record** | `attio_delete_record` | Permanently delete a record |
+| **Create Note** | `attio_create_note` | Attach a new note to any record |
+| **List Notes** | `attio_list_notes` | List notes, optionally filtered by parent object type and record |
+
+## Configuration
+
+| Setting | Param name | Type | Required | Description |
+|---------|------------|------|----------|-------------|
+| Attio Account | `accessToken` | `string` (hidden) | Yes | OAuth access token injected automatically when you connect your Attio account. Never set this manually. |
+| Object Type | `objectType` | `string` | Yes (record ops) | Slug of the Attio object type, e.g. `people`, `companies`, `deals`. |
+| Record ID | `recordId` | `string` | Yes (get / update / delete) | ID of the target record. |
+| Attributes (JSON) | `values` | `string` | Yes (create / update) | JSON object of attribute values to write, e.g. `{"name": "Jane Doe", "email_addresses": [{"email_address": "jane@acme.com"}]}`. |
+| Filter (JSON) | `filter` | `string` | No (list records) | Attio filter object as a JSON string, e.g. `{"email_addresses": {"email_address": "jane@acme.com"}}`. |
+| Sorts (JSON) | `sorts` | `string` | No (list records) | JSON array of sort objects, e.g. `[{"direction": "asc", "attribute": "name"}]`. |
+| Limit | `limit` | `number` | No | Maximum records/notes to return. Default 500 for records, 10 (max 50) for notes. |
+| Offset | `offset` | `number` | No | Number of records/notes to skip; use with `limit` for pagination. |
+| Parent Object | `parentObject` | `string` | Yes (create note) / No (list notes) | Slug of the parent object type the note belongs to, e.g. `people`. |
+| Parent Record ID | `parentRecordId` | `string` | Yes (create note) / No (list notes) | ID of the record the note is attached to. |
+| Note Title | `title` | `string` | Yes (create note) | Title of the note. |
+| Note Content | `content` | `string` | Yes (create note) | Body text of the note. |
+| Format | `format` | `string` | No (create note) | Content format: `plaintext` (default) or `markdown`. |
+| Created At | `createdAt` | `string` | No (create note) | ISO 8601 timestamp to backdate the note creation time. |
+| Meeting ID | `meetingId` | `string` | No (create note) | Attio meeting ID to associate with the note. |
+
+## Outputs
+
+### Record operations (`attio_list_records`, `attio_get_record`, `attio_create_record`, `attio_update_record`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `record` | `object` | Full Attio record object (get / create / update only) |
+| `record.id.workspace_id` | `string` | Workspace the record belongs to |
+| `record.id.object_id` | `string` | Object type identifier |
+| `record.id.record_id` | `string` | Unique record identifier |
+| `record.created_at` | `string` | ISO 8601 creation timestamp |
+| `record.web_url` | `string` | Direct link to the record in the Attio app |
+| `record.values` | `json` | All attribute values on the record |
+| `recordId` | `string` | Shortcut to the record ID (get / create / update only) |
+| `webUrl` | `string` | Shortcut to the record web URL (get / create / update only) |
+| `records` | `array` | Array of record objects (list only) |
+| `count` | `number` | Number of records returned (list only) |
+
+### Delete operation (`attio_delete_record`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `deleted` | `boolean` | `true` when the record was successfully deleted |
+
+### Note operations (`attio_create_note`, `attio_list_notes`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `noteId` | `string` | Unique ID of the note |
+| `parentObject` | `string` | Slug of the parent object type |
+| `parentRecordId` | `string` | ID of the record the note is attached to |
+| `title` | `string` | Note title |
+| `contentPlaintext` | `string` | Note body as plain text |
+| `contentMarkdown` | `string` | Note body as Markdown |
+| `meetingId` | `string` | Linked meeting ID (if any) |
+| `tags` | `array` | Tags on the note; each item has `type` and `workspaceMemberId` |
+| `createdByActor.type` | `string` | Actor type: `workspace-member`, `api-token`, or `system` |
+| `createdByActor.id` | `string` | ID of the actor who created the note |
+| `createdAt` | `string` | ISO 8601 timestamp when the note was created |
+| `notes` | `array` | Array of note objects (list only) |
+| `count` | `number` | Number of notes returned (list only) |
+
+## Example
+
+```
+[Starter] → [Attio: List Records] → [Agent: summarise the pipeline]
+```
+
+Connect a Starter block that fires on a schedule, then use the Attio block with `objectType` set to `deals` and a `filter` such as `{"stage": {"stage_name": "Negotiation"}}` to pull every deal in negotiation. Pass `{{attio.records}}` to an Agent block with the instruction "Summarise the pipeline status and highlight any deal stalled for more than 14 days." You can also chain a second Attio block set to **Create Note** (using `{{attio.records[0].id.record_id}}` as `parentRecordId`) to log the summary back onto the deal record automatically.
+
+## Tips
+
+- **Object type slugs** are the API slugs shown in your Attio workspace settings — `people`, `companies`, or a custom slug like `opportunities`. They are always lowercase with hyphens, not display names.
+- **`values` must be valid JSON** — wrap the param with `{{...}}` from an upstream block or write the JSON inline. If the string cannot be parsed, the tool sends an empty object and the create/update will succeed but record no attributes.
+- **Update appends multiselect values** — the `attio_update_record` tool uses PATCH semantics, so sending a new option to a multiselect attribute adds it alongside existing values rather than replacing them. Use `attio_delete_record` + `attio_create_record` if you need a full overwrite.
+- **Pagination** — `attio_list_records` defaults to up to 500 records per call; use `limit` and `offset` together to page through large datasets across multiple workflow steps.

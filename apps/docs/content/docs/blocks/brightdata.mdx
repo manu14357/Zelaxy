@@ -6,7 +6,7 @@ icon: Box
 
 # Bright Data Block
 
-The Bright Data block brings web intelligence into your workflows. Use it to scrape any URL, run search engine queries (SERP), and discover related pages through Bright Data's network.
+The Bright Data block brings web intelligence into your workflows. Use it to scrape any URL (bypassing anti-bot protections), run search engine queries across Google, Bing, or DuckDuckGo, and discover intent-ranked web pages — all through Bright Data's network.
 
 ## Overview
 
@@ -18,43 +18,84 @@ The Bright Data block brings web intelligence into your workflows. Use it to scr
 
 ## When to Use
 
-- Scrape the raw HTML or structured JSON of a specific web page.
-- Run a search engine query and collect SERP results programmatically.
-- Discover additional URLs related to a starting page.
-- Gather competitive or market data (e.g., product listings, pricing) at scale.
-- Feed scraped content into downstream agents or knowledge bases.
-- Pull search results for a given query across Google, Bing, or DuckDuckGo.
+- Scrape the raw HTML or structured JSON of a specific web page, bypassing CAPTCHAs and IP blocks automatically.
+- Run a search engine query and collect ranked SERP results programmatically across Google, Bing, or DuckDuckGo.
+- Discover URLs related to a starting page using AI-powered intent-based ranking (up to 1,000 results).
+- Gather competitive or market data (e.g., product listings, pricing pages) at scale.
+- Feed scraped page content into downstream agents or knowledge bases for RAG pipelines.
+- Pull geo-targeted search results for a given query by specifying a country code.
 
 ## Configuration
 
 ### Operation
 
-Choose what to run: **Scrape URL** (`brightdata_scrape_url`), **SERP Search** (`brightdata_serp_search`), or **Discover URLs** (`brightdata_discover`). Required.
+**Required.** Select which Bright Data capability to invoke. Options:
+
+| Label | id |
+|-------|----|
+| Scrape URL | `brightdata_scrape_url` |
+| SERP Search | `brightdata_serp_search` |
+| Discover URLs | `brightdata_discover` |
+
+The choice here determines which other fields appear.
 
 ### Zone
 
-Your Bright Data zone identifier used to route the request. Required.
+**Required.** Your Bright Data zone identifier from the Bright Data dashboard (e.g., `web_unlocker1` for scraping, `serp_api1` for SERP). This field is visible for all operations.
 
 ### URL
 
-The target page to scrape or use as the discovery seed. Shown for the Scrape URL and Discover URLs operations.
+The target page URL to scrape (e.g., `https://example.com/page`). Shown when operation is **Scrape URL** or **Discover URLs**.
 
 ### Search Query
 
-The query string to run against the search engine. Shown for the SERP Search operation.
+The search query string to run (e.g., `best laptops 2024`). Shown when operation is **SERP Search**.
 
 ### Format
 
-Output format for scraped pages: **Raw HTML** (`raw`) or **JSON** (`json`). Shown for the Scrape URL operation.
+Output format for scraped pages. Shown when operation is **Scrape URL**. Options:
+
+| Label | id |
+|-------|----|
+| Raw HTML | `raw` |
+| JSON | `json` |
+
+Defaults to `raw` when not specified.
 
 ### Search Engine
 
-Which engine to query: **Google**, **Bing**, or **DuckDuckGo**. Shown for the SERP Search operation.
+Which engine to query. Shown when operation is **SERP Search**. Options:
+
+| Label | id |
+|-------|----|
+| Google | `google` |
+| Bing | `bing` |
+| DuckDuckGo | `duckduckgo` |
+
+Defaults to `google` when not specified.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `zone` (string), `url` (string), `query` (string), `format` (string), `searchEngine` (string)
-- **Outputs**: `html` (string), `json` (json), `results` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`brightdata_scrape_url`, `brightdata_serp_search`, or `brightdata_discover`)
+  - `zone` (string) — Bright Data zone name from your dashboard
+  - `url` (string) — Target URL; used by Scrape URL and Discover URLs operations
+  - `query` (string) — Search query; used by SERP Search operation
+  - `format` (string) — Output format (`raw` or `json`); used by Scrape URL operation
+  - `searchEngine` (string) — Search engine to use (`google`, `bing`, or `duckduckgo`); used by SERP Search operation
+
+- **Outputs** (block-level):
+  - `html` (string) — Raw HTML content (from Scrape URL with `format: raw`)
+  - `json` (json) — Structured data (from Scrape URL with `format: json`)
+  - `results` (json) — Search or discovery results (from SERP Search or Discover URLs)
+
+## Tools
+
+**Bright Data Scrape URL** (`brightdata_scrape_url`) — Fetches the content of any URL via the Bright Data Web Unlocker. Automatically bypasses anti-bot protections, CAPTCHAs, and IP blocks. Requires `apiKey` (your Bright Data API token) and `zone`. Returns `content` (raw HTML or JSON string), `url` (echoed URL), and `statusCode` (HTTP response code).
+
+**Bright Data SERP Search** (`brightdata_serp_search`) — Submits a search query to Google, Bing, DuckDuckGo, or Yandex via the Bright Data SERP API and returns structured results. Requires `apiKey`, `zone`, and `query`. Optional params include `searchEngine`, `country`, `language`, and `numResults` (up to the engine's limit). Returns `results` (array of `{title, url, description, rank}`), `query`, and `searchEngine`.
+
+**Bright Data Discover** (`brightdata_discover`) — AI-powered web discovery that finds and ranks web pages by intent. Submits a job and polls until completion (up to 5 minutes). Returns up to 1,000 results with optional cleaned page content for RAG and verification. Requires `apiKey` and `query`. Optional params include `numResults`, `intent`, `includeContent`, `format`, `language`, and `country`. Returns `results` (array of `{url, title, description, relevanceScore, content}`), `query`, and `totalResults`.
 
 ## YAML Example
 
@@ -63,10 +104,10 @@ brightdata_1:
   type: brightdata
   name: "Bright Data"
   inputs:
-    operation: "brightdata_scrape_url"
-    zone: "your_zone"
-    url: "https://example.com"
-    format: "json"
+    operation: "brightdata_serp_search"
+    zone: "{{BRIGHTDATA_SERP_ZONE}}"
+    query: "{{search_input.result}}"
+    searchEngine: "google"
   connections:
     outgoing:
       - target: next-block-id

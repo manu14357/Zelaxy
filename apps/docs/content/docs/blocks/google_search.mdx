@@ -1,12 +1,12 @@
 ---
 title: Google Search Block
-description: Search the web
+description: Search the web using the Google Custom Search API
 icon: Box
 ---
 
 # Google Search Block
 
-The Google Search block searches the web using the Google Custom Search API, returning high-quality results from across the internet or from a specific site defined by a custom search engine. Reach for it when a workflow needs live web data to ground answers, gather references, or feed downstream blocks.
+The Google Search block searches the web using the Google Custom Search API, returning high-quality results from the entire internet or from a specific site defined by a custom search engine. Reach for it whenever a workflow needs live web data to ground answers, gather references, or feed downstream blocks with current information.
 
 ## Overview
 
@@ -18,40 +18,54 @@ The Google Search block searches the web using the Google Custom Search API, ret
 
 ## When to Use
 
-- Fetch up-to-date web results to ground an agent's response with current information.
-- Search within a specific site or domain via a custom search engine ID.
-- Collect a list of source URLs and snippets for research or summarization steps.
-- Verify facts or pull supporting links before generating content.
-- Power a "search the web" capability inside a larger automation pipeline.
+- Fetch up-to-date web results to ground an agent's response with current, real-world information.
+- Scope searches to a specific site or domain using a Google Programmable Search Engine ID.
+- Collect source URLs, titles, and snippets for research or summarization pipelines.
+- Verify facts or pull supporting links before generating or routing content.
+- Power a "search the web" capability inside a larger multi-step automation.
+- Feed search results into an Agent block or Function block for further processing.
 
 ## Configuration
 
 ### Search Query
 
-The terms to search for (`query`). Required.
+**Sub-block id:** `query` | Type: `long-input` | Required: yes
+
+The search terms to submit to Google. Accepts a literal string or a reference to an upstream block's output (e.g., `{{start.input}}`).
 
 ### Custom Search Engine ID
 
-Your Google Programmable Search Engine ID (`searchEngineId`) that scopes where results come from. Required.
+**Sub-block id:** `searchEngineId` | Type: `short-input` | Required: yes
+
+Your Google Programmable Search Engine (CSE) ID. This scopes which sites or the whole web are searched. Create and retrieve this value from [https://programmablesearchengine.google.com](https://programmablesearchengine.google.com).
 
 ### API Key
 
-Your Google API key (`apiKey`), stored as a secret. Required.
+**Sub-block id:** `apiKey` | Type: `short-input` | Required: yes | Sensitive: yes (password field)
+
+Your Google Cloud API key with the Custom Search API enabled. Store it as an environment secret and reference it with `{{GOOGLE_API_KEY}}` rather than pasting it directly.
 
 ### Number of Results
 
-How many results to return (`num`). Defaults to 10 when left blank.
+**Sub-block id:** `num` | Type: `short-input` | Required: yes
+
+How many results to return. Defaults to `10` when left blank. The Google Custom Search API allows a maximum of `10` results per request.
 
 ## Inputs & Outputs
 
 - **Inputs**:
-  - `query` (string) — Search query terms
-  - `apiKey` (string) — Google API key
-  - `searchEngineId` (string) — Custom search engine ID
-  - `num` (string) — Number of results
+  - `query` (string) — Search query terms submitted to Google
+  - `apiKey` (string) — Google API key used to authenticate the Custom Search API request
+  - `searchEngineId` (string) — Custom Search Engine ID that defines the search scope
+  - `num` (string) — Number of results to return (default: 10, max: 10)
+
 - **Outputs**:
-  - `items` (json) — Search result items
-  - `searchInformation` (json) — Search metadata
+  - `items` (json) — Array of search result objects. Each item contains: `title` (string), `link` (string, full URL), `snippet` (string, descriptive excerpt), `displayLink` (string, display URL, optional), and `pagemap` (object, additional page metadata, optional).
+  - `searchInformation` (json) — Metadata about the search execution. Contains: `totalResults` (string, estimated count of all matching results), `searchTime` (number, seconds taken), `formattedSearchTime` (string, human-readable search time), `formattedTotalResults` (string, human-readable total count).
+
+## Tools
+
+**Google Search** (`google_search`) — Calls `https://www.googleapis.com/customsearch/v1` with the provided `query`, `cx` (searchEngineId), and `key` (apiKey) parameters via a GET request. Returns the parsed `items` array and `searchInformation` object from the Google Custom Search API response.
 
 ## YAML Example
 
@@ -60,9 +74,9 @@ google_search_1:
   type: google_search
   name: "Google Search"
   inputs:
-    query: {{start.input}}
+    query: "{{start.input}}"
     searchEngineId: "your-custom-search-engine-id"
-    apiKey: "your-google-api-key"
+    apiKey: "{{GOOGLE_API_KEY}}"
     num: "10"
   connections:
     outgoing:

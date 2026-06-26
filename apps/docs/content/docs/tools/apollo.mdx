@@ -1,0 +1,92 @@
+---
+title: Apollo
+description: Search people and organizations, enrich contacts, and find emails using Apollo.io sales intelligence
+icon: Users
+---
+
+# Apollo
+
+Search Apollo.io's B2B database to find and enrich leads, prospects, and company data. Use it to build targeted prospect lists, verify contact information, and power outbound sales workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `apollo` |
+| **Category** | Tool — CRM & Sales |
+| **Auth** | API Key (`X-Api-Key` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Search People** | `apollo_people_search` | Search Apollo's database for people using demographic and firmographic filters |
+| **Enrich Person** | `apollo_people_enrich` | Retrieve full profile data for a single person by email, LinkedIn URL, or Apollo ID |
+| **Search Organizations** | `apollo_organization_search` | Search Apollo's database for companies by location, size, industry, or domain |
+| **Enrich Organization** | `apollo_organization_enrich` | Retrieve full company data for a single organization by domain |
+| **Find Email** | `apollo_find_email` | Find a person's verified email address given their name and company |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Apollo API key — set as `{{APOLLO_API_KEY}}`. Sent as the `X-Api-Key` header. |
+| `first_name` | `string` | No | Person's first name (people search, enrich, find email) |
+| `last_name` | `string` | No | Person's last name (people search, enrich, find email) |
+| `name` | `string` | No | Person's full name — alternative to `first_name` + `last_name` |
+| `email` | `string` | No | Known email address used to look up or enrich a person |
+| `hashed_email` | `string` | No | MD5 or SHA-256 hashed email for privacy-safe lookups (people enrich) |
+| `id` | `string` | No | Apollo person ID for direct lookup (people enrich) |
+| `linkedin_url` | `string` | No | LinkedIn profile URL used to identify the person |
+| `organization_name` | `string` | No | Company name associated with the person |
+| `domain` | `string` | No | Company domain, e.g. `apollo.io` — required for organization enrich; optional for people lookups |
+| `reveal_personal_emails` | `boolean` | No | Set `true` to include personal email addresses in enrichment responses (consumes credits) |
+| `reveal_phone_number` | `boolean` | No | Set `true` to include phone numbers in enrichment responses (consumes credits; requires `webhook_url`) |
+| `webhook_url` | `string` | No | Webhook URL for async phone number delivery when `reveal_phone_number` is `true` |
+| `person_titles` | `array` | No | Job titles to filter by, e.g. `["CEO", "VP of Sales"]` (people search) |
+| `include_similar_titles` | `boolean` | No | Also return people with titles similar to `person_titles` (people search) |
+| `person_locations` | `array` | No | Person locations to filter by, e.g. `["San Francisco, CA", "New York, NY"]` (people search) |
+| `person_seniorities` | `array` | No | Seniority levels: `owner`, `founder`, `c_suite`, `partner`, `vp`, `head`, `director`, `manager`, `senior`, `entry`, `intern` (people search) |
+| `organization_names` | `array` | No | Company names to search within (people search, organization search) |
+| `organization_ids` | `array` | No | Apollo organization IDs to filter by (people search, organization search) |
+| `organization_locations` | `array` | No | Company HQ locations — cities, US states, or countries (people search, organization search) |
+| `organization_not_locations` | `array` | No | Exclude companies whose HQ is in these locations (organization search) |
+| `organization_num_employees_ranges` | `array` | No | Employee count ranges as `"min,max"` strings, e.g. `["1,10", "250,500"]` (people search, organization search) |
+| `q_organization_domains_list` | `array` | No | Employer domain names to filter by, e.g. `["apollo.io", "microsoft.com"]` — up to 1,000, no `www.` or `@` (people search, organization search) |
+| `q_organization_keyword_tags` | `array` | No | Industry or keyword tags (organization search) |
+| `q_organization_name` | `string` | No | Organization name keyword search (organization search) |
+| `contact_email_status` | `array` | No | Email status filter: `"verified"`, `"unverified"`, `"likely to engage"`, `"unavailable"` (people search) |
+| `q_keywords` | `string` | No | General keyword search across people profiles (people search) |
+| `page` | `number` | No | Page number for pagination (default `1`; people search, organization search) |
+| `per_page` | `number` | No | Results per page, maximum `100` (default `25`; people search, organization search) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `people` | `json` | Array of people matching the search criteria (`apollo_people_search`) |
+| `person` | `json` | Enriched person profile object (`apollo_people_enrich`, `apollo_find_email`) |
+| `enriched` | `boolean` | Whether the person or organization was successfully enriched |
+| `email` | `string` | Found email address (`apollo_find_email`) |
+| `emailStatus` | `string` | Email verification status from Apollo (`apollo_find_email`) |
+| `found` | `boolean` | Whether an email was found (`apollo_find_email`) |
+| `organizations` | `json` | Array of organizations matching the search criteria (`apollo_organization_search`) |
+| `organization` | `json` | Enriched company data object (`apollo_organization_enrich`) |
+| `page` | `number` | Current page number returned (search operations) |
+| `per_page` | `number` | Number of results per page returned (search operations) |
+| `total_entries` | `number` | Total number of matching records in Apollo (search operations) |
+
+## Example
+
+```
+[Starter] → [Apollo: Search People] → [Agent: Draft outreach] → [Gmail: Send email]
+```
+
+Trigger the workflow with a list of target roles and a company domain. Pass `{{starter.personTitles}}` (e.g. `["VP of Engineering"]`) and `{{starter.domain}}` (e.g. `acme.com`) into the Apollo Search People block using `{{APOLLO_API_KEY}}` for auth. The block returns a `people` array; an Agent block drafts a personalised cold email for each contact, and Gmail delivers it.
+
+## Tips
+
+- **Provide multiple identity signals for enrichment.** For `apollo_people_enrich` and `apollo_find_email`, passing a combination of `first_name`, `last_name`, `domain`, and `linkedin_url` increases match accuracy.
+- **`apollo_find_email` always reveals emails.** It calls the `people/match` endpoint with `reveal_personal_emails=true` automatically — use `apollo_people_enrich` with `reveal_personal_emails: false` when you only need profile metadata and want to conserve credits.
+- **Phone number reveal is asynchronous.** If you set `reveal_phone_number: true` on the enrich operation, supply a `webhook_url` to receive the result — the synchronous response will not contain the number.
+- **Search pagination.** Both search operations cap at 100 results per page. Wrap them in a Loop block and increment `{{apollo.page}}` to retrieve more than one page of results.

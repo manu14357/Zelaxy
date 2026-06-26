@@ -1,0 +1,57 @@
+---
+title: Daytona
+description: Manage cloud development workspaces through the Daytona API
+icon: Box
+---
+
+# Daytona
+
+The Daytona block connects your workflow to the Daytona cloud development environment platform — list existing workspaces, fetch workspace details, or create new workspaces on demand. Use it to automate dev-environment provisioning or build tooling that inspects your organisation's workspace fleet.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `daytona` |
+| **Category** | Tool — Developer |
+| **Auth** | API Key (Bearer token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **List Workspaces** | `daytona_list_workspaces` | Return all Daytona workspaces in the organisation, with an optional result limit |
+| **Get Workspace** | `daytona_get_workspace` | Fetch full details for a single workspace by its ID |
+| **Create Workspace** | `daytona_create_workspace` | Provision a new Daytona workspace with a name and optional target region |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Your Daytona API key. Treated as a secret (`user-only` visibility). Pass as `{{DAYTONA_API_KEY}}` or reference a credential block. |
+| `workspaceId` | `string` | Yes (Get Workspace only) | ID of the workspace to retrieve. Shown only when the **Get Workspace** operation is selected. |
+| `name` | `string` | Yes (Create Workspace only) | Display name for the new workspace (e.g. `my-workspace`). Shown only when the **Create Workspace** operation is selected. |
+| `target` | `string` | No (Create Workspace only) | Target region in which to provision the workspace (e.g. `us`, `eu`). Omit to use the Daytona default. Shown only when the **Create Workspace** operation is selected. |
+| `limit` | `number` | No (List Workspaces only) | Maximum number of workspaces to return. Omit for the server default. Shown only when the **List Workspaces** operation is selected. |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | The primary result: an array of workspace objects for **List Workspaces**, or a single workspace object for **Get Workspace** and **Create Workspace**. |
+| `metadata` | `json` | Response metadata. For **List Workspaces**: `{ count: number }` — the number of workspaces returned. For **Get Workspace** and **Create Workspace**: `{ id: string }` — the workspace ID. |
+
+## Example
+
+```
+[Starter] → [Daytona: Create Workspace] → [Agent: use the result]
+```
+
+When a pull request is opened (via a webhook starter), the workflow creates a fresh Daytona workspace for the branch by setting **Name** to `{{starter.input.branch}}` and **Target Region** to `{{DAYTONA_TARGET_REGION}}`. The **Create Workspace** block's `data` output (containing the full workspace object) is then passed to an Agent block as context, which posts the workspace URL to a Slack channel so the reviewer has a live environment immediately.
+
+## Tips
+
+- **Store your API key as an environment variable** and reference it as `{{DAYTONA_API_KEY}}` in the `apiKey` field — never hard-code credentials in a workflow.
+- **List Workspaces + Get Workspace together**: use **List Workspaces** first to discover IDs (via a Function block that extracts `data[0].id`), then pipe that value as `{{function.result}}` into **Get Workspace** for richer detail.
+- **Target region is optional**: if your Daytona account is configured with a default region, you can leave `target` blank when creating a workspace. Only set it when you need to override the default (e.g. `eu` for GDPR-sensitive workloads).
+- **Use `limit` on large fleets**: the **List Workspaces** operation returns all workspaces by default. Set `limit` to a small number (e.g. `10`) when you only need a sample, to keep response payloads manageable downstream.

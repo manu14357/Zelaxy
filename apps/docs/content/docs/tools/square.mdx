@@ -1,0 +1,140 @@
+---
+title: Square Tools
+description: Manage customers and payments through the Square API
+icon: Square
+---
+
+# Square Tools
+
+The Square provider lets a workflow read and write data in a Square account, covering the customer directory and payments. Use these tools to list or create customers, list payments, or fetch a single payment's details from within a workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `square` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Square access token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List customers | `square_list_customers` | List customers from the Square customer directory |
+| Create customer | `square_create_customer` | Create a new customer in the Square customer directory |
+| List payments | `square_list_payments` | List payments taken by a Square account |
+| Get payment | `square_get_payment` | Retrieve details for a single Square payment by its ID |
+
+## Configuration
+
+All operations authenticate with a Square access token sent as a Bearer token, and pin the API version via the `Square-Version: 2024-01-18` header. The base host is `https://connect.squareup.com`.
+
+### square_list_customers
+
+`GET https://connect.squareup.com/v2/customers`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Square access token. **Secret** — sent as `Authorization: Bearer <apiKey>`. |
+| `limit` | number | No | Maximum number of customers to return per page (appended as the `limit` query param). |
+
+### square_create_customer
+
+`POST https://connect.squareup.com/v2/customers`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Square access token. **Secret** — sent as `Authorization: Bearer <apiKey>`. |
+| `given_name` | string | No | First name of the customer. Only included in the request body if provided. |
+| `email_address` | string | No | Email address of the customer. Only included in the request body if provided. |
+
+### square_list_payments
+
+`GET https://connect.squareup.com/v2/payments`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Square access token. **Secret** — sent as `Authorization: Bearer <apiKey>`. |
+| `limit` | number | No | Maximum number of payments to return per page (appended as the `limit` query param). |
+
+### square_get_payment
+
+`GET https://connect.squareup.com/v2/payments/{payment_id}`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Square access token. **Secret** — sent as `Authorization: Bearer <apiKey>`. |
+| `payment_id` | string | Yes | ID of the payment to retrieve (used in the URL path). |
+
+## Outputs
+
+### square_list_customers
+
+- `data` (json) — Array of Square customer objects.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of items returned.
+
+### square_create_customer
+
+- `data` (json) — The created Square customer object.
+- `metadata` (json) — Customer identifiers.
+  - `metadata.id` (string) — Customer ID.
+
+### square_list_payments
+
+- `data` (json) — Array of Square payment objects.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of items returned.
+
+### square_get_payment
+
+- `data` (json) — The Square payment object.
+- `metadata` (json) — Payment identifiers.
+  - `metadata.id` (string) — Payment ID.
+
+## YAML Example
+
+```yaml
+square_1:
+  type: square
+  name: "Square"
+  inputs:
+    operation: "square_list_customers"
+    limit: 50
+    apiKey: "{{SQUARE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Create a customer, then reference the returned ID downstream:
+
+```yaml
+square_create:
+  type: square
+  name: "Square"
+  inputs:
+    operation: "square_create_customer"
+    given_name: "Jane"
+    email_address: "customer@example.com"
+    apiKey: "{{SQUARE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: fetch-payment
+
+fetch-payment:
+  type: square
+  name: "Square"
+  inputs:
+    operation: "square_get_payment"
+    payment_id: "{{square_create.metadata.id}}"
+    apiKey: "{{SQUARE_API_KEY}}"
+```
+
+## Tips
+
+- Auth uses your Square **access token** as a Bearer token. Provide it via `apiKey` (the block labels this field "Access Token"); it is treated as a secret. Store it as an environment variable and reference it with `{{SQUARE_API_KEY}}` rather than hardcoding it.
+- Use the production host shown here (`https://connect.squareup.com`). For Square sandbox testing you would point at the sandbox host and use a sandbox token — these tools target production by default.
+- The `operation` input selects the tool; valid values are `square_list_customers`, `square_create_customer`, `square_list_payments`, and `square_get_payment`. It defaults to `square_list_customers` when omitted.
+- For list operations, `limit` controls page size only — Square paginates with a cursor, so a single call returns at most one page of results.
+- `square_get_payment` requires a `payment_id`; you can feed it from a prior `square_list_payments` call, e.g. `{{square_list.data[0].id}}`.

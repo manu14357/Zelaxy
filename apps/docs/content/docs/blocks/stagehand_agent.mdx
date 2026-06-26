@@ -13,7 +13,7 @@ The Stagehand Agent block uses Stagehand to create an autonomous web browsing ag
 | Property | Value |
 |----------|-------|
 | **Type** | `stagehand_agent` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#FFC83C` |
 
 ## When to Use
@@ -23,49 +23,113 @@ The Stagehand Agent block uses Stagehand to create an autonomous web browsing ag
 - Run autonomous research where the agent decides its own navigation steps toward a goal.
 - Drive a real browser via Browserbase with DOM, CUA, or hybrid control modes.
 - Capture results conforming to a defined JSON Schema for downstream blocks.
+- Reference runtime values in the task string via `%key%` variable substitution.
 
 ## Configuration
 
-### Starting URL
-The URL where the agent begins browsing. Required.
+### Starting URL (`startUrl`)
 
-### Task
-The goal or task for the agent to achieve. Reference workflow variables using `%key%` syntax. Required.
+The URL where the agent begins browsing. Required. If the value does not start with `http://` or `https://`, the block automatically prepends `https://`.
 
-### Provider & Model
-Pick the model provider (Anthropic, OpenAI, Google) and the specific model (defaults to `anthropic/claude-sonnet-4-5`).
+### Task (`task`)
 
-### Agent Mode
-Choose how the agent controls the browser: Hybrid (default), DOM, or CUA.
+The goal or task for the agent to achieve. Required. Reference key/value pairs from the **Variables** table using `%key%` syntax, e.g. `Search for %productName% and extract pricing`.
 
-### Max Steps
-Slider (1–40) capping how many steps the agent may take.
+### Provider (`provider`)
 
-### Use Web Search
-Switch to allow the agent to perform web searches.
+Model provider that powers the Stagehand agent. Defaults to `anthropic`.
 
-### System Prompt (Optional)
-Extra guidance shaping the agent's behavior.
+| Label | id |
+|-------|----|
+| Anthropic | `anthropic` |
+| OpenAI | `openai` |
+| Google | `google` |
 
-### Exclude Tools (Optional)
-Comma-separated tool names to disable, e.g. `extract,observe`.
+### Model (`model`)
 
-### Variables
-Key/Value table of task variables referenced in the task.
+Specific LLM model used by the agent. Defaults to `anthropic/claude-sonnet-4-5`.
 
-### Model Provider API Key
-API key for the selected model provider. Required and stored as a secret.
+| Label | id |
+|-------|----|
+| anthropic/claude-sonnet-4-5 | `anthropic/claude-sonnet-4-5` |
+| anthropic/claude-sonnet-4 | `anthropic/claude-sonnet-4` |
+| openai/gpt-4o | `openai/gpt-4o` |
+| openai/gpt-4.1 | `openai/gpt-4.1` |
+| google/gemini-2.5-pro-preview-03-25 | `google/gemini-2.5-pro-preview-03-25` |
 
-### Browserbase API Key / Project ID (Optional)
-Override the server's Browserbase credentials when needed.
+### Agent Mode (`mode`)
 
-### Output Schema
-JSON Schema defining the shape of the structured result.
+Controls how the agent interacts with the browser. Defaults to `hybrid`.
+
+| Label | id | Description |
+|-------|----|-------------|
+| Hybrid | `hybrid` | Combines DOM inspection and computer-use actions (default, recommended) |
+| DOM | `dom` | Operates only on the page's DOM tree |
+| CUA | `cua` | Computer-use agent — pixel-level visual interaction |
+
+### Max Steps (`maxSteps`)
+
+Slider (1–40, step 1) capping how many steps the agent may take before stopping. Default is 20.
+
+### Use Web Search (`useSearch`)
+
+Switch to allow the agent to perform web searches during execution. Off by default.
+
+### System Prompt — Optional (`systemPrompt`)
+
+Extra guidance shaping the agent's behavior, appended to the internal system prompt.
+
+### Exclude Tools — Optional (`excludeTools`)
+
+Comma-separated list of Stagehand tool names to disable for this run, e.g. `extract,observe`.
+
+### Variables (`variables`)
+
+Key/Value table of task variables referenced in the task string via `%key%` syntax. Passed to the agent as a JSON object of `{key: value}` pairs.
+
+### Model Provider API Key (`apiKey`)
+
+API key for the selected model provider. Required. Store it as a secret and reference it as `{{YOUR_API_KEY_SECRET}}`.
+
+### Browserbase API Key — Optional (`browserbaseApiKey`)
+
+Override the server-level Browserbase API key for this specific execution.
+
+### Browserbase Project ID — Optional (`browserbaseProjectId`)
+
+Override the server-level Browserbase project ID for this specific execution.
+
+### Output Schema (`outputSchema`)
+
+JSON Schema defining the exact shape of the data the agent should return in `structuredOutput`. When provided the agent attempts to match its extracted data to this schema.
 
 ## Inputs & Outputs
 
-- **Inputs**: `startUrl` (string), `task` (string), `provider` (string), `model` (string), `mode` (string), `maxSteps` (number), `useSearch` (boolean), `systemPrompt` (string), `excludeTools` (string), `variables` (json), `apiKey` (string), `browserbaseApiKey` (string), `browserbaseProjectId` (string), `outputSchema` (json)
-- **Outputs**: `agentResult` (json), `structuredOutput` (json)
+**Inputs** — every field that the block accepts at runtime:
+
+- `startUrl` (string) — Starting URL for the agent
+- `task` (string) — Task description
+- `provider` (string) — Model provider for the agent
+- `model` (string) — Model name for the agent
+- `mode` (string) — Agent mode: dom, cua, or hybrid
+- `maxSteps` (number) — Maximum number of agent steps
+- `useSearch` (boolean) — Enable web search for the agent
+- `systemPrompt` (string) — Additional system prompt for the agent
+- `excludeTools` (string) — Comma-separated list of tools to exclude
+- `variables` (json) — Task variables
+- `apiKey` (string) — Model provider API key
+- `browserbaseApiKey` (string) — Optional Browserbase API key override
+- `browserbaseProjectId` (string) — Optional Browserbase project ID override
+- `outputSchema` (json) — Output schema
+
+**Outputs** — fields available to downstream blocks as `{{stagehand_agent_1.field}}`:
+
+- `agentResult` (json) — Agent execution result. Contains `success` (boolean), `completed` (boolean), `message` (string), and `actions` (array of `{type, params, result}` objects).
+- `structuredOutput` (json) — Extracted data matching the provided output schema; empty object `{}` when no schema is given.
+
+## Tools
+
+**Stagehand Agent** (`stagehand_agent`) — Runs an autonomous browser session via the Stagehand library. Accepts a starting URL and a natural-language task, then navigates, clicks, fills forms, and extracts data step-by-step until the task is complete or `maxSteps` is reached. Supports DOM, CUA, and hybrid browser-control modes; optional web search; variable substitution in the task string; and structured output extraction driven by a JSON Schema.
 
 ## YAML Example
 
@@ -74,14 +138,26 @@ stagehand_agent_1:
   type: stagehand_agent
   name: "Stagehand Agent"
   inputs:
-    startUrl: "https://example.com"
-    task: "Find the pricing page and extract all plan names and prices."
+    startUrl: "https://example.com/pricing"
+    task: "Find all plan names and their monthly prices on this page."
     provider: "anthropic"
     model: "anthropic/claude-sonnet-4-5"
     mode: "hybrid"
     maxSteps: 20
     useSearch: false
-    apiKey: "{{secrets.MODEL_API_KEY}}"
+    apiKey: "{{ANTHROPIC_API_KEY}}"
+    outputSchema:
+      type: object
+      properties:
+        plans:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              price:
+                type: string
   connections:
     outgoing:
       - target: next-block-id

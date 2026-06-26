@@ -53,8 +53,19 @@ Your Serper API key. Required and stored as a secret.
 
 ## Inputs & Outputs
 
-- **Inputs**: `query` (string), `apiKey` (string), `num` (number), `gl` (string), `hl` (string), `type` (string)
-- **Outputs**: `searchResults` (json)
+- **Inputs**:
+  - `query` (string) — Search query terms
+  - `apiKey` (string) — Serper API key
+  - `num` (number) — Number of results to return
+  - `gl` (string) — Country code for search results
+  - `hl` (string) — Language code for search results
+  - `type` (string) — Search type (search, news, places, images)
+- **Outputs**:
+  - `searchResults` (json) — Search results data; each result contains `title`, `link`, `snippet`, and `position`, plus type-specific fields: `date` for news, `rating`/`reviews`/`address` for places, and `imageUrl` for images and news
+
+## Tools
+
+**Web Search** (`serper_search`) — Queries the Serper.dev Google Search API and returns structured results. Supports web (`search`), `news`, `places`, and `images` search types. Required params: `query` and `apiKey`. Optional params: `num`, `gl`, and `hl`.
 
 ## YAML Example
 

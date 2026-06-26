@@ -1,0 +1,130 @@
+---
+title: Zoom Block
+description: Manage Zoom meetings and users
+icon: Box
+---
+
+# Zoom Block
+
+The Zoom block lets you list and create meetings, fetch meeting details, and list users through the Zoom API. Use it whenever a workflow needs to automate scheduling, query upcoming meetings, or enumerate account users — all authenticated via a Zoom OAuth access token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `zoom` |
+| **Category** | tools |
+| **Color** | `#2D8CFF` |
+
+## When to Use
+
+- List all scheduled, live, upcoming, or previous meetings for a Zoom user.
+- Create a new meeting with a topic, start time, duration, timezone, and agenda.
+- Fetch full details for a specific meeting by its numeric ID.
+- List all users on the Zoom account, optionally filtered by status.
+- Chain meeting creation with notification blocks to automatically send join links.
+- Audit account membership by retrieving active or inactive users.
+
+## Configuration
+
+### Operation
+
+A dropdown that selects which Zoom action to run. Required.
+
+| Label | ID |
+|-------|-----|
+| List meetings | `zoom_list_meetings` |
+| Create meeting | `zoom_create_meeting` |
+| Get meeting | `zoom_get_meeting` |
+| List users | `zoom_list_users` |
+
+### User ID
+
+The Zoom user ID or email address to target. Defaults to `me` (the authenticated user). Shown for **List meetings** and **Create meeting**.
+
+### Type
+
+For **List meetings**: a filter for the kind of meetings to return. Accepted values from the Zoom API are `scheduled`, `live`, `upcoming`, and `previous_meetings`.
+
+### Topic
+
+The meeting topic/title. Shown for **Create meeting**.
+
+### Start Time
+
+ISO 8601 start time for the meeting (e.g. `2025-06-03T10:00:00Z`). Shown for **Create meeting**.
+
+### Duration (minutes)
+
+How long the meeting runs, expressed as an integer number of minutes. Shown for **Create meeting**.
+
+### Timezone
+
+IANA timezone name for the meeting (e.g. `America/Los_Angeles`). Shown for **Create meeting**.
+
+### Agenda
+
+Free-text description or agenda for the meeting. Shown for **Create meeting**.
+
+### Meeting ID
+
+The numeric Zoom meeting ID to look up. Shown for **Get meeting**.
+
+### Status
+
+For **List users**: a filter for user account status. Accepted values are `active`, `inactive`, and `pending`.
+
+### Page Size
+
+Maximum number of records to return per page (1–300). Shown for **List meetings** and **List users**.
+
+### Access Token
+
+The Zoom OAuth access token used to authenticate all API calls. Stored as a password field. Required for every operation.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (one of the tool IDs above)
+  - `apiKey` (string) — Zoom OAuth access token
+  - `userId` (string) — User ID or email
+  - `type` (string) — Meeting type filter
+  - `topic` (string) — Meeting topic
+  - `start_time` (string) — Meeting start time (ISO 8601)
+  - `duration` (number) — Meeting duration in minutes
+  - `timezone` (string) — Meeting timezone
+  - `agenda` (string) — Meeting agenda
+  - `meetingId` (string) — Meeting ID
+  - `status` (string) — User status filter
+  - `page_size` (number) — Records per page
+
+- **Outputs**:
+  - `data` (json) — Result object or array from Zoom (meeting object, array of meetings, or array of users depending on the operation)
+  - `metadata` (json) — Response metadata (varies by operation: `count` + `total_records` for list operations; `id` + `topic` for single-meeting operations)
+
+## Tools
+
+- **Zoom List Meetings** (`zoom_list_meetings`) — Calls `GET /v2/users/{userId}/meetings` to retrieve meetings for a user, with optional `type` and `page_size` query parameters. Returns an array of meeting objects in `data` and pagination info in `metadata`.
+- **Zoom Create Meeting** (`zoom_create_meeting`) — Calls `POST /v2/users/{userId}/meetings` to schedule a new meeting. Accepts `topic` (required), `start_time`, `duration`, `timezone`, and `agenda`. Returns the created meeting object in `data` and `{ id, topic }` in `metadata`.
+- **Zoom Get Meeting** (`zoom_get_meeting`) — Calls `GET /v2/meetings/{meetingId}` to retrieve the full details of a single meeting. Returns the meeting object in `data` and `{ id, topic }` in `metadata`.
+- **Zoom List Users** (`zoom_list_users`) — Calls `GET /v2/users` to list account users, with optional `status` and `page_size` query parameters. Returns an array of user objects in `data` and pagination info in `metadata`.
+
+## YAML Example
+
+```yaml
+zoom_1:
+  type: zoom
+  name: "Zoom"
+  inputs:
+    operation: "zoom_create_meeting"
+    apiKey: "{{ZOOM_ACCESS_TOKEN}}"
+    userId: "me"
+    topic: "Weekly Team Standup"
+    start_time: "2025-06-03T10:00:00Z"
+    duration: "60"
+    timezone: "America/Los_Angeles"
+    agenda: "Sprint review and planning"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

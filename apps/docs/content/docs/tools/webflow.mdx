@@ -1,0 +1,120 @@
+---
+title: Webflow Tools
+description: Manage Webflow sites, CMS collections, and collection items from a workflow
+icon: Box
+---
+
+# Webflow Tools
+
+Webflow is a visual web design and CMS platform. These tools let a workflow list your Webflow sites and CMS collections, read collection items, and create new CMS items through the Webflow Data API v2 — useful for automating content publishing and keeping a Webflow CMS in sync with other systems.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `webflow` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Webflow API token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List sites | `webflow_list_sites` | List all Webflow sites accessible to the authenticated account |
+| List collections | `webflow_list_collections` | List all CMS collections for a Webflow site |
+| List collection items | `webflow_list_collection_items` | List all items in a Webflow CMS collection |
+| Create collection item | `webflow_create_collection_item` | Create a new item in a Webflow CMS collection |
+
+## Configuration
+
+### `webflow_list_sites`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Webflow API token (secret — provided as the Bearer token). |
+
+### `webflow_list_collections`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Webflow API token (secret — provided as the Bearer token). |
+| `site_id` | string | Yes | ID of the Webflow site whose collections you want to list. |
+
+### `webflow_list_collection_items`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Webflow API token (secret — provided as the Bearer token). |
+| `collection_id` | string | Yes | ID of the Webflow CMS collection whose items you want to list. |
+
+### `webflow_create_collection_item`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Webflow API token (secret — provided as the Bearer token). |
+| `collection_id` | string | Yes | ID of the Webflow CMS collection in which to create the item. |
+| `fieldData` | json | Yes | Field data for the new item. Keys should match the collection field slugs (for example `name`, `slug`). |
+
+## Outputs
+
+### `webflow_list_sites`
+
+- `data` (json) — Array of Webflow site objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of items returned.
+
+### `webflow_list_collections`
+
+- `data` (json) — Array of Webflow collection objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of items returned.
+
+### `webflow_list_collection_items`
+
+- `data` (json) — Array of Webflow collection item objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of items returned.
+
+### `webflow_create_collection_item`
+
+- `data` (json) — The created Webflow collection item object.
+- `metadata` (json) — Item identifiers.
+  - `id` (string) — Item ID.
+
+## YAML Example
+
+```yaml
+webflow_1:
+  type: webflow
+  name: "Webflow"
+  inputs:
+    operation: "webflow_list_sites"
+    apiKey: "{{WEBFLOW_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Create a CMS collection item:
+
+```yaml
+webflow_create_item:
+  type: webflow
+  name: "Webflow Create Item"
+  inputs:
+    operation: "webflow_create_collection_item"
+    collection_id: "580e63fc8c9a982ac9b8b745"
+    fieldData:
+      name: "My Item"
+      slug: "my-item"
+    apiKey: "{{WEBFLOW_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authentication uses a Webflow API token sent as a Bearer token. Create a token in your Webflow site settings (Apps & Integrations → API access) and store it as a secret such as `{{WEBFLOW_API_KEY}}` rather than hardcoding it.
+- IDs chain naturally: run `webflow_list_sites` to get a `site_id`, feed it into `webflow_list_collections` (for example `{{webflow_1.data}}`) to get a `collection_id`, then use that for listing or creating items.
+- When creating an item, the `fieldData` keys must match the collection's field slugs exactly (such as `name` and `slug`); mismatched slugs are rejected by the Webflow API. All operations call the Webflow Data API v2 at `https://api.webflow.com/v2`.

@@ -1,0 +1,117 @@
+---
+title: Google Slides Tools
+description: Read, create, and update Google Slides presentations through the Google Slides API
+icon: Presentation
+---
+
+# Google Slides Tools
+
+The Google Slides provider lets a workflow read a presentation, create a new presentation, and apply batch update requests against the [Google Slides API](https://developers.google.com/slides). Use these tools when a workflow needs to generate, inspect, or programmatically modify slide decks. Authentication is a Google OAuth access token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-slides` |
+| **Category** | `tools` |
+| **Auth** | OAuth (Google OAuth access token passed as a Bearer token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Get presentation | `google_slides_get_presentation` | Read content and metadata from a Google Slides presentation |
+| Create presentation | `google_slides_create_presentation` | Create a new Google Slides presentation |
+| Batch update | `google_slides_batch_update` | Apply a batch of update requests to a Google Slides presentation |
+
+## Configuration
+
+### `google_slides_get_presentation`
+
+Read content and metadata from a Google Slides presentation. Calls `GET https://slides.googleapis.com/v1/presentations/{presentationId}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (secret — sent as `Authorization: Bearer`). Visibility: user-only. |
+| `presentationId` | string | Yes | Google Slides presentation ID. Visibility: user-or-llm. |
+
+### `google_slides_create_presentation`
+
+Create a new Google Slides presentation. Calls `POST https://slides.googleapis.com/v1/presentations`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (secret — sent as `Authorization: Bearer`). Visibility: user-only. |
+| `title` | string | Yes | The title of the presentation to create. Visibility: user-or-llm. |
+
+### `google_slides_batch_update`
+
+Apply a batch of update requests to a Google Slides presentation. Calls `POST https://slides.googleapis.com/v1/presentations/{presentationId}:batchUpdate`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (secret — sent as `Authorization: Bearer`). Visibility: user-only. |
+| `presentationId` | string | Yes | Google Slides presentation ID. Visibility: user-or-llm. |
+| `requests` | json | Yes | Array of Slides API [Request](https://developers.google.com/slides/api/reference/rest/v1/presentations/request) objects to apply (e.g. `[{ "createSlide": {} }]`). Visibility: user-or-llm. |
+
+## Outputs
+
+### `google_slides_get_presentation`
+
+- `data` (json) — The Google Slides presentation object.
+- `metadata` (json) — Presentation identifiers. Contains `presentationId` (string) — the presentation ID.
+
+### `google_slides_create_presentation`
+
+- `data` (json) — The created Google Slides presentation object.
+- `metadata` (json) — Presentation identifiers. Contains `presentationId` (string) — the presentation ID.
+
+### `google_slides_batch_update`
+
+- `data` (json) — The batch update response, including `replies`.
+- `metadata` (json) — Presentation identifiers. Contains `presentationId` (string) — the presentation ID.
+
+## YAML Example
+
+```yaml
+google_slides_1:
+  type: google_slides
+  name: "Google Slides"
+  inputs:
+    operation: "google_slides_get_presentation"
+    presentationId: "1AbcDEFghIJKlmnOPqrStuVwxyz1234567890"
+    accessToken: "{{GOOGLE_SLIDES_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Create a presentation, then add a slide with a batch update that references the returned ID:
+
+```yaml
+create_deck:
+  type: google_slides
+  name: "Create Deck"
+  inputs:
+    operation: "google_slides_create_presentation"
+    title: "Quarterly Review"
+    accessToken: "{{GOOGLE_SLIDES_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: add_slide
+
+add_slide:
+  type: google_slides
+  name: "Add Slide"
+  inputs:
+    operation: "google_slides_batch_update"
+    presentationId: "{{create_deck.metadata.presentationId}}"
+    requests: '[{ "createSlide": {} }]'
+    accessToken: "{{GOOGLE_SLIDES_ACCESS_TOKEN}}"
+```
+
+## Tips
+
+- **Auth setup:** All three operations require a Google OAuth access token with Slides API scope (e.g. `https://www.googleapis.com/auth/presentations`). The token is sent as `Authorization: Bearer {{accessToken}}` and is marked as a secret/password field — keep it in an environment variable like `{{GOOGLE_SLIDES_ACCESS_TOKEN}}`, never inline.
+- **Chaining:** `google_slides_create_presentation` returns the new ID at `{{blockName.metadata.presentationId}}`. Feed that into `google_slides_batch_update` or `google_slides_get_presentation` rather than hard-coding an ID.
+- **Batch update format:** The `requests` parameter must be a JSON array of Slides API Request objects (one per edit). To create slides, insert text, replace images, etc., consult the Google Slides `presentations.batchUpdate` request reference. The batch response surfaces per-request results under `data.replies`.

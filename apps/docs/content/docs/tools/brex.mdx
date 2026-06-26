@@ -1,0 +1,60 @@
+---
+title: Brex
+description: List cash accounts, transactions, and users from your Brex account
+icon: CreditCard
+---
+
+# Brex
+
+Connect your Brex account to retrieve cash account balances, transaction history, and user details. Use this block to feed financial data into agent workflows, audits, or reconciliation pipelines.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `brex` |
+| **Category** | Tool — Finance |
+| **Auth** | API Key (Bearer Token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **List Cash Accounts** | `brex_list_cash_accounts` | List all Brex cash accounts with balances and account details |
+| **List Cash Transactions** | `brex_list_cash_transactions` | List transactions for a specific Brex cash account, with optional date filtering |
+| **List Users** | `brex_list_users` | List all users in the Brex account, with optional filtering by email address |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Brex user token generated from Developer Settings in the Brex dashboard. Sent as a Bearer token. |
+| `accountId` | `string` | Yes (List Cash Transactions only) | ID of the cash account to retrieve transactions for |
+| `postedAtStart` | `string` | No | ISO 8601 timestamp — only include transactions posted at or after this date/time (e.g. `2026-01-01T00:00:00`) |
+| `email` | `string` | No | Filter users by exact email address (List Users only) |
+| `limit` | `string` | No | Number of results to return per page. Default `100`, maximum `1000` |
+| `cursor` | `string` | No | Pagination cursor returned by a previous response — use to fetch the next page |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | Array of result objects (cash account objects, transaction objects, or user objects depending on the operation) |
+| `metadata` | `json` | Response metadata containing `count` (number of items returned) and `next_cursor` (cursor string for the next page, or `null` if there are no more pages) |
+| `metadata.count` | `number` | Number of items returned in this response |
+| `metadata.next_cursor` | `string` | Cursor to pass as `cursor` in the next request to retrieve the following page of results; `null` when all results have been returned |
+
+## Example
+
+```
+[Starter] → [Brex: List Cash Transactions] → [Agent: Summarize spend]
+```
+
+Set `{{BREX_API_KEY}}` as the user token, then pass the account ID from a previous List Cash Accounts call as `{{listAccounts.data[0].id}}`. Optionally scope transactions to the current month with `postedAtStart` set to `{{function.result.monthStart}}`. The Agent block then receives `{{brex.data}}` and produces a plain-language spend summary.
+
+## Tips
+
+- **Generate your token** in the Brex dashboard under Settings → Developer → User Tokens. Tokens are scoped to the user who creates them; use a service account token for production workflows.
+- **Paginate large result sets** by checking `{{brex.metadata.next_cursor}}` — if it is not `null`, feed it back into the `cursor` input on a subsequent run or loop iteration to retrieve the next page.
+- **Use List Cash Accounts first** when the account ID is unknown — chain it before List Cash Transactions and reference the returned account ID with `{{listAccounts.data[0].id}}`.
+- **Date filtering** (`postedAtStart`) accepts ISO 8601 format with or without a time component: `2026-01-01` and `2026-01-01T00:00:00Z` are both valid. Use a Function block to compute dynamic date strings if needed.

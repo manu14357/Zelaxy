@@ -1,0 +1,110 @@
+---
+title: Icypeas Tools
+description: Find and verify professional email addresses via the Icypeas API
+icon: Box
+---
+
+# Icypeas Tools
+
+Icypeas finds and verifies professional email addresses. Use these tools in a workflow to discover a person's work email from their name and company, confirm whether an email is valid and deliverable, or pull the emails associated with a company domain.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `icypeas` |
+| **Category** | `tools` |
+| **Auth** | API Key (sent directly in the `Authorization` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Email Search | `icypeas_email_search` | Find a professional email from a first name, last name, and company |
+| Email Verification | `icypeas_email_verification` | Verify whether an email address is valid and deliverable |
+| Domain Search | `icypeas_domain_search` | Find email addresses associated with a company domain |
+
+## Configuration
+
+### `icypeas_email_search`
+
+Find a professional email from a first name, last name, and company.
+
+`POST https://app.icypeas.com/api/email-search`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Icypeas API key. **Secret** — visibility `user-only`. Sent as the `Authorization` header. |
+| `firstname` | string | Yes | Target person's first name. |
+| `lastname` | string | Yes | Target person's last name. |
+| `domainOrCompany` | string | Yes | Company domain (e.g. `stripe.com`) or company name (e.g. `Stripe`). |
+
+### `icypeas_email_verification`
+
+Verify whether an email address is valid and deliverable.
+
+`POST https://app.icypeas.com/api/email-verification`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Icypeas API key. **Secret** — visibility `user-only`. Sent as the `Authorization` header. |
+| `email` | string | Yes | Email address to verify (e.g. `john@stripe.com`). |
+
+### `icypeas_domain_search`
+
+Find email addresses associated with a company domain.
+
+`POST https://app.icypeas.com/api/domain-search`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Icypeas API key. **Secret** — visibility `user-only`. Sent as the `Authorization` header. |
+| `domain` | string | Yes | Company domain to search (e.g. `stripe.com`). |
+
+## Outputs
+
+All three operations return the same output shape.
+
+### `icypeas_email_search`
+
+- `data` (json) — The email-search submission response.
+- `metadata` (json) — Search identifiers:
+  - `metadata.searchId` (string) — Icypeas internal search ID.
+  - `metadata.status` (string) — Search status.
+
+### `icypeas_email_verification`
+
+- `data` (json) — The email-verification submission response.
+- `metadata` (json) — Verification identifiers:
+  - `metadata.searchId` (string) — Icypeas internal search ID.
+  - `metadata.status` (string) — Verification status.
+
+### `icypeas_domain_search`
+
+- `data` (json) — The domain-search submission response.
+- `metadata` (json) — Search identifiers:
+  - `metadata.searchId` (string) — Icypeas internal search ID.
+  - `metadata.status` (string) — Search status.
+
+## YAML Example
+
+```yaml
+icypeas_1:
+  type: icypeas
+  name: "Icypeas"
+  inputs:
+    operation: "icypeas_email_search"
+    firstname: "John"
+    lastname: "Doe"
+    domainOrCompany: "stripe.com"
+    apiKey: "{{ICYPEAS_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth header, not Bearer.** The API key is passed verbatim in the `Authorization` header (no `Bearer ` prefix). Store it as an environment variable and reference it with `{{ICYPEAS_API_KEY}}` rather than hardcoding it.
+- **Async submissions.** Each call submits a search and returns a `searchId` plus a `status` in `metadata`. The actual email result is not returned synchronously — use `{{icypeas_1.metadata.searchId}}` to poll or correlate results in downstream blocks, and read the raw submission payload from `{{icypeas_1.data}}`.
+- **Pick the right operation.** Use `icypeas_email_search` when you have a name + company, `icypeas_email_verification` when you already have an address to validate, and `icypeas_domain_search` to enumerate a company's emails. For `domainOrCompany` you can pass either a domain (`stripe.com`) or a plain company name (`Stripe`).

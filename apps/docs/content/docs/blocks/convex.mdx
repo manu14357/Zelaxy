@@ -1,0 +1,110 @@
+---
+title: Convex Block
+description: Run Convex query and mutation functions over HTTP
+icon: Box
+---
+
+# Convex Block
+
+Call Convex query and mutation functions through the Convex HTTP API. Provide your deployment URL and, optionally, an admin key for admin-only functions.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `convex` |
+| **Category** | `tools` |
+| **Color** | `#F3B01C` |
+
+## When to Use
+
+- Fetch records from a Convex database by running a query function (e.g., list messages, get a document by ID).
+- Write or update records in Convex by running a mutation function (e.g., send a message, insert a new row).
+- Integrate a Convex backend into a Zelaxy workflow without needing a custom API block.
+- Call admin-only Convex functions that require an admin key for authorization.
+- Pass dynamic arguments to a Convex function using values from earlier blocks in the workflow.
+- Chain Convex queries and mutations across multiple workflow steps to orchestrate complex data flows.
+
+## Configuration
+
+### Operation
+
+Selects which type of Convex function to call. This field drives which tool is executed at runtime.
+
+| Label | ID |
+|-------|----|
+| Run query | `convex_run_query` |
+| Run mutation | `convex_run_mutation` |
+
+Defaults to `convex_run_query`.
+
+### Function Path
+
+**Sub-block id:** `path`
+**Type:** Short text input
+**Visible when:** Operation is `convex_run_query` or `convex_run_mutation`
+
+The fully-qualified path to the Convex function to call, using the `module:functionName` format (e.g., `messages:list` for a query, `messages:send` for a mutation). This is a required field whenever an operation is selected.
+
+### Arguments (JSON)
+
+**Sub-block id:** `args`
+**Type:** Long text input
+**Visible when:** Operation is `convex_run_query` or `convex_run_mutation`
+
+A JSON object of arguments to pass to the function. Leave empty or provide `{}` if the function takes no arguments. Example: `{ "channel": "general" }`.
+
+### Deployment URL
+
+**Sub-block id:** `deploymentUrl`
+**Type:** Short text input
+**Required:** Yes
+
+The base URL of your Convex deployment, e.g. `https://xxx.convex.cloud`. This is always visible regardless of the selected operation.
+
+### Admin Key
+
+**Sub-block id:** `adminKey`
+**Type:** Short text input (password masked)
+
+Optional. Provide a Convex admin key if the target function is restricted to admin access. When supplied, it is sent as the `Authorization: Convex <key>` HTTP header. Store this value as a workflow secret and reference it with `{{CONVEX_ADMIN_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — The operation to perform; one of `convex_run_query` or `convex_run_mutation`.
+- `deploymentUrl` (string) — Convex deployment URL (e.g., `https://xxx.convex.cloud`).
+- `adminKey` (string) — Convex admin key; optional, required only for admin-only functions.
+- `path` (string) — Function path in `module:functionName` format, e.g. `messages:list`.
+- `args` (json) — Arguments object passed to the Convex function.
+
+**Outputs:**
+
+- `data` (json) — The result object returned by Convex, shaped as `{ status, value }`.
+- `metadata` (json) — Response metadata containing `status` (the Convex execution status string, e.g. `"success"` or `"error"`).
+
+## Tools
+
+**Convex Run Query** (`convex_run_query`) — Executes a read-only Convex query function via `POST /api/query` on your deployment. Returns the function's return value and a status field. Use for fetching data without side effects.
+
+**Convex Run Mutation** (`convex_run_mutation`) — Executes a Convex mutation function via `POST /api/mutation` on your deployment. Mutations are transactional writes; use for inserting, updating, or deleting records in your Convex database.
+
+Both tools share the same parameter set (`deploymentUrl`, `adminKey`, `path`, `args`) and produce the same output shape (`data`, `metadata`).
+
+## YAML Example
+
+```yaml
+convex_1:
+  type: convex
+  name: "Convex"
+  inputs:
+    operation: "convex_run_query"
+    deploymentUrl: "{{CONVEX_DEPLOYMENT_URL}}"
+    adminKey: "{{CONVEX_ADMIN_KEY}}"
+    path: "messages:list"
+    args: '{ "channel": "general" }'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

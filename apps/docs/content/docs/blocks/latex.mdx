@@ -1,0 +1,129 @@
+---
+title: LaTeX Block
+description: Compile LaTeX to PDF and search TeX Live packages
+icon: Box
+---
+
+# LaTeX Block
+
+Compile LaTeX source into a PDF and search available TeX Live packages using the public LaTeX-on-HTTP service (latex.ytotech.com). No authentication required.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `latex` |
+| **Category** | `tools` |
+| **Color** | `#008080` |
+
+## When to Use
+
+- Generate publication-quality PDFs from LaTeX source directly in a workflow without a local TeX installation.
+- Produce formatted reports, academic papers, or technical documents as part of an automated pipeline.
+- Compile documents that rely on BibTeX bibliographies or supplementary resource files (images, style files).
+- Choose from multiple compilers (pdflatex, xelatex, lualatex, platex, uplatex, context) to match the document's requirements.
+- Discover which TeX Live packages are available before referencing them in a document.
+- Pass the resulting base64-encoded PDF or data URL to downstream blocks for storage, email attachment, or display.
+
+## Configuration
+
+### Operation
+
+Selects the action to perform. Controls which sub-fields are visible.
+
+| Label | ID |
+|-------|----|
+| Compile | `latex_compile` |
+| Search packages | `latex_search_packages` |
+
+Default: `latex_compile`.
+
+---
+
+### LaTeX Source (`content`) — Compile only
+
+**Type:** long-input  
+**Required when operation is `latex_compile`**
+
+The full LaTeX source of the main document, from `\documentclass` to `\end{document}`. Supports dynamic values via `{{blockName.field}}`.
+
+Example placeholder: `\documentclass{article}\begin{document}Hello\end{document}`
+
+---
+
+### Compiler (`compiler`) — Compile only
+
+**Type:** short-input  
+**Optional**
+
+The LaTeX compiler to use. Accepted values:
+
+- `pdflatex` (default)
+- `xelatex`
+- `lualatex`
+- `platex`
+- `uplatex`
+- `context`
+
+If left blank, `pdflatex` is used.
+
+---
+
+### Resources (`resources`) — Compile only
+
+**Type:** long-input  
+**Optional**
+
+Additional supporting files passed alongside the main document. Provide a JSON array where each entry has a `"path"` key plus one of:
+
+- `"content"` — raw text content
+- `"file"` — base64-encoded binary
+- `"url"` — remote URL the service should fetch
+
+Example: `[{"path":"refs.bib","content":"@article{...}"}]`
+
+---
+
+### Query (`query`) — Search packages only
+
+**Type:** short-input  
+**Required when operation is `latex_search_packages`**
+
+Search terms matched against TeX Live package names and short descriptions. Example: `tikz`.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`latex_compile` or `latex_search_packages`)
+- `content` (string) — LaTeX source of the main document
+- `compiler` (string) — LaTeX compiler to use
+- `resources` (json) — Additional supporting files
+- `query` (string) — Package search query
+
+**Outputs:**
+
+- `data` (json) — Compiled PDF (when compiling: `{ pdfBase64, dataUrl }`) or array of matching TeX Live packages (when searching)
+- `metadata` (json) — Response metadata (compile: `{ compiler, status }`; search: `{ count, status }`)
+
+## Tools
+
+**LaTeX Compile** (`latex_compile`) — POSTs the LaTeX source and optional resource files to `https://latex.ytotech.com/builds/sync`, runs the chosen compiler, and returns the resulting PDF as a base64 string (`data.pdfBase64`) and a ready-to-use data URL (`data.dataUrl`). `metadata.compiler` echoes the compiler used; `metadata.status` carries the HTTP status code.
+
+**LaTeX Search Packages** (`latex_search_packages`) — GETs the full TeX Live package list from `https://latex.ytotech.com/packages` and filters it client-side against the supplied `query`, matching on package name or short description. Returns the matching packages as `data` (array) and `metadata.count` with the number of hits.
+
+## YAML Example
+
+```yaml
+latex_1:
+  type: latex
+  name: "LaTeX"
+  inputs:
+    operation: "latex_compile"
+    content: "{{document_block.latex_source}}"
+    compiler: "xelatex"
+    resources: '[{"path":"refs.bib","content":"{{bib_block.content}}"}]'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

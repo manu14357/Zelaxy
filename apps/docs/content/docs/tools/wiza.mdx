@@ -1,0 +1,110 @@
+---
+title: Wiza Tools
+description: Build prospect lists and reveal B2B contact details through the Wiza API
+icon: Box
+---
+
+# Wiza Tools
+
+Wiza is a B2B prospecting and contact-enrichment platform. Use these tools in a workflow to create prospect lists from search filters, check a list's status, pull the revealed contacts from a list, and reveal email/phone details for an individual from their LinkedIn URL.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `wiza` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Wiza API key sent as `Authorization: Bearer <apiKey>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Create list | `wiza_create_list` | Create a Wiza prospect list with search filters |
+| Get list | `wiza_get_list` | Retrieve a Wiza list by ID, including its status and stats |
+| Get contacts | `wiza_get_contacts` | Retrieve the revealed contacts for a Wiza list |
+| Reveal individual | `wiza_reveal_individual` | Reveal contact details for an individual from a LinkedIn URL |
+
+## Configuration
+
+### `wiza_create_list`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Wiza API key. **Secret** — sent as a Bearer token; visibility `user-only`. |
+| `name` | string | Yes | Name of the list to create. |
+| `max_profiles` | number | No | Maximum number of profiles to add to the list. |
+| `filters` | json | No | Prospect search filters used to populate the list. |
+
+### `wiza_get_list`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Wiza API key. **Secret** — sent as a Bearer token; visibility `user-only`. |
+| `id` | string | Yes | The list ID to retrieve. |
+
+### `wiza_get_contacts`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Wiza API key. **Secret** — sent as a Bearer token; visibility `user-only`. |
+| `id` | string | Yes | The list ID to fetch contacts for. |
+
+### `wiza_reveal_individual`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Wiza API key. **Secret** — sent as a Bearer token; visibility `user-only`. |
+| `linkedin_url` | string | Yes | LinkedIn profile URL to reveal contact details for. |
+
+## Outputs
+
+### `wiza_create_list`
+
+- `data` (json) — The created Wiza list object.
+- `metadata` (json) — List identifiers.
+  - `metadata.id` (string) — List ID.
+
+### `wiza_get_list`
+
+- `data` (json) — The retrieved Wiza list object.
+- `metadata` (json) — List identifiers.
+  - `metadata.id` (string) — List ID.
+
+### `wiza_get_contacts`
+
+- `data` (json) — Array of revealed contact objects.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of contacts returned.
+
+### `wiza_reveal_individual`
+
+- `data` (json) — The individual reveal object.
+- `metadata` (json) — Reveal identifiers.
+  - `metadata.id` (string) — Reveal ID.
+
+## YAML Example
+
+```yaml
+wiza_1:
+  type: wiza
+  name: "Wiza"
+  inputs:
+    operation: "wiza_create_list"
+    name: "Q3 SaaS CEOs"
+    max_profiles: 100
+    filters: '{ "job_title": [{ "v": "CEO", "s": "i" }] }'
+    apiKey: "{{WIZA_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+A follow-up block can read the new list ID with `{{wiza_1.metadata.id}}` and feed it into a `wiza_get_list` or `wiza_get_contacts` operation to poll status and fetch results.
+
+## Tips
+
+- **Auth setup** — All four operations require the same Wiza API key. It is sent as `Authorization: Bearer {{WIZA_API_KEY}}`, so store it as an environment variable / secret rather than hard-coding it. The `apiKey` param is `user-only`, so the LLM cannot set it on its own.
+- **List creation is async** — `wiza_create_list` returns the list object immediately, but Wiza populates and reveals profiles in the background. Use `wiza_get_list` to poll the list's status/stats, then `wiza_get_contacts` once it's complete to retrieve the revealed rows.
+- **Filters are JSON** — The `filters` param is a raw JSON object matching Wiza's prospect-search schema (for example `{ "job_title": [{ "v": "CEO", "s": "i" }] }`). Pass it as a JSON value, not a plain string.
+- **Reveal by LinkedIn URL** — `wiza_reveal_individual` only needs a single `linkedin_url` (e.g. `https://www.linkedin.com/in/janedoe`) and is the quickest path when you already know who you want to enrich.

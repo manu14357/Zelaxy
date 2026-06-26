@@ -1,0 +1,112 @@
+---
+title: Quiver Tools
+description: Generate and convert SVG graphics from text prompts or raster images with QuiverAI
+icon: Pen
+---
+
+# Quiver Tools
+
+Quiver uses QuiverAI to produce clean, scalable SVG graphics — either generated from a text prompt or vectorized from an existing raster image. Use these tools in a workflow when you need vector artwork (icons, illustrations, logos) created or converted on the fly.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `quiver` |
+| **Category** | tools |
+| **Auth** | API Key (QuiverAI API key; sent as a Bearer token for model listing) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Text to SVG | `quiver_text_to_svg` | Generate SVG images from text prompts using QuiverAI |
+| Image to SVG | `quiver_image_to_svg` | Convert raster images into vector SVG format using QuiverAI |
+| List Models | `quiver_list_models` | List all available QuiverAI models |
+
+## Configuration
+
+### quiver_text_to_svg
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | QuiverAI API key. **Secret** — store as an environment variable. |
+| `prompt` | string | Yes | A text description of the desired SVG. |
+| `model` | string | Yes | The model to use for SVG generation (e.g. `arrow-preview`). |
+| `instructions` | string | No | Style or formatting guidance for the SVG output. |
+| `references` | json | No | Reference images to guide SVG generation (up to 4). |
+| `n` | number | No | Number of SVGs to generate (1-16, default 1). |
+| `temperature` | number | No | Sampling temperature (0-2, default 1). |
+| `top_p` | number | No | Nucleus sampling probability (0-1, default 1). |
+| `max_output_tokens` | number | No | Maximum output tokens (1-131072). |
+| `presence_penalty` | number | No | Token penalty for prior output (-2 to 2, default 0). |
+
+### quiver_image_to_svg
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | QuiverAI API key. **Secret** — store as an environment variable. |
+| `model` | string | Yes | The model to use for vectorization (e.g. `arrow-preview`). |
+| `image` | json | Yes | The raster image to vectorize into SVG. |
+| `temperature` | number | No | Sampling temperature (0-2, default 1). |
+| `top_p` | number | No | Nucleus sampling probability (0-1, default 1). |
+| `max_output_tokens` | number | No | Maximum output tokens (1-131072). |
+| `presence_penalty` | number | No | Token penalty for prior output (-2 to 2, default 0). |
+| `auto_crop` | boolean | No | Automatically crop the image before vectorizing. |
+| `target_size` | number | No | Square resize target in pixels (128-4096). |
+
+### quiver_list_models
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | QuiverAI API key. **Secret** — store as an environment variable. Sent as `Authorization: Bearer {apiKey}`. |
+
+## Outputs
+
+### quiver_text_to_svg
+
+- `success` (boolean) — Whether the SVG generation succeeded.
+- `output` (json) — Generated SVG output, with these properties:
+  - `file` (json) — First generated SVG file.
+  - `files` (json) — All generated SVG files (when `n` > 1).
+  - `svgContent` (string) — Raw SVG markup content of the first result.
+  - `id` (string) — Generation request ID.
+  - `usage` (json) — Token usage statistics: `totalTokens` (number), `inputTokens` (number), `outputTokens` (number).
+
+### quiver_image_to_svg
+
+- `success` (boolean) — Whether the vectorization succeeded.
+- `output` (json) — Vectorized SVG output, with these properties:
+  - `file` (json) — Generated SVG file.
+  - `svgContent` (string) — Raw SVG markup content.
+  - `id` (string) — Vectorization request ID.
+  - `usage` (json) — Token usage statistics: `totalTokens` (number), `inputTokens` (number), `outputTokens` (number).
+
+### quiver_list_models
+
+- `success` (boolean) — Whether the request succeeded.
+- `output` (json) — Available models, with this property:
+  - `models` (json) — List of available QuiverAI models (each with `id`, `name`, `description`, `created`, `ownedBy`, `inputModalities`, `outputModalities`, `contextLength`, `maxOutputLength`, `supportedOperations`, `supportedSamplingParameters`).
+
+## YAML Example
+
+```yaml
+quiver_1:
+  type: quiver
+  name: "Quiver"
+  inputs:
+    operation: "text_to_svg"
+    apiKey: "{{QUIVER_API_KEY}}"
+    model: "quiver-mini"
+    prompt: "A minimalist mountain logo with a rising sun"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Get a QuiverAI API key and store it as an environment variable (e.g. `{{QUIVER_API_KEY}}`); never hardcode it. The same key works for all three operations.
+- Use **Text to SVG** to create new vector artwork from a description, and **Image to SVG** to vectorize an existing raster image. Run **List Models** first if you are unsure which model `id` to pass (block presets are `quiver-mini` and `quiver-pro`).
+- For Text to SVG, set `n` (1-16) to get multiple variants in one call — the extra results land in `output.files`, while `output.file` and `output.svgContent` always hold the first result.
+- Reference images (up to 4) help steer the style for Text to SVG; for Image to SVG, enable `auto_crop` and set `target_size` (128-4096) to control framing and resolution before vectorizing.

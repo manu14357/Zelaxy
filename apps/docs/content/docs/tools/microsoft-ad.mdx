@@ -1,0 +1,118 @@
+---
+title: Microsoft Entra ID Tools
+description: List, retrieve, and create users and list groups in Microsoft Entra ID (Azure AD) via the Microsoft Graph API.
+icon: Users
+---
+
+# Microsoft Entra ID Tools
+
+Microsoft Entra ID (formerly Azure AD) is Microsoft's cloud identity and access management service. These tools manage directory users and groups through the Microsoft Graph API, letting a workflow list and look up users, list groups, and provision new user accounts. Use them when you need to read or automate identity/directory operations as part of an agent or integration flow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `microsoft-ad` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Microsoft Graph access token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List users | `microsoft_ad_list_users` | List users in Microsoft Entra ID (Azure AD). |
+| Get user | `microsoft_ad_get_user` | Get a user by ID or user principal name from Microsoft Entra ID. |
+| List groups | `microsoft_ad_list_groups` | List groups in Microsoft Entra ID (Azure AD). |
+| Create user | `microsoft_ad_create_user` | Create a new user in Microsoft Entra ID (Azure AD). |
+
+## Configuration
+
+### `microsoft_ad_list_users`
+
+List users in Microsoft Entra ID. Calls `GET https://graph.microsoft.com/v1.0/users` (supports the OData `$top` and `$filter` query parameters).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Microsoft Graph API bearer access token. **Secret** — supplied as the connection credential, not by the LLM. |
+| `top` | number | No | Maximum number of users to return (max 999). Mapped to the OData `$top` query parameter. |
+| `filter` | string | No | OData filter expression (e.g., `department eq 'Sales'`). Mapped to the OData `$filter` query parameter. |
+
+### `microsoft_ad_get_user`
+
+Get a single user by ID or user principal name. Calls `GET https://graph.microsoft.com/v1.0/users/{userId}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Microsoft Graph API bearer access token. **Secret** — supplied as the connection credential, not by the LLM. |
+| `userId` | string | Yes | User ID (object id) or user principal name (e.g., `user@example.com`). URL-encoded into the request path. |
+
+### `microsoft_ad_list_groups`
+
+List groups in Microsoft Entra ID. Calls `GET https://graph.microsoft.com/v1.0/groups` (supports the OData `$top` and `$filter` query parameters).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Microsoft Graph API bearer access token. **Secret** — supplied as the connection credential, not by the LLM. |
+| `top` | number | No | Maximum number of groups to return (max 999). Mapped to the OData `$top` query parameter. |
+| `filter` | string | No | OData filter expression (e.g., `securityEnabled eq true`). Mapped to the OData `$filter` query parameter. |
+
+### `microsoft_ad_create_user`
+
+Create a new user. Calls `POST https://graph.microsoft.com/v1.0/users`. The new user is created with `forceChangePasswordNextSignIn: true`, so the initial password must be changed at first sign-in.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Microsoft Graph API bearer access token. **Secret** — supplied as the connection credential, not by the LLM. |
+| `displayName` | string | Yes | Display name for the user. |
+| `mailNickname` | string | Yes | Mail alias for the user. |
+| `userPrincipalName` | string | Yes | User principal name (e.g., `user@example.com`). |
+| `password` | string | Yes | Initial password for the user. **Secret** — set on the `passwordProfile`. |
+| `accountEnabled` | boolean | No | Whether the account is enabled. Defaults to `true`. |
+
+## Outputs
+
+### `microsoft_ad_list_users`
+
+- `data` (json) — Array of Entra user objects returned by Microsoft Graph (the `value` array).
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of users returned.
+
+### `microsoft_ad_get_user`
+
+- `data` (json) — The Entra user object.
+- `metadata` (json) — User identifiers.
+  - `metadata.id` (string) — User ID.
+
+### `microsoft_ad_list_groups`
+
+- `data` (json) — Array of Entra group objects returned by Microsoft Graph (the `value` array).
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of groups returned.
+
+### `microsoft_ad_create_user`
+
+- `data` (json) — The created Entra user object.
+- `metadata` (json) — User identifiers.
+  - `metadata.id` (string) — User ID of the newly created user.
+
+## YAML Example
+
+```yaml
+microsoft_ad_1:
+  type: microsoft_ad
+  name: "Microsoft Entra ID"
+  inputs:
+    operation: "microsoft_ad_list_users"
+    top: 100
+    filter: "department eq 'Sales'"
+    accessToken: "{{MICROSOFT_AD_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authentication is a raw Microsoft Graph bearer **access token**, passed via the `accessToken` field (sent as the `Authorization: Bearer <token>` header). Obtain it from an Entra app registration with the appropriate Graph permissions — `User.Read.All` / `Group.Read.All` for the read operations and `User.ReadWrite.All` for `microsoft_ad_create_user` — and reference it as an environment variable like `{{MICROSOFT_AD_ACCESS_TOKEN}}` rather than hardcoding it.
+- The `top` and `filter` inputs map directly to the Microsoft Graph OData `$top` and `$filter` query parameters. Some filters (e.g., on group properties) may require advanced query support; keep `top` at or below 999.
+- Created users come back with `forceChangePasswordNextSignIn` set to `true`, so the `password` you supply is only a temporary first-sign-in credential. Capture `{{microsoft_ad_1.metadata.id}}` from the create response to drive follow-up directory operations.

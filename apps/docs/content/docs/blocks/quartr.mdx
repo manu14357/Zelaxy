@@ -1,0 +1,218 @@
+---
+title: Quartr Block
+description: Access company financial data and documents from Quartr
+icon: Box
+---
+
+# Quartr Block
+
+Retrieve companies and list financial documents (reports, slide decks, transcripts) through the Quartr API. Authenticate with a Quartr API key to access Quartr's coverage of public-company earnings materials.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `quartr` |
+| **Category** | `tools` |
+| **Color** | `#5B21B6` |
+
+## When to Use
+
+- Fetch a single public company's profile by its Quartr company ID.
+- Search and filter all companies covered by Quartr by ticker symbol, ISIN, or country.
+- List financial documents (annual reports, earnings slide decks, call transcripts) for one or more companies.
+- Filter documents by event, document type, and a specific date range.
+- Page through large result sets using cursor-based pagination for both companies and documents.
+- Wire Quartr data into downstream AI agents for automated earnings analysis or research workflows.
+
+## Configuration
+
+### Operation
+
+Selects which Quartr API call to make. All other fields depend on this selection.
+
+| Label | ID |
+|-------|----|
+| Get company | `quartr_get_company` |
+| List companies | `quartr_list_companies` |
+| List documents | `quartr_list_documents` |
+
+---
+
+### Company ID
+
+- **Sub-block ID**: `companyId`
+- **Type**: short-input
+- **Shown when**: Operation = `quartr_get_company`
+- **Placeholder**: `4742`
+
+The numeric Quartr company ID of the company to retrieve. Required for the **Get company** operation.
+
+---
+
+### Tickers
+
+- **Sub-block ID**: `tickers`
+- **Type**: short-input
+- **Shown when**: Operation = `quartr_list_companies`
+- **Placeholder**: `AAPL,MSFT`
+
+Comma-separated list of stock tickers to filter the company list. Optional.
+
+---
+
+### ISINs
+
+- **Sub-block ID**: `isins`
+- **Type**: short-input
+- **Shown when**: Operation = `quartr_list_companies`
+- **Placeholder**: `US0378331005`
+
+Comma-separated list of International Securities Identification Numbers (ISINs) to filter by. Optional.
+
+---
+
+### Countries
+
+- **Sub-block ID**: `countries`
+- **Type**: short-input
+- **Shown when**: Operation = `quartr_list_companies`
+- **Placeholder**: `US,SE`
+
+Comma-separated ISO 3166-1 alpha-2 country codes to restrict results to companies from those countries. Optional.
+
+---
+
+### Company IDs
+
+- **Sub-block ID**: `companyIds`
+- **Type**: short-input
+- **Shown when**: Operation = `quartr_list_documents`
+- **Placeholder**: `4742,128`
+
+Comma-separated Quartr company IDs to scope the document search. Optional.
+
+---
+
+### Event IDs
+
+- **Sub-block ID**: `eventIds`
+- **Type**: short-input
+- **Shown when**: Operation = `quartr_list_documents`
+- **Placeholder**: `128301`
+
+Comma-separated Quartr event IDs to retrieve documents from specific earnings events. Optional.
+
+---
+
+### Document Type IDs
+
+- **Sub-block ID**: `documentTypeIds`
+- **Type**: short-input
+- **Shown when**: Operation = `quartr_list_documents`
+- **Placeholder**: `7,10`
+
+Comma-separated document type IDs to filter by document category (e.g. annual report, slide deck, transcript). Optional.
+
+---
+
+### Start Date
+
+- **Sub-block ID**: `startDate`
+- **Type**: short-input
+- **Shown when**: Operation = `quartr_list_documents`
+- **Placeholder**: `2024-01-01`
+
+Only return documents dated on or after this ISO 8601 date. Optional.
+
+---
+
+### End Date
+
+- **Sub-block ID**: `endDate`
+- **Type**: short-input
+- **Shown when**: Operation = `quartr_list_documents`
+- **Placeholder**: `2024-12-31`
+
+Only return documents dated on or before this ISO 8601 date. Optional.
+
+---
+
+### Limit
+
+- **Sub-block ID**: `limit`
+- **Type**: short-input
+- **Shown when**: Operation = `quartr_list_companies` or `quartr_list_documents`
+- **Placeholder**: `10`
+
+Maximum number of results to return. Defaults to 10; maximum is 500. Optional.
+
+---
+
+### Cursor
+
+- **Sub-block ID**: `cursor`
+- **Type**: short-input
+- **Shown when**: Operation = `quartr_list_companies` or `quartr_list_documents`
+- **Placeholder**: `nextCursor value`
+
+Pagination cursor from a previous response's `metadata.nextCursor` to fetch the next page. Optional.
+
+---
+
+### Quartr API Key
+
+- **Sub-block ID**: `apiKey`
+- **Type**: short-input (password)
+- **Layout**: full
+- **Required**: yes
+
+Your Quartr API key, sent as the `x-api-key` header on every request. Store it as a workflow secret and reference it as `{{QUARTR_API_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs**:
+
+- `operation` (string) — Operation to perform (`quartr_get_company`, `quartr_list_companies`, or `quartr_list_documents`)
+- `apiKey` (string) — Quartr API key
+- `companyId` (string) — Quartr company ID (used by Get company)
+- `tickers` (string) — Comma-separated tickers (used by List companies)
+- `isins` (string) — Comma-separated ISINs (used by List companies)
+- `countries` (string) — Comma-separated country codes (used by List companies)
+- `companyIds` (string) — Comma-separated company IDs (used by List documents)
+- `eventIds` (string) — Comma-separated event IDs (used by List documents)
+- `documentTypeIds` (string) — Comma-separated document type IDs (used by List documents)
+- `startDate` (string) — Start date in ISO 8601 format (used by List documents)
+- `endDate` (string) — End date in ISO 8601 format (used by List documents)
+- `limit` (number) — Result limit (used by List companies and List documents)
+- `cursor` (number) — Pagination cursor (used by List companies and List documents)
+
+**Outputs**:
+
+- `data` (json) — Result object or array from Quartr. For Get company: a single company object. For List companies: an array of company objects. For List documents: an array of document objects.
+- `metadata` (json) — Response metadata. For Get company: `{ id }`. For list operations: `{ count, nextCursor }`.
+
+## Tools
+
+- **Quartr Get Company** (`quartr_get_company`) — Retrieves a single company from the Quartr API by its numeric company ID. Calls `GET https://api.quartr.com/public/v3/companies/{companyId}`.
+- **Quartr List Companies** (`quartr_list_companies`) — Lists companies covered by Quartr, with optional filters for tickers, ISINs, country codes, and cursor-based pagination. Calls `GET https://api.quartr.com/public/v3/companies`.
+- **Quartr List Documents** (`quartr_list_documents`) — Lists financial documents (reports, slide decks, transcripts) from Quartr, filterable by company IDs, event IDs, document type IDs, and date range. Supports cursor-based pagination. Calls `GET https://api.quartr.com/public/v3/documents`.
+
+## YAML Example
+
+```yaml
+quartr_1:
+  type: quartr
+  name: "Quartr"
+  inputs:
+    operation: "quartr_list_documents"
+    apiKey: "{{QUARTR_API_KEY}}"
+    companyIds: "4742,128"
+    startDate: "2024-01-01"
+    endDate: "2024-12-31"
+    documentTypeIds: "7,10"
+    limit: 20
+  connections:
+    outgoing:
+      - target: next-block-id
+```

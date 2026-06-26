@@ -1,0 +1,103 @@
+---
+title: Persona Tools
+description: List and retrieve Persona identity verification inquiries and accounts
+icon: Box
+---
+
+# Persona Tools
+
+The Persona tools let a workflow query [Persona](https://withpersona.com)'s identity verification API to list verification inquiries, fetch a single inquiry by ID, and fetch an account by ID. Use them when a workflow needs to read identity-verification (KYC) state — for example, branching on an inquiry's `status` or enriching a record with account data.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `persona` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Persona API key sent as `Authorization: Bearer <apiKey>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List inquiries | `persona_list_inquiries` | List Persona identity verification inquiries |
+| Get inquiry | `persona_get_inquiry` | Retrieve a single Persona inquiry by ID |
+| Get account | `persona_get_account` | Retrieve a single Persona account by ID |
+
+## Configuration
+
+### `persona_list_inquiries`
+
+List Persona identity verification inquiries. Calls `GET https://api.withpersona.com/api/v1/inquiries`. The `status` filter maps to `filter[status]` and `limit` maps to `page[size]`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Persona API key. **Secret** — `user-only` visibility, kept server-side. |
+| `status` | string | No | Filter by inquiry status (e.g. `completed`, `pending`, `failed`). |
+| `limit` | number | No | Number of inquiries to return per page (1-100). |
+
+### `persona_get_inquiry`
+
+Retrieve a single Persona inquiry by ID. Calls `GET https://api.withpersona.com/api/v1/inquiries/{id}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Persona API key. **Secret** — `user-only` visibility, kept server-side. |
+| `id` | string | Yes | Inquiry ID to retrieve (starts with `inq_`). |
+
+### `persona_get_account`
+
+Retrieve a single Persona account by ID. Calls `GET https://api.withpersona.com/api/v1/accounts/{id}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Persona API key. **Secret** — `user-only` visibility, kept server-side. |
+| `id` | string | Yes | Account ID to retrieve (starts with `act_`). |
+
+## Outputs
+
+### `persona_list_inquiries`
+
+- `data` (json) — Array of Persona inquiry objects.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of inquiries returned.
+
+### `persona_get_inquiry`
+
+- `data` (json) — The retrieved Persona inquiry object.
+- `metadata` (json) — Inquiry identifiers.
+  - `metadata.id` (string) — Inquiry ID.
+  - `metadata.type` (string) — Resource type.
+
+### `persona_get_account`
+
+- `data` (json) — The retrieved Persona account object.
+- `metadata` (json) — Account identifiers.
+  - `metadata.id` (string) — Account ID.
+  - `metadata.type` (string) — Resource type.
+
+## YAML Example
+
+```yaml
+persona_1:
+  type: persona
+  name: "Persona"
+  inputs:
+    operation: "persona_list_inquiries"
+    status: "completed"
+    limit: 10
+    apiKey: "{{PERSONA_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To retrieve a single inquiry instead, set `operation: "persona_get_inquiry"` and pass an `id` (e.g. `inq_...`). To pull an account, use `operation: "persona_get_account"` with an `id` that starts with `act_`. You can chain operations by referencing an upstream output, for example `id: "{{persona_1.metadata.id}}"`.
+
+## Tips
+
+- Authentication uses a Persona API key sent as a Bearer token. Store it as an environment variable and reference it with `{{PERSONA_API_KEY}}` rather than hardcoding the secret.
+- Every request is pinned to the Persona API version header `Persona-Version: 2023-01-05`; responses follow that schema.
+- `list_inquiries` returns at most `limit` results per page (valid range 1-100). Use the `status` filter to narrow to a specific verification state such as `completed` before branching on results.
+- Persona resource IDs are prefixed: inquiries start with `inq_` and accounts start with `act_`. Passing the wrong prefix to `get_inquiry`/`get_account` will fail to resolve the object.
+```

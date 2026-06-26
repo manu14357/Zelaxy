@@ -1,0 +1,153 @@
+---
+title: Greptile Block
+description: Query, search, and index code repositories with Greptile
+icon: Box
+---
+
+# Greptile Block
+
+Ask natural-language questions about your codebase, search indexed repositories for relevant files, or submit new repositories for indexing through the Greptile API. Authenticate with a Greptile API key and a GitHub access token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `greptile` |
+| **Category** | `tools` |
+| **Color** | `#16A34A` |
+
+## When to Use
+
+- Ask a natural-language question against an already-indexed codebase (e.g. "How does authentication work?") and receive an AI-generated answer with source references.
+- Search one or more indexed repositories for files or code snippets relevant to a query, returning ranked references without generating a prose answer.
+- Register a new repository (or a specific branch of one) with Greptile so that it becomes available for future query and search operations.
+- Build code-understanding pipelines where an upstream block determines what question to ask and passes it into the Greptile block via `{{blockName.field}}` references.
+- Trigger automated code-review or documentation-generation workflows that need deep understanding of a repository's structure and logic.
+- Chain a query result into a downstream block (e.g. an Agent or a Response block) to synthesize the answer into a larger workflow output.
+
+## Configuration
+
+### Operation
+
+Selects which Greptile API operation the block performs. This is a required dropdown field; it controls which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| Query | `greptile_query` |
+| Search | `greptile_search` |
+| Index repository | `greptile_index_repository` |
+
+**Fields shown per operation:**
+
+- **Query** (`greptile_query`) — shows `query` and `repositories`.
+- **Search** (`greptile_search`) — shows `query` and `repositories`.
+- **Index repository** (`greptile_index_repository`) — shows `remote`, `repository`, and `branch`.
+
+---
+
+### Query
+
+Visible when operation is **Query** or **Search**.
+
+Free-text input for the natural-language question (Query operation) or keyword/semantic search string (Search operation). Example: `How does authentication work?`
+
+---
+
+### Repositories
+
+Visible when operation is **Query** or **Search**.
+
+A JSON array of repository descriptor objects that Greptile will search or query. Each object must have at minimum `remote`, `repository`, and optionally `branch`.
+
+Example value:
+
+```json
+[{ "remote": "github", "repository": "owner/repo", "branch": "main" }]
+```
+
+Use `{{blockName.field}}` if this list is computed by an upstream block.
+
+---
+
+### Remote
+
+Visible when operation is **Index repository**.
+
+The source host of the repository. Typically `github`. This is a required string field for the Index repository operation.
+
+---
+
+### Repository
+
+Visible when operation is **Index repository**.
+
+The repository identifier in `owner/repo` format (e.g. `acme-corp/api-server`). This is a required string field for the Index repository operation.
+
+---
+
+### Branch
+
+Visible when operation is **Index repository**.
+
+The branch to index. Defaults to the repository's default branch when left blank. Optional.
+
+---
+
+### GitHub Token
+
+Always visible. Required.
+
+A GitHub personal access token (starting with `ghp_...`) that has read access to the target repositories. Store the value as an environment variable and reference it as `{{GITHUB_TOKEN}}`.
+
+---
+
+### Greptile API Key
+
+Always visible. Required.
+
+Your Greptile API key. Store the value as an environment variable and reference it as `{{GREPTILE_API_KEY}}`.
+
+---
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`greptile_query`, `greptile_search`, or `greptile_index_repository`)
+- `apiKey` (string) — Greptile API key
+- `githubToken` (string) — GitHub access token
+- `query` (string) — Query or search text (used by Query and Search operations)
+- `repositories` (json) — Repositories to query or search; array of `{ remote, repository, branch }` objects
+- `remote` (string) — Repository source host (used by Index repository operation)
+- `repository` (string) — Repository identifier in `owner/repo` format (used by Index repository operation)
+- `branch` (string) — Branch to index (used by Index repository operation; optional)
+
+**Outputs:**
+
+- `data` (json) — Result object from Greptile (answer + sources for Query; ranked file references for Search; indexing job details for Index repository)
+- `metadata` (json) — Response metadata, including a `status` string indicating the operation outcome
+
+## Tools
+
+**Greptile Query** (`greptile_query`) — Posts a natural-language question to `https://api.greptile.com/v2/query`. Requires `apiKey`, `githubToken`, `query`, and `repositories`. Returns an AI-generated answer with source citations in `data`, and `{ status: "completed" }` in `metadata`.
+
+**Greptile Search** (`greptile_search`) — Posts a search query to `https://api.greptile.com/v2/search`. Requires `apiKey`, `githubToken`, `query`, and `repositories`. Returns ranked file/code references in `data`, and `{ status: "completed" }` in `metadata`.
+
+**Greptile Index Repository** (`greptile_index_repository`) — Submits a repository for indexing via `POST https://api.greptile.com/v2/repositories`. Requires `apiKey`, `githubToken`, `remote`, and `repository`; `branch` is optional. Returns the indexing job response in `data` and the job's `status` in `metadata`.
+
+## YAML Example
+
+```yaml
+greptile_1:
+  type: greptile
+  name: "Greptile"
+  inputs:
+    operation: greptile_query
+    apiKey: "{{GREPTILE_API_KEY}}"
+    githubToken: "{{GITHUB_TOKEN}}"
+    query: "How does the authentication middleware work?"
+    repositories: '[{ "remote": "github", "repository": "acme-corp/api-server", "branch": "main" }]'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

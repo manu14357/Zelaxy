@@ -1,0 +1,111 @@
+---
+title: Google Contacts Tools
+description: List, search, retrieve, and create contacts via the Google People API.
+icon: Box
+---
+
+# Google Contacts Tools
+
+Google Contacts tools interact with the Google People API to manage your contacts — listing all contacts, searching by name or email, fetching a single contact by resource name, and creating new contacts. Use these tools in workflows that need to look up or provision contacts as part of CRM automation, onboarding sequences, or lead enrichment pipelines.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-contacts` |
+| **Category** | `tools` |
+| **Auth** | OAuth (Google OAuth Bearer access token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List Contacts | `google_contacts_list_contacts` | Returns a paginated list of all contacts for the authenticated user |
+| Get Contact | `google_contacts_get_contact` | Retrieves a single contact by its resource name |
+| Search Contacts | `google_contacts_search_contacts` | Searches contacts by name, email address, or phone number |
+| Create Contact | `google_contacts_create_contact` | Creates a new contact in Google Contacts |
+
+## Configuration
+
+### `google_contacts_list_contacts`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (Bearer). Visibility: user-only. |
+| `pageSize` | number | No | Number of contacts to return. Valid range: 1–1000. |
+| `pageToken` | string | No | Pagination token returned from a previous list request. Pass this to retrieve the next page of results. |
+
+### `google_contacts_get_contact`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (Bearer). Visibility: user-only. |
+| `resourceName` | string | Yes | Resource name of the contact to retrieve. Format: `people/c<numeric_id>`, e.g. `people/c1234567890`. |
+
+### `google_contacts_search_contacts`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (Bearer). Visibility: user-only. |
+| `query` | string | Yes | Free-text search string matched against contact names, email addresses, and phone numbers. |
+| `pageSize` | number | No | Maximum number of results to return. The API enforces a maximum of 30 for search requests. |
+
+### `google_contacts_create_contact`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (Bearer). Visibility: user-only. |
+| `givenName` | string | Yes | First name of the contact. |
+| `familyName` | string | No | Last name of the contact. |
+| `email` | string | No | Email address of the contact. |
+| `phone` | string | No | Phone number of the contact (any format accepted by the People API, e.g. `+15551234567`). |
+
+## Outputs
+
+### `google_contacts_list_contacts`
+
+- `data` (json) — Array of contact (person) objects returned by the People API. Each object includes `names`, `emailAddresses`, and `phoneNumbers` fields.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of contacts in the current page.
+  - `metadata.nextPageToken` (string | null) — Opaque token to pass as `pageToken` in the next request. `null` when no further pages exist.
+
+### `google_contacts_get_contact`
+
+- `data` (json) — The contact (person) object returned by the People API, including `names` and `emailAddresses` fields.
+- `metadata` (json) — Contact identifiers.
+  - `metadata.resourceName` (string) — The resource name of the contact (e.g. `people/c1234567890`).
+
+### `google_contacts_search_contacts`
+
+- `data` (json) — Array of matching contact (person) objects. Each entry is the `person` sub-object from the search result, including `names` and `emailAddresses`.
+- `metadata` (json) — Search metadata.
+  - `metadata.count` (number) — Number of contacts in the result set.
+  - `metadata.nextPageToken` (string | null) — Token for the next page of results if available; otherwise `null`.
+
+### `google_contacts_create_contact`
+
+- `data` (json) — The newly created contact (person) object as returned by the People API.
+- `metadata` (json) — Contact identifiers.
+  - `metadata.resourceName` (string) — The resource name assigned to the new contact (e.g. `people/c9876543210`).
+
+## YAML Example
+
+```yaml
+google_contacts_1:
+  type: google_contacts
+  name: "Google Contacts"
+  inputs:
+    operation: "google_contacts_search_contacts"
+    query: "{{trigger.email}}"
+    pageSize: 10
+    accessToken: "{{GOOGLE_CONTACTS_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **OAuth token scope**: The access token must be obtained with the `https://www.googleapis.com/auth/contacts` scope for read/write access, or `https://www.googleapis.com/auth/contacts.readonly` for list and search operations only. Tokens without the correct scope will result in a 403 error.
+- **Paginating large contact lists**: `google_contacts_list_contacts` returns up to 1000 contacts per page. Store `{{google_contacts_1.metadata.nextPageToken}}` and pass it as `pageToken` in a subsequent block to iterate through all pages.
+- **Search vs. List**: Use `google_contacts_search_contacts` when you have a known name or email to match — the API is optimized for this and returns up to 30 results. Use `google_contacts_list_contacts` when you need to enumerate all contacts for bulk processing.

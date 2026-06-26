@@ -1,7 +1,7 @@
 ---
 title: Granola Block
 description: Access meeting notes and transcripts from Granola
-icon: Box
+icon: Grape
 ---
 
 # Granola Block
@@ -19,37 +19,91 @@ The Granola block integrates Granola into your workflow to retrieve meeting note
 ## When to Use
 
 - Fetch a list of recent meeting notes to feed into a summarization or follow-up workflow.
-- Retrieve a single meeting note by its ID, including attendees and the summary.
-- Include the full meeting transcript when you need verbatim detail for analysis.
-- Filter notes by creation or update date to scope a workflow to a time window.
-- Paginate through large sets of notes using a cursor.
+- Retrieve a single meeting note by its ID, including attendees, calendar event details, and the summary.
+- Include the full meeting transcript when you need verbatim detail for analysis or coaching.
+- Filter notes by creation or update date to scope a workflow to a specific time window.
+- Paginate through large sets of notes using a cursor from a previous response.
+- Drive post-meeting automation — action items, CRM updates, Slack summaries — directly from a Granola note.
 
 ## Configuration
 
 ### Operation
 
-Choose what the block does: `List Notes` (`list_notes`) to retrieve multiple notes, or `Get Note` (`get_note`) to fetch a single note. Defaults to `list_notes`.
+Choose what the block does. Defaults to `list_notes`.
+
+| Label | ID |
+|-------|----|
+| List Notes | `list_notes` |
+| Get Note | `get_note` |
 
 ### API Key
 
-Required Granola API key used to authenticate the request.
+Required. Your Granola API key used to authenticate requests to the Granola API.
 
 ### Note ID
 
-Required for the `get_note` operation. The ID of the note to retrieve (e.g., `not_1d3tmYTlCICgjy`).
+Required for the `get_note` operation. The ID of the specific note to retrieve (e.g., `not_1d3tmYTlCICgjy`). Only shown when `operation` is `get_note`.
 
 ### Include Transcript
 
-For `get_note`, whether to include the meeting transcript in the response (`true` / `false`, default `false`).
+Advanced. For `get_note`, whether to include the full meeting transcript in the response. Only shown when `operation` is `get_note`.
 
-### Date Filters & Pagination
+| Label | ID |
+|-------|----|
+| No | `false` |
+| Yes | `true` |
 
-For `list_notes`, optional advanced filters: `Created After`, `Created Before`, `Updated After`, `Page Size` (1-30), and `Cursor` for paginating through results.
+Defaults to `false`.
+
+### Created After
+
+Advanced. For `list_notes`, return only notes created after this date (ISO 8601, e.g., `2026-01-01`). Only shown when `operation` is `list_notes`.
+
+### Created Before
+
+Advanced. For `list_notes`, return only notes created before this date (ISO 8601, e.g., `2026-03-01`). Only shown when `operation` is `list_notes`.
+
+### Updated After
+
+Advanced. For `list_notes`, return only notes updated after this date (ISO 8601, e.g., `2026-01-01`). Only shown when `operation` is `list_notes`.
+
+### Page Size
+
+Advanced. For `list_notes`, number of notes to return per page (1–30, default 10). Only shown when `operation` is `list_notes`.
+
+### Cursor
+
+Advanced. For `list_notes`, a pagination cursor from a previous `list_notes` response, used to fetch the next page. Only shown when `operation` is `list_notes`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `noteId` (string), `includeTranscript` (string), `createdAfter` (string), `createdBefore` (string), `updatedAfter` (string), `pageSize` (number), `cursor` (string)
-- **Outputs**: `notes` (json), `hasMore` (boolean), `cursor` (string), `id` (string), `title` (string), `ownerName` (string), `ownerEmail` (string), `createdAt` (string), `updatedAt` (string), `transcript` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`list_notes` or `get_note`)
+  - `apiKey` (string) — Granola API key
+  - `noteId` (string) — Note ID for the `get_note` operation
+  - `includeTranscript` (string) — Whether to include transcript (`"true"` or `"false"`)
+  - `createdAfter` (string) — Filter notes created after this date
+  - `createdBefore` (string) — Filter notes created before this date
+  - `updatedAfter` (string) — Filter notes updated after this date
+  - `pageSize` (number) — Results per page (1–30)
+  - `cursor` (string) — Pagination cursor
+
+- **Outputs**:
+  - `notes` (json) — List of meeting notes (returned by `list_notes`)
+  - `hasMore` (boolean) — Whether more notes are available (returned by `list_notes`)
+  - `cursor` (string) — Pagination cursor for the next page (returned by `list_notes`)
+  - `id` (string) — Note ID (returned by `get_note`)
+  - `title` (string) — Note title (returned by `get_note`)
+  - `ownerName` (string) — Note owner name (returned by `get_note`)
+  - `ownerEmail` (string) — Note owner email (returned by `get_note`)
+  - `createdAt` (string) — Creation timestamp
+  - `updatedAt` (string) — Last update timestamp
+  - `transcript` (json) — Meeting transcript entries, if requested (returned by `get_note`)
+
+## Tools
+
+- **Granola List Notes** (`granola_list_notes`) — Calls `GET https://public-api.granola.ai/v1/notes` to list meeting notes with optional date filters (`createdAfter`, `createdBefore`, `updatedAfter`) and pagination (`pageSize`, `cursor`). Returns `notes`, `hasMore`, and `cursor`.
+- **Granola Get Note** (`granola_get_note`) — Calls `GET https://public-api.granola.ai/v1/notes/{noteId}` to retrieve a single note by ID. Optionally includes the full transcript when `includeTranscript` is `"true"`. Returns note metadata, summary, attendees, calendar event details, and optionally the transcript.
 
 ## YAML Example
 
@@ -61,7 +115,24 @@ granola_1:
     operation: "list_notes"
     apiKey: "{{GRANOLA_API_KEY}}"
     pageSize: 10
+    createdAfter: "2026-01-01"
   connections:
     outgoing:
       - target: agent-block-id
+```
+
+For a `get_note` example:
+
+```yaml
+granola_2:
+  type: granola
+  name: "Fetch Meeting Note"
+  inputs:
+    operation: "get_note"
+    apiKey: "{{GRANOLA_API_KEY}}"
+    noteId: "{{trigger.noteId}}"
+    includeTranscript: "true"
+  connections:
+    outgoing:
+      - target: summarize-block-id
 ```

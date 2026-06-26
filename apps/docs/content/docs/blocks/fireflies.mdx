@@ -1,0 +1,116 @@
+---
+title: Fireflies Block
+description: Access meeting transcripts and users in Fireflies.ai
+icon: Box
+---
+
+# Fireflies Block
+
+List meeting transcripts, get a single transcript with summary and action items, and fetch user information through the Fireflies.ai GraphQL API. Authenticate with a Fireflies API key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `fireflies` |
+| **Category** | `tools` |
+| **Color** | `#6E3AFF` |
+
+## When to Use
+
+- Retrieve a paginated list of recent meeting transcripts from your Fireflies.ai account to process or log them downstream.
+- Fetch a specific transcript by ID to extract its summary, action items, and keywords for use in downstream blocks.
+- Look up Fireflies user profile information — such as admin status, total transcripts recorded, and minutes consumed — for auditing or reporting workflows.
+- Chain with an Agent block to automatically summarize or triage meeting action items after every recorded call.
+- Use in a scheduled workflow to pull the latest meeting transcripts on a recurring basis and store results in a Table or send via Slack.
+
+## Configuration
+
+### Operation
+
+Selects which Fireflies.ai API operation to perform. This field is required and controls which additional sub-blocks are shown.
+
+| Label | ID |
+|-------|----|
+| List transcripts | `fireflies_list_transcripts` |
+| Get transcript | `fireflies_get_transcript` |
+| Get user | `fireflies_get_user` |
+
+---
+
+### Limit
+
+- **Shown when**: Operation = `List transcripts`
+- **Type**: Short input (number)
+- **Required**: No (defaults to `10`)
+- **Placeholder**: `10`
+
+The maximum number of transcripts to return from the listing. Omit to use the default of 10.
+
+---
+
+### Transcript ID
+
+- **Shown when**: Operation = `Get transcript`
+- **Type**: Short input (string)
+- **Required**: Yes (for this operation)
+- **Placeholder**: `abc123def456`
+
+The unique Fireflies transcript ID to retrieve. The response includes the full transcript object with summary, action items, and keywords.
+
+---
+
+### User ID
+
+- **Shown when**: Operation = `Get user`
+- **Type**: Short input (string)
+- **Required**: No (for this operation)
+- **Placeholder**: `user_abc123`
+
+The Fireflies user ID to look up. If omitted, the API returns the profile of the account owner associated with the provided API key.
+
+---
+
+### Fireflies API Key
+
+- **Type**: Short input (string, password)
+- **Required**: Yes (all operations)
+- **Placeholder**: `Your Fireflies API key`
+
+Your Fireflies.ai API key used for Bearer token authentication. Store this as a secret and reference it with `{{FIREFLIES_API_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs**:
+
+- `operation` (string) — Operation to perform (`fireflies_list_transcripts`, `fireflies_get_transcript`, or `fireflies_get_user`)
+- `apiKey` (string) — Fireflies API key used for authentication
+- `limit` (number) — Maximum number of transcripts to return (used by `List transcripts`)
+- `transcriptId` (string) — Transcript ID to retrieve (used by `Get transcript`)
+- `userId` (string) — User ID to look up (used by `Get user`; omit for the current account owner)
+
+**Outputs**:
+
+- `data` (json) — Result object or array from Fireflies. For `List transcripts`, this is an array of transcript objects (each with `id`, `title`, `date`, `duration`, `host_email`, `participants`). For `Get transcript`, this is a single transcript object that also includes `transcript_url` and a `summary` object (`overview`, `action_items`, `keywords`). For `Get user`, this is a user object with `user_id`, `name`, `email`, `is_admin`, `num_transcripts`, `minutes_consumed`.
+- `metadata` (json) — Response metadata. For `List transcripts`, contains `count` (number of transcripts returned). For `Get transcript` and `Get user`, contains `id` (the record identifier).
+
+## Tools
+
+- **Fireflies List Transcripts** (`fireflies_list_transcripts`) — Lists meeting transcripts from Fireflies.ai via a GraphQL query. Accepts `apiKey` (required) and `limit` (optional, defaults to 10). Returns an array of transcript summary objects.
+- **Fireflies Get Transcript** (`fireflies_get_transcript`) — Retrieves a single transcript by ID from Fireflies.ai via a GraphQL query. Accepts `apiKey` (required) and `transcriptId` (required). Returns the full transcript object including summary, action items, and keywords.
+- **Fireflies Get User** (`fireflies_get_user`) — Retrieves Fireflies user information via a GraphQL query. Accepts `apiKey` (required) and `userId` (optional; omit to return the account owner). Returns profile fields including admin status and usage statistics.
+
+## YAML Example
+
+```yaml
+fireflies_1:
+  type: fireflies
+  name: "Get Meeting Transcript"
+  inputs:
+    operation: "fireflies_get_transcript"
+    apiKey: "{{FIREFLIES_API_KEY}}"
+    transcriptId: "{{trigger.transcriptId}}"
+  connections:
+    outgoing:
+      - target: summarizer-agent
+```

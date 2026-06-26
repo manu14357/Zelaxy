@@ -1,0 +1,99 @@
+---
+title: Devin
+description: Launch and monitor AI software engineering sessions with Devin
+icon: Bot
+---
+
+# Devin
+
+Integrate Devin, the AI software engineer, directly into your workflows. Create coding sessions, send follow-up messages, inspect session state, and manage organization secrets — all without leaving Zelaxy.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `devin` |
+| **Category** | Tool — AI / Developer |
+| **Auth** | API Key (Bearer token starting with `cog_`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Create Session** | `devin_create_session` | Start a new Devin session with a task prompt; Devin works autonomously |
+| **Get Session** | `devin_get_session` | Retrieve full details of an existing session including status and outputs |
+| **List Sessions** | `devin_list_sessions` | List sessions in the organization (up to 200) |
+| **Send Message** | `devin_send_message` | Send a message to a running or suspended session; auto-resumes if suspended |
+| **Add Secret** | `devin_add_secret` | Add or update a secret in the Devin organization secrets store |
+| **Delete Secret** | `devin_delete_secret` | Remove a secret from the organization secrets store |
+| **Get Snapshot** | `devin_get_snapshot` | Retrieve a screenshot URL of the current state of a session |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Devin API key — a service user credential starting with `cog_`. Store as an environment variable and reference as `{{DEVIN_API_KEY}}`. |
+| `prompt` | `string` | Yes (Create Session) | The task description for Devin to work on autonomously. |
+| `playbookId` | `string` | No (Create Session) | Optional playbook ID to guide the session with a predefined set of instructions. |
+| `maxAcuLimit` | `number` | No (Create Session) | Maximum ACU (Agent Compute Unit) budget for the session. Prevents runaway compute. |
+| `tags` | `string` | No (Create Session) | Comma-separated tags to label the session (e.g., `ci,backend,bugfix`). |
+| `sessionId` | `string` | Yes (Get Session, Send Message, Get Snapshot) | The unique session identifier returned by Create Session. |
+| `message` | `string` | Yes (Send Message) | The message text to send to Devin in the session. |
+| `secretName` | `string` | Yes (Add Secret, Delete Secret) | Name of the secret in the organization store (e.g., `GITHUB_TOKEN`). |
+| `secretValue` | `string` (secret) | Yes (Add Secret) | The secret value to store. Treated as sensitive — never log or expose this value. |
+| `limit` | `number` | No (List Sessions) | Maximum number of sessions to return (1–200, default: 100). |
+
+## Outputs
+
+### Create Session / Get Session / Send Message
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sessionId` | `string` | Unique identifier for the session |
+| `url` | `string` | URL to view the session in the Devin UI |
+| `status` | `string` | Session lifecycle status: `new`, `claimed`, `running`, `exit`, `error`, `suspended`, or `resuming` |
+| `statusDetail` | `string` | Granular status: `working`, `waiting_for_user`, `waiting_for_approval`, `finished`, `inactivity`, etc. |
+| `title` | `string` | Auto-generated session title |
+| `createdAt` | `number` | Unix timestamp when the session was created |
+| `updatedAt` | `number` | Unix timestamp of the last session update |
+| `acusConsumed` | `number` | ACUs consumed so far in the session |
+| `tags` | `json` | Array of tag strings associated with the session |
+| `pullRequests` | `json` | Pull requests opened during the session (each has `pr_url` and `pr_state`) |
+| `structuredOutput` | `json` | Structured output data produced by the session (if any) |
+| `playbookId` | `string` | Playbook ID used for the session (if provided) |
+
+### List Sessions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sessions` | `array` | Array of session objects, each containing: `sessionId`, `url`, `status`, `statusDetail`, `title`, `createdAt`, `updatedAt`, `tags` |
+
+### Add Secret / Delete Secret
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | Whether the operation completed successfully |
+| `secretName` | `string` | Name of the secret that was added or deleted |
+
+### Get Snapshot
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sessionId` | `string` | The session ID the snapshot belongs to |
+| `snapshotUrl` | `string` | URL of the screenshot image of the current session state |
+
+## Example
+
+```
+[Starter] → [Devin: Create Session] → [Agent: Summarize result]
+```
+
+Use a Starter block to receive a task description, then pass it to a Devin block configured for **Create Session** with `apiKey` set to `{{DEVIN_API_KEY}}` and `prompt` set to `{{starter.input}}`. After Devin finishes (poll with **Get Session** until `statusDetail` is `finished`), pipe `{{devin.structuredOutput}}` or `{{devin.pullRequests}}` into an Agent block to draft a Slack message summarizing the work done.
+
+## Tips
+
+- **Polling for completion:** Devin sessions run asynchronously. After **Create Session**, use a loop block with **Get Session** to poll `statusDetail` until it equals `finished` or `waiting_for_user` before consuming downstream outputs.
+- **ACU budgeting:** Set `maxAcuLimit` on long-running tasks to cap compute spend. Monitor `acusConsumed` from **Get Session** to track usage.
+- **Secrets management:** Use **Add Secret** to provision credentials Devin needs inside the session (e.g., a database password) and **Delete Secret** afterward to clean up. Never pass secrets directly in the task `prompt`.
+- **Resuming suspended sessions:** If `status` is `suspended`, simply call **Send Message** — it automatically resumes the session before delivering your message, so no separate resume step is needed.
+- **Playbooks:** If your organization has defined Devin playbooks, supply the `playbookId` on **Create Session** to enforce consistent task execution patterns across workflows.

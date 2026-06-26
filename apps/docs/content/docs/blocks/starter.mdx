@@ -1,79 +1,71 @@
 ---
 title: Start Block
-description: The entry point for every workflow — receives input and triggers execution
-icon: Play
+description: Start workflow — initiate your workflow manually with optional structured input for API calls.
+icon: Box
 ---
 
 # Start Block
 
-Every workflow begins with a Start block. It receives the initial input (user message, webhook payload, or scheduled trigger) and makes it available to all downstream blocks via `{{starter.input}}`.
+The Start block is the entry point of every workflow. It initiates execution manually or through a chat interface, and optionally accepts structured JSON input that can be defined for API-driven calls.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `starter` |
-| **Category** | Core Block |
-| **Color** | `#2563EB` (Blue) |
+| **Category** | `blocks` |
+| **Color** | `#F97316` |
 
 ## When to Use
 
-- Every workflow **must** have exactly one Start block
-- Add it from the Node Library to begin your workflow
-- Configure it to accept different input types and connect triggers
+- Place one Start block at the beginning of every workflow — it is the required entry point
+- Use **Run manually** mode when you want to trigger the workflow from the Zelaxy UI or via a direct API call with optional structured input
+- Use **Chat** mode when the workflow is designed to respond to conversational messages
+- Define an **Input Format** to declare named fields that callers must supply when invoking the workflow through the API
+- Reference the workflow's initial payload in downstream blocks via `{{starter.input}}`
 
 ## Configuration
 
-| Setting | Type | Description |
-|---------|------|-------------|
-| Start Label | Short input | Display label for the start button |
-| Input Type | Dropdown | Expected input format: `text`, `json`, `file` |
-| Triggers | Trigger config | Connect webhooks, schedules, or generic webhooks |
+### Start Workflow
 
-### Input Modes
+A dropdown that controls how the workflow is triggered.
 
-**Text** — Simple string input from the chat interface or API call.
+| Option | ID | Description |
+|--------|----|-------------|
+| Run manually | `manual` | Trigger the workflow from the UI or API. Reveals the Input Format editor. |
+| Chat | `chat` | Trigger the workflow through a chat/conversational interface. |
 
-**JSON** — Accepts structured JSON for complex input scenarios with multiple fields.
+**Default:** `manual`
 
-**File** — Accepts file uploads for document processing workflows.
+### Input Format (for API calls)
 
-## Outputs
+Visible only when **Start Workflow** is set to `manual`.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `input` | `string` | The raw input text or JSON string |
-| `file` | `file` | Uploaded file reference (file mode) |
-| `trigger` | `json` | Trigger metadata (webhook headers, schedule info) |
+An `input-format` editor that lets you declare the structured fields your workflow accepts when called via the API. Each field you define becomes a named key in the `input` JSON payload supplied at runtime. Leave this empty if the workflow requires no structured input.
 
-## Example: Simple Chatbot Entry Point
+## Inputs & Outputs
 
-**Workflow:**
+- **Inputs**: `input` (json) — Workflow input data
+
+- **Outputs**: *(none)* — The Start block has no output fields. Downstream blocks receive the workflow's input through the execution context, not a named output.
+
+## Tools
+
+The Start block uses no external tools (`tools.access` is empty). It is a structural block that initiates execution and passes input data into the workflow.
+
+## YAML Example
+
+```yaml
+starter_1:
+  type: starter
+  name: "Start"
+  inputs:
+    startWorkflow: "manual"
+    inputFormat:
+      - name: "query"
+        type: "string"
+        description: "The search query to process"
+  connections:
+    outgoing:
+      - target: agent_1
 ```
-[Starter] → [Agent] → [Response]
-```
-
-**How it works:**
-1. User types a message in the workflow chat
-2. Starter captures it as `{{starter.input}}`
-3. Agent processes the input and generates a response
-4. Response block returns the answer to the user
-
-## Example: Webhook-Triggered Automation
-
-**Workflow:**
-```
-[Starter (webhook)] → [Function: Parse] → [Agent] → [Slack]
-```
-
-**How it works:**
-1. External service sends POST request to the workflow's webhook URL
-2. Starter captures the JSON body as `{{starter.input}}`
-3. Function block parses and extracts relevant fields
-4. Agent processes and sends results to Slack
-
-## Tips
-
-- **Reference input everywhere** — `{{starter.input}}` is available in any downstream block
-- **For JSON input**, parse it in a Function block: `JSON.parse(inputs.starter.input)`
-- **Connect triggers** for automated execution (webhooks, schedules)

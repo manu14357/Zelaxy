@@ -1,0 +1,72 @@
+---
+title: Cursor
+description: Launch and manage AI coding agents in Cursor from your workflows
+icon: Code
+---
+
+# Cursor
+
+Integrate Cursor's AI coding agents into Zelaxy workflows. Launch agents against a repository, send follow-up prompts, poll agent status, retrieve conversation history, and stop running agents — all from a single block. Use it to automate code-generation tasks, coordinate multi-step coding jobs, or build CI-style pipelines that invoke Cursor on demand.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `cursor` |
+| **Category** | Tool — Developer |
+| **Auth** | Basic (API Key — key sent as the username of an HTTP Basic credential) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Launch Agent** | `cursor_launch_agent` | Start a new AI coding agent against a repository with a prompt and optional model selection |
+| **Add Followup** | `cursor_add_followup` | Send a follow-up prompt to a running or paused agent conversation |
+| **Get Agent** | `cursor_get_agent` | Retrieve the status and details of a specific agent by ID |
+| **Get Conversation** | `cursor_get_conversation` | Fetch the full conversation message history for an agent |
+| **List Agents** | `cursor_list_agents` | List all agents with optional pagination |
+| **Stop Agent** | `cursor_stop_agent` | Halt a running agent |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes (all operations) | Cursor API key. Sent as the username of an HTTP Basic header — keep it in an env var and reference it as `{{CURSOR_API_KEY}}`. |
+| `repository` | `string` | Yes (Launch Agent) | Repository slug in `org/repo` format (e.g., `acme/backend`). Tells the agent which codebase to work in. |
+| `ref` | `string` | No (Launch Agent) | Branch or commit ref to check out (e.g., `main`, `feature/my-branch`). Defaults to the repo's default branch when omitted. |
+| `promptText` | `string` | Yes (Launch Agent, Add Followup) | The natural-language task description sent to the agent. For Launch Agent this is the initial prompt; for Add Followup it continues the existing conversation. |
+| `model` | `string` | No (Launch Agent) | Model to use for the agent (e.g., `claude-4-5`). Omit to use the Cursor default. |
+| `agentId` | `string` | Yes (Add Followup, Get Agent, Get Conversation, Stop Agent) | The unique agent ID returned by Launch Agent. Pipe it from an upstream block with `{{launchBlock.id}}`. |
+| `limit` | `number` | No (List Agents) | Maximum number of agents to return per page. |
+| `cursor` | `string` | No (List Agents) | Pagination cursor from a previous List Agents response (`nextCursor`) to fetch the next page. |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Agent ID (Launch Agent, Add Followup, Get Agent, Get Conversation, Stop Agent) |
+| `url` | `string` | Link to view the agent in the Cursor UI — `https://cursor.com/agents?selectedBcId={id}` (Launch Agent only) |
+| `name` | `string` | Agent name, if set (Get Agent) |
+| `status` | `string` | Current agent status, e.g., `running`, `completed`, `stopped` (Get Agent) |
+| `source` | `json` | Source repository information including repository slug and ref (Get Agent) |
+| `target` | `json` | Target branch information (Get Agent) |
+| `summary` | `string` | Agent summary produced after completion (Get Agent) |
+| `createdAt` | `string` | ISO timestamp of when the agent was created (Get Agent) |
+| `messages` | `json` | Array of conversation messages, each with role and content (Get Conversation) |
+| `agents` | `json` | Array of agent objects from the account (List Agents) |
+| `nextCursor` | `string` | Pagination cursor to pass back as `cursor` for the next page (List Agents) |
+
+## Example
+
+```
+[Starter] → [Cursor: Launch Agent] → [Cursor: Get Agent] → [Agent: summarize the result]
+```
+
+A webhook trigger fires with a task description in `{{starter.input.task}}`. The first Cursor block launches an agent against `{{REPO_SLUG}}` on `main` using `{{CURSOR_API_KEY}}`, producing an agent `id`. A second Cursor block polls **Get Agent** with `{{launchAgent.id}}` to check the status. Once the workflow confirms completion, a downstream Agent block reads `{{getAgent.summary}}` and sends a Slack notification with the coding result.
+
+## Tips
+
+- **Pipe the agent ID** — Launch Agent returns `id` as its primary output; every downstream operation (Add Followup, Get Agent, Get Conversation, Stop Agent) requires it. Store it with a Variable block or pass it directly via `{{launchAgent.id}}`.
+- **Poll with a loop** — agents run asynchronously. Use a Loop block that calls **Get Agent** repeatedly and exits when `{{getAgent.status}}` equals `completed` or `stopped`.
+- **Auth format** — Cursor uses HTTP Basic auth with the API key as the username and an empty password. You do not need to base64-encode it yourself; supply the raw key as `{{CURSOR_API_KEY}}` and the tool handles encoding.
+- **List Agents pagination** — pass `{{listAgents.nextCursor}}` back into `cursor` on the next iteration to walk through all results when you have many agents.

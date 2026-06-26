@@ -6,7 +6,7 @@ icon: Box
 
 # Twilio SMS Block
 
-The Twilio SMS block sends text messages to single or multiple recipients using the Twilio API. Reach for it whenever a workflow needs to notify people by SMS, such as alerts, confirmations, or one-time codes.
+The Twilio SMS block sends text messages to single or multiple recipients using the Twilio API. Reach for it whenever a workflow needs to notify people by SMS — such as alerts, confirmations, one-time codes, or status updates.
 
 ## Overview
 
@@ -18,54 +18,67 @@ The Twilio SMS block sends text messages to single or multiple recipients using 
 
 ## When to Use
 
-- Send transactional alerts (order updates, status changes) to a customer's phone.
-- Deliver one-time passcodes or verification messages during a workflow.
-- Broadcast a message to multiple recipients by listing several phone numbers.
-- Notify an on-call person when an automated process detects an error.
-- Send appointment or reminder texts triggered on a schedule.
+- Send transactional alerts (order updates, payment receipts, status changes) to a customer's phone.
+- Deliver one-time passcodes or verification codes as part of an authentication or approval workflow.
+- Notify an on-call engineer or team member when an automated process detects a failure.
+- Send appointment reminders or confirmations triggered by a schedule or form submission.
+- Broadcast a message to multiple recipients by listing several phone numbers, one per line.
+- Integrate SMS into multi-channel notification pipelines alongside email or Slack.
 
 ## Configuration
 
 ### Recipient Phone Numbers
-The phone numbers to text, in E.164 format with country code (e.g. `+1234567890`), one per line for multiple recipients. Required.
+
+The phone numbers to send the SMS to, in E.164 format (e.g. `+1234567890`). Enter one phone number per line to send to multiple recipients. Required.
+
+> Note: The underlying tool sends to the **first** phone number in the list per API call. To message multiple recipients, chain multiple blocks or handle the list upstream.
 
 ### Message
-The body of the SMS to send. Required.
+
+The body text of the SMS message. Required. Supports dynamic values injected via `{{blockName.field}}` references from upstream blocks.
 
 ### Twilio Account SID
-Your Twilio Account SID used to authenticate the API request. Required.
+
+Your Twilio Account SID, available in the Twilio Console. Used to identify your account for API authentication. Required.
 
 ### Auth Token
-Your Twilio Auth Token (stored as a password field). Required.
+
+Your Twilio Auth Token, available in the Twilio Console. Stored and handled as a password (masked in the UI). Required. Use an environment variable reference such as `{{TWILIO_AUTH_TOKEN}}` to avoid hardcoding credentials.
 
 ### From Twilio Phone Number
-The Twilio phone number messages are sent from (e.g. `+1234567890`). Required.
+
+The Twilio phone number to send the message from, in E.164 format (e.g. `+1987654321`). This must be a number purchased and configured in your Twilio account. Required.
 
 ## Inputs & Outputs
 
 - **Inputs**:
-  - `phoneNumbers` (string) — Recipient phone numbers
-  - `message` (string) — SMS message text
-  - `accountSid` (string) — Twilio account SID
-  - `authToken` (string) — Twilio auth token
-  - `fromNumber` (string) — Sender phone number
+  - `phoneNumbers` (string) — Recipient phone numbers, one per line in E.164 format (e.g. `+1234567890`)
+  - `message` (string) — SMS message text to send
+  - `accountSid` (string) — Twilio Account SID for API authentication
+  - `authToken` (string) — Twilio Auth Token for API authentication
+  - `fromNumber` (string) — Twilio phone number to send the message from
+
 - **Outputs**:
-  - `success` (boolean) — Send success status
-  - `messageId` (string) — Twilio message SID
-  - `status` (string) — SMS delivery status (queued, sent, delivered, etc.)
+  - `success` (boolean) — Whether the SMS was sent successfully
+  - `messageId` (string) — Unique Twilio message SID returned after a successful send
+  - `status` (string) — SMS delivery status from Twilio (e.g. `queued`, `sent`, `delivered`, `failed`)
   - `error` (string) — Error information if sending fails
+
+## Tools
+
+**Twilio Send SMS** (`twilio_send_sms`) — Sends an SMS via the Twilio Messages API (`POST /2010-04-01/Accounts/{AccountSid}/Messages.json`). Authenticates with HTTP Basic Auth using the Account SID and Auth Token. Accepts the recipient number, sender number, and message body, then returns the Twilio message SID and delivery status.
 
 ## YAML Example
 
 ```yaml
 twilio_sms_1:
   type: twilio_sms
-  name: "Twilio SMS"
+  name: "Send Alert SMS"
   inputs:
     phoneNumbers: "+1234567890"
-    message: "Hello! This is a test message."
-    accountSid: "{{start.accountSid}}"
-    authToken: "{{start.authToken}}"
+    message: "Alert: {{monitor_block.alertMessage}}"
+    accountSid: "{{TWILIO_ACCOUNT_SID}}"
+    authToken: "{{TWILIO_AUTH_TOKEN}}"
     fromNumber: "+1987654321"
   connections:
     outgoing:

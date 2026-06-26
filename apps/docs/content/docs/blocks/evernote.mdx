@@ -6,7 +6,7 @@ icon: Box
 
 # Evernote Block
 
-The Evernote block brings note-taking into your workflows. Use it to create, read, update, delete, and search notes, as well as list notebooks in your Evernote account.
+The Evernote block integrates note-taking into your workflows, letting you create, read, update, delete, and search notes and list notebooks in your Evernote account. Reach for it whenever a workflow needs to capture, retrieve, or manage Evernote content programmatically.
 
 ## Overview
 
@@ -19,42 +19,74 @@ The Evernote block brings note-taking into your workflows. Use it to create, rea
 ## When to Use
 
 - Automatically create notes from incoming data, summaries, or workflow output.
-- Capture meeting notes, research, or generated content into a notebook.
-- Retrieve a specific note by its GUID to use its contents downstream.
-- Update an existing note's title or content as part of an automation.
-- Search across notes with Evernote's query syntax (e.g. `notebook:Research tag:important`).
-- List available notebooks to drive routing or downstream logic.
+- Capture meeting notes, research, or generated content into a specific notebook.
+- Retrieve a specific note by its GUID to pass its contents to downstream blocks.
+- Update an existing note's title or content as part of an ongoing automation.
+- Search across notes using Evernote's query syntax (e.g. `notebook:Research tag:important`).
+- List available notebooks to drive routing logic or populate a selection in another block.
 
 ## Configuration
 
 ### Operation
 
-Selects which action to perform: Create Note, Get Note, Update Note, Delete Note, Search Notes, or List Notebooks.
+Selects which action to perform. Required.
+
+| Label | id |
+|-------|----|
+| Create Note | `evernote_create_note` |
+| Get Note | `evernote_get_note` |
+| Update Note | `evernote_update_note` |
+| Delete Note | `evernote_delete_note` |
+| Search Notes | `evernote_search_notes` |
+| List Notebooks | `evernote_list_notebooks` |
 
 ### Developer Token
 
-The Evernote developer token used to authenticate API requests. Required and stored as a secret.
+Your Evernote developer token used to authenticate all API requests. Required for every operation. Stored as a secret — supply it as `{{EVERNOTE_TOKEN}}`.
 
 ### Title
 
-The note title. Shown for Create Note and Update Note operations.
+The note title. Visible for **Create Note** and **Update Note** operations.
 
 ### Content
 
-The note body. Shown for Create Note and Update Note operations.
+The note body (plain text or ENML). Visible for **Create Note** and **Update Note** operations.
 
 ### Note GUID
 
-The identifier of the target note. Shown for Get Note, Update Note, and Delete Note operations.
+The unique identifier of the target note. Visible for **Get Note**, **Update Note**, and **Delete Note** operations.
 
 ### Search Query
 
-The Evernote search expression. Shown for the Search Notes operation.
+An Evernote search expression (supports full Evernote search syntax, e.g. `notebook:Research tag:important`). Visible for the **Search Notes** operation.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `title` (string), `content` (string), `noteGuid` (string), `query` (string)
-- **Outputs**: `note` (json), `notes` (json), `notebooks` (json)
+**Inputs** (subBlock ids):
+
+- `operation` (string) — Operation to perform (one of the tool ids listed above)
+- `apiKey` (string) — Developer token for authentication
+- `title` (string) — Note title (Create Note / Update Note)
+- `content` (string) — Note content, plain text or ENML (Create Note / Update Note)
+- `noteGuid` (string) — GUID of the target note (Get Note / Update Note / Delete Note)
+- `query` (string) — Search query (Search Notes)
+
+**Outputs** (returned by the block depending on operation):
+
+- `note` (json) — Note data object; returned by Create Note, Get Note, and Update Note. Fields include `guid`, `title`, `content`, `notebookGuid`, `tagNames`, `created`, `updated`.
+- `notes` (json) — Array of matching note objects; returned by Search Notes.
+- `notebooks` (json) — Array of notebook objects; returned by List Notebooks.
+
+Note: Delete Note does not populate the above outputs. Its underlying tool returns `success` (boolean) and `noteGuid` (string) of the deleted note. Search Notes also returns a `total` (number) count of matching notes from the tool layer.
+
+## Tools
+
+- **Evernote Create Note** (`evernote_create_note`) — Creates a new note. Key params: `apiKey`, `title`, `content`, optional `notebookGuid`, optional `tagNames` (comma-separated). Returns the created `note` object.
+- **Evernote Get Note** (`evernote_get_note`) — Retrieves a note by GUID. Key params: `apiKey`, `noteGuid`. Returns the `note` object with guid, title, content, notebookGuid, tagNames, created, and updated fields.
+- **Evernote Update Note** (`evernote_update_note`) — Updates an existing note. Key params: `apiKey`, `noteGuid`, optional `title`, optional `content`, optional `tagNames`. Returns the updated `note` object.
+- **Evernote Delete Note** (`evernote_delete_note`) — Deletes a note by GUID. Key params: `apiKey`, `noteGuid`. Returns `success` (boolean) and `noteGuid` of the deleted note.
+- **Evernote Search Notes** (`evernote_search_notes`) — Searches notes using Evernote query syntax. Key params: `apiKey`, `query`, optional `maxNotes` (default 20), optional `notebookGuid`. Returns `notes` array and `total` count.
+- **Evernote List Notebooks** (`evernote_list_notebooks`) — Lists all notebooks in the account. Key params: `apiKey`. Returns `notebooks` array.
 
 ## YAML Example
 
@@ -64,9 +96,9 @@ evernote_1:
   name: "Evernote"
   inputs:
     operation: "evernote_create_note"
-    apiKey: "{{secrets.EVERNOTE_TOKEN}}"
+    apiKey: "{{EVERNOTE_TOKEN}}"
     title: "Workflow Summary"
-    content: "{{start.input}}"
+    content: "{{summarizer.result}}"
   connections:
     outgoing:
       - target: next-block-id

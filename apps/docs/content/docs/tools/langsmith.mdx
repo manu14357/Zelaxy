@@ -1,0 +1,99 @@
+---
+title: LangSmith Tools
+description: Inspect LangSmith runs and submit feedback from a Zelaxy workflow.
+icon: FlaskConical
+---
+
+# LangSmith Tools
+
+LangSmith is LangChain's observability and evaluation platform for LLM applications. Use these tools in a workflow to list runs in a project, fetch a single run by ID, and attach feedback (such as a correctness score) to a run programmatically.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `langsmith` |
+| **Category** | `tools` |
+| **Auth** | API Key (sent as the `x-api-key` request header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List runs | `langsmith_list_runs` | List runs in a LangSmith session (project) |
+| Get run | `langsmith_get_run` | Get a single LangSmith run by its ID |
+| Create feedback | `langsmith_create_feedback` | Create feedback for a LangSmith run |
+
+## Configuration
+
+### `langsmith_list_runs`
+
+Lists runs in a session (project). Calls `POST https://api.smith.langchain.com/runs/query`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** LangSmith API key. Visibility: `user-only`. Sent as the `x-api-key` header. |
+| `session` | string | Yes | Session (project) ID to list runs from. Visibility: `user-or-llm`. |
+| `limit` | number | No | Maximum number of runs to return. Visibility: `user-or-llm`. |
+
+### `langsmith_get_run`
+
+Fetches a single run. Calls `GET https://api.smith.langchain.com/runs/{runId}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** LangSmith API key. Visibility: `user-only`. Sent as the `x-api-key` header. |
+| `runId` | string | Yes | ID of the run to retrieve. Visibility: `user-or-llm`. |
+
+### `langsmith_create_feedback`
+
+Creates feedback for a run. Calls `POST https://api.smith.langchain.com/feedback`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** LangSmith API key. Visibility: `user-only`. Sent as the `x-api-key` header. |
+| `run_id` | string | Yes | ID of the run to attach feedback to. Visibility: `user-or-llm`. |
+| `key` | string | Yes | Feedback key (e.g. `correctness`). Visibility: `user-or-llm`. |
+| `score` | number | No | Numeric feedback score. Visibility: `user-or-llm`. |
+
+## Outputs
+
+### `langsmith_list_runs`
+
+- `data` (json) — Array of run objects returned by LangSmith.
+- `metadata` (json) — List metadata. Contains:
+  - `count` (number) — Number of runs returned.
+
+### `langsmith_get_run`
+
+- `data` (json) — The run object.
+- `metadata` (json) — Run identifiers. Contains:
+  - `id` (string) — Run ID.
+
+### `langsmith_create_feedback`
+
+- `data` (json) — The created feedback object.
+- `metadata` (json) — Feedback identifiers. Contains:
+  - `id` (string) — Feedback ID.
+
+## YAML Example
+
+```yaml
+langsmith_1:
+  type: langsmith
+  name: "LangSmith"
+  inputs:
+    operation: "langsmith_list_runs"
+    session: "my-project-session-id"
+    limit: 10
+    apiKey: "{{LANGSMITH_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authenticate with a LangSmith API key (typically prefixed `lsv2_...`). The key is sent as the `x-api-key` header, not a Bearer token. Store it as an environment variable and reference it with `{{LANGSMITH_API_KEY}}` so it is never hardcoded.
+- The list-runs operation needs a **session** (project) ID, not a project name. Get a run's `id` from a `langsmith_list_runs` result and pass it as `runId` (for `langsmith_get_run`) or `run_id` (for `langsmith_create_feedback`) — note the parameter name differs between those two operations.
+- To pipe a run ID from a previous block, use double-brace references, e.g. `runId: "{{langsmith_1.data}}"` then index into the run object, or chain `langsmith_create_feedback` after `langsmith_get_run` to score a fetched run with a `key` like `correctness` and a numeric `score`.

@@ -1,0 +1,56 @@
+---
+title: Delay
+description: Pause workflow execution for a configurable amount of time
+icon: Clock
+---
+
+# Delay
+
+The **Delay** block pauses your workflow for a set duration before continuing to the next step. Use it to rate-limit API calls, wait for external processes to complete, create timed sequences, or add cooldowns between actions.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `delay` |
+| **Category** | Tool — Flow Control |
+| **Auth** | None |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Wait / Delay** | `delay_wait` | Pause execution for the specified duration (seconds, minutes, or hours) |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `duration` | number | Yes | How long to wait. Enter a positive numeric value (e.g. `5`, `30`, `1.5`). |
+| `unit` | string | Yes | Time unit for the delay. Accepted values: `seconds`, `minutes`, `hours`. Defaults to `seconds`. |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `delayed` | boolean | `true` when the delay completed successfully |
+| `duration` | number | The requested delay duration as passed in |
+| `unit` | string | The time unit used (`seconds`, `minutes`, or `hours`) |
+| `delayMs` | number | Actual delay in milliseconds (computed from `duration` and `unit`) |
+| `startedAt` | string | ISO 8601 timestamp recording when the delay began |
+| `completedAt` | string | ISO 8601 timestamp recording when the delay finished |
+
+## Example
+
+```
+[Starter] → [HTTP Request: trigger scrape] → [Delay: wait 30 seconds] → [HTTP Request: fetch result] → [Agent: summarise]
+```
+
+A workflow kicks off a slow external scrape job, then uses a Delay block configured with `duration = 30` and `unit = seconds` to wait before polling for the result. Set the duration with `{{starter.waitSeconds}}` to make the pause dynamic, and pass `completedAt` downstream to log exactly when execution resumed.
+
+## Tips
+
+- **Rate limiting**: Insert a Delay between blocks that hammer an API to stay within per-second or per-minute quotas.
+- **Polling pattern**: Pair a Delay with a Loop block — delay between each poll iteration until a condition is met.
+- **Dynamic duration**: Supply `duration` from an upstream block output (e.g. `{{httpRequest.retryAfter}}`) to honour `Retry-After` headers automatically.
+- **Unit choice**: Prefer `seconds` for short waits (under a minute) and `minutes`/`hours` for longer pauses — it keeps the duration value readable.

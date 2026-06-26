@@ -1,0 +1,318 @@
+---
+title: Kalshi Tools
+description: Browse and trade Kalshi prediction markets — query markets, events, orderbooks, candlesticks, and manage your portfolio and orders
+icon: TrendingUp
+---
+
+# Kalshi Tools
+
+Kalshi is a regulated prediction-market exchange. These tools let a workflow browse markets, events, orderbooks, trades, and candlestick data, and — with API credentials — read your balance and positions and create, amend, or cancel orders. Use them when you want an agent to research market prices or place and manage trades programmatically.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `kalshi` |
+| **Category** | `tools` |
+| **Auth** | RSA-signed (Key ID + RSA private key) for portfolio/order operations; none for public market data |
+
+Public market-data operations (markets, events, orderbook, trades, candlesticks, series, exchange status) require no authentication. Portfolio and order operations require a Kalshi **Key ID** and an **RSA private key** (PEM), which the tool uses to generate `KALSHI-ACCESS-KEY`, `KALSHI-ACCESS-TIMESTAMP`, and `KALSHI-ACCESS-SIGNATURE` headers (RSA-PSS SHA-256 signature over `timestamp + METHOD + path`). The base URL is `https://api.elections.kalshi.com/trade-api/v2`.
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Get Markets | `kalshi_get_markets` | List prediction markets with optional filtering |
+| Get Market | `kalshi_get_market` | Get details for one market by ticker |
+| Get Events | `kalshi_get_events` | List events with optional filtering |
+| Get Event | `kalshi_get_event` | Get details for one event by ticker |
+| Get Orderbook | `kalshi_get_orderbook` | Get the yes/no bid orderbook for a market |
+| Get Trades | `kalshi_get_trades` | List recent trades across markets |
+| Get Candlesticks | `kalshi_get_candlesticks` | Get OHLC candlestick data for a market |
+| Get Series by Ticker | `kalshi_get_series_by_ticker` | Get series details for a series ticker |
+| Get Exchange Status | `kalshi_get_exchange_status` | Get current exchange/trading status |
+| Get Balance | `kalshi_get_balance` | Get account balance and portfolio value |
+| Get Positions | `kalshi_get_positions` | List your open positions |
+| Get Orders | `kalshi_get_orders` | List your orders with optional filtering |
+| Get Order | `kalshi_get_order` | Get one order by ID |
+| Get Fills | `kalshi_get_fills` | List your portfolio fills/trades |
+| Create Order | `kalshi_create_order` | Place a new order on a market |
+| Cancel Order | `kalshi_cancel_order` | Cancel an existing order |
+| Amend Order | `kalshi_amend_order` | Change the count or price of an existing order |
+
+## Configuration
+
+### kalshi_get_markets
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `status` | string | No | Filter by market status: `unopened`, `open`, `closed`, or `settled` |
+| `seriesTicker` | string | No | Filter by series ticker (e.g. `KXBTC`, `INX`) |
+| `eventTicker` | string | No | Filter by event ticker (e.g. `KXBTC-24DEC31`) |
+| `limit` | string | No | Number of results to return (1-1000, default 100) |
+| `cursor` | string | No | Pagination cursor from a previous response |
+
+### kalshi_get_market
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `ticker` | string | Yes | Market ticker identifier (e.g. `KXBTC-24DEC31`) |
+
+### kalshi_get_events
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `status` | string | No | Filter by event status |
+| `seriesTicker` | string | No | Filter by series ticker |
+| `limit` | string | No | Number of results to return (1-200, default 100) |
+| `cursor` | string | No | Pagination cursor from a previous response |
+
+### kalshi_get_event
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `eventTicker` | string | Yes | Event ticker identifier (e.g. `KXBTC-24DEC31`) |
+| `withNestedMarkets` | boolean | No | Include nested markets in the response |
+
+### kalshi_get_orderbook
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `ticker` | string | Yes | Market ticker identifier (e.g. `KXBTC-24DEC31`) |
+| `depth` | number | No | Number of price levels to return |
+
+### kalshi_get_trades
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `ticker` | string | No | Filter by market ticker |
+| `limit` | string | No | Number of results to return (1-1000, default 100) |
+| `cursor` | string | No | Pagination cursor from a previous response |
+
+### kalshi_get_candlesticks
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `seriesTicker` | string | Yes | Series ticker identifier (e.g. `KXBTC`) |
+| `ticker` | string | Yes | Market ticker identifier (e.g. `KXBTC-24DEC31`) |
+| `startTs` | number | Yes | Start timestamp in Unix seconds |
+| `endTs` | number | Yes | End timestamp in Unix seconds |
+| `periodInterval` | number | Yes | Period interval: `1` (1 minute), `60` (1 hour), or `1440` (1 day) |
+
+### kalshi_get_series_by_ticker
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `seriesTicker` | string | Yes | Series ticker identifier (e.g. `KXBTC`, `INX`) |
+
+### kalshi_get_exchange_status
+
+No parameters. Returns the current exchange and trading status.
+
+### kalshi_get_balance
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `keyId` | string | Yes | Your Kalshi API Key ID |
+| `privateKey` | string | Yes | **Secret.** Your RSA private key (PEM format) — used to sign the request |
+
+### kalshi_get_positions
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `keyId` | string | Yes | Your Kalshi API Key ID |
+| `privateKey` | string | Yes | **Secret.** Your RSA private key (PEM format) |
+| `ticker` | string | No | Filter by market ticker |
+| `eventTicker` | string | No | Filter by event ticker |
+| `settlementStatus` | string | No | Filter by settlement status: `all`, `unsettled`, or `settled` |
+| `limit` | string | No | Number of results to return (1-1000, default 100) |
+| `cursor` | string | No | Pagination cursor from a previous response |
+
+### kalshi_get_orders
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `keyId` | string | Yes | Your Kalshi API Key ID |
+| `privateKey` | string | Yes | **Secret.** Your RSA private key (PEM format) |
+| `ticker` | string | No | Filter by market ticker |
+| `eventTicker` | string | No | Filter by event ticker |
+| `status` | string | No | Filter by order status: `resting`, `canceled`, or `executed` |
+| `limit` | string | No | Number of results to return (1-200, default 100) |
+| `cursor` | string | No | Pagination cursor from a previous response |
+
+### kalshi_get_order
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `keyId` | string | Yes | Your Kalshi API Key ID |
+| `privateKey` | string | Yes | **Secret.** Your RSA private key (PEM format) |
+| `orderId` | string | Yes | Order ID to retrieve |
+
+### kalshi_get_fills
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `keyId` | string | Yes | Your Kalshi API Key ID |
+| `privateKey` | string | Yes | **Secret.** Your RSA private key (PEM format) |
+| `ticker` | string | No | Filter by market ticker |
+| `orderId` | string | No | Filter by order ID |
+| `minTs` | number | No | Minimum timestamp in Unix milliseconds |
+| `maxTs` | number | No | Maximum timestamp in Unix milliseconds |
+| `limit` | string | No | Number of results to return (1-1000, default 100) |
+| `cursor` | string | No | Pagination cursor from a previous response |
+
+### kalshi_create_order
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `keyId` | string | Yes | Your Kalshi API Key ID |
+| `privateKey` | string | Yes | **Secret.** Your RSA private key (PEM format) |
+| `ticker` | string | Yes | Market ticker identifier |
+| `side` | string | Yes | Side of the order: `yes` or `no` |
+| `action` | string | Yes | Action type: `buy` or `sell` |
+| `count` | string | Yes | Number of contracts to trade |
+| `type` | string | No | Order type: `limit` or `market` (default `limit`) |
+| `yesPrice` | string | No | Yes price in cents (1-99) |
+| `noPrice` | string | No | No price in cents (1-99) |
+| `clientOrderId` | string | No | Custom order identifier |
+| `expirationTs` | string | No | Unix timestamp for order expiration |
+
+### kalshi_cancel_order
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `keyId` | string | Yes | Your Kalshi API Key ID |
+| `privateKey` | string | Yes | **Secret.** Your RSA private key (PEM format) |
+| `orderId` | string | Yes | Order ID to cancel |
+
+### kalshi_amend_order
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `keyId` | string | Yes | Your Kalshi API Key ID |
+| `privateKey` | string | Yes | **Secret.** Your RSA private key (PEM format) |
+| `orderId` | string | Yes | Order ID to amend |
+| `count` | string | No | New number of contracts |
+| `yesPrice` | string | No | New yes price in cents (1-99) |
+| `noPrice` | string | No | New no price in cents (1-99) |
+| `expirationTs` | string | No | New Unix timestamp for order expiration |
+
+## Outputs
+
+### kalshi_get_markets
+
+- `markets` (json) — Array of market objects
+- `cursor` (string) — Pagination cursor
+
+### kalshi_get_market
+
+- `market` (json) — Market object
+
+### kalshi_get_events
+
+- `events` (json) — Array of event objects
+- `cursor` (string) — Pagination cursor
+
+### kalshi_get_event
+
+- `event` (json) — Event object
+
+### kalshi_get_orderbook
+
+- `orderbook` (json) — Orderbook with yes/no bids and asks
+
+### kalshi_get_trades
+
+- `trades` (json) — Array of trade objects
+- `cursor` (string) — Pagination cursor
+
+### kalshi_get_candlesticks
+
+- `candlesticks` (json) — Array of OHLC candlestick data
+
+### kalshi_get_series_by_ticker
+
+- `series` (json) — Series object
+
+### kalshi_get_exchange_status
+
+- `tradingActive` (boolean) — Whether trading is active
+- `exchangeActive` (boolean) — Whether the exchange is active
+
+### kalshi_get_balance
+
+- `balance` (number) — Account balance in cents
+- `portfolioValue` (number) — Portfolio value in cents
+
+### kalshi_get_positions
+
+- `positions` (json) — Array of position objects
+- `cursor` (string) — Pagination cursor
+
+### kalshi_get_orders
+
+- `orders` (json) — Array of order objects
+- `cursor` (string) — Pagination cursor
+
+### kalshi_get_order
+
+- `order` (json) — Order object
+
+### kalshi_get_fills
+
+- `fills` (json) — Array of fill objects
+- `cursor` (string) — Pagination cursor
+
+### kalshi_create_order
+
+- `order` (json) — Created order object
+
+### kalshi_cancel_order
+
+- `order` (json) — The canceled order object
+- `reducedBy` (number) — Number of contracts canceled
+
+### kalshi_amend_order
+
+- `order` (json) — The amended order object
+
+## YAML Example
+
+```yaml
+kalshi_1:
+  type: kalshi
+  name: "Kalshi"
+  inputs:
+    operation: "kalshi_get_markets"
+    status: "open"
+    seriesTicker: "KXBTC"
+    limit: "50"
+  connections:
+    outgoing:
+      - target: next-block-id
+
+# Example: place an order (requires credentials)
+kalshi_2:
+  type: kalshi
+  name: "Kalshi Create Order"
+  inputs:
+    operation: "kalshi_create_order"
+    keyId: "{{KALSHI_KEY_ID}}"
+    privateKey: "{{KALSHI_PRIVATE_KEY}}"
+    ticker: "KXBTC-24DEC31"
+    side: "yes"
+    action: "buy"
+    count: "10"
+    type: "limit"
+    yesPrice: "55"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Public market-data operations (`kalshi_get_markets`, `kalshi_get_market`, `kalshi_get_events`, `kalshi_get_event`, `kalshi_get_orderbook`, `kalshi_get_trades`, `kalshi_get_candlesticks`, `kalshi_get_series_by_ticker`, `kalshi_get_exchange_status`) need no credentials — use them freely for research before any auth setup.
+- For portfolio and order operations, supply your Key ID and RSA **private key** (PEM). Store the private key as an environment variable and reference it with `{{KALSHI_PRIVATE_KEY}}` rather than pasting it inline. The tool signs each request with RSA-PSS SHA-256; an invalid or improperly formatted key produces a signature mismatch / 401.
+- Prices and balances are denominated in **cents**: `yesPrice`/`noPrice` are 1-99, and `balance`/`portfolioValue` outputs are integer cents (divide by 100 for dollars). For `kalshi_get_candlesticks`, `startTs`/`endTs` are Unix **seconds** while `kalshi_get_fills` uses `minTs`/`maxTs` in Unix **milliseconds**.
+- List operations return a `cursor`; pass it back as the `cursor` param to page through large result sets.

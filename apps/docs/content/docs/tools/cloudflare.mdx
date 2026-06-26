@@ -1,0 +1,177 @@
+---
+title: Cloudflare Tools
+description: Manage Cloudflare zones, DNS records, and cache purging from your workflows.
+icon: Box
+---
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `cloudflare` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Cloudflare API Token) |
+
+Cloudflare tools let you automate domain and DNS management directly from Zelaxy workflows. Use them to list or inspect zones, create and update DNS records programmatically, and purge cached content — for example, as part of a deployment pipeline that sets a new CNAME and then clears the CDN cache.
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List Zones | `cloudflare_list_zones` | Lists all zones (domains) in the Cloudflare account, with optional filtering and pagination. |
+| Get Zone | `cloudflare_get_zone` | Gets full details for a specific zone by its ID. |
+| List DNS Records | `cloudflare_list_dns_records` | Lists DNS records for a specific zone, with optional type/name/content filters. |
+| Create DNS Record | `cloudflare_create_dns_record` | Creates a new DNS record (A, CNAME, MX, TXT, etc.) in a zone. |
+| Update DNS Record | `cloudflare_update_dns_record` | Updates one or more fields of an existing DNS record via PATCH. |
+| Delete DNS Record | `cloudflare_delete_dns_record` | Permanently deletes a DNS record from a zone. |
+| Purge Cache | `cloudflare_purge_cache` | Purges cached content for a zone — everything, specific URLs, tags, hosts, or URL prefixes. |
+
+## Configuration
+
+### cloudflare_list_zones
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Cloudflare API Token (sent as `Authorization: Bearer`). |
+| `name` | string | No | Filter results by domain name (exact match). |
+| `status` | string | No | Filter by zone status. Enum: `initializing`, `pending`, `active`, `moved`. |
+| `page` | number | No | Page number for pagination (default: 1). |
+| `per_page` | number | No | Number of zones per page (default: 20, max: 50). |
+| `accountId` | string | No | Filter zones by account ID. |
+| `order` | string | No | Sort field. Enum: `name`, `status`, `account.id`, `account.name`. |
+| `direction` | string | No | Sort direction. Enum: `asc`, `desc`. |
+| `match` | string | No | Match logic applied when multiple filters are set. Enum: `any`, `all`. |
+
+### cloudflare_get_zone
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Cloudflare API Token. |
+| `zoneId` | string | Yes | The ID of the zone to retrieve details for. |
+
+### cloudflare_list_dns_records
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Cloudflare API Token. |
+| `zoneId` | string | Yes | The ID of the zone whose DNS records to list. |
+| `type` | string | No | Filter by DNS record type. Common values: `A`, `AAAA`, `CNAME`, `MX`, `TXT`. |
+| `name` | string | No | Filter by record name (exact match). |
+| `content` | string | No | Filter by record content (exact match). |
+| `page` | number | No | Page number for pagination. |
+| `per_page` | number | No | Records per page (default: 100). |
+| `search` | string | No | Free-text search across record fields (name, content, comment). |
+
+### cloudflare_create_dns_record
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Cloudflare API Token. |
+| `zoneId` | string | Yes | The ID of the zone to create the record in. |
+| `type` | string | Yes | DNS record type. Enum: `A`, `AAAA`, `CNAME`, `MX`, `TXT`, `NS`, `SRV`. |
+| `name` | string | Yes | DNS record name (e.g. `www` or `@` for root). |
+| `content` | string | Yes | DNS record content (e.g. an IP address for A records, a hostname for CNAME). |
+| `ttl` | number | No | Time-to-live in seconds. Use `1` for automatic TTL. |
+| `proxied` | boolean | No | When `true`, traffic routes through Cloudflare's proxy (orange cloud). |
+| `priority` | number | No | Priority value, required for MX and SRV records. |
+| `comment` | string | No | Human-readable comment attached to the record. |
+
+### cloudflare_update_dns_record
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Cloudflare API Token. |
+| `zoneId` | string | Yes | The ID of the zone containing the record. |
+| `recordId` | string | Yes | The ID of the DNS record to update. |
+| `type` | string | No | New DNS record type. |
+| `name` | string | No | New record name. |
+| `content` | string | No | New record content. |
+| `ttl` | number | No | New TTL in seconds. |
+| `proxied` | boolean | No | Toggle Cloudflare proxy on or off. |
+| `priority` | number | No | New priority for MX/SRV records. |
+| `comment` | string | No | New comment for the record. |
+
+### cloudflare_delete_dns_record
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Cloudflare API Token. |
+| `zoneId` | string | Yes | The ID of the zone containing the record. |
+| `recordId` | string | Yes | The ID of the DNS record to delete. |
+
+### cloudflare_purge_cache
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Cloudflare API Token. |
+| `zoneId` | string | Yes | The ID of the zone to purge cache for. |
+| `purge_everything` | boolean | No | When `true`, purges all cached content for the zone. Cannot be combined with other selectors. |
+| `files` | string | No | Comma-separated list of exact URLs to purge. |
+| `tags` | string | No | Comma-separated list of cache tags to purge. Enterprise plans only. |
+| `hosts` | string | No | Comma-separated list of hostnames to purge. Enterprise plans only. |
+| `prefixes` | string | No | Comma-separated list of URL prefixes to purge. Enterprise plans only. |
+
+At least one of `purge_everything`, `files`, `tags`, `hosts`, or `prefixes` must be provided.
+
+## Outputs
+
+### cloudflare_list_zones
+
+- `zones` (array) — List of zone objects returned by the Cloudflare API, each containing the full zone metadata (id, name, status, account, nameservers, etc.).
+- `total_count` (number) — Total number of zones matching the filters across all pages.
+
+### cloudflare_get_zone
+
+- `id` (string) — The zone's unique identifier.
+- `name` (string) — The domain name for the zone.
+- `status` (string) — The current zone status (`active`, `pending`, `initializing`, `moved`).
+
+### cloudflare_list_dns_records
+
+- `records` (array) — List of DNS record objects, each containing id, type, name, content, proxied, ttl, and other metadata.
+- `total_count` (number) — Total number of records matching the filters across all pages.
+
+### cloudflare_create_dns_record
+
+- `id` (string) — The newly created DNS record's unique ID.
+- `name` (string) — The DNS record name.
+- `type` (string) — The DNS record type.
+
+### cloudflare_update_dns_record
+
+- `id` (string) — The updated DNS record's unique ID.
+- `name` (string) — The DNS record name after the update.
+
+### cloudflare_delete_dns_record
+
+- `id` (string) — The ID of the record that was deleted.
+
+### cloudflare_purge_cache
+
+- `id` (string) — A purge-request identifier returned by Cloudflare confirming the operation was queued.
+
+## YAML Example
+
+```yaml
+cloudflare_1:
+  type: cloudflare
+  name: "Cloudflare"
+  inputs:
+    operation: "cloudflare_create_dns_record"
+    apiKey: "{{CLOUDFLARE_API_TOKEN}}"
+    zoneId: "{{vars.zoneId}}"
+    type: "CNAME"
+    name: "app"
+    content: "{{deploy.hostname}}"
+    proxied: true
+    ttl: 1
+  connections:
+    outgoing:
+      - target: purge-cache-block
+```
+
+## Tips
+
+- **API Token vs Global API Key**: Always use a scoped API Token (created in the Cloudflare dashboard under Profile > API Tokens) rather than your Global API Key. Scope it to the minimum permissions needed — for DNS management, grant `Zone:DNS:Edit` on the relevant zones.
+- **Chaining zone lookup with DNS operations**: If you don't know a Zone ID ahead of time, use `cloudflare_list_zones` first with a `name` filter to look it up, then pass `{{cloudflare_1.zones[0].id}}` into the next block's `zoneId` input.
+- **Cache purge scope**: `purge_everything` is the simplest option but invalidates your entire CDN cache. For production sites, prefer targeting specific `files` or `prefixes` to avoid a cache-warming spike. Tag-based and host-based purging require an Enterprise plan.

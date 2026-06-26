@@ -1,0 +1,150 @@
+---
+title: Loops Block
+description: Manage contacts and send emails with Loops
+icon: Box
+---
+
+# Loops Block
+
+Create and update contacts, send events to trigger automated sequences, and send transactional emails through the Loops API. Authenticate with a Loops API key to connect your workflows to your Loops email marketing audience.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `loops` |
+| **Category** | `tools` |
+| **Color** | `#FF7878` |
+
+## When to Use
+
+- Add a new subscriber to your Loops audience when a user signs up in your app
+- Update a contact's name or profile details when they change account information
+- Fire a named event (e.g. `signed_up`, `plan_upgraded`) to trigger an automated email sequence in Loops
+- Send a one-off transactional email (password reset, invoice, welcome) using a pre-built Loops template
+- Sync CRM or form data into Loops contact records as part of a larger workflow
+- Combine with other blocks to conditionally enrol contacts into different sequences based on workflow logic
+
+## Configuration
+
+### Operation
+
+The operation to perform against the Loops API. Selecting an operation shows only the fields relevant to that operation.
+
+| Label | ID |
+|-------|----|
+| Create contact | `loops_create_contact` |
+| Update contact | `loops_update_contact` |
+| Send event | `loops_send_event` |
+| Send transactional | `loops_send_transactional` |
+
+**Default:** `loops_create_contact`
+
+---
+
+### Email
+
+- **Sub-block id:** `email`
+- **Type:** short-input
+- **Placeholder:** `contact@example.com`
+- **Shown for:** all four operations
+
+The email address of the contact or recipient. This is the primary identifier for a Loops contact and is required by every operation.
+
+---
+
+### First Name
+
+- **Sub-block id:** `firstName`
+- **Type:** short-input
+- **Placeholder:** `Jane`
+- **Shown for:** `loops_create_contact`, `loops_update_contact`
+
+Optional first name of the contact. Omit to leave the field unchanged on an update.
+
+---
+
+### Last Name
+
+- **Sub-block id:** `lastName`
+- **Type:** short-input
+- **Placeholder:** `Doe`
+- **Shown for:** `loops_create_contact`, `loops_update_contact`
+
+Optional last name of the contact.
+
+---
+
+### Event Name
+
+- **Sub-block id:** `eventName`
+- **Type:** short-input
+- **Placeholder:** `signed_up`
+- **Shown for:** `loops_send_event`
+
+The name of the event to send to Loops. This must match an event name configured in your Loops dashboard that has an associated automation sequence.
+
+---
+
+### Transactional ID
+
+- **Sub-block id:** `transactionalId`
+- **Type:** short-input
+- **Placeholder:** `clfq6dinn000123456789abcd`
+- **Shown for:** `loops_send_transactional`
+
+The ID of the transactional email template to send. Find this in the Loops dashboard under Transactional emails.
+
+---
+
+### Loops API Key
+
+- **Sub-block id:** `apiKey`
+- **Type:** short-input (password)
+- **Required:** yes
+- **Shown for:** all operations
+
+Your Loops API key. Pass as a secret reference: `{{LOOPS_API_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`loops_create_contact` | `loops_update_contact` | `loops_send_event` | `loops_send_transactional`)
+- `apiKey` (string) — Loops API key
+- `email` (string) — Contact email address
+- `firstName` (string) — Contact first name (create/update only)
+- `lastName` (string) — Contact last name (create/update only)
+- `eventName` (string) — Event name to trigger (send event only)
+- `transactionalId` (string) — Transactional email template ID (send transactional only)
+
+**Outputs:**
+
+- `data` (json) — Result object from Loops (the raw API response body)
+- `metadata` (json) — Response metadata including `success` (boolean) and `id` (string, for contact operations)
+
+## Tools
+
+**Loops Create Contact** (`loops_create_contact`) — Creates a new contact in your Loops audience. Accepts `email` (required), `firstName` (optional), and `lastName` (optional). Returns the created contact record and its Loops contact `id`.
+
+**Loops Update Contact** (`loops_update_contact`) — Updates an existing Loops contact identified by `email`. Upserts if the contact does not already exist. Accepts the same fields as create. Returns the updated contact's `id`.
+
+**Loops Send Event** (`loops_send_event`) — Sends a named event to Loops for a specific contact `email`, triggering any automation sequences associated with that `eventName` in the Loops dashboard.
+
+**Loops Send Transactional** (`loops_send_transactional`) — Sends a transactional email to the given `email` address using the Loops template identified by `transactionalId`.
+
+## YAML Example
+
+```yaml
+loops_1:
+  type: loops
+  name: "Loops"
+  inputs:
+    operation: "loops_send_event"
+    apiKey: "{{LOOPS_API_KEY}}"
+    email: "{{signup_form.email}}"
+    eventName: "signed_up"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

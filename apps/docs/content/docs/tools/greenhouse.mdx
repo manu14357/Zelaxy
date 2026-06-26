@@ -1,0 +1,115 @@
+---
+title: Greenhouse Tools
+description: List candidates, jobs, and applications and fetch candidate details via the Greenhouse Harvest API
+icon: Box
+---
+
+# Greenhouse Tools
+
+Greenhouse is an applicant tracking system (ATS) and recruiting platform. Use these tools in a workflow to read your hiring data through the Greenhouse Harvest API — list candidates, jobs, and applications, and fetch the full record for a single candidate by ID.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `greenhouse` |
+| **Category** | tools |
+| **Auth** | API Key (sent as HTTP Basic Auth — the key is the username, password is empty) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List candidates | `greenhouse_list_candidates` | List candidates from Greenhouse, optionally filtered by job or email |
+| Get candidate | `greenhouse_get_candidate` | Get a single candidate from Greenhouse by ID |
+| List jobs | `greenhouse_list_jobs` | List jobs from Greenhouse, optionally filtered by status |
+| List applications | `greenhouse_list_applications` | List applications from Greenhouse, optionally filtered by job or status |
+
+## Configuration
+
+### `greenhouse_list_candidates`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Greenhouse Harvest API key. **Secret** — visibility `user-only`. Sent as the Basic Auth username. |
+| `per_page` | number | No | Number of results per page (1-500, default 100). |
+| `page` | number | No | Page number for pagination. |
+| `job_id` | string | No | Filter to candidates who applied to this job ID. |
+| `email` | string | No | Filter to candidates with this email address. |
+
+### `greenhouse_get_candidate`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Greenhouse Harvest API key. **Secret** — visibility `user-only`. Sent as the Basic Auth username. |
+| `id` | string | Yes | The candidate ID. |
+
+### `greenhouse_list_jobs`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Greenhouse Harvest API key. **Secret** — visibility `user-only`. Sent as the Basic Auth username. |
+| `per_page` | number | No | Number of results per page (1-500, default 100). |
+| `page` | number | No | Page number for pagination. |
+| `status` | string | No | Filter by status. One of: `open`, `closed`, `draft`. |
+
+### `greenhouse_list_applications`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Greenhouse Harvest API key. **Secret** — visibility `user-only`. Sent as the Basic Auth username. |
+| `per_page` | number | No | Number of results per page (1-500, default 100). |
+| `page` | number | No | Page number for pagination. |
+| `job_id` | string | No | Filter applications by job ID. |
+| `status` | string | No | Filter by status. One of: `active`, `converted`, `hired`, `rejected`. |
+
+## Outputs
+
+### `greenhouse_list_candidates`
+
+- `data` (json) — Array of Greenhouse candidate objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of items returned.
+
+### `greenhouse_get_candidate`
+
+- `data` (json) — The Greenhouse candidate object.
+- `metadata` (json) — Candidate identifiers.
+  - `id` (string) — Candidate ID.
+
+### `greenhouse_list_jobs`
+
+- `data` (json) — Array of Greenhouse job objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of items returned.
+
+### `greenhouse_list_applications`
+
+- `data` (json) — Array of Greenhouse application objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of items returned.
+
+## YAML Example
+
+```yaml
+greenhouse_1:
+  type: greenhouse
+  name: "Greenhouse"
+  inputs:
+    operation: "greenhouse_list_candidates"
+    email: "candidate@example.com"
+    job_id: "654321"
+    per_page: 100
+    page: 1
+    apiKey: "{{GREENHOUSE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup** — Greenhouse uses HTTP Basic Auth. Supply only the raw Harvest API key; the tool base64-encodes it as `apiKey:` (key as username, empty password) for you. Generate a Harvest key in Greenhouse under Configure → Dev Center → API Credentials, and grant it the candidate/job/application scopes you need.
+- **List then fetch** — Use `greenhouse_list_candidates` (filtered by `email` or `job_id`) to find candidate IDs, then pass an ID from `{{greenhouse_1.data}}` into a `greenhouse_get_candidate` block to retrieve the full record.
+- **Pagination** — All list operations accept `per_page` (1-500, default 100) and `page`. The `metadata.count` output tells you how many rows came back; if it equals `per_page`, request the next `page` to continue. Reference results downstream with `{{greenhouse_1.data}}` and `{{greenhouse_1.metadata}}`.
+- **Status values matter** — `greenhouse_list_jobs` expects `open`, `closed`, or `draft`, while `greenhouse_list_applications` expects `active`, `converted`, `hired`, or `rejected`. Using the wrong vocabulary for the operation returns no useful filter.

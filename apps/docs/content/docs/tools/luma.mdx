@@ -1,0 +1,160 @@
+---
+title: Luma Tools
+description: Manage events and guests on Luma
+icon: Calendar
+---
+
+# Luma Tools
+
+Integrate Luma event management into your workflows to create and update events, fetch event details, list calendar events, retrieve guest lists, and add guests. Use these tools to automate event operations and connect Luma data to other steps in your workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `luma` |
+| **Category** | tools |
+| **Auth** | API Key (`x-luma-api-key` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Get Event | `luma_get_event` | Get details of a Luma event |
+| Create Event | `luma_create_event` | Create a new Luma event |
+| Update Event | `luma_update_event` | Update an existing Luma event |
+| List Events | `luma_list_events` | List events from a Luma calendar |
+| Get Guests | `luma_get_guests` | Get guest list for a Luma event |
+| Add Guests | `luma_add_guests` | Add guests to a Luma event |
+
+## Configuration
+
+### luma_get_event
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Luma API key (secret) |
+| `eventId` | string | Yes | Event ID (evt-...) |
+
+### luma_create_event
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Luma API key (secret) |
+| `name` | string | Yes | Event name |
+| `start_at` | string | Yes | Start time (ISO 8601) |
+| `timezone` | string | Yes | Timezone (e.g. `America/New_York`) |
+| `end_at` | string | No | End time (ISO 8601) |
+| `duration_interval` | string | No | Duration interval (e.g. `1h30m`) |
+| `description_md` | string | No | Event description in Markdown |
+| `meeting_url` | string | No | Meeting URL for virtual events |
+| `visibility` | string | No | Event visibility (`public` or `private`) |
+| `cover_url` | string | No | URL for the event cover image |
+
+### luma_update_event
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Luma API key (secret) |
+| `eventId` | string | Yes | Event ID to update |
+| `name` | string | No | Event name |
+| `start_at` | string | No | Start time (ISO 8601) |
+| `timezone` | string | No | Timezone |
+| `end_at` | string | No | End time (ISO 8601) |
+| `duration_interval` | string | No | Duration interval |
+| `description_md` | string | No | Event description in Markdown |
+| `meeting_url` | string | No | Meeting URL |
+| `visibility` | string | No | Event visibility |
+| `cover_url` | string | No | Cover image URL |
+
+### luma_list_events
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Luma API key (secret) |
+| `after` | string | No | Filter events after this date (ISO 8601) |
+| `before` | string | No | Filter events before this date (ISO 8601) |
+| `pagination_limit` | number | No | Number of events to return |
+| `pagination_cursor` | string | No | Pagination cursor |
+| `sort_column` | string | No | Column to sort by |
+| `sort_direction` | string | No | Sort direction (`asc` or `desc`) |
+
+### luma_get_guests
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Luma API key (secret) |
+| `eventId` | string | Yes | Event ID |
+| `approval_status` | string | No | Filter by approval status (`approved`, `pending`, `declined`) |
+| `pagination_limit` | number | No | Number of guests to return |
+| `pagination_cursor` | string | No | Pagination cursor |
+| `sort_column` | string | No | Column to sort by |
+| `sort_direction` | string | No | Sort direction (`asc` or `desc`) |
+
+### luma_add_guests
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Luma API key (secret) |
+| `eventId` | string | Yes | Event ID |
+| `guests` | string | Yes | JSON array of guest objects with `email` and optional name fields |
+
+## Outputs
+
+### luma_get_event
+
+- `event` (json) — Event details (id, name, startAt, endAt, timezone, createdAt, description, coverUrl, url, visibility, meetingUrl)
+- `hosts` (json) — Event hosts (id, name, firstName, lastName, email, avatarUrl)
+
+### luma_create_event
+
+- `event` (json) — Created event details
+- `hosts` (json) — Event hosts
+
+### luma_update_event
+
+- `event` (json) — Updated event details
+- `hosts` (json) — Event hosts
+
+### luma_list_events
+
+- `events` (json) — List of events
+- `hasMore` (boolean) — Whether there are more events
+- `nextCursor` (string) — Cursor for next page
+
+### luma_get_guests
+
+- `guests` (json) — List of guests (id, email, name, firstName, lastName, approvalStatus, registeredAt, invitedAt, joinedAt, checkedInAt, phoneNumber)
+- `hasMore` (boolean) — Whether there are more guests
+- `nextCursor` (string) — Cursor for next page
+
+### luma_add_guests
+
+- `guests` (json) — Added guests
+
+## YAML Example
+
+```yaml
+luma_1:
+  type: luma
+  name: "Luma"
+  inputs:
+    operation: "luma_create_event"
+    name: "Product Launch Meetup"
+    start_at: "2026-07-15T18:00:00Z"
+    timezone: "America/New_York"
+    end_at: "2026-07-15T20:00:00Z"
+    description_md: "Join us for the launch of our new product."
+    visibility: "public"
+    apiKey: "{{LUMA_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authentication uses your Luma API key, sent as the `x-luma-api-key` request header. Generate it from your Luma calendar settings under the API section, and store it as an environment variable referenced via `{{LUMA_API_KEY}}`.
+- Event IDs start with the `evt-` prefix and are returned in the `event.id` field. Chain operations by passing a created event's ID into a later block, e.g. `{{luma_1.event.id}}`.
+- For `luma_add_guests`, the `guests` parameter must be a valid JSON array string such as `[{"email": "user@example.com", "name": "John Doe"}]`. Each guest requires an `email`; `name`, `first_name`, and `last_name` are optional.
+- `luma_list_events` and `luma_get_guests` are paginated — when `hasMore` is true, pass the returned `nextCursor` into `pagination_cursor` on the next call to fetch the following page.

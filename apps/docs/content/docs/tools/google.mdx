@@ -1,0 +1,73 @@
+---
+title: Google Tools
+description: Search the web using the Google Custom Search API from within your workflows
+icon: Box
+---
+
+# Google Tools
+
+Use the Google tool provider to run web searches via the Google Custom Search JSON API. This is useful in workflows that need up-to-date information from the web, research automation, or any step that requires fetching live search results based on a dynamic query.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google` |
+| **Category** | tools |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Google Search | `google_search` | Execute a web search using Google's Custom Search API and return ranked results |
+
+## Configuration
+
+### google_search
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | Yes | The search query to execute |
+| `searchEngineId` | string | Yes | Custom Search Engine ID (also called `cx`), obtained from programmablesearchengine.google.com |
+| `apiKey` | string | Yes | Google Cloud API key with the Custom Search API enabled |
+| `num` | string | No | Number of results to return (default: 10, max: 10) |
+
+## Outputs
+
+### google_search
+
+- `items` (array) — Array of search result objects. Each item contains:
+  - `title` (string) — Title of the search result page
+  - `link` (string) — Full URL of the search result
+  - `snippet` (string) — Short excerpt or description from the page
+  - `displayLink` (string, optional) — The display-friendly URL shown in search results
+  - `pagemap` (object, optional) — Additional structured metadata extracted from the page (e.g. images, metatags)
+- `searchInformation` (object) — Metadata about the search execution:
+  - `totalResults` (string) — Total number of results available for the query
+  - `searchTime` (number) — Time taken to perform the search, in seconds
+  - `formattedSearchTime` (string) — Human-readable formatted search time
+  - `formattedTotalResults` (string) — Human-readable formatted total results count
+
+## YAML Example
+
+```yaml
+google_1:
+  type: google_search
+  name: "Google Search"
+  inputs:
+    operation: "google_search"
+    query: "{{starter.userQuestion}}"
+    searchEngineId: "{{GOOGLE_SEARCH_ENGINE_ID}}"
+    apiKey: "{{GOOGLE_API_KEY}}"
+    num: "10"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Custom Search Engine setup is required** — create a search engine at [programmablesearchengine.google.com](https://programmablesearchengine.google.com) and enable it for the entire web. Copy the Search Engine ID (`cx`) into the `searchEngineId` parameter.
+- **Google Cloud API key** — enable the "Custom Search API" in your Google Cloud project and generate an API key. Store it securely as `{{GOOGLE_API_KEY}}` in your workflow environment variables rather than hardcoding it.
+- **Maximum 10 results per call** — the `num` parameter is capped at 10 by the Google Custom Search API. If you need more results, chain multiple search blocks with different `start` offsets, or refine your query to get higher-quality top results.

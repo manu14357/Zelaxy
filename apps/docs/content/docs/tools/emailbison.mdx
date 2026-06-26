@@ -1,0 +1,90 @@
+---
+title: Email Bison
+description: Find and verify professional email addresses with Email Bison
+icon: Mail
+---
+
+# Email Bison
+
+Find professional email addresses by name and domain, verify deliverability, and enrich contact data at scale with Email Bison. Use it in outreach workflows to build validated prospect lists before handing off to an Agent or sending a message.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `emailbison` |
+| **Category** | Tool — CRM |
+| **Auth** | API Key (`X-API-Key` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Find Email** | `emailbison_find_email` | Find the email address of a person by their first name, last name, and company domain |
+| **Verify Email** | `emailbison_verify_email` | Check whether an email address is valid and deliverable |
+| **Bulk Find Emails** | `emailbison_bulk_find` | Find email addresses for multiple people in a single request |
+| **Domain Search** | `emailbison_domain_search` | Search for all email addresses associated with a company domain |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Your Email Bison API key. Passed as the `X-API-Key` header on every request. Store it as `{{EMAILBISON_API_KEY}}` and never hard-code it. |
+| `firstName` | `string` | Yes (Find Email) | First name of the person to look up. |
+| `lastName` | `string` | Yes (Find Email) | Last name of the person to look up. |
+| `domain` | `string` | Yes (Find Email, Domain Search) | Company domain to search, e.g. `example.com`. |
+| `email` | `string` | Yes (Verify Email) | Email address to verify. |
+| `people` | `string` | Yes (Bulk Find) | JSON array of people objects, each with `first_name`, `last_name`, and `domain` keys. Example: `[{"first_name":"Jane","last_name":"Smith","domain":"acme.com"}]`. |
+| `limit` | `number` | No (Domain Search) | Maximum number of email addresses to return from a domain search. |
+
+## Outputs
+
+### Find Email (`emailbison_find_email`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `email` | `string` | The found email address |
+| `score` | `number` | Confidence score for the match (optional) |
+| `status` | `string` | Email status returned by the API |
+| `firstName` | `string` | First name echoed back from the response |
+| `lastName` | `string` | Last name echoed back from the response |
+| `domain` | `string` | Company domain echoed back from the response |
+
+### Verify Email (`emailbison_verify_email`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `email` | `string` | The verified email address |
+| `status` | `string` | Verification status (e.g. `valid`, `invalid`, `catch-all`) |
+| `isValid` | `boolean` | `true` if the email is valid and deliverable |
+| `score` | `number` | Confidence score for the verification result (optional) |
+
+### Bulk Find Emails (`emailbison_bulk_find`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `json` | Array of email find results, one entry per person submitted |
+
+### Domain Search (`emailbison_domain_search`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `emails` | `json` | Array of email addresses found for the domain |
+| `domain` | `string` | The domain that was searched |
+| `total` | `number` | Total number of email addresses found |
+
+## Example
+
+```
+[Starter] → [Email Bison: Find Email] → [Email Bison: Verify Email] → [Agent: draft outreach]
+```
+
+Pass `{{EMAILBISON_API_KEY}}` as the API Key in both blocks. Supply `{{starter.firstName}}`, `{{starter.lastName}}`, and `{{starter.domain}}` to the Find Email block, then pipe `{{emailBison.email}}` into the Verify Email block's `email` field. The Agent receives the verified address and can draft a personalised outreach message only when `{{emailBison.isValid}}` is `true`.
+
+## Tips
+
+- **Store your API key as a secret.** Reference it as `{{EMAILBISON_API_KEY}}` in every block rather than pasting it directly into the workflow.
+- **Always verify after finding.** Chain a Verify Email block after Find Email to filter out addresses that score low or return a non-`valid` status before sending.
+- **Use Bulk Find for lists.** When you have a CSV or JSON array of contacts upstream, build the `people` JSON with an Agent block and pass it to Bulk Find instead of looping over individual Find Email calls — it is far faster and uses fewer API credits.
+- **Domain Search for prospecting.** Use Domain Search to enumerate contacts at a target company, then feed the `emails` array into a Loop block to verify and qualify each one individually.
+- **Check `score` before acting.** Both Find Email and Verify Email return an optional `score`. Filter on high-confidence results (e.g. score above 80) to keep bounce rates low in downstream email steps.

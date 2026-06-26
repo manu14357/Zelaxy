@@ -1,0 +1,82 @@
+---
+title: Bright Data
+description: Scrape websites, search SERPs, and discover web data with Bright Data's proxy intelligence network
+icon: Globe
+---
+
+# Bright Data
+
+Bright Data provides industrial-strength web intelligence tools — bypassing anti-bot protections, CAPTCHAs, and IP blocks at scale. Use it in workflows to scrape any URL, query real search engine results, or run AI-powered web discovery across thousands of sources.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `brightdata` |
+| **Category** | Tool — Web Scraping |
+| **Auth** | API Key (Bearer token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Scrape URL** | `brightdata_scrape_url` | Fetch content from any URL using Bright Data Web Unlocker. Bypasses anti-bot protections, CAPTCHAs, and IP blocks automatically. Returns raw HTML or parsed JSON. |
+| **SERP Search** | `brightdata_serp_search` | Search Google, Bing, DuckDuckGo, or Yandex and get structured organic search results via the Bright Data SERP API. |
+| **Discover URLs** | `brightdata_discover` | AI-powered web discovery that finds and ranks results by intent. Returns up to 1,000 results with optional cleaned page content for RAG and verification. Runs asynchronously and polls until complete. |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Bright Data API token. Use `{{BRIGHTDATA_API_KEY}}` to reference it from your environment. Applies to all three operations. |
+| `zone` | `string` | Yes (Scrape URL, SERP Search) | Zone name from your Bright Data dashboard. For Scrape URL use a Web Unlocker zone (e.g., `web_unlocker1`); for SERP Search use a SERP API zone (e.g., `serp_api1`). |
+| `url` | `string` | Yes (Scrape URL) | The URL to scrape (e.g., `https://example.com/page`). |
+| `format` | `string` | No (Scrape URL) | Response format: `raw` for HTML or `json` for parsed content. Defaults to `raw`. |
+| `country` | `string` | No (Scrape URL, SERP Search, Discover) | Two-letter ISO country code for geo-targeting results (e.g., `us`, `gb`). |
+| `query` | `string` | Yes (SERP Search, Discover) | The search or discovery query (e.g., `best project management tools`). |
+| `searchEngine` | `string` | No (SERP Search) | Search engine to use: `google`, `bing`, `duckduckgo`, or `yandex`. Defaults to `google`. |
+| `language` | `string` | No (SERP Search, Discover) | Two-letter language code for localized results (e.g., `en`, `es`). |
+| `numResults` | `number` | No (SERP Search, Discover) | Number of results to return. Up to 1,000 for Discover; defaults to 10 for both. |
+| `intent` | `string` | No (Discover) | Describes what the agent is trying to accomplish, used to rank discovered results by relevance. |
+| `includeContent` | `boolean` | No (Discover) | Whether to include cleaned page content in each discovered result — useful for RAG pipelines. |
+
+## Outputs
+
+### Scrape URL (`brightdata_scrape_url`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | The scraped page content — raw HTML or JSON string depending on the `format` param. |
+| `url` | `string` | The URL that was scraped. |
+| `statusCode` | `number` | HTTP status code of the response from Bright Data. |
+
+### SERP Search (`brightdata_serp_search`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `array` | Array of organic search result objects, each with `title`, `url`, `description`, and `rank`. |
+| `query` | `string` | The search query that was executed. |
+| `searchEngine` | `string` | The search engine that was used (e.g., `google`). |
+
+### Discover (`brightdata_discover`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `array` | Array of discovered web results ranked by intent relevance. Each item contains `url`, `title`, `description`, `relevanceScore`, and optionally `content` (when `includeContent` is true). |
+| `query` | `string` | The search query that was executed. |
+| `totalResults` | `number` | Total number of results returned. |
+
+## Example
+
+```
+[Starter] → [Bright Data: Scrape URL] → [Agent: summarize the page]
+```
+
+Pass a competitor pricing URL from an upstream block as `{{starter.url}}` and your API token as `{{BRIGHTDATA_API_KEY}}`. Set `zone` to your Web Unlocker zone name (e.g., `web_unlocker1`) and `format` to `json`. The scraped content lands in `{{brightdata.content}}`, which you pipe to an Agent block to extract pricing tiers, feature lists, or any structured data — even from JavaScript-heavy or bot-protected pages.
+
+## Tips
+
+- **Zone types matter** — Scrape URL requires a Web Unlocker zone; SERP Search requires a SERP API zone. These are separate products in the Bright Data dashboard with different billing.
+- **Discover is asynchronous** — it submits a task and polls every 3 seconds for up to 5 minutes. For time-sensitive workflows, use SERP Search instead; for deep research (up to 1,000 ranked results), use Discover.
+- **Use `intent` with Discover** — supplying an intent string (e.g., `"find recent pricing changes for enterprise SaaS tools"`) causes Bright Data's AI to re-rank results by relevance, significantly improving signal quality.
+- **`includeContent` in Discover adds latency and cost** — enable it only when you need the full page text for RAG retrieval or LLM summarization; leave it off for link-only collection workflows.

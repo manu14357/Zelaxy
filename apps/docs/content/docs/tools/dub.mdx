@@ -1,0 +1,133 @@
+---
+title: Dub
+description: Create and manage short links and track analytics with Dub.co
+icon: Link
+---
+
+# Dub
+
+Create, retrieve, update, and delete short links in [Dub.co](https://dub.co), and pull click, lead, and sales analytics. Use this integration when workflows need to generate branded or trackable short URLs, modify existing links, or report on link performance.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `dub` |
+| **Category** | Tool — Link Management |
+| **Auth** | API Key (Bearer token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Create Link** | `dub_create_link` | Create a new short link with optional custom domain, slug, UTM parameters, expiry, and password |
+| **Get Link** | `dub_get_link` | Retrieve details for a link by its ID, external ID, or domain + slug combination |
+| **Update Link** | `dub_update_link` | Modify an existing short link's destination URL, metadata, UTM params, or status |
+| **Delete Link** | `dub_delete_link` | Permanently delete a short link by its link ID or external ID |
+| **List Links** | `dub_list_links` | Retrieve a paginated, filterable list of all short links in the workspace |
+| **Get Analytics** | `dub_get_analytics` | Fetch click, lead, and sales analytics with optional grouping by time, country, device, and more |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | string (secret) | Yes (all operations) | Your Dub API key — stored as a secret; use `{{DUB_API_KEY}}` |
+| `url` | string | Yes (Create Link); No (Update Link) | The destination URL the short link points to |
+| `linkId` | string | Yes (Update Link, Delete Link); No (Get Link) | The link ID returned by Dub, or an external ID prefixed with `ext_` |
+| `externalId` | string | No | Your own database ID for the link; prefix with `ext_` when used as `linkId` |
+| `domain` | string | No | Custom short-link domain (defaults to `dub.sh`); use together with `key` when looking up a link |
+| `key` | string | No | Custom slug for the short link; randomly generated if not provided on creation |
+| `tagIds` | string | No | Comma-separated tag IDs to assign or filter by |
+| `comments` | string | No | Internal notes for the link |
+| `expiresAt` | string | No | Link expiration date in ISO 8601 format (e.g. `2026-12-31T23:59:59Z`) |
+| `password` | string | No | Password to protect the link |
+| `rewrite` | boolean | No | Enable link cloaking so the destination URL is hidden from visitors |
+| `archived` | boolean | No | Mark the link as archived |
+| `title` | string | No | Custom Open Graph title shown when the link is shared |
+| `description` | string | No | Custom Open Graph description shown when the link is shared |
+| `utm_source` | string | No | UTM source parameter appended to the destination URL |
+| `utm_medium` | string | No | UTM medium parameter |
+| `utm_campaign` | string | No | UTM campaign parameter |
+| `utm_term` | string | No | UTM term parameter |
+| `utm_content` | string | No | UTM content parameter |
+| `search` | string | No | (List Links) Search query matched against the slug and destination URL |
+| `showArchived` | boolean | No | (List Links) Include archived links in results; defaults to `false` |
+| `sortBy` | string | No | (List Links) Sort field: `createdAt`, `clicks`, `saleAmount`, or `lastClicked` |
+| `sortOrder` | string | No | (List Links) Sort direction: `asc` or `desc` |
+| `page` | number | No | (List Links) Page number; defaults to `1` |
+| `pageSize` | number | No | (List Links) Results per page; defaults to `100`, maximum `100` |
+| `event` | string | No | (Get Analytics) Event type: `clicks` (default), `leads`, `sales`, or `composite` |
+| `groupBy` | string | No | (Get Analytics) Group results by: `count` (default), `timeseries`, `countries`, `cities`, `devices`, `browsers`, `os`, `referers`, `top_links`, or `top_urls` |
+| `interval` | string | No | (Get Analytics) Preset time window: `24h` (default), `7d`, `30d`, `90d`, `1y`, `mtd`, `qtd`, `ytd`, or `all` |
+| `start` | string | No | (Get Analytics) Custom start date/time in ISO 8601 format; overrides `interval` |
+| `end` | string | No | (Get Analytics) Custom end date/time in ISO 8601 format; defaults to now |
+| `country` | string | No | (Get Analytics) Filter by country using ISO 3166-1 alpha-2 code (e.g. `US`) |
+| `timezone` | string | No | (Get Analytics) IANA timezone for timeseries data (e.g. `America/New_York`); defaults to UTC |
+
+## Outputs
+
+### Create Link / Get Link / Update Link
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique Dub ID of the link |
+| `domain` | string | Short-link domain |
+| `key` | string | Slug portion of the short link |
+| `url` | string | Destination URL |
+| `shortLink` | string | Full short link URL (e.g. `https://dub.sh/my-link`) |
+| `qrCode` | string | URL pointing to the auto-generated QR code for the link |
+| `archived` | boolean | Whether the link is archived |
+| `externalId` | string | Your external database ID (optional) |
+| `title` | string | Custom OG title (optional) |
+| `description` | string | Custom OG description (optional) |
+| `tags` | json | Array of tag objects (`id`, `name`, `color`) |
+| `clicks` | number | Total number of clicks recorded |
+| `leads` | number | Total number of leads recorded |
+| `sales` | number | Total number of sales recorded |
+| `saleAmount` | number | Total sale amount in cents |
+| `lastClicked` | string | ISO 8601 timestamp of the most recent click (optional) |
+| `createdAt` | string | ISO 8601 creation timestamp |
+| `updatedAt` | string | ISO 8601 last-updated timestamp |
+| `utm_source` | string | UTM source parameter (optional) |
+| `utm_medium` | string | UTM medium parameter (optional) |
+| `utm_campaign` | string | UTM campaign parameter (optional) |
+| `utm_term` | string | UTM term parameter (optional) |
+| `utm_content` | string | UTM content parameter (optional) |
+
+### Delete Link
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | ID of the deleted link |
+
+### List Links
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `links` | json | Array of link objects; each object contains `id`, `domain`, `key`, `url`, `shortLink`, `qrCode`, `archived`, `externalId`, `title`, `description`, `clicks`, `leads`, `sales`, `saleAmount`, `lastClicked`, `createdAt`, `updatedAt`, `tags`, and UTM fields |
+| `count` | number | Number of links returned in this response |
+
+### Get Analytics
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `clicks` | number | Total click count (when `groupBy` is `count` or omitted) |
+| `leads` | number | Total lead count |
+| `sales` | number | Total sales count |
+| `saleAmount` | number | Total sale amount in cents |
+| `data` | json | Grouped analytics array when `groupBy` is set to a dimension (e.g. `timeseries`, `countries`, `devices`); `null` when returning aggregated counts |
+
+## Example
+
+```
+[Starter] → [Dub: Create Link] → [Agent: use the result]
+```
+
+When a new campaign is launched, the Starter block provides the long destination URL as `{{starter.destinationUrl}}`. The Dub block is configured with `{{DUB_API_KEY}}`, sets `utm_campaign` to `{{starter.campaignName}}`, and `utm_medium` to `email`. The resulting `{{dub.shortLink}}` is passed to a downstream Agent block that composes an outreach message including the branded short URL. A second Dub block later in the workflow calls Get Analytics with `linkId` set to `{{dub.id}}` and `interval` set to `7d` so the Agent can report on click performance.
+
+## Tips
+
+- Store your Dub API key as an environment secret and reference it with `{{DUB_API_KEY}}` — never paste it directly into a block field.
+- When looking up a link by domain and slug (Get Link), provide both `domain` and `key` together; omitting either will cause the lookup to fall back to the `linkId` parameter.
+- To reference a link using your own system's identifier, set `externalId` on creation, then pass it prefixed with `ext_` as the `linkId` in Update, Delete, and Get operations (e.g. `ext_{{yourSystem.recordId}}`).
+- Use Get Analytics with `groupBy` set to `timeseries` and `interval` set to `7d` to feed daily click trends into an Agent that generates a weekly performance summary.

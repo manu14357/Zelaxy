@@ -1,0 +1,80 @@
+---
+title: SimilarWeb Tools
+description: Retrieve website traffic, engagement, and global rank data from the SimilarWeb API.
+icon: Box
+---
+
+# SimilarWeb Tools
+
+The SimilarWeb provider lets a workflow look up web-analytics data for any domain: total visits and engagement over time, and a website's global rank. Use these tools when a workflow needs competitive intelligence, traffic estimates, or popularity signals for a given website.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `similarweb` |
+| **Category** | `tools` |
+| **Auth** | API Key (passed as the `api_key` query parameter on every request) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Total traffic | `similarweb_total_traffic` | Get total website visits and engagement over time from SimilarWeb |
+| Website rank | `similarweb_website_rank` | Get the global rank of a website from SimilarWeb |
+
+## Configuration
+
+### `similarweb_total_traffic`
+
+Calls `GET https://api.similarweb.com/v1/website/{domain}/total-traffic-and-engagement/visits`. The request is fixed to `granularity=monthly` and `main_domain_only=false`, with the API key appended as the `api_key` query parameter and an `Accept: application/json` header.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** SimilarWeb API key. Visibility: user-only (not exposed to the LLM). Sent as the `api_key` query parameter. |
+| `domain` | string | Yes | Website domain to analyze (e.g., `example.com`). Visibility: user-or-llm. |
+
+### `similarweb_website_rank`
+
+Calls `GET https://api.similarweb.com/v1/website/{domain}/global-rank/global-rank`, with the API key appended as the `api_key` query parameter and an `Accept: application/json` header.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** SimilarWeb API key. Visibility: user-only (not exposed to the LLM). Sent as the `api_key` query parameter. |
+| `domain` | string | Yes | Website domain to analyze (e.g., `example.com`). Visibility: user-or-llm. |
+
+## Outputs
+
+### `similarweb_total_traffic`
+
+- `data` (json) — The SimilarWeb total traffic response object.
+- `metadata` (json) — Request identifiers.
+  - `metadata.domain` (string) — The analyzed domain.
+
+### `similarweb_website_rank`
+
+- `data` (json) — The SimilarWeb global rank response object.
+- `metadata` (json) — Request identifiers.
+  - `metadata.domain` (string) — The analyzed domain.
+
+## YAML Example
+
+```yaml
+similarweb_1:
+  type: similarweb
+  name: "SimilarWeb"
+  inputs:
+    operation: "similarweb_total_traffic"
+    domain: "example.com"
+    apiKey: "{{SIMILARWEB_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authentication is by API key only. SimilarWeb expects the key as the `api_key` query parameter, which both tools add automatically — you only supply the raw key. Reference it with double braces, e.g. `apiKey: "{{SIMILARWEB_API_KEY}}"`, and never paste a key inline.
+- Pass `domain` as a bare host (e.g. `example.com`), not a full URL with `https://` or a trailing path, since it is interpolated directly into the request path.
+- Both tools return the raw SimilarWeb payload under `data`, so downstream blocks should read specific fields from it, e.g. `{{similarweb_1.data}}` for the response object and `{{similarweb_1.metadata.domain}}` for the domain that was queried.
+- `similarweb_total_traffic` is always monthly granularity and includes subdomains (`main_domain_only=false`); these are hard-coded and not configurable from the block.

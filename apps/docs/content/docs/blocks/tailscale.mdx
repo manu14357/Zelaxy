@@ -1,0 +1,95 @@
+---
+title: Tailscale Block
+description: List devices and keys in a Tailscale tailnet
+icon: Network
+---
+
+# Tailscale Block
+
+List the devices and auth keys in a Tailscale tailnet and fetch individual device details through the Tailscale API. Authenticate with an API access token to query your network inventory or audit auth keys programmatically.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `tailscale` |
+| **Category** | `tools` |
+| **Color** | `#242424` |
+
+## When to Use
+
+- Enumerate every device registered in your tailnet to build an asset inventory or compliance report.
+- Look up a specific device by its node key to retrieve its IP addresses, OS version, hostname, or last-seen timestamp.
+- Audit auth keys for your tailnet to identify expired, unused, or overly permissive keys.
+- Drive automated remediation workflows that react to device state returned by the Tailscale API.
+- Feed device or key data into downstream blocks (Agent, Condition, Router) for intelligent network-operations pipelines.
+- Integrate tailnet inventory with ticketing, SIEM, or CMDB systems via subsequent tool blocks.
+
+## Configuration
+
+### Operation
+
+The **Operation** dropdown selects which Tailscale API call the block executes. It is required and defaults to `List devices`.
+
+| Label | ID |
+|-------|----|
+| List devices | `tailscale_list_devices` |
+| Get device | `tailscale_get_device` |
+| List keys | `tailscale_list_keys` |
+
+### Tailnet
+
+Shown when the operation is **List devices** or **List keys**.
+
+Specifies the tailnet (organization) to query. Leave blank or enter `-` to use the default tailnet associated with the API token. Type: short-input, not required.
+
+Placeholder: `- (default tailnet)`
+
+### Device ID
+
+Shown only when the operation is **Get device**.
+
+The unique identifier of the device to retrieve. Use the `nodekey:…` format returned by Tailscale or the numeric device ID. Type: short-input, not required when other operations are selected.
+
+Placeholder: `nodekey:...`
+
+### API Access Token
+
+Required for all operations. Provide a Tailscale API access token (starts with `tskey-api-`). Store it as an environment variable and reference it as `{{TAILSCALE_API_KEY}}` rather than pasting the raw value. Type: short-input (password), required.
+
+Placeholder: `tskey-api-...`
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform; one of `tailscale_list_devices`, `tailscale_get_device`, or `tailscale_list_keys`.
+- `apiKey` (string) — Tailscale API access token used for Bearer authentication.
+- `tailnet` (string) — Tailnet name; used by List devices and List keys operations. Pass `-` for the default tailnet.
+- `deviceId` (string) — Device ID; used only by the Get device operation.
+
+**Outputs:**
+
+- `data` (json) — Result object or array from Tailscale. For list operations this is an array of device or key objects; for Get device it is a single device object.
+- `metadata` (json) — Response metadata. For list operations contains `count` (number of items returned); for Get device contains `id` (the device ID string).
+
+## Tools
+
+- **Tailscale List Devices** (`tailscale_list_devices`) — Calls `GET /api/v2/tailnet/{tailnet}/devices` and returns an array of all registered devices in the tailnet, plus a `count` in metadata.
+- **Tailscale Get Device** (`tailscale_get_device`) — Calls `GET /api/v2/device/{deviceId}` and returns the full device object for a single device, plus its `id` in metadata.
+- **Tailscale List Keys** (`tailscale_list_keys`) — Calls `GET /api/v2/tailnet/{tailnet}/keys` and returns an array of auth key and API access token objects for the tailnet, plus a `count` in metadata.
+
+## YAML Example
+
+```yaml
+tailscale_1:
+  type: tailscale
+  name: "List Tailnet Devices"
+  inputs:
+    operation: tailscale_list_devices
+    apiKey: "{{TAILSCALE_API_KEY}}"
+    tailnet: "-"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

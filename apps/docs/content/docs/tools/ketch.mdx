@@ -1,0 +1,142 @@
+---
+title: Ketch Tools
+description: Manage data-subject consent preferences and privacy rights requests via the Ketch API
+icon: Box
+---
+
+# Ketch Tools
+
+The Ketch tools let a workflow read and update data-subject consent preferences and file privacy rights requests (DSARs) through the public Ketch CDN API. Reach for them when a workflow needs to check a user's current consent state, record a new consent signal, or submit an access/deletion/correction request, all scoped by organization, property, and environment codes.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `ketch` |
+| **Category** | `tools` |
+| **Auth** | none (public `global.ketchcdn.com` endpoints; requests send only `Accept` and `Content-Type` headers — no API key, token, or signature) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Get consent | `ketch_get_consent` | Retrieve consent preferences for a data subject from Ketch |
+| Set consent | `ketch_set_consent` | Update consent preferences for a data subject in Ketch |
+| Invoke right | `ketch_invoke_right` | Submit a data subject rights request (e.g. access, delete, correct) in Ketch |
+
+## Configuration
+
+### `ketch_get_consent`
+
+Calls `POST https://global.ketchcdn.com/web/v2/consent/{organizationCode}/get`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `organizationCode` | string | Yes | Ketch organization code (trimmed and used in the request URL). |
+| `propertyCode` | string | Yes | Digital property code defined in Ketch. |
+| `environmentCode` | string | Yes | Environment code defined in Ketch (e.g. `production`). |
+| `jurisdictionCode` | string | No | Jurisdiction code (e.g. `gdpr`, `ccpa`). Only added to the request body when provided. |
+| `identities` | json | Yes | Identity map (e.g. `{"email": "user@example.com"}`). |
+| `purposes` | json | No | Optional purposes to filter the consent query. Only added to the body when provided. |
+
+No secret parameters — this operation is unauthenticated.
+
+### `ketch_set_consent`
+
+Calls `POST https://global.ketchcdn.com/web/v2/consent/{organizationCode}/update`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `organizationCode` | string | Yes | Ketch organization code (trimmed and used in the request URL). |
+| `propertyCode` | string | Yes | Digital property code defined in Ketch. |
+| `environmentCode` | string | Yes | Environment code defined in Ketch (e.g. `production`). |
+| `jurisdictionCode` | string | No | Jurisdiction code (e.g. `gdpr`, `ccpa`). Only added to the body when provided. |
+| `identities` | json | Yes | Identity map (e.g. `{"email": "user@example.com"}`). |
+| `purposes` | json | Yes | Map of purpose codes to consent settings (e.g. `{"analytics": {"allowed": "granted", "legalBasisCode": "consent_optin"}}`). |
+| `collectedAt` | number | No | UNIX timestamp (seconds) when consent was collected. Defaults to the current server time if omitted. |
+
+No secret parameters — this operation is unauthenticated.
+
+### `ketch_invoke_right`
+
+Calls `POST https://global.ketchcdn.com/web/v2/rights/{organizationCode}/invoke`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `organizationCode` | string | Yes | Ketch organization code (trimmed and used in the request URL). |
+| `propertyCode` | string | Yes | Digital property code defined in Ketch. |
+| `environmentCode` | string | Yes | Environment code defined in Ketch (e.g. `production`). |
+| `jurisdictionCode` | string | Yes | Jurisdiction code (e.g. `gdpr`, `ccpa`). Required for this operation. |
+| `rightCode` | string | Yes | Privacy right code to invoke (e.g. `access`, `delete`, `correct`, `restrict_processing`). |
+| `identities` | json | Yes | Identity map (e.g. `{"email": "user@example.com"}`). |
+| `userData` | json | No | Optional data-subject information (e.g. `{"email": "user@example.com", "firstName": "John", "lastName": "Doe"}`). Sent as the `user` field in the request body. |
+
+No secret parameters — this operation is unauthenticated.
+
+> Every parameter above has `visibility: user-or-llm`, so the workflow-builder agent may supply or infer any of them.
+
+## Outputs
+
+### `ketch_get_consent`
+
+- `data` (json) — Consent purposes and vendor statuses returned from Ketch.
+- `metadata` (json) — Request identifiers. Contains:
+  - `organizationCode` (string) — Ketch organization code.
+
+### `ketch_set_consent`
+
+- `data` (json) — Updated consent purposes from Ketch. Empty object `{}` when Ketch responds with HTTP 204.
+- `metadata` (json) — Request identifiers. Contains:
+  - `organizationCode` (string) — Ketch organization code.
+
+### `ketch_invoke_right`
+
+- `data` (json) — Response from the Ketch rights invocation. Empty object `{}` when Ketch responds with HTTP 204.
+- `metadata` (json) — Request identifiers. Contains:
+  - `organizationCode` (string) — Ketch organization code.
+  - `rightCode` (string) — The invoked right code.
+
+## YAML Example
+
+```yaml
+ketch_1:
+  type: ketch
+  name: "Ketch"
+  inputs:
+    operation: "ketch_get_consent"
+    organizationCode: "acme"
+    propertyCode: "website"
+    environmentCode: "production"
+    jurisdictionCode: "gdpr"
+    identities: '{"email": "user@example.com"}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Submitting a deletion (DSAR) request instead:
+
+```yaml
+ketch_2:
+  type: ketch
+  name: "Ketch"
+  inputs:
+    operation: "ketch_invoke_right"
+    organizationCode: "acme"
+    propertyCode: "website"
+    environmentCode: "production"
+    jurisdictionCode: "gdpr"
+    rightCode: "delete"
+    identities: "{{intake_form.identities}}"
+    userData: "{{intake_form.userData}}"
+  connections:
+    outgoing:
+      - target: notify-requester
+```
+
+## Tips
+
+- No credentials required: these tools hit the public `global.ketchcdn.com` consent/rights endpoints and send no API key, bearer token, or signature. There is no `apiKey` input — do not add one. Access is scoped entirely by `organizationCode`, `propertyCode`, and `environmentCode`.
+- `jurisdictionCode` is optional for `ketch_get_consent` and `ketch_set_consent` but required for `ketch_invoke_right`; omit it and the invoke-right request will be incomplete.
+- `identities` and `purposes` are JSON objects, not strings. Pass real objects (e.g. `{"email": "user@example.com"}`) or reference an upstream block's JSON output with `{{blockName.field}}`. For `ketch_set_consent`, `purposes` is required and maps purpose codes to consent settings like `{"analytics": {"allowed": "granted", "legalBasisCode": "consent_optin"}}`.
+- `collectedAt` (set consent) defaults to the current server time if omitted; supply a UNIX timestamp in seconds only when backdating a consent signal. Set/invoke calls may return HTTP 204, in which case `data` is an empty object `{}` — check `metadata.organizationCode` (and `metadata.rightCode` for invoke right) to confirm what was processed.

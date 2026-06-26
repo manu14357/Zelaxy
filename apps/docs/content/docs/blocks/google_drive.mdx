@@ -13,7 +13,7 @@ The Google Drive block integrates Google Drive functionality into your workflow 
 | Property | Value |
 |----------|-------|
 | **Type** | `google_drive` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#E0E0E0` |
 
 ## When to Use
@@ -21,54 +21,116 @@ The Google Drive block integrates Google Drive functionality into your workflow 
 - Upload generated content (text, reports, exported data) as a Google Doc, Sheet, Slides, or PDF.
 - Create a new folder to organize files produced by a workflow run.
 - List files inside a specific folder, optionally filtered by a search query.
-- Save workflow outputs into a chosen parent folder using a selector or a manual folder ID.
-- Programmatically organize Drive contents as part of an automation pipeline.
+- Save workflow outputs into a chosen parent folder using the visual folder selector or a manual folder ID.
+- Programmatically organize Drive contents as part of a multi-step automation pipeline.
+- Chain with other blocks to store agent-generated documents directly to Drive.
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting what the block does: Create Folder, Upload File, or List Files. Defaults to Create Folder.
+Dropdown that selects what the block does. Defaults to `create_folder`.
 
-### Google Drive Account
+| Label | id |
+|-------|----|
+| Create Folder | `create_folder` |
+| Upload File | `upload` |
+| List Files | `list` |
 
-Required OAuth credential for the `google-drive` provider (scope `drive.file`) used to authenticate the request.
+### Google Drive Account (`credential`)
 
-### File / Folder Name
+Required. OAuth credential for the `google-drive` provider (scope `https://www.googleapis.com/auth/drive.file`). Connect your Google Drive account here.
 
-The name of the file to upload or the folder to create. Required for the Upload File and Create Folder operations.
+---
 
-### Content
+### Upload File fields (shown when `operation` = `upload`)
 
-The text content to write into the file. Required for the Upload File operation.
+#### File Name (`fileName`)
 
-### MIME Type
+Required. The name of the file to upload.
 
-For uploads, the target file type: Google Doc, Google Sheet, Google Slides, or PDF.
+#### Content (`content`)
 
-### Parent Folder
+Required. The text content to write into the file.
 
-Choose a parent folder with the file selector (basic mode) or enter a folder ID manually (advanced mode). Leave empty to use the root folder. For List Files, this selects the folder to list.
+#### MIME Type (`mimeType`)
 
-### Search Query / Results Per Page
+The target file type for the uploaded content.
 
-For List Files only: an optional query to filter results (e.g. name contains "report") and the number of results per page (default 100, max 1000).
+| Label | id |
+|-------|----|
+| Google Doc | `application/vnd.google-apps.document` |
+| Google Sheet | `application/vnd.google-apps.spreadsheet` |
+| Google Slides | `application/vnd.google-apps.presentation` |
+| PDF (application/pdf) | `application/pdf` |
+
+#### Select Parent Folder (`folderSelector`)
+
+Visual folder picker (basic mode). Choose a parent folder for the uploaded file. Leave empty to upload to the root.
+
+#### Parent Folder ID (`manualFolderId`)
+
+Text input (advanced mode). Enter a folder ID manually to specify the upload destination. Leave empty for root.
+
+---
+
+### Create Folder fields (shown when `operation` = `create_folder`)
+
+#### Folder Name (`fileName`)
+
+Required. The name for the new folder.
+
+#### Select Parent Folder (`folderSelector`)
+
+Visual folder picker (basic mode). Choose the parent folder that will contain the new folder.
+
+#### Parent Folder ID (`manualFolderId`)
+
+Text input (advanced mode). Enter a parent folder ID manually. Leave empty to create the folder in the root.
+
+---
+
+### List Files fields (shown when `operation` = `list`)
+
+#### Select Folder (`folderSelector`)
+
+Visual folder picker (basic mode). Choose the folder whose contents to list.
+
+#### Folder ID (`manualFolderId`)
+
+Text input (advanced mode). Enter a folder ID manually. Leave empty to list root-level files.
+
+#### Search Query (`query`)
+
+Optional. A query string to filter results (e.g. `name contains "report"`).
+
+#### Results Per Page (`pageSize`)
+
+Optional. Number of results to return. Default: 100, maximum: 1000.
+
+---
 
 ## Inputs & Outputs
 
 - **Inputs**:
-  - `operation` (string) — operation to perform
-  - `credential` (string) — Google Drive access token
-  - `fileName` (string) — file or folder name
-  - `content` (string) — file content
-  - `mimeType` (string) — file MIME type
-  - `folderSelector` (string) — selected folder
-  - `manualFolderId` (string) — manual folder identifier
-  - `query` (string) — search query
-  - `pageSize` (number) — results per page
+  - `operation` (string) — Operation to perform (`create_folder`, `upload`, or `list`)
+  - `credential` (string) — Google Drive OAuth access token
+  - `fileName` (string) — File or folder name (required for Upload File and Create Folder)
+  - `content` (string) — File content to write (Upload File only)
+  - `mimeType` (string) — Target MIME type for the uploaded file (Upload File only)
+  - `folderSelector` (string) — Folder selected via the visual picker (basic mode)
+  - `manualFolderId` (string) — Folder ID entered manually (advanced mode)
+  - `query` (string) — Search query to filter listed files (List Files only)
+  - `pageSize` (number) — Number of results per page (List Files only)
 - **Outputs**:
-  - `file` (json) — file data
-  - `files` (json) — files list
+  - `file` (json) — File or folder metadata returned after Upload File or Create Folder (includes `id`, `name`, `mimeType`, `webViewLink`, `webContentLink`, `size`, `createdTime`, `modifiedTime`, `parents`)
+  - `files` (json) — Array of file/folder metadata objects returned by List Files (each item has `id`, `name`, `mimeType`, `webViewLink`, `webContentLink`, `size`, `createdTime`, `modifiedTime`, `parents`)
+
+## Tools
+
+- **Upload to Google Drive** (`google_drive_upload`) — Creates a new file in Google Drive with the provided name, content, and MIME type. Supports plain text as well as Google Workspace formats (Doc, Sheet, Slides). Uploads content to the newly created file and returns the resulting file metadata.
+- **Create Folder in Google Drive** (`google_drive_create_folder`) — Creates a new folder in Google Drive with the given name, optionally nested inside a specified parent folder. Returns the created folder's metadata.
+- **List Google Drive Files** (`google_drive_list`) — Retrieves a paginated list of files and folders from a specified Drive folder (or the root). Supports filtering by name via a search query string and limits results with `pageSize`.
 
 ## YAML Example
 
@@ -78,11 +140,11 @@ drive_upload:
   name: "Google Drive"
   inputs:
     operation: "upload"
-    credential: "{{credentials.google_drive}}"
+    credential: "{{GOOGLE_DRIVE_ACCESS_TOKEN}}"
     fileName: "Weekly Report"
-    content: "{{start.input}}"
+    content: "{{report_block.result}}"
     mimeType: "application/vnd.google-apps.document"
-    manualFolderId: ""
+    manualFolderId: "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"
   connections:
     outgoing:
       - target: next-block-id

@@ -23,25 +23,43 @@ The Jina block transforms web content into clean, readable text using Jina AI's 
 - Collect all the links found on a page for crawling or research workflows
 - Get a structured JSON response when you need machine-parseable output
 - Use Reader LM v2 for higher-quality content extraction on complex pages
+- Feed scraped page content into an agent block for summarization or analysis
 
 ## Configuration
 
 ### URL
-The webpage address to extract content from. Required.
+
+The webpage address to extract content from. Required. Supports any valid `http://` or `https://` URL; the block normalizes the scheme before forwarding to Jina.
 
 ### Options
-A checkbox list controlling extraction behavior:
-- **Use Reader LM v2** (`useReaderLMv2`) — enable the improved reader model for extraction
-- **Gather Links** (`gatherLinks`) — include the page's links in the result
-- **JSON Response** (`jsonResponse`) — return the response in JSON format
+
+A checkbox list controlling extraction behavior. All options are optional and default to off.
+
+| Option | id | Effect |
+|--------|----|--------|
+| Use Reader LM v2 | `useReaderLMv2` | Sends `X-Respond-With: readerlm-v2` to use the improved reader model for better extraction quality on complex pages |
+| Gather Links | `gatherLinks` | Sends `X-With-Links-Summary: true` to append a summary of all links found on the page to the output |
+| JSON Response | `jsonResponse` | Sets `Accept: application/json` so the Jina API returns a structured JSON payload instead of plain text |
 
 ### API Key
-Your Jina API key, stored securely. Required.
+
+Your Jina AI API key, stored securely (password field). Required. Passed as `Authorization: Bearer <key>`. Use `{{JINA_API_KEY}}` to pull from an environment variable.
 
 ## Inputs & Outputs
 
-- **Inputs**: `url` (string), `useReaderLMv2` (boolean), `gatherLinks` (boolean), `jsonResponse` (boolean), `apiKey` (string)
-- **Outputs**: `content` (string)
+- **Inputs**:
+  - `url` (string) — URL to extract content from
+  - `useReaderLMv2` (boolean) — Use Reader LM v2 for better quality extraction
+  - `gatherLinks` (boolean) — Gather all links found on the page
+  - `jsonResponse` (boolean) — Return response in JSON format instead of plain text
+  - `apiKey` (string) — Jina AI API key for authentication
+
+- **Outputs**:
+  - `content` (string) — The extracted content from the URL, processed into clean, LLM-friendly text (or a JSON string when `jsonResponse` is enabled)
+
+## Tools
+
+**Jina Reader** (`jina_read_url`) — Extracts and processes web content into clean, LLM-friendly text using the Jina AI Reader API (`https://r.jina.ai/`). Supports advanced content parsing, optional link gathering, and plain-text or JSON output formats. Takes `url`, `apiKey`, and the three optional boolean flags as parameters; returns `content`.
 
 ## YAML Example
 

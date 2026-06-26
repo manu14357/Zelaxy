@@ -19,46 +19,87 @@ The Asana block integrates Asana project management into your workflows. Use it 
 ## When to Use
 
 - Automatically create an Asana task when a form, email, or upstream block produces actionable work.
-- Update a task's name or notes as a workflow progresses through its steps.
+- Update a task's name, notes, assignee, due date, or completion status as a workflow progresses.
 - Retrieve a specific task by its GID to read its current state before deciding what to do next.
 - Delete a task once it has been resolved or is no longer needed.
-- List all projects to route work into the correct project.
-- Search for tasks within a project by keyword, or add comments to keep collaborators informed.
+- List all projects in a workspace to route work into the correct project.
+- Search for tasks by keyword or filters, or add comments to keep collaborators informed.
 
 ## Configuration
 
 ### Operation
 
-Select what the block does: Get Task, Create Task, Update Task, Delete Task, Get Projects, Search Tasks, or Add Comment. This drives which other fields are shown.
+**Required.** Selects what the block does. The chosen operation determines which other fields are shown.
+
+| Label | ID |
+|-------|----|
+| Get Task | `asana_get_task` |
+| Create Task | `asana_create_task` |
+| Update Task | `asana_update_task` |
+| Delete Task | `asana_delete_task` |
+| Get Projects | `asana_get_projects` |
+| Search Tasks | `asana_search_tasks` |
+| Add Comment | `asana_add_comment` |
 
 ### Asana Account
 
-OAuth credential used to authenticate with Asana (provider `asana`).
+OAuth credential used to authenticate with Asana (provider `asana`). Required for all operations.
 
-### Task GID
+### Task GID (`taskGid`)
 
-Identifier of the task to act on. Shown for Get Task, Update Task, Delete Task, and Add Comment.
+Globally unique identifier of the task to act on. Shown for: **Get Task**, **Update Task**, **Delete Task**, **Add Comment**.
 
-### Project GID
+### Project GID (`projectGid`)
 
-Identifier of the project. Shown for Create Task and Search Tasks.
+Globally unique identifier of the project. Shown for: **Create Task**, **Search Tasks**.
 
-### Task Name
+### Task Name (`taskName`)
 
-Name of the task. Shown for Create Task and Update Task.
+Name of the task to create or update. Shown for: **Create Task**, **Update Task**.
 
-### Notes
+### Notes (`notes`)
 
-Task description or comment body. Shown for Create Task, Update Task, and Add Comment.
+Task description (for Create Task and Update Task) or comment body (for Add Comment). Shown for: **Create Task**, **Update Task**, **Add Comment**.
 
-### Search Query
+### Search Query (`query`)
 
-Task name or keyword to search for. Shown for Search Tasks.
+Task name or keyword to search for within a project. Shown for: **Search Tasks**.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `oauthCredential` (string), `taskGid` (string), `projectGid` (string), `taskName` (string), `notes` (string), `query` (string)
-- **Outputs**: `task` (json), `tasks` (json), `comment` (json)
+**Inputs** (subBlock `id` — type — description):
+
+- `operation` (string) — Operation to perform
+- `oauthCredential` (string) — OAuth credential
+- `taskGid` (string) — Task GID
+- `projectGid` (string) — Project GID
+- `taskName` (string) — Task name
+- `notes` (string) — Task notes or comment body
+- `query` (string) — Search query
+
+**Outputs** (block-level):
+
+- `task` (json) — Task data (returned by Get Task, Create Task, Update Task, Delete Task)
+- `tasks` (json) — Task list (returned by Search Tasks)
+- `comment` (json) — Comment data (returned by Add Comment)
+
+## Tools
+
+Each operation maps to a dedicated tool. The block selects the tool automatically based on the `operation` input.
+
+**Asana Get Task** (`asana_get_task`) — Retrieves a single task by GID. Key params: `taskGid` (the task to fetch). Returns `gid`, `name`, `notes`, `completed`, `assignee`, `due_on`, `created_at`, `modified_at`, and a `tasks` array when fetching multiple tasks.
+
+**Asana Create Task** (`asana_create_task`) — Creates a new task in a workspace. Key params: `workspace` (workspace GID), `name` (task name), and optionally `notes`, `assignee`, `due_on`. Returns `gid`, `name`, `notes`, `completed`, `created_at`, and `permalink_url`.
+
+**Asana Update Task** (`asana_update_task`) — Updates an existing task. Key params: `taskGid` (task to update), and optionally `name`, `notes`, `assignee`, `completed`, `due_on`. Returns `gid`, `name`, `notes`, `completed`, `modified_at`.
+
+**Asana Delete Task** (`asana_delete_task`) — Deletes a task by GID. Key params: `taskGid`. Returns `deleted` (boolean) and `taskGid`.
+
+**Asana Get Projects** (`asana_get_projects`) — Retrieves all projects from a workspace. Key params: `workspace` (workspace GID). Returns a `projects` array, each item with `gid`, `name`, and `resource_type`.
+
+**Asana Search Tasks** (`asana_search_tasks`) — Searches for tasks in a workspace. Key params: `workspace`, and optionally `text` (keyword), `assignee`, `projects` (array of project GIDs), `completed`. Returns a `tasks` array and optional `next_page` pagination info.
+
+**Asana Add Comment** (`asana_add_comment`) — Adds a comment (story) to a task. Key params: `taskGid`, `text` (comment body). Returns `gid`, `text`, `created_at`, `created_by`.
 
 ## YAML Example
 

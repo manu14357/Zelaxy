@@ -1,0 +1,72 @@
+---
+title: Speech to Text Tools
+description: Transcribe audio or video from a public URL into text using the ElevenLabs speech-to-text API.
+icon: AudioLines
+---
+
+# Speech to Text Tools
+
+The Speech to Text provider transcribes audio or video files into text using the ElevenLabs speech-to-text API. Use it in a workflow when you have a publicly accessible audio/video URL and need a transcript (with word-level segments and detected language) to feed into downstream blocks such as agents, summarizers, or storage.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `stt` |
+| **Category** | tools |
+| **Auth** | API Key (ElevenLabs `xi-api-key` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Transcribe | `stt_transcribe` | Transcribe audio from a URL to text using ElevenLabs speech-to-text |
+
+## Configuration
+
+### `stt_transcribe`
+
+Calls `POST https://api.elevenlabs.io/v1/speech-to-text` with the `xi-api-key` header for authentication. The request is sent as `application/x-www-form-urlencoded`, passing the audio URL as `cloud_storage_url` and requesting word-level timestamp granularity.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | ElevenLabs API key. **Secret** — sent as the `xi-api-key` header. (visibility: user-only) |
+| `audioUrl` | string | Yes | Publicly accessible URL to the audio or video file to transcribe. (visibility: user-or-llm) |
+| `model` | string | No | ElevenLabs model ID. Defaults to `scribe_v2` when omitted. (visibility: user-or-llm) |
+| `language` | string | No | Language code (e.g. `en`, `es`) or `auto` for auto-detection. When set to `auto` (or omitted), no language code is sent and ElevenLabs auto-detects. (visibility: user-or-llm) |
+
+## Outputs
+
+### `stt_transcribe`
+
+- `data` (json) — Transcript text, segments, and detected language. Contains:
+  - `transcript` (string) — The full transcribed text.
+  - `segments` (array of json) — Word-level segments, each with `text`, `start`, `end`, and `speaker`.
+  - `language` (string | null) — The detected or specified language code.
+- `metadata` (json) — Transcription metadata. Contains:
+  - `language` (string) — Detected or specified language code.
+  - `segmentCount` (number) — Number of word-level segments returned.
+
+## YAML Example
+
+```yaml
+stt_1:
+  type: stt
+  name: "Speech to Text"
+  inputs:
+    operation: "stt_transcribe"
+    audioUrl: "https://example.com/audio.mp3"
+    model: "scribe_v2"
+    language: "auto"
+    apiKey: "{{ELEVENLABS_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authenticate with an ElevenLabs API key — set it via an environment variable and reference it as `{{ELEVENLABS_API_KEY}}` rather than hardcoding the secret.
+- The `audioUrl` must be a publicly accessible URL; ElevenLabs fetches it server-side as `cloud_storage_url`, so signed/expiring links may need to stay valid for the duration of the call.
+- Leave `language` empty or set it to `auto` to let ElevenLabs auto-detect the spoken language; only pass a specific code (e.g. `en`) when you need to force it.
+- Downstream blocks can consume the transcript with `{{stt_1.data.transcript}}`, the detected language with `{{stt_1.data.language}}`, and the segment count with `{{stt_1.metadata.segmentCount}}`.

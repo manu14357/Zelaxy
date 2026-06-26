@@ -1,0 +1,130 @@
+---
+title: Google Vault Block
+description: Manage matters and exports in Google Vault
+icon: Box
+---
+
+# Google Vault Block
+
+List and create matters, fetch a specific matter, and list exports through the Google Vault API. Authenticate with an OAuth access token to manage your organization's legal holds and eDiscovery data programmatically inside a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_vault` |
+| **Category** | `tools` |
+| **Color** | `#34A853` |
+
+## When to Use
+
+- Enumerate all matters in Google Vault to audit or report on active legal holds.
+- Retrieve detailed metadata for a single matter by its ID, e.g. to check status or collaborators.
+- Programmatically create a new matter when a legal or compliance event is triggered upstream in a workflow.
+- List all exports attached to a matter to monitor data-export progress or feed export metadata into downstream blocks.
+- Chain with agent or condition blocks to automate compliance workflows based on matter state.
+- Pass matter IDs discovered in one step to filter exports or lookups in subsequent steps using `{{blockName.data}}`.
+
+## Configuration
+
+### Operation
+
+Select the Google Vault action to perform. This dropdown is required and determines which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| List matters | `google_vault_list_matters` |
+| Get matter | `google_vault_get_matter` |
+| Create matter | `google_vault_create_matter` |
+| List exports | `google_vault_list_exports` |
+
+**Field visibility by operation:**
+
+| Field | List matters | Get matter | Create matter | List exports |
+|-------|:---:|:---:|:---:|:---:|
+| `matterId` | | Yes | | Yes |
+| `name` | | | Yes | |
+| `description` | | | Yes | |
+| `pageSize` | Yes | | | Yes |
+| `accessToken` | Yes | Yes | Yes | Yes |
+
+### Matter ID
+
+- **Sub-block id**: `matterId`
+- **Type**: short-input
+- **Placeholder**: `12345678901234567890`
+- Visible for **Get matter** and **List exports**.
+- The unique numeric identifier of the target matter. Required for those two operations.
+
+### Name
+
+- **Sub-block id**: `name`
+- **Type**: short-input
+- **Placeholder**: `New matter name`
+- Visible for **Create matter** only.
+- The display name for the new matter. Required when creating.
+
+### Description
+
+- **Sub-block id**: `description`
+- **Type**: long-input
+- Visible for **Create matter** only.
+- Optional free-text description for the matter.
+
+### Page Size
+
+- **Sub-block id**: `pageSize`
+- **Type**: short-input
+- **Placeholder**: `50`
+- Visible for **List matters** and **List exports**.
+- Controls how many results the API returns per page. Optional; defaults to the API default when omitted.
+
+### Access Token
+
+- **Sub-block id**: `accessToken`
+- **Type**: short-input (password)
+- **Required**: Yes (all operations)
+- **Placeholder**: `OAuth access token`
+- A valid Google OAuth 2.0 bearer token with the `https://www.googleapis.com/auth/ediscovery` scope. Pass a secret with `{{GOOGLE_VAULT_ACCESS_TOKEN}}`.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform; one of the four tool IDs above.
+- `accessToken` (string) — OAuth access token for the Google Vault API.
+- `matterId` (string) — Matter ID; required by `google_vault_get_matter` and `google_vault_list_exports`.
+- `name` (string) — Matter name; required by `google_vault_create_matter`.
+- `description` (string) — Matter description; optional for `google_vault_create_matter`.
+- `pageSize` (number) — Results per page; optional for `google_vault_list_matters` and `google_vault_list_exports`.
+
+**Outputs:**
+
+- `data` (json) — Result object or array from Google Vault. For list operations this is an array of matter or export objects; for get/create it is a single object.
+- `metadata` (json) — Response metadata. Contains `nextPageToken` (string or null) for paginated list responses; null for single-item operations.
+
+## Tools
+
+**Vault List Matters** (`google_vault_list_matters`) — Issues a `GET` to `https://vault.googleapis.com/v1/matters`. Accepts an optional `pageSize` parameter. Returns an array of matter objects in `data` and a `nextPageToken` in `metadata`.
+
+**Vault Get Matter** (`google_vault_get_matter`) — Issues a `GET` to `https://vault.googleapis.com/v1/matters/{matterId}`. Requires `matterId`. Returns the full matter object in `data`.
+
+**Vault Create Matter** (`google_vault_create_matter`) — Issues a `POST` to `https://vault.googleapis.com/v1/matters` with a JSON body containing `name` and optional `description`. Returns the newly created matter object in `data`.
+
+**Vault List Exports** (`google_vault_list_exports`) — Issues a `GET` to `https://vault.googleapis.com/v1/matters/{matterId}/exports`. Requires `matterId`; accepts optional `pageSize`. Returns an array of export objects in `data` and a `nextPageToken` in `metadata`.
+
+## YAML Example
+
+```yaml
+google_vault_1:
+  type: google_vault
+  name: "List Vault Exports"
+  inputs:
+    operation: "google_vault_list_exports"
+    matterId: "{{trigger.matterId}}"
+    pageSize: 25
+    accessToken: "{{GOOGLE_VAULT_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

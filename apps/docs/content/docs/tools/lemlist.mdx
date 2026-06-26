@@ -1,0 +1,116 @@
+---
+title: Lemlist Tools
+description: List campaigns, retrieve a campaign, add leads, and list activities in Lemlist.
+icon: Mail
+---
+
+# Lemlist Tools
+
+Lemlist is a cold-outreach and sales-engagement platform. Use these tools in a workflow to read your campaigns, add leads to a campaign, and pull campaign activity (opens, clicks, replies) directly from the Lemlist API.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `lemlist` |
+| **Category** | `tools` |
+| **Auth** | Basic Auth (Lemlist API key sent as the password with an empty username, base64-encoded) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List campaigns | `lemlist_list_campaigns` | List campaigns in your Lemlist account |
+| Get campaign | `lemlist_get_campaign` | Get a single Lemlist campaign by ID |
+| Add lead | `lemlist_add_lead` | Add a lead to a Lemlist campaign |
+| List activities | `lemlist_list_activities` | List campaign activities such as opens, clicks, and replies in Lemlist |
+
+## Configuration
+
+### `lemlist_list_campaigns`
+
+Calls `GET https://api.lemlist.com/api/campaigns`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Lemlist API key. **Secret** — keep in an environment variable. |
+
+### `lemlist_get_campaign`
+
+Calls `GET https://api.lemlist.com/api/campaigns/{campaignId}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Lemlist API key. **Secret** — keep in an environment variable. |
+| `campaignId` | string | Yes | The ID of the campaign to retrieve. |
+
+### `lemlist_add_lead`
+
+Calls `POST https://api.lemlist.com/api/campaigns/{campaignId}/leads/{email}`. The email is URL-encoded into the path; `firstName` and `lastName` are sent in the JSON body only when provided.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Lemlist API key. **Secret** — keep in an environment variable. |
+| `campaignId` | string | Yes | The ID of the campaign to add the lead to. |
+| `email` | string | Yes | The email address of the lead. |
+| `firstName` | string | No | The lead first name. |
+| `lastName` | string | No | The lead last name. |
+
+### `lemlist_list_activities`
+
+Calls `GET https://api.lemlist.com/api/activities`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Lemlist API key. **Secret** — keep in an environment variable. |
+
+## Outputs
+
+### `lemlist_list_campaigns`
+
+- `data` (json) — Array of Lemlist campaign objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of campaigns returned.
+
+### `lemlist_get_campaign`
+
+- `data` (json) — The Lemlist campaign object.
+- `metadata` (json) — Campaign identifiers.
+  - `id` (string) — Campaign ID.
+
+### `lemlist_add_lead`
+
+- `data` (json) — The created Lemlist lead object.
+- `metadata` (json) — Lead identifiers.
+  - `id` (string) — Lead ID.
+
+### `lemlist_list_activities`
+
+- `data` (json) — Array of Lemlist activity objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of activities returned.
+
+## YAML Example
+
+```yaml
+lemlist_1:
+  type: lemlist
+  name: "Lemlist"
+  inputs:
+    operation: "lemlist_add_lead"
+    campaignId: "cam_abc123def456"
+    email: "lead@example.com"
+    firstName: "Jane"
+    lastName: "Doe"
+    apiKey: "{{LEMLIST_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Auth is HTTP Basic: Zelaxy builds the `Authorization` header as `Basic base64(":" + apiKey)` (empty username, API key as password). You only need to supply `apiKey` — get it from your Lemlist account under Settings → Integrations → API. Store it as an environment variable and reference it with `{{LEMLIST_API_KEY}}`.
+- For `lemlist_add_lead`, only `campaignId` and `email` are required; `firstName` and `lastName` are optional and are omitted from the request body when left blank. The lead's email is placed in the URL path, so it does not need to be globally unique across campaigns.
+- The list operations return raw arrays from Lemlist. Use `{{lemlist_1.data}}` for the array and `{{lemlist_1.metadata.count}}` for the item count; for the single-object operations use `{{lemlist_1.metadata.id}}` to grab the created/fetched record ID.
+```

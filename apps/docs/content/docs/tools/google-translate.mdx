@@ -1,0 +1,95 @@
+---
+title: Google Translate Tools
+description: Translate text, detect languages, and list supported languages with the Google Cloud Translation API.
+icon: Languages
+---
+
+# Google Translate Tools
+
+The Google Translate tools wrap the Google Cloud Translation API (v2) so a workflow can translate text into a target language, auto-detect the language of arbitrary text, and enumerate every language the API supports. Use them whenever a workflow needs on-the-fly localization, language routing, or language-aware processing of user input.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-translate` |
+| **Category** | tools |
+| **Auth** | API Key (Google Cloud API key passed as the `key` URL query parameter) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Translate | `google_translate_translate` | Translate text into a target language using the Google Cloud Translation API. |
+| Detect language | `google_translate_detect_language` | Detect the language of text using the Google Cloud Translation API. |
+| List languages | `google_translate_list_languages` | List the languages supported by the Google Cloud Translation API. |
+
+## Configuration
+
+### `google_translate_translate`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** Google Cloud API key with the Cloud Translation API enabled. Visibility: `user-only`. |
+| `q` | string | Yes | The text to translate. |
+| `target` | string | Yes | Target language code (e.g., `es`, `fr`, `de`, `ja`). |
+| `source` | string | No | Source language code. If omitted, the language is auto-detected. |
+| `format` | string | No | Format of the source text. Allowed values: `text` or `html`. Defaults to `text` when omitted. |
+
+### `google_translate_detect_language`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** Google Cloud API key with the Cloud Translation API enabled. Visibility: `user-only`. |
+| `q` | string | Yes | The text to detect the language of. |
+
+### `google_translate_list_languages`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** Google Cloud API key with the Cloud Translation API enabled. Visibility: `user-only`. |
+| `target` | string | No | Language code to return the language names in (e.g., `en`). Defaults to `en` when omitted. |
+
+## Outputs
+
+### `google_translate_translate`
+
+- `data` (json) — The translation object with `translatedText` (and `detectedSourceLanguage` when `source` was omitted).
+- `metadata` (json) — Translation metadata.
+  - `metadata.detectedSourceLanguage` (string) — Detected source language (present only if `source` was omitted).
+
+### `google_translate_detect_language`
+
+- `data` (json) — The detection object with `language` and `confidence`.
+- `metadata` (json) — Detection metadata.
+  - `metadata.language` (string) — Detected language code.
+
+### `google_translate_list_languages`
+
+- `data` (json) — Array of supported languages, each with `code` and `name`.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of languages returned.
+
+## YAML Example
+
+```yaml
+google_translate_1:
+  type: google_translate
+  name: "Google Translate"
+  inputs:
+    operation: "google_translate_translate"
+    q: "Hello, how are you?"
+    target: "es"
+    source: "en"
+    format: "text"
+    apiKey: "{{GOOGLE_TRANSLATE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup.** Create a Google Cloud API key and enable the Cloud Translation API for that project. The key is sent as the `key` query parameter on every request, so restrict it (by API and referrer/IP) in the Google Cloud console. Store it as an environment variable and reference it with `{{GOOGLE_TRANSLATE_API_KEY}}` rather than hard-coding it.
+- **Auto-detect on translate.** Leave `source` empty to let Google detect the input language; the detected code is returned in `{{google_translate_1.metadata.detectedSourceLanguage}}`. For a detection-only step that does not translate, use `google_translate_detect_language` instead.
+- **HTML vs text.** Set `format` to `html` when translating markup so tags are preserved; it defaults to `text`. Use `google_translate_list_languages` (with an optional `target` display language) to validate a language code before passing it to a translate step.

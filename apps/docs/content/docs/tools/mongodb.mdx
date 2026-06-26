@@ -1,0 +1,139 @@
+---
+title: MongoDB Tools
+description: Query and modify documents in a MongoDB collection through the Atlas Data API.
+icon: Database
+---
+
+# MongoDB Tools
+
+The MongoDB provider lets a workflow find, insert, update, and delete documents in a MongoDB
+collection over HTTP using the MongoDB Atlas Data API. Use these tools when you need to read or
+write application data stored in MongoDB Atlas without managing a native database driver.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `mongodb` |
+| **Category** | `tools` |
+| **Auth** | API Key (sent as the `api-key` request header; Atlas Data API key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Find | `mongodb_find` | Find documents in a MongoDB collection via the Atlas Data API |
+| Insert one | `mongodb_insert_one` | Insert a single document into a MongoDB collection via the Atlas Data API |
+| Update one | `mongodb_update_one` | Update a single document in a MongoDB collection via the Atlas Data API |
+| Delete one | `mongodb_delete_one` | Delete a single document from a MongoDB collection via the Atlas Data API |
+
+## Configuration
+
+All operations share the same connection parameters: `dataApiUrl`, `apiKey`, `dataSource`,
+`database`, and `collection`. The `apiKey` is a secret (your Atlas Data API key) and is sent in
+the `api-key` HTTP header. Each request is a `POST` to `{dataApiUrl}/action/<action>`.
+
+### mongodb_find
+
+Calls `POST {dataApiUrl}/action/find`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `dataApiUrl` | string | Yes | MongoDB Atlas Data API base URL, e.g. `https://data.mongodb-api.com/app/{{appId}}/endpoint/data/v1` |
+| `apiKey` | string | Yes | **Secret.** MongoDB Atlas Data API key (sent as the `api-key` header) |
+| `dataSource` | string | Yes | The cluster (data source) name |
+| `database` | string | Yes | The database name |
+| `collection` | string | Yes | The collection name |
+| `filter` | json | No | MongoDB query filter document (defaults to `{}` — matches all) |
+| `limit` | number | No | Maximum number of documents to return |
+
+### mongodb_insert_one
+
+Calls `POST {dataApiUrl}/action/insertOne`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `dataApiUrl` | string | Yes | MongoDB Atlas Data API base URL, e.g. `https://data.mongodb-api.com/app/{{appId}}/endpoint/data/v1` |
+| `apiKey` | string | Yes | **Secret.** MongoDB Atlas Data API key (sent as the `api-key` header) |
+| `dataSource` | string | Yes | The cluster (data source) name |
+| `database` | string | Yes | The database name |
+| `collection` | string | Yes | The collection name |
+| `document` | json | Yes | The document to insert |
+
+### mongodb_update_one
+
+Calls `POST {dataApiUrl}/action/updateOne`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `dataApiUrl` | string | Yes | MongoDB Atlas Data API base URL, e.g. `https://data.mongodb-api.com/app/{{appId}}/endpoint/data/v1` |
+| `apiKey` | string | Yes | **Secret.** MongoDB Atlas Data API key (sent as the `api-key` header) |
+| `dataSource` | string | Yes | The cluster (data source) name |
+| `database` | string | Yes | The database name |
+| `collection` | string | Yes | The collection name |
+| `filter` | json | No | MongoDB query filter selecting the document to update (defaults to `{}`) |
+| `update` | json | No | MongoDB update document, e.g. `{ "$set": { ... } }` (defaults to `{}`) |
+
+### mongodb_delete_one
+
+Calls `POST {dataApiUrl}/action/deleteOne`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `dataApiUrl` | string | Yes | MongoDB Atlas Data API base URL, e.g. `https://data.mongodb-api.com/app/{{appId}}/endpoint/data/v1` |
+| `apiKey` | string | Yes | **Secret.** MongoDB Atlas Data API key (sent as the `api-key` header) |
+| `dataSource` | string | Yes | The cluster (data source) name |
+| `database` | string | Yes | The database name |
+| `collection` | string | Yes | The collection name |
+| `filter` | json | No | MongoDB query filter selecting the document to delete (defaults to `{}`) |
+
+## Outputs
+
+All four operations return the same output shape.
+
+### mongodb_find
+
+- `data` (json) — The MongoDB Data API find result.
+- `metadata` (json) — Response metadata.
+
+### mongodb_insert_one
+
+- `data` (json) — The MongoDB Data API insertOne result.
+- `metadata` (json) — Response metadata.
+
+### mongodb_update_one
+
+- `data` (json) — The MongoDB Data API updateOne result.
+- `metadata` (json) — Response metadata.
+
+### mongodb_delete_one
+
+- `data` (json) — The MongoDB Data API deleteOne result.
+- `metadata` (json) — Response metadata.
+
+## YAML Example
+
+```yaml
+mongodb_1:
+  type: mongodb
+  name: "MongoDB"
+  inputs:
+    operation: "mongodb_find"
+    dataApiUrl: "https://data.mongodb-api.com/app/data-abcde/endpoint/data/v1"
+    apiKey: "{{MONGODB_API_KEY}}"
+    dataSource: "Cluster0"
+    database: "myDatabase"
+    collection: "users"
+    filter: { "status": "active" }
+    limit: 10
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Auth setup: the `apiKey` is your MongoDB **Atlas Data API** key, sent in the `api-key` header — not a database username/password and not a connection string. Store it in an environment variable and reference it as `{{MONGODB_API_KEY}}`. You must enable the Data API in Atlas and copy the base URL into `dataApiUrl`.
+- `dataSource` is the **cluster name** (e.g. `Cluster0`), not the database — keep `dataSource`, `database`, and `collection` distinct.
+- `filter` defaults to `{}` (matches everything), so `mongodb_update_one` and `mongodb_delete_one` will act on an arbitrary matching document if you leave it empty — always pass a precise filter for writes. Likewise an empty `filter` on `mongodb_find` returns all documents (bounded by `limit`).
+- For `mongodb_update_one`, the `update` value must use MongoDB update operators, e.g. `{ "$set": { "status": "inactive" } }`. Reference upstream block outputs with double-brace syntax, e.g. `{{previousBlock.data}}`.

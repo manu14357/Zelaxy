@@ -1,0 +1,101 @@
+---
+title: SAP Concur Tools
+description: List and retrieve expense reports and users from SAP Concur via the v3.0 Expense and Common APIs
+icon: Box
+---
+
+# SAP Concur Tools
+
+SAP Concur is an expense, travel, and invoice management platform. Use these tools in a workflow to read expense reports and user records from your SAP Concur tenant via the v3.0 Expense and Common REST APIs — for example, to pull pending expense reports for review, fetch a single report's details, or look up users by email.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `sap-concur` |
+| **Category** | tools |
+| **Auth** | OAuth (Bearer access token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List reports | `sap_concur_list_reports` | List expense reports from SAP Concur (GET /api/v3.0/expense/reports). |
+| Get report | `sap_concur_get_report` | Retrieve a single expense report by ID (`GET /api/v3.0/expense/reports/{id}`). |
+| List users | `sap_concur_list_users` | List users from SAP Concur (GET /api/v3.0/common/users). |
+
+All operations authenticate with a SAP Concur OAuth bearer access token sent as `Authorization: Bearer {{accessToken}}` against `https://www.concursolutions.com`.
+
+## Configuration
+
+### sap_concur_list_reports
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | **Secret.** SAP Concur OAuth bearer access token (visibility: user-only). |
+| `user` | string | No | Filter by a specific user (login ID) or `ALL`. |
+| `approvalStatusCode` | string | No | Filter by approval status code (e.g. `A_NOTF`, `A_PEND`, `A_APPR`). |
+| `limit` | number | No | Number of records to return (default 25, max 100). |
+
+### sap_concur_get_report
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | **Secret.** SAP Concur OAuth bearer access token (visibility: user-only). |
+| `reportId` | string | Yes | Expense report ID. |
+| `user` | string | No | Login ID of the report owner (required when acting on behalf of another user). |
+
+### sap_concur_list_users
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | **Secret.** SAP Concur OAuth bearer access token (visibility: user-only). |
+| `primaryEmail` | string | No | Filter users by primary email address. |
+| `limit` | number | No | Number of records to return (default 25, max 100). |
+
+## Outputs
+
+### sap_concur_list_reports
+
+- `data` (json) — Array of expense report header objects (the Concur `Items` array).
+- `metadata` (json) — List metadata containing:
+  - `count` (number) — Number of reports returned.
+  - `status` (number) — HTTP status code returned by Concur.
+
+### sap_concur_get_report
+
+- `data` (json) — The expense report header object.
+- `metadata` (json) — Report identifiers containing:
+  - `id` (string) — Report ID.
+  - `status` (number) — HTTP status code returned by Concur.
+
+### sap_concur_list_users
+
+- `data` (json) — Array of user objects (the Concur `Items` array).
+- `metadata` (json) — List metadata containing:
+  - `count` (number) — Number of users returned.
+  - `status` (number) — HTTP status code returned by Concur.
+
+## YAML Example
+
+```yaml
+sap_concur_1:
+  type: sap_concur
+  name: "SAP Concur"
+  inputs:
+    operation: "sap_concur_list_reports"
+    user: "ALL"
+    approvalStatusCode: "A_PEND"
+    limit: 25
+    accessToken: "{{SAP_CONCUR_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** These tools use a SAP Concur OAuth bearer access token, not a static API key. Obtain a token from SAP Concur's OAuth2 flow and supply it as `accessToken` (it is treated as a secret / password field). Store it as an environment variable and reference it with `{{SAP_CONCUR_API_KEY}}`.
+- **Filtering reports:** Use `approvalStatusCode` (e.g. `A_PEND` for pending, `A_APPR` for approved, `A_NOTF` for not submitted) together with `user` set to a login ID or `ALL` to scope `sap_concur_list_reports`. Both `limit` is capped at 100 and defaults to 25.
+- **Acting on behalf of others:** For `sap_concur_get_report`, pass the `user` (login ID of the report owner) when retrieving a report you do not own; otherwise the request is scoped to the token holder.
+- **Chaining:** List reports first, then feed a report's ID into `sap_concur_get_report` using `{{sap_concur_1.data}}` to drill into a specific report's details.

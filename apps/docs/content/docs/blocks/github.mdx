@@ -39,7 +39,9 @@ The PR number to read or comment on. Required for the Get PR details and Create 
 The text of the comment to post. Required for the Create PR comment operation.
 
 ### Comment Type
-For comments, choose **General PR Comment** or **File-specific Comment**. Selecting file-specific reveals the **File Path** and **Line Number** fields to anchor the comment.
+For the Create PR comment operation, choose how to attach the comment:
+- **General PR Comment** (`pr_comment`) — posts a top-level review comment on the PR.
+- **File-specific Comment** (`file_comment`) — anchors the comment to a specific file and line; reveals the **File Path** and **Line Number** sub-fields.
 
 ### Branch Name
 For Get latest commit, the branch to read (leave empty for the repository default).
@@ -49,6 +51,13 @@ A GitHub access token used to authenticate API calls. Required and stored as a p
 
 ### Trigger Configuration
 When running in trigger mode, configures the `github_webhook` trigger so GitHub events start the workflow.
+
+## Tools
+
+- **GitHub PR Reader** (`github_pr`) — Fetches pull request details including the human-readable summary, diff, and per-file change metadata (additions, deletions, patch, status). Requires `owner`, `repo`, `pullNumber`, and `apiKey`.
+- **GitHub PR Commenter** (`github_comment`) — Posts a comment on a pull request. Supports general PR-level comments or file-anchored review comments (requires `path`, `line`, and `commitId` for the file-specific variant). Requires `owner`, `repo`, `pullNumber`, `body`, and `apiKey`.
+- **GitHub Repository Info** (`github_repo_info`) — Retrieves comprehensive repository metadata: stars, forks, open issues, primary language, and description. Works with public and private repositories. Requires `owner`, `repo`, and `apiKey`.
+- **GitHub Latest Commit** (`github_latest_commit`) — Retrieves the most recent commit on a branch (defaults to HEAD if no branch is given), including commit message, author, committer, stats, and per-file content where available. Requires `owner`, `repo`, and `apiKey`; `branch` is optional.
 
 ## Inputs & Outputs
 

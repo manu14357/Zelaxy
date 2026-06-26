@@ -6,7 +6,7 @@ icon: Box
 
 # Webhook Block
 
-The Webhook block is a trigger that starts a workflow whenever an external service sends an HTTP request to its endpoint. Reach for it when you need to react to events from any platform that can POST a webhook, even when there is no dedicated integration block.
+The Webhook block is a trigger that starts a workflow whenever an external service sends an HTTP request to its generated endpoint. Reach for it when you need to react to events from any platform that can send an HTTP webhook and there is no dedicated integration trigger block available.
 
 ## Overview
 
@@ -14,45 +14,65 @@ The Webhook block is a trigger that starts a workflow whenever an external servi
 |----------|-------|
 | **Type** | `generic_webhook` |
 | **Category** | triggers |
-| **Color** | `#10B981` (Green) |
+| **Color** | `#10B981` |
 
 ## When to Use
 
 - Start a workflow from any third-party service that can send HTTP webhooks
 - Handle events from platforms that lack a dedicated trigger block
-- Capture custom payloads, headers, and metadata from inbound requests
-- Build event-driven automations triggered by external systems
-- Receive notifications (deploys, alerts, form submissions) and route them downstream
+- Capture full request payloads, headers, query parameters, and metadata from inbound HTTP requests
+- Build event-driven automations triggered by external systems (deploys, alerts, form submissions, IoT signals)
+- Extract common fields such as `event`, `id`, and `data` that many services include in their webhook bodies
+- Accept any HTTP method (GET, POST, PUT, DELETE, PATCH) without additional configuration
 
 ## Configuration
 
-### Webhook Configuration
-The single `triggerConfig` sub-block (type `trigger-config`) generates and manages the webhook endpoint. It uses the `generic` trigger provider and exposes the generated URL you give to the sending service. Configure the inbound request handling here.
+### Webhook Configuration (`triggerConfig`)
+
+Type: `trigger-config` — layout: `full`
+
+This sub-block generates and manages the webhook endpoint using the `generic` trigger provider. Once the block is placed in a workflow, Zelaxy provides a unique URL. Copy that URL and paste it into the sending service's webhook settings. No additional fields need to be filled in; the endpoint accepts any payload format and any HTTP method automatically.
+
+Available trigger: `generic_webhook`
 
 ## Inputs & Outputs
 
-- **Inputs**: none (the webhook receives data externally via HTTP)
+- **Inputs**: none — the webhook receives data externally via inbound HTTP; no upstream block connections are required
+
 - **Outputs**:
-  - `payload` (json) — Complete webhook payload
-  - `headers` (json) — Request headers
-  - `method` (string) — HTTP method
-  - `url` (string) — Request URL
+  - `payload` (json) — Complete webhook payload received
+  - `headers` (json) — HTTP request headers
+  - `method` (string) — HTTP method used (GET, POST, PUT, DELETE, etc.)
+  - `url` (string) — Request URL path
+  - `query` (json) — URL query parameters
   - `timestamp` (string) — Webhook received timestamp
-  - `event` (string) — Event type from payload
-  - `id` (string) — Event ID from payload
-  - `data` (json) — Event data from payload
+  - `event` (string) — Event type extracted from `payload.event`, `payload.type`, or `payload.event_type`
+  - `id` (string) — Event ID extracted from `payload.id`, `payload.event_id`, or `payload.uuid`
+  - `data` (json) — Event data extracted from `payload.data` or the full payload when no nested data key is present
+
+## Tools
+
+This block is a trigger and requires no external tool calls. `tools.access` is empty — the block starts the workflow by receiving an inbound HTTP request; all further tool use happens in downstream blocks.
 
 ## YAML Example
 
-This block is a trigger, so it has no incoming connection.
+This block is a trigger; it has no incoming connections and no configurable inputs.
 
 ```yaml
 webhook_trigger:
   type: generic_webhook
   name: "Webhook"
-  inputs:
-    triggerConfig: {}
   connections:
     outgoing:
       - target: next-block-id
+```
+
+To reference outputs in a downstream block use double-brace syntax:
+
+```yaml
+process_event:
+  type: function
+  name: "Handle Event"
+  inputs:
+    code: "return { event: '{{webhook_trigger.event}}', data: {{webhook_trigger.data}} }"
 ```

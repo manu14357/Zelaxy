@@ -1,0 +1,179 @@
+---
+title: SendGrid Block
+description: Send emails and manage marketing contacts in SendGrid
+icon: Mail
+---
+
+# SendGrid Block
+
+Send transactional emails and add or list marketing contacts through the SendGrid API. Authenticate with a SendGrid API key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `sendgrid` |
+| **Category** | `tools` |
+| **Color** | `#1A82E2` |
+
+## When to Use
+
+- Send transactional or automated emails from a verified sender address to any recipient
+- Notify users, customers, or internal teams when a workflow event occurs
+- Add new leads, sign-ups, or enriched contacts directly to your SendGrid marketing audience
+- Retrieve your full SendGrid marketing contact list for downstream processing or auditing
+- Combine with other blocks to build email drip sequences or CRM-sync workflows
+- Use a secret environment variable for the API key (`{{SENDGRID_API_KEY}}`) to keep credentials out of workflow definitions
+
+## Configuration
+
+### Operation
+
+The **Operation** dropdown selects which SendGrid action to execute. It controls which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| Send email | `sendgrid_send_email` |
+| Add contact | `sendgrid_add_contact` |
+| List contacts | `sendgrid_list_contacts` |
+
+---
+
+### To *(Send email only)*
+
+- **Type**: short-input
+- **Placeholder**: `recipient@example.com`
+- The email address of the message recipient.
+- Visible only when **Operation** is `sendgrid_send_email`.
+
+### From *(Send email only)*
+
+- **Type**: short-input
+- **Placeholder**: `sender@example.com`
+- A SendGrid-verified sender email address. The sending domain must be authenticated in your SendGrid account.
+- Visible only when **Operation** is `sendgrid_send_email`.
+
+### Subject *(Send email only)*
+
+- **Type**: short-input
+- **Placeholder**: `Email subject`
+- The subject line of the outgoing email.
+- Visible only when **Operation** is `sendgrid_send_email`.
+
+### Content *(Send email only)*
+
+- **Type**: long-input
+- **Placeholder**: `Email body text`
+- The plain-text body of the email. You can embed workflow references such as `{{previous_block.data}}` to make the body dynamic.
+- Visible only when **Operation** is `sendgrid_send_email`.
+
+---
+
+### Email *(Add contact only)*
+
+- **Type**: short-input
+- **Placeholder**: `contact@example.com`
+- The email address of the marketing contact to add or update.
+- Visible only when **Operation** is `sendgrid_add_contact`.
+
+### First Name *(Add contact only)*
+
+- **Type**: short-input
+- **Placeholder**: `Jane`
+- Optional first name for the contact record.
+- Visible only when **Operation** is `sendgrid_add_contact`.
+
+### Last Name *(Add contact only)*
+
+- **Type**: short-input
+- **Placeholder**: `Doe`
+- Optional last name for the contact record.
+- Visible only when **Operation** is `sendgrid_add_contact`.
+
+---
+
+### SendGrid API Key *(all operations — required)*
+
+- **Type**: short-input (password)
+- **Required**: yes
+- **Placeholder**: `SG....`
+- A SendGrid API key with at least **Mail Send** permission for `Send email`, and **Marketing** read/write for contact operations. Use an environment variable reference: `{{SENDGRID_API_KEY}}`.
+
+## Inputs & Outputs
+
+### Inputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `operation` | string | Operation to perform (`sendgrid_send_email`, `sendgrid_add_contact`, or `sendgrid_list_contacts`) |
+| `apiKey` | string | SendGrid API key |
+| `to` | string | Recipient email (Send email only) |
+| `from` | string | Sender email (Send email only) |
+| `subject` | string | Email subject (Send email only) |
+| `content` | string | Email body (Send email only) |
+| `email` | string | Contact email address (Add contact only) |
+| `firstName` | string | Contact first name (Add contact only) |
+| `lastName` | string | Contact last name (Add contact only) |
+
+### Outputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `data` | json | Result object or array from SendGrid |
+| `metadata` | json | Response metadata (HTTP status code or contact count) |
+
+## Tools
+
+**SendGrid Send Email** (`sendgrid_send_email`) — Posts to `https://api.sendgrid.com/v3/mail/send` via HTTP POST. Requires `apiKey`, `to`, `from`, `subject`, and `content`. Returns `data: { status: "sent" }` and `metadata: { statusCode }`.
+
+**SendGrid Add Contact** (`sendgrid_add_contact`) — Upserts a marketing contact via HTTP PUT to `https://api.sendgrid.com/v3/marketing/contacts`. Requires `apiKey` and `email`; `firstName` and `lastName` are optional. Returns the SendGrid job response in `data` and `metadata: { statusCode }`.
+
+**SendGrid List Contacts** (`sendgrid_list_contacts`) — Fetches all marketing contacts via HTTP GET from `https://api.sendgrid.com/v3/marketing/contacts`. Requires only `apiKey`. Returns an array of contact objects in `data` and `metadata: { count }`.
+
+## YAML Example
+
+```yaml
+# Example: Send a transactional email
+sendgrid_1:
+  type: sendgrid
+  name: "Send Notification Email"
+  inputs:
+    operation: sendgrid_send_email
+    apiKey: "{{SENDGRID_API_KEY}}"
+    to: "{{trigger.email}}"
+    from: "notifications@yourdomain.com"
+    subject: "Your report is ready"
+    content: "{{report_block.data}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+```yaml
+# Example: Add a contact to SendGrid marketing
+sendgrid_2:
+  type: sendgrid
+  name: "Add Marketing Contact"
+  inputs:
+    operation: sendgrid_add_contact
+    apiKey: "{{SENDGRID_API_KEY}}"
+    email: "{{form_block.data.email}}"
+    firstName: "{{form_block.data.firstName}}"
+    lastName: "{{form_block.data.lastName}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+```yaml
+# Example: List all marketing contacts
+sendgrid_3:
+  type: sendgrid
+  name: "List Contacts"
+  inputs:
+    operation: sendgrid_list_contacts
+    apiKey: "{{SENDGRID_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,117 @@
+---
+title: Prospeo Tools
+description: Find verified professional emails and mobile numbers from a name, company, or LinkedIn profile URL.
+icon: Box
+---
+
+# Prospeo Tools
+
+Prospeo is a B2B contact-enrichment API that resolves verified professional email addresses and mobile phone numbers. Use these tools in a workflow when you need to enrich a lead or contact: find an email from a person's name and company, find an email from a LinkedIn profile URL, or reveal a mobile number from a LinkedIn profile URL.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `prospeo` |
+| **Category** | `tools` |
+| **Auth** | API Key (sent in the `X-KEY` request header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Email finder | `prospeo_email_finder` | Find a verified professional email address from a person's name and company. |
+| Mobile finder | `prospeo_mobile_finder` | Find a mobile phone number from a LinkedIn profile URL. |
+| LinkedIn email finder | `prospeo_linkedin_email_finder` | Find a verified professional email address from a LinkedIn profile URL. |
+
+## Configuration
+
+### `prospeo_email_finder`
+
+Calls `POST https://api.prospeo.io/email-finder`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Prospeo API key. **Secret** — sent in the `X-KEY` header. Visibility: user-only. |
+| `first_name` | string | Yes | Person's first name. Visibility: user-or-llm. |
+| `last_name` | string | Yes | Person's last name. Visibility: user-or-llm. |
+| `company` | string | Yes | Company name or domain. Visibility: user-or-llm. |
+
+### `prospeo_mobile_finder`
+
+Calls `POST https://api.prospeo.io/mobile-finder`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Prospeo API key. **Secret** — sent in the `X-KEY` header. Visibility: user-only. |
+| `url` | string | Yes | LinkedIn profile URL to resolve a mobile number for. Visibility: user-or-llm. |
+
+### `prospeo_linkedin_email_finder`
+
+Calls `POST https://api.prospeo.io/linkedin-email-finder`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Prospeo API key. **Secret** — sent in the `X-KEY` header. Visibility: user-only. |
+| `url` | string | Yes | LinkedIn profile URL to resolve an email for. Visibility: user-or-llm. |
+
+## Outputs
+
+All three operations share the same output shape.
+
+### `prospeo_email_finder`
+
+- `data` (json) — The matched email record from Prospeo.
+- `metadata` (json) — Response metadata.
+  - `metadata.error` (boolean) — Whether the API reported an error.
+
+### `prospeo_mobile_finder`
+
+- `data` (json) — The matched mobile record from Prospeo.
+- `metadata` (json) — Response metadata.
+  - `metadata.error` (boolean) — Whether the API reported an error.
+
+### `prospeo_linkedin_email_finder`
+
+- `data` (json) — The matched email record from Prospeo.
+- `metadata` (json) — Response metadata.
+  - `metadata.error` (boolean) — Whether the API reported an error.
+
+## YAML Example
+
+```yaml
+prospeo_1:
+  type: prospeo
+  name: "Prospeo"
+  inputs:
+    operation: "prospeo_email_finder"
+    first_name: "Jane"
+    last_name: "Doe"
+    company: "acme.com"
+    apiKey: "{{PROSPEO_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To use the LinkedIn-based operations instead, set `operation` to `prospeo_mobile_finder` or `prospeo_linkedin_email_finder` and pass a `url` instead of name/company:
+
+```yaml
+prospeo_2:
+  type: prospeo
+  name: "Prospeo"
+  inputs:
+    operation: "prospeo_linkedin_email_finder"
+    url: "https://www.linkedin.com/in/janedoe"
+    apiKey: "{{PROSPEO_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authenticate with a Prospeo API key. Store it as an environment variable and reference it with `{{PROSPEO_API_KEY}}` rather than hard-coding the value — it is sent in the `X-KEY` header.
+- Pick the operation to match the input you have: use `prospeo_email_finder` when you know the person's name and company/domain, and use `prospeo_mobile_finder` or `prospeo_linkedin_email_finder` when you have a LinkedIn profile URL.
+- Read the result from the `data` output (e.g. `{{prospeo_1.data}}`), and check `{{prospeo_1.metadata.error}}` to detect when the API reported an error before consuming the email or mobile number downstream.
+- `company` accepts either a company name or a domain (for example `acme.com`); a domain typically yields the most reliable match.

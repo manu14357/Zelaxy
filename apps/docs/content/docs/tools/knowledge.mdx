@@ -1,0 +1,128 @@
+---
+title: Knowledge Tools
+description: Semantic vector search over knowledge bases, plus creating documents and uploading chunks
+icon: PackageSearch
+---
+
+# Knowledge Tools
+
+The Knowledge provider performs semantic vector search across Zelaxy knowledge bases and lets a workflow add content to them by creating new documents or uploading individual chunks to existing documents. Use these tools when an agent needs to retrieve relevant context (RAG) or persist new text into a knowledge base during a run.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `knowledge` |
+| **Category** | `blocks` |
+| **Auth** | None (internal Zelaxy API — these tools call relative `/api/knowledge/...` endpoints and are authenticated via the workflow execution context, not an API key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Search | `knowledge_search` | Search for similar content in a knowledge base using vector similarity |
+| Upload Chunk | `knowledge_upload_chunk` | Upload a new chunk to a document in a knowledge base |
+| Create Document | `knowledge_create_document` | Create a new document in a knowledge base |
+
+## Configuration
+
+### `knowledge_search`
+
+Calls `POST /api/knowledge/search`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `knowledgeBaseId` | string | Yes | ID of the knowledge base to search in |
+| `query` | string | No | Search query text (optional when using tag filters) |
+| `topK` | number | No | Number of most similar results to return (1-100). Clamped to the 1-100 range; defaults to 10 |
+| `tagFilters` | any | No | Array of tag filters, each with `tagName` and `tagValue` properties. Accepts an array or a JSON string. Multiple values for the same tag are combined with OR logic |
+
+### `knowledge_upload_chunk`
+
+Calls `POST /api/knowledge/{knowledgeBaseId}/documents/{documentId}/chunks`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `knowledgeBaseId` | string | Yes | ID of the knowledge base containing the document |
+| `documentId` | string | Yes | ID of the document to upload the chunk to |
+| `content` | string | Yes | Content of the chunk to upload |
+
+### `knowledge_create_document`
+
+Calls `POST /api/knowledge/{knowledgeBaseId}/documents`. The content is encoded as a base64 `data:text/plain` URI and uploaded as a `.txt` file. Validation: the document name must be 1-255 characters and may not contain `< > : " / \ | ? *`; content must be non-empty and at most 1MB.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `knowledgeBaseId` | string | Yes | ID of the knowledge base containing the document |
+| `name` | string | Yes | Name of the document (1-255 chars, no special filename characters) |
+| `content` | string | Yes | Content of the document (max 1MB) |
+| `tag1` | string | No | Tag 1 value for the document |
+| `tag2` | string | No | Tag 2 value for the document |
+| `tag3` | string | No | Tag 3 value for the document |
+| `tag4` | string | No | Tag 4 value for the document |
+| `tag5` | string | No | Tag 5 value for the document |
+| `tag6` | string | No | Tag 6 value for the document |
+| `tag7` | string | No | Tag 7 value for the document |
+| `documentTagsData` | array | No | Structured tag data with names, types, and values |
+
+> Note: none of these parameters are secrets. There is no `apiKey`, `token`, or `password` — the provider relies on internal Zelaxy authentication via the execution context.
+
+## Outputs
+
+### `knowledge_search`
+
+- `results` (array) — Array of search results from the knowledge base. Each item is an object with `id` (string), `content` (string), `documentId` (string), `chunkIndex` (number), `similarity` (number), and `metadata` (object).
+- `query` (string) — The search query that was executed.
+- `totalResults` (number) — Total number of results found.
+- `cost` (object, optional) — Cost information for the search operation.
+
+### `knowledge_upload_chunk`
+
+- `data` (object) — Information about the uploaded chunk:
+  - `id` (string) — Chunk ID
+  - `chunkIndex` (number) — Index of the chunk within the document
+  - `content` (string) — Content of the chunk
+  - `contentLength` (number) — Length of the content in characters
+  - `tokenCount` (number) — Number of tokens in the chunk
+  - `enabled` (boolean) — Whether the chunk is enabled
+  - `createdAt` (string) — Creation timestamp
+  - `updatedAt` (string) — Last update timestamp
+- `message` (string) — Success or error message describing the operation result.
+- `documentId` (string) — ID of the document the chunk was added to.
+- `cost` (object, optional) — Cost information for the upload operation.
+
+### `knowledge_create_document`
+
+- `data` (object) — Information about the created document:
+  - `id` (string) — Document ID
+  - `name` (string) — Document name
+  - `type` (string) — Document type (always `document`)
+  - `enabled` (boolean) — Whether the document is enabled
+  - `createdAt` (string) — Creation timestamp
+  - `updatedAt` (string) — Last update timestamp
+- `message` (string) — Success or error message describing the operation result.
+- `documentId` (string) — ID of the created document.
+
+## YAML Example
+
+```yaml
+knowledge_1:
+  type: knowledge
+  name: "Knowledge"
+  inputs:
+    operation: "knowledge_search"
+    knowledgeBaseId: "{{KNOWLEDGE_BASE_ID}}"
+    query: "How do I reset my password?"
+    topK: 5
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- No API key is needed. These tools hit Zelaxy's internal `/api/knowledge/...` endpoints and are authenticated automatically from the workflow execution context, so the workflow must run inside the workspace that owns the knowledge base.
+- Pick the operation via the block's `operation` dropdown: `search`, `upload_chunk`, or `create_document`. The serializer maps these to the tool IDs `knowledge_search`, `knowledge_upload_chunk`, and `knowledge_create_document` respectively.
+- For `knowledge_search`, the `query` is optional if you supply `tagFilters` — you can retrieve chunks purely by tag. `topK` is clamped to 1-100 and defaults to 10.
+- For `knowledge_create_document`, keep the document `name` under 255 characters and avoid the filename characters `< > : " / \ | ? *`; content is capped at 1MB and stored as a `.txt` document.
+- Reference a search result in a downstream block with double braces, e.g. `{{knowledge_1.results}}` or `{{knowledge_1.totalResults}}`. Use `{{ENV_VAR}}` for values stored as environment variables (such as the knowledge base ID).

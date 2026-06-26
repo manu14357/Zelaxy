@@ -44,8 +44,17 @@ A JSON Schema describing the structure of the data to return. Required.
 
 ## Inputs & Outputs
 
-- **Inputs**: `url` (string), `instruction` (string), `schema` (json), `apiKey` (string)
-- **Outputs**: `data` (json)
+- **Inputs**:
+  - `url` (string) — Website URL to extract data from
+  - `instruction` (string) — Extraction instructions in plain language
+  - `schema` (json) — JSON schema definition describing the expected output structure
+  - `apiKey` (string) — OpenAI API key (required by Stagehand)
+- **Outputs**:
+  - `data` (json) — Extracted structured data matching the provided schema
+
+## Tools
+
+- **Stagehand Extract** (`stagehand_extract`) — Extracts structured data from a webpage by sending the URL, natural-language instruction, and a JSON schema to the Stagehand service, which uses Browserbase (headless browser) and OpenAI to parse the page and return schema-shaped JSON.
 
 ## YAML Example
 
@@ -56,7 +65,7 @@ stagehand_extract_1:
   inputs:
     url: "https://example.com/products"
     instruction: "Extract the name and price of each product listed on the page."
-    apiKey: "{{secrets.OPENAI_API_KEY}}"
+    apiKey: "{{OPENAI_API_KEY}}"
     schema: |
       {
         "type": "object",

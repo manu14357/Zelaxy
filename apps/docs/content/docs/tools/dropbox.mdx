@@ -1,0 +1,76 @@
+---
+title: Dropbox
+description: Upload, download, and manage files in Dropbox
+icon: CloudUpload
+---
+
+# Dropbox
+
+Upload and download files, list folder contents, create folders, delete items, generate shared links, and search across your Dropbox storage. Use this integration whenever a workflow needs to read from or write to Dropbox as part of a larger automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `dropbox` |
+| **Category** | Tool — File Storage |
+| **Auth** | OAuth 2.0 (Dropbox) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Upload File** | `dropbox_upload_file` | Upload a file to a specified path in Dropbox |
+| **Download File** | `dropbox_download_file` | Download a file from Dropbox and retrieve its text content |
+| **List Folder** | `dropbox_list_folder` | List the files and sub-folders inside a Dropbox folder |
+| **Create Folder** | `dropbox_create_folder` | Create a new folder at a given path |
+| **Delete File** | `dropbox_delete_file` | Permanently delete a file or folder |
+| **Get File Metadata** | `dropbox_get_file_metadata` | Retrieve metadata (size, timestamps, type) for a file or folder |
+| **Create Shared Link** | `dropbox_create_shared_link` | Generate a shareable URL for a file or folder |
+| **Search Files** | `dropbox_search_files` | Search for files and folders by name or keyword |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `accessToken` | `string` | Yes | Dropbox OAuth access token — injected automatically when you connect a Dropbox account via the **Dropbox Account** OAuth credential field. Never set this manually. |
+| `path` | `string` | Yes (all ops except Search) | Dropbox path for the target file or folder (e.g., `/reports/q1.pdf`). Use `""` (empty string) to target the root folder for **List Folder**. |
+| `query` | `string` | Yes (Search only) | Keyword or filename to search for across the entire Dropbox. |
+| `content` | `string` | Yes (Upload only) | Text content to write into the uploaded file. |
+| `mode` | `string` | No (Upload only) | Write mode: `add` (default), `overwrite`, or `update`. Controls behaviour when a file already exists at the destination path. |
+| `autorename` | `boolean` | No (Upload only) | When `true`, Dropbox automatically renames the file if a conflict exists at the destination. Defaults to `false`. |
+
+## Outputs
+
+The fields returned vary by operation. All fields listed below are available across the eight tools.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Dropbox file or folder ID (Upload, Create Folder, Get Metadata) |
+| `path` | `string` | Full display path of the file or folder in Dropbox |
+| `name` | `string` | File or folder name |
+| `size` | `number` | Size in bytes (Download, Upload, Get Metadata — absent for folders) |
+| `modified` | `string` | Last-modified timestamp in ISO 8601 format (Upload, Get Metadata) |
+| `isFolder` | `boolean` | `true` when the item is a folder (Get Metadata) |
+| `content` | `string` | Downloaded file content as plain text (Download only) |
+| `url` | `string` | Public shared-link URL (Create Shared Link only) |
+| `entries` | `json` | Array of file and folder metadata objects (List Folder only) |
+| `cursor` | `string` | Pagination cursor for fetching the next page of results (List Folder, Search) |
+| `hasMore` | `boolean` | `true` when additional pages of results exist (List Folder, Search) |
+| `matches` | `json` | Array of matching file and folder objects (Search only) |
+
+## Example
+
+```
+[Starter] → [Agent: summarise document] → [Dropbox: Upload File] → [Slack: send message]
+```
+
+Connect a Dropbox account via the **Dropbox Account** credential field. Set **Path** to `/summaries/{{starter.filename}}` and **Content** to `{{agent.response}}`. The Upload File operation writes the agent's summary to Dropbox; the `path` output from that block (e.g., `{{dropbox.path}}`) can then be passed to a **Create Shared Link** block to generate a URL that is posted in Slack.
+
+## Tips
+
+- **Auth setup** — All operations require a connected Dropbox OAuth account. Open the block, click **Dropbox Account**, and complete the OAuth flow. The `accessToken` param is injected automatically and is never visible in the workflow editor.
+- **Root folder** — When using **List Folder** on the root of a Dropbox, pass an empty string `""` as the path rather than `/`.
+- **Upload write modes** — Use `overwrite` to replace an existing file in place, `add` to always create a new file (Dropbox will error if one exists and `autorename` is `false`), or `update` when you hold a specific revision reference. Leave `mode` blank to default to `add`.
+- **Pagination** — **List Folder** and **Search Files** return up to one page of results. If `hasMore` is `true`, use the `cursor` output with the Dropbox API's `list_folder/continue` or `search/continue` endpoints via an HTTP block to fetch additional pages.
+- **File content** — **Download File** returns the raw file content as a string (`content`). For binary files (images, PDFs) this will not be human-readable text; use a dedicated parsing block or the Mistral Parse tool for those formats.

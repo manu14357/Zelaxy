@@ -1,0 +1,119 @@
+---
+title: Trigger.dev Tools
+description: Trigger background tasks and inspect their runs in Trigger.dev
+icon: Box
+---
+
+# Trigger.dev Tools
+
+The Trigger.dev provider lets a workflow kick off background tasks in [Trigger.dev](https://trigger.dev) and read back the status and output of their runs. Use these tools when you want to hand off long-running or asynchronous work (emails, ETL jobs, scheduled processing) to Trigger.dev and then poll or list the resulting runs from your Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `trigger-dev` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Trigger.dev secret API key) |
+
+All requests authenticate with a Trigger.dev secret key sent as `Authorization: Bearer <apiKey>`. The key is treated as a secret (`user-only` visibility, rendered as a password field in the block).
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Trigger task | `trigger_dev_trigger_task` | Trigger a Trigger.dev task by its identifier with an optional JSON payload |
+| Get run | `trigger_dev_get_run` | Retrieve a Trigger.dev run by its ID, including status and output |
+| List runs | `trigger_dev_list_runs` | List Trigger.dev runs in the environment of the API key |
+
+## Configuration
+
+### `trigger_dev_trigger_task`
+
+Triggers a task via `POST https://api.trigger.dev/api/v1/tasks/{taskIdentifier}/trigger`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Trigger.dev secret API key. **Secret** — sent as a Bearer token; `user-only` visibility. |
+| `taskIdentifier` | string | Yes | Identifier of the task to trigger (e.g. `send-welcome-email`). Path-encoded into the request URL. |
+| `payload` | json | No | JSON payload passed to the task run (sent as the `payload` field of the request body). |
+| `idempotencyKey` | string | No | Idempotency key that ensures the task is triggered only once per key (sent as `options.idempotencyKey`). |
+
+### `trigger_dev_get_run`
+
+Retrieves a single run via `GET https://api.trigger.dev/api/v3/runs/{runId}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Trigger.dev secret API key. **Secret** — sent as a Bearer token; `user-only` visibility. |
+| `runId` | string | Yes | ID of the run to retrieve (e.g. `run_...`). Path-encoded into the request URL. |
+
+### `trigger_dev_list_runs`
+
+Lists runs via `GET https://api.trigger.dev/api/v3/runs` with optional query filters.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Trigger.dev secret API key. **Secret** — sent as a Bearer token; `user-only` visibility. |
+| `status` | string | No | Run status to filter by, sent as `filter[status]`. Examples: `COMPLETED`, `FAILED`, `EXECUTING`. |
+| `taskIdentifier` | string | No | Task identifier to filter by, sent as `filter[taskIdentifier]`. |
+| `pageSize` | number | No | Number of runs per page, sent as `page[size]` (max 100, default 25). |
+
+## Outputs
+
+### `trigger_dev_trigger_task`
+
+- `data` (json) — The triggered run object returned by Trigger.dev.
+- `metadata` (json) — Run identifiers.
+  - `metadata.id` (string) — ID of the run that was triggered.
+
+### `trigger_dev_get_run`
+
+- `data` (json) — The Trigger.dev run object (includes status and output).
+- `metadata` (json) — Run identifiers.
+  - `metadata.id` (string) — Run ID.
+
+### `trigger_dev_list_runs`
+
+- `data` (json) — Array of Trigger.dev run objects (the `data` array from the API response).
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of runs returned.
+
+## YAML Example
+
+```yaml
+trigger_dev_1:
+  type: trigger_dev
+  name: "Trigger.dev"
+  inputs:
+    operation: "trigger_dev_trigger_task"
+    taskIdentifier: "send-welcome-email"
+    payload: '{"userId":"user_123"}'
+    idempotencyKey: "welcome-user_123"
+    apiKey: "{{TRIGGER_DEV_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To check on the run later, point a second block at `trigger_dev_get_run` and reference the triggered run id:
+
+```yaml
+trigger_dev_2:
+  type: trigger_dev
+  name: "Trigger.dev"
+  inputs:
+    operation: "trigger_dev_get_run"
+    runId: "{{trigger_dev_1.metadata.id}}"
+    apiKey: "{{TRIGGER_DEV_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** Create a secret key in your Trigger.dev project (`tr_...`) and store it as an environment variable (e.g. `TRIGGER_DEV_API_KEY`). Reference it with `{{TRIGGER_DEV_API_KEY}}`. The key's environment (dev/staging/prod) determines which runs `trigger_dev_list_runs` returns.
+- **Trigger then poll:** Capture the new run id from `{{trigger_dev_1.metadata.id}}` after a Trigger task, then feed it into `trigger_dev_get_run` (or filter `trigger_dev_list_runs`) to read the run's status and output once it completes.
+- **Idempotency:** Set `idempotencyKey` on `trigger_dev_trigger_task` when retrying or running in a loop so the same logical task isn't triggered twice for the same key.
+- **API versions differ per operation:** triggering uses the `v1` endpoint while get/list runs use `v3` — this is intentional and matches the Trigger.dev API; no extra configuration is needed.

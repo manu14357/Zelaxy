@@ -1,0 +1,126 @@
+---
+title: Rippling Tools
+description: List workers and companies and fetch a worker by ID through the Rippling HR API.
+icon: Box
+---
+
+# Rippling Tools
+
+Rippling is an HR, IT, and finance platform. These tools read workforce data from the Rippling REST API: list workers (employees), fetch a single worker by ID, and list companies. Use them in a workflow when you need to pull HR records — for example, to enrich a workflow with employee data, audit a roster, or drive downstream automation off of company/worker records.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `rippling` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Rippling API key sent as `Authorization: Bearer <apiKey>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List workers | `rippling_list_workers` | List workers (employees) in Rippling with optional filtering and pagination |
+| Get worker | `rippling_get_worker` | Get a specific Rippling worker by ID |
+| List companies | `rippling_list_companies` | List companies in Rippling with optional pagination |
+
+All three operations issue a `GET` request to `https://rest.ripplingapis.com/...` and authenticate with the `Authorization: Bearer <apiKey>` header plus `Accept: application/json`.
+
+## Configuration
+
+### `rippling_list_workers`
+
+`GET https://rest.ripplingapis.com/workers/` (query params appended when provided)
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Rippling API key. **Secret** — sent as the Bearer token. (visibility: user-only) |
+| `filter` | string | No | Filter expression to narrow the returned workers (mapped to the `filter` query param). |
+| `expand` | string | No | Comma-separated fields to expand (mapped to the `expand` query param). |
+| `orderBy` | string | No | Sort field. Prefix with `-` for descending (mapped to the `order_by` query param). |
+| `cursor` | string | No | Pagination cursor from a previous response (mapped to the `cursor` query param). |
+
+### `rippling_get_worker`
+
+`GET https://rest.ripplingapis.com/workers/{id}/` (the `expand` query param is appended when provided)
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Rippling API key. **Secret** — sent as the Bearer token. (visibility: user-only) |
+| `id` | string | Yes | Worker ID. Used as the path segment of the request URL (URL-encoded and trimmed). |
+| `expand` | string | No | Comma-separated fields to expand (mapped to the `expand` query param). |
+
+### `rippling_list_companies`
+
+`GET https://rest.ripplingapis.com/companies/` (query params appended when provided)
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Rippling API key. **Secret** — sent as the Bearer token. (visibility: user-only) |
+| `expand` | string | No | Comma-separated fields to expand (mapped to the `expand` query param). |
+| `orderBy` | string | No | Sort field. Prefix with `-` for descending (mapped to the `order_by` query param). |
+| `cursor` | string | No | Pagination cursor from a previous response (mapped to the `cursor` query param). |
+
+> Note: there are no `enum`-restricted parameters on any of these tools — all params are free-form strings. The `apiKey` parameter is a secret and should be supplied via an environment variable reference rather than inline.
+
+## Outputs
+
+### `rippling_list_workers`
+
+- `data` (json) — Array of Rippling worker objects (the API `results` array; empty array if none).
+- `metadata` (json) — List metadata, with:
+  - `count` (number) — Number of items returned.
+  - `next_link` (string) — Link to the next page of results, or `null` when there are no more pages.
+
+### `rippling_get_worker`
+
+- `data` (json) — The Rippling worker object.
+- `metadata` (json) — Worker identifiers, with:
+  - `id` (string) — Worker ID.
+
+### `rippling_list_companies`
+
+- `data` (json) — Array of Rippling company objects (the API `results` array; empty array if none).
+- `metadata` (json) — List metadata, with:
+  - `count` (number) — Number of items returned.
+  - `next_link` (string) — Link to the next page of results, or `null` when there are no more pages.
+
+## YAML Example
+
+```yaml
+rippling_1:
+  type: rippling
+  name: "Rippling"
+  inputs:
+    operation: "rippling_list_workers"
+    filter: "status eq 'ACTIVE'"
+    orderBy: "-startDate"
+    apiKey: "{{RIPPLING_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Fetch a single worker by ID, referencing an upstream block's output:
+
+```yaml
+rippling_get_1:
+  type: rippling
+  name: "Rippling Get Worker"
+  inputs:
+    operation: "rippling_get_worker"
+    id: "{{rippling_1.data.0.id}}"
+    expand: "employment"
+    apiKey: "{{RIPPLING_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** Generate a Rippling API key from your Rippling admin settings and store it as an environment variable (for example `RIPPLING_API_KEY`), then reference it with `{{RIPPLING_API_KEY}}`. The key is sent as `Authorization: Bearer <apiKey>` — never hardcode it inline.
+- **Pagination:** List operations return `metadata.next_link`. To page through results, pass the cursor from the previous page into the `cursor` param on the next call (loop until `next_link` is `null`). The `metadata.count` reflects only the items in the current page, not the total.
+- **Sorting:** `orderBy` maps to the API's `order_by` query param — prefix the field with `-` for descending order (e.g. `-startDate`). Use `filter` (workers only) to narrow results server-side instead of fetching everything.
+- **Worker ID:** `rippling_get_worker` puts the `id` directly in the URL path (URL-encoded), so reference an exact worker ID, e.g. one pulled from a prior `rippling_list_workers` call via `{{rippling_1.data.0.id}}`.
+```

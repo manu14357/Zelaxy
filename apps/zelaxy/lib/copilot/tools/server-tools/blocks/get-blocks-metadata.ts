@@ -178,15 +178,11 @@ export async function getBlocksMetadata(
         )
         if (existsSync(docPath)) {
           const docContent = readFileSync(docPath, 'utf-8')
-
-          // Extract only the configuration and YAML-relevant sections, not the full MDX
-          // Truncate to keep token usage manageable
-          const maxDocLength = 1500
-          const truncatedContent =
-            docContent.length > maxDocLength
-              ? `${docContent.substring(0, maxDocLength)}\n... [truncated]`
-              : docContent
-          metadata.yamlDocumentation = truncatedContent
+          // Keep the sections the agent actually needs to author YAML (Configuration, Inputs &
+          // Outputs, Tools, YAML Example) instead of blindly chopping the first N chars off the
+          // TOP — that old approach dropped exactly the Configuration/Example sections (they sit
+          // after the intro) and left only frontmatter + prose, which is useless for generation.
+          metadata.yamlDocumentation = extractDocForAgent(docContent)
         }
       } catch (error) {
         logger.warn(`Failed to read documentation for ${blockId}:`, error)
@@ -231,6 +227,70 @@ export async function getBlocksMetadata(
   }
 }
 
+/**
+ * Trim a block's MDX doc to the sections most useful for YAML generation, in natural reading order,
+ * within a character budget. The OLD logic sliced the first 1500 chars off the top of the file, which
+ * dropped the `## Configuration` and `## YAML Example` sections (they come after the frontmatter +
+ * intro + Overview) — so the agent got prose but none of the field/option/example info it needs. This
+ * keeps the high-value sections first (Example, Configuration, Inputs & Outputs, Tools) and fills up to
+ * the budget, so nothing critical is ever cut mid-section.
+ */
+export function extractDocForAgent(docContent: string, maxLen = 6000): string {
+  if (!docContent) return docContent
+  if (docContent.length <= maxLen) return docContent
+
+  // Head = frontmatter + title + intro (everything before the first `## ` heading). Always kept —
+  // it carries the title/description and the Overview lead-in.
+  const firstH2 = docContent.search(/^## /m)
+  const head = firstH2 === -1 ? docContent : docContent.slice(0, firstH2)
+  const rest = firstH2 === -1 ? '' : docContent.slice(firstH2)
+  if (!rest) return head.length <= maxLen ? head : `${head.slice(0, maxLen)}\n... [truncated]`
+
+  // Split the body into sections at each `## ` heading, preserving original order.
+  const parts = rest.split(/(?=^## )/m).filter((s) => s.trim().length > 0)
+  const titleOf = (s: string) => (s.match(/^## (.+)$/m)?.[1] || '').trim().toLowerCase()
+
+  // Priority order — what the workflow-builder agent most needs first.
+  const priority = [
+    'yaml example',
+    'configuration',
+    'inputs & outputs',
+    'inputs and outputs',
+    'outputs',
+    'operations',
+    'tools',
+    'overview',
+    'when to use',
+  ]
+  const rank = (s: string) => {
+    const t = titleOf(s)
+    const i = priority.findIndex((p) => t.startsWith(p))
+    return i === -1 ? priority.length : i
+  }
+
+  // Pick sections greedily by priority within the budget, then emit them in their ORIGINAL order so
+  // the doc still reads naturally.
+  const ordered = parts
+    .map((s, idx) => ({ s, idx, r: rank(s) }))
+    .sort((a, b) => a.r - b.r || a.idx - b.idx)
+
+  const keep = new Set<number>()
+  let used = head.length
+  for (const { s, idx } of ordered) {
+    if (used + s.length > maxLen && keep.size > 0) continue
+    keep.add(idx)
+    used += s.length
+  }
+
+  const kept = parts.filter((_, idx) => keep.has(idx))
+  const droppedCount = parts.length - kept.length
+  let out = head + kept.join('')
+  if (droppedCount > 0) {
+    out += `\n<!-- ${droppedCount} less-critical doc section(s) omitted to fit context -->\n`
+  }
+  return out
+}
+
 /** Placeholder value for a sub-block, based on its input type. */
 function placeholderForSubBlock(sb: any): string {
   switch (sb?.type) {
@@ -249,18 +309,42 @@ function placeholderForSubBlock(sb: any): string {
   }
 }
 
+/** Sub-block types that are status/UI widgets, NOT real YAML value inputs — exclude from examples. */
+const DISPLAY_ONLY_SUBBLOCK_TYPES = new Set(['schedule-config', 'trigger-config'])
+
+/** Whether a sub-block's `condition` is satisfied given the values already chosen for the example.
+ * Keeps the example COHERENT — a conditional field only appears when its gating field's chosen value
+ * matches (e.g. with `scheduleType: "minutes"`, only `minutesInterval` shows, not every timing field). */
+function conditionSatisfied(condition: any, chosen: Record<string, string>): boolean {
+  if (!condition || typeof condition !== 'object') return true
+  const current = chosen[condition.field]
+  // Gating field not set yet in the example → can't confirm relevance, so omit the conditional field.
+  if (current === undefined) return false
+  const values = (Array.isArray(condition.value) ? condition.value : [condition.value]).map(String)
+  let match = values.includes(String(current))
+  if (condition.not) match = !match
+  return match
+}
+
 /**
  * Build a minimal, valid YAML example for a block from its real definition. Uses the actual block
- * `type` (id) and a few of its real input ids so the agent has a correct skeleton to copy — this
- * is what prevents hallucinated block types like `api_call`.
+ * `type` (id) and a COHERENT set of its real input ids (display-only widgets dropped; conditional
+ * fields only when their condition matches the chosen values) so the agent has a correct skeleton to
+ * copy — this prevents hallucinated block types AND incoherent input sets (e.g. all schedule timings).
  */
-function buildYamlExample(blockId: string, metadata: any): string {
+export function buildYamlExample(blockId: string, metadata: any): string {
   const name = metadata?.name || blockId
   const subs = Array.isArray(metadata?.subBlocks) ? metadata.subBlocks : []
-  const inputLines = subs
-    .filter((sb: any) => sb?.id)
-    .slice(0, 8)
-    .map((sb: any) => `    ${sb.id}: ${placeholderForSubBlock(sb)}`)
+  const chosen: Record<string, string> = {}
+  const inputLines: string[] = []
+  for (const sb of subs) {
+    if (!sb?.id || inputLines.length >= 8) continue
+    if (DISPLAY_ONLY_SUBBLOCK_TYPES.has(sb.type)) continue
+    if (!conditionSatisfied(sb.condition, chosen)) continue
+    const value = placeholderForSubBlock(sb)
+    chosen[sb.id] = value.replace(/^"|"$/g, '')
+    inputLines.push(`    ${sb.id}: ${value}`)
+  }
 
   const lines = [`${blockId}_1:`, `  type: ${blockId}`, `  name: "${name}"`]
   if (inputLines.length > 0) lines.push('  inputs:', ...inputLines)

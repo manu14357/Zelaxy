@@ -1,0 +1,144 @@
+---
+title: Salesforce Tools
+description: Create, query, update, and retrieve records for any Salesforce sObject
+icon: Cloud
+---
+
+# Salesforce Tools
+
+The Salesforce provider lets a workflow read and write CRM data through the Salesforce REST API. Use these tools to create records, run SOQL queries, update existing records, and fetch a single record by ID for any sObject (Contact, Account, Lead, Opportunity, and custom objects).
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `salesforce` |
+| **Category** | `tools` |
+| **Auth** | OAuth (Bearer access token) + instance URL |
+
+All operations authenticate with a Salesforce OAuth access token sent as `Authorization: Bearer <token>` and target the REST API at `<instanceUrl>/services/data/v59.0/...`. You always supply both the access token (`apiKey`) and your `instanceUrl`.
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Create record | `salesforce_create_record` | Create a new record for a Salesforce sObject |
+| Query (SOQL) | `salesforce_query` | Execute a SOQL query to retrieve records from Salesforce |
+| Update record | `salesforce_update_record` | Update an existing record for a Salesforce sObject |
+| Get record | `salesforce_get_record` | Retrieve a single record by ID for a Salesforce sObject |
+
+## Configuration
+
+### salesforce_create_record
+
+Creates a new record for the given sObject via `POST /services/data/v59.0/sobjects/{sobject}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Salesforce OAuth access token. **Secret** — sent as `Bearer` token. Visibility: user-only. |
+| `instanceUrl` | string | Yes | Salesforce instance URL (e.g. `https://your-domain.my.salesforce.com`). Visibility: user-only. |
+| `sobject` | string | Yes | The sObject type to create (e.g. Contact, Account, Lead, Opportunity). |
+| `fields` | json | Yes | Field values as a JSON object (e.g. `{"LastName":"Doe","Email":"j@x.com"}`). A JSON string is parsed automatically. |
+
+### salesforce_query
+
+Runs a SOQL query via `GET /services/data/v59.0/query?q=...`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Salesforce OAuth access token. **Secret** — sent as `Bearer` token. Visibility: user-only. |
+| `instanceUrl` | string | Yes | Salesforce instance URL (e.g. `https://your-domain.my.salesforce.com`). Visibility: user-only. |
+| `query` | string | Yes | SOQL query to execute (e.g. `SELECT Id, Name FROM Account LIMIT 10`). |
+
+### salesforce_update_record
+
+Updates an existing record via `PATCH /services/data/v59.0/sobjects/{sobject}/{recordId}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Salesforce OAuth access token. **Secret** — sent as `Bearer` token. Visibility: user-only. |
+| `instanceUrl` | string | Yes | Salesforce instance URL (e.g. `https://your-domain.my.salesforce.com`). Visibility: user-only. |
+| `sobject` | string | Yes | The sObject type to update (e.g. Contact, Account, Lead, Opportunity). |
+| `recordId` | string | Yes | The ID of the record to update. |
+| `fields` | json | Yes | Field values to update as a JSON object (e.g. `{"Email":"new@x.com"}`). A JSON string is parsed automatically. |
+
+### salesforce_get_record
+
+Retrieves a single record via `GET /services/data/v59.0/sobjects/{sobject}/{recordId}` (optionally with a `?fields=` filter).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Salesforce OAuth access token. **Secret** — sent as `Bearer` token. Visibility: user-only. |
+| `instanceUrl` | string | Yes | Salesforce instance URL (e.g. `https://your-domain.my.salesforce.com`). Visibility: user-only. |
+| `sobject` | string | Yes | The sObject type to retrieve (e.g. Contact, Account, Lead, Opportunity). |
+| `recordId` | string | Yes | The ID of the record to retrieve. |
+| `fields` | string | No | Comma-separated field API names to return (e.g. `"Id,Name,Email"`). |
+
+## Outputs
+
+### salesforce_create_record
+
+- `data` (json) — The Salesforce create result (includes the new record `id` and `success` flag from the API).
+- `metadata` (json) — Record identifiers.
+  - `id` (string) — Created record ID.
+
+### salesforce_query
+
+- `data` (json) — Array of records returned by the query.
+- `metadata` (json) — Query result metadata.
+  - `totalSize` (number) — Total number of matching records.
+  - `done` (boolean) — Whether all records have been returned.
+
+### salesforce_update_record
+
+- `data` (json) — The Salesforce update result. Includes `updated: true`; Salesforce returns 204 No Content on success, so the body is otherwise empty.
+- `metadata` (json) — Record identifiers.
+  - `id` (string) — Updated record ID.
+
+### salesforce_get_record
+
+- `data` (json) — The retrieved Salesforce record.
+- `metadata` (json) — Record identifiers.
+  - `id` (string) — Record ID.
+
+## YAML Example
+
+```yaml
+salesforce_1:
+  type: salesforce
+  name: "Salesforce"
+  inputs:
+    operation: "salesforce_create_record"
+    sobject: "Contact"
+    fields: '{"LastName": "Doe", "Email": "john@example.com"}'
+    instanceUrl: "https://your-domain.my.salesforce.com"
+    apiKey: "{{SALESFORCE_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+A query example:
+
+```yaml
+salesforce_query_1:
+  type: salesforce
+  name: "Salesforce"
+  inputs:
+    operation: "salesforce_query"
+    query: "SELECT Id, Name FROM Account LIMIT 10"
+    instanceUrl: "https://your-domain.my.salesforce.com"
+    apiKey: "{{SALESFORCE_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To pass a created record's ID downstream, reference it with `{{salesforce_1.metadata.id}}`; query rows are available as `{{salesforce_query_1.data}}`.
+
+## Tips
+
+- **Auth setup:** Both `apiKey` (a Salesforce OAuth access token) and `instanceUrl` are required on every operation. Store the token as an environment variable (e.g. `{{SALESFORCE_ACCESS_TOKEN}}`) rather than hard-coding it — it is a secret. The `instanceUrl` is your org's My Domain URL like `https://your-domain.my.salesforce.com` (trailing slashes are stripped automatically).
+- **Fields format:** For create and update, `fields` is a JSON object of API field names to values (e.g. `{"LastName":"Doe"}`). A JSON string is parsed automatically, so either a real object or a stringified one works. For get record, `fields` is instead a comma-separated string of field API names to limit what is returned.
+- **Update returns no body:** Salesforce responds to a successful `PATCH` with 204 No Content, so `salesforce_update_record` returns `data: { updated: true }` plus the `recordId` you passed in as `metadata.id` rather than the full record. Use `salesforce_get_record` afterward if you need the updated values.
+- **All operations target API v59.0** of the Salesforce REST API; ensure your token has the right scopes/permissions for the sObject and fields you reference in SOQL or in `fields`.

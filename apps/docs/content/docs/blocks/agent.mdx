@@ -1,146 +1,292 @@
 ---
 title: Agent Block
-description: Build AI agents with multi-provider LLM support, tool calling, and structured outputs
+description: Build AI agents with LLM capabilities and tool use
 icon: Bot
 ---
 
 # Agent Block
 
-The Agent block is the most powerful block in Zelaxy. It connects to any major LLM provider, supports tool calling, structured JSON outputs, conversation memory, and file/image processing. Use it whenever you need AI reasoning, text generation, classification, summarization, or any language task.
+Create AI agents powered by LLMs with support for tools, structured output, file processing, and all major providers (OpenAI, Anthropic, Google, and more). Use it whenever you need AI reasoning, text generation, classification, summarization, tool-calling, or any language task inside a workflow.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `agent` |
-| **Category** | Core Block |
-| **Color** | `#6366f1` (Indigo) |
+| **Category** | `blocks` |
+| **Color** | `#FFFFFF` |
 
 ## When to Use
 
-- Generate text, summaries, or analyses from input data
-- Classify, categorize, or extract information from content
-- Call external tools (search, APIs, databases) as part of reasoning
-- Build chatbots with persistent memory
-- Get structured JSON responses for downstream processing
+- Generate text, summaries, or analyses from upstream block outputs
+- Classify, categorize, or extract structured information from content
+- Call external tools (search, APIs, databases, Slack, etc.) as part of multi-step reasoning
+- Build chatbots and conversational agents with persistent memory via a Memory block
+- Get typed, predictable JSON responses using the Response Format (structured output) feature
+- Process images and PDFs by enabling OCR to extract text before sending to the LLM
 
 ## Configuration
 
 ### System Prompt
-Define the agent's behavior, personality, and reasoning framework. The built-in **AI Wand** can generate sophisticated system prompts for you — just describe what you want the agent to do.
 
-### User Message / Context
-The input the agent processes. Typically references another block's output: `{{starter.input}}` or `{{previous_block.content}}`.
+Type: `long-input` | Layout: full | Optional
 
-### Model Selection
-Searchable dropdown with all supported providers. Each model shows its provider icon and performance characteristics.
+Defines the agent's role, behavior, and reasoning constraints. The built-in **AI Wand** can generate a sophisticated system prompt — describe what you want the agent to do and it produces the prompt for you.
 
-| Provider | Models | Auth |
-|----------|--------|------|
-| OpenAI | GPT-4o, GPT-4o-mini, o1, o3-mini | API Key |
-| Anthropic | Claude 3.5 Sonnet, Claude 3 Opus/Haiku | API Key |
-| Google | Gemini 2.0 Flash, Gemini Pro | API Key |
-| xAI | Grok-2, Grok-2-mini | API Key |
-| DeepSeek | DeepSeek Chat, DeepSeek Reasoner | API Key |
-| Groq | Llama, Mixtral (fast inference) | API Key |
-| Cerebras | Ultra-fast inference models | API Key |
-| Azure OpenAI | GPT-4o (Azure-hosted) | API Key + Endpoint |
-| OpenRouter | Access to 100+ models | API Key |
-| Ollama | Any local model | None (local) |
+---
 
-### Advanced Settings
+### User Message
 
-| Setting | Type | Range | Description |
-|---------|------|-------|-------------|
-| Temperature | Slider | 0–2 | Controls randomness. 0 = deterministic, 1 = balanced, 2 = creative |
-| Top-P | Slider | 0.1–1 | Nucleus sampling — limits token selection pool. Supported by OpenAI, Anthropic, and Google. |
-| Top-K | Slider | 1–100 | Restricts vocabulary to top K tokens. Supported by Anthropic and Google. |
-| Max Output Tokens | Slider | 100–8192 | Caps response length |
-| Presence Penalty | Slider | -2 to 2 | Encourages topic diversity. Supported by OpenAI. |
-| Frequency Penalty | Slider | -2 to 2 | Reduces word repetition. Supported by OpenAI. |
-| Timeout | Slider | 10–300s | Request timeout (defaults to 120s if not set) |
-| Enable Streaming | Toggle | — | Real-time token streaming |
-| Custom Instructions | Text | — | Additional instructions appended to the system prompt |
+ID: `userPrompt` | Type: `long-input` | Layout: full | Optional
+
+The input the agent processes each execution. Typically references another block's output using `{{blockName.field}}` syntax, for example `{{starter.input}}` or `{{previous_block.content}}`.
+
+---
 
 ### Persistent Memory
-Connect a Memory block's output to maintain conversation history across executions.
 
-### Enable OCR
-When enabled, images and PDFs attached to the input are processed through OCR to extract text, rather than being sent as base64 to the LLM. Supports PNG, JPG, WEBP, TIFF, BMP, GIF, and PDF files.
+ID: `memories` | Type: `short-input` | Layout: full | Mode: advanced | Optional
+
+Connect a Memory block's output here to maintain conversation history across workflow executions and enable multi-turn chatbot experiences.
+
+---
+
+### AI Model
+
+ID: `model` | Type: `combobox` | Layout: half | **Required**
+
+Searchable dropdown listing every available model across all supported providers, including locally-running Ollama models. Each entry shows its provider icon. You can also type a model name directly.
+
+Supported providers include: OpenAI, Anthropic, Google, xAI, DeepSeek, Groq, Cerebras, Azure OpenAI, Mistral, Perplexity, Cohere, OpenRouter, NVIDIA, Fireworks, Together, vLLM, LiteLLM, Baseten, Ollama, and Ollama Cloud.
+
+---
+
+### API Key
+
+ID: `apiKey` | Type: `short-input` | Layout: full | **Required** (for non-hosted and non-Ollama models)
+
+Provider API key. Use `{{ENV_VAR_NAME}}` to reference a secret stored in your workspace environment, for example `{{OPENAI_API_KEY}}`. Hidden when a hosted-tier model or a local Ollama model is selected.
+
+---
+
+### Azure OpenAI Endpoint
+
+ID: `azureEndpoint` | Type: `short-input` | Layout: full | Conditional (Azure OpenAI models only)
+
+The Azure resource endpoint URL, e.g. `https://your-resource.openai.azure.com`. Only visible when an Azure OpenAI model is selected.
+
+---
+
+### Azure API Version
+
+ID: `azureApiVersion` | Type: `short-input` | Layout: full | Conditional (Azure OpenAI models only)
+
+The Azure OpenAI API version string, e.g. `2024-07-01-preview`. Only visible when an Azure OpenAI model is selected.
+
+---
+
+### Base URL
+
+ID: `baseUrl` | Type: `short-input` | Layout: full | Conditional (vLLM / LiteLLM / Baseten models only)
+
+Base URL for self-hosted OpenAI-compatible endpoints, e.g. `http://localhost:8000/v1`. Only visible when a vLLM, LiteLLM, or Baseten model is selected.
+
+---
+
+### Temperature (Creativity)
+
+ID: `temperature` | Type: `slider` | Layout: half | Optional
+
+Controls randomness in model responses.
+- **Range 0–1**: Models that support only this range (e.g. some Anthropic and Google models)
+- **Range 0–2**: Models that support the extended range (e.g. OpenAI GPT models)
+- Visibility and range adapt automatically to the selected model. Hidden for models that do not support temperature.
+
+---
+
+### Top-P (Nucleus Sampling)
+
+ID: `topP` | Type: `slider` | Range: 0.1–1.0 | Step: 0.1 | Layout: half | Mode: advanced | Optional
+
+Limits the token selection pool to the smallest set of tokens whose cumulative probability reaches P. Use alongside temperature for fine-grained diversity control.
+
+---
+
+### Top-K (Token Sampling)
+
+ID: `topK` | Type: `slider` | Range: 1–100 | Step: 1 | Layout: half | Mode: advanced | Optional
+
+Restricts vocabulary to the top K tokens at each generation step. Primarily supported by Anthropic and Google models.
+
+---
+
+### Max Output Tokens
+
+ID: `maxTokens` | Type: `slider` | Range: 100–8192 | Step: 1 | Layout: half | Mode: advanced | Optional
+
+Caps the maximum number of tokens the model may generate in a single response.
+
+---
+
+### Presence Penalty
+
+ID: `presencePenalty` | Type: `slider` | Range: -2.0–2.0 | Step: 0.1 | Layout: half | Mode: advanced | Optional
+
+Penalises the model for repeating topics that have already appeared in the output. Positive values encourage diversity. Primarily supported by OpenAI models.
+
+---
+
+### Frequency Penalty
+
+ID: `frequencyPenalty` | Type: `slider` | Range: -2.0–2.0 | Step: 0.1 | Layout: half | Mode: advanced | Optional
+
+Penalises the model for repeating the same tokens proportionally to how often they have appeared. Reduces verbatim word repetition. Primarily supported by OpenAI models.
+
+---
+
+### Timeout (seconds)
+
+ID: `timeout` | Type: `slider` | Range: 10–300 | Step: 10 | Layout: half | Mode: advanced | Optional
+
+Maximum time in seconds the agent waits for a provider response before the request is cancelled. Set this in production workflows to prevent hanging executions.
+
+---
+
+### Tools & Capabilities
+
+ID: `tools` | Type: `tool-input` | Layout: full | Optional
+
+Attach other Zelaxy blocks or custom tool definitions to the agent. The agent automatically discovers every connected tool and may call them during reasoning. Tools with `usageControl` set to `none` are excluded at runtime.
+
+---
+
+### Skills
+
+ID: `skills` | Type: `skill-selector` | Layout: full | Optional
+
+Attach reusable instruction packages (Skills). The agent sees each skill's name and description and loads the full instructions on demand. Skills are injected into the system context at execution time.
+
+---
+
+### Enable OCR (Extract Text)
+
+ID: `enableOcr` | Type: `switch` | Layout: full | Optional
+
+When enabled, images and PDFs in the input are processed through OCR to extract their text content before being sent to the LLM, instead of sending raw file bytes. Supports PNG, JPG, WEBP, TIFF, BMP, GIF, and PDF files.
+
+---
+
+### Enable Streaming
+
+ID: `enableStreaming` | Type: `switch` | Layout: half | Mode: advanced | Optional
+
+Enables real-time token-by-token streaming of the model's response.
+
+---
+
+### Custom Instructions
+
+ID: `customInstructions` | Type: `long-input` | Layout: full | Mode: advanced | Optional
+
+Additional behavioral instructions, constraints, or preferences appended to the system prompt at runtime. Use this to add extra constraints without modifying the main system prompt.
+
+---
 
 ### Response Format (Structured Output)
-Define a JSON schema to get typed, predictable responses. The AI Wand can generate schemas from natural language descriptions.
 
-### Tool Integration
-Connect tool blocks (Slack, Gmail, Search, etc.) to the Agent. The agent automatically discovers connected tools and calls them during reasoning.
+ID: `responseFormat` | Type: `code` (JSON) | Layout: full | Optional
 
-## Outputs
+Provide a JSON schema to enforce typed, predictable structured output. The schema must be a JSON object with the following top-level keys:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `content` | `string` | The agent's generated text response |
-| `model` | `string` | Model identifier used (e.g., `gpt-4o`) |
-| `tokens` | `json` | Token usage: `{prompt, completion, total}` |
-| `toolCalls` | `json` | List of tool calls made with arguments and results |
-| `context` | `json` | Conversation context and session data |
+- `name` (string) — schema identifier
+- `description` (string) — what the schema represents
+- `strict` (boolean, default `true`) — whether the model must strictly adhere to the schema
+- `schema` (object) — a standard JSON Schema object with `type: "object"`, `properties`, `required`, and `additionalProperties`
 
-## Example: Research Assistant
+The built-in **AI Wand** can generate schemas from a natural-language description.
 
-**Goal:** Build an agent that researches a topic and returns a structured summary.
+## Inputs & Outputs
 
-**Workflow:**
+### Inputs
+
+- `systemPrompt` (string) — System instructions for the agent
+- `userPrompt` (string) — User message or context
+- `customInstructions` (string) — Additional instructions appended to system prompt
+- `memories` (json) — Conversation history for continuity
+- `model` (string) — AI model to use
+- `apiKey` (string) — Provider API key
+- `azureEndpoint` (string) — Azure OpenAI endpoint URL
+- `azureApiVersion` (string) — Azure API version
+- `baseUrl` (string) — Base URL for self-hosted OpenAI-compatible providers
+- `temperature` (number) — Controls randomness (0.0–2.0 depending on model)
+- `topP` (number) — Nucleus sampling (0.0–1.0)
+- `topK` (number) — Top-K token sampling (1–100)
+- `maxTokens` (number) — Maximum output tokens
+- `presencePenalty` (number) — Penalizes repeated topics (-2.0 to 2.0)
+- `frequencyPenalty` (number) — Penalizes repeated tokens (-2.0 to 2.0)
+- `timeout` (number) — Request timeout in seconds
+- `enableOcr` (boolean) — Extract text from images/PDFs via OCR
+- `enableStreaming` (boolean) — Enable real-time streaming
+- `tools` (json) — Tools available to the agent
+- `skills` (json) — Agent skills attached to this agent
+- `responseFormat` (json) — JSON schema for structured output
+
+### Outputs
+
+- `content` (string) — Generated response content
+- `model` (string) — Model used for generation (e.g. `gpt-4o`)
+- `tokens` (any) — Token usage statistics: `{ prompt, completion, total }`
+- `toolCalls` (any) — Tool call results made during reasoning
+- `context` (any) — Conversation context and session data
+
+## Tools
+
+The Agent block is an **LLM block**. Its `tools.access` list contains LLM provider IDs that are resolved by the dedicated agent handler via `executeProviderRequest` — these are **not** entries in the tool registry. The provider is selected dynamically based on the `model` input:
+
+| Provider ID | Description |
+|-------------|-------------|
+| `openai_chat` | OpenAI GPT-4o, GPT-4o-mini, o1, o3, o4, and related models |
+| `anthropic_chat` | Anthropic Claude 3.5 Sonnet, Claude 3 Opus, Haiku, and newer Claude models |
+| `google_chat` | Google Gemini 2.0 Flash, Gemini Pro, and Gemini Ultra family |
+| `xai_chat` | xAI Grok-2, Grok-2-mini, and related Grok models |
+| `deepseek_chat` | DeepSeek Chat standard conversational model |
+| `deepseek_reasoner` | DeepSeek Reasoner chain-of-thought model |
+| `cohere_chat` | Cohere Command R and Command R+ models |
+| `mistral_chat` | Mistral AI conversational models (Mistral Large, Mistral Medium, etc.) |
+| `perplexity_chat` | Perplexity AI models with real-time web retrieval |
+
+Additional providers available via model selection (Groq, Cerebras, Azure OpenAI, OpenRouter, NVIDIA, Fireworks, Together, vLLM, LiteLLM, Baseten, Ollama, Ollama Cloud) are resolved through the same `getAllModelProviders()` lookup at runtime.
+
+## YAML Example
+
+```yaml
+agent_1:
+  type: agent
+  name: "Research Assistant"
+  inputs:
+    systemPrompt: "You are a research assistant. Given a topic, provide a comprehensive summary with key facts and recent developments. Always be factual."
+    userPrompt: "{{starter.input}}"
+    model: "gpt-4o"
+    apiKey: "{{OPENAI_API_KEY}}"
+    temperature: 0.3
+    maxTokens: 2048
+    responseFormat: |
+      {
+        "name": "research_summary",
+        "description": "Structured research output",
+        "strict": true,
+        "schema": {
+          "type": "object",
+          "properties": {
+            "summary": { "type": "string", "description": "High-level summary" },
+            "keyFacts": { "type": "array", "items": { "type": "string" }, "description": "Bullet facts" },
+            "confidence": { "type": "number", "description": "0-1 confidence score" }
+          },
+          "additionalProperties": false,
+          "required": ["summary", "keyFacts", "confidence"]
+        }
+      }
+  connections:
+    outgoing:
+      - target: response_1
 ```
-[Starter] → [Agent] → [Response]
-```
-
-**Configuration:**
-- **System Prompt:**
-  ```
-  You are a research assistant. Given a topic, provide a comprehensive summary
-  with key facts, recent developments, and sources. Always be factual and cite
-  your reasoning.
-  ```
-- **User Message:** `{{starter.input}}`
-- **Model:** `gpt-4o`
-- **Temperature:** `0.3` (factual, low creativity)
-- **Response Format:**
-  ```json
-  {
-    "type": "object",
-    "properties": {
-      "summary": { "type": "string" },
-      "keyFacts": { "type": "array", "items": { "type": "string" } },
-      "confidence": { "type": "number" }
-    }
-  }
-  ```
-
-**Result:** The agent returns a structured JSON object that downstream blocks can parse reliably.
-
-## Example: Agent with Tools
-
-**Goal:** Agent that answers questions using web search and then sends results via Slack.
-
-**Workflow:**
-```
-[Starter] → [Agent] → [Slack]
-              ↑
-        [Google Search]  (connected as tool)
-```
-
-**How it works:**
-1. Connect a **Google Search** block to the Agent (draw line to the tools input)
-2. The Agent automatically discovers the search tool
-3. When the user asks a question, the Agent decides whether to search the web
-4. Search results feed back into the Agent's reasoning
-5. Final answer goes to `{{agent.content}}` → Slack message
-
-## Tips
-
-- **Use structured output** for pipelines — downstream blocks can reliably parse JSON fields
-- **Set low temperature (0.1–0.3)** for factual/classification tasks
-- **Set high temperature (0.7–1.0)** for creative writing
-- **Use Top-P alongside temperature** for fine-grained control over output diversity
-- **Connect memory blocks** for multi-turn chatbot experiences
-- **Use Custom Instructions** to add extra constraints without modifying the main system prompt
-- **Set a timeout** for production workflows to prevent hanging requests

@@ -23,46 +23,99 @@ The Reddit block lets you retrieve posts and comments from any subreddit. Reach 
 - Fetch the full comment thread for a known post to analyze sentiment or extract feedback.
 - Feed Reddit content into a downstream Agent block for summarization or classification.
 - Track mentions or topics across a subreddit on a recurring schedule.
+- Extract community feedback or product mentions from targeted subreddits.
 
 ## Configuration
 
 ### Operation
 
-Dropdown choosing what to do: Get Posts (`get_posts`) or Get Comments (`get_comments`). This drives which other fields appear.
+Dropdown that selects which Reddit action to perform. This drives which other fields appear.
 
-### Reddit Account
+| Label | ID |
+|-------|----|
+| Get Posts | `get_posts` |
+| Get Comments | `get_comments` |
 
-OAuth credential (`credential`) for the Reddit account to authenticate with. Required; uses the `identity` and `read` scopes.
+### Reddit Account (`credential`)
 
-### Subreddit
+OAuth credential for the Reddit account to authenticate with. Required. Requests the `identity` and `read` scopes from the connected Reddit account.
 
-The subreddit name without the `r/` prefix. Required for both operations.
+### Subreddit (`subreddit`)
 
-### Sort By / Time Filter (Get Posts)
+The subreddit name **without** the `r/` prefix (e.g. `programming`, not `r/programming`). Required for both operations.
 
-`sort` selects Hot, New, Top, or Rising ordering. When sort is Top, the `time` filter (Day, Week, Month, Year, All Time) narrows the window. `limit` caps the number of posts returned.
+### Sort By (`sort`) — Get Posts only
 
-### Post ID / Sort Comments By / Number of Comments (Get Comments)
+How to order the returned posts. Required when operation is `get_posts`.
 
-`postId` identifies the post whose comments to fetch (required). `commentSort` orders comments (Confidence, Top, New, Controversial, Old, Random, Q&A), and `commentLimit` caps how many are returned.
+| Label | ID |
+|-------|----|
+| Hot | `hot` |
+| New | `new` |
+| Top | `top` |
+| Rising | `rising` |
+
+### Time Filter (`time`) — Get Posts, Top sort only
+
+Narrows the time window when **Sort By** is set to `top`. Only shown when `sort` = `top`.
+
+| Label | ID |
+|-------|----|
+| Day | `day` |
+| Week | `week` |
+| Month | `month` |
+| Year | `year` |
+| All Time | `all` |
+
+### Max Posts (`limit`) — Get Posts only
+
+Maximum number of posts to return. Defaults to 10; maximum 100. Optional.
+
+### Post ID (`postId`) — Get Comments only
+
+The Reddit post ID whose comments should be fetched. Required when operation is `get_comments`.
+
+### Sort Comments By (`commentSort`) — Get Comments only
+
+How to order the returned comments. Optional; defaults to `confidence`.
+
+| Label | ID |
+|-------|----|
+| Confidence | `confidence` |
+| Top | `top` |
+| New | `new` |
+| Controversial | `controversial` |
+| Old | `old` |
+| Random | `random` |
+| Q&A | `qa` |
+
+### Number of Comments (`commentLimit`) — Get Comments only
+
+Maximum number of comments to return. Defaults to 50; maximum 100. Optional.
 
 ## Inputs & Outputs
 
 - **Inputs**:
-  - `operation` (string) — operation to perform
-  - `credential` (string) — Reddit access token
-  - `subreddit` (string) — subreddit name
-  - `sort` (string) — sort order
-  - `time` (string) — time filter
-  - `limit` (number) — maximum posts
-  - `postId` (string) — post identifier
-  - `commentSort` (string) — comment sort order
-  - `commentLimit` (number) — maximum comments
+  - `operation` (string) — Operation to perform (`get_posts` or `get_comments`)
+  - `credential` (string) — Reddit OAuth access token
+  - `subreddit` (string) — Subreddit name (without `r/` prefix)
+  - `sort` (string) — Sort order for posts (`hot`, `new`, `top`, `rising`)
+  - `time` (string) — Time filter for top posts (`day`, `week`, `month`, `year`, `all`)
+  - `limit` (number) — Maximum number of posts to return
+  - `postId` (string) — Post identifier for fetching comments
+  - `commentSort` (string) — Comment sort order (`confidence`, `top`, `new`, `controversial`, `old`, `random`, `qa`)
+  - `commentLimit` (number) — Maximum number of comments to return
+
 - **Outputs**:
-  - `subreddit` (string) — subreddit name
-  - `posts` (json) — posts data
-  - `post` (json) — single post data
-  - `comments` (json) — comments data
+  - `subreddit` (string) — Subreddit name (populated by Get Posts)
+  - `posts` (json) — Array of post objects with `id`, `title`, `author`, `url`, `permalink`, `score`, `num_comments`, `created_utc`, `is_self`, `selftext`, `thumbnail`, `subreddit` (populated by Get Posts)
+  - `post` (json) — Single post object with `id`, `title`, `author`, `selftext`, `score`, `created_utc`, `permalink` (populated by Get Comments)
+  - `comments` (json) — Nested array of comment objects with `id`, `author`, `body`, `score`, `created_utc`, `permalink`, `replies` (populated by Get Comments)
+
+## Tools
+
+- **Get Reddit Posts** (`reddit_get_posts`) — Fetches posts from a subreddit via the Reddit OAuth API. Accepts `subreddit`, `sort` (`hot`/`new`/`top`/`rising`), optional `limit` (1–100, default 10), and optional `time` filter when sort is `top`. Returns `subreddit` name and a `posts` array.
+- **Get Reddit Comments** (`reddit_get_comments`) — Fetches the comment thread for a specific Reddit post. Accepts `postId`, `subreddit`, optional `sort` (default `confidence`), and optional `limit` (1–100, default 50). Returns a `post` summary object and a nested `comments` array including replies.
 
 ## YAML Example
 

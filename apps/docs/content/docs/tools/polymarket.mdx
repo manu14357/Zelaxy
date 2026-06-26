@@ -1,0 +1,327 @@
+---
+title: Polymarket Tools
+description: Browse and analyze Polymarket prediction markets, prices, and trader activity
+icon: ChartColumn
+---
+
+# Polymarket Tools
+
+The Polymarket provider lets a workflow read live data from the [Polymarket](https://polymarket.com) prediction-market platform: markets, events, series, tags, CLOB prices and orderbooks, and on-chain trader data (positions, trades, activity, leaderboard, holders). Use these tools when a workflow needs to discover markets, fetch real-time pricing, or analyze trader behavior.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `polymarket` |
+| **Category** | tools |
+| **Auth** | None (public read-only API; no API key required) |
+
+All tools call Polymarket's public read APIs over `GET` with a `Content-Type: application/json` header and no credentials. They are spread across three hosts: the Gamma API (`https://gamma-api.polymarket.com`) for markets/events/series/tags/search, the CLOB API (`https://clob.polymarket.com`) for prices and orderbooks, and the Data API (`https://data-api.polymarket.com`) for positions/trades/activity/leaderboard/holders.
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Get Markets | `polymarket_get_markets` | Retrieve a list of prediction markets with optional filtering |
+| Get Market | `polymarket_get_market` | Retrieve details of a specific market by ID or slug |
+| Get Events | `polymarket_get_events` | Retrieve a list of events with optional filtering |
+| Get Event | `polymarket_get_event` | Retrieve details of a specific event by ID or slug |
+| Get Series | `polymarket_get_series` | Retrieve series (related market groups) |
+| Get Series by ID | `polymarket_get_series_by_id` | Retrieve a specific series by ID |
+| Get Tags | `polymarket_get_tags` | Retrieve available tags for filtering markets |
+| Search | `polymarket_search` | Search for markets, events, and profiles |
+| Get Orderbook | `polymarket_get_orderbook` | Retrieve the order book for a specific token |
+| Get Price | `polymarket_get_price` | Retrieve the market price for a token and side |
+| Get Midpoint | `polymarket_get_midpoint` | Retrieve the midpoint price for a token |
+| Get Spread | `polymarket_get_spread` | Retrieve the bid-ask spread for a token |
+| Get Tick Size | `polymarket_get_tick_size` | Retrieve the minimum tick size for a token |
+| Get Last Trade Price | `polymarket_get_last_trade_price` | Retrieve the last trade price for a token |
+| Get Price History | `polymarket_get_price_history` | Retrieve historical price data for a token |
+| Get Positions | `polymarket_get_positions` | Retrieve a user's positions |
+| Get Trades | `polymarket_get_trades` | Retrieve trade history |
+| Get Activity | `polymarket_get_activity` | Retrieve on-chain activity for a user |
+| Get Leaderboard | `polymarket_get_leaderboard` | Retrieve trader leaderboard rankings |
+| Get Holders | `polymarket_get_holders` | Retrieve top holders of a market token |
+
+## Configuration
+
+### polymarket_get_markets
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `closed` | string | No | Filter by closed status (`true`/`false`) |
+| `order` | string | No | Sort field (e.g., `volumeNum`, `liquidityNum`, `startDate`, `endDate`) |
+| `ascending` | string | No | Sort direction (`true` for ascending, `false` for descending) |
+| `tagId` | string | No | Filter by tag ID |
+| `limit` | string | No | Number of results per page (max: 50; defaults to `50`) |
+| `offset` | string | No | Number of results to skip for pagination |
+
+### polymarket_get_market
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `marketId` | string | No | The market condition ID. Required if `slug` is not provided |
+| `slug` | string | No | The market slug (e.g., `will-trump-win`). Required if `marketId` is not provided |
+
+### polymarket_get_events
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `closed` | string | No | Filter by closed status (`true`/`false`) |
+| `order` | string | No | Sort field (e.g., `volume`, `liquidity`, `startDate`, `endDate`) |
+| `ascending` | string | No | Sort direction (`true` for ascending, `false` for descending) |
+| `tagId` | string | No | Filter by tag ID |
+| `limit` | string | No | Number of results per page (max: 50; defaults to `50`) |
+| `offset` | string | No | Number of results to skip for pagination |
+
+### polymarket_get_event
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `eventId` | string | No | The event ID. Required if `slug` is not provided |
+| `slug` | string | No | The event slug. Required if `eventId` is not provided |
+
+### polymarket_get_series
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `limit` | string | No | Number of results per page (max: 50; defaults to `50`) |
+| `offset` | string | No | Number of results to skip for pagination |
+
+### polymarket_get_series_by_id
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `seriesId` | string | Yes | The series ID |
+
+### polymarket_get_tags
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `limit` | string | No | Number of results per page (max: 50; defaults to `50`) |
+| `offset` | string | No | Number of results to skip for pagination |
+
+### polymarket_search
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | Yes | Search query term (e.g., `presidential election`, `bitcoin price`) |
+| `limit` | string | No | Number of results per page (max: 50; defaults to `50`) |
+| `page` | string | No | Page number for pagination (1-indexed) |
+| `eventsStatus` | string | No | Filter events by status |
+| `sort` | string | No | Sort field |
+| `ascending` | string | No | Sort direction (`true` for ascending, `false` for descending) |
+
+### polymarket_get_orderbook
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tokenId` | string | Yes | The CLOB token ID from the market `clobTokenIds` array |
+
+### polymarket_get_price
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tokenId` | string | Yes | The CLOB token ID from the market `clobTokenIds` array |
+| `side` | string | Yes | Order side: `buy` or `sell` (sent upper-cased to the API) |
+
+### polymarket_get_midpoint
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tokenId` | string | Yes | The CLOB token ID from the market `clobTokenIds` array |
+
+### polymarket_get_spread
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tokenId` | string | Yes | The CLOB token ID from the market `clobTokenIds` array |
+
+### polymarket_get_tick_size
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tokenId` | string | Yes | The CLOB token ID from the market `clobTokenIds` array |
+
+### polymarket_get_last_trade_price
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tokenId` | string | Yes | The CLOB token ID from the market `clobTokenIds` array |
+
+### polymarket_get_price_history
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tokenId` | string | Yes | The CLOB token ID from the market `clobTokenIds` array |
+| `interval` | string | No | Duration ending at current time (`1m`, `1h`, `6h`, `1d`, `1w`, `max`) |
+| `fidelity` | number | No | Data resolution in minutes (e.g., `60` for hourly) |
+| `startTs` | number | No | Start timestamp (Unix seconds UTC) |
+| `endTs` | number | No | End timestamp (Unix seconds UTC) |
+
+### polymarket_get_positions
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `user` | string | Yes | User wallet address |
+| `market` | string | No | Condition IDs to filter positions (comma-separated) |
+| `eventId` | string | No | Event ID to filter positions |
+| `sizeThreshold` | string | No | Minimum position size threshold (default: 1) |
+| `sortBy` | string | No | Sort field |
+| `sortDirection` | string | No | Sort direction (`ASC` or `DESC`) |
+| `limit` | string | No | Number of results per page |
+| `offset` | string | No | Number of results to skip for pagination |
+
+### polymarket_get_trades
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `user` | string | No | User wallet address to filter trades |
+| `market` | string | No | Market/condition ID to filter trades |
+| `eventId` | string | No | Event ID to filter trades |
+| `side` | string | No | Trade direction filter (`BUY` or `SELL`) |
+| `limit` | string | No | Number of results per page (default: 100, max: 10000) |
+| `offset` | string | No | Number of results to skip for pagination |
+
+### polymarket_get_activity
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `user` | string | Yes | User wallet address (0x-prefixed) |
+| `limit` | string | No | Maximum results to return (default: 100, max: 500) |
+| `offset` | string | No | Number of results to skip for pagination |
+| `market` | string | No | Comma-separated condition IDs |
+| `eventId` | string | No | Comma-separated event IDs |
+| `type` | string | No | Activity type: `TRADE`, `SPLIT`, `MERGE`, `REDEEM`, `REWARD`, `CONVERSION`, `MAKER_REBATE` |
+| `start` | number | No | Start timestamp (Unix seconds) |
+| `end` | number | No | End timestamp (Unix seconds) |
+| `sortBy` | string | No | Sort field: `TIMESTAMP`, `TOKENS`, or `CASH` (default: `TIMESTAMP`) |
+| `sortDirection` | string | No | Sort direction: `ASC` or `DESC` (default: `DESC`) |
+
+### polymarket_get_leaderboard
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `category` | string | No | Category: `OVERALL`, `POLITICS`, `SPORTS`, `CRYPTO`, `CULTURE`, `MENTIONS`, `WEATHER`, `ECONOMICS`, `TECH`, `FINANCE` |
+| `timePeriod` | string | No | Time period: `DAY`, `WEEK`, `MONTH`, `ALL` (default: `DAY`) |
+| `orderBy` | string | No | Order by: `PNL` or `VOL` (default: `PNL`) |
+| `limit` | string | No | Number of results to return (range: 1-50, default: 25) |
+| `offset` | string | No | Number of results to skip for pagination |
+| `user` | string | No | Filter by specific user wallet address |
+
+### polymarket_get_holders
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `market` | string | Yes | Comma-separated list of condition IDs |
+| `limit` | string | No | Number of holders to return (range: 0-20, default: 20) |
+| `minBalance` | string | No | Minimum balance threshold (default: 1) |
+
+## Outputs
+
+### polymarket_get_markets
+
+- `markets` (json) — Array of market objects
+
+### polymarket_get_market
+
+- `market` (json) — Market object with details
+
+### polymarket_get_events
+
+- `events` (json) — Array of event objects
+
+### polymarket_get_event
+
+- `event` (json) — Event object with details
+
+### polymarket_get_series
+
+- `series` (json) — Array of series objects (id, ticker, slug, title, seriesType, recurrence, image, icon, active, closed, archived, featured, volume, liquidity)
+
+### polymarket_get_series_by_id
+
+- `series` (json) — Series object with details
+
+### polymarket_get_tags
+
+- `tags` (json) — Array of tag objects
+
+### polymarket_search
+
+- `markets` (json) — Matching markets
+- `events` (json) — Matching events
+- `profiles` (json) — Matching profiles
+
+### polymarket_get_orderbook
+
+- `orderbook` (json) — Order book with `bids` and `asks` arrays (plus `market`, `asset_id`, `hash`, `timestamp`, `min_order_size`, `tick_size`)
+
+### polymarket_get_price
+
+- `price` (string) — Market price
+
+### polymarket_get_midpoint
+
+- `midpoint` (string) — Midpoint price
+
+### polymarket_get_spread
+
+- `spread` (string) — Bid-ask spread value
+
+### polymarket_get_tick_size
+
+- `tickSize` (string) — Minimum tick size
+
+### polymarket_get_last_trade_price
+
+- `price` (string) — Last trade price
+- `side` (string) — Side of the last trade (`BUY` or `SELL`)
+
+### polymarket_get_price_history
+
+- `history` (json) — Array of historical price entries `[{t, p}]`
+
+### polymarket_get_positions
+
+- `positions` (json) — Array of position objects
+
+### polymarket_get_trades
+
+- `trades` (json) — Array of trade objects
+
+### polymarket_get_activity
+
+- `activity` (json) — Array of on-chain activity objects
+
+### polymarket_get_leaderboard
+
+- `leaderboard` (json) — Array of leaderboard entries
+
+### polymarket_get_holders
+
+- `holders` (json) — Array of market holder groups by token
+
+## YAML Example
+
+```yaml
+polymarket_1:
+  type: polymarket
+  name: "Polymarket"
+  inputs:
+    operation: "polymarket_get_markets"
+    order: "volumeNum"
+    ascending: "false"
+    limit: "10"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- No authentication is required — all Polymarket endpoints used here are public read-only APIs, so there is no API key or secret to configure.
+- Price/orderbook operations (`polymarket_get_price`, `polymarket_get_orderbook`, `polymarket_get_midpoint`, `polymarket_get_spread`, `polymarket_get_tick_size`, `polymarket_get_last_trade_price`, `polymarket_get_price_history`) require a CLOB `tokenId`. Get these first via `polymarket_get_market`/`polymarket_get_markets` and read the `clobTokenIds` array, then reference it like `{{polymarket_1.market.clobTokenIds}}`.
+- Most list operations cap `limit` at 50 (leaderboard at 50, holders at 20). Use `offset` (or `page` for search) to paginate through larger result sets rather than raising the limit.
+- User-scoped operations (`polymarket_get_positions`, `polymarket_get_activity`) require a 0x-prefixed wallet address; trades and leaderboard accept an optional `user` filter.
+```

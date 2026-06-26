@@ -1,73 +1,165 @@
 ---
-title: Memory Block
-description: Store and retrieve conversation context for multi-turn interactions
+title: Memory Storage Block
+description: Persistent data management system
 icon: Brain
 ---
 
-# Memory Block
+# Memory Storage Block
 
-The Memory block provides persistent short-term and long-term memory for your workflows. It stores conversation history, user context, and session data — enabling multi-turn chatbot experiences where the AI remembers previous interactions.
+Advanced memory management system for storing, retrieving, and managing persistent data across workflow executions. Supports conversation history, data caching, and intelligent retrieval with filtering options — reach for it whenever a workflow needs to remember state between runs or across turns of a multi-step interaction.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `memory` |
-| **Category** | Core Block |
-| **Color** | `#EC4899` (Pink) |
+| **Category** | `blocks` |
+| **Color** | `#F64F9E` |
 
 ## When to Use
 
-- Build chatbots that remember conversation history
-- Store user preferences across sessions
-- Maintain context in multi-step workflows
-- Create personalized AI interactions
+- Store conversation messages (user, assistant, or system) keyed by a session or thread identifier so an agent can recall prior turns
+- Retrieve a single named record with optional limit and sort direction to feed history into a prompt
+- Pull all records for a workflow at once, optionally filtered by role type, for auditing or batch processing
+- Remove a specific record when a session ends or data must be cleared
+- Cache intermediate results between workflow runs to avoid re-computing expensive operations
+- Build multi-turn chatbot experiences where context must persist across separate workflow executions
 
 ## Configuration
 
-| Setting | Type | Description |
-|---------|------|-------------|
-| Memory Type | Dropdown | `conversation` (chat history) or `context` (key-value store) |
-| Session ID | Short input | Unique session identifier (e.g., `{{starter.sessionId}}`) |
-| Max History | Slider | Maximum messages to retain |
-| Storage | Dropdown | Memory backend (Mem0, local, etc.) |
+### Memory Operation
 
-## Outputs
+Selects which storage action to perform. Every other field is conditional on this choice.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `content` | `string` | Retrieved memory content |
-| `history` | `json` | Conversation history array |
-| `context` | `json` | Stored context data |
+| Label | id |
+|-------|----|
+| Store New Data | `add` |
+| Retrieve All Records | `getAll` |
+| Fetch Specific Record | `get` |
+| Remove Record | `delete` |
 
-## Example: Persistent Chatbot
+Default: `add`.
 
-**Goal:** Build a chatbot that remembers your name and previous questions.
+---
 
-**Workflow:**
+### `add` — Store New Data
+
+Appends a new message entry to the record identified by `id`. If a record with that identifier already exists the new data is appended to it.
+
+| Sub-block | id | Type | Required | Notes |
+|-----------|----|------|----------|-------|
+| Record Identifier | `id` | short-input | Yes | Unique key for the record |
+| Message Role | `role` | dropdown | Yes | See role options below |
+| Data Content | `content` | long-input | Yes | Text to persist |
+
+**Role options:**
+
+| Label | id |
+|-------|----|
+| Human Input | `user` |
+| AI Response | `assistant` |
+| System Instruction | `system` |
+
+---
+
+### `get` — Fetch Specific Record
+
+Retrieves one named record by its identifier, with optional limit and sort controls.
+
+| Sub-block | id | Type | Required | Notes |
+|-----------|----|------|----------|-------|
+| Record Identifier | `id` | short-input | Yes | Key of record to fetch |
+| Retrieval Limit | `limit` | slider (1–100) | No | Max messages to return; default 10 |
+| Sort Order | `sortOrder` | dropdown | No | See sort options below |
+
+**Sort order options:**
+
+| Label | id |
+|-------|----|
+| Newest First | `desc` |
+| Oldest First | `asc` |
+
+---
+
+### `getAll` — Retrieve All Records
+
+Returns every record stored for the current workflow, with optional limit, sort, and role filter.
+
+| Sub-block | id | Type | Required | Notes |
+|-----------|----|------|----------|-------|
+| Retrieval Limit | `limit` | slider (1–100) | No | Max messages per record; default 10 |
+| Sort Order | `sortOrder` | dropdown | No | See sort options below |
+| Filter by Type | `filterType` | dropdown | No | See filter options below |
+
+**Sort order options:**
+
+| Label | id |
+|-------|----|
+| Newest First | `desc` |
+| Oldest First | `asc` |
+
+**Filter type options:**
+
+| Label | id |
+|-------|----|
+| All Types | `all` |
+| Human Input Only | `user` |
+| AI Response Only | `assistant` |
+| System Instructions Only | `system` |
+
+---
+
+### `delete` — Remove Record
+
+Permanently removes a specific record by identifier.
+
+| Sub-block | id | Type | Required | Notes |
+|-----------|----|------|----------|-------|
+| Record Identifier | `id` | short-input | Yes | Key of record to remove |
+
+---
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Memory operation type to execute (`add`, `get`, `getAll`, `delete`)
+- `id` (string) — Unique record identifier (required for `add`, `get`, `delete`)
+- `role` (string) — Message role classification (`user`, `assistant`, `system`; required for `add`)
+- `content` (string) — Data content to store (required for `add`)
+- `limit` (number) — Maximum number of messages per record to retrieve (used with `get` and `getAll`)
+- `sortOrder` (string) — Sort direction for retrieved records (`asc` or `desc`; used with `get` and `getAll`)
+- `filterType` (string) — Filter records by message role type (`all`, `user`, `assistant`, `system`; used with `getAll`)
+
+**Outputs:**
+
+- `memories` (json) — Retrieved memory records with metadata
+- `id` (string) — Processed record identifier
+- `count` (number) — Number of records processed
+- `success` (boolean) — Operation completion status
+
+## Tools
+
+**Store New Data** (`memory_add`) — POSTs a new message entry (role + content) under the given key for the current workflow. If a record with the same key already exists the entry is appended to it. Required params: `id`, `role`, `content`.
+
+**Fetch Specific Record** (`memory_get`) — GETs a single record by key for the current workflow. Supports optional `limit` (default 10) and `sortOrder` (`asc`/`desc`, default `desc`) query parameters.
+
+**Retrieve All Records** (`memory_get_all`) — GETs all records for the current workflow. Supports optional `limit`, `sortOrder`, and `filterType` query parameters. Returns an array of record objects each containing `key`, `type`, `data`, `createdAt`, and `updatedAt`.
+
+**Remove Record** (`memory_delete`) — DELETEs a record by key for the current workflow. Permanently removes all entries stored under that identifier.
+
+## YAML Example
+
+```yaml
+memory_1:
+  type: memory
+  name: "Memory Storage"
+  inputs:
+    operation: "add"
+    id: "{{starter.sessionId}}"
+    role: "user"
+    content: "{{starter.message}}"
+  connections:
+    outgoing:
+      - target: agent_1
 ```
-[Starter] → [Memory: Retrieve] → [Agent] → [Memory: Store] → [Response]
-```
-
-**How it works:**
-1. User sends a message
-2. Memory block retrieves past conversation history for this session
-3. Agent receives both the new message AND conversation history
-4. After generating a response, Memory block stores the new exchange
-5. Next time the user chats, the Agent has full context
-
-**Agent System Prompt:**
-```
-You are a helpful assistant. Use the conversation history to maintain context.
-If the user previously told you something, reference it naturally.
-
-Previous conversation:
-{{memory.history}}
-```
-
-## Tips
-
-- **Use session IDs** to separate conversations between different users
-- **Set max history** to control context size and costs (10–20 messages is usually enough)
-- **Conversation memory** stores messages automatically; **context memory** stores custom key-value pairs
-- **Pair with Mem0** for advanced long-term memory with automatic summarization

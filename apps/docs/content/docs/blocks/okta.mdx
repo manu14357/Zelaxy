@@ -1,0 +1,132 @@
+---
+title: Okta Block
+description: Manage users and groups in your Okta organization
+icon: Box
+---
+
+# Okta Block
+
+List and retrieve users, create new users, and list groups through the Okta Management API. Authenticate with your Okta org URL and an API token. Reach for this block whenever a workflow needs to provision accounts, look up employee records, or enumerate organizational groups in Okta.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `okta` |
+| **Category** | `tools` |
+| **Color** | `#007DC1` |
+
+## When to Use
+
+- Enumerate all users in your Okta organization, optionally filtered with a search expression
+- Look up a specific user by their numeric ID (e.g. `00u1a2b3c4d5e6f7g8h9`) or by login email
+- Provision a new user account and activate it immediately during employee onboarding workflows
+- List all groups in your organization to drive downstream routing or permission checks
+- Feed user or group data into an Agent block for identity-aware AI processing
+- Automate HR or IT operations that depend on Okta's directory as the source of truth
+
+## Configuration
+
+### Operation
+
+Selects which Okta API action to execute. Every other field's visibility depends on this choice.
+
+| Label | ID |
+|-------|----|
+| List users | `okta_list_users` |
+| Get user | `okta_get_user` |
+| Create user | `okta_create_user` |
+| List groups | `okta_list_groups` |
+
+### User ID or Login
+
+**Visible when**: operation = `okta_get_user`
+
+The identifier of the user to retrieve. Accepts either the Okta numeric user ID (e.g. `00u1a2b3c4d5e6f7g8h9`) or the user's login email address (e.g. `user@example.com`). Required for the Get user operation.
+
+### First Name
+
+**Visible when**: operation = `okta_create_user`
+
+The first name of the new user (e.g. `Jane`). Required for the Create user operation.
+
+### Last Name
+
+**Visible when**: operation = `okta_create_user`
+
+The last name of the new user (e.g. `Doe`). Required for the Create user operation.
+
+### Email
+
+**Visible when**: operation = `okta_create_user`
+
+The email address of the new user (e.g. `jane.doe@example.com`). Required for the Create user operation.
+
+### Login
+
+**Visible when**: operation = `okta_create_user`
+
+The login username for the new user. If omitted, defaults to the value provided in the Email field.
+
+### Search
+
+**Visible when**: operation = `okta_list_users` or `okta_list_groups`
+
+An Okta search expression used to filter results. Follows Okta's expression syntax — for example `profile.email co "example.com"` to match users by email domain, or `profile.name sw "Engineering"` to match groups by name prefix. Optional; omit to return all records up to the limit.
+
+### Limit
+
+**Visible when**: operation = `okta_list_users` or `okta_list_groups`
+
+Maximum number of records to return. For users the Okta API cap is 200. Optional; omit to use the API default.
+
+### Org URL
+
+**Required.** The base URL of your Okta organization, e.g. `https://your-org.okta.com`. Trailing slashes are stripped automatically.
+
+### API Token
+
+**Required.** An Okta API token scoped with the permissions needed for the chosen operation. Treat this as a secret — use `{{OKTA_API_TOKEN}}` to reference it from your environment rather than hard-coding the value.
+
+## Inputs & Outputs
+
+**Inputs**:
+- `operation` (string) — Operation to perform (`okta_list_users` | `okta_get_user` | `okta_create_user` | `okta_list_groups`)
+- `orgUrl` (string) — Okta org URL
+- `apiToken` (string) — Okta API token
+- `userId` (string) — User ID or login (used by Get user)
+- `firstName` (string) — First name (used by Create user)
+- `lastName` (string) — Last name (used by Create user)
+- `email` (string) — Email address (used by Create user)
+- `login` (string) — Login username (used by Create user; optional, defaults to email)
+- `search` (string) — Search expression (used by List users and List groups)
+- `limit` (number) — Result limit (used by List users and List groups)
+
+**Outputs**:
+- `data` (json) — Result object or array from Okta. For list operations this is an array of user or group objects; for single-record operations this is the individual object.
+- `metadata` (json) — Response metadata. For list operations contains `count` (number of records returned); for single-record operations contains `id` (record ID) and `status` (record status).
+
+## Tools
+
+- **Okta List Users** (`okta_list_users`) — Calls `GET /api/v1/users` to list users in the organization. Supports optional `search` and `limit` query parameters. Returns an array of user objects in `data` and `{ count }` in `metadata`.
+- **Okta Get User** (`okta_get_user`) — Calls `GET /api/v1/users/{userId}` to retrieve a single user by ID or login email. Returns the user object in `data` and `{ id, status }` in `metadata`.
+- **Okta Create User** (`okta_create_user`) — Calls `POST /api/v1/users?activate=true` to create and immediately activate a new user. Requires `firstName`, `lastName`, and `email`; `login` defaults to `email` when omitted. Returns the created user object in `data` and `{ id, status }` in `metadata`.
+- **Okta List Groups** (`okta_list_groups`) — Calls `GET /api/v1/groups` to list groups in the organization. Supports optional `search` and `limit` query parameters. Returns an array of group objects in `data` and `{ count }` in `metadata`.
+
+## YAML Example
+
+```yaml
+okta_1:
+  type: okta
+  name: "Okta - Create User"
+  inputs:
+    operation: "okta_create_user"
+    orgUrl: "{{OKTA_ORG_URL}}"
+    apiToken: "{{OKTA_API_TOKEN}}"
+    firstName: "{{trigger.firstName}}"
+    lastName: "{{trigger.lastName}}"
+    email: "{{trigger.email}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

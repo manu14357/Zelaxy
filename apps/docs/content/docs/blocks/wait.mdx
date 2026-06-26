@@ -37,6 +37,10 @@ A dropdown selecting the time unit for the duration. Options: **Seconds**, **Min
 - **Inputs**: `duration` (number) — wait duration value; `unit` (string) — wait duration unit: seconds, minutes, hours, or days.
 - **Outputs**: `waitedMs` (number) — actual time waited in milliseconds; `resumedAt` (string) — ISO timestamp when the workflow resumed; `mode` (string) — whether the wait was synchronous (≤5 min) or asynchronous.
 
+## Tools
+
+This block does not call any external tools. All wait logic is handled internally by the executor.
+
 ## YAML Example
 
 ```yaml

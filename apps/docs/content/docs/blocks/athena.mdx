@@ -1,7 +1,7 @@
 ---
 title: Athena Block
 description: Run SQL queries on data in Amazon S3 with AWS Athena
-icon: Box
+icon: Database
 ---
 
 # Athena Block
@@ -18,40 +18,83 @@ The Athena block integrates Amazon Athena into your workflows. Use it to execute
 
 ## When to Use
 
-- Run ad-hoc SQL analytics over data stored in Amazon S3
+- Run ad-hoc SQL analytics over data stored in Amazon S3 without spinning up a database server
 - Kick off a long-running query and collect its execution ID for later polling
-- Fetch the result set of a completed query for downstream processing
-- Check the status of a query execution before reading its output
-- Cancel an in-flight query that is no longer needed
+- Fetch the result set of a completed query for downstream processing in your workflow
+- Check the state and timing details of a query execution before reading its output
+- Cancel an in-flight query that is no longer needed to avoid unnecessary data-scan charges
 - Audit recent query executions in an Athena workgroup
 
 ## Configuration
 
 ### Operation
-Dropdown selecting the Athena action: Start Query, Get Query Results, Get Query Execution, Stop Query, or List Query Executions. This drives which other fields are shown.
+
+Dropdown that selects the Athena action to perform. Required. The selection drives which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| Start Query | `athena_start_query` |
+| Get Query Results | `athena_get_query_results` |
+| Get Query Execution | `athena_get_query_execution` |
+| Stop Query | `athena_stop_query` |
+| List Query Executions | `athena_list_query_executions` |
 
 ### AWS Region
-The AWS region where Athena runs (e.g. `us-east-1`). Required.
 
-### Access Key ID / Secret Access Key
-AWS credentials used to authenticate the request. Both are required and stored as secrets.
+The AWS region where your Athena service runs (e.g. `us-east-1`). Required for all operations.
+
+### Access Key ID
+
+AWS IAM access key ID used to authenticate requests. Required. Stored as a secret (masked input).
+
+### Secret Access Key
+
+AWS IAM secret access key paired with the access key ID. Required. Stored as a secret (masked input).
 
 ### SQL Query
-The SQL statement to execute. Shown for the Start Query operation.
+
+The SQL statement to execute against S3 data. Shown only when **Operation** is `athena_start_query`.
 
 ### Database
-The Athena/Glue database to run the query against. Shown for the Start Query operation.
+
+The Athena/Glue database to run the query against. Shown only when **Operation** is `athena_start_query`.
 
 ### Output S3 Location
-The S3 path where query results are written (e.g. `s3://my-bucket/query-results/`). Shown for the Start Query operation.
+
+The S3 path where Athena writes query results (e.g. `s3://my-bucket/query-results/`). Shown only when **Operation** is `athena_start_query`.
 
 ### Query Execution ID
-Identifier of an existing query execution. Required for Get Query Results, Get Query Execution, and Stop Query.
+
+The identifier of an existing query execution. Shown (and required) when **Operation** is `athena_get_query_results`, `athena_get_query_execution`, or `athena_stop_query`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `awsRegion` (string), `awsAccessKeyId` (string), `awsSecretAccessKey` (string), `queryString` (string), `database` (string), `outputLocation` (string), `queryExecutionId` (string)
-- **Outputs**: `queryExecutionId` (string), `results` (json), `status` (string)
+- **Inputs**:
+  - `operation` (string) — Operation to perform
+  - `awsRegion` (string) — AWS region
+  - `awsAccessKeyId` (string) — AWS access key ID
+  - `awsSecretAccessKey` (string) — AWS secret access key
+  - `queryString` (string) — SQL query
+  - `database` (string) — Database name
+  - `outputLocation` (string) — S3 output location
+  - `queryExecutionId` (string) — Query execution ID
+
+- **Outputs**:
+  - `queryExecutionId` (string) — Query execution ID
+  - `results` (json) — Query results
+  - `status` (string) — Query status
+
+## Tools
+
+**Athena Start Query** (`athena_start_query`) — Submits an SQL query for asynchronous execution in Athena and returns the `queryExecutionId`. Accepts `queryString`, `database`, `outputLocation`, `catalog` (default: `AwsDataCatalog`), and `workGroup` (default: `primary`) in addition to the AWS credentials.
+
+**Athena Get Query Results** (`athena_get_query_results`) — Retrieves the result rows of a completed query execution. Returns `columns` (metadata array), `rows` (key-value objects), an optional `nextToken` for pagination, and an optional `updateCount` for INSERT/UPDATE statements.
+
+**Athena Get Query Execution** (`athena_get_query_execution`) — Returns the full status and performance details of a query execution: `state` (QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED), `stateChangeReason`, `statementType`, `database`, `catalog`, `workGroup`, `submissionDateTime`, `completionDateTime`, `dataScannedInBytes`, and timing metrics in milliseconds.
+
+**Athena Stop Query** (`athena_stop_query`) — Cancels a running query execution. Returns a `success` boolean confirming the cancellation.
+
+**Athena List Query Executions** (`athena_list_query_executions`) — Lists recent query execution IDs for a workgroup. Accepts optional `workGroup`, `maxResults` (0–50), and `nextToken` for pagination. Returns `queryExecutionIds` (array) and an optional `nextToken`.
 
 ## YAML Example
 
@@ -62,8 +105,8 @@ athena_1:
   inputs:
     operation: "athena_start_query"
     awsRegion: "us-east-1"
-    awsAccessKeyId: "{{secrets.AWS_ACCESS_KEY_ID}}"
-    awsSecretAccessKey: "{{secrets.AWS_SECRET_ACCESS_KEY}}"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
     queryString: "SELECT * FROM my_table LIMIT 10"
     database: "my_database"
     outputLocation: "s3://my-bucket/query-results/"

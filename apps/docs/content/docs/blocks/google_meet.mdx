@@ -1,0 +1,139 @@
+---
+title: Google Meet Block
+description: Create meeting spaces and review conference records in Google Meet
+icon: Video
+---
+
+# Google Meet Block
+
+Create Google Meet spaces, retrieve space details, and list conference records. Authenticate with a Google OAuth access token to automate meeting creation and reporting inside any workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_meet` |
+| **Category** | `tools` |
+| **Color** | `#00897B` |
+
+## When to Use
+
+- Automatically create a Google Meet space as part of an onboarding or scheduling workflow.
+- Fetch details for a specific meeting space by resource name or meeting code.
+- Retrieve a list of past conference records so downstream blocks can process meeting history.
+- Filter conference records by space or time range to build usage reports.
+- Pipe the generated meeting link from the `Create space` operation into a Slack or email notification block.
+- Combine with trigger blocks to spin up fresh Meet spaces on-demand from a webhook or schedule.
+
+## Configuration
+
+### Operation
+
+Selects which Google Meet API action to perform. Required; defaults to `Create space`.
+
+| Label | ID |
+|-------|----|
+| Create space | `google_meet_create_space` |
+| Get space | `google_meet_get_space` |
+| List conference records | `google_meet_list_conference_records` |
+
+---
+
+### Space Name or Meeting Code
+
+- **Sub-block id**: `name`
+- **Type**: short-input
+- **Placeholder**: `spaces/abc123` or `abc-defg-hij`
+- **Shown when**: `operation` = `google_meet_get_space`
+
+The resource name of the target space (e.g. `spaces/jQmFiLhhABC`) or its human-readable meeting code (e.g. `abc-defg-hij`). The tool automatically prepends `spaces/` if the value does not already start with it.
+
+---
+
+### Filter
+
+- **Sub-block id**: `filter`
+- **Type**: short-input
+- **Placeholder**: `space.name = "spaces/abc123"`
+- **Shown when**: `operation` = `google_meet_list_conference_records`
+
+An AIP-160 filter expression applied to the conference record list. Common examples:
+
+- `space.name = "spaces/abc123"` — records for a specific space.
+- `start_time > "2024-01-01T00:00:00Z"` — records after a given date.
+
+Optional; omit to return all accessible records.
+
+---
+
+### Page Size
+
+- **Sub-block id**: `pageSize`
+- **Type**: short-input (half-width)
+- **Placeholder**: `50`
+- **Shown when**: `operation` = `google_meet_list_conference_records`
+
+Maximum number of conference records to return. The API enforces a hard cap of 100. Optional.
+
+---
+
+### Access Token
+
+- **Sub-block id**: `accessToken`
+- **Type**: short-input (password)
+- **Required**: yes
+
+A Google OAuth 2.0 access token with the `https://www.googleapis.com/auth/meetings.space.created` (or equivalent) scope. Store the token as a workflow secret and reference it with `{{GOOGLE_MEET_ACCESS_TOKEN}}`.
+
+## Inputs & Outputs
+
+**Inputs**:
+
+- `operation` (string) — Operation to perform (`google_meet_create_space`, `google_meet_get_space`, or `google_meet_list_conference_records`).
+- `accessToken` (string) — Google OAuth access token.
+- `name` (string) — Space resource name or meeting code (used by `Get space`).
+- `filter` (string) — Filter expression for conference records (used by `List conference records`).
+- `pageSize` (number) — Maximum number of records to return (used by `List conference records`).
+
+**Outputs**:
+
+- `data` (json) — Result object or array from Google Meet. For `Create space` and `Get space` this is a single space object; for `List conference records` it is an array of conference record objects.
+- `metadata` (json) — Response metadata. For space operations: `name` (string, resource name) and `meetingCode` (string). For list operations: `count` (number, records returned) and `nextPageToken` (string, pagination token for the next page).
+
+## Tools
+
+**Google Meet Create Space** (`google_meet_create_space`) — POSTs to `https://meet.googleapis.com/v2/spaces` to create a new, empty meeting space. Requires only `accessToken`. Returns the new space object including its resource name and meeting code.
+
+**Google Meet Get Space** (`google_meet_get_space`) — GETs space details from `https://meet.googleapis.com/v2/{name}`. Requires `accessToken` and `name` (resource name or meeting code). Returns the space object and its identifiers.
+
+**Google Meet List Conference Records** (`google_meet_list_conference_records`) — GETs from `https://meet.googleapis.com/v2/conferenceRecords` with optional `filter` and `pageSize` query parameters. Returns an array of conference record objects plus pagination metadata.
+
+## YAML Example
+
+```yaml
+google_meet_1:
+  type: google_meet
+  name: "Create Meet Space"
+  inputs:
+    operation: "google_meet_create_space"
+    accessToken: "{{GOOGLE_MEET_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: notify_slack_1
+```
+
+To use a different operation, swap `operation` and supply the relevant fields:
+
+```yaml
+google_meet_2:
+  type: google_meet
+  name: "List Recent Conference Records"
+  inputs:
+    operation: "google_meet_list_conference_records"
+    accessToken: "{{GOOGLE_MEET_ACCESS_TOKEN}}"
+    filter: 'start_time > "2024-06-01T00:00:00Z"'
+    pageSize: 25
+  connections:
+    outgoing:
+      - target: process_records_1
+```

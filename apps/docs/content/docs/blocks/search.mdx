@@ -35,6 +35,10 @@ The query string to search for (`query`). This is a required long-input field �
 - **Inputs**: `query` (string) — the search query.
 - **Outputs**: `results` (json) — search results; `query` (string) — the search query; `totalResults` (number) — total number of results; `source` (string) — search source; `cost` (json) — cost information.
 
+## Tools
+
+**Web Search** (`search_tool`) — Sends the query to the Zelaxy search API (`/api/tools/search`) and returns a list of web results. Each result includes a title, link, snippet, optional date, and its ranked position in the result set. This call costs $0.01 per query.
+
 ## YAML Example
 
 ```yaml

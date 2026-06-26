@@ -1,0 +1,105 @@
+---
+title: Google BigQuery Block
+description: Run queries and explore datasets in Google BigQuery
+icon: Box
+---
+
+# Google BigQuery Block
+
+Run SQL queries, list datasets, and list tables in Google BigQuery. Authenticate with a Google OAuth access token and a Google Cloud project ID — no additional SDK or service account required.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_bigquery` |
+| **Category** | tools |
+| **Color** | `#4285F4` |
+
+## When to Use
+
+- Execute a standard SQL query against a BigQuery table and return the full result set
+- Discover which datasets exist in a Google Cloud project
+- Enumerate all tables inside a specific BigQuery dataset
+- Feed query results into downstream blocks for processing, formatting, or storage
+- Dynamically build and run SQL from earlier block outputs using `{{blockName.field}}` references
+
+## Configuration
+
+### Operation
+
+Dropdown that selects which BigQuery action to perform. Required. Options:
+
+| Label | ID |
+|---|---|
+| Run query | `google_bigquery_query` |
+| List datasets | `google_bigquery_list_datasets` |
+| List tables | `google_bigquery_list_tables` |
+
+The selected operation controls which additional fields appear in the UI.
+
+### SQL Query
+
+Long-text input for the SQL statement to execute against BigQuery. Uses standard SQL syntax (legacy SQL is disabled). Shown only when **Operation** is `google_bigquery_query`.
+
+Example: `SELECT * FROM \`dataset.table\` LIMIT 10`
+
+### Dataset ID
+
+Short input specifying the BigQuery dataset whose tables you want to list. Shown only when **Operation** is `google_bigquery_list_tables`. Required for that operation.
+
+Example: `my_dataset`
+
+### Max Results
+
+Short input capping the number of items returned. Applies to both **List datasets** and **List tables** operations. Optional; omit to use the BigQuery API default.
+
+Example: `50`
+
+### Project ID
+
+Short input for the Google Cloud project ID that owns the BigQuery resources. Required for every operation.
+
+Example: `my-gcp-project`
+
+### Access Token
+
+Short input for a valid Google OAuth 2.0 access token with BigQuery scopes. Treated as a password (masked in the UI). Required for every operation. Supply this from a secret: `{{GOOGLE_ACCESS_TOKEN}}`.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`google_bigquery_query`, `google_bigquery_list_datasets`, or `google_bigquery_list_tables`)
+  - `accessToken` (string) — Google OAuth access token
+  - `projectId` (string) — Google Cloud project ID
+  - `query` (string) — SQL query to execute (Run query only)
+  - `datasetId` (string) — BigQuery dataset ID (List tables only)
+  - `maxResults` (number) — Maximum number of results to return (List datasets and List tables)
+
+- **Outputs**:
+  - `data` (json) — Result object or array from BigQuery. For Run query: the raw BigQuery query response object. For List datasets/tables: an array of dataset or table objects.
+  - `metadata` (json) — Response metadata. For Run query: `{ jobComplete, totalRows }`. For List datasets/tables: `{ count, nextPageToken }`.
+
+## Tools
+
+**BigQuery Run Query** (`google_bigquery_query`) — Posts a standard SQL query to the BigQuery Jobs API and returns the synchronous result object including rows, schema, and job completion status.
+
+**BigQuery List Datasets** (`google_bigquery_list_datasets`) — Calls the BigQuery Datasets API to enumerate all datasets in the specified project, returning an array of dataset reference objects and optional pagination token.
+
+**BigQuery List Tables** (`google_bigquery_list_tables`) — Calls the BigQuery Tables API to list all tables within a given dataset, returning an array of table reference objects and optional pagination token.
+
+## YAML Example
+
+```yaml
+google_bigquery_1:
+  type: google_bigquery
+  name: "Google BigQuery"
+  inputs:
+    operation: "google_bigquery_query"
+    projectId: "my-gcp-project"
+    accessToken: "{{GOOGLE_ACCESS_TOKEN}}"
+    query: "SELECT id, name, created_at FROM `my_dataset.users` WHERE active = TRUE LIMIT 100"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

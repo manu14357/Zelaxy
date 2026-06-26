@@ -55,6 +55,10 @@ Required Mistral API key used to authenticate the OCR request.
 - **Inputs**: `inputMethod` (string), `filePath` (string), `fileUpload` (json), `apiKey` (string), `resultType` (string), `pages` (string)
 - **Outputs**: `content` (string), `metadata` (json)
 
+## Tools
+
+**Mistral PDF Parser** (`mistral_parser`) — Calls the Mistral OCR API (`https://api.mistral.ai/v1/ocr`) using the `mistral-ocr-latest` model to extract text from a PDF supplied as a URL or an uploaded file. Returns the extracted content in the requested format (markdown, text, or JSON) along with a metadata object that includes `jobId`, `fileName`, `fileType`, `pageCount`, `model`, `resultType`, `processedAt`, and (when available) `usageInfo` containing `pagesProcessed` and `docSizeBytes`.
+
 ## YAML Example
 
 ```yaml

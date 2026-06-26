@@ -1,0 +1,94 @@
+---
+title: Obsidian Block
+description: Read and search notes in your Obsidian vault
+icon: Box
+---
+
+# Obsidian Block
+
+The Obsidian block connects your workflows to a locally running Obsidian vault via the [Local REST API](https://github.com/coddingtonbear/obsidian-local-rest-api) plugin. Use it to list vault contents, read individual note files, or run full-text searches across all notes—making your personal knowledge base an active participant in any workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `obsidian` |
+| **Category** | tools |
+| **Color** | `#7C3AED` |
+
+## When to Use
+
+- Browse the files and folders inside a vault directory (or the vault root) to discover available notes.
+- Fetch the full Markdown content of a specific note by file path so downstream blocks can process it.
+- Search across the entire vault with a plain-text query and get ranked matches with context snippets.
+- Feed note content into an Agent block for summarization, Q&A, or extraction tasks.
+- Trigger downstream logic based on notes found in a particular folder at workflow start.
+- Combine with a Loop block to iterate over a list of files and process each one individually.
+
+## Configuration
+
+### Operation
+
+Selects which vault action to perform. Required; defaults to `obsidian_list_files`.
+
+| Label | ID |
+|-------|----|
+| List files | `obsidian_list_files` |
+| Get file | `obsidian_get_file` |
+| Search | `obsidian_search` |
+
+### Path
+
+Directory path relative to the vault root whose contents should be listed. Leave empty to list the vault root. Only shown when **Operation** is `obsidian_list_files`.
+
+### Filename
+
+Path to the target file relative to the vault root (e.g. `Projects/meeting-notes.md`). Only shown when **Operation** is `obsidian_get_file`. Required for that operation.
+
+### Query
+
+Plain-text search term to find across all vault notes. Only shown when **Operation** is `obsidian_search`. Required for that operation.
+
+### Base URL
+
+The base URL of the Obsidian Local REST API plugin (e.g. `https://127.0.0.1:27124`). Required for all operations.
+
+### API Key
+
+The API key generated inside the Obsidian Local REST API plugin settings. Stored as a secret and never exposed in logs. Required for all operations.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`obsidian_list_files`, `obsidian_get_file`, or `obsidian_search`)
+  - `apiKey` (string) — Obsidian Local REST API key
+  - `baseUrl` (string) — Base URL for the Obsidian Local REST API
+  - `path` (string) — Directory path relative to vault root (used by List files)
+  - `filename` (string) — File path relative to vault root (used by Get file)
+  - `query` (string) — Search query (used by Search)
+
+- **Outputs**:
+  - `data` (json) — Result from Obsidian (file list, note content, or search results depending on the operation)
+  - `metadata` (json) — Response metadata (e.g. `count` for list/search, `filename` for get file)
+
+## Tools
+
+- **Obsidian List Files** (`obsidian_list_files`) — Calls `GET /vault/<path>/` on the Local REST API and returns the array of file and directory names at that path. The `metadata.count` field reports how many entries were returned.
+- **Obsidian Get File** (`obsidian_get_file`) — Calls `GET /vault/<filename>` and returns the raw Markdown content of the note. The `metadata.filename` field echoes the requested path.
+- **Obsidian Search** (`obsidian_search`) — Calls `POST /search/simple/?query=<query>` and returns an array of matching notes with their filenames, relevance scores, and context snippets. The `metadata.count` field reports the number of matches.
+
+## YAML Example
+
+```yaml
+obsidian_1:
+  type: obsidian
+  name: "Obsidian"
+  inputs:
+    operation: "obsidian_search"
+    baseUrl: "{{OBSIDIAN_BASE_URL}}"
+    apiKey: "{{OBSIDIAN_API_KEY}}"
+    query: "{{start.searchTerm}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

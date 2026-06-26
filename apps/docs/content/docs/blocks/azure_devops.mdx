@@ -21,19 +21,30 @@ The Azure DevOps block integrates Azure DevOps into your workflows. Use it to li
 - Trigger a CI/CD pipeline run automatically as part of a larger workflow.
 - Poll or fetch the status and details of a specific pipeline run.
 - List the available pipelines in a project for selection or auditing.
-- Create work items (Tasks, Bugs, User Stories) from external events or AI output.
-- Update an existing work item's title or fields.
+- Create work items (Tasks, Bugs, User Stories, Epics) from external events or AI output.
+- Update an existing work item's title, state, assignee, or other fields.
 - Query work items with WIQL to gather data for reporting or downstream steps.
+- Fetch full details for a single known work item by ID.
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting which Azure DevOps action to run: List Pipelines, Run Pipeline, Get Pipeline Run, Query Work Items, Create Work Item, Update Work Item, or Get Work Item. Required.
+Selects which Azure DevOps action to run. Required.
+
+| Label | ID |
+|-------|-----|
+| List Pipelines | `azure_devops_list_pipelines` |
+| Run Pipeline | `azure_devops_run_pipeline` |
+| Get Pipeline Run | `azure_devops_get_pipeline_run` |
+| Query Work Items | `azure_devops_query_work_items` |
+| Create Work Item | `azure_devops_create_work_item` |
+| Update Work Item | `azure_devops_update_work_item` |
+| Get Work Item | `azure_devops_get_work_item` |
 
 ### Personal Access Token
 
-Your Azure DevOps PAT used to authenticate API requests. Required and stored as a secret.
+Your Azure DevOps Personal Access Token (PAT) used to authenticate API requests. Required, stored securely. Use `{{AZURE_DEVOPS_PAT}}` to reference an environment variable.
 
 ### Organization
 
@@ -45,24 +56,48 @@ The Azure DevOps project name (e.g. `my-project`). Required.
 
 ### Pipeline ID
 
-The numeric pipeline identifier. Shown for the Run Pipeline and Get Pipeline Run operations.
+The numeric pipeline identifier. Shown when the operation is **Run Pipeline** (`azure_devops_run_pipeline`) or **Get Pipeline Run** (`azure_devops_get_pipeline_run`).
 
 ### Work Item Type
 
-The work item type to create (e.g. `Task`, `Bug`). Shown for the Create Work Item operation.
+The type of work item to create (e.g. `Task`, `Bug`, `Epic`). Shown when the operation is **Create Work Item** (`azure_devops_create_work_item`).
 
 ### Title
 
-The work item title. Shown for the Create Work Item and Update Work Item operations.
+The work item title. Shown when the operation is **Create Work Item** (`azure_devops_create_work_item`) or **Update Work Item** (`azure_devops_update_work_item`).
 
 ### WIQL Query
 
-A Work Item Query Language statement to filter work items. Shown for the Query Work Items operation.
+A Work Item Query Language (WIQL) statement to filter work items (e.g. `SELECT [System.Id], [System.Title] FROM WorkItems WHERE [System.TeamProject] = @project`). Shown when the operation is **Query Work Items** (`azure_devops_query_work_items`).
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `accessToken` (string), `organization` (string), `project` (string), `pipelineId` (string), `workItemType` (string), `title` (string), `wiql` (string)
-- **Outputs**: `pipelines` (json), `workItems` (json), `run` (json)
+**Inputs**:
+
+- `operation` (string) — Operation to perform
+- `accessToken` (string) — Personal access token
+- `organization` (string) — Organization name
+- `project` (string) — Project name
+- `pipelineId` (string) — Pipeline ID (used by Run Pipeline and Get Pipeline Run)
+- `workItemType` (string) — Work item type (used by Create Work Item)
+- `title` (string) — Work item title (used by Create Work Item and Update Work Item)
+- `wiql` (string) — WIQL query (used by Query Work Items)
+
+**Outputs**:
+
+- `pipelines` (json) — Pipeline list
+- `workItems` (json) — Work item list
+- `run` (json) — Pipeline run details
+
+## Tools
+
+- **Azure DevOps List Pipelines** (`azure_devops_list_pipelines`) — Lists all pipelines in the specified organization and project. Returns a human-readable summary and a `metadata` object with `count` and a `pipelines` array (each entry has `id`, `name`, `folder`, `revision`, `url`).
+- **Azure DevOps Run Pipeline** (`azure_devops_run_pipeline`) — Triggers a pipeline run by pipeline ID. Optionally accepts a `branch` (e.g. `refs/heads/main`). Returns a summary and a `metadata.run` object with `id`, `name`, `state`, `result`, `createdDate`, `webUrl`, and `pipeline`.
+- **Azure DevOps Get Pipeline Run** (`azure_devops_get_pipeline_run`) — Fetches details for a specific pipeline run by pipeline ID and run ID. Returns a summary and a `metadata.run` object with `id`, `name`, `state`, `result`, `createdDate`, `finishedDate`, `webUrl`, and `pipeline`.
+- **Azure DevOps Query Work Items** (`azure_devops_query_work_items`) — Executes a WIQL query to search for work items and fetches full field details in batches of 200. Returns a formatted summary and a `metadata` object with `count`, `totalMatched`, and a `workItems` array (each entry has `id`, `title`, `state`, `workItemType`, `assignedTo`, `areaPath`, `url`).
+- **Azure DevOps Create Work Item** (`azure_devops_create_work_item`) — Creates a new work item of the specified type. Required params: `workItemType`, `title`. Optional params: `description` (HTML), `assignedTo`, `areaPath`, `tags` (semicolon-separated). Returns confirmation and `metadata.workItem`.
+- **Azure DevOps Update Work Item** (`azure_devops_update_work_item`) — Updates one or more fields on an existing work item by ID. Optional updatable fields: `title`, `description`, `assignedTo`, `state`, `areaPath`, `tags`. At least one field must be provided. Returns confirmation and `metadata.workItem`.
+- **Azure DevOps Get Work Item** (`azure_devops_get_work_item`) — Fetches full details for a single work item by its ID. Returns a formatted summary and `metadata.workItem` with `id`, `title`, `state`, `workItemType`, `assignedTo`, `areaPath`, `url`.
 
 ## YAML Example
 
@@ -72,10 +107,10 @@ azure_devops_1:
   name: "Azure DevOps"
   inputs:
     operation: "azure_devops_run_pipeline"
-    accessToken: "{{secrets.AZURE_DEVOPS_PAT}}"
+    accessToken: "{{AZURE_DEVOPS_PAT}}"
     organization: "my-org"
     project: "my-project"
-    pipelineId: "1"
+    pipelineId: "42"
   connections:
     outgoing:
       - target: next-block-id

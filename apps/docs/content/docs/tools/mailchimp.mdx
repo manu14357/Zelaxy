@@ -1,0 +1,120 @@
+---
+title: Mailchimp Tools
+description: Manage Mailchimp audiences and members from a workflow
+icon: Mail
+---
+
+# Mailchimp Tools
+
+The Mailchimp tools let a workflow manage audiences (lists) and subscribers through the Mailchimp Marketing API. Use them to add subscribers to an audience, list the members of an audience, or fetch audience details as part of an automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `mailchimp` |
+| **Category** | `tools` |
+| **Auth** | API Key (sent as HTTP Basic Auth) |
+
+Mailchimp uses an API key for authentication. Each request sends `Authorization: Basic base64("anystring:<apiKey>")` over HTTPS. You also supply the data center (`dc`, e.g. `us21`) — it is the suffix of your API key and forms the API hostname `https://<dc>.api.mailchimp.com/3.0/...`.
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Add member | `mailchimp_add_member` | Add a subscriber to a Mailchimp audience list (status `subscribed`) |
+| List members | `mailchimp_list_members` | List the members of a Mailchimp audience |
+| Get list | `mailchimp_get_list` | Get details about a Mailchimp audience list |
+
+## Configuration
+
+### `mailchimp_add_member`
+
+Add a subscriber to a Mailchimp audience list. The member is created with status `subscribed`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Mailchimp API key. **Secret** — store as an environment variable, not inline. Visibility: user-only. |
+| `dc` | string | Yes | Mailchimp data center, e.g. `us21`. Visibility: user-only. |
+| `listId` | string | Yes | Audience (list) ID. Visibility: user-or-llm. |
+| `email` | string | Yes | Subscriber email address. Visibility: user-or-llm. |
+
+### `mailchimp_list_members`
+
+List the members of a Mailchimp audience.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Mailchimp API key. **Secret** — store as an environment variable, not inline. Visibility: user-only. |
+| `dc` | string | Yes | Mailchimp data center, e.g. `us21`. Visibility: user-only. |
+| `listId` | string | Yes | Audience (list) ID. Visibility: user-or-llm. |
+
+### `mailchimp_get_list`
+
+Get details about a Mailchimp audience list.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Mailchimp API key. **Secret** — store as an environment variable, not inline. Visibility: user-only. |
+| `dc` | string | Yes | Mailchimp data center, e.g. `us21`. Visibility: user-only. |
+| `listId` | string | Yes | Audience (list) ID. Visibility: user-or-llm. |
+
+## Outputs
+
+### `mailchimp_add_member`
+
+- `data` (json) — The created Mailchimp member object.
+- `metadata` (json) — Member identifiers.
+  - `metadata.id` (string) — Member ID.
+
+### `mailchimp_list_members`
+
+- `data` (json) — Array of Mailchimp member objects.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of members returned.
+
+### `mailchimp_get_list`
+
+- `data` (json) — The Mailchimp list object.
+- `metadata` (json) — List identifiers.
+  - `metadata.id` (string) — List ID.
+
+## YAML Example
+
+```yaml
+mailchimp_1:
+  type: mailchimp
+  name: "Mailchimp"
+  inputs:
+    operation: "mailchimp_add_member"
+    listId: "a1b2c3d4e5"
+    email: "subscriber@example.com"
+    dc: "us21"
+    apiKey: "{{MAILCHIMP_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+List the members of an audience instead:
+
+```yaml
+mailchimp_2:
+  type: mailchimp
+  name: "Mailchimp"
+  inputs:
+    operation: "mailchimp_list_members"
+    listId: "a1b2c3d4e5"
+    dc: "us21"
+    apiKey: "{{MAILCHIMP_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **API key and data center go together.** A Mailchimp API key ends in the data center suffix (e.g. `...-us21`); set `dc` to that same value (`us21`) so requests hit `https://us21.api.mailchimp.com`. A mismatch returns a 404/401.
+- **Keep the key out of the workflow.** Store the key as an environment variable and reference it with `{{MAILCHIMP_API_KEY}}` — `apiKey` is a secret (password field) and is sent as HTTP Basic Auth (`anystring:<apiKey>`), not in the URL.
+- **Find the audience ID** under Mailchimp's Audience > Settings > "Audience name and defaults". The same `listId` works for all three operations.
+- **Chaining outputs:** reference results downstream with double braces, e.g. `{{mailchimp_1.metadata.id}}` for the new member ID, `{{mailchimp_1.data}}` for the full object, or `{{mailchimp_2.metadata.count}}` for the member count from a list operation.

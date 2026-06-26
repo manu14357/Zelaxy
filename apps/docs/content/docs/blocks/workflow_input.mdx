@@ -47,6 +47,10 @@ A variable reference to pass to the child workflow. The selected value becomes a
   - `error` (string) — Error message
   - `childTraceSpans` (json) — Child workflow trace spans
 
+## Tools
+
+**Workflow Executor** (`workflow_executor`) — Executes another workflow inline as a block. Accepts a `workflowId` (required) and an optional `inputMapping` object that maps parent-workflow data to the child workflow's inputs. Posts to `/api/tools/workflow-executor` and returns `success`, `duration`, `childWorkflowId`, `childWorkflowName`, and the full execution result.
+
 ## YAML Example
 
 ```yaml

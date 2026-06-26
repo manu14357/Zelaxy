@@ -1,0 +1,120 @@
+---
+title: Google Meet Tools
+description: Create meeting spaces and retrieve conference records via the Google Meet REST API.
+icon: Box
+---
+
+# Google Meet Tools
+
+Use these tools to create Google Meet spaces, look up space details by name or meeting code, and list conference records for meetings you organized. Authenticate with a Google OAuth access token obtained through your Google Cloud project.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-meet` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Google OAuth access token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Create Space | `google_meet_create_space` | Create a new Google Meet meeting space |
+| Get Space | `google_meet_get_space` | Get details of a meeting space by resource name or meeting code |
+| List Conference Records | `google_meet_list_conference_records` | List conference records for meetings you organized |
+
+## Configuration
+
+### `google_meet_create_space`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for Google Meet (user-only; never passed to the LLM) |
+
+No additional parameters are required. Calling this operation POSTs to `https://meet.googleapis.com/v2/spaces` with an empty body and returns the newly created space.
+
+### `google_meet_get_space`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for Google Meet (user-only; never passed to the LLM) |
+| `name` | string | Yes | Space resource name (e.g. `spaces/abc123`) or meeting code (e.g. `abc-defg-hij`). If the value does not start with `spaces/`, the prefix is added automatically. |
+
+### `google_meet_list_conference_records`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for Google Meet (user-only; never passed to the LLM) |
+| `filter` | string | No | AIP-160 filter string. Filter by space name (e.g. `space.name = "spaces/abc123"`) or time range (e.g. `start_time > "2024-01-01T00:00:00Z"`). |
+| `pageSize` | number | No | Maximum number of conference records to return. Maximum allowed by the API is 100. |
+
+## Outputs
+
+### `google_meet_create_space`
+
+- `data` (json) — The full Google Meet space object returned by the API (includes `name`, `meetingCode`, `meetingUri`, and other fields).
+- `metadata` (json) — Extracted identifiers:
+  - `name` (string) — Resource name of the space (e.g. `spaces/abc123`).
+  - `meetingCode` (string) — Human-readable meeting code (e.g. `abc-defg-hij`).
+
+### `google_meet_get_space`
+
+- `data` (json) — The full Google Meet space object for the requested space.
+- `metadata` (json) — Extracted identifiers:
+  - `name` (string) — Resource name of the space.
+  - `meetingCode` (string) — Meeting code for the space.
+
+### `google_meet_list_conference_records`
+
+- `data` (json) — Array of conference record objects. Each record contains details such as `name`, `startTime`, `endTime`, and `space`.
+- `metadata` (json) — List metadata:
+  - `count` (number) — Number of records returned in this page.
+  - `nextPageToken` (string) — Pagination token to fetch the next page; absent when there are no more results.
+
+## YAML Example
+
+```yaml
+google_meet_1:
+  type: google_meet
+  name: "Google Meet"
+  inputs:
+    operation: "google_meet_create_space"
+    accessToken: "{{GOOGLE_MEET_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Fetching a space and listing records:
+
+```yaml
+google_meet_get_1:
+  type: google_meet
+  name: "Get Meet Space"
+  inputs:
+    operation: "google_meet_get_space"
+    name: "{{google_meet_1.data.name}}"
+    accessToken: "{{GOOGLE_MEET_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+
+google_meet_records_1:
+  type: google_meet
+  name: "List Conference Records"
+  inputs:
+    operation: "google_meet_list_conference_records"
+    filter: "space.name = \"spaces/abc123\""
+    pageSize: 50
+    accessToken: "{{GOOGLE_MEET_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **OAuth scope**: The access token must be granted the `https://www.googleapis.com/auth/meetings.space.created` scope for creating spaces, and `https://www.googleapis.com/auth/meetings.space.readonly` for reading spaces and conference records. Use a Google Cloud OAuth 2.0 client to obtain the token.
+- **Space name vs meeting code**: The `google_meet_get_space` tool accepts either format. You can pass the raw meeting code (e.g. `abc-defg-hij`) and the tool will prepend `spaces/` automatically, or pass the full resource name (e.g. `spaces/abc123`).
+- **Pagination**: `google_meet_list_conference_records` returns up to `pageSize` records (default determined by the API). If `metadata.nextPageToken` is present in the output, pass it as the `filter` value in a follow-up call using the `pageToken` parameter — or chain blocks to iterate through all pages.

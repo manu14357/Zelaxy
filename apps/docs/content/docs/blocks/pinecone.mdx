@@ -18,55 +18,132 @@ The Pinecone block lets you store, search, and retrieve vector embeddings using 
 
 ## When to Use
 
-- Generate embeddings from text using Pinecone's hosted embedding models.
-- Upsert text records into a Pinecone index with automatic embedding.
-- Run semantic similarity searches over an index by passing raw text.
-- Query an index directly with a precomputed vector.
-- Fetch specific vectors by their IDs from a namespace.
+- Generate dense or sparse embeddings from text using Pinecone's hosted embedding models.
+- Upsert text records into a Pinecone index with automatic embedding via the Inference API.
+- Run semantic similarity searches over an index by passing raw text (Pinecone embeds it on the fly).
+- Query an index directly with a precomputed dense vector.
+- Fetch specific vectors by their IDs from any namespace.
 - Apply metadata filters and reranking to refine search results.
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting the action: Generate Embeddings, Upsert Text, Search With Text, Search With Vector, or Fetch Vectors.
+Required dropdown selecting the action to perform. Every other field depends on which operation is chosen.
+
+| Label | ID |
+|-------|----|
+| Generate Embeddings | `generate` |
+| Upsert Text | `upsert_text` |
+| Search With Text | `search_text` |
+| Search With Vector | `search_vector` |
+| Fetch Vectors | `fetch` |
 
 ### Model
 
-For Generate Embeddings: the embedding model (`multilingual-e5-large`, `llama-text-embed-v2`, or `pinecone-sparse-english-v0`).
+Shown for `generate`. Dropdown selecting the Pinecone hosted embedding model.
+
+| Label | ID |
+|-------|----|
+| multilingual-e5-large | `multilingual-e5-large` |
+| llama-text-embed-v2 | `llama-text-embed-v2` |
+| pinecone-sparse-english-v0 | `pinecone-sparse-english-v0` |
+
+Default: `multilingual-e5-large`.
 
 ### Text Inputs
 
-For Generate Embeddings: a JSON array of objects to embed, e.g. `[{"text": "Your text here"}]`.
+Shown for `generate`. Required. A JSON array of text objects to embed, e.g. `[{"text": "Your text here"}]`.
 
-### Index Host & Namespace
+### Index Host
 
-The Pinecone index host URL and the target namespace. Required for upsert, search, and fetch operations.
+Shown for `upsert_text`, `search_text`, `search_vector`, and `fetch`. Required. The full Pinecone index host URL, e.g. `https://index-name-abc123.svc.project-id.pinecone.io`.
+
+### Namespace
+
+Shown for `upsert_text`, `search_text`, `search_vector`, and `fetch`. Required. The namespace within the index to target (e.g. `default`).
 
 ### Records
 
-For Upsert Text: the JSON records to upsert into the index.
+Shown for `upsert_text`. Required. NDJSON-formatted records to insert or update, each line containing `_id`, a text field (`text` or `chunk_text`), and optional metadata fields.
 
-### Search Query / Query Vector
+### Search Query
 
-For Search With Text: the text to search for. For Search With Vector: the query vector array.
+Shown for `search_text`. Required. The natural-language text to search for. Pinecone embeds it automatically before querying.
 
-### Top K Results, Fields, Filter, Rerank
+### Top K Results
 
-Optional search refinements controlling result count, returned fields, metadata filtering, and reranking.
+Shown for `search_text` and `search_vector`. Optional. Number of nearest-neighbor results to return (default: `10`).
+
+### Fields to Return
+
+Shown for `search_text`. Optional. A JSON array of metadata field names to include in each result, e.g. `["category", "text"]`.
+
+### Filter
+
+Shown for `search_text`. Optional. A JSON metadata filter to restrict search results, e.g. `{"category": "product"}`.
+
+### Rerank Options
+
+Shown for `search_text`. Optional. A JSON object with reranking configuration, e.g. `{"model": "bge-reranker-v2-m3", "rank_fields": ["text"], "top_n": 2}`.
+
+### Query Vector
+
+Shown for `search_vector`. Required. The dense query vector as a JSON array of floats, e.g. `[0.1, 0.2, 0.3, ...]`.
+
+### Options
+
+Shown for `search_vector`. A checkbox list of optional flags controlling what is returned in the response.
+
+| Label | ID |
+|-------|----|
+| Include Values | `includeValues` |
+| Include Metadata | `includeMetadata` |
 
 ### Vector IDs
 
-For Fetch Vectors: a JSON array of vector IDs to retrieve.
+Shown for `fetch`. Required. A JSON array of vector IDs to retrieve, e.g. `["vec1", "vec2"]`.
 
 ### API Key
 
-Your Pinecone API key (required for all operations).
+Required for all operations. Your Pinecone API key. Use `{{PINECONE_API_KEY}}` to pull it from an environment variable.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `indexHost` (string), `namespace` (string), `model` (string), `inputs` (json), `parameters` (json), `records` (json), `searchQuery` (string), `topK` (string), `fields` (json), `filter` (json), `rerank` (json), `ids` (json), `vector` (json), `includeValues` (boolean), `includeMetadata` (boolean)
-- **Outputs**: `matches` (json), `upsertedCount` (number), `data` (json), `model` (string), `vector_type` (string), `usage` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform
+  - `apiKey` (string) — Pinecone API key
+  - `indexHost` (string) — Index host URL
+  - `namespace` (string) — Vector namespace
+  - `model` (string) — Embedding model (for `generate`)
+  - `inputs` (json) — Text inputs to embed (for `generate`)
+  - `parameters` (json) — Model parameters (for `generate`)
+  - `records` (json) — Records to upsert (for `upsert_text`)
+  - `searchQuery` (string) — Search query text (for `search_text`)
+  - `topK` (string) — Top K results (for `search_text` and `search_vector`)
+  - `fields` (json) — Fields to return (for `search_text`)
+  - `filter` (json) — Search filter (for `search_text`)
+  - `rerank` (json) — Rerank options (for `search_text`)
+  - `ids` (json) — Vector identifiers (for `fetch`)
+  - `vector` (json) — Query vector (for `search_vector`)
+  - `includeValues` (boolean) — Include vector values in response (for `search_vector`)
+  - `includeMetadata` (boolean) — Include metadata in response (for `search_vector`)
+
+- **Outputs**:
+  - `matches` (json) — Search matches (from `search_text`, `search_vector`, and `fetch`)
+  - `upsertedCount` (number) — Number of records successfully upserted (from `upsert_text`)
+  - `data` (json) — Response data (from `generate` and `fetch`)
+  - `model` (string) — Model used for generating embeddings (from `generate`)
+  - `vector_type` (string) — Type of vector generated: `dense` or `sparse` (from `generate`)
+  - `usage` (json) — Usage statistics (tokens, read units, rerank units)
+
+## Tools
+
+- **Pinecone Generate Embeddings** (`pinecone_generate_embeddings`) — Calls the Pinecone Inference API (`POST /embed`) to generate dense or sparse embeddings from an array of text inputs using a hosted model.
+- **Pinecone Upsert Text** (`pinecone_upsert_text`) — Inserts or updates text records in a Pinecone index via NDJSON upsert (`POST /records/namespaces/{namespace}/upsert`). Pinecone automatically embeds the text field.
+- **Pinecone Search Text** (`pinecone_search_text`) — Searches a Pinecone index by natural-language text (`POST /records/namespaces/{namespace}/search`), with optional metadata filtering and reranking.
+- **Pinecone Search Vector** (`pinecone_search_vector`) — Queries a Pinecone index with a raw dense vector (`POST /query`), returning nearest neighbors with optional values and metadata.
+- **Pinecone Fetch** (`pinecone_fetch`) — Retrieves specific vectors by ID from a Pinecone index (`GET /vectors/fetch`), returning their values and metadata.
 
 ## YAML Example
 
@@ -76,11 +153,12 @@ pinecone_1:
   name: "Pinecone"
   inputs:
     operation: "search_text"
-    apiKey: "{{secrets.PINECONE_API_KEY}}"
+    apiKey: "{{PINECONE_API_KEY}}"
     indexHost: "https://index-name-abc123.svc.project-id.pinecone.io"
     namespace: "default"
     searchQuery: "{{start.input}}"
     topK: "10"
+    filter: '{"category": "product"}'
   connections:
     outgoing:
       - target: next-block-id

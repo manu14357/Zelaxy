@@ -1,0 +1,122 @@
+---
+title: Amazon Textract Block
+description: Extract text, tables, and forms from documents with Amazon Textract
+icon: Box
+---
+
+# Amazon Textract Block
+
+Use Amazon Textract to detect text or analyze tables and forms in documents stored in Amazon S3. Authenticate with AWS access key credentials (SigV4 signed).
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `textract` |
+| **Category** | `tools` |
+| **Color** | `#FF9900` |
+
+## When to Use
+
+- Extract raw lines and words of text from scanned PDFs or images stored in S3.
+- Parse structured tables out of documents (invoices, reports, spreadsheets) to get key-value data.
+- Extract form fields and their values from documents such as contracts, applications, or surveys.
+- Feed extracted document content into downstream blocks for classification, summarization, or storage.
+- Process multiple document types (PDF, PNG, JPEG, TIFF) from a centralized S3 bucket.
+- Automate document ingestion pipelines that require structured data from unstructured files.
+
+## Configuration
+
+### Operation
+
+Selects which Amazon Textract API call to make. Required.
+
+| Label | ID |
+|-------|----|
+| Detect document text | `textract_detect_document_text` |
+| Analyze document | `textract_analyze_document` |
+
+**Detect document text** detects lines and words of text in the document (no structured analysis). It requires `s3Bucket` and `s3Name`.
+
+**Analyze document** analyzes the document for structured features such as tables and forms. It requires `s3Bucket`, `s3Name`, and optionally `featureTypes`.
+
+### S3 Bucket
+
+The name of the S3 bucket that contains the document. Visible for both operations.
+
+- Type: short-input
+- Placeholder: `my-bucket`
+- Required for both operations.
+
+### S3 Object Name
+
+The S3 object key (path) of the document within the bucket. Visible for both operations.
+
+- Type: short-input
+- Placeholder: `path/to/document.pdf`
+- Required for both operations.
+
+### Feature Types
+
+A JSON array of feature types to analyze. Only shown when **Operation** is `textract_analyze_document`.
+
+- Type: long-input
+- Placeholder: `["TABLES","FORMS"]`
+- Optional — defaults to `["TABLES","FORMS"]` if omitted.
+- Valid values: `"TABLES"` (extract table cells) and `"FORMS"` (extract key-value pairs from form fields).
+
+### AWS Region
+
+The AWS region where the Textract service will be called (must match the region of your S3 bucket for cross-service access). Required.
+
+- Type: short-input
+- Placeholder: `us-east-1`
+
+### AWS Access Key ID
+
+The AWS IAM access key ID used for SigV4 request signing. Stored as a password field (masked). Required.
+
+### AWS Secret Access Key
+
+The AWS IAM secret access key used for SigV4 request signing. Stored as a password field (masked). Required.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`textract_detect_document_text` or `textract_analyze_document`).
+- `awsRegion` (string) — AWS region (e.g. `us-east-1`).
+- `awsAccessKeyId` (string) — AWS access key ID.
+- `awsSecretAccessKey` (string) — AWS secret access key.
+- `s3Bucket` (string) — S3 bucket name containing the document.
+- `s3Name` (string) — S3 object key (name/path) of the document.
+- `featureTypes` (json) — Feature types to analyze (only used with `textract_analyze_document`), e.g. `["TABLES","FORMS"]`.
+
+**Outputs:**
+
+- `data` (json) — The raw Textract API response, containing the `Blocks` array with detected text, lines, words, tables, cells, and key-value pairs depending on the operation used.
+
+## Tools
+
+**Textract Detect Document Text** (`textract_detect_document_text`) — Calls the `Textract.DetectDocumentText` API to detect all lines and words of printed or handwritten text in a document stored in S3. Returns a `Blocks` structure with `LINE` and `WORD` block types.
+
+**Textract Analyze Document** (`textract_analyze_document`) — Calls the `Textract.AnalyzeDocument` API to analyze a document in S3 for structured content. Extracts tables (as `TABLE`, `CELL`, `COLUMN_HEADER` blocks) and form fields (as `KEY_VALUE_SET` blocks) based on the requested `featureTypes`. Defaults to `["TABLES","FORMS"]` if no feature types are specified.
+
+## YAML Example
+
+```yaml
+textract_1:
+  type: textract
+  name: "Amazon Textract"
+  inputs:
+    operation: "textract_analyze_document"
+    awsRegion: "{{AWS_REGION}}"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+    s3Bucket: "{{upload_trigger.bucket}}"
+    s3Name: "{{upload_trigger.objectKey}}"
+    featureTypes: '["TABLES","FORMS"]'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

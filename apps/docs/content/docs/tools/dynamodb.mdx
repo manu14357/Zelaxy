@@ -1,0 +1,111 @@
+---
+title: Amazon DynamoDB
+description: Read, write, query, and manage items in Amazon DynamoDB tables
+icon: Database
+---
+
+# Amazon DynamoDB
+
+Read, write, update, delete, query, scan, and batch-write items in Amazon DynamoDB. Use it in workflows to persist structured data, look up records by primary key, run key-condition queries on indexes, or bulk-load and purge items in a single round-trip.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `dynamodb` |
+| **Category** | Tool — Database |
+| **Auth** | AWS Access Key ID + Secret Access Key |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Get Item** | `dynamodb_get_item` | Fetch a single item from a table by its primary key |
+| **Put Item** | `dynamodb_put_item` | Insert or fully replace an item in a table |
+| **Update Item** | `dynamodb_update_item` | Update one or more attributes of an existing item in place |
+| **Delete Item** | `dynamodb_delete_item` | Remove an item from a table by its primary key |
+| **Query** | `dynamodb_query` | Return items matching a key condition expression, with optional filter and index |
+| **Scan** | `dynamodb_scan` | Read every item in a table, with an optional filter expression |
+| **Batch Write** | `dynamodb_batch_write` | Execute multiple put and delete requests in a single call (up to 25 per request) |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `awsRegion` | `string` | Yes | AWS region where the table lives (e.g., `us-east-1`) |
+| `awsAccessKeyId` | `string` | Yes | **Secret.** AWS access key ID for the IAM user or role |
+| `awsSecretAccessKey` | `string` | Yes | **Secret.** AWS secret access key paired with the access key ID |
+| `tableName` | `string` | Yes (all except Batch Write) | Name of the DynamoDB table to operate on |
+| `key` | `string` (JSON) | Yes (Get Item, Update Item, Delete Item) | Primary key of the target item as a DynamoDB-typed JSON object, e.g. `{"id": {"S": "123"}}` |
+| `item` | `string` (JSON) | Yes (Put Item) | Full item to write as a DynamoDB-typed JSON object, e.g. `{"id": {"S": "123"}, "name": {"S": "Alice"}}` |
+| `updateExpression` | `string` | Yes (Update Item) | DynamoDB update expression, e.g. `SET #n = :name` |
+| `expressionAttributeValues` | `string` (JSON) | Yes (Update Item, Query) | Placeholder values for the expression, e.g. `{":name": {"S": "Bob"}}` |
+| `keyConditionExpression` | `string` | Yes (Query) | Key condition expression, e.g. `id = :id` |
+| `indexName` | `string` | No (Query) | Name of a global or local secondary index to query against |
+| `filterExpression` | `string` | No (Query, Scan) | Filter expression applied after the query or scan to narrow results |
+| `limit` | `number` | No (Query, Scan) | Maximum number of items to evaluate (and return) per call |
+| `requestItems` | `string` (JSON) | Yes (Batch Write) | Map of table name to an array of `PutRequest`/`DeleteRequest` objects, e.g. `{"MyTable": [{"PutRequest": {"Item": {"id": {"S": "1"}}}}]}` |
+
+## Outputs
+
+### Get Item (`dynamodb_get_item`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `item` | `json` | The retrieved item in DynamoDB-typed format, or `null` if not found |
+
+### Put Item (`dynamodb_put_item`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | `true` if the item was written successfully |
+
+### Update Item (`dynamodb_update_item`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `attributes` | `json` | The updated item attributes returned by DynamoDB (optional, depends on `ReturnValues`) |
+
+### Delete Item (`dynamodb_delete_item`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | `true` if the delete request was accepted |
+
+### Query (`dynamodb_query`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `items` | `json` | Array of matching items in DynamoDB-typed format |
+| `count` | `number` | Number of items returned in this page |
+| `lastEvaluatedKey` | `json` | Pagination key to pass in a subsequent Query call to continue reading; `null` when exhausted |
+
+### Scan (`dynamodb_scan`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `items` | `json` | Array of scanned items in DynamoDB-typed format |
+| `count` | `number` | Number of items returned in this page |
+| `lastEvaluatedKey` | `json` | Pagination key to pass in a subsequent Scan call to continue reading; `null` when exhausted |
+
+### Batch Write (`dynamodb_batch_write`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `unprocessedItems` | `json` | Items that DynamoDB could not process (empty object `{}` when all succeeded); retry these |
+
+## Example
+
+```
+[Starter] → [DynamoDB: Query] → [Agent: summarize results]
+```
+
+Configure the Query block with `awsAccessKeyId: {{AWS_ACCESS_KEY_ID}}`, `awsSecretAccessKey: {{AWS_SECRET_ACCESS_KEY}}`, `awsRegion: us-east-1`, `tableName: orders`, `keyConditionExpression: customerId = :cid`, and `expressionAttributeValues: {":cid": {"S": "{{starter.customerId}}"}}`. The block returns `{{dynamodbQuery.items}}` — an array of matching orders — which you can pass directly to an Agent block to generate a plain-language summary or trigger downstream logic.
+
+## Tips
+
+- **DynamoDB uses typed JSON** — every attribute value must include a type descriptor: `{"S": "text"}` for strings, `{"N": "42"}` for numbers, `{"BOOL": true}` for booleans, `{"L": [...]}` for lists, `{"M": {...}}` for maps. The `key`, `item`, and `expressionAttributeValues` params all expect this format.
+- **Query vs Scan** — prefer Query over Scan whenever possible. Query uses the primary key or a secondary index and reads only matching partitions; Scan reads the entire table and is slow and expensive on large tables.
+- **Pagination** — both Query and Scan return at most `limit` items per call. When `lastEvaluatedKey` is non-null there are more pages; pass it as `ExclusiveStartKey` in a follow-up call (currently requires a custom HTTP block) or use a Loop block to iterate.
+- **Batch Write limits** — DynamoDB allows up to 25 put/delete operations per `BatchWriteItem` call. If `unprocessedItems` is non-empty, DynamoDB was throttled; use a retry loop and implement exponential back-off before resubmitting those items.
+- **IAM permissions** — the access key needs `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:UpdateItem`, `dynamodb:DeleteItem`, `dynamodb:Query`, `dynamodb:Scan`, and `dynamodb:BatchWriteItem` on the target table ARN (e.g., `arn:aws:dynamodb:us-east-1:123456789012:table/MyTable`).

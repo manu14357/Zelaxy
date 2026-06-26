@@ -1,0 +1,61 @@
+---
+title: Dropcontact
+description: Enrich B2B contacts with verified emails, phone numbers, and company data using Dropcontact
+icon: UserCheck
+---
+
+# Dropcontact
+
+Submit contacts for asynchronous B2B enrichment and retrieve verified emails, phone numbers, and company data from Dropcontact. Use it to feed clean, enriched lead data into CRM workflows and outbound sales pipelines.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `dropcontact` |
+| **Category** | Tool — CRM & Sales |
+| **Auth** | API Key (`X-Access-Token` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Enrich Contact** | `dropcontact_enrich` | Submit a contact for B2B enrichment — returns a `request_id` to poll for results |
+| **Get Batch Result** | `dropcontact_get_batch` | Retrieve the enriched contact data for a previously submitted enrichment request |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Dropcontact API access token — set as `{{DROPCONTACT_API_KEY}}`. Sent as the `X-Access-Token` header on every request. |
+| `email` | `string` | No | Email address of the contact to enrich (`dropcontact_enrich` only) |
+| `first_name` | `string` | No | First name of the contact (`dropcontact_enrich` only) |
+| `last_name` | `string` | No | Last name of the contact (`dropcontact_enrich` only) |
+| `company` | `string` | No | Company name of the contact (`dropcontact_enrich` only) |
+| `siret` | `boolean` | No | Set `true` to include French SIREN/SIRET enrichment in the result (`dropcontact_enrich` only; defaults to `false`) |
+| `request_id` | `string` | Yes (Get Batch) | Request ID returned by a previous `dropcontact_enrich` call — used to poll for the enriched result (`dropcontact_get_batch` only) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | The enrichment submission response (`dropcontact_enrich`) or array of enriched contact objects (`dropcontact_get_batch`) |
+| `metadata` | `json` | Response metadata object containing identifiers and status flags |
+| `metadata.request_id` | `string` | The request ID associated with this enrichment batch — use it as the `request_id` input to `dropcontact_get_batch` |
+| `metadata.success` | `boolean` | Whether the enrichment submission was accepted (`dropcontact_enrich`) |
+| `metadata.ready` | `boolean` | Whether the enrichment result is ready to read (`dropcontact_get_batch`) |
+
+## Example
+
+```
+[Starter] → [Dropcontact: Enrich Contact] → [Dropcontact: Get Batch Result] → [Agent: update CRM record]
+```
+
+Pass a contact's details from the trigger — for example `{{starter.email}}`, `{{starter.firstName}}`, and `{{starter.company}}` — into the Enrich Contact block together with `{{DROPCONTACT_API_KEY}}`. The block returns `{{dropcontact_enrich.metadata.request_id}}`; wire that into the `request_id` field of the Get Batch Result block (same API key) to retrieve the enriched profile. An Agent block can then parse `{{dropcontact_get_batch.data}}` and write the verified email and company details back to your CRM.
+
+## Tips
+
+- **Enrichment is asynchronous.** `dropcontact_enrich` queues the request and returns a `request_id` immediately; the enriched data is not available until you call `dropcontact_get_batch`. Check `metadata.ready` — if it is `false`, the result is not yet available and you should poll again.
+- **Supply as many signals as possible.** Providing `email`, `first_name`, `last_name`, and `company` together maximises Dropcontact's match rate. `email` alone is sufficient for most contacts.
+- **SIREN/SIRET enrichment.** Set `siret: true` when enriching French companies to receive their official SIREN and SIRET registration numbers alongside contact data. This flag is only applied on the Enrich Contact operation.
+- **Wrap polling in a Loop.** Because results may not be ready immediately, place the Get Batch Result block inside a Loop that checks `{{dropcontact_get_batch.metadata.ready}}` and retries with a Wait block until the flag is `true`.

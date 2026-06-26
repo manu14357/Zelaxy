@@ -1,0 +1,112 @@
+---
+title: AWS IAM Block
+description: List users and roles, and get user details on AWS IAM
+icon: Box
+---
+
+# AWS IAM Block
+
+Interact with AWS Identity and Access Management (IAM): list users, list roles, and get user details. Authenticate with AWS access key credentials (SigV4 signed). IAM is a global service signed against us-east-1.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `iam` |
+| **Category** | `tools` |
+| **Color** | `#DD344C` |
+
+## When to Use
+
+- Enumerate all IAM users in an AWS account for auditing or reporting workflows.
+- List all IAM roles to discover what permissions are provisioned in an account.
+- Retrieve the ARN, user ID, and username for a specific IAM user by name.
+- Drive downstream automation (e.g., alerting, compliance checks) based on live IAM state.
+- Feed IAM data into an agent block for analysis or policy-violation detection.
+- Integrate AWS identity lookups into multi-step workflows without writing custom API code.
+
+## Configuration
+
+### Operation
+
+Select which IAM action to perform. This dropdown controls which other fields are displayed.
+
+| Label | ID |
+|-------|----|
+| List users | `iam_list_users` |
+| List roles | `iam_list_roles` |
+| Get user | `iam_get_user` |
+
+Default: `iam_list_users`.
+
+### User Name
+
+- **Type**: short-input
+- **Placeholder**: `my-iam-user`
+- **Visible when**: `operation` = `iam_get_user`
+
+The exact IAM username to look up. Only shown and required when the **Get user** operation is selected.
+
+### AWS Region
+
+- **Type**: short-input
+- **Placeholder**: `us-east-1`
+- **Required**: yes
+
+The AWS region to use in the request. Because IAM is a global service, credentials are always signed against `us-east-1` regardless of the value supplied here, but the field is required by the block contract.
+
+### AWS Access Key ID
+
+- **Type**: short-input (password field — value is masked)
+- **Required**: yes
+
+The AWS access key ID for an IAM principal that has permission to call `iam:ListUsers`, `iam:ListRoles`, or `iam:GetUser` as needed. Use an environment variable reference such as `{{AWS_ACCESS_KEY_ID}}` to avoid hardcoding credentials.
+
+### AWS Secret Access Key
+
+- **Type**: short-input (password field — value is masked)
+- **Required**: yes
+
+The AWS secret access key that pairs with the access key ID above. Use an environment variable reference such as `{{AWS_SECRET_ACCESS_KEY}}` to avoid hardcoding credentials.
+
+## Inputs & Outputs
+
+**Inputs**:
+
+- `operation` (string) — Operation to perform (`iam_list_users`, `iam_list_roles`, or `iam_get_user`)
+- `awsRegion` (string) — AWS region
+- `awsAccessKeyId` (string) — AWS access key ID
+- `awsSecretAccessKey` (string) — AWS secret access key
+- `userName` (string) — IAM user name (required only for the `iam_get_user` operation)
+
+**Outputs**:
+
+- `data` (json) — IAM API response. Shape varies by operation:
+  - `iam_list_users`: `{ users: [{ userName, arn }] }`
+  - `iam_list_roles`: `{ roles: [{ roleName, arn }] }`
+  - `iam_get_user`: `{ userName, arn, userId }`
+
+## Tools
+
+**IAM List Users** (`iam_list_users`) — Calls the AWS IAM `ListUsers` API action (POST to `https://iam.amazonaws.com/`). Returns an array of `{ userName, arn }` objects for every IAM user in the account. Signed with SigV4 against `us-east-1`.
+
+**IAM List Roles** (`iam_list_roles`) — Calls the AWS IAM `ListRoles` API action (POST to `https://iam.amazonaws.com/`). Returns an array of `{ roleName, arn }` objects for every IAM role in the account. Signed with SigV4 against `us-east-1`.
+
+**IAM Get User** (`iam_get_user`) — Calls the AWS IAM `GetUser` API action (POST to `https://iam.amazonaws.com/`) for a named user. Returns `{ userName, arn, userId }` for that specific user. Signed with SigV4 against `us-east-1`.
+
+## YAML Example
+
+```yaml
+iam_1:
+  type: iam
+  name: "AWS IAM"
+  inputs:
+    operation: "iam_get_user"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+    userName: "{{trigger.userName}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

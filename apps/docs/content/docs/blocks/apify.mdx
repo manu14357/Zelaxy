@@ -18,54 +18,91 @@ The Apify block integrates Apify web automation into your workflows. Use it to r
 
 ## When to Use
 
-- Scrape web pages or sites by running an Apify actor like `apify/web-scraper`.
-- Run an actor synchronously when you need the extracted data returned within the same step.
-- Run an actor asynchronously for long-running jobs and continue the workflow without blocking.
-- Poll the status of a previously started run with its run ID.
-- Fetch the dataset produced by a completed actor run for downstream processing.
+- Scrape web pages or sites by running an Apify actor like `apify/web-scraper` and receiving results in the same workflow step.
+- Run a long-running actor asynchronously and poll for completion before fetching its dataset.
+- Check the current status, start time, finish time, and dataset ID of any previously started actor run.
+- Fetch items from a dataset produced by a completed actor run for downstream processing.
+- Chain a Run Actor (Async) step with a Get Dataset step to separate actor execution from data retrieval.
+- Automate multi-step web extraction pipelines where each stage passes run IDs or dataset IDs to the next block.
 
 ## Configuration
 
 ### Operation
 
-Choose what the block does: Run Actor (Sync), Run Actor (Async), Get Run, or Get Dataset.
+Required. Selects which Apify API operation to perform.
+
+| Label | ID |
+|-------|----|
+| Run Actor (Sync) | `apify_run_actor_sync` |
+| Run Actor (Async) | `apify_run_actor_async` |
+| Get Run | `apify_get_run` |
+| Get Dataset | `apify_get_dataset` |
 
 ### API Token
 
-Your Apify API token (stored as a password field). Required for all operations.
+Required for all operations. Your Apify API token, available at `console.apify.com/account#/integrations`. Store it as an environment variable and reference it as `{{APIFY_API_TOKEN}}`.
 
 ### Actor ID
 
-The actor to run, e.g. `apify/web-scraper`. Used by the Run Actor (Sync/Async) operations.
+The actor to run, formatted as `username/actor-name` (e.g. `apify/web-scraper` or `janedoe/my-actor`). Shown for **Run Actor (Sync)** and **Run Actor (Async)** operations only.
 
 ### Actor Input (JSON)
 
-The JSON input passed to the actor, e.g. `{"startUrls": [{"url": "https://example.com"}]}`. Used by the Run Actor operations.
+The JSON payload passed to the actor as its input. Example: `{"startUrls": [{"url": "https://example.com"}]}`. Shown for **Run Actor (Sync)** and **Run Actor (Async)** operations only.
 
-### Memory (MB) / Timeout (s)
+### Memory (MB)
 
-Optional resource limits for the actor run. Used by the Run Actor operations.
+Optional. Memory allocated for the actor run in megabytes (128–32768). Shown for **Run Actor (Sync)** and **Run Actor (Async)** operations only.
+
+### Timeout (s)
+
+Optional. Maximum execution time for the actor run in seconds. Shown for **Run Actor (Sync)** and **Run Actor (Async)** operations only.
 
 ### Run ID
 
-The ID of an existing run. Used by the Get Run and Get Dataset operations.
+The ID of an existing actor run. Shown for **Get Run** and **Get Dataset** operations only.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `actorId` (string), `input` (json), `memory` (string), `timeout` (string), `runId` (string)
-- **Outputs**: `data` (json), `datasetId` (string), `status` (string)
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`apify_run_actor_sync`, `apify_run_actor_async`, `apify_get_run`, or `apify_get_dataset`)
+- `apiKey` (string) — Apify API token
+- `actorId` (string) — Actor ID or username/actor-name (Run Actor operations only)
+- `input` (json) — Actor input as a JSON object (Run Actor operations only)
+- `memory` (string) — Memory in MB for the actor run (Run Actor operations only)
+- `timeout` (string) — Timeout in seconds for the actor run (Run Actor operations only)
+- `runId` (string) — ID of an existing actor run (Get Run and Get Dataset operations only)
+
+**Outputs:**
+
+- `data` (json) — Extracted data returned by the block
+- `datasetId` (string) — Dataset ID associated with the run
+- `status` (string) — Run status (e.g. `SUCCEEDED`, `FAILED`, `RUNNING`)
+
+## Tools
+
+**APIFY Run Actor (Sync)** (`apify_run_actor_sync`) — Runs an Apify actor synchronously using the `run-sync-get-dataset-items` endpoint. Blocks until completion (max 5 minutes) and returns dataset items directly. Accepts `apiKey`, `actorId`, `input` (JSON string), `memory`, `timeout`, and `build`. Outputs `success`, `runId`, `status`, and `items`.
+
+**APIFY Run Actor (Async)** (`apify_run_actor_async`) — Starts an Apify actor run asynchronously via the `/runs` endpoint, then polls every 5 seconds (up to 5 minutes) until the run reaches a terminal state. On success it fetches dataset items automatically. Accepts `apiKey`, `actorId`, `input`, `waitForFinish` (initial wait 0–60 s), `itemLimit` (1–250000, default 100), `memory`, `timeout`, and `build`. Outputs `success`, `runId`, `status`, `datasetId`, and `items`.
+
+**APIFY Get Run** (`apify_get_run`) — Fetches the status and metadata of a specific actor run by its run ID. Accepts `apiKey`, `actorId`, and `runId`. Outputs `id`, `actId`, `status`, `startedAt`, `finishedAt`, and `defaultDatasetId`.
+
+**APIFY Get Dataset** (`apify_get_dataset`) — Fetches items from an Apify dataset by dataset ID. Accepts `apiKey`, `datasetId`, `limit` (default 100), and `offset`. Outputs `items`, `count`, `total`, `offset`, and `limit`.
 
 ## YAML Example
 
 ```yaml
-apify1:
+apify_1:
   type: apify
   name: "Apify"
   inputs:
     operation: "apify_run_actor_sync"
-    apiKey: "{{secrets.APIFY_TOKEN}}"
+    apiKey: "{{APIFY_API_TOKEN}}"
     actorId: "apify/web-scraper"
     input: '{"startUrls": [{"url": "https://example.com"}]}'
+    memory: "256"
+    timeout: "60"
   connections:
     outgoing:
       - target: next-block-id

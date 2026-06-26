@@ -1,0 +1,164 @@
+---
+title: Stripe Tools
+description: Manage Stripe customers, payments, and refunds from a workflow
+icon: CreditCard
+---
+
+# Stripe Tools
+
+The Stripe block lets a workflow create and list customers, create payment intents, list charges, and issue refunds through the Stripe REST API. Use these tools when a workflow needs to collect a payment, look up billing data, or refund a transaction. All requests authenticate with a Stripe secret key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `stripe` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Stripe secret API key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Create customer | `stripe_create_customer` | Create a new Stripe customer |
+| List customers | `stripe_list_customers` | List Stripe customers, optionally filtered by email |
+| Create payment intent | `stripe_create_payment_intent` | Create a Stripe PaymentIntent to collect a payment |
+| List charges | `stripe_list_charges` | List Stripe charges, optionally filtered by customer |
+| Create refund | `stripe_create_refund` | Refund a charge or payment intent |
+
+## Configuration
+
+### stripe_create_customer
+
+`POST https://api.stripe.com/v1/customers`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Stripe secret API key. **Secret** — sent as `Authorization: Bearer <key>`. |
+| `email` | string | No | Customer email address |
+| `name` | string | No | Customer full name |
+| `phone` | string | No | Customer phone number |
+| `description` | string | No | Description of the customer |
+| `metadata` | json | No | Set of key-value pairs to attach to the customer |
+
+### stripe_list_customers
+
+`GET https://api.stripe.com/v1/customers`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Stripe secret API key. **Secret** — sent as `Authorization: Bearer <key>`. |
+| `email` | string | No | Filter customers by exact email |
+| `limit` | number | No | Number of results to return (default 10, max 100) |
+
+### stripe_create_payment_intent
+
+`POST https://api.stripe.com/v1/payment_intents`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Stripe secret API key. **Secret** — sent as `Authorization: Bearer <key>`. |
+| `amount` | number | Yes | Amount in the smallest currency unit (e.g. cents) |
+| `currency` | string | Yes | Three-letter ISO currency code (e.g. `usd`) |
+| `customer` | string | No | Customer ID to associate with the payment |
+| `description` | string | No | Description of the payment |
+| `metadata` | json | No | Set of key-value pairs to attach |
+
+### stripe_list_charges
+
+`GET https://api.stripe.com/v1/charges`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Stripe secret API key. **Secret** — sent as `Authorization: Bearer <key>`. |
+| `customer` | string | No | Filter charges by customer ID |
+| `limit` | number | No | Number of results to return (default 10, max 100) |
+
+### stripe_create_refund
+
+`POST https://api.stripe.com/v1/refunds`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Stripe secret API key. **Secret** — sent as `Authorization: Bearer <key>`. |
+| `payment_intent` | string | No | PaymentIntent ID to refund (use this or `charge`) |
+| `charge` | string | No | Charge ID to refund (use this or `payment_intent`) |
+| `amount` | number | No | Amount to refund in the smallest currency unit (defaults to full refund) |
+| `reason` | string | No | Refund reason. One of: `duplicate`, `fraudulent`, `requested_by_customer` |
+
+## Outputs
+
+### stripe_create_customer
+
+- `data` (json) — The created Stripe customer object.
+- `metadata` (json) — Customer identifiers:
+  - `id` (string) — Customer ID.
+  - `object` (string) — Object type.
+
+### stripe_list_customers
+
+- `data` (json) — Array of Stripe customer objects.
+- `metadata` (json) — List metadata:
+  - `count` (number) — Number of items returned.
+  - `has_more` (boolean) — Whether more items exist beyond this page.
+
+### stripe_create_payment_intent
+
+- `data` (json) — The created PaymentIntent object.
+- `metadata` (json) — PaymentIntent identifiers:
+  - `id` (string) — PaymentIntent ID.
+  - `object` (string) — Object type.
+
+### stripe_list_charges
+
+- `data` (json) — Array of Stripe charge objects.
+- `metadata` (json) — List metadata:
+  - `count` (number) — Number of items returned.
+  - `has_more` (boolean) — Whether more items exist beyond this page.
+
+### stripe_create_refund
+
+- `data` (json) — The created refund object.
+- `metadata` (json) — Refund identifiers:
+  - `id` (string) — Refund ID.
+  - `object` (string) — Object type.
+
+## YAML Example
+
+```yaml
+stripe_1:
+  type: stripe
+  name: "Stripe"
+  inputs:
+    operation: "stripe_create_customer"
+    email: "customer@example.com"
+    name: "Jane Doe"
+    apiKey: "{{STRIPE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Create a payment intent for an existing customer:
+
+```yaml
+stripe_2:
+  type: stripe
+  name: "Stripe"
+  inputs:
+    operation: "stripe_create_payment_intent"
+    amount: 2000
+    currency: "usd"
+    customer: "{{stripe_1.metadata.id}}"
+    apiKey: "{{STRIPE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authenticate with a Stripe **secret** key (`sk_live_...` or `sk_test_...`), not a publishable key. The key is sent as a Bearer token, so store it as an environment variable and reference it with `{{STRIPE_API_KEY}}` rather than hardcoding it.
+- `amount` is always in the smallest currency unit — for USD that means cents, so `2000` is $20.00.
+- For `stripe_create_refund`, supply either `payment_intent` or `charge` (not both). Omit `amount` to refund the full charge; `reason` must be one of `duplicate`, `fraudulent`, or `requested_by_customer`.
+- List operations accept an optional `limit` (default 10, max 100) and return `metadata.has_more` so you can detect additional pages. Chain a customer ID from a create step into a later step with `{{stripe_1.metadata.id}}`.

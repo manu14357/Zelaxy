@@ -157,7 +157,7 @@ blocks:
       systemPrompt: outside agent sys prompt
       userPrompt: |-
         outside agent user prompt:
-        <loop1.results>
+        {{loop1.results}}
       model: gpt-4o
       apiKey: '{{OPENAI_API_KEY}}'
   loop-processor:
@@ -199,10 +199,10 @@ blocks:
       systemPrompt: loop agent sys prompt
       userPrompt: |-
         loop agent user prompt
-        ${'<'}loop.index${'>'} 
-        ${'<'}loop.currentItem${'>'}
-        ${'<'}loop.items${'>'}
-        ${'<'}loop1.results${'>'}
+        {{loop.index}}
+        {{loop.currentItem}}
+        {{loop.items}}
+        {{loop1.results}}
       model: gpt-4o
       apiKey: '{{OPENAI_API_KEY}}'
     parentId: foreach-loop
@@ -213,7 +213,7 @@ blocks:
       systemPrompt: outside agent sys prompt
       userPrompt: |-
         outside agent user prompt:
-        <loop1.results>
+        {{loop1.results}}
       model: gpt-4o
       apiKey: '{{OPENAI_API_KEY}}'`,
 

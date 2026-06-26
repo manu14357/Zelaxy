@@ -1,0 +1,99 @@
+---
+title: Square Block
+description: Manage customers and payments in Square
+icon: Box
+---
+
+# Square Block
+
+The Square block connects your workflows to the Square API, letting you list and create customers and list and retrieve payments. Authenticate with a Square access token to read or write data in your Square account without leaving Zelaxy.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `square` |
+| **Category** | tools |
+| **Color** | `#000000` |
+
+## When to Use
+
+- List all customers in your Square directory to feed downstream CRM or notification steps.
+- Create a new customer record in Square from form submissions, webhook payloads, or other upstream blocks.
+- List recent payments to audit revenue, trigger reconciliation workflows, or feed a reporting block.
+- Retrieve a single payment by its ID to confirm status or extract line-item details for processing.
+- Combine with condition or router blocks to branch based on whether a payment was approved or declined.
+- Use alongside agent blocks to let an AI assistant query customer or payment data dynamically.
+
+## Configuration
+
+### Operation
+
+Dropdown (required). Selects the Square API action this block performs. All other fields are conditional on this value.
+
+| Label | ID |
+|-------|----|
+| List customers | `square_list_customers` |
+| Create customer | `square_create_customer` |
+| List payments | `square_list_payments` |
+| Get payment | `square_get_payment` |
+
+### First Name
+
+Short text input. The customer's first name. Shown only when **Operation** is `square_create_customer`. Optional — Square accepts anonymous customers.
+
+### Email
+
+Short text input. The customer's email address. Shown only when **Operation** is `square_create_customer`. Optional.
+
+### Payment ID
+
+Short text input. The ID of the payment to retrieve (e.g. `bP9mUVN...`). Shown only when **Operation** is `square_get_payment`. Required for that operation.
+
+### Limit
+
+Short text input. Maximum number of records to return per page. Shown when **Operation** is `square_list_customers` or `square_list_payments`. Optional — Square's default applies when omitted.
+
+### Access Token
+
+Short text input (password, required for all operations). Your Square access token (starts with `EAAA...`). Store this as a workflow secret and reference it with `{{SQUARE_ACCESS_TOKEN}}` rather than pasting it in plain text.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`square_list_customers`, `square_create_customer`, `square_list_payments`, or `square_get_payment`)
+  - `apiKey` (string) — Square access token
+  - `given_name` (string) — Customer first name (create customer only)
+  - `email_address` (string) — Customer email address (create customer only)
+  - `payment_id` (string) — Payment ID (get payment only)
+  - `limit` (number) — Result limit (list operations only)
+
+- **Outputs**:
+  - `data` (json) — Result object or array from Square. For list operations this is an array of customer or payment objects; for single-record operations it is the customer or payment object.
+  - `metadata` (json) — Response metadata. For list operations: `{ count: number }`. For single-record operations: `{ id: string }`.
+
+## Tools
+
+**Square List Customers** (`square_list_customers`) — Calls `GET /v2/customers` to retrieve a paginated array of customer records from the Square customer directory. Accepts an optional `limit` to cap the page size.
+
+**Square Create Customer** (`square_create_customer`) — Calls `POST /v2/customers` to create a new customer record. Accepts optional `given_name` and `email_address`; returns the created customer object including its generated `id`.
+
+**Square List Payments** (`square_list_payments`) — Calls `GET /v2/payments` to retrieve a paginated array of payment records for the authenticated Square account. Accepts an optional `limit` to cap the page size.
+
+**Square Get Payment** (`square_get_payment`) — Calls `GET /v2/payments/{payment_id}` to retrieve the full details of a single payment by its ID. The `payment_id` is required.
+
+## YAML Example
+
+```yaml
+square_1:
+  type: square
+  name: "Square"
+  inputs:
+    operation: "square_create_customer"
+    apiKey: "{{SQUARE_ACCESS_TOKEN}}"
+    given_name: "{{form_block.first_name}}"
+    email_address: "{{form_block.email}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,122 @@
+---
+title: Google Ads Block
+description: Query campaigns and reporting data from Google Ads
+icon: Box
+---
+
+# Google Ads Block
+
+Run Google Ads Query Language (GAQL) queries and list campaigns through the Google Ads API. Authenticate with an OAuth access token and a developer token to pull reporting data or enumerate campaign structures directly from a Google Ads account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_ads` |
+| **Category** | `tools` |
+| **Color** | `#4285F4` |
+
+## When to Use
+
+- Execute arbitrary GAQL queries to fetch impressions, clicks, spend, conversions, or other metrics across any Google Ads resource
+- Enumerate all campaigns in an account for use in downstream routing, filtering, or reporting blocks
+- Pull campaign-level performance data into a workflow for aggregation or analysis by an Agent block
+- Automate scheduled reporting by chaining this block after a Schedule trigger
+- Access data from managed sub-accounts by specifying a manager (MCC) login customer ID
+- Feed campaign lists or query results into a table or response block for storage or display
+
+## Configuration
+
+### Operation
+
+Selects which Google Ads API action to perform. This dropdown controls which additional fields appear below it.
+
+| Label | ID |
+|-------|----|
+| Search (GAQL) | `google_ads_search` |
+| List campaigns | `google_ads_list_campaigns` |
+
+Default: `google_ads_search`.
+
+- **`google_ads_search`** — shows the **GAQL Query** field.
+- **`google_ads_list_campaigns`** — shows the **Limit** field.
+
+### Customer ID (required)
+
+**ID:** `customerId` | **Type:** short-input
+
+The numeric Google Ads customer account ID to query, with no dashes (e.g. `1234567890`). This identifies the account whose data is being retrieved.
+
+### GAQL Query
+
+**ID:** `query` | **Type:** long-input | **Condition:** operation = `google_ads_search`
+
+A full [Google Ads Query Language](https://developers.google.com/google-ads/api/docs/query/overview) statement. Use standard GAQL syntax with `SELECT`, `FROM`, `WHERE`, `ORDER BY`, and `LIMIT` clauses.
+
+Example: `SELECT campaign.id, campaign.name FROM campaign`
+
+Only shown when Operation is **Search (GAQL)**.
+
+### Limit
+
+**ID:** `limit` | **Type:** short-input | **Condition:** operation = `google_ads_list_campaigns`
+
+Maximum number of campaigns to return. When omitted, the API's default page size applies. Only shown when Operation is **List campaigns**.
+
+### Access Token (required)
+
+**ID:** `accessToken` | **Type:** short-input (password)
+
+An OAuth 2.0 access token with the `https://www.googleapis.com/auth/adwords` scope. Use `{{GOOGLE_ADS_ACCESS_TOKEN}}` to reference a secret stored in your environment.
+
+### Developer Token (required)
+
+**ID:** `developerToken` | **Type:** short-input (password)
+
+The Google Ads API developer token associated with your Google API project. Use `{{GOOGLE_ADS_DEVELOPER_TOKEN}}` to reference a secret stored in your environment.
+
+### Login Customer ID
+
+**ID:** `loginCustomerId` | **Type:** short-input
+
+The manager (MCC) account customer ID used to access a sub-account. Required only when authenticating via a manager account; leave blank for direct account access.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`google_ads_search` or `google_ads_list_campaigns`)
+- `accessToken` (string) — OAuth access token
+- `developerToken` (string) — Google Ads developer token
+- `customerId` (string) — Google Ads customer ID
+- `loginCustomerId` (string) — Manager account customer ID
+- `query` (string) — GAQL query (used by the Search operation)
+- `limit` (number) — Result limit (used by the List campaigns operation)
+
+**Outputs:**
+
+- `data` (json) — Result rows from Google Ads; an array of resource objects matching the query or campaign list
+- `metadata` (json) — Response metadata, containing `count` (number of rows returned) and `nextPageToken` (pagination token, or null if no further pages)
+
+## Tools
+
+**Google Ads Search** (`google_ads_search`) — Executes an arbitrary GAQL query against a Google Ads customer account via a POST to `googleAds:search`. Accepts `accessToken`, `developerToken`, `customerId`, `loginCustomerId`, and `query`. Returns `data` (result rows) and `metadata` (count + nextPageToken).
+
+**Google Ads List Campaigns** (`google_ads_list_campaigns`) — Lists campaigns in a Google Ads account by internally running `SELECT campaign.id, campaign.name FROM campaign ORDER BY campaign.name` with an optional `LIMIT`. Accepts the same auth params plus an optional `limit`. Returns `data` (campaign rows) and `metadata` (count + nextPageToken).
+
+## YAML Example
+
+```yaml
+google_ads_1:
+  type: google_ads
+  name: "Fetch Campaign Data"
+  inputs:
+    operation: "google_ads_search"
+    customerId: "{{GOOGLE_ADS_CUSTOMER_ID}}"
+    accessToken: "{{GOOGLE_ADS_ACCESS_TOKEN}}"
+    developerToken: "{{GOOGLE_ADS_DEVELOPER_TOKEN}}"
+    query: "SELECT campaign.id, campaign.name, metrics.impressions FROM campaign WHERE segments.date DURING LAST_30_DAYS"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

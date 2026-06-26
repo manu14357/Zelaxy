@@ -1,0 +1,110 @@
+---
+title: Mailchimp Block
+description: Manage audiences and members in Mailchimp
+icon: Mail
+---
+
+# Mailchimp Block
+
+Add members to an audience, list members, and get audience details through the Mailchimp Marketing API. Authenticate with a Mailchimp API key and data center.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mailchimp` |
+| **Category** | `tools` |
+| **Color** | `#FFE01B` |
+
+## When to Use
+
+- Subscribe a new user to a mailing list after they sign up or complete a form
+- Fetch all members of an audience to audit, sync, or process them in downstream blocks
+- Retrieve audience (list) metadata such as name, member count, and campaign defaults
+- Automate email list growth by wiring a trigger block directly into this block
+- Pass a dynamically computed email address from an earlier block into the subscriber field
+- Inspect list configuration before sending a campaign to confirm the audience is correct
+
+## Configuration
+
+### Operation
+
+**Type:** dropdown | **Required:** yes (defaults to `mailchimp_add_member`)
+
+Selects which Mailchimp API action to execute. Every operation requires `listId`, `dc`, and `apiKey`.
+
+| Label | ID | Required fields beyond the shared ones |
+|-------|----|----------------------------------------|
+| Add member | `mailchimp_add_member` | `email` |
+| List members | `mailchimp_list_members` | — |
+| Get list | `mailchimp_get_list` | — |
+
+### List ID
+
+**Type:** short-input | **Required:** when any operation is selected
+
+The Mailchimp audience (list) ID. Visible for all three operations. Find it in your Mailchimp account under **Audience > All contacts > Settings > Audience name and defaults**.
+
+Placeholder: `Audience ID`
+
+### Email
+
+**Type:** short-input | **Required:** for `mailchimp_add_member` only
+
+The email address of the subscriber to add. Hidden when the operation is `mailchimp_list_members` or `mailchimp_get_list`.
+
+Placeholder: `subscriber@example.com`
+
+### Data Center
+
+**Type:** short-input | **Required:** yes (all operations)
+
+The Mailchimp data center prefix for your account (e.g. `us21`). This is the suffix of your Mailchimp API key, after the final hyphen.
+
+Placeholder: `us21`
+
+### Mailchimp API Key
+
+**Type:** short-input (password) | **Required:** yes (all operations)
+
+Your Mailchimp Marketing API key. Stored as a secret; use `{{MAILCHIMP_API_KEY}}` to reference an environment variable, or paste the key directly.
+
+Placeholder: `...-us21`
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`mailchimp_add_member`, `mailchimp_list_members`, or `mailchimp_get_list`)
+- `apiKey` (string) — Mailchimp API key
+- `dc` (string) — Mailchimp data center (e.g. `us21`)
+- `listId` (string) — Audience (list) ID
+- `email` (string) — Subscriber email (required for `mailchimp_add_member` only)
+
+**Outputs:**
+
+- `data` (json) — Result object or array from Mailchimp. For `mailchimp_add_member` and `mailchimp_get_list` this is the Mailchimp object; for `mailchimp_list_members` this is an array of member objects.
+- `metadata` (json) — Response metadata. Contains `id` (string) for add-member and get-list operations; contains `count` (number) for list-members.
+
+## Tools
+
+- **Mailchimp Add Member** (`mailchimp_add_member`) — POSTs to `https://{dc}.api.mailchimp.com/3.0/lists/{listId}/members` with `status: subscribed`. Required params: `apiKey`, `dc`, `listId`, `email`. Returns the created member object and `metadata.id`.
+- **Mailchimp List Members** (`mailchimp_list_members`) — GETs all members from `https://{dc}.api.mailchimp.com/3.0/lists/{listId}/members`. Required params: `apiKey`, `dc`, `listId`. Returns an array of member objects and `metadata.count`.
+- **Mailchimp Get List** (`mailchimp_get_list`) — GETs audience details from `https://{dc}.api.mailchimp.com/3.0/lists/{listId}`. Required params: `apiKey`, `dc`, `listId`. Returns the list object and `metadata.id`.
+
+## YAML Example
+
+```yaml
+mailchimp_1:
+  type: mailchimp
+  name: "Add Subscriber"
+  inputs:
+    operation: "mailchimp_add_member"
+    apiKey: "{{MAILCHIMP_API_KEY}}"
+    dc: "us21"
+    listId: "{{form_block.audienceId}}"
+    email: "{{form_block.email}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,116 @@
+---
+title: Intercom Tools
+description: Create, list, get, and search contacts in Intercom from a workflow
+icon: Box
+---
+
+# Intercom Tools
+
+Intercom is a customer messaging and support platform. These tools let a workflow manage Intercom contacts (users and leads) — creating new contacts, paging through the full contact list, fetching a single contact by ID, and searching contacts by a field query. Use them to sync customer records, look up contact details mid-workflow, or enrich downstream steps with Intercom data.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `intercom` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Intercom API access token sent as `Authorization: Bearer <apiKey>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Create contact | `intercom_create_contact` | Create a new contact (user or lead) in Intercom |
+| List contacts | `intercom_list_contacts` | List all contacts with cursor-based pagination |
+| Get contact | `intercom_get_contact` | Get a single contact by its unique ID |
+| Search contacts | `intercom_search_contacts` | Search contacts using a single field query |
+
+## Configuration
+
+### `intercom_create_contact`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Intercom API access token. **Secret** — sent as a Bearer token; visibility is user-only (not exposed to the LLM). |
+| `role` | string | No | The role of the contact. Enum: `user` or `lead`. |
+| `email` | string | No | The contact's email address. |
+| `name` | string | No | The contact's name. |
+| `phone` | string | No | The contact's phone number. |
+
+### `intercom_list_contacts`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Intercom API access token. **Secret** — sent as a Bearer token; visibility is user-only. |
+| `per_page` | number | No | Number of results per page (max 150). |
+| `starting_after` | string | No | Cursor for pagination — the ID to start after. |
+
+### `intercom_get_contact`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Intercom API access token. **Secret** — sent as a Bearer token; visibility is user-only. |
+| `id` | string | Yes | The unique identifier of the contact. |
+
+### `intercom_search_contacts`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Intercom API access token. **Secret** — sent as a Bearer token; visibility is user-only. |
+| `field` | string | Yes | The contact field to search on (e.g. `email`, `name`). |
+| `operator` | string | Yes | The comparison operator. Common values: `=`, `~`, `!=`, `>`, `<`. |
+| `value` | string | Yes | The value to match against. |
+
+## Outputs
+
+### `intercom_create_contact`
+
+- `data` (json) — The created Intercom contact object.
+- `metadata` (json) — Contact identifiers. Properties:
+  - `id` (string) — Contact ID.
+  - `type` (string) — Object type.
+
+### `intercom_list_contacts`
+
+- `data` (json) — Array of Intercom contact objects.
+- `metadata` (json) — List metadata. Properties:
+  - `count` (number) — Number of items returned.
+  - `total_count` (number) — Total number of contacts.
+
+### `intercom_get_contact`
+
+- `data` (json) — The Intercom contact object.
+- `metadata` (json) — Contact identifiers. Properties:
+  - `id` (string) — Contact ID.
+  - `type` (string) — Object type.
+
+### `intercom_search_contacts`
+
+- `data` (json) — Array of matching Intercom contact objects.
+- `metadata` (json) — List metadata. Properties:
+  - `count` (number) — Number of items returned.
+  - `total_count` (number) — Total number of matching contacts.
+
+## YAML Example
+
+```yaml
+intercom_1:
+  type: intercom
+  name: "Intercom"
+  inputs:
+    operation: "intercom_create_contact"
+    role: "user"
+    email: "jane@example.com"
+    name: "Jane Doe"
+    phone: "+15551234567"
+    apiKey: "{{INTERCOM_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** Generate an access token in the Intercom Developer Hub (Settings → Developers → your app → Authentication). Store it as an environment variable and reference it with `{{INTERCOM_API_KEY}}` rather than hardcoding the secret. All requests pin `Intercom-Version: 2.11`.
+- **Pagination:** `intercom_list_contacts` is cursor-based. Set `per_page` (max 150) and pass the last contact ID into `starting_after` on the next call to page through large contact lists.
+- **Search syntax:** `intercom_search_contacts` runs a single-field query — set `field`, `operator`, and `value` (e.g. `field: email`, `operator: =`, `value: jane@example.com`). The `~` operator does a contains/partial match. Both list and search return an array under `{{intercom_1.data}}`, while get/create return a single object — index accordingly in downstream blocks.

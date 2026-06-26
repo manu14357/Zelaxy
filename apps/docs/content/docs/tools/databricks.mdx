@@ -1,0 +1,107 @@
+---
+title: Databricks
+description: Execute SQL queries, manage jobs, and interact with Databricks workspaces
+icon: Database
+---
+
+# Databricks
+
+Full Databricks integration — run SQL against SQL warehouses, trigger and monitor job runs, list clusters, and browse Unity Catalog catalogs. Use it to weave Databricks data pipelines and analytics into any automated workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `databricks` |
+| **Category** | Tool — Database |
+| **Auth** | Personal Access Token (Bearer) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Execute SQL** | `databricks_execute_sql` | Execute a SQL statement against a SQL warehouse and return results inline |
+| **List Clusters** | `databricks_list_clusters` | List all clusters in the workspace with state and configuration |
+| **List Jobs** | `databricks_list_jobs` | List jobs defined in the workspace (paginated) |
+| **Run Job** | `databricks_run_job` | Trigger a one-time run of a named job and return the run ID |
+| **Get Run Status** | `databricks_get_run_status` | Poll the status and result of a job run by its run ID |
+| **List Catalogs** | `databricks_list_catalogs` | List Unity Catalog catalogs in the workspace |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `host` | `string` | Yes | Databricks workspace URL, e.g. `https://your-workspace.azuredatabricks.net`. Secret — use `{{DATABRICKS_HOST}}`. |
+| `token` | `string` | Yes | Databricks Personal Access Token (starts with `dapi`). Secret — use `{{DATABRICKS_TOKEN}}`. |
+| `warehouseId` | `string` | Yes (Execute SQL only) | The ID of the SQL warehouse to run statements against. |
+| `statement` | `string` | Yes (Execute SQL only) | The SQL statement to execute, e.g. `SELECT * FROM catalog.schema.table LIMIT 100`. |
+| `jobId` | `string` | Yes (Run Job / Get Run Status) | For **Run Job**: the numeric job ID to trigger. For **Get Run Status**: the run ID returned by a prior Run Job call. |
+| `limit` | `number` | No (List Jobs only) | Maximum number of jobs to return. Defaults to `20`. |
+
+## Outputs
+
+### Execute SQL (`databricks_execute_sql`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `statementId` | `string` | Unique ID of the executed statement. |
+| `status` | `string` | Execution status: `SUCCEEDED`, `FAILED`, `CANCELED`, etc. |
+| `columns` | `json` | Column schema — array of objects with `name`, `position`, and `typeName`. |
+| `rows` | `json` | Result rows as a 2-D array (row-major). `null` if no results. |
+| `totalRows` | `number` | Total number of result rows. `null` when unavailable. |
+
+### List Clusters (`databricks_list_clusters`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `clusters` | `json` | Array of cluster objects, each with `clusterId`, `name`, `state`, `source`, `sparkVersion`, `nodeTypeId`, and `numWorkers`. |
+
+### List Jobs (`databricks_list_jobs`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `jobs` | `json` | Array of job objects, each with `jobId` and `name`. |
+| `hasMore` | `boolean` | `true` when additional jobs exist beyond the current page. |
+
+### Run Job (`databricks_run_job`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `runId` | `number` | The ID of the triggered run. Pass to **Get Run Status** to poll completion. |
+| `numberInJob` | `number` | Sequential run number within the job. May be `null`. |
+
+### Get Run Status (`databricks_get_run_status`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `runId` | `number` | Run ID. |
+| `jobId` | `number` | Job ID that owns this run. |
+| `runName` | `string` | Display name of the run. |
+| `lifeCycleState` | `string` | Current lifecycle state: `PENDING`, `RUNNING`, `TERMINATING`, `TERMINATED`, `SKIPPED`, `INTERNAL_ERROR`. |
+| `resultState` | `string` | Final result state when terminated: `SUCCESS`, `FAILED`, `TIMEDOUT`, `CANCELED`. `null` while still running. |
+| `stateMessage` | `string` | Human-readable status message. |
+| `startTime` | `number` | Run start time as epoch milliseconds. `null` if not yet started. |
+| `endTime` | `number` | Run end time as epoch milliseconds. `null` if not yet finished. |
+| `runPageUrl` | `string` | Direct URL to view the run in the Databricks UI. |
+
+### List Catalogs (`databricks_list_catalogs`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `catalogs` | `json` | Array of Unity Catalog catalog objects, each with `name`, `comment`, and `catalogType`. |
+
+## Example
+
+```
+[Starter] → [Databricks: Execute SQL] → [Agent: summarize the results]
+```
+
+Connect the block with your workspace credentials stored as environment variables — set `host` to `{{DATABRICKS_HOST}}` and `token` to `{{DATABRICKS_TOKEN}}`. Point `warehouseId` at a running SQL warehouse (e.g. `{{DATABRICKS_WAREHOUSE_ID}}`), then write a statement like `SELECT * FROM main.sales.orders WHERE date = '{{starter.date}}' LIMIT 500`. The Agent block can then receive `{{databricks.rows}}` and `{{databricks.columns}}` to produce a plain-language summary or drive downstream decisions.
+
+## Tips
+
+- **Personal Access Token** — generate one from Databricks Settings → Developer → Access Tokens. Tokens start with `dapi`. Store it as an environment secret and reference it with `{{DATABRICKS_TOKEN}}` rather than pasting it inline.
+- **Execute SQL** uses `wait_timeout: 50s` and `INLINE` disposition — it blocks until results are ready (up to 50 s). For long-running queries, prefer a Notebook job triggered with **Run Job** and polled with **Get Run Status**.
+- **Run Job + Get Run Status** pair naturally in a workflow: use **Run Job** to get `runId`, then use a **Wait** block or loop to call **Get Run Status** until `lifeCycleState` reaches `TERMINATED` and check `resultState` for `SUCCESS`.
+- **List Jobs** defaults to 20 results; set `limit` higher (up to the API maximum of 100) and check `hasMore` to know whether to paginate.
+- **List Catalogs** requires Unity Catalog to be enabled on the workspace. Classic Hive Metastore workspaces will return an empty array.

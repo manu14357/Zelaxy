@@ -1,0 +1,139 @@
+---
+title: PagerDuty Block
+description: Manage incidents and services in PagerDuty
+icon: Bell
+---
+
+# PagerDuty Block
+
+List and create incidents, retrieve a single incident, and list services through the PagerDuty REST API. Authenticate with a REST API key. Reach for this block whenever a workflow needs to open, query, or look up on-call incidents or services programmatically.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `pagerduty` |
+| **Category** | `tools` |
+| **Color** | `#06AC38` |
+
+## When to Use
+
+- Retrieve a filtered list of active or acknowledged incidents for triage dashboards.
+- Create a new incident automatically when an upstream monitor or condition block detects an anomaly.
+- Look up a specific incident by ID to read its current status or feed it to a downstream block.
+- Enumerate all PagerDuty services to discover valid service IDs before creating an incident.
+- Build on-call escalation workflows that react to triggered incidents in real time.
+- Paginate through large incident or service catalogs by controlling result counts with the `limit` field.
+
+## Configuration
+
+### Operation
+
+Selects which PagerDuty API action to perform. This field controls which additional sub-blocks are shown.
+
+| Label | ID |
+|-------|----|
+| List incidents | `pagerduty_list_incidents` |
+| Create incident | `pagerduty_create_incident` |
+| Get incident | `pagerduty_get_incident` |
+| List services | `pagerduty_list_services` |
+
+Default: `pagerduty_list_incidents`.
+
+---
+
+### Statuses
+
+**Shown when**: Operation = `pagerduty_list_incidents`
+
+A comma-separated list of incident statuses to filter results by (e.g. `triggered,acknowledged`). Optional — omit to return incidents of all statuses.
+
+---
+
+### Title
+
+**Shown when**: Operation = `pagerduty_create_incident`
+
+A short title describing the incident (e.g. `Database connection failures`). Required for incident creation.
+
+---
+
+### Service ID
+
+**Shown when**: Operation = `pagerduty_create_incident`
+
+The PagerDuty service ID the incident should be created under (e.g. `PXXXXXX`). Required for incident creation. Use the **List services** operation to discover valid service IDs.
+
+---
+
+### From Email
+
+**Shown when**: Operation = `pagerduty_create_incident`
+
+The email address of the user creating the incident. PagerDuty requires this as the `From` header when creating incidents via the REST API. Required for incident creation.
+
+---
+
+### Incident ID
+
+**Shown when**: Operation = `pagerduty_get_incident`
+
+The unique PagerDuty incident ID to retrieve (e.g. `PXXXXXX`). Required when fetching a single incident.
+
+---
+
+### Limit
+
+**Shown when**: Operation = `pagerduty_list_incidents` or `pagerduty_list_services`
+
+Maximum number of results to return per request. Optional — omit to use PagerDuty's default page size.
+
+---
+
+### API Key
+
+**Required for all operations.**
+
+Your PagerDuty REST API key. This field is treated as a secret (password input). Use an environment variable reference such as `{{PAGERDUTY_API_KEY}}` to avoid storing the key as plaintext in the workflow.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`pagerduty_list_incidents`, `pagerduty_create_incident`, `pagerduty_get_incident`, or `pagerduty_list_services`)
+- `apiKey` (string) — PagerDuty REST API key
+- `statuses` (string) — Comma-separated statuses filter (list incidents only)
+- `title` (string) — Incident title (create incident only)
+- `serviceId` (string) — Service ID (create incident only)
+- `email` (string) — From email for incident creation (create incident only)
+- `incidentId` (string) — Incident ID (get incident only)
+- `limit` (number) — Result limit (list incidents and list services only)
+
+**Outputs:**
+
+- `data` (json) — Result object or array from PagerDuty. For list operations this is an array of incident or service objects; for single-object operations this is the incident object itself.
+- `metadata` (json) — Response metadata. For list operations includes `count` (number of items returned) and `more` (boolean indicating whether additional pages exist). For single-object operations includes `id` (incident ID) and `status` (incident status).
+
+## Tools
+
+- **PagerDuty List Incidents** (`pagerduty_list_incidents`) — Issues a GET to `https://api.pagerduty.com/incidents`, optionally filtering by status values and capping results with a limit. Returns an array of incident objects and pagination metadata.
+- **PagerDuty Create Incident** (`pagerduty_create_incident`) — Issues a POST to `https://api.pagerduty.com/incidents` to open a new incident on a specified service. Requires `title`, `serviceId`, `email`, and `apiKey`. Returns the created incident object plus its ID and initial status.
+- **PagerDuty Get Incident** (`pagerduty_get_incident`) — Issues a GET to `https://api.pagerduty.com/incidents/{incidentId}` to fetch a single incident by its ID. Returns the full incident object plus its ID and current status.
+- **PagerDuty List Services** (`pagerduty_list_services`) — Issues a GET to `https://api.pagerduty.com/services`, optionally capping results with a limit. Returns an array of service objects and pagination metadata.
+
+## YAML Example
+
+```yaml
+pagerduty_1:
+  type: pagerduty
+  name: "Create PagerDuty Incident"
+  inputs:
+    operation: "pagerduty_create_incident"
+    apiKey: "{{PAGERDUTY_API_KEY}}"
+    title: "{{monitor_block.alert_title}}"
+    serviceId: "PABC123"
+    email: "on-call@example.com"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

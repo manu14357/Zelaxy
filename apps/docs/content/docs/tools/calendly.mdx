@@ -1,0 +1,156 @@
+---
+title: Calendly Tools
+description: Manage event types, scheduled events, and invitees in Calendly
+icon: Box
+---
+
+# Calendly Tools
+
+Integrate Calendly scheduling into your workflows to retrieve event types, view scheduled meetings, manage invitees, and cancel appointments. Use these tools to automate scheduling operations and connect Calendly data to other steps in your workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `calendly` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Personal Access Token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Get Current User | `calendly_get_current_user` | Get information about the currently authenticated Calendly user |
+| List Event Types | `calendly_list_event_types` | Retrieve a list of all event types for a user or organization |
+| Get Event Type | `calendly_get_event_type` | Get detailed information about a specific event type |
+| List Scheduled Events | `calendly_list_scheduled_events` | Retrieve a list of scheduled events for a user or organization |
+| Get Scheduled Event | `calendly_get_scheduled_event` | Get detailed information about a specific scheduled event |
+| List Event Invitees | `calendly_list_event_invitees` | Retrieve a list of invitees for a scheduled event |
+| Cancel Event | `calendly_cancel_event` | Cancel a scheduled event |
+
+## Configuration
+
+### calendly_get_current_user
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Calendly Personal Access Token |
+
+### calendly_list_event_types
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Calendly Personal Access Token |
+| `user` | string | No | User URI to filter event types |
+| `organization` | string | No | Organization URI to filter event types |
+| `count` | number | No | Number of results per page (max 100) |
+| `pageToken` | string | No | Page token for pagination |
+| `sort` | string | No | Sort order (e.g., `name:asc`) |
+| `active` | boolean | No | When true, show only active event types |
+
+### calendly_get_event_type
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Calendly Personal Access Token |
+| `eventTypeUuid` | string | Yes | Event type UUID or full URI |
+
+### calendly_list_scheduled_events
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Calendly Personal Access Token |
+| `user` | string | No | User URI — either `user` or `organization` is required |
+| `organization` | string | No | Organization URI — either `user` or `organization` is required |
+| `invitee_email` | string | No | Filter by invitee email |
+| `count` | number | No | Number of results per page (max 100) |
+| `min_start_time` | string | No | Filter events with start time after this ISO 8601 timestamp |
+| `max_start_time` | string | No | Filter events with start time before this ISO 8601 timestamp |
+| `pageToken` | string | No | Page token for pagination |
+| `sort` | string | No | Sort order (e.g., `start_time:asc`) |
+| `status` | string | No | Filter by status: `active` or `canceled` |
+
+### calendly_get_scheduled_event
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Calendly Personal Access Token |
+| `eventUuid` | string | Yes | Scheduled event UUID or full URI |
+
+### calendly_list_event_invitees
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Calendly Personal Access Token |
+| `eventUuid` | string | Yes | Scheduled event UUID or full URI |
+| `count` | number | No | Number of results per page (max 100) |
+| `email` | string | No | Filter invitees by email address |
+| `pageToken` | string | No | Page token for pagination |
+| `sort` | string | No | Sort order (e.g., `created_at:asc`) |
+| `status` | string | No | Filter by status: `active` or `canceled` |
+
+### calendly_cancel_event
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Calendly Personal Access Token |
+| `eventUuid` | string | Yes | Scheduled event UUID or full URI |
+| `reason` | string | No | Reason for cancellation |
+
+## Outputs
+
+### calendly_get_current_user
+
+- `resource` (object) — Current user information
+
+### calendly_list_event_types
+
+- `collection` (array) — Array of event type objects
+- `pagination` (object) — Pagination information
+
+### calendly_get_event_type
+
+- `resource` (object) — Event type details
+
+### calendly_list_scheduled_events
+
+- `collection` (array) — Array of scheduled event objects
+- `pagination` (object) — Pagination information
+
+### calendly_get_scheduled_event
+
+- `resource` (object) — Scheduled event details
+
+### calendly_list_event_invitees
+
+- `collection` (array) — Array of invitee objects
+- `pagination` (object) — Pagination information
+
+### calendly_cancel_event
+
+- `resource` (object) — Cancellation details
+
+## YAML Example
+
+```yaml
+calendly_1:
+  type: calendly
+  name: "Calendly"
+  inputs:
+    operation: "calendly_list_scheduled_events"
+    user: "https://api.calendly.com/users/{{CALENDLY_USER_UUID}}"
+    min_start_time: "2026-06-25T00:00:00Z"
+    max_start_time: "2026-07-25T00:00:00Z"
+    status: "active"
+    count: 50
+    apiKey: "{{CALENDLY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Generate your Personal Access Token at [https://calendly.com/integrations/api_webhooks](https://calendly.com/integrations/api_webhooks). The token is passed as a Bearer token in the `Authorization` header.
+- For `calendly_list_scheduled_events`, at least one of `user` or `organization` is required. Use `calendly_get_current_user` first to obtain your user URI, then pass it via `{{calendly_get_current_user_block.resource.uri}}`.
+- UUIDs can be passed as the bare UUID string or as the full Calendly URI (e.g., `https://api.calendly.com/scheduled_events/abc123`). The tools automatically extract the UUID from a full URI.

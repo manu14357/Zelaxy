@@ -1,0 +1,116 @@
+---
+title: Dagster
+description: Launch and manage data pipeline runs in Dagster
+icon: Workflow
+---
+
+# Dagster
+
+Integrate Dagster data orchestration into your workflows. Launch job runs, poll status, fetch execution logs, inspect schedules, and terminate in-progress runs — all from within a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `dagster` |
+| **Category** | Tool — Data Orchestration |
+| **Auth** | API Key (`Dagster-Cloud-Api-Token` header — optional for OSS, required for Dagster+) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Launch Run** | `dagster_launch_run` | Trigger a new job run on a Dagster instance |
+| **Get Run** | `dagster_get_run` | Retrieve the status and details of a run by its ID |
+| **Get Run Logs** | `dagster_get_run_logs` | Fetch execution event logs for a specific run |
+| **List Runs** | `dagster_list_runs` | List recent runs, optionally filtered by job name or status |
+| **Terminate Run** | `dagster_terminate_run` | Terminate an in-progress run |
+| **List Jobs** | `dagster_list_jobs` | List all jobs across all repositories in the instance |
+| **List Schedules** | `dagster_list_schedules` | List all schedules in a Dagster repository |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `host` | `string` | Yes | Dagster instance URL, e.g. `https://myorg.dagster.cloud/prod`. Trailing slash is stripped automatically. Used by all operations. |
+| `apiKey` | `string` (secret) | No | Dagster+ API token. Set as `{{DAGSTER_API_KEY}}`. Sent as the `Dagster-Cloud-Api-Token` header. Leave blank for self-hosted OSS instances that do not require auth. |
+| `repositoryLocationName` | `string` | Yes (Launch Run, List Schedules) | The code location name as it appears in the Dagster deployment (e.g. `my_repo_location`). |
+| `repositoryName` | `string` | Yes (Launch Run, List Schedules) | Repository name within the code location. Commonly `__repository__` for single-repo locations. |
+| `jobName` | `string` | Yes (Launch Run) | The name of the job to run. |
+| `runConfigJson` | `string` | No (Launch Run) | Optional run configuration as a JSON string, e.g. `{"ops": {"my_op": {"config": {"param": "value"}}}}`. Parsed and passed as `runConfigData`. |
+| `tags` | `string` | No (Launch Run) | Optional tags as a JSON array of `{"key": "...", "value": "..."}` objects. |
+| `runId` | `string` | Yes (Get Run, Get Run Logs, Terminate Run) | The globally unique run ID to inspect or terminate. |
+| `afterCursor` | `string` | No (Get Run Logs) | Pagination cursor returned by a previous Get Run Logs call, for fetching the next page of events. |
+| `limit` | `number` | No (Get Run Logs, List Runs) | Maximum number of records to return. Defaults to 20 for List Runs. |
+| `jobName` (filter) | `string` | No (List Runs) | Filter runs by job name. |
+| `statuses` | `string` | No (List Runs) | Comma-separated run statuses to filter by, e.g. `SUCCESS,FAILURE`. Valid values: `SUCCESS`, `FAILURE`, `STARTED`, `QUEUED`, `CANCELING`, `CANCELED`. |
+| `scheduleStatus` | `string` | No (List Schedules) | Filter schedules by status: `RUNNING` or `STOPPED`. Omit to return all schedules. |
+
+## Outputs
+
+### Launch Run
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `runId` | `string` | The globally unique ID of the newly launched run |
+
+### Get Run
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `runId` | `string` | Run ID |
+| `jobName` | `string` | Job name (may be null) |
+| `status` | `string` | Current run status (e.g. `STARTED`, `SUCCESS`, `FAILURE`) |
+| `startTime` | `number` | Run start time as a Unix timestamp (may be null) |
+| `endTime` | `number` | Run end time as a Unix timestamp (may be null) |
+| `runConfigYaml` | `string` | Run configuration serialized as YAML (may be null) |
+| `tags` | `json` | Array of `{key, value}` tag objects attached to the run (may be null) |
+
+### Get Run Logs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `events` | `json` | Array of log event objects, each with `type`, `message`, `timestamp`, `level`, `stepKey`, and `eventType` |
+| `cursor` | `string` | Cursor to use with `afterCursor` for the next page of events |
+| `hasMore` | `boolean` | Whether more log events are available beyond this page |
+
+### List Runs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `runs` | `json` | Array of run objects, each with `runId`, `jobName`, `status`, `tags`, `startTime`, and `endTime` |
+
+### Terminate Run
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `runId` | `string` | The run ID that was terminated |
+| `status` | `string` | Termination status (`TERMINATED`) |
+
+### List Jobs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `jobs` | `json` | Array of job objects, each with `name` (job name) and `repositoryName` |
+
+### List Schedules
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `schedules` | `json` | Array of schedule objects, each with `name`, `cronSchedule`, `jobName`, `status`, `id`, `description`, and `executionTimezone` |
+
+## Example
+
+```
+[Starter] → [Dagster: Launch Run] → [Dagster: Get Run] → [Agent: summarize result]
+```
+
+Connect a Starter block that fires on a webhook or schedule, then pass `{{DAGSTER_API_KEY}}` as the API key and your instance URL (e.g. `{{DAGSTER_HOST}}`) as the host. The Launch Run block triggers `{{starter.jobName}}` in repository location `my_repo_location`; downstream blocks can poll status using `{{dagster_launch_run.runId}}` in a Get Run block, and an Agent block can turn the final `status` and `runConfigYaml` into a human-readable summary.
+
+## Tips
+
+- **OSS vs Dagster+** — `apiKey` is optional for self-hosted OSS Dagster instances that have no auth configured. For Dagster+ (cloud), supply your user token or organization token via `{{DAGSTER_API_KEY}}`.
+- **Repository selector** — `repositoryLocationName` is the code-location name shown in the Deployments tab of the Dagster UI; `repositoryName` is almost always `__repository__` for single-repo locations. Use the List Jobs operation to discover the correct values programmatically.
+- **Polling for completion** — Dagster runs are asynchronous. After Launch Run, use a loop block calling Get Run with the returned `runId` until `status` is `SUCCESS` or `FAILURE`. Check `startTime` and `endTime` to calculate duration.
+- **Log pagination** — Get Run Logs returns a `cursor` and `hasMore` flag. Pass `cursor` as `afterCursor` in a subsequent call to retrieve the next page. Limit per page defaults to the Dagster server's maximum if not specified.
+- **Status filter format** — The `statuses` param for List Runs is a comma-separated string (e.g. `SUCCESS,FAILURE`), not a JSON array. The tool splits and trims it automatically before sending the GraphQL query.

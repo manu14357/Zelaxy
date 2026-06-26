@@ -1,0 +1,100 @@
+---
+title: Gong Tools
+description: Retrieve calls and users from your Gong revenue intelligence platform
+icon: Box
+---
+
+# Gong Tools
+
+The Gong block connects your workflow to the Gong revenue intelligence platform. Use it to list recorded calls by date range, fetch detailed data for a specific call, or enumerate the users in your Gong account — ideal for sales analytics, coaching workflows, and CRM enrichment pipelines.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `gong` |
+| **Category** | tools |
+| **Auth** | Basic Auth (Access Key + Access Key Secret) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List Calls | `gong_list_calls` | Retrieve call data filtered by an optional date range |
+| Get Call | `gong_get_call` | Retrieve detailed data for a specific call by ID |
+| List Users | `gong_list_users` | List all users in your Gong account |
+
+## Configuration
+
+### gong_list_calls
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessKey` | string | Yes | Gong API Access Key (used for Basic Auth) |
+| `accessKeySecret` | string | Yes | Gong API Access Key Secret (used for Basic Auth) |
+| `fromDateTime` | string | No | Start of the date range in ISO-8601 format (e.g., `2024-01-01T00:00:00Z`) |
+| `toDateTime` | string | No | End of the date range in ISO-8601 format (e.g., `2024-01-31T23:59:59Z`) |
+
+Calls `GET https://api.gong.io/v2/calls` with `fromDateTime` and `toDateTime` appended as query parameters when provided.
+
+### gong_get_call
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessKey` | string | Yes | Gong API Access Key (used for Basic Auth) |
+| `accessKeySecret` | string | Yes | Gong API Access Key Secret (used for Basic Auth) |
+| `callId` | string | Yes | The Gong call ID to retrieve |
+
+Calls `GET https://api.gong.io/v2/calls/{callId}`.
+
+### gong_list_users
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessKey` | string | Yes | Gong API Access Key (used for Basic Auth) |
+| `accessKeySecret` | string | Yes | Gong API Access Key Secret (used for Basic Auth) |
+
+Calls `GET https://api.gong.io/v2/users`.
+
+## Outputs
+
+### gong_list_calls
+
+- `data` (json) — Array of Gong call objects returned by the API
+- `metadata` (json) — List metadata
+  - `metadata.count` (number) — Number of call objects returned
+
+### gong_get_call
+
+- `data` (json) — The Gong call object for the requested call ID
+- `metadata` (json) — Call identifiers
+  - `metadata.id` (string) — The call ID
+
+### gong_list_users
+
+- `data` (json) — Array of Gong user objects
+- `metadata` (json) — List metadata
+  - `metadata.count` (number) — Number of user objects returned
+
+## YAML Example
+
+```yaml
+gong_1:
+  type: gong
+  name: "Gong"
+  inputs:
+    operation: "gong_list_calls"
+    fromDateTime: "2024-01-01T00:00:00Z"
+    toDateTime: "2024-01-31T23:59:59Z"
+    accessKey: "{{GONG_ACCESS_KEY}}"
+    accessKeySecret: "{{GONG_ACCESS_KEY_SECRET}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Credentials:** Gong uses Basic Auth — generate an Access Key and Access Key Secret from your Gong settings under API. Store both as workflow environment variables and reference them as `{{GONG_ACCESS_KEY}}` and `{{GONG_ACCESS_KEY_SECRET}}`.
+- **Date filtering:** Both `fromDateTime` and `toDateTime` are optional for `gong_list_calls`. Omitting them returns all available calls, which may be a large payload on active accounts; supply a narrow range for performance.
+- **Downstream enrichment:** Pipe `{{gong_1.data}}` into an Agent block to summarize call transcripts, extract action items, or score calls against a rubric before writing results to a CRM block.

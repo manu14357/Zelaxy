@@ -1,0 +1,217 @@
+---
+title: Context.dev Block
+description: Search, scrape, and crawl the web for LLM-ready content
+icon: Box
+---
+
+# Context.dev Block
+
+Search the web with natural language, scrape any URL to clean markdown, and crawl entire websites into LLM-ready content through the Context.dev API. Authenticate with an API key and choose one of three operations depending on whether you need web search results, a single-page scrape, or a full-site crawl.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `context_dev` |
+| **Category** | `tools` |
+| **Color** | `#6366F1` |
+
+## When to Use
+
+- Fetch up-to-date information from the web with a plain-English query before passing it to an LLM.
+- Turn an arbitrary web page into clean, structured markdown for downstream processing or summarisation.
+- Ingest an entire documentation site or marketing site into LLM-ready content in a single step.
+- Optionally include or exclude navigation links, headers, and footers from scraped content.
+- Control crawl scope with page and depth limits to avoid over-fetching large sites.
+- Monitor API credit consumption automatically via the metadata output.
+
+## Configuration
+
+### Operation
+
+Selects which Context.dev API endpoint to call. All other fields appear or hide based on this selection.
+
+| Label | id |
+|-------|----|
+| Search | `context_dev_search` |
+| Scrape markdown | `context_dev_scrape_markdown` |
+| Crawl | `context_dev_crawl` |
+
+**Default:** `context_dev_search`
+
+---
+
+### Query
+
+_(Visible when Operation = `context_dev_search`)_
+
+A natural-language question or keyword phrase to send to the Context.dev search endpoint. Accepts `{{block.field}}` references.
+
+- **Type:** long-input (string)
+- **Placeholder:** `What is the latest news about...`
+- **Required:** yes (for Search operation)
+
+---
+
+### Scrape Results to Markdown
+
+_(Visible when Operation = `context_dev_search`)_
+
+When enabled, each page returned by the search is additionally scraped and its markdown is included in the result.
+
+| Label | id |
+|-------|----|
+| No | `false` |
+| Yes | `true` |
+
+---
+
+### URL
+
+_(Visible when Operation = `context_dev_scrape_markdown` or `context_dev_crawl`)_
+
+The fully-qualified URL to scrape or use as the crawl starting point. Must include `http://` or `https://`.
+
+- **Type:** short-input (string)
+- **Placeholder:** `https://example.com`
+- **Required:** yes (for Scrape markdown and Crawl operations)
+
+---
+
+### Main Content Only
+
+_(Visible when Operation = `context_dev_scrape_markdown`)_
+
+When enabled, strips headers, footers, and navigation elements from the scraped markdown, returning only the main article body.
+
+| Label | id |
+|-------|----|
+| No | `false` |
+| Yes | `true` |
+
+---
+
+### Include Links
+
+_(Visible when Operation = `context_dev_scrape_markdown`)_
+
+Controls whether hyperlinks are preserved in the markdown output.
+
+| Label | id |
+|-------|----|
+| Yes | `true` |
+| No | `false` |
+
+---
+
+### Max Pages
+
+_(Visible when Operation = `context_dev_crawl`)_
+
+Maximum number of pages the crawler will visit, between 1 and 500. Defaults to 100 on the API side when omitted.
+
+- **Type:** short-input (number)
+- **Placeholder:** `100`
+
+---
+
+### Max Depth
+
+_(Visible when Operation = `context_dev_crawl`)_
+
+Maximum link depth from the starting URL the crawler will follow. Set to `0` to fetch only the start page.
+
+- **Type:** short-input (number)
+- **Placeholder:** `2`
+
+---
+
+### API Key
+
+Your Context.dev API key. Stored as a password field. Reference an environment secret with `{{CONTEXT_DEV_API_KEY}}`.
+
+- **Type:** short-input (string)
+- **Required:** yes (all operations)
+
+## Inputs & Outputs
+
+### Inputs
+
+| id | type | description |
+|----|------|-------------|
+| `operation` | string | Operation to perform (`context_dev_search`, `context_dev_scrape_markdown`, or `context_dev_crawl`) |
+| `apiKey` | string | Context.dev API key |
+| `query` | string | Search query (Search operation only) |
+| `markdownEnabled` | boolean | Scrape search results to markdown (Search operation only) |
+| `url` | string | URL to scrape or crawl (Scrape markdown and Crawl operations) |
+| `useMainContentOnly` | boolean | Return only main content, excluding headers, footers, and navigation (Scrape markdown only) |
+| `includeLinks` | boolean | Preserve hyperlinks in markdown output (Scrape markdown only) |
+| `maxPages` | number | Maximum pages to crawl (Crawl only) |
+| `maxDepth` | number | Maximum crawl link depth (Crawl only) |
+
+### Outputs
+
+| id | type | description |
+|----|------|-------------|
+| `data` | json | Result object or array from Context.dev. For Search and Crawl, an array of result objects; for Scrape markdown, an object with `markdown` and `url` keys |
+| `metadata` | json | Response metadata including `creditsConsumed` and `creditsRemaining` for the API key |
+
+## Tools
+
+**Context.dev Search** (`context_dev_search`) — Issues a POST to `https://api.context.dev/v1/web/search` with a natural-language query and returns an array of search result objects. Optionally scrapes each result page to markdown when `markdownEnabled` is `true`. Required params: `apiKey`, `query`. Optional: `markdownEnabled`.
+
+**Context.dev Scrape Markdown** (`context_dev_scrape_markdown`) — Issues a GET to `https://api.context.dev/v1/web/scrape/markdown` for a single URL and returns clean, LLM-ready markdown. Required params: `apiKey`, `url`. Optional: `useMainContentOnly`, `includeLinks`.
+
+**Context.dev Crawl** (`context_dev_crawl`) — Issues a POST to `https://api.context.dev/v1/web/crawl` and recursively discovers pages starting from a given URL, returning each as markdown. Required params: `apiKey`, `url`. Optional: `maxPages` (1–500, default 100), `maxDepth` (0 = start page only).
+
+## YAML Example
+
+### Search
+
+```yaml
+context_dev_1:
+  type: context_dev
+  name: "Web Search"
+  inputs:
+    operation: "context_dev_search"
+    apiKey: "{{CONTEXT_DEV_API_KEY}}"
+    query: "latest AI agent frameworks 2025"
+    markdownEnabled: "true"
+  connections:
+    outgoing:
+      - target: agent_1
+```
+
+### Scrape Markdown
+
+```yaml
+context_dev_2:
+  type: context_dev
+  name: "Scrape Page"
+  inputs:
+    operation: "context_dev_scrape_markdown"
+    apiKey: "{{CONTEXT_DEV_API_KEY}}"
+    url: "{{trigger.url}}"
+    useMainContentOnly: "true"
+    includeLinks: "false"
+  connections:
+    outgoing:
+      - target: agent_1
+```
+
+### Crawl
+
+```yaml
+context_dev_3:
+  type: context_dev
+  name: "Crawl Docs Site"
+  inputs:
+    operation: "context_dev_crawl"
+    apiKey: "{{CONTEXT_DEV_API_KEY}}"
+    url: "https://docs.example.com"
+    maxPages: "50"
+    maxDepth: "3"
+  connections:
+    outgoing:
+      - target: knowledge_1
+```

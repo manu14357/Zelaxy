@@ -6,64 +6,94 @@ icon: Box
 
 # OneDrive Block
 
-The OneDrive block integrates Microsoft OneDrive into your workflows so you can manage files and folders directly. Use it to upload new files, create folders, and list folder contents over OAuth, with support for custom MIME types and folder organization.
+The OneDrive block integrates Microsoft OneDrive into your workflows so you can manage files and folders directly. Use it to upload new files, create folders, and list folder contents over OAuth, with support for folder organization and name-based search.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `onedrive` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#E0E0E0` |
 
 ## When to Use
 
 - Upload generated content or reports to a specific OneDrive folder as a new file.
-- Create new folders to organize files produced by a workflow.
-- List the contents of a folder (or the root) to drive downstream processing.
-- Search a folder for specific files by name or query before acting on them.
-- Persist workflow artifacts to a user's Microsoft account using OAuth credentials.
+- Create new folders to organize files and artifacts produced by a workflow.
+- List the contents of a folder (or the root drive) to drive downstream processing.
+- Search a folder for specific files by name prefix before acting on them.
+- Persist workflow outputs to a user's Microsoft account using OAuth credentials.
+- Automate OneDrive file management as part of a larger multi-step agent workflow.
 
 ## Configuration
 
 ### Operation
 
-Selects what the block does: Create Folder (`create_folder`), Upload File (`upload`), or List Files (`list`).
+Selects which action the block performs. Choose one of:
 
-### Microsoft Account
+| Label | ID |
+|-------|----|
+| Create Folder | `create_folder` |
+| Upload File | `upload` |
+| List Files | `list` |
 
-OAuth credential for the connected Microsoft/OneDrive account; required for all operations.
+### Microsoft Account (`credential`)
 
-### File Name & Content
+OAuth credential for the connected Microsoft / OneDrive account. Required for all operations. Uses scopes `openid`, `profile`, `email`, `Files.Read`, `Files.ReadWrite`, and `offline_access`.
 
-For the upload operation, the name of the new file and the content to write into it.
+### File Name (`fileName`) — Upload only
 
-### Parent Folder
+The name for the file to upload. The tool always stores content as a `.txt` file; any existing extension is replaced with `.txt`.
 
-For upload and create-folder operations, pick a parent folder with the file selector (basic mode) or supply a folder ID via `manualFolderId` (advanced mode). Leave empty to target the root folder.
+### Content (`content`) — Upload only
 
-### Folder Name
+The text content to write into the uploaded file.
 
-For the create-folder operation, the name for the new folder.
+### Select Parent Folder (`folderSelector`) — Upload and Create Folder
 
-### Search Query & Results Per Page
+A folder picker (basic mode) that lets you browse and select the destination parent folder. Leave unset to target the root drive.
 
-For the list operation, an optional search query to filter files and a page size for the number of results returned (default 100, max 1000).
+### Parent Folder ID (`manualFolderId`) — Upload, Create Folder, and List (advanced mode)
+
+Manually supply the Microsoft Graph folder ID. Available in advanced mode for all three operations. Leave empty to target the root folder.
+
+### Folder Name (`folderName`) — Create Folder only
+
+The name for the new folder that will be created. If a folder with that name already exists, Microsoft Graph renames the new folder automatically.
+
+### Select Folder (`folderSelector`) — List only
+
+A folder picker (basic mode) that selects the folder whose contents will be listed.
+
+### Search Query (`query`) — List only
+
+Optional name-prefix filter. Returns only items whose names start with the supplied string (e.g., `report` matches `report-2024.txt`).
+
+### Results Per Page (`pageSize`) — List only
+
+Maximum number of items to return. Defaults to 100; maximum is 1000.
 
 ## Inputs & Outputs
 
 - **Inputs**:
-  - `operation` (string)
-  - `credential` (string)
-  - `fileName` (string)
-  - `content` (string)
-  - `folderSelector` (string)
-  - `manualFolderId` (string)
-  - `query` (string)
-  - `pageSize` (number)
+  - `operation` (string) — Operation to perform (`upload`, `create_folder`, or `list`)
+  - `credential` (string) — Microsoft account OAuth credential (access token)
+  - `fileName` (string) — File name (upload operation)
+  - `content` (string) — File content (upload operation)
+  - `folderSelector` (string) — Folder selector picked via UI (basic mode; used by upload, create\_folder, and list)
+  - `manualFolderId` (string) — Parent or target folder ID entered manually (advanced mode)
+  - `query` (string) — Name-prefix search query (list operation)
+  - `pageSize` (number) — Number of results per page (list operation)
+
 - **Outputs**:
-  - `file` (json) — the OneDrive file object (id, name, size, and more)
-  - `files` (json) — an array of OneDrive file objects
+  - `file` (json) — The OneDrive file or folder object returned by create\_folder and upload operations; includes `id`, `name`, `mimeType`, `webViewLink`, `webContentLink`, `size`, `createdTime`, `modifiedTime`, and `parentReference`
+  - `files` (json) — Array of OneDrive file/folder objects returned by the list operation; each item contains `id`, `name`, `mimeType`, `webViewLink`, `webContentLink`, `size`, `createdTime`, `modifiedTime`, and `parents`
+
+## Tools
+
+- **Upload to OneDrive** (`onedrive_upload`) — Uploads text content to OneDrive as a `.txt` file using Microsoft Graph `PUT /me/drive/items/{folderId}:/{fileName}:/content`. Places the file in the specified parent folder or at the root if no folder is given. Returns the uploaded file's metadata.
+- **Create Folder in OneDrive** (`onedrive_create_folder`) — Creates a new folder under the specified parent folder (or at the root) using Microsoft Graph `POST /me/drive/items/{folderId}/children`. Handles name conflicts by automatically renaming the new folder. Returns the created folder's metadata.
+- **List OneDrive Files** (`onedrive_list`) — Lists files and folders inside a specified folder (or the root) using Microsoft Graph `GET /me/drive/items/{folderId}/children`. Supports name-prefix filtering via `$filter` and pagination via `$top`. Returns an array of file/folder objects and an optional `nextPageToken` for retrieving subsequent pages.
 
 ## YAML Example
 
@@ -74,7 +104,7 @@ onedrive_1:
   inputs:
     operation: "upload"
     credential: "{{credentials.onedrive}}"
-    fileName: "report.txt"
+    fileName: "report"
     content: "{{start.input}}"
     manualFolderId: ""
   connections:

@@ -1,0 +1,112 @@
+---
+title: Rippling Block
+description: List workers and companies in Rippling
+icon: Box
+---
+
+# Rippling Block
+
+The Rippling block lets you read HR and workforce data directly from Rippling. Use it to list employees (workers), fetch a single worker by ID, or list companies — authenticated with a Rippling API key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `rippling` |
+| **Category** | tools |
+| **Color** | `#FFC107` |
+
+## When to Use
+
+- Pull a full employee roster from Rippling to sync headcount data into a downstream block or table.
+- Fetch a specific worker by ID to look up their profile before taking a follow-up action.
+- List companies in your Rippling account to map org structure or drive multi-company automation.
+- Filter the worker list to a specific subset (e.g. active employees in one department) before routing data onward.
+- Page through large result sets using a cursor returned from a previous run.
+- Expand related fields on a worker or company record to include nested data in one API call.
+
+## Configuration
+
+### Operation
+
+Select the API operation the block performs. This controls which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| List workers | `rippling_list_workers` |
+| Get worker | `rippling_get_worker` |
+| List companies | `rippling_list_companies` |
+
+Default: `rippling_list_workers`.
+
+### Worker ID
+
+Shown for: **Get worker** only.
+
+The unique identifier of the Rippling worker to retrieve. Required when using the Get worker operation.
+
+### Filter
+
+Shown for: **List workers** only.
+
+A filter expression used to narrow the returned workers (e.g. filter by employment status or department). Optional.
+
+### Expand
+
+Shown for: **all operations**.
+
+Comma-separated list of related fields to expand inline on each returned object (e.g. `department,role`). Optional.
+
+### Order By
+
+Shown for: **List workers** and **List companies**.
+
+The field name to sort results by. Prefix the field name with `-` for descending order (e.g. `-name`). Optional.
+
+### Cursor
+
+Shown for: **List workers** and **List companies**.
+
+Pagination cursor value returned in `metadata.next_link` from a previous response. Pass it here to retrieve the next page. Optional.
+
+### Rippling API Key
+
+Required for all operations. Your Rippling API key used to authenticate requests via `Bearer` token. Mark this input as a secret and reference it as `{{RIPPLING_API_KEY}}`.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`rippling_list_workers`, `rippling_get_worker`, or `rippling_list_companies`)
+  - `apiKey` (string) — Rippling API key
+  - `id` (string) — Worker ID (used by Get worker)
+  - `filter` (string) — Filter expression (used by List workers)
+  - `expand` (string) — Comma-separated fields to expand (used by all operations)
+  - `orderBy` (string) — Sort field (used by List workers and List companies)
+  - `cursor` (string) — Pagination cursor (used by List workers and List companies)
+
+- **Outputs**:
+  - `data` (json) — Result object (Get worker) or array of objects (List workers / List companies) from Rippling
+  - `metadata` (json) — Response metadata: for list operations contains `count` (number of items returned) and `next_link` (link to the next page, or null); for Get worker contains `id` (the worker ID)
+
+## Tools
+
+- **Rippling List Workers** (`rippling_list_workers`) — Calls `GET https://rest.ripplingapis.com/workers/` with optional `filter`, `expand`, `order_by`, and `cursor` query parameters. Returns an array of worker objects and pagination metadata.
+- **Rippling Get Worker** (`rippling_get_worker`) — Calls `GET https://rest.ripplingapis.com/workers/{id}/` with an optional `expand` query parameter. Returns the single worker object and its ID in metadata.
+- **Rippling List Companies** (`rippling_list_companies`) — Calls `GET https://rest.ripplingapis.com/companies/` with optional `expand`, `order_by`, and `cursor` query parameters. Returns an array of company objects and pagination metadata.
+
+## YAML Example
+
+```yaml
+rippling_1:
+  type: rippling
+  name: "Rippling"
+  inputs:
+    operation: "rippling_list_workers"
+    apiKey: "{{RIPPLING_API_KEY}}"
+    filter: "employmentStatus = 'EMPLOYED'"
+    orderBy: "-name"
+    expand: "department"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

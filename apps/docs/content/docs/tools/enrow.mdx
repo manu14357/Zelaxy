@@ -1,0 +1,58 @@
+---
+title: Enrow
+description: Find and verify B2B email addresses using the Enrow API
+icon: Mail
+---
+
+# Enrow
+
+Find verified B2B email addresses from a person's name and company, verify email deliverability, and retrieve the result of an async find-email job through the Enrow API. Use it to power outbound sales workflows, lead enrichment pipelines, and email validation steps.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `enrow` |
+| **Category** | Tool — CRM & Sales |
+| **Auth** | API Key (`x-api-key` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Find Email** | `enrow_find_email` | Look up a B2B email address given a person's full name and company name or domain |
+| **Verify Email** | `enrow_verify_email` | Check the deliverability of a known email address |
+| **Get Result** | `enrow_get_result` | Retrieve the completed result of a previously submitted find-email job by its job ID |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Enrow API key — store as `{{ENROW_API_KEY}}`. Sent as the `x-api-key` request header. This is a secret field. |
+| `fullname` | `string` | Yes (Find Email) | Full name of the person to find, e.g. `"John Doe"`. |
+| `company` | `string` | Yes (Find Email) | Company name or domain to search within, e.g. `"Apple"` or `"apple.com"`. |
+| `email` | `string` | Yes (Verify Email) | Email address to verify, e.g. `"john@example.com"`. |
+| `id` | `string` | Yes (Get Result) | Job ID returned by a previous `enrow_find_email` call. Use `{{findEmail.metadata.id}}` to pass it from an upstream Find Email block. |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | The raw response object from Enrow. For Find Email, contains the queued job details. For Verify Email, contains the deliverability verdict. For Get Result, contains the completed find-email result with the discovered email address. |
+| `metadata` | `json` | Job identifiers returned by Enrow. |
+| `metadata.id` | `string` | The job ID associated with this operation. Use this value as the `id` input to a subsequent Get Result block to poll for the completed result. |
+
+## Example
+
+```
+[Starter] → [Enrow: Find Email] → [Enrow: Get Result] → [Agent: use the result]
+```
+
+Connect a Starter block that provides `{{starter.fullname}}` (e.g. `"Jane Smith"`) and `{{starter.company}}` (e.g. `"acme.com"`) to an Enrow Find Email block using `{{ENROW_API_KEY}}` for authentication. The Find Email block enqueues an async job and returns `{{findEmail.metadata.id}}`; pass that ID into a second Enrow Get Result block (also using `{{ENROW_API_KEY}}`) to retrieve the discovered email address once the job completes. Feed the result into an Agent block to draft and send personalised outreach.
+
+## Tips
+
+- **Find Email is asynchronous.** The `enrow_find_email` operation returns a job ID immediately; the actual email address is not available until you poll with `enrow_get_result`. Always chain a Get Result block after Find Email and pass `{{findEmail.metadata.id}}` as the `id` input.
+- **Verify before you send.** Run discovered emails through `enrow_verify_email` to confirm deliverability before adding them to a send sequence — this reduces bounce rates and protects your sender reputation.
+- **Store the API key as a secret.** The `apiKey` field has `user-only` visibility; reference it as `{{ENROW_API_KEY}}` so it is never exposed to LLM-visible context in your workflow.
+- **Use company domain over name when possible.** Passing a domain like `"apple.com"` in the `company` field yields more precise results than a plain company name because Enrow can match it directly to a mail server.

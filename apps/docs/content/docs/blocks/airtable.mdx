@@ -28,36 +28,77 @@ The Airtable block lets you manage table records in an Airtable base directly fr
 ## Configuration
 
 ### Operation
-Dropdown selecting the action to perform: **List Records** (`list`), **Get Record** (`get`), **Create Records** (`create`), or **Update Record** (`update`). Defaults to `list`.
+Dropdown selecting the action to perform. Required; defaults to `list`.
+
+| Label | ID |
+|-------|----|
+| List Records | `list` |
+| Get Record | `get` |
+| Create Records | `create` |
+| Update Record | `update` |
 
 ### Airtable Account
-OAuth connection to your Airtable account. Required, and requests the `data.records:read` and `data.records:write` scopes.
+OAuth connection to your Airtable account (`oauth-input`, provider: `airtable`). Required. Requests the `data.records:read` and `data.records:write` scopes.
 
 ### Base ID
-The target base identifier (e.g., `appXXXXXXXXXXXXXX`). Required.
+The target base identifier (e.g., `appXXXXXXXXXXXXXX`). Required for all operations.
 
 ### Table ID
-The target table identifier (e.g., `tblXXXXXXXXXXXXXX`). Required.
+The target table identifier (e.g., `tblXXXXXXXXXXXXXX`). Required for all operations.
 
 ### Record ID
-The record to operate on (e.g., `recXXXXXXXXXXXXXX`). Required for the **get** and **update** operations.
+The record to operate on (e.g., `recXXXXXXXXXXXXXX`). Required for the `get` and `update` operations only.
 
-### Max Records / Filter Formula
-Optional list-only inputs: cap the number of returned records and/or supply an Airtable formula to filter results.
+### Max Records
+Optional cap on the number of records returned. Visible only for the `list` operation.
+
+### Filter Formula
+Optional Airtable formula to filter results (e.g., `({Status} = "Active")`). Visible only for the `list` operation.
 
 ### Records (JSON Array)
-JSON array of records to write, used by the **create** operation (e.g., `[{ "fields": { ... } }]`).
+JSON array of records to write. Required for the `create` operation. Format: `[{ "fields": { "Field Name": "Value" } }]`.
 
 ### Fields (JSON Object)
-JSON object of field values to apply, used by the **update** operation (e.g., `{ "Field Name": "New Value" }`).
+JSON object of field names and their new values. Required for the `update` operation. Format: `{ "Field Name": "New Value" }`.
 
 ### Trigger Configuration
-When trigger mode is active, configures the `airtable_webhook` trigger so the workflow runs on record changes.
+When trigger mode is active, configures the `airtable_webhook` trigger so the workflow fires on record changes in the connected base.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `baseId` (string), `tableId` (string), `recordId` (string), `maxRecords` (number), `filterFormula` (string), `records` (json), `fields` (json)
-- **Outputs**: `records` (json), `record` (json), `metadata` (json), `event_type` (string), `base_id` (string), `table_id` (string), `record_id` (string), `record_data` (string), `changed_fields` (string), `webhook_id` (string), `timestamp` (string)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`list`, `get`, `create`, or `update`)
+  - `credential` (string) — Airtable OAuth access token
+  - `baseId` (string) — Airtable base identifier
+  - `tableId` (string) — Airtable table identifier
+  - `recordId` (string) — Record identifier; required for `get` and `update`
+  - `maxRecords` (number) — Maximum records to return; optional for `list`
+  - `filterFormula` (string) — Filter formula expression; optional for `list`
+  - `records` (json) — Record data array; required for `create`
+  - `fields` (json) — Field data object; required for `update`
+
+- **Outputs** (action operations):
+  - `records` (json) — Array of retrieved or created records; present for `list` and `create`
+  - `record` (json) — Single record data; present for `get` and `update`
+  - `metadata` (json) — Operation metadata (e.g., pagination offset, record count, updated field names); present in all responses
+
+- **Outputs** (webhook trigger mode):
+  - `event_type` (string) — Type of Airtable event
+  - `base_id` (string) — Airtable base identifier
+  - `table_id` (string) — Airtable table identifier
+  - `record_id` (string) — Record identifier that was modified
+  - `record_data` (string) — Complete record data (when Include Full Record Data is enabled)
+  - `changed_fields` (string) — Fields that were changed in the record
+  - `webhook_id` (string) — Unique webhook identifier
+  - `timestamp` (string) — Event timestamp
+
+## Tools
+
+- **Airtable List Records** (`airtable_list_records`) — Reads records from an Airtable table via GET. Supports optional `maxRecords` cap and `filterByFormula` filtering. Returns an array of records and pagination metadata.
+- **Airtable Get Record** (`airtable_get_record`) — Retrieves a single record from an Airtable table by its record ID via GET. Returns the full record object and metadata.
+- **Airtable Create Records** (`airtable_create_records`) — Writes one or more new records to an Airtable table via POST. Accepts a `records` array where each element has a `fields` object. Returns the created records and metadata.
+- **Airtable Update Record** (`airtable_update_record`) — Updates an existing record in an Airtable table by record ID via PATCH. Accepts a `fields` object. Returns the updated record and metadata including the list of updated field names.
+- **Airtable Update Multiple Records** (`airtable_update_multiple_records`) — Updates multiple existing records in a single PATCH request. Accepts a `records` array where each element has an `id` and a `fields` object. Returns the updated records and metadata including all updated record IDs.
 
 ## YAML Example
 
@@ -67,11 +108,11 @@ airtable_1:
   name: "Airtable"
   inputs:
     operation: "list"
-    credential: "{{airtable_account}}"
+    credential: "{{AIRTABLE_OAUTH_TOKEN}}"
     baseId: "appXXXXXXXXXXXXXX"
     tableId: "tblXXXXXXXXXXXXXX"
     maxRecords: 100
-    filterFormula: ""
+    filterFormula: "({Status} = \"Active\")"
   connections:
     outgoing:
       - target: next-block-id

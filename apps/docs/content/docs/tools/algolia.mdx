@@ -1,0 +1,108 @@
+---
+title: Algolia
+description: Search, index, and manage records in Algolia search indices
+icon: Search
+---
+
+# Algolia
+
+Search, index, and manage records in Algolia — the hosted search and discovery API. Use this integration to run full-text queries against your indices, add or replace records, partially update existing records, fetch a single record by ID, and delete records — all from within a workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `algolia` |
+| **Category** | Tool — Search |
+| **Auth** | API Key (`x-algolia-application-id` + `x-algolia-api-key` headers) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Search** | `algolia_search` | Run a full-text search against an Algolia index and return ranked hits with pagination metadata |
+| **Add Record** | `algolia_index_document` | Add a new record to an index (POST) or add/replace a record at a specific objectID (PUT) |
+| **Update Record** | `algolia_update_document` | Partially update an existing record without replacing all its attributes |
+| **Delete Record** | `algolia_delete_document` | Delete a record from an index by its objectID |
+| **Get Record** | `algolia_get_document` | Retrieve a single record by its objectID, optionally limiting which attributes are returned |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `applicationId` | `string` | Yes | Your Algolia Application ID (visible in the Algolia dashboard under API Keys). Used as `x-algolia-application-id`. Store as `{{ALGOLIA_APP_ID}}`. |
+| `apiKey` | `string` | Yes | Algolia API Key sent as `x-algolia-api-key`. Use a **Search-Only API Key** for `algolia_search` and `algolia_get_document`; use an **Admin API Key** for write operations (`algolia_index_document`, `algolia_update_document`, `algolia_delete_document`). Store as `{{ALGOLIA_API_KEY}}`. |
+| `indexName` | `string` | Yes | Name of the Algolia index to operate on (e.g. `products`, `articles`). |
+| `query` | `string` | Yes (Search only) | The search query text. An empty string matches all records. |
+| `hitsPerPage` | `number` | No | Number of hits to return per page. Defaults to `20`. |
+| `page` | `number` | No | Zero-based page number to retrieve. Defaults to `0`. |
+| `filters` | `string` | No | Algolia filter expression applied before ranking, e.g. `category:electronics AND price < 100`. |
+| `attributesToRetrieve` | `string` | No | Comma-separated list of attributes to include in the response, e.g. `name,price,sku`. Applies to both Search and Get Record. |
+| `objectID` | `string` | No (Add Record) / Yes (Update, Delete, Get Record) | The unique identifier of the record. For Add Record, omit to let Algolia auto-generate an ID (POST) or supply one to upsert at that ID (PUT). |
+| `record` | `json` | Yes (Add Record only) | Full JSON object to add or replace. Example: `{"name": "Widget", "price": 9.99, "category": "tools"}`. |
+| `attributes` | `json` | Yes (Update Record only) | JSON object containing only the fields to update. Non-specified attributes are left unchanged. |
+| `createIfNotExists` | `boolean` | No (Update Record only) | When `false`, the update fails if the record does not already exist. Defaults to `true` (upsert behaviour). |
+
+## Outputs
+
+### Search (`algolia_search`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `hits` | `array` | Array of matching record objects, ordered by Algolia's relevance ranking |
+| `nbHits` | `number` | Total number of records that matched the query |
+| `page` | `number` | Zero-based index of the current page returned |
+| `nbPages` | `number` | Total number of pages available for this query |
+| `hitsPerPage` | `number` | Number of hits returned per page |
+| `processingTimeMS` | `number` | Server-side query processing time in milliseconds |
+| `query` | `string` | The search query string that was executed |
+| `parsedQuery` | `string` | The query string after Algolia's normalisation (optional) |
+| `facets` | `object` | Facet counts keyed by attribute name (optional, only when facets are requested) |
+| `facets_stats` | `object` | Min/max/sum statistics for numeric facet attributes (optional) |
+| `exhaustive` | `object` | Flags indicating whether results are exhaustive (optional) |
+
+### Add Record (`algolia_index_document`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `taskID` | `number` | Algolia task ID for tracking the indexing operation asynchronously |
+| `objectID` | `string` | The objectID of the added or replaced record |
+| `createdAt` | `string` | ISO timestamp when the record was created (optional) |
+| `updatedAt` | `string` | ISO timestamp when the record was updated (optional) |
+
+### Update Record (`algolia_update_document`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `taskID` | `number` | Algolia task ID for tracking the partial-update operation |
+| `objectID` | `string` | The objectID of the updated record |
+| `updatedAt` | `string` | ISO timestamp when the record was updated |
+
+### Delete Record (`algolia_delete_document`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `taskID` | `number` | Algolia task ID for tracking the deletion |
+| `deletedAt` | `string` | ISO timestamp when the record was deleted |
+
+### Get Record (`algolia_get_document`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `objectID` | `string` | The objectID of the retrieved record |
+| `record` | `object` | All attribute data for the record (excludes the `objectID` field) |
+
+## Example
+
+```
+[Starter] → [Algolia: Search] → [Agent: summarise results]
+```
+
+When a user submits a keyword through `{{starter.input}}`, the Search operation queries the `products` index using `{{ALGOLIA_APP_ID}}` and `{{ALGOLIA_API_KEY}}`, returning up to `{{hitsPerPage}}` ranked hits. The Agent block then receives `{{algolia.hits}}` and composes a natural-language summary of the top results. Pair a second branch with the Add Record operation to write any new product the Agent identifies back to the same index as a fresh record.
+
+## Tips
+
+- **Use a Search-Only API Key for read operations.** `algolia_search` and `algolia_get_document` only need read access. Reserve your Admin API Key for write operations (`algolia_index_document`, `algolia_update_document`, `algolia_delete_document`) and never expose it in client-facing workflows.
+- **`algolia_index_document` vs `algolia_update_document`:** Add Record with an `objectID` replaces the entire record (PUT); Update Record performs a partial update — only the fields you supply in `attributes` are changed.
+- **Pagination:** `nbPages` and `page` outputs let you loop through large result sets. Feed `{{algolia.page + 1}}` back into a subsequent Search block until `page >= nbPages - 1`.
+- **Filter syntax** follows Algolia's filter expression language: `brand:Nike AND size:M`, `price < 50`, or `(category:shoes OR category:boots) AND inStock:true`. Make sure the attributes used in filters are declared as `attributesForFaceting` in your Algolia index settings.

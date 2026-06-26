@@ -1,0 +1,112 @@
+---
+title: Google Groups Tools
+description: Manage Google Workspace groups and members via the Admin Directory API.
+icon: Box
+---
+
+# Google Groups Tools
+
+The Google Groups tools connect to the Google Workspace Admin Directory API to list groups, fetch group details, list group members, and add new members. Use these tools in workflows that need to automate group provisioning, membership audits, or onboarding flows within a Google Workspace organization.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-groups` |
+| **Category** | tools |
+| **Auth** | OAuth (Bearer Token — pass a Google OAuth access token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List Groups | `google_groups_list_groups` | List all groups in a Google Workspace domain |
+| Get Group | `google_groups_get_group` | Get details of a specific Google Group by email or group ID |
+| List Members | `google_groups_list_members` | List all members of a Google Group |
+| Add Member | `google_groups_add_member` | Add a new member to a Google Group |
+
+## Configuration
+
+### google_groups_list_groups
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for Google Groups (user-only; keep secret) |
+| `maxResults` | number | No | Maximum number of groups to return (1–200) |
+
+### google_groups_get_group
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for Google Groups (user-only; keep secret) |
+| `groupKey` | string | Yes | Group email address (e.g., `team@example.com`) or the unique group ID |
+
+### google_groups_list_members
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for Google Groups (user-only; keep secret) |
+| `groupKey` | string | Yes | Group email address (e.g., `team@example.com`) or the unique group ID |
+| `maxResults` | number | No | Maximum number of members to return (1–200) |
+
+### google_groups_add_member
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for Google Groups (user-only; keep secret) |
+| `groupKey` | string | Yes | Group email address (e.g., `team@example.com`) or the unique group ID |
+| `email` | string | Yes | Email address of the member to add (e.g., `user@example.com`) |
+| `role` | string | No | Role for the member: `MEMBER`, `MANAGER`, or `OWNER`. Defaults to `MEMBER` |
+
+## Outputs
+
+### google_groups_list_groups
+
+- `data` (json) — Array of Google Group objects returned by the API.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of groups returned in this response.
+  - `metadata.nextPageToken` (string) — Pagination token for fetching the next page of results (present only when more pages exist).
+
+### google_groups_get_group
+
+- `data` (json) — The full Google Group object (id, name, email, description, directMembersCount, adminCreated, aliases, etc.).
+- `metadata` (json) — Group identifiers.
+  - `metadata.id` (string) — The unique group ID.
+  - `metadata.email` (string) — The group email address.
+
+### google_groups_list_members
+
+- `data` (json) — Array of Google Group member objects (id, email, role, type, status).
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of members returned in this response.
+  - `metadata.nextPageToken` (string) — Pagination token for fetching the next page of results (present only when more pages exist).
+
+### google_groups_add_member
+
+- `data` (json) — The added Google Group member object as returned by the API (id, email, role, type, status).
+- `metadata` (json) — Member identifiers.
+  - `metadata.id` (string) — The member's unique ID.
+  - `metadata.email` (string) — The member's email address.
+
+## YAML Example
+
+```yaml
+google_groups_1:
+  type: google_groups
+  name: "Google Groups"
+  inputs:
+    operation: "google_groups_add_member"
+    groupKey: "engineering@example.com"
+    email: "{{new_hire_block.email}}"
+    role: "MEMBER"
+    accessToken: "{{GOOGLE_GROUPS_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **OAuth scopes**: The access token must include the `https://www.googleapis.com/auth/admin.directory.group` scope (read/write for groups and members). A read-only scope (`...group.readonly` or `...group.member.readonly`) is sufficient for list/get operations only.
+- **groupKey formats**: All operations that accept a `groupKey` accept either the group's primary email address (e.g., `devs@example.com`) or its immutable group ID. Using the email is more readable; using the ID is safer if the email alias may change.
+- **Pagination**: `list_groups` and `list_members` return up to `maxResults` items per call (max 200). If `metadata.nextPageToken` is present in the output, there are more pages — use a loop block to iterate until `nextPageToken` is absent.

@@ -13,8 +13,8 @@ The Note block is a metadata-only block for adding human-readable notes, comment
 | Property | Value |
 |----------|-------|
 | **Type** | `note` |
-| **Category** | Core Block |
-| **Color** | `#FBBF24` (Amber) |
+| **Category** | `blocks` |
+| **Color** | `#FBBF24` |
 
 ## When to Use
 
@@ -27,12 +27,24 @@ The Note block is a metadata-only block for adding human-readable notes, comment
 ## Configuration
 
 ### Note
+
 A multi-line text area where you enter the annotation or comment. This is the only field on the block, and its contents are purely informational — they are never evaluated or executed.
+
+| Property | Value |
+|----------|-------|
+| **Sub-block id** | `content` |
+| **Type** | `long-input` |
+| **Required** | No |
+| **Placeholder** | `Add a note or comment about this part of the workflow...` |
 
 ## Inputs & Outputs
 
 - **Inputs**: `content` (string) — the text content of the note
 - **Outputs**: none (this block produces no runtime output)
+
+## Tools
+
+This block has no tool integrations — it is a canvas annotation only and performs no runtime operations.
 
 ## YAML Example
 

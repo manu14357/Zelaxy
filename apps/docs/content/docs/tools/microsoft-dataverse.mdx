@@ -1,0 +1,129 @@
+---
+title: Microsoft Dataverse Tools
+description: Query, create, and retrieve records in Microsoft Dataverse tables via the OData Web API
+icon: Database
+---
+
+# Microsoft Dataverse Tools
+
+Microsoft Dataverse stores and manages business data used by Dynamics 365 and Power Platform apps. Use these tools in a workflow to query, create, and retrieve records from Dataverse tables through the OData Web API, authenticating with an OAuth bearer access token and your Dataverse environment URL.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `microsoft-dataverse` |
+| **Category** | tools |
+| **Auth** | OAuth bearer access token (sent as `Authorization: Bearer <accessToken>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Query records | `microsoft_dataverse_query_records` | Query records from a Microsoft Dataverse table with an optional OData filter |
+| Create record | `microsoft_dataverse_create_record` | Create a new record in a Microsoft Dataverse table |
+| Get record | `microsoft_dataverse_get_record` | Retrieve a single record from a Microsoft Dataverse table by ID |
+
+All operations call the Dataverse Web API at `{{orgUrl}}/api/data/v9.2/...` using OData v4 headers.
+
+## Configuration
+
+### `microsoft_dataverse_query_records`
+
+Query records from a table, optionally narrowing results with an OData `$filter` and limiting the result count with `$top`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth bearer access token for Microsoft Dataverse. **Secret** — provided as the user credential, not exposed to the LLM. |
+| `orgUrl` | string | Yes | Dataverse environment URL (e.g., `https://myorg.crm.dynamics.com`). |
+| `entitySetName` | string | Yes | Entity set name (plural table name, e.g., `accounts`, `contacts`). |
+| `filter` | string | No | OData `$filter` expression (e.g., `statecode eq 0`). |
+| `top` | number | No | Maximum number of records to return (default `10`). |
+
+### `microsoft_dataverse_create_record`
+
+Create a new record in a table. The response uses `Prefer: return=representation`, so the created record is returned in full.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth bearer access token for Microsoft Dataverse. **Secret** — provided as the user credential, not exposed to the LLM. |
+| `orgUrl` | string | Yes | Dataverse environment URL (e.g., `https://myorg.crm.dynamics.com`). |
+| `entitySetName` | string | Yes | Entity set name (plural table name, e.g., `accounts`, `contacts`). |
+| `fields` | json | Yes | Record fields as a JSON object with column names as keys (e.g., `{ "name": "Contoso Ltd" }`). A JSON string is also accepted and parsed. |
+
+### `microsoft_dataverse_get_record`
+
+Retrieve a single record by its GUID.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth bearer access token for Microsoft Dataverse. **Secret** — provided as the user credential, not exposed to the LLM. |
+| `orgUrl` | string | Yes | Dataverse environment URL (e.g., `https://myorg.crm.dynamics.com`). |
+| `entitySetName` | string | Yes | Entity set name (plural table name, e.g., `accounts`, `contacts`). |
+| `recordId` | string | Yes | The unique identifier (GUID) of the record to retrieve. |
+
+## Outputs
+
+### `microsoft_dataverse_query_records`
+
+- `data` (json) — Array of Dataverse records matching the query (the OData `value` array).
+- `metadata` (json) — Query metadata, containing:
+  - `entitySetName` (string) — The queried entity set name.
+  - `count` (number) — Number of records returned.
+
+### `microsoft_dataverse_create_record`
+
+- `data` (json) — The created Dataverse record.
+- `metadata` (json) — Record identifiers, containing:
+  - `entitySetName` (string) — The entity set name.
+  - `recordId` (string) — The created record ID (extracted from the response body or the `OData-EntityId` header).
+
+### `microsoft_dataverse_get_record`
+
+- `data` (json) — The Dataverse record.
+- `metadata` (json) — Record identifiers, containing:
+  - `entitySetName` (string) — The entity set name.
+  - `recordId` (string) — The record ID.
+
+## YAML Example
+
+```yaml
+microsoft_dataverse_1:
+  type: microsoft_dataverse
+  name: "Microsoft Dataverse"
+  inputs:
+    operation: "microsoft_dataverse_query_records"
+    orgUrl: "https://myorg.crm.dynamics.com"
+    entitySetName: "accounts"
+    filter: "statecode eq 0"
+    top: 10
+    accessToken: "{{MICROSOFT_DATAVERSE_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To create a record instead, switch the operation and supply `fields`:
+
+```yaml
+microsoft_dataverse_create:
+  type: microsoft_dataverse
+  name: "Create Account"
+  inputs:
+    operation: "microsoft_dataverse_create_record"
+    orgUrl: "https://myorg.crm.dynamics.com"
+    entitySetName: "accounts"
+    fields:
+      name: "Contoso Ltd"
+    accessToken: "{{MICROSOFT_DATAVERSE_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup**: `accessToken` is a Microsoft Entra ID (Azure AD) OAuth bearer token scoped to your Dataverse environment (`https://myorg.crm.dynamics.com/.default`). Store it as a secret (e.g., `{{MICROSOFT_DATAVERSE_ACCESS_TOKEN}}`) rather than hard-coding it — tokens are short-lived and must be refreshed.
+- **Use the plural entity set name, not the table logical name**: `entitySetName` must be the OData plural collection name (e.g., `accounts`, `contacts`, `opportunities`), not the singular logical name (`account`).
+- **Reference outputs downstream** with double braces, e.g. `{{microsoft_dataverse_1.data}}` for the records array or `{{microsoft_dataverse_create.metadata.recordId}}` for a newly created record's GUID.
+- **Filtering**: `filter` uses raw OData `$filter` syntax (e.g., `statecode eq 0 and revenue gt 100000`). If omitted, all records up to `top` are returned (default `top` is `10`).

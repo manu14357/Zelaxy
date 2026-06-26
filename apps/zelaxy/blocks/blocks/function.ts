@@ -41,7 +41,7 @@ Example Scenario:
 User Prompt: "Fetch user data from an API. Use the User ID passed in as 'userId' and an API Key stored as the 'SERVICE_API_KEY' environment variable."
 
 Generated Code:
-const userId = <block.content>; // Correct: Accessing input parameter without quotes
+const userId = {{userId}}; // Correct: Accessing input parameter without quotes
 const apiKey = {{SERVICE_API_KEY}}; // Correct: Accessing environment variable without quotes
 const url = \`https://api.example.com/users/\${userId}\`;
 

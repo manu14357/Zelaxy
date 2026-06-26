@@ -1,0 +1,122 @@
+---
+title: Persona Block
+description: Manage identity verification inquiries
+icon: Box
+---
+
+# Persona Block
+
+The Persona block connects your workflows to the [Persona](https://withpersona.com) identity verification platform, letting you list inquiries, retrieve a single inquiry, and fetch an account via the Persona API. Reach for it when a workflow needs to inspect KYC/AML verification outcomes, look up a specific inquiry by ID, or pull account-level identity data programmatically.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `persona` |
+| **Category** | tools |
+| **Color** | `#4F46E5` |
+
+## When to Use
+
+- Fetch a paginated list of identity verification inquiries, optionally filtered by status (e.g. `completed`, `pending`, `failed`).
+- Retrieve full details for a single inquiry by its `inq_...` ID — useful after a webhook fires to confirm the outcome.
+- Look up a Persona account by its `act_...` ID to get consolidated identity data tied to a user.
+- Feed inquiry or account data into downstream blocks (e.g. an Agent or Condition block) for automated KYC decision flows.
+- Surface identity verification status inside a response block or notification after a user completes onboarding.
+
+## Configuration
+
+### Operation
+
+Dropdown that selects the Persona API action to perform. Required. Default: `List inquiries`.
+
+| Label | ID |
+|-------|----|
+| List inquiries | `persona_list_inquiries` |
+| Get inquiry | `persona_get_inquiry` |
+| Get account | `persona_get_account` |
+
+---
+
+### Status
+
+_Visible only when Operation is **List inquiries**._
+
+A short text field to filter inquiries by status. Optional. Example values: `completed`, `pending`, `failed`. Maps to the Persona API `filter[status]` query parameter.
+
+---
+
+### Limit
+
+_Visible only when Operation is **List inquiries**._
+
+Number of inquiries to return per page (1–100). Optional. Example: `10`. Maps to `page[size]` in the Persona API.
+
+---
+
+### ID
+
+_Visible only when Operation is **Get inquiry** or **Get account**._
+
+The unique Persona identifier to retrieve. Required for these operations.
+
+- For **Get inquiry**: an inquiry ID starting with `inq_` (e.g. `inq_abc123`).
+- For **Get account**: an account ID starting with `act_` (e.g. `act_xyz789`).
+
+---
+
+### Persona API Key
+
+Your Persona API key used for Bearer-token authentication. Required for every operation. Store it as a workflow secret and reference it with `{{PERSONA_API_KEY}}`. The value is never exposed in logs.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`persona_list_inquiries`, `persona_get_inquiry`, or `persona_get_account`)
+  - `apiKey` (string) — Persona API key
+  - `status` (string) — Inquiry status filter (list inquiries only)
+  - `limit` (number) — Result limit (list inquiries only)
+  - `id` (string) — Inquiry or account ID (get inquiry / get account only)
+
+- **Outputs**:
+  - `data` (json) — Result object or array from Persona. For list inquiries: an array of inquiry objects. For get inquiry/get account: a single object.
+  - `metadata` (json) — Response metadata. For list inquiries: `{ count: number }`. For get inquiry/get account: `{ id: string, type: string }`.
+
+## Tools
+
+**Persona List Inquiries** (`persona_list_inquiries`) — Calls `GET https://api.withpersona.com/api/v1/inquiries` to return a list of identity verification inquiries. Supports optional `status` filter and `limit` page size. Returns an array of inquiry objects in `data` and a `count` in `metadata`.
+
+**Persona Get Inquiry** (`persona_get_inquiry`) — Calls `GET https://api.withpersona.com/api/v1/inquiries/{id}` to fetch a single inquiry by its `inq_...` ID. Returns the full inquiry object in `data` and the inquiry's `id` and resource `type` in `metadata`.
+
+**Persona Get Account** (`persona_get_account`) — Calls `GET https://api.withpersona.com/api/v1/accounts/{id}` to fetch a single account by its `act_...` ID. Returns the full account object in `data` and the account's `id` and resource `type` in `metadata`.
+
+## YAML Example
+
+```yaml
+persona_1:
+  type: persona
+  name: "Persona"
+  inputs:
+    operation: "persona_list_inquiries"
+    apiKey: "{{PERSONA_API_KEY}}"
+    status: "completed"
+    limit: 25
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+_To retrieve a specific inquiry instead, use the **Get inquiry** operation:_
+
+```yaml
+persona_1:
+  type: persona
+  name: "Persona"
+  inputs:
+    operation: "persona_get_inquiry"
+    apiKey: "{{PERSONA_API_KEY}}"
+    id: "{{trigger.inquiryId}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

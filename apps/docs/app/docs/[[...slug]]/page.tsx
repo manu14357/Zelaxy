@@ -1,8 +1,9 @@
-import defaultMdxComponents from 'fumadocs-ui/mdx'
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { getMDXComponents } from '@/mdx-components'
 import { source } from '@/lib/source'
+import { PageActions } from '../../components/page-actions'
 
 interface PageProps {
   params: Promise<{ slug?: string[] }>
@@ -42,20 +43,35 @@ export default async function Page(props: PageProps) {
   const MDX = page.data.body
   const category = getCategoryInfo(params.slug)
   const isSubpage = params.slug && params.slug.length > 1
+  const slug = params.slug ?? []
 
   return (
-    <DocsPage toc={page.data.toc} full={page.data.full}>
+    <DocsPage
+      toc={page.data.toc}
+      full={page.data.full}
+      breadcrumb={{ enabled: true, includeRoot: { url: '/docs' }, includeSeparator: true }}
+      editOnGithub={{
+        owner: 'manu14357',
+        repo: 'Zelaxy',
+        sha: 'main',
+        path: `apps/docs/content/docs/${slug.length ? slug.join('/') : 'index'}.mdx`,
+      }}
+      tableOfContent={{ style: 'clerk', single: false }}
+    >
       <div className='space-y-4'>
-        {category && isSubpage && (
-          <div className='flex items-center gap-2'>
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          {category && isSubpage ? (
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-medium text-[11px] uppercase tracking-[0.08em] ${category.color}`}
             >
               <span className='text-[9px]'>{category.icon}</span>
               {category.label}
             </span>
-          </div>
-        )}
+          ) : (
+            <span />
+          )}
+          <PageActions slug={slug} pageUrl={page.url} title={page.data.title} />
+        </div>
         <DocsTitle className='font-semibold text-2xl leading-tight tracking-[-0.025em] sm:text-3xl'>
           {page.data.title}
         </DocsTitle>
@@ -66,7 +82,7 @@ export default async function Page(props: PageProps) {
         )}
       </div>
       <DocsBody>
-        <MDX components={{ ...defaultMdxComponents }} />
+        <MDX components={getMDXComponents()} />
       </DocsBody>
     </DocsPage>
   )

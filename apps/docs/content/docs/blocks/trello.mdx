@@ -1,0 +1,125 @@
+---
+title: Trello Block
+description: Manage boards and cards in Trello
+icon: Box
+---
+
+# Trello Block
+
+Create cards, list cards, get and create boards, and move cards across lists through the Trello REST API. Reach for this block when your workflow needs to automate Trello project management tasks — from spawning new cards out of upstream data to reorganizing cards between lists.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `trello` |
+| **Category** | tools |
+| **Color** | `#0079BF` |
+
+## When to Use
+
+- Create a new Trello card in a specific list from upstream workflow data (e.g. form submissions, AI outputs).
+- List all cards on a board to feed downstream processing, filtering, or reporting steps.
+- Retrieve full board metadata (name, description, URL) by board ID.
+- Create a new Trello board programmatically as part of a project-setup automation.
+- Move a card from one list to another to reflect a status change (e.g. "In Progress" → "Done").
+- Chain Trello operations together — create a board, then create a card, then move it — all within a single workflow.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting which Trello action to perform. Required. Defaults to `trello_create_card`.
+
+| Label | ID |
+|-------|----|
+| Create card | `trello_create_card` |
+| List cards | `trello_list_cards` |
+| Get board | `trello_get_board` |
+| Create board | `trello_create_board` |
+| Move card | `trello_move_card` |
+
+### List ID (`idList`)
+
+The ID of the Trello list to target. Shown for the **Create card** and **Move card** operations.
+
+- For **Create card**: the destination list where the new card will be added.
+- For **Move card**: the destination list to move the card into.
+
+Example: `5abbe4b7ddc1b351ef961414`
+
+### Name (`name`)
+
+The name or title of the card or board to create. Shown for **Create card** and **Create board** operations.
+
+Example: `My card`
+
+### Description (`desc`)
+
+Optional description body for the card or board. Shown for **Create card** and **Create board** operations. Supports multi-line text.
+
+### Board ID (`boardId`)
+
+The ID of the Trello board to query. Shown for the **List cards** and **Get board** operations.
+
+Example: `5abbe4b7ddc1b351ef961414`
+
+### Card ID (`cardId`)
+
+The ID of the card to move. Shown only for the **Move card** operation.
+
+Example: `5abbe4b7ddc1b351ef961414`
+
+### Trello API Key (`apiKey`)
+
+Your Trello API key, stored as a secret. Required for all operations. Obtain it from [https://trello.com/app-key](https://trello.com/app-key).
+
+Use `{{TRELLO_API_KEY}}` to reference an environment secret.
+
+### Trello API Token (`token`)
+
+Your Trello API token, stored as a secret. Required for all operations. Generated alongside your API key on the Trello app-key page.
+
+Use `{{TRELLO_TOKEN}}` to reference an environment secret.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (one of the tool IDs listed above)
+  - `apiKey` (string) — Trello API key
+  - `token` (string) — Trello API token
+  - `idList` (string) — List ID (used by Create card and Move card)
+  - `name` (string) — Card or board name (used by Create card and Create board)
+  - `desc` (string) — Description (used by Create card and Create board)
+  - `boardId` (string) — Board ID (used by List cards and Get board)
+  - `cardId` (string) — Card ID (used by Move card)
+
+- **Outputs**:
+  - `data` (json) — Result object or array from Trello (card object, board object, or array of cards depending on operation)
+  - `metadata` (json) — Response metadata (e.g. `id` and `url` for object-returning operations; `count` for list operations)
+
+## Tools
+
+- **Trello Create Card** (`trello_create_card`) — Creates a new card in the specified list via `POST /1/cards`. Params: `apiKey`, `token`, `idList` (required), `name` (required), `desc` (optional). Returns the created card object plus `metadata.id` and `metadata.url`.
+- **Trello List Cards** (`trello_list_cards`) — Retrieves all cards on a board via `GET /1/boards/{boardId}/cards`. Params: `apiKey`, `token`, `boardId` (required). Returns an array of card objects plus `metadata.count`.
+- **Trello Get Board** (`trello_get_board`) — Fetches a board's full details via `GET /1/boards/{boardId}`. Params: `apiKey`, `token`, `boardId` (required). Returns the board object plus `metadata.id` and `metadata.url`.
+- **Trello Create Board** (`trello_create_board`) — Creates a new board via `POST /1/boards`. Params: `apiKey`, `token`, `name` (required), `desc` (optional). Returns the created board object plus `metadata.id` and `metadata.url`.
+- **Trello Move Card** (`trello_move_card`) — Moves a card to a different list via `PUT /1/cards/{cardId}`. Params: `apiKey`, `token`, `cardId` (required), `idList` (required). Returns the updated card object plus `metadata.id` and `metadata.url`.
+
+## YAML Example
+
+```yaml
+trello_1:
+  type: trello
+  name: "Trello"
+  inputs:
+    operation: "trello_create_card"
+    apiKey: "{{TRELLO_API_KEY}}"
+    token: "{{TRELLO_TOKEN}}"
+    idList: "5abbe4b7ddc1b351ef961414"
+    name: "{{previous_block.cardTitle}}"
+    desc: "{{previous_block.cardDescription}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

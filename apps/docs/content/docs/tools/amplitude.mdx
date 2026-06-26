@@ -1,0 +1,117 @@
+---
+title: Amplitude
+description: Track events, identify users, and query analytics data in Amplitude from workflows
+icon: ChartBar
+---
+
+# Amplitude
+
+Integrate Amplitude product analytics into your workflows. Track custom events, set user properties, search user records, retrieve event histories, and export raw data — all without leaving your workflow canvas.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `amplitude` |
+| **Category** | Tool — Analytics |
+| **Auth** | API Key (HTTP V2 / Identify API) · Basic Auth — API Key + Secret Key (Export / Dashboard REST API) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Send Event** | `amplitude_send_event` | Track an event in Amplitude using the HTTP V2 API |
+| **Identify User** | `amplitude_identify_user` | Set or update user properties using the Identify API |
+| **User Search** | `amplitude_user_search` | Look up a user by User ID, Device ID, or Amplitude ID |
+| **Get User Activity** | `amplitude_get_user_activity` | Fetch the full event stream for a specific user by their Amplitude ID |
+| **Export Events** | `amplitude_export_events` | Export raw event data for a date range using the Export REST API |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` | Yes (all operations) | **Secret.** Amplitude project API Key. Used for authentication in all operations. |
+| `secretKey` | `string` | Yes (`amplitude_user_search`, `amplitude_get_user_activity`, `amplitude_export_events`) | **Secret.** Amplitude Secret Key. Required alongside `apiKey` for Basic Auth on Dashboard REST and Export API endpoints. |
+| `userId` | `string` | No* | External user identifier. Required for `amplitude_send_event` and `amplitude_identify_user` if `deviceId` is not provided. |
+| `deviceId` | `string` | No* | Device identifier. Required for `amplitude_send_event` and `amplitude_identify_user` if `userId` is not provided. |
+| `eventType` | `string` | Yes (`amplitude_send_event`) | Name of the event to track, e.g. `page_view` or `purchase`. |
+| `eventProperties` | `string` | No | JSON string of custom event properties, e.g. `{"page": "homepage", "action": "click"}`. Invalid JSON is silently dropped. |
+| `userProperties` | `string` | Yes (`amplitude_identify_user`) / No (`amplitude_send_event`) | JSON string of user properties. For `amplitude_identify_user` supports Amplitude operations: `$set`, `$setOnce`, `$add`, `$append`, `$unset`. |
+| `time` | `string` | No | Event timestamp in milliseconds since Unix epoch. Defaults to server receipt time if omitted. |
+| `sessionId` | `string` | No | Session start time in milliseconds since epoch, used to group events into a session. |
+| `insertId` | `string` | No | Unique string for deduplication — Amplitude deduplicates on this field within a 7-day window. |
+| `appVersion` | `string` | No | Application version string at the time of the event. |
+| `platform` | `string` | No | Platform name, e.g. `Web`, `iOS`, or `Android`. |
+| `country` | `string` | No | Two-letter ISO country code, e.g. `US`. |
+| `language` | `string` | No | Language code, e.g. `en`. |
+| `ip` | `string` | No | IP address used for geo-location enrichment. |
+| `price` | `string` | No | Item price for revenue tracking (numeric string). |
+| `quantity` | `string` | No | Quantity of items purchased (numeric string). |
+| `revenue` | `string` | No | Revenue amount (numeric string). |
+| `productId` | `string` | No | Product identifier for revenue events. |
+| `revenueType` | `string` | No | Revenue classification, e.g. `purchase` or `refund`. |
+| `user` | `string` | Yes (`amplitude_user_search`) | User ID, Device ID, or Amplitude ID to search for. |
+| `amplitudeId` | `string` | Yes (`amplitude_get_user_activity`) | Amplitude internal numeric user ID (obtained from `amplitude_user_search`). |
+| `offset` | `string` | No | Pagination offset for `amplitude_get_user_activity` (default `0`). |
+| `limit` | `string` | No | Maximum events to return for `amplitude_get_user_activity` (default and max `1000`). |
+| `direction` | `string` | No | Sort order for `amplitude_get_user_activity`: `latest` (default) or `earliest`. |
+| `start` | `string` | Yes (`amplitude_export_events`) | Export window start in `YYYYMMDDTHH` format, e.g. `20230101T00`. |
+| `end` | `string` | Yes (`amplitude_export_events`) | Export window end in `YYYYMMDDTHH` format, e.g. `20230101T23`. |
+
+\* `userId` or `deviceId` — at least one must be provided for `amplitude_send_event` and `amplitude_identify_user`.
+
+## Outputs
+
+### `amplitude_send_event`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `code` | `number` | Response code from Amplitude (200 on success) |
+| `eventsIngested` | `number` | Number of events accepted by Amplitude |
+| `payloadSizeBytes` | `number` | Size of the request payload in bytes |
+| `serverUploadTime` | `number` | Server-side upload timestamp (milliseconds since epoch) |
+
+### `amplitude_identify_user`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `code` | `number` | HTTP status code of the response |
+| `message` | `string` | Response message body (optional) |
+
+### `amplitude_user_search`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `matches` | `array` | List of matching user objects, each containing `amplitudeId` (number) and `userId` (string) |
+| `type` | `string` | Match type returned by Amplitude (optional) |
+
+### `amplitude_get_user_activity`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `events` | `array` | List of event objects, each with `eventType`, `eventTime`, `eventProperties` (json), `userProperties` (json), `sessionId`, `platform`, `country`, and `city` |
+| `userData` | `json` | User metadata: `userId`, `canonicalAmplitudeId`, `numEvents`, `numSessions`, `platform`, `country` (optional) |
+
+### `amplitude_export_events`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `exportedAt` | `string` | ISO 8601 timestamp of when the export request was made |
+| `startDate` | `string` | Start of the requested export range |
+| `endDate` | `string` | End of the requested export range |
+| `message` | `string` | Status message confirming the export was initiated |
+
+## Example
+
+```
+[Starter] → [Amplitude: Send Event] → [Agent: analyze result]
+```
+
+When a user completes a purchase in your application, a webhook fires the Starter block with order details. The Amplitude block tracks a `purchase` event using `{{AMPLITUDE_API_KEY}}` as the API key, with `eventType` set to `purchase`, `userId` set to `{{starter.userId}}`, and `revenue` set to `{{starter.orderTotal}}`. The downstream Agent block then reads `{{amplitude.eventsIngested}}` to confirm ingestion and generates a follow-up notification.
+
+## Tips
+
+- **API Key vs. Secret Key**: `amplitude_send_event` and `amplitude_identify_user` only need the `apiKey`. The `secretKey` is additionally required for `amplitude_user_search`, `amplitude_get_user_activity`, and `amplitude_export_events`, which use HTTP Basic Auth (`apiKey:secretKey`).
+- **User identification**: Always provide either `userId` or `deviceId` (or both) when sending events or identifying users — Amplitude will reject requests that have neither.
+- **Chaining search and activity**: Use `amplitude_user_search` first to resolve a known user ID or device ID into an Amplitude ID, then feed `{{amplitudeSearch.matches[0].amplitudeId}}` into `amplitude_get_user_activity` to pull the full event stream.
+- **Deduplication**: Set a unique `insertId` (e.g., an order ID or idempotency key from upstream blocks) on `amplitude_send_event` to prevent duplicate events when a workflow retries.

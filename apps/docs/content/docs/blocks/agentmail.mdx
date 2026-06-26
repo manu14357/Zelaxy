@@ -1,57 +1,103 @@
 ---
 title: AgentMail Block
 description: Send, reply, and manage email threads with AgentMail
-icon: Box
+icon: Mail
 ---
 
 # AgentMail Block
 
-The AgentMail block automates email workflows through AgentMail. Use it to send messages, reply to or forward existing threads, create drafts, and list or fetch email threads — all from within a workflow.
+The AgentMail block automates email workflows through the AgentMail service. Use it to send messages, reply to or forward existing threads, create drafts, and list or fetch email threads — all from within a Zelaxy workflow.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `agentmail` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#000000` |
 
 ## When to Use
 
-- Send a transactional or notification email as part of a workflow
-- Reply to an existing email thread programmatically
-- Forward an incoming message to another recipient
-- Create a draft for later review instead of sending immediately
-- List email threads in an inbox to drive downstream logic
-- Fetch a specific thread by ID to read its contents
+- Send a transactional or notification email from an AgentMail inbox as part of a workflow
+- Reply to an existing email thread — with plain text, HTML, or reply-all — programmatically
+- Forward an incoming message to one or more new recipients with optional additional content
+- Create a draft for human review, optionally scheduling it for a future send time
+- List email threads in an inbox to drive downstream routing or processing logic
+- Fetch the full message history of a specific thread by ID for reading or analysis
 
 ## Configuration
 
 ### Operation
-Dropdown selecting which AgentMail action to run: Send Message, Reply to Message, Forward Message, List Threads, Get Thread, or Create Draft. Required.
+
+Dropdown that selects which AgentMail action to run. **Required.**
+
+| Label | ID |
+|-------|----|
+| Send Message | `agentmail_send_message` |
+| Reply to Message | `agentmail_reply_message` |
+| Forward Message | `agentmail_forward_message` |
+| List Threads | `agentmail_list_threads` |
+| Get Thread | `agentmail_get_thread` |
+| Create Draft | `agentmail_create_draft` |
 
 ### API Key
-Your AgentMail API key, stored as a password field. Required for all operations.
+
+Your AgentMail API key, stored as a password field. **Required for all operations.** Use a secret reference: `{{AGENTMAIL_API_KEY}}`.
 
 ### Inbox ID
-The inbox to operate against (e.g. `inbox-id`).
+
+The inbox to operate against (e.g. `inbox-abc123`). Applies to all operations.
 
 ### To
-Recipient email address. Shown for Send Message, Forward Message, and Create Draft.
+
+Recipient email address or comma-separated list of addresses. Shown for: **Send Message**, **Forward Message**, and **Create Draft**.
 
 ### Subject
-Email subject line. Shown for Send Message and Create Draft.
+
+Email subject line. Shown for: **Send Message** and **Create Draft**.
 
 ### Message
-The email body text. Shown for Send Message, Reply to Message, Forward Message, and Create Draft.
+
+The email body (plain text). Shown for: **Send Message**, **Reply to Message**, **Forward Message**, and **Create Draft**.
 
 ### Thread ID
-The thread to act on. Shown for Reply to Message, Forward Message, and Get Thread.
+
+The thread to act on. Shown for: **Reply to Message**, **Forward Message**, and **Get Thread**.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `inboxId` (string), `to` (string), `subject` (string), `text` (string), `threadId` (string)
-- **Outputs**: `threadId` (string), `messageId` (string), `status` (string), `draftId` (string)
+**Inputs** (subBlock ids you can wire from other blocks):
+
+- `operation` (string) — Operation to perform (must be one of the operation IDs above)
+- `apiKey` (string) — AgentMail API key
+- `inboxId` (string) — Inbox ID
+- `to` (string) — Recipient email address(es), comma-separated
+- `subject` (string) — Email subject line
+- `text` (string) — Email body text
+- `threadId` (string) — Thread ID to act on
+
+**Outputs** (fields available to downstream blocks as `{{blockName.field}}`):
+
+- `threadId` (string) — Thread ID (returned by send, reply, forward, get-thread operations)
+- `messageId` (string) — Message ID (returned by send, reply, and forward operations)
+- `status` (string) — Operation status
+- `draftId` (string) — Draft ID (returned by create-draft operation)
+
+## Tools
+
+Each operation maps directly to a dedicated tool. The block resolves the tool based on the `operation` input.
+
+**Send Message** (`agentmail_send_message`) — Sends a new email from the specified inbox. Required params: `apiKey`, `inboxId`, `to`, `subject`. Optional: `text`, `html`, `cc`, `bcc`. Returns `threadId`, `messageId`, `subject`, `to`.
+
+**Reply to Message** (`agentmail_reply_message`) — Replies to an existing message by its `messageId` (note: the block's `threadId` subBlock maps to the `threadId` output; the underlying tool consumes a `messageId` param). Optional params: `text`, `html`, `to`, `cc`, `bcc`, `replyAll` (boolean — when true, replies to all recipients). Returns `messageId`, `threadId`.
+
+**Forward Message** (`agentmail_forward_message`) — Forwards an existing message to new recipients. Required params: `apiKey`, `inboxId`, `messageId`, `to`. Optional: `subject` (override), `text` (prepended content), `html`, `cc`, `bcc`. Returns `messageId`, `threadId`.
+
+**List Threads** (`agentmail_list_threads`) — Lists email threads in an inbox. Optional filter params: `limit`, `pageToken`, `labels` (comma-separated), `before` (ISO 8601), `after` (ISO 8601). Returns `threads` (array with fields: `threadId`, `subject`, `senders`, `recipients`, `messageCount`, `lastMessageAt`, `createdAt`, `updatedAt`), `count`, `nextPageToken`.
+
+**Get Thread** (`agentmail_get_thread`) — Fetches full details of a thread including all messages. Required params: `apiKey`, `inboxId`, `threadId`. Returns `threadId`, `subject`, `senders`, `recipients`, `messageCount`, `labels`, `lastMessageAt`, `createdAt`, `updatedAt`, and `messages` (array with fields: `messageId`, `from`, `to`, `cc`, `bcc`, `subject`, `text`, `html`, `createdAt`).
+
+**Create Draft** (`agentmail_create_draft`) — Creates a new email draft in the specified inbox. All content params are optional. Optional: `to`, `subject`, `text`, `html`, `cc`, `bcc`, `inReplyTo` (message ID), `sendAt` (ISO 8601 scheduled send time). Returns `draftId`, `inboxId`, `subject`, `to`, `cc`, `bcc`, `text`, `html`, `preview`, `labels`, `inReplyTo`, `sendStatus`, `sendAt`, `createdAt`, `updatedAt`.
 
 ## YAML Example
 
@@ -61,11 +107,11 @@ agentmail_1:
   name: "AgentMail"
   inputs:
     operation: "agentmail_send_message"
-    apiKey: "{{secrets.AGENTMAIL_API_KEY}}"
-    inboxId: "inbox-id"
+    apiKey: "{{AGENTMAIL_API_KEY}}"
+    inboxId: "inbox-abc123"
     to: "recipient@example.com"
     subject: "Hello from Zelaxy"
-    text: "{{start.input}}"
+    text: "{{previous_block.output}}"
   connections:
     outgoing:
       - target: next-block-id

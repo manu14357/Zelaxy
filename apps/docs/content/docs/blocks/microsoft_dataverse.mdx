@@ -1,0 +1,132 @@
+---
+title: Microsoft Dataverse Block
+description: Query and manage records in Microsoft Dataverse
+icon: Box
+---
+
+# Microsoft Dataverse Block
+
+Query records, create records, and retrieve records from Microsoft Dataverse tables using the OData Web API. Authenticate with a bearer access token and your Dataverse environment URL.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `microsoft_dataverse` |
+| **Category** | `tools` |
+| **Color** | `#0078D4` |
+
+## When to Use
+
+- Query a Dataverse table (e.g., `accounts`, `contacts`) with an OData filter expression to find matching records
+- Create a new record in any Dataverse entity set by supplying a JSON field map
+- Retrieve a single known record by its GUID without running a query
+- Automate Power Platform / Dynamics 365 data operations from a Zelaxy workflow
+- Chain the block's outputs into downstream AI agents or transformation blocks that need CRM or ERP data
+- Synchronize external data into Dataverse as part of an ingestion pipeline
+
+## Configuration
+
+### Operation
+
+Selects which Dataverse Web API action to perform. This is a required dropdown that controls which additional fields are shown.
+
+| Label | Id |
+|-------|----|
+| Query records | `microsoft_dataverse_query_records` |
+| Create record | `microsoft_dataverse_create_record` |
+| Get record | `microsoft_dataverse_get_record` |
+
+---
+
+### Entity Set Name
+
+**Type:** `short-input` | **Shown for:** all three operations
+
+The plural OData entity set name for the Dataverse table you want to work with (e.g., `accounts`, `contacts`, `leads`, `opportunities`). Required for every operation.
+
+---
+
+### Filter (OData)
+
+**Type:** `short-input` | **Shown for:** `Query records` only
+
+An OData `$filter` expression that narrows the result set (e.g., `statecode eq 0`). Optional — omit to return all records up to the `Top` limit.
+
+---
+
+### Top
+
+**Type:** `short-input` | **Shown for:** `Query records` only
+
+Maximum number of records to return. Defaults to `10` when left blank. Maps to the OData `$top` parameter.
+
+---
+
+### Fields
+
+**Type:** `long-input` | **Shown for:** `Create record` only
+
+The field values for the new record, supplied as a JSON object where each key is a Dataverse column schema name and each value is the value to write. Example: `{ "name": "Contoso Ltd" }`.
+
+---
+
+### Organization URL
+
+**Type:** `short-input` | **Required** | **Shown for:** all operations
+
+The base URL of your Dataverse environment, e.g., `https://myorg.crm.dynamics.com`. Trailing slashes are stripped automatically.
+
+---
+
+### Access Token
+
+**Type:** `short-input` (password) | **Required** | **Shown for:** all operations
+
+An OAuth 2.0 bearer token with access to the Dataverse Web API. Store the token in an environment variable and reference it as `{{DATAVERSE_ACCESS_TOKEN}}` to avoid embedding credentials in the workflow.
+
+---
+
+## Inputs & Outputs
+
+### Inputs
+
+- `operation` (string) — Operation to perform (`microsoft_dataverse_query_records`, `microsoft_dataverse_create_record`, or `microsoft_dataverse_get_record`)
+- `accessToken` (string) — OAuth bearer access token
+- `orgUrl` (string) — Dataverse environment URL
+- `entitySetName` (string) — Entity set name (plural table name)
+- `filter` (string) — OData `$filter` expression (Query records only)
+- `top` (number) — Maximum records to return (Query records only)
+- `fields` (json) — Record fields as JSON (Create record only)
+- `recordId` (string) — Record GUID (Get record only)
+
+### Outputs
+
+- `data` (json) — Result object or array from Dataverse. For **Query records** this is an array of record objects; for **Create record** it is the created record object; for **Get record** it is the single matching record object.
+- `metadata` (json) — Response metadata. Contains `entitySetName` (string) for all operations, plus `count` (number) for Query records and `recordId` (string) for Create record and Get record.
+
+## Tools
+
+**Microsoft Dataverse Query Records** (`microsoft_dataverse_query_records`) — Sends an OData GET request to `/api/data/v9.2/{entitySetName}` with optional `$filter` and `$top` parameters and returns an array of matching records along with a count.
+
+**Microsoft Dataverse Create Record** (`microsoft_dataverse_create_record`) — Sends an OData POST request to `/api/data/v9.2/{entitySetName}` with a JSON body of field values. Uses `Prefer: return=representation` so the full created record is returned in the response, and extracts the new record ID from the response body or the `OData-EntityId` header.
+
+**Microsoft Dataverse Get Record** (`microsoft_dataverse_get_record`) — Sends an OData GET request to `/api/data/v9.2/{entitySetName}({recordId})` and returns the single record object together with its ID.
+
+## YAML Example
+
+```yaml
+microsoft_dataverse_1:
+  type: microsoft_dataverse
+  name: "Query Active Accounts"
+  inputs:
+    operation: microsoft_dataverse_query_records
+    orgUrl: "{{DATAVERSE_ORG_URL}}"
+    accessToken: "{{DATAVERSE_ACCESS_TOKEN}}"
+    entitySetName: accounts
+    filter: statecode eq 0
+    top: 25
+  connections:
+    outgoing:
+      - target: next-block-id
+```

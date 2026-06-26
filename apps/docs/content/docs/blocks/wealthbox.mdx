@@ -6,7 +6,7 @@ icon: Box
 
 # Wealthbox Block
 
-The Wealthbox block integrates Wealthbox CRM into your workflow so you can manage notes, contacts, and tasks. Use it to read existing notes, contacts, and tasks or to create new ones via OAuth authentication.
+The Wealthbox block integrates Wealthbox CRM into your workflow so you can manage notes, contacts, and tasks. Use it to read existing records or create new ones via OAuth authentication, making it straightforward to weave CRM data into any automated pipeline.
 
 ## Overview
 
@@ -21,7 +21,7 @@ The Wealthbox block integrates Wealthbox CRM into your workflow so you can manag
 - Read the content of an existing Wealthbox note by ID and feed it into downstream steps.
 - Create a new note attached to a specific contact during a workflow run.
 - Look up a contact's details (name, email, phone, background info) from Wealthbox.
-- Create a new contact record with first name, last name, and email.
+- Create a new contact record with first name, last name, and optional email.
 - Read a task by ID to check its due date, description, or priority.
 - Create a new task with a title and due date linked to a contact.
 
@@ -29,40 +29,105 @@ The Wealthbox block integrates Wealthbox CRM into your workflow so you can manag
 
 ### Operation
 
-Dropdown selecting what to do: Read Note, Write Note, Read Contact, Write Contact, Read Task, or Write Task. This determines which fields and tool are used.
+Dropdown that selects which Wealthbox action to perform. Required — it determines which fields appear and which tool is invoked.
 
-### Wealthbox Account
+| Label | ID |
+|-------|----|
+| Read Note | `read_note` |
+| Write Note | `write_note` |
+| Read Contact | `read_contact` |
+| Write Contact | `write_contact` |
+| Read Task | `read_task` |
+| Write Task | `write_task` |
 
-OAuth credential for the Wealthbox account (scopes: `login`, `data`). Required for all operations.
+### Wealthbox Account (`credential`)
 
-### Note ID
+OAuth credential for the connected Wealthbox account (required scopes: `login`, `data`). Required for all operations.
 
-Identifier of the note to read (used for Read Note).
+### Note ID (`noteId`)
 
-### Contact
+The ID of the note to read. Optional — when omitted the tool returns all notes. Shown only for the `read_note` operation.
 
-Contact selector (basic mode) or manual Contact ID (advanced mode), used by Read Contact, Write Note, and Write Task.
+### Select Contact / Contact ID (`contactId` / `manualContactId`)
 
-### Task ID
+Identifies the Wealthbox contact to link or look up. Shown for `read_contact`, `write_note`, and `write_task`.
 
-Identifier of the task to read (used for Read Task).
+- **Basic mode** (`contactId`): file-selector UI lets you pick a contact from your Wealthbox account.
+- **Advanced mode** (`manualContactId`): free-text field for pasting a contact ID directly.
 
-### Title / Due Date
+The block merges both inputs at runtime and uses whichever is provided.
 
-Required fields when creating a task (Write Task).
+### Task ID (`taskId` / `manualTaskId`)
 
-### First Name / Last Name / Email Address / Background Information
+The ID of the task to read. Shown only for `read_task`.
 
-Fields used when creating a contact (Write Contact). First and last name are required.
+- **Basic mode** (`taskId`): short-input field.
+- **Advanced mode** (`manualTaskId`): short-input field.
 
-### Content
+### Title (`title`)
 
-Text body required when writing a note or task.
+The name/title of the task being created. Required for `write_task`.
+
+### Due Date (`dueDate`)
+
+The due date and time of the task. Required for `write_task`. Format: `YYYY-MM-DD HH:MM AM/PM -HHMM` (e.g. `2015-05-24 11:00 AM -0400`).
+
+### First Name (`firstName`)
+
+First name of the contact being created. Required for `write_contact`.
+
+### Last Name (`lastName`)
+
+Last name of the contact being created. Required for `write_contact`.
+
+### Email Address (`emailAddress`)
+
+Email address of the contact being created. Optional for `write_contact`.
+
+### Background Information (`backgroundInformation`)
+
+Free-text background notes about the contact. Optional for `write_contact`.
+
+### Content (`content`)
+
+Text body of the note or task description. Required for `write_note` and `write_task`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `noteId` (string), `contactId` (string), `manualContactId` (string), `taskId` (string), `manualTaskId` (string), `content` (string), `firstName` (string), `lastName` (string), `emailAddress` (string), `backgroundInformation` (string), `title` (string), `dueDate` (string)
-- **Outputs**: `note` (json), `notes` (json), `contact` (json), `contacts` (json), `task` (json), `tasks` (json), `metadata` (json), `success` (boolean)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`read_note`, `write_note`, `read_contact`, `write_contact`, `read_task`, or `write_task`)
+  - `credential` (string) — Wealthbox OAuth access token
+  - `noteId` (string) — Note identifier (optional; omit to list all notes)
+  - `contactId` (string) — Contact identifier from the file-selector (basic mode)
+  - `manualContactId` (string) — Manual contact identifier (advanced mode)
+  - `taskId` (string) — Task identifier from the input field (basic mode)
+  - `manualTaskId` (string) — Manual task identifier (advanced mode)
+  - `content` (string) — Content text for write operations
+  - `firstName` (string) — First name (write_contact)
+  - `lastName` (string) — Last name (write_contact)
+  - `emailAddress` (string) — Email address (write_contact)
+  - `backgroundInformation` (string) — Background information (write_contact)
+  - `title` (string) — Task title (write_task)
+  - `dueDate` (string) — Due date (write_task)
+
+- **Outputs**:
+  - `note` (json) — Single note object with ID, content, creator, and linked contacts
+  - `notes` (json) — Array of note objects from bulk read operations
+  - `contact` (json) — Single contact object with name, email, phone, and background info
+  - `contacts` (json) — Array of contact objects from bulk read operations
+  - `task` (json) — Single task object with name, due date, description, and priority
+  - `tasks` (json) — Array of task objects from bulk read operations
+  - `metadata` (json) — Operation metadata including item IDs, types, and operation details
+  - `success` (boolean) — Whether the operation completed successfully
+
+## Tools
+
+- **Read Wealthbox Note** (`wealthbox_read_note`) — GETs a single note by ID (or all notes when no ID is given) from `api.crmworkspace.com/v1/notes`. Returns the note object plus formatted content including creation date, visibility, linked contacts, and tags.
+- **Write Wealthbox Note** (`wealthbox_write_note`) — POSTs a new note to `api.crmworkspace.com/v1/notes` with the provided `content` and optional `contactId` link. Returns the created note and metadata.
+- **Read Wealthbox Contact** (`wealthbox_read_contact`) — GETs a single contact by ID (or all contacts when no ID is given) from `api.crmworkspace.com/v1/contacts`. Returns the contact object plus formatted content with email addresses, phone numbers, and background information.
+- **Write Wealthbox Contact** (`wealthbox_write_contact`) — POSTs a new contact to `api.crmworkspace.com/v1/contacts` using `firstName`, `lastName`, optional `emailAddress`, and optional `backgroundInformation`. Returns the created contact and metadata.
+- **Read Wealthbox Task** (`wealthbox_read_task`) — GETs a single task by ID (or all tasks when no ID is given) from `api.crmworkspace.com/v1/tasks`. Returns the task object plus formatted content including due date, completion status, priority, and category.
+- **Write Wealthbox Task** (`wealthbox_write_task`) — POSTs a new task to `api.crmworkspace.com/v1/tasks` using `title`, `dueDate`, optional `contactId`, and optional `description` (mapped from `content`). Returns the created task and metadata.
 
 ## YAML Example
 
@@ -71,10 +136,12 @@ wealthbox_1:
   type: wealthbox
   name: "Wealthbox"
   inputs:
-    operation: "write_note"
-    credential: "{{credentials.wealthbox}}"
-    contactId: "12345"
-    content: "{{start.input}}"
+    operation: "write_task"
+    credential: "{{WEALTHBOX_ACCESS_TOKEN}}"
+    contactId: "{{contacts_block.contact.id}}"
+    title: "Follow up with client"
+    dueDate: "2025-07-01 10:00 AM -0400"
+    content: "Review the Q2 proposal and send revised terms."
   connections:
     outgoing:
       - target: next-block-id

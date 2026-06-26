@@ -1,7 +1,7 @@
 ---
 title: Profound Block
 description: AI visibility and analytics with Profound
-icon: Box
+icon: Activity
 ---
 
 # Profound Block
@@ -13,42 +13,214 @@ The Profound block tracks how your brand appears across AI platforms. Use it to 
 | Property | Value |
 |----------|-------|
 | **Type** | `profound` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#000000` |
 
 ## When to Use
 
-- Measure brand visibility and share of voice across AI answer engines
-- Analyze sentiment and citation share for a category over a date range
-- Track AI bot traffic and referral visits to a domain
-- List and inspect content optimizations and run optimization analyses
-- Retrieve prompt volumes and query fanouts to understand demand trends
-- Pull raw logs or bot logs for a domain for deeper auditing
+- Measure brand visibility and share of voice across AI answer engines (visibility report, sentiment report)
+- Audit citations and understand citation share for a category over a date range
+- Track AI bot traffic and human referral visits to a domain
+- List and inspect content optimizations and run detailed optimization analyses for a given asset
+- Retrieve prompt volumes and query fanouts to understand search demand trends across AI platforms
+- Pull raw server logs or bot-identified logs for a domain for deeper auditing
+- Browse organizational metadata: categories, regions, AI models, domains, assets, personas
 
 ## Configuration
 
 ### Operation
-Dropdown that selects which Profound API call to run (e.g. Visibility Report, Sentiment Report, Citations Report, Bots Report, Referrals Report, List Categories, Optimization Analysis, Prompt Volume). The chosen operation controls which other fields are required.
+
+Dropdown that selects which Profound API call to run. The chosen operation controls which other fields are shown and required. Default: `visibility_report`.
+
+| Label | ID |
+|---|---|
+| List Categories | `list_categories` |
+| List Regions | `list_regions` |
+| List Models | `list_models` |
+| List Domains | `list_domains` |
+| List Assets | `list_assets` |
+| List Personas | `list_personas` |
+| Category Topics | `category_topics` |
+| Category Tags | `category_tags` |
+| Category Prompts | `category_prompts` |
+| Category Assets | `category_assets` |
+| Category Personas | `category_personas` |
+| Visibility Report | `visibility_report` |
+| Sentiment Report | `sentiment_report` |
+| Citations Report | `citations_report` |
+| Query Fanouts | `query_fanouts` |
+| Prompt Answers | `prompt_answers` |
+| Bots Report | `bots_report` |
+| Referrals Report | `referrals_report` |
+| Raw Logs | `raw_logs` |
+| Bot Logs | `bot_logs` |
+| List Optimizations | `list_optimizations` |
+| Optimization Analysis | `optimization_analysis` |
+| Prompt Volume | `prompt_volume` |
+| Citation Prompts | `citation_prompts` |
 
 ### API Key
-Your Profound API key (required, stored as a password field).
 
-### Category ID / Domain / Asset ID / Content ID
-Identifiers required depending on the operation. Category-based reports need a Category UUID; domain reports need a domain like `example.com`; optimization operations need an Asset UUID (and a Content/optimization UUID for analysis).
+Your Profound API key (required, password field). Store it as a workflow secret and reference it with `{{PROFOUND_API_KEY}}`.
 
-### Start Date / End Date
-Date range (`YYYY-MM-DD`) required for time-series report operations. Both support AI Wand generation.
+### Category ID
 
-### Metrics
-Comma-separated metrics for report operations (the relevant metrics field is mapped per operation, e.g. `share_of_voice, visibility_score` for visibility, `positive, negative` for sentiment).
+Category UUID (required). Shown for: `category_topics`, `category_tags`, `category_prompts`, `category_assets`, `category_personas`, `visibility_report`, `sentiment_report`, `citations_report`, `prompt_answers`, `query_fanouts`.
 
-### Advanced (Dimensions, Date Interval, Filters, Limit, Offset, Cursor, Prompt Type)
-Optional refinements: group by dimensions, set a date interval, supply a JSON filter array, paginate with limit/offset/cursor, and filter by prompt type.
+### Domain
+
+Domain string such as `example.com` (required). Shown for domain-scoped operations: `bots_report`, `referrals_report`, `raw_logs`, `bot_logs`.
+
+### Domain (Citation Prompts)
+
+Stored as sub-block id `inputDomain`. A domain such as `ramp.com` (required). Shown only for `citation_prompts`.
+
+### Asset ID
+
+Asset UUID (required). Shown for `list_optimizations` and `optimization_analysis`.
+
+### Content ID
+
+Content/optimization UUID (required). Shown only for `optimization_analysis`.
+
+### Start Date
+
+Start of the reporting period in `YYYY-MM-DD` format (required). Shown for: `visibility_report`, `sentiment_report`, `citations_report`, `prompt_answers`, `query_fanouts`, `prompt_volume`, `bots_report`, `referrals_report`, `raw_logs`, `bot_logs`. Supports AI Wand generation.
+
+### End Date
+
+End of the reporting period in `YYYY-MM-DD` format (required for the same operations as Start Date). Supports AI Wand generation.
+
+### Metrics — Visibility Report (`visibilityMetrics`)
+
+Comma-separated metrics for `visibility_report` (required). Example: `share_of_voice, visibility_score, mentions_count`. Available values: `share_of_voice`, `mentions_count`, `visibility_score`, `executions`, `average_position`.
+
+### Metrics — Sentiment Report (`sentimentMetrics`)
+
+Comma-separated metrics for `sentiment_report` (required). Example: `positive, negative, occurrences`. Available values: `positive`, `negative`, `occurrences`.
+
+### Metrics — Citations Report (`citationsMetrics`)
+
+Comma-separated metrics for `citations_report` (required). Example: `count, citation_share`. Available values: `count`, `citation_share`.
+
+### Metrics — Bots Report (`botsMetrics`)
+
+Comma-separated metrics for `bots_report` (required). Example: `count, citations, indexing, training`. Available values: `count`, `citations`, `indexing`, `training`, `last_visit`.
+
+### Metrics — Referrals Report (`referralsMetrics`)
+
+Comma-separated metrics for `referrals_report` (required). Example: `visits, last_visit`. Available values: `visits`, `last_visit`.
+
+### Metrics — Query Fanouts (`fanoutsMetrics`)
+
+Comma-separated metrics for `query_fanouts` (required). Example: `fanouts_per_execution, total_fanouts, share`. Available values: `fanouts_per_execution`, `total_fanouts`, `share`.
+
+### Metrics — Prompt Volume (`volumeMetrics`)
+
+Comma-separated metrics for `prompt_volume` (required). Example: `volume, change`. Available values: `volume`, `change`.
+
+### Dimensions (advanced)
+
+Comma-separated grouping dimensions (optional). Shown for: `visibility_report`, `sentiment_report`, `citations_report`, `bots_report`, `referrals_report`, `query_fanouts`, `raw_logs`, `bot_logs`, `prompt_volume`. Example: `date, asset_name, model`.
+
+### Date Interval (advanced)
+
+Granularity for time-series aggregation (optional). Shown for report operations that include metrics. Options: `day`, `hour`, `week`, `month`, `year`.
+
+### Filters (advanced)
+
+JSON array of filter objects (optional). Shown for all report operations and `prompt_volume`. Each object must have `field`, `operator`, and `value` keys. Example: `[{"field":"asset_name","operator":"is","value":"Company"}]`. Supports AI Wand JSON generation.
+
+### Limit (advanced)
+
+Maximum number of results to return (optional, numeric). Shown for all report operations, `category_prompts`, and `list_optimizations`.
+
+### Cursor (advanced)
+
+Pagination cursor from the previous response (optional). Shown only for `category_prompts`.
+
+### Prompt Type (advanced)
+
+Comma-separated prompt type filter such as `visibility, sentiment` (optional). Shown only for `category_prompts`.
+
+### Offset (advanced)
+
+Numeric pagination offset (optional). Shown only for `list_optimizations`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `apiKey` (string), `categoryId` (string), `domain` (string), `inputDomain` (string), `assetId` (string), `contentId` (string), `startDate` (string), `endDate` (string), `metrics` (string), `dimensions` (string), `dateInterval` (string), `filters` (string), `limit` (number), `offset` (number), `cursor` (string), `promptType` (string)
-- **Outputs**: `response` (json) — API response data
+- **Inputs**:
+  - `apiKey` (string) — Profound API key
+  - `categoryId` (string) — Category UUID
+  - `domain` (string) — Domain (e.g. example.com)
+  - `inputDomain` (string) — Domain for citation prompts
+  - `assetId` (string) — Asset UUID
+  - `contentId` (string) — Content/optimization UUID
+  - `startDate` (string) — Start date (YYYY-MM-DD)
+  - `endDate` (string) — End date (YYYY-MM-DD)
+  - `metrics` (string) — Comma-separated metrics to retrieve
+  - `dimensions` (string) — Comma-separated dimensions
+  - `dateInterval` (string) — Date grouping interval
+  - `filters` (string) — JSON array of filter objects
+  - `limit` (number) — Max results to return
+  - `offset` (number) — Pagination offset
+  - `cursor` (string) — Pagination cursor
+  - `promptType` (string) — Prompt type filter
+
+- **Outputs**:
+  - `response` (json) — API response data
+
+## Tools
+
+Each operation maps directly to a dedicated Profound tool (`profound_<operation>`). All tools use a Profound API key in the `X-API-Key` header.
+
+**`profound_list_categories`** — List all organization categories.
+
+**`profound_list_regions`** — List all regions tracked in the organization.
+
+**`profound_list_models`** — List all AI models tracked in Profound.
+
+**`profound_list_domains`** — List all domains in the organization.
+
+**`profound_list_assets`** — List all assets (websites/brands) in the organization.
+
+**`profound_list_personas`** — List all buyer/user personas in the organization.
+
+**`profound_category_topics`** — List topics for a specific category (requires `categoryId`).
+
+**`profound_category_tags`** — List tags for a specific category (requires `categoryId`).
+
+**`profound_category_prompts`** — List prompts for a specific category with optional cursor-based pagination, prompt type, topic/tag/region/platform filtering (requires `categoryId`).
+
+**`profound_category_assets`** — List assets scoped to a specific category (requires `categoryId`).
+
+**`profound_category_personas`** — List personas scoped to a specific category (requires `categoryId`).
+
+**`profound_visibility_report`** — POST report query for AI share-of-voice and visibility scores for a category over a date range. Metrics: `share_of_voice`, `mentions_count`, `visibility_score`, `executions`, `average_position`.
+
+**`profound_sentiment_report`** — POST report query for positive/negative sentiment data for a category over a date range. Metrics: `positive`, `negative`, `occurrences`.
+
+**`profound_citations_report`** — POST report query for citation count and citation share for a category. Metrics: `count`, `citation_share`.
+
+**`profound_query_fanouts`** — POST report showing how AI models expand prompts into sub-queries for a category. Metrics: `fanouts_per_execution`, `total_fanouts`, `share`.
+
+**`profound_prompt_answers`** — POST query that retrieves raw prompt-answer pairs for a category over a date range.
+
+**`profound_bots_report`** — POST report of AI bot traffic visiting a domain. Metrics: `count`, `citations`, `indexing`, `training`, `last_visit`. Uses API v2.
+
+**`profound_referrals_report`** — POST report of human referral traffic from AI platforms to a domain. Metrics: `visits`, `last_visit`. Uses API v2.
+
+**`profound_raw_logs`** — POST query for raw server traffic logs for a domain with optional dimension and filter support.
+
+**`profound_bot_logs`** — POST query for bot-identified visit logs for a domain with optional dimension and filter support.
+
+**`profound_list_optimizations`** — GET list of content optimization entries for a given asset UUID, with limit/offset pagination.
+
+**`profound_optimization_analysis`** — GET detailed content optimization analysis for a specific content item within an asset (requires `assetId` + `contentId`).
+
+**`profound_prompt_volume`** — POST query for keyword/prompt search-demand volume across AI platforms. Metrics: `volume`, `change`. Dimensions include `keyword`, `date`, `platform`, `country_code`, `matching_type`, `frequency`.
+
+**`profound_citation_prompts`** — GET prompts that cite a specific domain across AI platforms (requires `inputDomain`).
 
 ## YAML Example
 
@@ -58,11 +230,12 @@ profound_1:
   name: "Profound"
   inputs:
     operation: "visibility_report"
-    apiKey: "{{secrets.PROFOUND_API_KEY}}"
+    apiKey: "{{PROFOUND_API_KEY}}"
     categoryId: "00000000-0000-0000-0000-000000000000"
     startDate: "2026-01-01"
     endDate: "2026-01-31"
     visibilityMetrics: "share_of_voice, visibility_score, mentions_count"
+    dateInterval: "day"
   connections:
     outgoing:
       - target: next-block-id

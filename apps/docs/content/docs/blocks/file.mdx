@@ -1,65 +1,173 @@
 ---
 title: File Block
-description: Read, write, and manipulate files in your workflows
-icon: File
+description: Read, fetch, write, and append files
+icon: Box
 ---
 
 # File Block
 
-The File block handles file operations — reading uploaded files, writing output files, converting formats, and managing file data within workflows.
+One block with five operations for working with files in your workflows. Read and Get Content take an existing file (by URL or upload) and hand the next block the file object or its extracted text; Fetch downloads and parses a file from an external URL; Write creates a new workspace file from text content; Append adds text to the end of an existing workspace file. PDFs, CSVs, Word/Excel, CAD (DWG/DXF/STEP), and images are parsed automatically.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `file` |
-| **Category** | Core Block |
-| **Color** | `#6366f1` (Indigo) |
+| **Category** | `tools` |
+| **Color** | `#40916C` |
 
 ## When to Use
 
-- Read content from uploaded documents (PDF, CSV, TXT)
-- Write generated content to output files
-- Convert between file formats
-- Process file data in automated pipelines
+- Extract text from uploaded PDFs, CSVs, Word/Excel documents, or images for downstream AI processing
+- Download and parse a file from a public or pre-signed URL without manual uploading
+- Save AI-generated text as a named workspace file that other workflows can access
+- Accumulate results across workflow runs by appending to a shared workspace file
+- Pass the raw file object (`files`) or merged text (`combinedContent`) to subsequent blocks
+- Parse CAD files (DWG, DXF, STEP, IGES) as part of engineering automation workflows
 
 ## Configuration
 
-| Setting | Type | Description |
-|---------|------|-------------|
-| Operation | Dropdown | `read`, `write`, `convert` |
-| File | File upload | Select the file to process |
-| File Path | Short input | File path or reference |
-| Output Format | Dropdown | Target format for conversion |
-| Content | Long text | Content to write (write mode) |
+### Operation
 
-## Outputs
+Selects what the block does. All other fields are conditional on this value.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `content` | `string` | File contents (read) or file path (write) |
-| `metadata` | `json` | File info: name, size, type |
-| `url` | `string` | Download URL for generated files |
+| Option | id | Description |
+|--------|----|-------------|
+| Read | `read` | Accept a file (URL or upload) and return the file object plus extracted text |
+| Get Content | `get_content` | Accept a file (URL or upload) and return only the extracted text |
+| Fetch | `fetch` | Download and parse a file directly from an external URL |
+| Write | `write` | Create a new workspace file from text content |
+| Append | `append` | Add text to the end of an existing workspace file (creates the file if it does not exist) |
 
-## Example: PDF Report Pipeline
+Default: `read`
 
-**Goal:** Read a CSV, analyze it with AI, and generate a report.
+---
 
-**Workflow:**
+### Select Input Method
+
+Visible for operations: **Read**, **Get Content**, **Fetch**.
+
+Chooses how the file is supplied.
+
+| Option | id | Description |
+|--------|----|-------------|
+| File URL | `url` | Provide a URL to a remote file |
+| Upload Files | `upload` | Upload one or more files directly in the block |
+
+---
+
+### File URL (`filePath`)
+
+Visible when **Select Input Method** is `url` and operation is **Read**, **Get Content**, or **Fetch**.
+
+- Type: short-input
+- Placeholder: `Enter URL to a file (https://example.com/document.pdf)`
+- Accepts any publicly accessible URL or pre-signed URL pointing to a supported file type.
+
+---
+
+### Upload Files (`file`)
+
+Visible when **Select Input Method** is `upload` and operation is **Read**, **Get Content**, or **Fetch**.
+
+- Type: file-upload
+- Supports multiple files (up to 100 MB per upload)
+- Accepted extensions: `.pdf`, `.csv`, `.docx`, `.dwg`, `.dxf`, `.step`, `.stp`, `.iges`, `.igs`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.bmp`, `.tiff`, `.svg`, `.xlsx`, `.xls`, `.txt`, `.md`
+
+---
+
+### File Name (`fileName`)
+
+Visible for operations: **Write**, **Append**.
+
+- Type: short-input
+- Placeholder: `summary.md`
+- Required. The name (including extension) of the workspace file to create or append to. The extension determines the auto-detected content type.
+
+---
+
+### Content (`content`)
+
+Visible for operations: **Write**, **Append**.
+
+- Type: long-input
+- Placeholder: `Text content to save (reference another block with {{block.content}})`
+- The text body to write into the file. Use `{{blockName.field}}` to reference output from another block.
+
+---
+
+### Content Type (`contentType`)
+
+Visible for operation: **Write** only. Advanced mode.
+
+- Type: short-input
+- Placeholder: `text/markdown (auto-detected from extension if omitted)`
+- Optional MIME type override. If omitted the server infers the type from the file name extension.
+
+## Inputs & Outputs
+
+### Inputs
+
+- `operation` (string) — Operation to execute: `read`, `get_content`, `fetch`, `write`, or `append`
+- `inputMethod` (string) — Input method selection: `url` or `upload`
+- `filePath` (string) — File URL path (used when inputMethod is `url`)
+- `fileType` (string) — File type hint (auto-detected if omitted)
+- `file` (json) — Uploaded file data (one object or array of objects with a `path` property)
+- `fileName` (string) — Name of the file to write or append to
+- `content` (string) — Content to write or append
+- `contentType` (string) — MIME type for written files (Write operation only)
+
+### Outputs
+
+- `files` (json) — Array of parsed file objects, each containing `content`, `fileType`, `size`, `name`, `binary`, and optional `metadata` (Read / Get Content / Fetch)
+- `combinedContent` (string) — All file contents merged into a single text string separated by dividers (Read / Get Content / Fetch)
+- `id` (string) — Workspace file ID assigned after creation (Write / Append)
+- `name` (string) — Final saved file name, possibly de-duplicated (Write / Append)
+- `size` (number) — File size in bytes (Write / Append)
+- `url` (string) — URL to access the saved workspace file (Write / Append)
+
+## Tools
+
+- **File Parser** (`file_parser`) — Parses one or more files supplied as a URL or uploaded path. Calls `POST /api/files/parse`, returns `files` (array of parsed results) and `combinedContent` (merged text). Used for the Read, Get Content, and Fetch operations.
+- **File Write** (`file_write`) — Creates a new workspace file from text content. Calls `POST /api/files/write`, returns the new file's `id`, `name`, `size`, `type`, and `url`. Used for the Write operation.
+- **File Append** (`file_append`) — Appends text to the end of an existing workspace file (creates it if absent). Calls `POST /api/files/append`, returns the updated file's `id`, `name`, `size`, `type`, and `url`. Used for the Append operation.
+
+## YAML Example
+
+```yaml
+# Example 1 — Read a PDF from a URL and pass its text to the next block
+file_1:
+  type: file
+  name: "File"
+  inputs:
+    operation: "read"
+    inputMethod: "url"
+    filePath: "https://example.com/report.pdf"
+  connections:
+    outgoing:
+      - target: agent_1
+
+# Example 2 — Write AI-generated text as a workspace file
+file_2:
+  type: file
+  name: "File"
+  inputs:
+    operation: "write"
+    fileName: "summary.md"
+    content: "{{agent_1.combinedContent}}"
+  connections:
+    outgoing:
+      - target: response_1
+
+# Example 3 — Append a log entry to an existing workspace file
+file_3:
+  type: file
+  name: "File"
+  inputs:
+    operation: "append"
+    fileName: "run-log.txt"
+    content: "{{agent_1.combinedContent}}"
+  connections:
+    outgoing:
+      - target: response_1
 ```
-[Starter: Upload CSV] → [File: Read] → [Agent: Analyze] → [Response]
-```
-
-**How it works:**
-1. User uploads a CSV file
-2. File block reads the CSV content as text
-3. Agent analyzes the data and generates insights
-4. Response returns the analysis
-
-**Agent Prompt:** `Analyze this CSV data and provide key insights, trends, and anomalies:\n\n{{file.content}}`
-
-## Tips
-
-- **CSV files** are read as text — the Agent or Function block can parse them
-- **Large files** may exceed context limits — consider splitting or summarizing first
-- **Use with Google Drive or OneDrive** blocks for cloud file workflows

@@ -27,28 +27,93 @@ The Attio block integrates Attio CRM into your workflows. Use it to list, get, c
 
 ## Configuration
 
-### Operation
-Dropdown selecting the action to perform: List Records, Get Record, Create Record, Update Record, Delete Record, Create Note, or List Notes. This drives which other fields are required.
+### Operation (required)
+
+Dropdown selecting which action to perform. The value you pick controls which other fields appear.
+
+| Label | id |
+|-------|----|
+| List Records | `attio_list_records` |
+| Get Record | `attio_get_record` |
+| Create Record | `attio_create_record` |
+| Update Record | `attio_update_record` |
+| Delete Record | `attio_delete_record` |
+| Create Note | `attio_create_note` |
+| List Notes | `attio_list_notes` |
 
 ### Attio Account
-OAuth connection (`attio` provider) used to authenticate all requests against your Attio workspace.
 
-### Object Type
-The object slug to operate on (e.g. `people`, `companies`, `deals`). Required.
+OAuth connection (`attio` provider) used to authenticate all requests against your Attio workspace. Connect via the credential picker; the access token is passed automatically and is never visible in block inputs.
+
+### Object Type (required)
+
+The object slug to operate on (e.g. `people`, `companies`, `deals`). Required for every operation except Create Note and List Notes (which use the note-level parent object field handled internally by the tool).
 
 ### Record ID
-The target record's ID. Required for Get Record, Update Record, and Delete Record operations.
+
+The target record's unique identifier. This field appears only for the following operations:
+- `attio_get_record`
+- `attio_update_record`
+- `attio_delete_record`
 
 ### Attributes (JSON)
-A JSON object of record attributes to set. Used by Create Record and Update Record.
+
+A JSON object of attribute values to set on a record. Example: `{"name": "John Doe", "email": "john@example.com"}`. Appears only for:
+- `attio_create_record`
+- `attio_update_record`
+
+For `attio_update_record` multiselect attribute values are appended rather than replaced.
 
 ### Filter (JSON)
-A JSON object of filter criteria for narrowing results. Used by List Records.
+
+A JSON filter object for narrowing which records to query. Example: `{"email_addresses": {"email_address": "john@example.com"}}`. Appears only for:
+- `attio_list_records`
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `oauthCredential` (string), `objectType` (string), `recordId` (string), `attributes` (json), `filter` (json)
-- **Outputs**: `records` (json), `record` (json), `notes` (json)
+**Inputs** (sub-block ids passed at execution time):
+
+- `operation` (string) — Operation to perform (one of the tool ids listed above)
+- `oauthCredential` (string) — OAuth credential token injected by the Attio account connection
+- `objectType` (string) — Object type slug (e.g. `people`, `companies`)
+- `recordId` (string) — Record ID; used by get, update, and delete operations
+- `attributes` (json) — Record attribute values; used by create and update operations
+- `filter` (json) — Filter criteria; used by list records
+
+**Outputs** (vary by operation; reference with `{{blockName.field}}`):
+
+Record operations:
+- `records` (json) — Array of matching records returned by List Records; each item has `id`, `created_at`, `web_url`, and `values`
+- `record` (json) — Single record object returned by Get Record, Create Record, or Update Record; contains `id`, `created_at`, `web_url`, and `values`
+- `recordId` (string) — The record ID extracted from the returned record (Get, Create, Update)
+- `webUrl` (string) — Direct URL to view the record in Attio (Get, Create, Update)
+- `deleted` (boolean) — `true` when a Delete Record operation succeeds
+- `count` (number) — Number of records returned by List Records
+
+Note operations:
+- `notes` (json) — Array of note objects returned by List Notes; each item contains the note fields below
+- `noteId` (string) — The note ID (Create Note)
+- `parentObject` (string) — Parent object slug of the note
+- `parentRecordId` (string) — Parent record ID the note is attached to
+- `title` (string) — Note title
+- `contentPlaintext` (string) — Note body as plain text
+- `contentMarkdown` (string) — Note body as markdown
+- `meetingId` (string) — Linked meeting ID, if any
+- `tags` (array) — Tags on the note
+- `createdByActor` (object) — Actor who created the note (`type`, `id`)
+- `createdAt` (string) — ISO 8601 timestamp when the note was created
+
+## Tools
+
+The block selects the tool to invoke based on the `operation` input. All tools require OAuth and call the Attio REST API v2.
+
+- **Attio List Records** (`attio_list_records`) — Queries and lists records for a given object type using an optional JSON filter, sort array, limit, and offset. Returns `records` (array) and `count`.
+- **Attio Get Record** (`attio_get_record`) — Retrieves a single record by object type and record ID. Returns `record`, `recordId`, and `webUrl`.
+- **Attio Create Record** (`attio_create_record`) — Creates a new record in Attio for the specified object type using a JSON `values` payload. Returns `record`, `recordId`, and `webUrl`.
+- **Attio Update Record** (`attio_update_record`) — Patches an existing record with new attribute values (multiselect values are appended). Returns `record`, `recordId`, and `webUrl`.
+- **Attio Delete Record** (`attio_delete_record`) — Deletes a record by object type and record ID. Returns `deleted: true` on success.
+- **Attio Create Note** (`attio_create_note`) — Creates a note on a parent record; supports plaintext or markdown format, optional backdating, and optional meeting association. Returns full note properties.
+- **Attio List Notes** (`attio_list_notes`) — Lists notes in Attio, optionally filtered by parent object and parent record ID, with limit/offset pagination. Returns `notes` (array) and `count`.
 
 ## YAML Example
 
@@ -59,7 +124,7 @@ attio_1:
   inputs:
     operation: "attio_create_record"
     objectType: "people"
-    attributes: '{"name": "John Doe", "email": "john@example.com"}'
+    attributes: '{"name": "{{form_block.fullName}}", "email": "{{form_block.email}}"}'
   connections:
     outgoing:
       - target: next-block-id

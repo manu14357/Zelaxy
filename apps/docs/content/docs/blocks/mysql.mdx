@@ -6,7 +6,7 @@ icon: Box
 
 # MySQL Block
 
-The MySQL block connects to a MySQL database to execute queries and perform full CRUD operations on your data. Reach for it when a workflow needs to read from or write to MySQL, with support for secure SSL connections and parameterized queries.
+The MySQL block connects to a MySQL database to execute queries and perform full CRUD operations on your data. Reach for it when a workflow needs to read from or write to MySQL, with support for secure SSL connections, parameterized queries, and connection pooling.
 
 ## Overview
 
@@ -27,34 +27,84 @@ The MySQL block connects to a MySQL database to execute queries and perform full
 
 ## Configuration
 
-### Connection
+### Host (`host`) — required
 
-Set the **Host**, **Port** (default `3306`), **Database**, **Username**, and **Password** to establish the connection. Toggle **Enable SSL** to use SSL/TLS encryption. The password may be left empty for passwordless/local authentication.
+The MySQL server hostname or IP address (e.g. `localhost` or `db.example.com`).
 
-### Action
+### Port (`port`)
 
-A dropdown selecting the operation to perform: Execute Query, Insert Data, Update Data, or Delete Data. This choice controls which additional fields are required.
+The TCP port MySQL listens on. Defaults to `3306` if left blank.
 
-### SQL Query
+### Database (`database`) — required
 
-The raw SQL statement to run. Shown only when the action is Execute Query.
+The name of the target database to connect to.
 
-### Table Name
+### Username (`username`) — required
 
-The target table for the operation. Shown for Insert, Update, and Delete actions.
+The database user to authenticate as (e.g. `root`).
 
-### Data
+### Password (`password`)
 
-A JSON object (or array of objects) describing the values to write. Shown for Insert and Update actions.
+The password for the database user. Leave empty for passwordless or socket-based local authentication. The field is masked.
 
-### Conditions (WHERE clause)
+### Enable SSL (`ssl`)
 
-A JSON object defining the WHERE conditions. Shown for Update and Delete actions.
+A toggle (switch). When enabled, the connection uses SSL/TLS encryption (`ssl: { rejectUnauthorized: false }`).
+
+### Action (`action`) — required
+
+A dropdown that selects the database operation to perform. This controls which additional configuration fields are shown.
+
+| Label | ID | Additional fields shown |
+|---|---|---|
+| Execute Query | `execute` | `query` |
+| Insert Data | `insert` | `table`, `data` |
+| Update Data | `update` | `table`, `data`, `conditions` |
+| Delete Data | `delete` | `table`, `conditions` |
+
+### SQL Query (`query`)
+
+A SQL code editor for the raw SQL statement to execute. Shown only when `action` is `execute`. Required in that mode. Supports the wand (AI-assist) feature to generate MySQL queries from natural language; you can reference other blocks with `{{blockName.field}}` or environment variables with `{{ENV_VAR_NAME}}`.
+
+### Table Name (`table`)
+
+The name of the target table. Shown when `action` is `insert`, `update`, or `delete`. Required in those modes.
+
+### Data (`data`)
+
+A JSON editor for the values to write. Accepts a single object or an array of objects. Shown when `action` is `insert` or `update`. Required in those modes. Supports AI-assist for generating valid JSON payloads; reference upstream block output with `{{blockName.field}}`.
+
+### Conditions (WHERE clause) (`conditions`)
+
+A JSON editor defining the WHERE conditions used to target specific rows. Shown when `action` is `update` or `delete`. Required in those modes. Example: `{"id": 123}` or `{"status": "active"}`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `host` (string), `port` (number), `database` (string), `username` (string), `password` (string), `ssl` (boolean), `action` (string), `query` (string), `table` (string), `data` (json), `conditions` (json)
-- **Outputs**: `data` (json), `affectedRows` (number), `metadata` (json), `error` (string), `errorDetails` (json)
+**Inputs** (all map directly to the sub-block ids above):
+
+- `host` (string) — MySQL hostname or IP address
+- `port` (number) — MySQL port (default: 3306)
+- `database` (string) — Database name
+- `username` (string) — Database username
+- `password` (string) — Database password
+- `ssl` (boolean) — Enable SSL connection
+- `action` (string) — Operation to perform (`execute`, `insert`, `update`, or `delete`)
+- `query` (string) — SQL query to execute (used when action is `execute`)
+- `table` (string) — Table name for insert/update/delete operations
+- `data` (json) — Data object or array of objects for insert/update operations
+- `conditions` (json) — WHERE conditions for update/delete operations
+
+**Outputs**:
+
+- `data` (json) — Query results for SELECT operations; for write operations contains a result summary object
+- `affectedRows` (number) — Number of rows affected by INSERT, UPDATE, or DELETE operations
+- `metadata` (json) — Query execution metadata including `executionTime`, `rowCount`, and `columns`
+- `error` (string) — Error message if the operation fails
+- `errorDetails` (json) — Detailed error information including error type and execution time
+
+## Tools
+
+**MySQL** (`mysql_database`) — Executes SQL queries and manages data in a MySQL database. Handles all four action modes (`execute`, `insert`, `update`, `delete`) by routing to the appropriate query path, uses connection pooling (`connectionLimit: 10`, `connectTimeout: 30 s`), and sanitizes identifiers to prevent injection. Returns structured output including result rows, affected row counts, and timing metadata.
 
 ## YAML Example
 
@@ -67,10 +117,53 @@ mysql_1:
     port: 3306
     database: "my_database"
     username: "root"
-    password: "{{SECRET_DB_PASSWORD}}"
+    password: "{{DB_PASSWORD}}"
     ssl: true
     action: "execute"
     query: "SELECT * FROM users WHERE active = 1"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+### Insert example
+
+```yaml
+mysql_insert:
+  type: mysql
+  name: "Insert User"
+  inputs:
+    host: "db.example.com"
+    port: 3306
+    database: "my_database"
+    username: "app_user"
+    password: "{{DB_PASSWORD}}"
+    ssl: false
+    action: "insert"
+    table: "users"
+    data: '{"name": "{{agent1.name}}", "email": "{{agent1.email}}", "active": true}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+### Update example
+
+```yaml
+mysql_update:
+  type: mysql
+  name: "Deactivate User"
+  inputs:
+    host: "db.example.com"
+    port: 3306
+    database: "my_database"
+    username: "app_user"
+    password: "{{DB_PASSWORD}}"
+    ssl: false
+    action: "update"
+    table: "users"
+    data: '{"active": false}'
+    conditions: '{"id": "{{trigger.userId}}"}'
   connections:
     outgoing:
       - target: next-block-id

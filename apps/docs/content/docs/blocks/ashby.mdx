@@ -1,7 +1,7 @@
 ---
 title: Ashby Block
 description: Manage candidates and job applications in Ashby ATS
-icon: Box
+icon: Users
 ---
 
 # Ashby Block
@@ -18,31 +18,73 @@ The Ashby block integrates the Ashby applicant tracking system into your workflo
 
 ## When to Use
 
-- List candidates from your Ashby ATS to drive downstream automation
-- Look up a single candidate's details by ID
-- Create a new candidate record when a lead or applicant arrives
-- Update an existing candidate's name or email
-- Pull the list of applications to track hiring pipeline stages
-- Fetch open job postings to power routing or notifications
+- List all candidates in your Ashby organization to drive downstream automation or reporting
+- Look up a single candidate's full details (contact info, tags, social links, files) by their UUID
+- Create a new candidate record when a lead or applicant arrives via another system
+- Update an existing candidate's name, email, phone, or social links
+- Pull paginated lists of applications filtered by status, job, or candidate to track pipeline stages
+- Fetch a job posting's details (title, description, location, employment type, apply link) for routing or notifications
 
 ## Configuration
 
-### Operation
-Dropdown selecting the action to perform: List Candidates, Get Candidate, Create Candidate, Update Candidate, List Applications, or Get Job Postings. Required.
+### Operation (required)
 
-### API Key
-Your Ashby API key, stored as a password field. Required for all operations.
+Dropdown that selects which Ashby API action to perform. Must be set before other fields appear.
+
+| Label | ID |
+|-------|----|
+| List Candidates | `ashby_list_candidates` |
+| Get Candidate | `ashby_get_candidate` |
+| Create Candidate | `ashby_create_candidate` |
+| Update Candidate | `ashby_update_candidate` |
+| List Applications | `ashby_list_applications` |
+| Get Job Postings | `ashby_get_job_postings` |
+
+### API Key (required)
+
+Your Ashby API key, stored as a password field. Required for all operations. Store it as an environment variable and reference it with `{{ASHBY_API_KEY}}`.
 
 ### Candidate ID
-The target candidate's ID. Shown for the Get Candidate and Update Candidate operations.
 
-### Name / Email
-Candidate name and email fields. Shown for the Create Candidate and Update Candidate operations.
+The UUID of the candidate to look up or modify. Shown only for the **Get Candidate** and **Update Candidate** operations.
+
+### Name
+
+The candidate's full name. Shown only for the **Create Candidate** and **Update Candidate** operations.
+
+### Email
+
+The candidate's primary email address. Shown only for the **Create Candidate** and **Update Candidate** operations.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `candidateId` (string), `name` (string), `email` (string)
-- **Outputs**: `candidates` (json), `candidate` (json), `applications` (json)
+### Block-level inputs
+
+- `operation` (string) — Operation to perform (one of the tool IDs listed above)
+- `apiKey` (string) — Ashby API key
+- `candidateId` (string) — Candidate UUID; required for Get Candidate and Update Candidate
+- `name` (string) — Candidate full name; used by Create Candidate and Update Candidate
+- `email` (string) — Candidate email address; used by Create Candidate and Update Candidate
+
+### Block-level outputs
+
+- `candidates` (json) — Candidate list returned by List Candidates
+- `candidate` (json) — Candidate details returned by Get Candidate, Create Candidate, or Update Candidate
+- `applications` (json) — Application list returned by List Applications
+
+## Tools
+
+**Ashby List Candidates** (`ashby_list_candidates`) — Lists all candidates in the Ashby organization with cursor-based pagination. Supports optional `cursor`, `perPage`, and `createdAfter` (ISO 8601) params. Returns `candidates` (array), `moreDataAvailable` (boolean), and `nextCursor` (string).
+
+**Ashby Get Candidate** (`ashby_get_candidate`) — Retrieves full details about a single candidate by UUID (`candidateId`). Returns the full candidate object (id, name, contact info, social links, location, tags, files, source, custom fields, timestamps).
+
+**Ashby Create Candidate** (`ashby_create_candidate`) — Creates a new candidate record. Requires `name`; optional params include `email`, `phoneNumber`, `linkedInUrl`, `githubUrl`, `website`, `sourceId`, `creditedToUserId`, `createdAt`, and `alternateEmailAddresses`. Returns the created candidate object.
+
+**Ashby Update Candidate** (`ashby_update_candidate`) — Updates an existing candidate record by `candidateId`. Only supplied fields are changed. Optional params include `name`, `email`, `phoneNumber`, `linkedInUrl`, `githubUrl`, `websiteUrl`, `alternateEmail`, `sourceId`, `creditedToUserId`, `createdAt`, `sendNotifications`, and `socialLinks`. Returns the updated candidate object.
+
+**Ashby List Applications** (`ashby_list_applications`) — Lists applications with pagination and optional filters: `status` (Active, Hired, Archived, Lead), `jobId`, `candidateId`, `createdAfter` (ISO 8601), `cursor`, and `perPage`. Returns `applications` (array), `moreDataAvailable` (boolean), and `nextCursor` (string).
+
+**Ashby Get Job Postings** (`ashby_get_job_postings`) — Retrieves full details for a single job posting by `jobPostingId`. Optional `jobBoardId` selects the board (defaults to external board); `expandJob` (boolean) includes the related job object. Returns fields including `id`, `title`, `descriptionPlain`, `descriptionHtml`, `locationName`, `isRemote`, `workplaceType`, `employmentType`, `isListed`, `publishedDate`, `applicationDeadline`, `applyLink`, `externalLink`, and optionally `job`.
 
 ## YAML Example
 
@@ -52,9 +94,9 @@ ashby_1:
   name: "Ashby"
   inputs:
     operation: "ashby_create_candidate"
-    apiKey: "{{secrets.ASHBY_API_KEY}}"
-    name: "John Doe"
-    email: "candidate@example.com"
+    apiKey: "{{ASHBY_API_KEY}}"
+    name: "Jane Smith"
+    email: "jane@example.com"
   connections:
     outgoing:
       - target: next-block-id

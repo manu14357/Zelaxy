@@ -6,7 +6,7 @@ icon: Box
 
 # Amplitude Block
 
-The Amplitude block integrates Amplitude product analytics into your workflows. Use it to track events, identify users, search user data, and export analytics directly from a running workflow.
+The Amplitude block integrates Amplitude product analytics into your workflows. Use it to track events, identify users, search user data, and export raw analytics directly from a running workflow.
 
 ## Overview
 
@@ -19,35 +19,77 @@ The Amplitude block integrates Amplitude product analytics into your workflows. 
 ## When to Use
 
 - Send a custom analytics event (e.g. `button_clicked`) when a workflow step completes.
-- Identify a user and attach user properties to keep Amplitude profiles in sync.
-- Search Amplitude user data to enrich a workflow with profile information.
-- Pull a user's recent activity to drive downstream decisions.
-- Export raw events for reporting or to feed another system.
+- Identify a user and attach or update user properties to keep Amplitude profiles in sync.
+- Search Amplitude user data by User ID, Device ID, or Amplitude ID to enrich a workflow.
+- Pull a user's full event stream by their Amplitude ID to drive downstream decisions.
+- Export raw event data for a date range for reporting or to feed another system.
+- Automate analytics instrumentation without writing client-side SDK calls.
 
 ## Configuration
 
 ### Operation
-Dropdown selecting the action to run: Send Event, Identify User, User Search, Get User Activity, or Export Events.
+
+Dropdown — required. Selects the Amplitude action to execute. Options:
+
+| Label | id |
+|-------|----|
+| Send Event | `amplitude_send_event` |
+| Identify User | `amplitude_identify_user` |
+| User Search | `amplitude_user_search` |
+| Get User Activity | `amplitude_get_user_activity` |
+| Export Events | `amplitude_export_events` |
 
 ### API Key
-Required Amplitude API key used to authenticate requests (stored as a password field).
+
+Short input — required. Your Amplitude project API key. Stored as a password field and sent with every request. Use `{{AMPLITUDE_API_KEY}}` to inject it from an environment variable.
 
 ### Secret Key
-Amplitude secret key, required for operations that use the Export/analytics APIs.
+
+Short input — optional at the block level, but required by the **User Search**, **Get User Activity**, and **Export Events** operations (those tools authenticate with HTTP Basic using `apiKey:secretKey`). Use `{{AMPLITUDE_SECRET_KEY}}` to inject it from an environment variable.
 
 ### Event Type
-Name of the event to record (e.g. `button_clicked`). Shown for the Send Event operation.
+
+Short input — visible for **Send Event** only (`operation = amplitude_send_event`). The name of the event to record, e.g. `button_clicked` or `page_view`.
 
 ### User ID
-Identifier of the user. Shown for Send Event, Identify User, and Get User Activity operations.
+
+Short input — visible for **Send Event**, **Identify User**, and **Get User Activity** (`operation` in `[amplitude_send_event, amplitude_identify_user, amplitude_get_user_activity]`). The external user identifier.
 
 ### Event Properties (JSON)
-JSON object of properties attached to the event or user. Shown for Send Event and Identify User operations.
+
+Long input — visible for **Send Event** and **Identify User** (`operation` in `[amplitude_send_event, amplitude_identify_user]`). A JSON string of custom key-value pairs attached to the event or used as user properties, e.g. `{"page": "homepage", "action": "click"}`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `secretKey` (string), `eventType` (string), `userId` (string), `eventProperties` (string)
-- **Outputs**: `eventId` (string), `user` (json), `activeUsers` (number), `revenue` (number)
+**Inputs** (block-level subBlock ids passed to the selected tool):
+
+- `operation` (string) — Operation to perform; must be one of the tool ids listed above.
+- `apiKey` (string) — API key.
+- `secretKey` (string) — Secret key.
+- `eventType` (string) — Event type name (Send Event only).
+- `userId` (string) — User ID (Send Event, Identify User, Get User Activity).
+- `eventProperties` (string) — Event properties JSON (Send Event, Identify User).
+
+**Outputs** (block-level, populated by whichever tool ran):
+
+- `eventId` (string) — Event ID.
+- `user` (json) — User data.
+- `activeUsers` (number) — Active user count.
+- `revenue` (number) — Revenue data.
+
+## Tools
+
+Each operation resolves to a dedicated tool. The block selects the tool whose id matches the chosen `operation` value.
+
+**Amplitude Send Event** (`amplitude_send_event`) — Tracks a single event using the Amplitude HTTP V2 API (`POST https://api2.amplitude.com/2/httpapi`). Key params: `apiKey` (required), `eventType` (required), `userId` or `deviceId` (at least one required), plus optional `eventProperties`, `userProperties`, `time`, `sessionId`, `insertId`, `appVersion`, `platform`, `country`, `language`, `ip`, `price`, `quantity`, `revenue`, `productId`, `revenueType`. Outputs: `code` (number), `eventsIngested` (number), `payloadSizeBytes` (number), `serverUploadTime` (number).
+
+**Amplitude Identify User** (`amplitude_identify_user`) — Sets user properties via the Amplitude Identify API (`POST https://api2.amplitude.com/identify`). Supports `$set`, `$setOnce`, `$add`, `$append`, `$unset` operations in the `userProperties` JSON. Key params: `apiKey` (required), `userProperties` (required), `userId` or `deviceId`. Outputs: `code` (number), `message` (string, optional).
+
+**Amplitude User Search** (`amplitude_user_search`) — Searches for a user by User ID, Device ID, or Amplitude ID via the Dashboard REST API (`GET https://amplitude.com/api/2/usersearch`). Authenticates with HTTP Basic (`apiKey:secretKey`). Key params: `apiKey` (required), `secretKey` (required), `user` (required — the search term). Outputs: `matches` (array of `{amplitudeId, userId}`), `type` (string, optional).
+
+**Amplitude Get User Activity** (`amplitude_get_user_activity`) — Returns the full event stream for a user by their Amplitude internal ID (`GET https://amplitude.com/api/2/useractivity`). Authenticates with HTTP Basic. Key params: `apiKey` (required), `secretKey` (required), `amplitudeId` (required), `offset`, `limit` (max 1000), `direction` (`"latest"` or `"earliest"`). Outputs: `events` (array of event objects with `eventType`, `eventTime`, `eventProperties`, `userProperties`, `sessionId`, `platform`, `country`, `city`), `userData` (json, optional).
+
+**Amplitude Export Events** (`amplitude_export_events`) — Exports raw event data for a date range via the Export REST API (`GET https://amplitude.com/api/2/export`). Authenticates with HTTP Basic. Key params: `apiKey` (required), `secretKey` (required), `start` (required, format `YYYYMMDDTHH`), `end` (required, format `YYYYMMDDTHH`). Outputs: `exportedAt` (string), `startDate` (string), `endDate` (string), `message` (string).
 
 ## YAML Example
 
@@ -57,9 +99,9 @@ amplitude_1:
   name: "Amplitude"
   inputs:
     operation: "amplitude_send_event"
-    apiKey: "{{secrets.AMPLITUDE_API_KEY}}"
+    apiKey: "{{AMPLITUDE_API_KEY}}"
     eventType: "button_clicked"
-    userId: "{{start.input}}"
+    userId: "{{start.userId}}"
     eventProperties: '{"page": "homepage", "action": "click"}'
   connections:
     outgoing:

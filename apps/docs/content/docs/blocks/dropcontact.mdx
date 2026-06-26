@@ -1,0 +1,167 @@
+---
+title: Dropcontact Block
+description: Enrich B2B contacts with verified emails and company data
+icon: Box
+---
+
+# Dropcontact Block
+
+Submit contacts for B2B enrichment and retrieve verified emails, phone numbers, and company data from Dropcontact. Enrichment is asynchronous: submit with **Enrich contact**, then poll the result with **Get batch result** using the returned request ID.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `dropcontact` |
+| **Category** | `tools` |
+| **Color** | `#4A90D9` |
+
+## When to Use
+
+- Enrich a lead's contact record with a verified email address before sending an outreach sequence.
+- Look up company data (name, website, phone) from a partial contact record.
+- Include French SIREN/SIRET company data for EU compliance or market research workflows.
+- Poll an asynchronous enrichment batch after a delay block gives Dropcontact time to process.
+- Chain Enrich → Get Batch in a two-step workflow to reliably handle Dropcontact's async model.
+- Gate downstream CRM updates on whether a verified email was returned by checking `metadata.ready`.
+
+## Configuration
+
+### Operation
+
+Select which Dropcontact action to perform. This dropdown controls which fields are shown below it.
+
+| Label | ID |
+|-------|----|
+| Enrich contact | `dropcontact_enrich` |
+| Get batch result | `dropcontact_get_batch` |
+
+---
+
+### Email _(Enrich contact only)_
+
+- **Sub-block id**: `email`
+- **Type**: short text input
+- **Placeholder**: `contact@example.com`
+- **Required**: No — but providing at least one of email, first name / last name + company is recommended for Dropcontact to return useful results.
+- Visible only when **Operation** is `dropcontact_enrich`.
+
+---
+
+### First Name _(Enrich contact only)_
+
+- **Sub-block id**: `first_name`
+- **Type**: short text input
+- **Placeholder**: `Jane`
+- **Required**: No
+- Visible only when **Operation** is `dropcontact_enrich`.
+
+---
+
+### Last Name _(Enrich contact only)_
+
+- **Sub-block id**: `last_name`
+- **Type**: short text input
+- **Placeholder**: `Doe`
+- **Required**: No
+- Visible only when **Operation** is `dropcontact_enrich`.
+
+---
+
+### Company _(Enrich contact only)_
+
+- **Sub-block id**: `company`
+- **Type**: short text input
+- **Placeholder**: `Acme Inc`
+- **Required**: No
+- Visible only when **Operation** is `dropcontact_enrich`.
+
+---
+
+### Request ID _(Get batch result only)_
+
+- **Sub-block id**: `request_id`
+- **Type**: short text input
+- **Placeholder**: `Request ID from the enrich operation`
+- **Required**: Yes (for this operation)
+- The value must be the `request_id` string returned by a prior **Enrich contact** call. Reference it with `{{dropcontact_1.metadata.request_id}}` (replace `dropcontact_1` with your enrich block's name).
+- Visible only when **Operation** is `dropcontact_get_batch`.
+
+---
+
+### API Access Token
+
+- **Sub-block id**: `apiKey`
+- **Type**: short text input (password masked)
+- **Required**: Yes — applies to both operations.
+- Enter your Dropcontact API access token, or reference a workspace secret: `{{DROPCONTACT_API_KEY}}`.
+
+## Inputs & Outputs
+
+### Inputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `operation` | string | Operation to perform (`dropcontact_enrich` or `dropcontact_get_batch`) |
+| `apiKey` | string | Dropcontact API access token |
+| `email` | string | Contact email (Enrich only) |
+| `first_name` | string | Contact first name (Enrich only) |
+| `last_name` | string | Contact last name (Enrich only) |
+| `company` | string | Contact company (Enrich only) |
+| `request_id` | string | Enrichment request ID (Get Batch only) |
+
+### Outputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `data` | json | Result object or array from Dropcontact |
+| `metadata` | json | Response metadata |
+
+**Enrich contact** (`dropcontact_enrich`) populates `metadata` with:
+- `metadata.request_id` (string) — the ID to pass to a subsequent Get Batch call
+- `metadata.success` (boolean) — whether the submission was accepted
+
+**Get batch result** (`dropcontact_get_batch`) populates `metadata` with:
+- `metadata.request_id` (string) — the polled request ID
+- `metadata.ready` (boolean) — whether the enrichment result is ready; if `false`, wait and retry
+
+## Tools
+
+**Dropcontact Enrich** (`dropcontact_enrich`) — Submits a single contact to the Dropcontact `/batch` endpoint via HTTP POST. Accepts `email`, `first_name`, `last_name`, `company`, and an optional `siret` flag for French SIREN/SIRET enrichment. Returns a `request_id` for polling.
+
+**Dropcontact Get Batch** (`dropcontact_get_batch`) — Retrieves the result of a prior enrichment submission from `GET /batch/{request_id}`. Returns an array of enriched contact objects under `data` and a `ready` flag in `metadata` indicating whether processing is complete.
+
+## YAML Example
+
+### Step 1 — Enrich a contact
+
+```yaml
+dropcontact_enrich_1:
+  type: dropcontact
+  name: "Enrich Contact"
+  inputs:
+    operation: "dropcontact_enrich"
+    apiKey: "{{DROPCONTACT_API_KEY}}"
+    email: "{{lead_block.email}}"
+    first_name: "{{lead_block.first_name}}"
+    last_name: "{{lead_block.last_name}}"
+    company: "{{lead_block.company}}"
+  connections:
+    outgoing:
+      - target: wait_1
+```
+
+### Step 2 — Poll for the enriched result
+
+```yaml
+dropcontact_get_1:
+  type: dropcontact
+  name: "Get Enrichment Result"
+  inputs:
+    operation: "dropcontact_get_batch"
+    apiKey: "{{DROPCONTACT_API_KEY}}"
+    request_id: "{{dropcontact_enrich_1.metadata.request_id}}"
+  connections:
+    outgoing:
+      - target: crm_update_block
+```

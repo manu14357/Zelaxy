@@ -1,0 +1,107 @@
+---
+title: Linq Tools
+description: Send and read iMessage, SMS, and RCS chats through the Linq messaging API
+icon: MessageSquare
+---
+
+# Linq Tools
+
+Linq is a messaging platform that lets you send and read iMessage, SMS, and RCS conversations programmatically. Use these tools in a workflow to send messages to an existing chat, list chats, and page through the messages in a chat.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `linq` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Linq API key sent as `Authorization: Bearer <apiKey>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Send message | `linq_send_message` | Send a message to an existing Linq chat, with optional media or link |
+| List chats | `linq_list_chats` | List Linq chats, optionally filtered by sender or participant handle |
+| List messages | `linq_list_messages` | List messages in a Linq chat with pagination |
+
+## Configuration
+
+### `linq_send_message`
+
+Calls `POST https://api.linqapp.com/api/partner/v3/chats/{chatId}/messages`. The request body is built into a `message.parts` array: when `linkUrl` is set it is sent as a single `link` part (text and media are ignored); otherwise a `text` part and/or a `media` part are included based on which are provided.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Linq API key. Secret — `visibility: user-only`, never exposed to the LLM. |
+| `chatId` | string | Yes | The unique identifier of the chat. |
+| `text` | string | No | Text content of the message. |
+| `mediaUrl` | string | No | Publicly accessible HTTPS URL of an image, video, or file to attach. |
+| `linkUrl` | string | No | URL to send as a rich link preview (sent as its own message). When set, `text`/`mediaUrl` are not included. |
+
+### `linq_list_chats`
+
+Calls `GET https://api.linqapp.com/api/partner/v3/chats`. Optional filters and pagination values are added as query parameters.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Linq API key. Secret — `visibility: user-only`, never exposed to the LLM. |
+| `from` | string | No | Filter by sender phone number in E.164 format (e.g. `+15551234567`). |
+| `to` | string | No | Filter by participant handle (phone number or email). |
+| `limit` | number | No | Results per page (default 20, max 100). |
+| `cursor` | string | No | Pagination cursor from a previous response. |
+
+### `linq_list_messages`
+
+Calls `GET https://api.linqapp.com/api/partner/v3/chats/{chatId}/messages`. Pagination values are added as query parameters.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Linq API key. Secret — `visibility: user-only`, never exposed to the LLM. |
+| `chatId` | string | Yes | The unique identifier of the chat. |
+| `limit` | number | No | Maximum number of messages to return. |
+| `cursor` | string | No | Pagination cursor from a previous response. |
+
+## Outputs
+
+### `linq_send_message`
+
+- `data` (json) — The sent Linq message object with parts.
+- `metadata` (json) — Message identifiers.
+  - `id` (string) — Sent message ID.
+
+### `linq_list_chats`
+
+- `data` (json) — Array of Linq chat objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of chats returned.
+  - `nextCursor` (string) — Cursor for the next page (null when none).
+
+### `linq_list_messages`
+
+- `data` (json) — Array of Linq message objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of messages returned.
+  - `nextCursor` (string) — Cursor for the next page (null when none).
+
+## YAML Example
+
+```yaml
+linq_1:
+  type: linq
+  name: "Linq"
+  inputs:
+    operation: "linq_send_message"
+    chatId: "chat_abc123"
+    text: "Hello from Zelaxy!"
+    apiKey: "{{LINQ_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Auth setup: generate a Linq partner API key and store it as an environment variable (for example `LINQ_API_KEY`), then reference it with `{{LINQ_API_KEY}}`. The key is sent as a Bearer token and is marked secret (`user-only`), so it is never passed to the LLM.
+- `chatId` is required for both `linq_send_message` and `linq_list_messages`. To discover a chat ID, run `linq_list_chats` first (optionally filtering with `from`/`to`) and pull it from the returned `data`, e.g. `{{linq_1.data}}`.
+- When sending, `linkUrl` takes priority: if you set `linkUrl`, the `text` and `mediaUrl` parts are dropped and only the link preview is sent. To send text plus an attachment, use `text` and `mediaUrl` together and leave `linkUrl` empty. `mediaUrl` must be a publicly accessible HTTPS URL.
+- For paginated reads, use the returned `metadata.nextCursor` as the `cursor` input on the next call (it is `null` when there are no more pages); `limit` on list chats defaults to 20 and caps at 100.

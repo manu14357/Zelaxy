@@ -1,7 +1,7 @@
 ---
 title: Pulse Block
 description: Parse and extract text from PDFs and documents
-icon: Box
+icon: FileText
 ---
 
 # Pulse Block
@@ -28,27 +28,47 @@ The Pulse block extracts text, structure, and data from PDFs, Word documents, Po
 ## Configuration
 
 ### File Upload
-Upload the document to parse directly (basic mode). Accepts PDF, images, DOCX, PPTX, and XLSX up to 50 MB. Required.
+Upload the document to parse directly (basic mode). Accepts PDF, images, DOCX, PPTX, and XLSX up to 50 MB. Required when not using a URL or path.
 
 ### File URL or Path
-Alternative to uploading — provide a URL or path to the file (advanced mode). Required when not uploading.
+Alternative to uploading — provide an HTTP/HTTPS URL or a local path to the file (advanced mode). Required when not uploading a file directly.
 
 ### Pages
 Optional page range to parse, e.g. `1-3,5`. Leave blank to parse all pages.
 
 ### Enable Chunking
-Switch to split the extracted output into chunks.
+Switch to split the extracted output into chunks. When enabled, the `chunks` output is populated.
 
 ### Chunk Size
-Characters per chunk (default 512) when chunking is enabled.
+Characters per chunk (default 512) when chunking is enabled. Corresponds to the `chunkSize` input.
 
 ### API Key
-Your Pulse API key. Required and stored as a secret.
+Your Pulse API key. Required and treated as a password/secret. Use `{{PULSE_API_KEY}}` to reference an environment variable.
 
 ## Inputs & Outputs
 
-- **Inputs**: `fileUpload` (json), `filePath` (string), `pages` (string), `chunking` (boolean), `chunkSize` (string), `apiKey` (string)
-- **Outputs**: `markdown` (string), `page_count` (number), `job_id` (string), `extraction_url` (string), `html` (string), `structured_output` (json), `chunks` (json), `figures` (json), `bounding_boxes` (json)
+- **Inputs**:
+  - `fileUpload` (json) — Uploaded file object (used in basic mode)
+  - `filePath` (string) — URL or path to the file (used in advanced mode)
+  - `pages` (string) — Page range to parse (e.g. `1-3,5`)
+  - `chunking` (boolean) — Whether to split output into chunks
+  - `chunkSize` (string) — Characters per chunk
+  - `apiKey` (string) — Pulse API key
+
+- **Outputs**:
+  - `markdown` (string) — Extracted text in Markdown format
+  - `page_count` (number) — Total number of pages
+  - `job_id` (string) — Parse job ID
+  - `extraction_url` (string) — URL to the extraction result
+  - `html` (string) — Extracted content as HTML
+  - `structured_output` (json) — Structured extraction result
+  - `chunks` (json) — Text split into chunks (if chunking enabled)
+  - `figures` (json) — Extracted figures and images
+  - `bounding_boxes` (json) — Element bounding box data
+
+## Tools
+
+**Pulse Document Parser** (`pulse_parser`) — Parses documents (PDFs, images, and Office files) via the Pulse OCR API. Accepts either a file upload object or a URL/path, an optional page range, and optional chunking parameters. Returns markdown, HTML, structured output, chunks, figures, bounding boxes, a job ID, and an extraction URL.
 
 ## YAML Example
 

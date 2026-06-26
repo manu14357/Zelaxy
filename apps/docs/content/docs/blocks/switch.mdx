@@ -1,20 +1,20 @@
 ---
 title: Switch Block
-description: Deterministic multi-branch routing with multiple match modes
+description: Route by exact value matching
 icon: GitBranch
 ---
 
 # Switch Block
 
-The Switch block routes workflow execution to one of multiple paths based on value matching — similar to JavaScript's `switch` statement. Unlike the Router block (which uses an LLM), Switch is **deterministic, fast, and free** — no AI calls needed.
+The Switch block routes workflow execution to one of multiple paths based on value matching — similar to JavaScript's `switch` statement. Unlike the Router block (which uses an LLM), Switch is **deterministic, fast, and free** — no AI calls needed. Supports exact match, contains, starts/ends with, regex, and numeric comparisons with `{{}}` variable references in case values.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `switch` |
-| **Category** | Core Block |
-| **Color** | `#8B5CF6` (Purple) |
+| **Category** | `blocks` |
+| **Color** | `#8B5CF6` |
 
 ## When to Use
 
@@ -23,6 +23,60 @@ The Switch block routes workflow execution to one of multiple paths based on val
 - You need multi-way branching (more than true/false)
 - You're routing based on API response fields, user selections, or computed values
 - You need pattern matching (contains, starts with, regex) or numeric comparisons
+- You want the fastest possible routing without any token spend
+
+## Configuration
+
+### Switch Value
+
+The value to match against. This field is **required**. Supports `{{}}` block output references:
+
+```
+{{agent1.status}}
+{{api.response.category}}
+{{starter.input}}
+```
+
+| Property | Detail |
+|----------|--------|
+| **Sub-block id** | `value` |
+| **Type** | `short-input` |
+| **Required** | Yes |
+| **Placeholder** | `Value to match against, e.g. {{agent1.status}}` |
+
+### Match Mode
+
+Controls how the switch value is compared against each case. Select from the dropdown. Defaults to **Exact Match**.
+
+| Option Label | Option Id | Description |
+|---|---|---|
+| Exact Match (===) | `exact` | Case-sensitive exact string comparison (default) |
+| Contains | `contains` | Case-insensitive substring search |
+| Starts With | `startsWith` | Case-insensitive prefix check |
+| Ends With | `endsWith` | Case-insensitive suffix check |
+| Regex | `regex` | Regular expression pattern match (case-insensitive) |
+| Numeric comparison | `numeric` | Numeric comparison with operators (`>`, `<`, `>=`, `<=`, `==`, `!=`) |
+
+| Property | Detail |
+|----------|--------|
+| **Sub-block id** | `matchMode` |
+| **Type** | `dropdown` |
+| **Default** | `exact` |
+
+### Cases
+
+Define one or more match cases, each mapped to a separate output connection handle. Add cases using the **+ Add Case** button in the editor.
+
+| Property | Detail |
+|----------|--------|
+| **Sub-block id** | `cases` |
+| **Type** | `switch-case-input` |
+
+- Each case value supports `{{}}` variable references resolved at execution time.
+- Cases are evaluated **top-to-bottom** — the first matching case wins.
+- A **default** case is always present and catches any value that does not match a defined case.
+- In **Numeric** mode, use operators like `> 100`, `<= 50`, `!= 0`, or a plain number for equality.
+- In **Regex** mode, invalid patterns are treated as non-matching (no error thrown).
 
 ## Switch vs Router vs Condition
 
@@ -34,141 +88,55 @@ The Switch block routes workflow execution to one of multiple paths based on val
 | **Cost** | Free | Token cost | Free (expression) or Token cost |
 | **Best for** | Known values / patterns | Semantic routing | Conditional logic |
 
-## Configuration
+## Inputs & Outputs
 
-### Switch Value
+The Switch block has no declared input fields — its configuration (value, matchMode, cases) is set directly in the block editor. All routing is driven by the `value` sub-block referencing upstream outputs via `{{blockName.field}}`.
 
-The value to match against. Supports `{{}}` block references:
+- **Outputs**:
+  - `matchedValue` (string) — The value of the matched case
+  - `selectedCaseId` (string) — Internal ID of the matched case
+  - `matchMode` (string) — The match mode that was used (e.g. `exact`, `contains`, `regex`)
+  - `selectedPath` (json) — Information about the selected execution path (`blockId`, `blockType`, `blockTitle`)
+  - `inputValue` (string) — The original input value (whitespace-trimmed before comparison)
 
+## Tools
+
+This block uses no external tools (`tools.access` is empty). The Switch block executes entirely within the Zelaxy workflow engine with no API calls or LLM usage.
+
+## YAML Example
+
+```yaml
+switch_1:
+  type: switch
+  name: "Switch"
+  inputs:
+    value: "{{api.status}}"
+    matchMode: "exact"
+    cases:
+      - id: case_1
+        value: "pending"
+      - id: case_2
+        value: "shipped"
+      - id: case_3
+        value: "cancelled"
+  connections:
+    outgoing:
+      - target: agent_process
+        case: case_1
+      - target: slack_notify
+        case: case_2
+      - target: gmail_alert
+        case: case_3
+      - target: response_unknown
+        case: default
 ```
-{{agent.status}}
-{{api.response.category}}
-{{starter.input}}
-```
-
-### Match Mode
-
-Controls how the switch value is compared against each case. Select from the dropdown:
-
-| Mode | Description | Example |
-|------|-------------|---------|
-| **Exact Match** | Case-sensitive exact string comparison (default) | `"pending"` matches `"pending"` |
-| **Contains** | Case-insensitive substring search | `"Hello World"` matches case `"world"` |
-| **Starts With** | Case-insensitive prefix check | `"order-123"` matches case `"order"` |
-| **Ends With** | Case-insensitive suffix check | `"file.pdf"` matches case `".pdf"` |
-| **Regex** | Regular expression pattern match (case-insensitive) | `"abc-123"` matches case `"^[a-z]+-\d+$"` |
-| **Numeric** | Numeric comparison with operators (`>`, `<`, `>=`, `<=`, `==`, `!=`) | Input `"75"` matches case `">= 50"` |
-
-### Cases
-
-Define one or more cases, each with a match value. Add cases dynamically using the **+ Add Case** button. Each case creates a separate output connection handle.
-
-Case values support `{{}}` variable references — type `{{` in a case value input to see a dropdown of available variables from upstream blocks.
-
-A **default** case is always present and catches any value that doesn't match a defined case.
-
-| Setting | Description |
-|---------|-------------|
-| **Case Value** | The string/pattern to match against the switch value (supports `{{}}` references) |
-| **Default** | Catches all unmatched values (always present, cannot be removed) |
-
-## Outputs
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `matchedValue` | `string` | The value of the matched case |
-| `selectedCaseId` | `string` | Internal ID of the matched case |
-| `matchMode` | `string` | The match mode that was used |
-| `selectedPath` | `json` | Information about the selected path (blockId, blockType, blockTitle) |
-| `inputValue` | `string` | The original input value (trimmed) |
-
-## Examples
-
-### Order Status Router (Exact Match)
-
-**Goal:** Route order processing based on status field.
-
-**Workflow:**
-```
-[Starter] → [API: Get Order] → [Switch] → [Agent: Process] (status = "pending")
-                                         → [Slack: Notify] (status = "shipped")
-                                         → [Gmail: Alert] (status = "cancelled")
-                                         → [Response: Unknown] (default)
-```
-
-**Configuration:**
-- **Switch Value:** `{{api.status}}`
-- **Match Mode:** Exact Match
-- **Cases:**
-  - Case 1: `pending`
-  - Case 2: `shipped`
-  - Case 3: `cancelled`
-  - Default: catches everything else
-
-### File Type Router (Ends With)
-
-**Goal:** Route file processing based on extension.
-
-**Configuration:**
-- **Switch Value:** `{{starter.filename}}`
-- **Match Mode:** Ends With
-- **Cases:**
-  - `.pdf` → PDF processor
-  - `.csv` → CSV parser
-  - `.json` → JSON handler
-  - Default → Unsupported format response
-
-### Score Grading (Numeric)
-
-**Goal:** Grade a numeric score into categories.
-
-**Configuration:**
-- **Switch Value:** `{{api.score}}`
-- **Match Mode:** Numeric
-- **Cases:**
-  - `>= 90` → A grade handler
-  - `>= 80` → B grade handler
-  - `>= 70` → C grade handler
-  - Default → Failing grade handler
-
-<Callout type="info">
-In numeric mode, cases are evaluated **top to bottom** — the first matching case wins. Order your cases from most specific to least specific.
-</Callout>
-
-### Content Filter (Regex)
-
-**Goal:** Route content based on pattern matching.
-
-**Configuration:**
-- **Switch Value:** `{{agent.output}}`
-- **Match Mode:** Regex
-- **Cases:**
-  - `^error:` → Error handler
-  - `\b(urgent|critical)\b` → Priority handler
-  - `^success` → Success handler
-  - Default → General handler
-
-### Language Router (Exact Match with Variables)
-
-**Goal:** Route content to language-specific processors using dynamic case values.
-
-**Configuration:**
-- **Switch Value:** `{{starter.language}}`
-- **Match Mode:** Exact Match
-- **Cases:**
-  - `en` → English pipeline
-  - `es` → Spanish pipeline
-  - `fr` → French pipeline
-  - Default → Fallback translation pipeline
 
 ## Tips
 
-- **Exact Match** is case-sensitive; **Contains**, **Starts With**, **Ends With**, and **Regex** are case-insensitive
-- Non-string values are converted to strings before matching
+- **Exact Match** is case-sensitive; **Contains**, **Starts With**, **Ends With**, and **Regex** are all case-insensitive
+- Non-string values are coerced to strings before matching
 - Input values are whitespace-trimmed before comparison
 - Case values support `{{}}` variable references — resolved at execution time
 - If no case matches and the default case has no connection, the block will error
-- In **Numeric** mode, use operators like `> 100`, `<= 50`, `!= 0`, or just a plain number for exact comparison
-- In **Regex** mode, invalid patterns are treated as non-matching (no error thrown)
-- Cases are evaluated top-to-bottom — the **first match wins** (like JavaScript's `switch`)
-- Use the Router block if you need semantic/fuzzy matching via LLM
+- In **Numeric** mode, cases are evaluated top-to-bottom — order from most specific to least specific
+- Use the Router block if you need semantic or fuzzy matching via LLM

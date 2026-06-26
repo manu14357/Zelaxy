@@ -1,0 +1,256 @@
+---
+title: Table Tools
+description: Create and manage user-defined data tables inside a Zelaxy workspace.
+icon: Table
+---
+
+# Table Tools
+
+The Table provider lets a workflow create, query, and mutate structured user-defined data tables that live inside the current Zelaxy workspace. Use these tools whenever a workflow needs durable, schema-backed storage it can read and write across runs (lookups, accumulating records, dedup/upsert, bulk updates), rather than passing data only through block outputs.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `table` |
+| **Category** | `blocks` |
+| **Auth** | None — these are internal Zelaxy API calls scoped to the workspace via the execution context (`_context.workspaceId`). No API key, OAuth, or bearer token is configured. |
+
+<Callout type="info">
+Every Table tool requires a `workspaceId` from the execution context. This is injected automatically by the executor at runtime, so you do **not** pass it as a block input. If it is missing, the tools throw `Workspace ID is required in execution context`.
+</Callout>
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Query Rows | `table_query_rows` | Query rows with filtering, sorting, and pagination |
+| Insert Row | `table_insert_row` | Insert a single new row |
+| Upsert Row | `table_upsert_row` | Insert or update a row based on unique column constraints |
+| Batch Insert Rows | `table_batch_insert_rows` | Insert multiple rows in one call |
+| Update Rows by Filter | `table_update_rows_by_filter` | Update every row matching a filter |
+| Delete Rows by Filter | `table_delete_rows_by_filter` | Delete every row matching a filter |
+| Update Row by ID | `table_update_row` | Partial-update a single row by its row ID |
+| Delete Row by ID | `table_delete_row` | Delete a single row by its row ID |
+| Get Row by ID | `table_get_row` | Retrieve a single row by its row ID |
+| Get Schema | `table_get_schema` | Retrieve a table's name and column definitions |
+| Create Table | `table_create` | Create a new table with a column schema |
+| List Tables | `table_list` | List all tables in the workspace |
+
+<Callout type="warn">
+The **Table** block UI exposes the first 10 operations (`table_query_rows` through `table_get_schema`). `table_create` and `table_list` are registered tools but are not selectable as block operations — they are available to agents/tools at the registry level.
+</Callout>
+
+## Configuration
+
+### table_query_rows
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tableId` | string | Yes | Table ID (user-only) |
+| `filter` | object | No | Filter conditions using MongoDB-style operators: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$contains` |
+| `sort` | object | No | Sort order as `{field: "asc" \| "desc"}` |
+| `limit` | number | No | Maximum rows to return (default `100`, max `1000`) |
+| `offset` | number | No | Number of rows to skip (default `0`) |
+
+### table_insert_row
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tableId` | string | Yes | Table ID (user-only) |
+| `data` | object | Yes | Row data as a JSON object. Must use the `data` parameter name (not `values`, `row`, or `fields`) |
+
+### table_upsert_row
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tableId` | string | Yes | Table ID (user-only) |
+| `data` | object | Yes | Row data to insert or update. If a row with a matching unique field exists it is updated, otherwise inserted. Must use the `data` parameter name |
+
+### table_batch_insert_rows
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tableId` | string | Yes | Table ID (user-only) |
+| `rows` | array | Yes | Array of row data objects (max 1000 rows per batch) |
+
+### table_update_rows_by_filter
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tableId` | string | Yes | Table ID (user-only) |
+| `filter` | object | Yes | Filter criteria using operators like `$eq`, `$ne`, `$gt`, `$lt`, `$contains`, `$in`, etc. |
+| `data` | object | Yes | Fields to update (merged with existing row data) |
+| `limit` | number | No | Maximum number of rows to update (default: no limit, max `1000`) |
+
+### table_delete_rows_by_filter
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tableId` | string | Yes | Table ID (user-only) |
+| `filter` | object | Yes | Filter criteria using operators like `$eq`, `$ne`, `$gt`, `$lt`, `$contains`, `$in`, etc. |
+| `limit` | number | No | Maximum number of rows to delete (default: no limit, max `1000`) |
+
+### table_update_row
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tableId` | string | Yes | Table ID (user-only) |
+| `rowId` | string | Yes | Row ID to update |
+| `data` | object | Yes | Updated fields — partial updates supported, only include fields you want to change. Must use the `data` parameter name |
+
+### table_delete_row
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tableId` | string | Yes | Table ID (user-only) |
+| `rowId` | string | Yes | Row ID to delete |
+
+### table_get_row
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tableId` | string | Yes | Table ID (user-only) |
+| `rowId` | string | Yes | Row ID to retrieve |
+
+### table_get_schema
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tableId` | string | Yes | Table ID (user-only) |
+
+### table_create
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `name` | string | Yes | Table name (alphanumeric, underscores, 1-50 chars) |
+| `description` | string | No | Optional table description |
+| `schema` | object | Yes | Table schema with column definitions |
+
+### table_list
+
+This tool takes no parameters (the workspace is resolved from execution context).
+
+## Outputs
+
+### table_query_rows
+
+- `success` (boolean) — Whether the query succeeded
+- `rows` (array) — Query result rows
+- `rowCount` (number) — Number of rows returned
+- `totalCount` (number) — Total rows matching the filter
+- `limit` (number) — Limit used in the query
+- `offset` (number) — Offset used in the query
+
+### table_insert_row
+
+- `success` (boolean) — Whether the row was inserted
+- `row` (json) — Inserted row data
+- `message` (string) — Status message
+
+### table_upsert_row
+
+- `success` (boolean) — Whether the row was upserted
+- `row` (json) — Upserted row data
+- `operation` (string) — Operation performed: `insert` or `update`
+- `message` (string) — Status message
+
+### table_batch_insert_rows
+
+- `success` (boolean) — Whether the rows were inserted
+- `rows` (array) — Inserted rows data
+- `insertedCount` (number) — Number of rows inserted
+- `message` (string) — Status message
+
+### table_update_rows_by_filter
+
+- `success` (boolean) — Whether the rows were updated
+- `updatedCount` (number) — Number of rows updated
+- `updatedRowIds` (array) — IDs of updated rows
+- `message` (string) — Status message
+
+### table_delete_rows_by_filter
+
+- `success` (boolean) — Whether the rows were deleted
+- `deletedCount` (number) — Number of rows deleted
+- `deletedRowIds` (array) — IDs of deleted rows
+- `message` (string) — Status message
+
+### table_update_row
+
+- `success` (boolean) — Whether the row was updated
+- `row` (json) — Updated row data
+- `message` (string) — Status message
+
+### table_delete_row
+
+- `success` (boolean) — Whether the row was deleted
+- `deletedCount` (number) — Number of rows deleted
+- `message` (string) — Status message
+
+### table_get_row
+
+- `success` (boolean) — Whether the row was retrieved
+- `row` (json) — Row data
+- `message` (string) — Status message
+
+### table_get_schema
+
+- `success` (boolean) — Whether the schema was retrieved
+- `name` (string) — Table name
+- `columns` (array) — Column definitions
+- `message` (string) — Status message
+
+### table_create
+
+- `success` (boolean) — Whether the table was created
+- `table` (json) — Created table metadata
+- `message` (string) — Status message
+
+### table_list
+
+- `success` (boolean) — Whether the operation succeeded
+- `tables` (array) — List of tables
+- `totalCount` (number) — Total number of tables
+
+## YAML Example
+
+```yaml
+table_1:
+  type: table
+  name: "Table"
+  inputs:
+    operation: "query_rows"
+    tableId: "tbl_customers"
+    filter: '{"status": {"$eq": "active"}, "age": {"$gte": 18}}'
+    sort: '{"createdAt": "desc"}'
+    limit: 100
+    offset: 0
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Insert example:
+
+```yaml
+table_insert:
+  type: table
+  name: "Table"
+  inputs:
+    operation: "insert_row"
+    tableId: "tbl_customers"
+    data: '{"email": "{{trigger.email}}", "name": "Jane", "age": 30}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- No external auth is needed — the table lives inside your Zelaxy workspace and is resolved from the run's `_context.workspaceId`. There is no `TABLE_API_KEY`; do not add one.
+- Always use the exact `data` parameter name for row contents (insert/upsert/update). The tools explicitly reject `values`, `row`, or `fields` aliases.
+- In the block UI, `data`, `rows`, `filter`, and `sort` are JSON fields. When embedding block references inside JSON, wrap them in double quotes — `{"field": "{{blockName.field}}"}`, never `{"field": {{blockName.field}}}` — or parsing fails.
+- Filters use MongoDB-style operators (`$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$contains`). A bare `{"column": "value"}` is shorthand for `$eq`.
+- `query_rows` defaults to a limit of 100 (max 1000); batch insert and bulk filter operations are capped at 1000 rows. Use `limit` on `delete_rows_by_filter` as a safety guard before deleting large sets.
+- Use `upsert_row` for idempotent writes keyed on a unique column instead of querying-then-inserting; check the returned `operation` field to see whether an insert or update happened.

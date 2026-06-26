@@ -1,0 +1,87 @@
+---
+title: Azure DevOps
+description: Manage pipelines, work items, and repositories in Azure DevOps
+icon: Box
+---
+
+# Azure DevOps
+
+Full Azure DevOps integration — list and trigger pipelines, inspect pipeline runs, query work items with WIQL, and create or update work items. Use it to build automated DevOps workflows, triage backlogs, and connect CI/CD pipelines to the rest of your toolchain.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `azure_devops` |
+| **Category** | Tool — Developer |
+| **Auth** | Personal Access Token (HTTP Basic, PAT encoded as Base64) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **List Pipelines** | `azure_devops_list_pipelines` | List all pipelines in an Azure DevOps project |
+| **Run Pipeline** | `azure_devops_run_pipeline` | Trigger a new pipeline run, optionally targeting a specific branch |
+| **Get Pipeline Run** | `azure_devops_get_pipeline_run` | Fetch details and current state for a specific pipeline run |
+| **Query Work Items** | `azure_devops_query_work_items` | Execute a WIQL query and return full field details for matching work items |
+| **Create Work Item** | `azure_devops_create_work_item` | Create a new work item (Task, Bug, Epic, etc.) in a project |
+| **Update Work Item** | `azure_devops_update_work_item` | Update one or more fields on an existing work item |
+| **Get Work Item** | `azure_devops_get_work_item` | Fetch full details of a single work item by ID |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `accessToken` | `string` (secret) | Yes | Azure DevOps Personal Access Token (PAT). Treated as a password — store as a secret and reference with `{{AZURE_DEVOPS_TOKEN}}`. |
+| `organization` | `string` | Yes | Azure DevOps organization name (the slug that appears in `dev.azure.com/<organization>`). |
+| `project` | `string` | Yes | Azure DevOps project name within the organization. |
+| `pipelineId` | `string` | Yes — for Run Pipeline and Get Pipeline Run | Numeric ID of the pipeline to run or inspect. Use **List Pipelines** to discover IDs. |
+| `runId` | `string` | Yes — for Get Pipeline Run | Numeric ID of the specific pipeline run to retrieve. |
+| `branch` | `string` | No — for Run Pipeline | Branch ref to run the pipeline against (e.g., `refs/heads/main`). Omit to use the pipeline's default branch. |
+| `wiql` | `string` | Yes — for Query Work Items | WIQL query string, e.g., `SELECT [System.Id] FROM WorkItems WHERE [System.State] = 'Active'`. |
+| `workItemId` | `string` | Yes — for Get Work Item and Update Work Item | Numeric ID of the work item to fetch or update. |
+| `workItemType` | `string` | Yes — for Create Work Item | Work item type to create, e.g., `Task`, `Bug`, `Epic`, `Issue`, `User Story`. |
+| `title` | `string` | Yes — for Create Work Item; No — for Update Work Item | Title of the work item. |
+| `description` | `string` | No | HTML description of the work item. |
+| `assignedTo` | `string` | No | Email address or display name of the user to assign the work item to. |
+| `state` | `string` | No — for Update Work Item | New state for the work item, e.g., `To Do`, `Doing`, `Done`. |
+| `areaPath` | `string` | No | Area path for categorizing the work item within the project hierarchy. |
+| `tags` | `string` | No | Semicolon-separated tags to apply to the work item, e.g., `backend;urgent`. |
+
+## Outputs
+
+### Work Item operations (Create, Update, Get, Query)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Human-readable summary of the work item(s), including ID, title, type, state, assignee, and area path. |
+| `metadata` | `json` | Full work item data. For single-item operations contains `{ workItem }` with fields: `id`, `title`, `state`, `workItemType`, `assignedTo`, `areaPath`, `url`. For Query Work Items, contains `{ count, totalMatched, workItems[] }`. |
+
+### Pipeline operations (List Pipelines)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Human-readable list of pipelines with names, IDs, folders, and URLs. |
+| `metadata` | `json` | Object containing `{ count, pipelines[] }` where each pipeline has `id`, `name`, `folder`, `revision`, `url`. |
+
+### Pipeline operations (Run Pipeline, Get Pipeline Run)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Human-readable summary of the run: name, pipeline, state, result, creation date, and web URL. |
+| `metadata` | `json` | Object containing `{ run }` with fields: `id`, `name`, `state`, `result`, `createdDate`, `finishedDate` (Get Pipeline Run only), `url`, `webUrl`, `pipeline` (`id`, `name`, `folder`, `revision`, `url`). |
+
+## Example
+
+```
+[Starter] → [Azure DevOps: Query Work Items] → [Agent: Triage and prioritize] → [Azure DevOps: Update Work Item]
+```
+
+A triage workflow begins with the Starter block passing context. The **Query Work Items** block runs a WIQL query like `SELECT [System.Id] FROM WorkItems WHERE [System.State] = 'Active' AND [System.AssignedTo] = ''` using `{{AZURE_DEVOPS_TOKEN}}` for auth and `{{starter.input.project}}` as the project name. An Agent block analyzes the unassigned items and recommends owners. The **Update Work Item** block then applies the assignment using `{{agent.content.assignedTo}}` and sets the state to `Doing`.
+
+## Tips
+
+- **Discover pipeline IDs before triggering runs.** Use **List Pipelines** first — the `metadata.pipelines` array returns each pipeline's numeric `id`, which is required by **Run Pipeline** and **Get Pipeline Run**.
+- **WIQL queries fetch IDs then batch-load details.** The Query Work Items tool first runs your WIQL to get matching IDs, then fetches full field data in batches of up to 200. Narrow your WIQL filter to avoid large result sets.
+- **PAT scope matters.** Generate your PAT at `dev.azure.com/<organization>/_usersSettings/tokens` and grant at minimum: `Work Items (Read & Write)` for work item operations and `Build (Read & Execute)` for pipeline operations. Store the token as a workflow secret and reference it as `{{AZURE_DEVOPS_TOKEN}}`.
+- **Update Work Item requires at least one field.** The tool throws an error if you call it without providing any of `title`, `description`, `assignedTo`, `state`, `areaPath`, or `tags`. Have your upstream Agent or condition block confirm at least one value is populated before passing to the update step.

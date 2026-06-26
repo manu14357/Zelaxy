@@ -1,0 +1,173 @@
+---
+title: Google Forms Block
+description: Read forms and responses from Google Forms
+icon: FileText
+---
+
+# Google Forms Block
+
+Retrieve a form structure, list responses, and fetch individual responses from the Google Forms API. Authenticate with a Google OAuth access token. Use this block whenever a workflow needs to inspect form questions, collect submitted answers, or page through large response sets.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_forms` |
+| **Category** | `tools` |
+| **Color** | `#7248B9` |
+
+## When to Use
+
+- Fetch the full structure of a Google Form (questions, sections, settings) to understand what data it collects.
+- List all responses submitted to a form, optionally filtering by submission timestamp or other criteria.
+- Retrieve a specific individual response by its response ID for detailed inspection or downstream processing.
+- Page through large response sets using `pageSize` and `pageToken` parameters.
+- Feed form response data into an agent block for summarization, classification, or triage workflows.
+- Trigger downstream notifications or database writes whenever new form responses arrive.
+
+## Configuration
+
+### Operation
+
+**Required.** Selects which Google Forms API action to execute. All other visible fields depend on this choice.
+
+| Label | ID |
+|-------|----|
+| Get form | `google_forms_get_form` |
+| List responses | `google_forms_list_responses` |
+| Get response | `google_forms_get_response` |
+
+Default: `google_forms_get_form`.
+
+---
+
+### Form ID
+
+**Shown for:** all operations (`google_forms_get_form`, `google_forms_list_responses`, `google_forms_get_response`).
+
+The unique identifier of the Google Form. Found in the form URL:
+`https://docs.google.com/forms/d/<formId>/edit`.
+
+Example placeholder: `1FAIpQLSc...`
+
+---
+
+### Response ID
+
+**Shown for:** `google_forms_get_response` only.
+
+The identifier of the individual form response to retrieve. Obtain this from a previous **List responses** call (`data[].responseId`).
+
+Example placeholder: `ACYDBNj...`
+
+---
+
+### Filter
+
+**Shown for:** `google_forms_list_responses` only. Optional.
+
+A filter expression to narrow the response list. The Google Forms API supports timestamp-based filters.
+
+Example: `timestamp > 2024-01-01T00:00:00Z`
+
+---
+
+### Page Size
+
+**Shown for:** `google_forms_list_responses` only. Optional.
+
+Maximum number of responses to return in a single call. Omit to use the API default.
+
+Example placeholder: `100`
+
+---
+
+### Page Token
+
+**Shown for:** `google_forms_list_responses` only. Optional.
+
+Pagination token returned by a previous List responses call (`metadata.nextPageToken`). Provide this to fetch the next page of results.
+
+---
+
+### Google Access Token
+
+**Required for all operations.** Stored as a password field (masked in the UI).
+
+A valid Google OAuth 2.0 access token with the `https://www.googleapis.com/auth/forms.body.readonly` or `https://www.googleapis.com/auth/forms.responses.readonly` scope, depending on the operation.
+
+Example: `ya29....`
+
+Use `{{GOOGLE_ACCESS_TOKEN}}` to reference a secret stored in your environment.
+
+## Inputs & Outputs
+
+### Inputs
+
+| Input | Type | Description |
+|-------|------|-------------|
+| `operation` | string | Operation to perform (`google_forms_get_form`, `google_forms_list_responses`, or `google_forms_get_response`) |
+| `accessToken` | string | Google OAuth access token |
+| `formId` | string | Google Forms form ID |
+| `responseId` | string | Form response ID (required for `google_forms_get_response`) |
+| `filter` | string | Response filter expression (optional; used with `google_forms_list_responses`) |
+| `pageSize` | number | Maximum responses to return (optional; used with `google_forms_list_responses`) |
+| `pageToken` | string | Pagination token (optional; used with `google_forms_list_responses`) |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `data` | json | Result object or array from Google Forms. For `google_forms_get_form` and `google_forms_get_response` this is a single object; for `google_forms_list_responses` this is an array of response objects. |
+| `metadata` | json | Response metadata. For `get_form` and `get_response`: `{ id: string }`. For `list_responses`: `{ count: number, nextPageToken: string \| null }`. |
+
+## Tools
+
+**Google Forms Get Form** (`google_forms_get_form`) — Calls `GET https://forms.googleapis.com/v1/forms/{formId}` and returns the complete form object including items, question definitions, and settings. Required params: `accessToken`, `formId`.
+
+**Google Forms List Responses** (`google_forms_list_responses`) — Calls `GET https://forms.googleapis.com/v1/forms/{formId}/responses` with optional `pageSize`, `pageToken`, and `filter` query parameters. Returns an array of response objects and a `nextPageToken` for pagination. Required params: `accessToken`, `formId`. Optional: `pageSize`, `pageToken`, `filter`.
+
+**Google Forms Get Response** (`google_forms_get_response`) — Calls `GET https://forms.googleapis.com/v1/forms/{formId}/responses/{responseId}` and returns the full response object for a single submission. Required params: `accessToken`, `formId`, `responseId`.
+
+## YAML Example
+
+```yaml
+# Example 1: Fetch the full form structure
+google_forms_1:
+  type: google_forms
+  name: "Get Form Structure"
+  inputs:
+    operation: google_forms_get_form
+    formId: "1FAIpQLSc_your_form_id_here"
+    accessToken: "{{GOOGLE_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: agent_1
+
+# Example 2: List recent responses with pagination
+google_forms_2:
+  type: google_forms
+  name: "List Form Responses"
+  inputs:
+    operation: google_forms_list_responses
+    formId: "1FAIpQLSc_your_form_id_here"
+    accessToken: "{{GOOGLE_ACCESS_TOKEN}}"
+    filter: "timestamp > 2024-01-01T00:00:00Z"
+    pageSize: 50
+  connections:
+    outgoing:
+      - target: next-block-id
+
+# Example 3: Fetch a single response by ID
+google_forms_3:
+  type: google_forms
+  name: "Get Single Response"
+  inputs:
+    operation: google_forms_get_response
+    formId: "1FAIpQLSc_your_form_id_here"
+    responseId: "{{google_forms_2.data[0].responseId}}"
+    accessToken: "{{GOOGLE_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

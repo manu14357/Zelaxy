@@ -1,0 +1,95 @@
+---
+title: RB2B Tools
+description: List and retrieve website visitors identified by RB2B
+icon: Box
+---
+
+# RB2B Tools
+
+RB2B identifies the people and companies visiting your website. Use these tools in a workflow to pull the list of identified visitors or fetch a single visitor record by ID — for example, to enrich CRM records, trigger outreach, or feed lead data into downstream blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `rb2b` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (RB2B API key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List visitors | `rb2b_list_visitors` | List website visitors identified by RB2B |
+| Get visitor | `rb2b_get_visitor` | Retrieve a single identified visitor by ID |
+
+## Configuration
+
+### `rb2b_list_visitors`
+
+Lists website visitors identified by RB2B. Calls `GET https://api.rb2b.com/visitors` with `Authorization: Bearer <apiKey>`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | RB2B API key (secret — sent as a Bearer token; visibility `user-only`). |
+| `limit` | number | No | Maximum number of visitors to return. Added to the request as a `limit` query parameter (visibility `user-or-llm`). |
+
+### `rb2b_get_visitor`
+
+Retrieves a single identified visitor by ID. Calls `GET https://api.rb2b.com/visitors/{id}` with `Authorization: Bearer <apiKey>`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | RB2B API key (secret — sent as a Bearer token; visibility `user-only`). |
+| `id` | string | Yes | The visitor ID to retrieve. URL-encoded into the request path (visibility `user-or-llm`). |
+
+## Outputs
+
+### `rb2b_list_visitors`
+
+- `data` (json) — Array of identified visitor objects.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of visitors returned.
+
+### `rb2b_get_visitor`
+
+- `data` (json) — The identified visitor object.
+- `metadata` (json) — Visitor identifiers.
+  - `metadata.id` (string) — Visitor ID.
+
+## YAML Example
+
+```yaml
+rb2b_1:
+  type: rb2b
+  name: "RB2B"
+  inputs:
+    operation: "rb2b_list_visitors"
+    limit: 50
+    apiKey: "{{RB2B_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To fetch a single visitor instead, switch the operation and supply an `id`:
+
+```yaml
+rb2b_2:
+  type: rb2b
+  name: "RB2B"
+  inputs:
+    operation: "rb2b_get_visitor"
+    id: "{{rb2b_1.data}}"
+    apiKey: "{{RB2B_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authentication is a Bearer token: your RB2B API key is sent as `Authorization: Bearer <apiKey>`. Store it as a secret (e.g. `{{RB2B_API_KEY}}`) rather than hard-coding it — the field is marked as a password / `user-only` so it is never exposed to the LLM.
+- `rb2b_list_visitors` returns the full visitor array in `data` and a `metadata.count`. Reference the results downstream with `{{rb2b_1.data}}` and the count with `{{rb2b_1.metadata.count}}`.
+- The `limit` parameter is optional; omit it to use the API default. When set, it is passed through as a `?limit=` query parameter.
+- For `rb2b_get_visitor`, the `id` is required and is URL-encoded into the path, so values with special characters are handled safely. The returned object is available as `{{rb2b_2.data}}`.

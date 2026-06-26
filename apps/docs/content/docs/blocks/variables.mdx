@@ -35,6 +35,10 @@ A table of `Name` / `Value` pairs. Each row defines one variable: the `Name` col
 - **Inputs**: `assignments` (json) — array of `{name, value}` pairs defining the variables to set.
 - **Outputs**: `variables` (json) — map of all variable names to their assigned values; `count` (number) — number of variables assigned.
 
+## Tools
+
+The Variables block does not call any external tools. It is handled entirely by the built-in `variables` executor handler, which resolves the assignments table and writes values into the workflow's run-scoped variable store.
+
 ## YAML Example
 
 ```yaml

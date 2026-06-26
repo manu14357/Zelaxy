@@ -1,0 +1,172 @@
+---
+title: HubSpot Block
+description: Manage contacts and deals in HubSpot CRM
+icon: Box
+---
+
+# HubSpot Block
+
+Create, retrieve, list, and search contacts and create deals in HubSpot CRM. Authenticate with a HubSpot private app access token. Reach for this block whenever a workflow needs to read from or write to your HubSpot CRM — onboarding new leads, syncing deal pipelines, or querying contact data.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `hubspot` |
+| **Category** | `tools` |
+| **Color** | `#FF7A59` |
+
+## When to Use
+
+- Create a new contact automatically when a form submission or webhook fires
+- Look up an existing contact by their HubSpot ID to read properties like email, phone, or lifecycle stage
+- Page through your full contact list to export or process records in bulk
+- Search contacts by keyword or by precise property filters (e.g. find all contacts where `email EQ john@example.com`)
+- Create a deal in HubSpot when a prospect reaches a qualifying stage in your workflow
+- Feed HubSpot contact or deal IDs downstream to other blocks for association, enrichment, or notification
+
+## Configuration
+
+### Operation
+
+Selects which HubSpot API action to perform. The fields visible below this dropdown change depending on the selection.
+
+| Label | ID |
+|-------|----|
+| Create contact | `hubspot_create_contact` |
+| Get contact | `hubspot_get_contact` |
+| List contacts | `hubspot_list_contacts` |
+| Search contacts | `hubspot_search_contacts` |
+| Create deal | `hubspot_create_deal` |
+
+---
+
+### Properties (JSON) — Create contact / Create deal
+
+**Shown when**: operation is `hubspot_create_contact` or `hubspot_create_deal`
+
+A JSON object of HubSpot properties to set on the new contact or deal. For contacts include keys such as `email`, `firstname`, `lastname`. For deals include keys such as `dealname`, `amount`, `dealstage`.
+
+Example for a contact:
+```json
+{"email": "john@example.com", "firstname": "John", "lastname": "Doe"}
+```
+
+Example for a deal:
+```json
+{"dealname": "New Deal", "amount": "5000", "dealstage": "appointmentscheduled"}
+```
+
+---
+
+### Contact ID — Get contact
+
+**Shown when**: operation is `hubspot_get_contact`
+
+The numeric HubSpot contact ID to retrieve (e.g. `12345`). Required for this operation.
+
+---
+
+### Properties (comma-separated) — Get contact / List contacts
+
+**Shown when**: operation is `hubspot_get_contact` or `hubspot_list_contacts`
+
+A comma-separated string of property names to include in the response. If omitted, HubSpot returns only default properties.
+
+Example: `email,firstname,lastname,phone`
+
+---
+
+### Search Query — Search contacts
+
+**Shown when**: operation is `hubspot_search_contacts`
+
+A free-text query string matched against contact text fields (e.g. `john`). Can be combined with Filter Groups.
+
+---
+
+### Filter Groups (JSON) — Search contacts
+
+**Shown when**: operation is `hubspot_search_contacts`
+
+A JSON array of filter groups. Each group contains a `filters` array where each filter specifies `propertyName`, `operator`, and `value`. Filters within a group are ANDed; groups are ORed.
+
+Example:
+```json
+[{"filters": [{"propertyName": "email", "operator": "EQ", "value": "john@example.com"}]}]
+```
+
+---
+
+### Properties (JSON array) — Search contacts
+
+**Shown when**: operation is `hubspot_search_contacts`
+
+A JSON array of property names to include in each search result.
+
+Example: `["email","firstname","lastname"]`
+
+---
+
+### Limit — List contacts / Search contacts
+
+**Shown when**: operation is `hubspot_list_contacts` or `hubspot_search_contacts`
+
+Maximum number of records to return per request. HubSpot maximum is 100; default is 10.
+
+---
+
+### After (pagination cursor) — List contacts
+
+**Shown when**: operation is `hubspot_list_contacts`
+
+The pagination cursor returned in `metadata.after` from a previous list response. Pass this value to retrieve the next page of results.
+
+---
+
+### HubSpot Access Token
+
+**Required** for all operations. Your HubSpot private app access token (begins with `pat-na1-...`). Store the actual secret as an environment variable and reference it as `{{HUBSPOT_ACCESS_TOKEN}}`.
+
+## Inputs & Outputs
+
+**Inputs**:
+- `operation` (string) — Operation to perform; must be one of the tool IDs listed under Configuration
+- `apiKey` (string) — HubSpot private app access token
+- `properties` (json) — Object properties to set (create operations) or comma-separated / JSON-array of fields to return (get/list/search)
+- `contactId` (string) — Contact ID (Get contact only)
+- `query` (string) — Search query string (Search contacts only)
+- `filterGroups` (json) — Search filter groups (Search contacts only)
+- `limit` (number) — Result limit (List contacts and Search contacts)
+- `after` (string) — Pagination cursor (List contacts only)
+
+**Outputs**:
+- `data` (json) — Result object (create/get) or array of objects (list/search) from HubSpot
+- `metadata` (json) — Response metadata; for create/get contains `id` (string); for list/search contains `count` (number) and `after` (string or null, the next-page cursor)
+
+## Tools
+
+**HubSpot Create Contact** (`hubspot_create_contact`) — POSTs to `/crm/v3/objects/contacts` to create a new contact. Requires `apiKey` and `properties` (JSON object). Returns the created contact object and its `id` in metadata.
+
+**HubSpot Get Contact** (`hubspot_get_contact`) — GETs `/crm/v3/objects/contacts/{contactId}` to retrieve a single contact by ID. Requires `apiKey` and `contactId`. Optionally accepts a comma-separated `properties` string. Returns the contact object and its `id` in metadata.
+
+**HubSpot List Contacts** (`hubspot_list_contacts`) — GETs `/crm/v3/objects/contacts` with optional `limit`, `after`, and `properties` query params. Returns an array of contacts in `data` and a pagination cursor in `metadata.after`.
+
+**HubSpot Search Contacts** (`hubspot_search_contacts`) — POSTs to `/crm/v3/objects/contacts/search` with an optional `query`, `filterGroups`, `properties` array, and `limit`. Returns an array of matching contacts in `data` and pagination info in `metadata`.
+
+**HubSpot Create Deal** (`hubspot_create_deal`) — POSTs to `/crm/v3/objects/deals` to create a new deal. Requires `apiKey` and `properties` (JSON object with keys such as `dealname`, `amount`, `dealstage`). Returns the created deal object and its `id` in metadata.
+
+## YAML Example
+
+```yaml
+hubspot_1:
+  type: hubspot
+  name: "Create HubSpot Contact"
+  inputs:
+    operation: hubspot_create_contact
+    apiKey: "{{HUBSPOT_ACCESS_TOKEN}}"
+    properties: '{"email": "{{form_block.email}}", "firstname": "{{form_block.firstName}}", "lastname": "{{form_block.lastName}}"}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

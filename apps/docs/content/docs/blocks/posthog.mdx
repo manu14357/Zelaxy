@@ -1,0 +1,182 @@
+---
+title: PostHog Block
+description: Capture events and query analytics in PostHog
+icon: ChartColumn
+---
+
+# PostHog Block
+
+Capture events, run HogQL queries, and list insights through the PostHog API. Use this block when you need to track user behaviour, interrogate your analytics data with SQL, or enumerate saved insights from a PostHog project — all from within a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `posthog` |
+| **Category** | `tools` |
+| **Color** | `#F54E00` |
+
+## When to Use
+
+- Track a workflow-triggered event (e.g. a payment, sign-up, or feature flag evaluation) in PostHog without writing backend code.
+- Run a HogQL (SQL-like) query against your PostHog event data and pipe the results to downstream blocks.
+- Retrieve all saved insights in a project so an agent can summarise or act on them.
+- Pipe a distinct user ID from an upstream block into PostHog to associate events with known users.
+- Use PostHog event counts or query results as conditional routing data in your workflow.
+- Automate periodic analytics pulls by combining this block with a Schedule trigger.
+
+## Configuration
+
+### Operation
+
+Selects which PostHog API call to make. Every other field is shown or hidden based on this choice.
+
+| Label | ID |
+|-------|----|
+| Capture event | `posthog_capture_event` |
+| Query | `posthog_query` |
+| List insights | `posthog_list_insights` |
+
+Default: `posthog_capture_event`.
+
+---
+
+### Event (Capture event only)
+
+- **Sub-block id**: `event`
+- **Type**: short text input
+- **Placeholder**: `button_clicked`
+- The name of the event to send to PostHog. Maps directly to the `event` field in the PostHog Capture API.
+- Shown only when **Operation** is `posthog_capture_event`.
+
+---
+
+### Distinct ID (Capture event only)
+
+- **Sub-block id**: `distinct_id`
+- **Type**: short text input
+- **Placeholder**: `user123`
+- Unique identifier for the user or device that generated the event.
+- Shown only when **Operation** is `posthog_capture_event`.
+
+---
+
+### Properties (Capture event only)
+
+- **Sub-block id**: `properties`
+- **Type**: long text input (JSON)
+- **Placeholder**: `{ "plan": "pro" }`
+- Optional JSON object of key-value pairs to attach to the captured event (e.g. plan tier, feature name).
+- Shown only when **Operation** is `posthog_capture_event`.
+
+---
+
+### Project API Key (Capture event only)
+
+- **Sub-block id**: `projectApiKey`
+- **Type**: short text input (password / secret)
+- **Placeholder**: `phc_...`
+- The PostHog **project** API key used for event ingestion. This is the public token visible in your PostHog project settings; it is distinct from the personal API key. Store it as a workflow secret and reference it with `{{POSTHOG_PROJECT_API_KEY}}`.
+- Shown only when **Operation** is `posthog_capture_event`.
+
+---
+
+### Project ID (Query and List insights)
+
+- **Sub-block id**: `projectId`
+- **Type**: short text input
+- **Placeholder**: `12345`
+- Numeric PostHog project ID. Found in the PostHog project URL (`.../project/<id>/...`).
+- Shown when **Operation** is `posthog_query` or `posthog_list_insights`.
+
+---
+
+### HogQL Query (Query only)
+
+- **Sub-block id**: `query`
+- **Type**: long text input
+- **Placeholder**: `SELECT event, count() FROM events GROUP BY event`
+- A HogQL (SQL dialect) query string to execute against your PostHog project's event data.
+- Shown only when **Operation** is `posthog_query`.
+
+---
+
+### Personal API Key (Query and List insights)
+
+- **Sub-block id**: `apiKey`
+- **Type**: short text input (password / secret)
+- **Placeholder**: `phx_...`
+- A PostHog **personal** API key with read access to the project. Created under PostHog → Settings → Personal API keys. Store it as a workflow secret and reference it with `{{POSTHOG_PERSONAL_API_KEY}}`.
+- Shown when **Operation** is `posthog_query` or `posthog_list_insights`.
+
+---
+
+### Host (all operations — required)
+
+- **Sub-block id**: `host`
+- **Type**: short text input
+- **Placeholder**: `https://us.posthog.com`
+- **Required**: yes
+- The base URL of your PostHog instance. Use `https://us.posthog.com` for the US cloud, `https://eu.posthog.com` for EU cloud, or your self-hosted URL.
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (`posthog_capture_event` | `posthog_query` | `posthog_list_insights`)
+- `host` (string) — PostHog host URL
+- `apiKey` (string) — PostHog personal API key (used by Query and List insights)
+- `projectApiKey` (string) — PostHog project API key (used by Capture event)
+- `projectId` (string) — PostHog project ID (used by Query and List insights)
+- `event` (string) — Event name (Capture event)
+- `distinct_id` (string) — User or device identifier (Capture event)
+- `properties` (json) — Event properties as a JSON object (Capture event, optional)
+- `query` (string) — HogQL query string (Query)
+
+**Outputs**
+
+- `data` (json) — Result object or array from PostHog. For Capture event: the raw capture response object. For Query: the HogQL result object (columns + results). For List insights: an array of insight objects.
+- `metadata` (json) — Response metadata. Contains `status` (string) for Capture event and Query; contains `count` (number) for List insights.
+
+## Tools
+
+**PostHog Capture Event** (`posthog_capture_event`) — POSTs a single named event to the PostHog `/capture/` endpoint using the project API key. Attaches an optional properties map and a distinct user/device ID. Returns the raw capture acknowledgement and a `status` field in metadata.
+
+**PostHog Query** (`posthog_query`) — Executes a HogQL SQL query against `/api/projects/{projectId}/query` using a personal API key. Returns the full query result object including columns and row data.
+
+**PostHog List Insights** (`posthog_list_insights`) — Fetches all saved insights from `/api/projects/{projectId}/insights` using a personal API key. Returns an array of insight objects and a `count` in metadata.
+
+## YAML Example
+
+```yaml
+# Example: capture a workflow_completed event for a known user
+posthog_1:
+  type: posthog
+  name: "Track Workflow Completed"
+  inputs:
+    operation: "posthog_capture_event"
+    host: "https://us.posthog.com"
+    projectApiKey: "{{POSTHOG_PROJECT_API_KEY}}"
+    event: "workflow_completed"
+    distinct_id: "{{trigger.userId}}"
+    properties: '{"workflow": "onboarding", "plan": "pro"}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+```yaml
+# Example: run a HogQL query and pass results downstream
+posthog_2:
+  type: posthog
+  name: "Query Top Events"
+  inputs:
+    operation: "posthog_query"
+    host: "https://us.posthog.com"
+    apiKey: "{{POSTHOG_PERSONAL_API_KEY}}"
+    projectId: "12345"
+    query: "SELECT event, count() FROM events GROUP BY event ORDER BY count() DESC LIMIT 10"
+  connections:
+    outgoing:
+      - target: agent_1
+```

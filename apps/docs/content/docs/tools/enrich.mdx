@@ -1,0 +1,125 @@
+---
+title: Enrich
+description: Enrich person and company data — look up profiles by email, find work emails, verify deliverability, search people, and discover phone numbers via Enrich.so
+icon: Users
+---
+
+# Enrich
+
+Look up, discover, and verify contact and company data using [Enrich.so](https://enrich.so). Use it in sales and marketing workflows to turn partial signals (an email address, a LinkedIn URL, a company domain) into full profiles ready for outreach or scoring.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `enrich` |
+| **Category** | Tool — CRM & Sales Intelligence |
+| **Auth** | API Key (`Authorization: Bearer` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Email to Profile** | `enrich_email_to_profile` | Resolve an email address to a full person profile (name, job title, company, LinkedIn) |
+| **Find Email** | `enrich_find_email` | Find a person's work email given their full name and company domain |
+| **Verify Email** | `enrich_verify_email` | Verify the deliverability and validity of an email address and return a confidence score |
+| **Phone Finder** | `enrich_phone_finder` | Look up a person's mobile phone number from their LinkedIn profile URL |
+| **Company Lookup** | `enrich_company_lookup` | Retrieve company information by name or domain (description, industry, employee count, LinkedIn) |
+| **Search People** | `enrich_search_people` | Search Enrich.so's people database using name, headline, summary, and location filters |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Enrich.so API key — store as `{{ENRICH_API_KEY}}` and pass via Bearer token. Used by every operation. |
+| `email` | `string` | Yes (email-to-profile, verify-email) | Email address to look up or verify. |
+| `fullName` | `string` | Yes (find-email) | Full name of the person whose email you want to find. |
+| `companyDomain` | `string` | Yes (find-email) | Company domain to search within, e.g. `acme.com`. |
+| `linkedinProfile` | `string` | Yes (phone-finder) | LinkedIn profile URL of the person, e.g. `https://linkedin.com/in/johndoe`. |
+| `name` | `string` | No (company-lookup) | Company name to look up. Provide `name` or `domain` (or both). |
+| `domain` | `string` | No (company-lookup) | Company domain to look up, e.g. `acme.com`. Provide `domain` or `name` (or both). |
+| `firstName` | `string` | No (search-people) | First name filter for people search. |
+| `lastName` | `string` | No (search-people) | Last name filter for people search. |
+| `summary` | `string` | No (search-people) | Summary or bio keywords filter for people search. |
+| `subTitle` | `string` | No (search-people) | Job subtitle or headline filter for people search. |
+| `locationCountry` | `string` | No (search-people) | Country filter for people search, e.g. `United States`. |
+| `currentPage` | `number` | No (search-people) | Page number for paginated people search results (1-based). |
+
+## Outputs
+
+The outputs available depend on which operation is selected.
+
+### `enrich_email_to_profile`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `displayName` | `string` | Full display name of the person |
+| `firstName` | `string` | First name |
+| `lastName` | `string` | Last name |
+| `email` | `string` | Email address used for the lookup |
+| `linkedInUrl` | `string` | LinkedIn profile URL (optional) |
+| `jobTitle` | `string` | Current job title (optional) |
+| `companyName` | `string` | Current company name (optional) |
+
+### `enrich_find_email`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `email` | `string` | Found email address |
+| `firstName` | `string` | First name parsed from `fullName` |
+| `lastName` | `string` | Last name parsed from `fullName` |
+| `domain` | `string` | Company domain used for the search |
+| `found` | `boolean` | Whether a matching email was found |
+| `acceptAll` | `boolean` | Whether the domain is configured to accept all incoming email (catch-all) |
+
+### `enrich_verify_email`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `email` | `string` | The email address that was verified |
+| `status` | `string` | Verification status string returned by Enrich |
+| `result` | `string` | Verification result classification |
+| `confidenceScore` | `number` | Confidence score for deliverability (optional) |
+| `isValid` | `boolean` | Whether the email address is considered valid |
+
+### `enrich_phone_finder`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `profileUrl` | `string` | The LinkedIn profile URL that was queried |
+| `mobileNumber` | `string` | Mobile phone number found (optional) |
+| `found` | `boolean` | Whether a phone number was located |
+| `status` | `string` | Lookup status message returned by Enrich |
+
+### `enrich_company_lookup`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string` | Company name |
+| `description` | `string` | Company description (optional) |
+| `linkedInUrl` | `string` | LinkedIn company page URL (optional) |
+| `domain` | `string` | Company domain (optional) |
+| `industry` | `string` | Industry classification (optional) |
+| `employeeCount` | `number` | Number of employees (optional) |
+
+### `enrich_search_people`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `people` | `json` | Array of matching person profile objects |
+| `total` | `number` | Total number of records matching the search filters |
+
+## Example
+
+```
+[Starter] → [Enrich: Find Email] → [Enrich: Verify Email] → [Agent: Draft outreach] → [Gmail: Send]
+```
+
+Start with a list of prospects containing a full name and company domain. Pass `{{starter.fullName}}` and `{{starter.companyDomain}}` into the Find Email block together with `{{ENRICH_API_KEY}}`. The block returns a `found` boolean and an `email` field — feed `{{enrich_find_email.email}}` into the Verify Email block to confirm deliverability before sending. Only route contacts where `{{enrich_verify_email.isValid}}` is `true` to the Agent block that drafts a personalised message, and deliver it via Gmail.
+
+## Tips
+
+- **Provide at least one of `name` or `domain` for Company Lookup.** Both can be supplied together for a more precise match, but the API requires at least one to be non-empty.
+- **Check `found` before using the result.** Both `enrich_find_email` and `enrich_phone_finder` return a `found` boolean — use a Condition block to branch on it and avoid passing empty strings downstream.
+- **`acceptAll` domains inflate confidence.** If `enrich_find_email` returns `acceptAll: true`, the domain accepts all email regardless of validity; treat that email as unverified and run it through `enrich_verify_email` before use.
+- **Paginate Search People with a Loop.** The `enrich_search_people` operation returns one page at a time. Wrap it in a Loop block and increment `{{enrich_search_people.currentPage}}` on each iteration to retrieve the full result set.

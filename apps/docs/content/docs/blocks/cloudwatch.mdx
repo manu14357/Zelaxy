@@ -19,7 +19,7 @@ The CloudWatch block integrates AWS CloudWatch into your workflows, letting you 
 ## When to Use
 
 - Run a CloudWatch Logs Insights query to pull recent log lines from a Lambda or service log group.
-- Fetch raw log events from a specific log group for inspection or downstream processing.
+- Fetch raw log events from a specific log stream for inspection or downstream processing.
 - Discover available log groups or metrics before drilling into a particular one.
 - Get metric statistics (e.g. CPUUtilization) to drive conditional logic or alerting.
 - Publish custom metric data points back into CloudWatch from your workflow.
@@ -29,32 +29,76 @@ The CloudWatch block integrates AWS CloudWatch into your workflows, letting you 
 
 ### Operation
 
-Dropdown selecting the CloudWatch action: Query Logs, Describe Log Groups, Get Log Events, List Metrics, Get Metric Statistics, Put Metric Data, or Describe Alarms. Required.
+Required dropdown that selects which CloudWatch action to run. The available options are:
+
+| Label | id |
+|-------|----|
+| Query Logs | `cloudwatch_query_logs` |
+| Describe Log Groups | `cloudwatch_describe_log_groups` |
+| Get Log Events | `cloudwatch_get_log_events` |
+| List Metrics | `cloudwatch_list_metrics` |
+| Get Metric Statistics | `cloudwatch_get_metric_statistics` |
+| Put Metric Data | `cloudwatch_put_metric_data` |
+| Describe Alarms | `cloudwatch_describe_alarms` |
 
 ### AWS Region
 
-The AWS region to target (e.g. `us-east-1`). Required.
+The AWS region to target (e.g. `us-east-1`). Required for every operation.
 
 ### Access Key ID / Secret Access Key
 
-AWS credentials used to authenticate the request. Both are required and stored as secrets.
+AWS credentials used to authenticate the request. Both are required for every operation and stored as secrets — use `{{AWS_ACCESS_KEY_ID}}` and `{{AWS_SECRET_ACCESS_KEY}}` to inject them from environment variables.
 
-### Log Group Names
+### Log Group Names (`logGroupNames`)
 
-The log group(s) to operate on. Shown for the Query Logs and Get Log Events operations.
+The log group(s) to operate on, comma-separated or as a single name. Visible for **Query Logs** (`cloudwatch_query_logs`) and **Get Log Events** (`cloudwatch_get_log_events`).
 
-### Insights Query
+### Insights Query (`queryString`)
 
-A CloudWatch Logs Insights query string. Shown for the Query Logs operation.
+A CloudWatch Logs Insights query string (e.g. `fields @timestamp, @message | sort @timestamp desc | limit 20`). Visible for **Query Logs** (`cloudwatch_query_logs`) only.
 
-### Metric Name / Namespace
+### Metric Name (`metricName`)
 
-The metric name and namespace (e.g. `CPUUtilization` in `AWS/EC2`). Shown for the Get Metric Statistics and Put Metric Data operations.
+The name of the metric (e.g. `CPUUtilization`). Visible for **Get Metric Statistics** (`cloudwatch_get_metric_statistics`) and **Put Metric Data** (`cloudwatch_put_metric_data`).
+
+### Namespace (`namespace`)
+
+The metric namespace (e.g. `AWS/EC2`, `AWS/Lambda`, `Custom/MyApp`). Visible for **Get Metric Statistics** (`cloudwatch_get_metric_statistics`) and **Put Metric Data** (`cloudwatch_put_metric_data`).
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `awsRegion` (string), `awsAccessKeyId` (string), `awsSecretAccessKey` (string), `logGroupNames` (string), `queryString` (string), `metricName` (string), `namespace` (string)
-- **Outputs**: `logEvents` (json), `metrics` (json), `queryId` (string)
+- **Inputs**:
+  - `operation` (string) — Operation to perform
+  - `awsRegion` (string) — AWS region
+  - `awsAccessKeyId` (string) — AWS access key ID
+  - `awsSecretAccessKey` (string) — AWS secret access key
+  - `logGroupNames` (string) — Log group names (used by Query Logs and Get Log Events)
+  - `queryString` (string) — CloudWatch Insights query (used by Query Logs)
+  - `metricName` (string) — Metric name (used by Get Metric Statistics and Put Metric Data)
+  - `namespace` (string) — Metric namespace (used by Get Metric Statistics and Put Metric Data)
+
+- **Outputs**:
+  - `logEvents` (json) — Log events
+  - `metrics` (json) — Metrics data
+  - `queryId` (string) — Query ID
+
+## Tools
+
+Each operation maps to a dedicated tool. The block selects the tool at runtime based on the value of the `operation` input.
+
+- **CloudWatch Query Logs** (`cloudwatch_query_logs`) — Runs a CloudWatch Log Insights query against one or more log groups. Key params: `logGroupNames`, `queryString`, `startTime`, `endTime`, optional `limit`. Returns `results` (array) and `status` (string).
+
+- **CloudWatch Describe Log Groups** (`cloudwatch_describe_log_groups`) — Lists available CloudWatch log groups. Optional params: `prefix` (name filter), `limit`. Returns `logGroups` (array).
+
+- **CloudWatch Get Log Events** (`cloudwatch_get_log_events`) — Retrieves log events from a specific CloudWatch log stream. Key params: `logGroupName`, `logStreamName`, optional `startTime`, `endTime`, `limit`. Returns `events` (array).
+
+- **CloudWatch List Metrics** (`cloudwatch_list_metrics`) — Lists available CloudWatch metrics. Optional params: `namespace`, `metricName`, `recentlyActive` (only metrics active in the last 3 hours), `limit`. Returns `metrics` (array).
+
+- **CloudWatch Get Metric Statistics** (`cloudwatch_get_metric_statistics`) — Gets statistics for a CloudWatch metric over a time range. Key params: `namespace`, `metricName`, `startTime`, `endTime`, `period` (granularity in seconds), `statistics` (array of Average/Sum/Minimum/Maximum/SampleCount), optional `dimensions` (JSON string). Returns `label` (string) and `datapoints` (array).
+
+- **CloudWatch Publish Metric** (`cloudwatch_put_metric_data`) — Publishes a custom metric data point to CloudWatch. Key params: `namespace`, `metricName`, `value`, optional `unit` (e.g. Count, Seconds, Bytes), `dimensions` (JSON string). Returns `success` (boolean).
+
+- **CloudWatch Describe Alarms** (`cloudwatch_describe_alarms`) — Lists and filters CloudWatch alarms. Optional params: `alarmNamePrefix`, `stateValue` (OK, ALARM, INSUFFICIENT_DATA), `alarmType` (MetricAlarm, CompositeAlarm), `limit`. Returns `alarms` (array).
 
 ## YAML Example
 
@@ -65,8 +109,8 @@ cloudwatch_1:
   inputs:
     operation: "cloudwatch_query_logs"
     awsRegion: "us-east-1"
-    awsAccessKeyId: "{{start.accessKeyId}}"
-    awsSecretAccessKey: "{{start.secretAccessKey}}"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
     logGroupNames: "/aws/lambda/my-function"
     queryString: "fields @timestamp, @message | sort @timestamp desc | limit 20"
   connections:

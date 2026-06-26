@@ -1,7 +1,7 @@
 ---
 title: Input Form (Legacy) Block
-description: Legacy manual start block with structured input
-icon: Box
+description: Legacy manual start block with structured input. Prefer Start block.
+icon: TextCursorInput
 ---
 
 # Input Form (Legacy) Block
@@ -27,6 +27,10 @@ The Input Form (Legacy) block manually triggers a workflow from the editor using
 
 ### Input Format
 Define the JSON input schema for this workflow when run manually. This declares the typed fields the workflow accepts, allowing parent workflows to map values into them.
+
+## Tools
+
+This block has no tool integrations (`tools.access` is empty). It is a trigger block that starts workflow execution; it does not call external tools.
 
 ## Inputs & Outputs
 

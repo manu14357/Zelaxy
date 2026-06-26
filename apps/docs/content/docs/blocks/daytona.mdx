@@ -1,0 +1,115 @@
+---
+title: Daytona Block
+description: Manage Daytona workspaces
+icon: Box
+---
+
+# Daytona Block
+
+The Daytona block lets you list workspaces, fetch workspace details, and create new workspaces through the Daytona API. Use it whenever a workflow needs to provision or inspect cloud development environments managed by Daytona.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `daytona` |
+| **Category** | tools |
+| **Color** | `#1F6FEB` |
+
+## When to Use
+
+- List all Daytona workspaces in your organization to audit or report on active environments.
+- Fetch the details of a specific workspace by ID to check its status or configuration.
+- Programmatically create a new Daytona workspace as part of an onboarding or CI/CD workflow.
+- Pass a workspace ID from a previous step to inspect or act on it downstream.
+- Combine with conditional blocks to branch logic based on whether a workspace exists.
+
+## Configuration
+
+### Operation
+
+Choose which Daytona action to perform. This dropdown controls which additional fields appear.
+
+| Label | ID |
+|-------|----|
+| List workspaces | `daytona_list_workspaces` |
+| Get workspace | `daytona_get_workspace` |
+| Create workspace | `daytona_create_workspace` |
+
+### Workspace ID
+
+*(Shown only when Operation is **Get workspace**).*
+
+The ID of the workspace to retrieve. Required for the Get workspace operation.
+
+- Type: short-input
+- Placeholder: `Workspace ID`
+
+### Name
+
+*(Shown only when Operation is **Create workspace**).*
+
+The name for the new workspace. Required for the Create workspace operation.
+
+- Type: short-input
+- Placeholder: `my-workspace`
+
+### Target Region
+
+*(Shown only when Operation is **Create workspace**).*
+
+The region where the workspace will be created (e.g. `us`, `eu`). Optional — omit to use the Daytona default.
+
+- Type: short-input
+- Placeholder: `us`
+
+### Limit
+
+*(Shown only when Operation is **List workspaces**).*
+
+Maximum number of workspaces to return. Optional — omit to use the Daytona API default.
+
+- Type: short-input
+- Placeholder: `20`
+
+### Daytona API Key
+
+Your Daytona API key used to authenticate all requests. Required for every operation. Store this as an environment variable and reference it with `{{DAYTONA_API_KEY}}`.
+
+- Type: short-input (password)
+- Required: yes
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`daytona_list_workspaces`, `daytona_get_workspace`, or `daytona_create_workspace`)
+  - `apiKey` (string) — Daytona API key
+  - `workspaceId` (string) — Workspace ID (required for Get workspace)
+  - `name` (string) — Workspace name (required for Create workspace)
+  - `target` (string) — Target region (optional, used with Create workspace)
+  - `limit` (number) — Result limit (optional, used with List workspaces)
+- **Outputs**:
+  - `data` (json) — Result object or array from Daytona (workspace object for Get/Create; array of workspace objects for List)
+  - `metadata` (json) — Response metadata (`{ count: number }` for List; `{ id: string }` for Get and Create)
+
+## Tools
+
+- **Daytona List Workspaces** (`daytona_list_workspaces`) — Sends a `GET` to `https://app.daytona.io/api/workspace` and returns an array of all workspace objects in the organization, along with a `count` in metadata. Accepts an optional `limit` parameter.
+- **Daytona Get Workspace** (`daytona_get_workspace`) — Sends a `GET` to `https://app.daytona.io/api/workspace/{workspaceId}` and returns the full workspace object plus its `id` in metadata. Requires `workspaceId`.
+- **Daytona Create Workspace** (`daytona_create_workspace`) — Sends a `POST` to `https://app.daytona.io/api/workspace` with `name` (required) and optional `target` region. Returns the newly created workspace object and its `id` in metadata.
+
+## YAML Example
+
+```yaml
+daytona_1:
+  type: daytona
+  name: "Daytona"
+  inputs:
+    operation: "daytona_create_workspace"
+    apiKey: "{{DAYTONA_API_KEY}}"
+    name: "my-workspace"
+    target: "us"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

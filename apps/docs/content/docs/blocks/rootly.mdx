@@ -1,0 +1,153 @@
+---
+title: Rootly Block
+description: Manage incidents in Rootly
+icon: Box
+---
+
+# Rootly Block
+
+List, create, and retrieve incidents through the Rootly v1 API using Bearer token authentication. Reach for this block whenever a workflow needs to interact with your Rootly incident management system — opening new incidents from alert data, fetching incident lists for reporting, or looking up a specific incident by ID.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `rootly` |
+| **Category** | `tools` |
+| **Color** | `#E5484D` |
+
+## When to Use
+
+- Automatically create a Rootly incident when a monitoring alert or anomaly is detected upstream in the workflow.
+- Retrieve the full list of active incidents to feed into a reporting or summarisation step.
+- Look up a single incident by UUID to enrich downstream blocks with its details.
+- Combine with an Agent block to let an AI triage incoming alerts and open incidents with structured titles and summaries.
+- Pull incident metadata (ID, type) after creation so subsequent blocks can reference the new record.
+- Paginate through incidents in batch-processing workflows using the page size control.
+
+## Configuration
+
+### Operation
+
+Selects which Rootly API action to perform. This is a required dropdown that determines which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| List incidents | `rootly_list_incidents` |
+| Create incident | `rootly_create_incident` |
+| Get incident | `rootly_get_incident` |
+
+---
+
+### Page Size
+
+Visible only when **Operation** is `rootly_list_incidents`.
+
+| Property | Detail |
+|----------|--------|
+| **Sub-block ID** | `pageSize` |
+| **Type** | short-input |
+| **Required** | No |
+| **Placeholder** | `20` |
+
+Controls how many incident records the API returns per page. Leave blank to use the Rootly API default.
+
+---
+
+### Title
+
+Visible only when **Operation** is `rootly_create_incident`.
+
+| Property | Detail |
+|----------|--------|
+| **Sub-block ID** | `title` |
+| **Type** | short-input |
+| **Required** | Yes (for this operation) |
+| **Placeholder** | `API latency spike` |
+
+The title of the new incident. Supports `{{blockName.field}}` references to pull a dynamic value from an earlier block's output.
+
+---
+
+### Summary
+
+Visible only when **Operation** is `rootly_create_incident`.
+
+| Property | Detail |
+|----------|--------|
+| **Sub-block ID** | `summary` |
+| **Type** | long-input |
+| **Required** | No |
+| **Placeholder** | `Describe what is happening` |
+
+A free-text description of the incident. Accepts multi-line content and `{{blockName.field}}` references.
+
+---
+
+### Incident ID
+
+Visible only when **Operation** is `rootly_get_incident`.
+
+| Property | Detail |
+|----------|--------|
+| **Sub-block ID** | `incidentId` |
+| **Type** | short-input |
+| **Required** | Yes (for this operation) |
+| **Placeholder** | `Incident UUID` |
+
+The UUID of the incident to retrieve. Use `{{blockName.incidentId}}` to pass the ID from a previous Create incident step.
+
+---
+
+### API Key
+
+Always visible. Required for all operations.
+
+| Property | Detail |
+|----------|--------|
+| **Sub-block ID** | `apiKey` |
+| **Type** | short-input (password) |
+| **Required** | Yes |
+| **Placeholder** | `Rootly API key` |
+
+Your Rootly Bearer API key. Store it as a secret and reference it with `{{ROOTLY_API_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (`rootly_list_incidents`, `rootly_create_incident`, or `rootly_get_incident`)
+- `apiKey` (string) — Rootly API key used for Bearer authentication
+- `pageSize` (number) — Results per page (used by List incidents)
+- `title` (string) — Incident title (used by Create incident)
+- `summary` (string) — Incident summary (used by Create incident)
+- `incidentId` (string) — Incident ID (used by Get incident)
+
+**Outputs**
+
+- `data` (json) — Result object or array from Rootly. For List incidents this is an array of incident objects; for Create incident and Get incident it is a single incident object.
+- `metadata` (json) — Response metadata. For List incidents: `{ count, total }`. For Create incident and Get incident: `{ id, type }`.
+
+## Tools
+
+**Rootly List Incidents** (`rootly_list_incidents`) — Sends a `GET` request to `https://api.rootly.com/v1/incidents`. Accepts an optional `pageSize` param to control pagination. Returns an array of incident objects in `data` and `{ count, total }` in `metadata`.
+
+**Rootly Create Incident** (`rootly_create_incident`) — Sends a `POST` request to `https://api.rootly.com/v1/incidents` with a JSON:API body containing `title` (required) and `summary` (optional). Returns the created incident object in `data` and `{ id, type }` in `metadata`.
+
+**Rootly Get Incident** (`rootly_get_incident`) — Sends a `GET` request to `https://api.rootly.com/v1/incidents/{incidentId}`. Returns the incident object in `data` and `{ id, type }` in `metadata`.
+
+## YAML Example
+
+```yaml
+rootly_1:
+  type: rootly
+  name: "Create Rootly Incident"
+  inputs:
+    operation: "rootly_create_incident"
+    apiKey: "{{ROOTLY_API_KEY}}"
+    title: "{{alert_block.title}}"
+    summary: "{{alert_block.description}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

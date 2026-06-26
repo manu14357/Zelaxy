@@ -1,0 +1,111 @@
+---
+title: Instantly Block
+description: Manage campaigns and leads in Instantly
+icon: Box
+---
+
+# Instantly Block
+
+List campaigns, create leads, and list leads through the Instantly V2 API. Use this block whenever a workflow needs to read outreach campaign data or programmatically enroll new leads into an Instantly campaign.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `instantly` |
+| **Category** | `tools` |
+| **Color** | `#4338CA` |
+
+## When to Use
+
+- Retrieve all active campaigns from your Instantly account to feed downstream logic or reporting blocks.
+- Automatically create a new lead and assign it to a specific campaign after a form submission, enrichment step, or CRM trigger.
+- Pull the full lead list from Instantly to sync, deduplicate, or analyze in a subsequent block.
+- Combine with a Condition or Router block to branch a workflow based on whether a lead already exists.
+- Feed campaign IDs from a List Campaigns result directly into a Create Lead step using `{{instantly_1.data}}`.
+- Audit outreach pipelines by listing leads and passing results to a table or notification block.
+
+## Configuration
+
+### Operation
+
+Selects which Instantly API action to perform. This dropdown is required and determines which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| List campaigns | `instantly_list_campaigns` |
+| Create lead | `instantly_create_lead` |
+| List leads | `instantly_list_leads` |
+
+**Fields shown per operation:**
+
+- `instantly_list_campaigns` — only the API key is needed.
+- `instantly_create_lead` — shows **Campaign ID** and **Email** in addition to the API key.
+- `instantly_list_leads` — only the API key is needed.
+
+### Campaign ID
+
+Visible only when **Operation** is `instantly_create_lead`.
+
+The UUID of the Instantly campaign to add the lead to. You can obtain campaign IDs by running the `instantly_list_campaigns` operation first and reading `{{blockName.data[0].id}}` (or whichever index applies).
+
+- Type: short text input
+- Placeholder: `Campaign ID`
+- Required when operation is `instantly_create_lead`
+
+### Email
+
+Visible only when **Operation** is `instantly_create_lead`.
+
+The email address of the lead to enroll.
+
+- Type: short text input
+- Placeholder: `lead@example.com`
+- Required when operation is `instantly_create_lead`
+
+### Instantly API Key
+
+Your Instantly V2 API key. This value is treated as a secret (password field) and is required for all operations.
+
+- Type: short text input (password)
+- Placeholder: `Your Instantly API key`
+- Required: yes (all operations)
+- Best practice: pass as an environment variable reference — `{{INSTANTLY_API_KEY}}`
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`instantly_list_campaigns`, `instantly_create_lead`, or `instantly_list_leads`)
+- `apiKey` (string) — Instantly API key used to authenticate all requests
+- `campaign` (string) — Campaign ID; required when operation is `instantly_create_lead`
+- `email` (string) — Lead email address; required when operation is `instantly_create_lead`
+
+**Outputs:**
+
+- `data` (json) — Result object or array from Instantly. For list operations this is an array of campaign or lead objects; for `instantly_create_lead` this is the created lead object including its `id`.
+- `metadata` (json) — Response metadata. For list operations: `{ count: number }`. For create lead: `{ id: string }`.
+
+## Tools
+
+**Instantly List Campaigns** (`instantly_list_campaigns`) — Sends a `GET` request to `https://api.instantly.ai/api/v2/campaigns` and returns all campaigns in the account as an array. Output `data` is the array of campaign objects; `metadata.count` is the number of campaigns returned.
+
+**Instantly Create Lead** (`instantly_create_lead`) — Sends a `POST` request to `https://api.instantly.ai/api/v2/leads` with the campaign ID and email, enrolling a new lead into the specified campaign. Output `data` is the created lead object; `metadata.id` is the new lead's ID.
+
+**Instantly List Leads** (`instantly_list_leads`) — Sends a `POST` request to `https://api.instantly.ai/api/v2/leads/list` and returns all leads in the account as an array. Output `data` is the array of lead objects; `metadata.count` is the number of leads returned.
+
+## YAML Example
+
+```yaml
+instantly_1:
+  type: instantly
+  name: "Create Lead in Campaign"
+  inputs:
+    operation: "instantly_create_lead"
+    apiKey: "{{INSTANTLY_API_KEY}}"
+    campaign: "{{list_campaigns_1.data[0].id}}"
+    email: "{{form_trigger_1.data.email}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

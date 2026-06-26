@@ -23,29 +23,51 @@ The Linkup block searches and retrieves up-to-date information from the web with
 - Retrieve a list of relevant search results for downstream processing.
 - Get a synthesized, sourced answer to a natural-language query in one step.
 - Run deeper research passes when a standard search is not thorough enough.
+- Validate or supplement LLM-generated content with live web citations.
 
 ## Configuration
 
-### Search Query
+### Search Query (`q`)
 
-The natural-language query to search the web for. Required.
+The natural-language query to send to the Linkup API. Supports `{{blockName.field}}` references to pass dynamic values from upstream blocks. Required.
 
-### Output Type
+### Output Type (`outputType`)
 
-Choose between `Answer` (a synthesized, sourced answer) and `Search` (a list of search results). Defaults to `sourcedAnswer`.
+Controls the shape of the response. Options:
 
-### Search Depth
+| Label | ID | Description |
+|-------|----|-------------|
+| Answer | `sourcedAnswer` | Returns a synthesized answer with source attribution (default). |
+| Search | `searchResults` | Returns a ranked list of search result objects. |
 
-Choose `Standard` for a fast search or `Deep` for a more thorough research pass.
+### Search Depth (`depth`)
 
-### API Key
+Controls how thorough the search is. Options:
 
-Your Linkup API key, used to authenticate the request. Required.
+| Label | ID | Description |
+|-------|----|-------------|
+| Standard | `standard` | Fast search suitable for most queries. |
+| Deep | `deep` | More exhaustive research pass; slower but more comprehensive. |
+
+### API Key (`apiKey`)
+
+Your Linkup API key. Store it as a workspace secret and reference it as `{{LINKUP_API_KEY}}`. Required.
 
 ## Inputs & Outputs
 
-- **Inputs**: `q` (string), `apiKey` (string), `depth` (string), `outputType` (string)
-- **Outputs**: `answer` (string), `sources` (json)
+- **Inputs**:
+  - `q` (string) — The search query sent to Linkup.
+  - `apiKey` (string) — Linkup API key used to authenticate the request.
+  - `depth` (string) — Search depth level; either `"standard"` or `"deep"`.
+  - `outputType` (string) — Output format; either `"sourcedAnswer"` or `"searchResults"`.
+
+- **Outputs**:
+  - `answer` (string) — The generated, sourced answer to the search query (populated when `outputType` is `sourcedAnswer`).
+  - `sources` (json) — Array of source references used to compile the answer; each source contains `name`, `url`, and `snippet`.
+
+## Tools
+
+- **Linkup Search** (`linkup_search`) — Posts the query to `https://api.linkup.so/v1/search` with the configured depth and output type. Authenticates via a Bearer token (your API key). Returns an `answer` string and a `sources` array. Images are excluded from results.
 
 ## YAML Example
 
@@ -54,7 +76,7 @@ linkup_1:
   type: linkup
   name: "Linkup"
   inputs:
-    q: {{start.input}}
+    q: "{{start.input}}"
     outputType: "sourcedAnswer"
     depth: "standard"
     apiKey: "{{LINKUP_API_KEY}}"

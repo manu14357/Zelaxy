@@ -1,0 +1,327 @@
+---
+title: Hex Tools
+description: Run and manage Hex data projects, runs, collections, groups, users, and data connections.
+icon: ChartColumn
+---
+
+# Hex Tools
+
+Hex is a collaborative data workspace for building notebooks, apps, and dashboards. These tools let a workflow trigger and monitor Hex project runs, inspect projects and their queried tables, and manage workspace resources such as collections, groups, users, and data connections.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `hex` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Hex API key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Run Project | `hex_run_project` | Trigger a run of a Hex project |
+| Get Run Status | `hex_get_run_status` | Get the status of a Hex project run |
+| Get Project Runs | `hex_get_project_runs` | List runs for a Hex project |
+| Cancel Run | `hex_cancel_run` | Cancel a running Hex project run |
+| List Projects | `hex_list_projects` | List Hex projects |
+| Get Project | `hex_get_project` | Get details of a Hex project |
+| Update Project | `hex_update_project` | Update a Hex project (e.g. change its status) |
+| Get Queried Tables | `hex_get_queried_tables` | Get tables queried by a Hex project |
+| List Users | `hex_list_users` | List Hex workspace users |
+| List Groups | `hex_list_groups` | List Hex groups |
+| Get Group | `hex_get_group` | Get details of a Hex group |
+| List Collections | `hex_list_collections` | List Hex collections |
+| Get Collection | `hex_get_collection` | Get details of a Hex collection |
+| Create Collection | `hex_create_collection` | Create a new Hex collection |
+| List Data Connections | `hex_list_data_connections` | List Hex data connections |
+| Get Data Connection | `hex_get_data_connection` | Get details of a Hex data connection |
+
+All operations call the Hex REST API at `https://app.hex.tech/api/v1` and authenticate with the `Authorization: Bearer <apiKey>` header.
+
+## Configuration
+
+### `hex_run_project`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `projectId` | string | Yes | Project ID to run. |
+| `inputParams` | json | No | Input parameters for the project run. Accepts a JSON object (or JSON string, which is parsed). |
+| `dryRun` | boolean | No | Perform a dry run without executing cells. |
+| `updateCache` | boolean | No | Update cached results. |
+| `updatePublishedResults` | boolean | No | Update published results. |
+| `useCachedSqlResults` | boolean | No | Use cached SQL results. |
+
+### `hex_get_run_status`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `projectId` | string | Yes | Project ID. |
+| `runId` | string | Yes | Run ID. |
+
+### `hex_get_project_runs`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `projectId` | string | Yes | Project ID. |
+| `limit` | number | No | Number of runs to return. |
+| `offset` | number | No | Offset for pagination. |
+| `statusFilter` | string | No | Filter by status (e.g. `PENDING`, `RUNNING`, `COMPLETED`, `ERRORED`, `KILLED`). |
+
+### `hex_cancel_run`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `projectId` | string | Yes | Hex project ID. |
+| `runId` | string | Yes | Run ID to cancel. |
+
+### `hex_list_projects`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `limit` | number | No | Number of projects to return. |
+| `includeArchived` | boolean | No | Include archived projects. |
+| `statusFilter` | string | No | Filter by status (e.g. `PUBLISHED`, `DRAFT`). Sent as the `statuses[]` query param. |
+
+### `hex_get_project`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `projectId` | string | Yes | Project ID. |
+
+### `hex_update_project`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `projectId` | string | Yes | Project ID to update. |
+| `status` | string | No | New project status. |
+
+### `hex_get_queried_tables`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `projectId` | string | Yes | Project ID. |
+| `limit` | number | No | Number of tables to return. |
+
+### `hex_list_users`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `limit` | number | No | Number of users to return. |
+| `sortBy` | string | No | Sort field. |
+| `sortDirection` | string | No | Sort direction (`asc` or `desc`). |
+| `groupId` | string | No | Filter by group ID. |
+
+### `hex_list_groups`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `limit` | number | No | Number of groups to return. |
+| `sortBy` | string | No | Sort field. |
+| `sortDirection` | string | No | Sort direction (`asc` or `desc`). |
+
+### `hex_get_group`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `groupId` | string | Yes | Group ID. |
+
+### `hex_list_collections`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `limit` | number | No | Number of collections to return. |
+| `sortBy` | string | No | Sort field. |
+
+### `hex_get_collection`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `collectionId` | string | Yes | Collection ID. |
+
+### `hex_create_collection`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `name` | string | Yes | Collection name. |
+| `description` | string | No | Collection description. |
+
+### `hex_list_data_connections`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `limit` | number | No | Number of connections to return. |
+| `sortBy` | string | No | Sort field. |
+| `sortDirection` | string | No | Sort direction (`asc` or `desc`). |
+
+### `hex_get_data_connection`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Hex API key. **Secret** (user-only). |
+| `dataConnectionId` | string | Yes | Data connection ID. |
+
+## Outputs
+
+### `hex_run_project`
+
+- `projectId` (string) — Project ID.
+- `runId` (string) — Run ID.
+- `runUrl` (string) — URL to view the run.
+- `runStatusUrl` (string) — URL to check run status.
+- `traceId` (string) — Trace ID.
+- `projectVersion` (number) — Project version.
+
+### `hex_get_run_status`
+
+- `projectId` (string) — Project ID.
+- `runId` (string) — Run ID.
+- `runUrl` (string) — URL to view the run.
+- `status` (string) — Run status.
+- `startTime` (string) — Run start time.
+- `endTime` (string) — Run end time.
+- `elapsedTime` (number) — Elapsed time in ms.
+- `traceId` (string) — Trace ID.
+- `projectVersion` (number) — Project version.
+
+### `hex_get_project_runs`
+
+- `runs` (json) — List of project runs.
+- `total` (number) — Total number of runs.
+- `traceId` (string) — Trace ID.
+
+### `hex_cancel_run`
+
+- `success` (boolean) — Whether the run was cancelled.
+- `projectId` (string) — Project ID.
+- `runId` (string) — Run ID that was cancelled.
+
+### `hex_list_projects`
+
+- `projects` (json) — List of projects.
+- `total` (number) — Total number of projects.
+
+### `hex_get_project`
+
+- `id` (string) — Project ID.
+- `title` (string) — Project title.
+- `description` (string) — Project description.
+- `status` (json) — Project status object.
+- `type` (string) — Project type.
+- `creator` (json) — Creator info.
+- `owner` (json) — Owner info.
+- `categories` (json) — Project categories.
+- `lastEditedAt` (string) — Last edited timestamp.
+- `lastPublishedAt` (string) — Last published timestamp.
+- `createdAt` (string) — Creation timestamp.
+- `archivedAt` (string) — Archive timestamp.
+- `trashedAt` (string) — Trash timestamp.
+
+### `hex_update_project`
+
+- `id` (string) — Project ID.
+- `title` (string) — Project title.
+- `description` (string) — Project description.
+- `status` (json) — Project status.
+- `type` (string) — Project type.
+- `creator` (json) — Creator info.
+- `owner` (json) — Owner info.
+- `categories` (json) — Project categories.
+- `lastEditedAt` (string) — Last edited timestamp.
+- `lastPublishedAt` (string) — Last published timestamp.
+- `createdAt` (string) — Creation timestamp.
+- `archivedAt` (string) — Archive timestamp.
+- `trashedAt` (string) — Trash timestamp.
+
+### `hex_get_queried_tables`
+
+- `tables` (json) — List of queried tables.
+- `total` (number) — Total number of tables.
+
+### `hex_list_users`
+
+- `users` (json) — List of users.
+- `total` (number) — Total number of users.
+
+### `hex_list_groups`
+
+- `groups` (json) — List of groups.
+- `total` (number) — Total number of groups.
+
+### `hex_get_group`
+
+- `id` (string) — Group ID.
+- `name` (string) — Group name.
+- `createdAt` (string) — Creation timestamp.
+
+### `hex_list_collections`
+
+- `collections` (json) — List of collections.
+- `total` (number) — Total number of collections.
+
+### `hex_get_collection`
+
+- `id` (string) — Collection ID.
+- `name` (string) — Collection name.
+- `description` (string) — Collection description.
+- `creator` (json) — Creator info.
+
+### `hex_create_collection`
+
+- `id` (string) — Collection ID.
+- `name` (string) — Collection name.
+- `description` (string) — Collection description.
+- `creator` (json) — Creator info.
+
+### `hex_list_data_connections`
+
+- `connections` (json) — List of data connections.
+- `total` (number) — Total number of connections.
+
+### `hex_get_data_connection`
+
+- `id` (string) — Data connection ID.
+- `name` (string) — Data connection name.
+- `type` (string) — Connection type.
+- `description` (string) — Connection description.
+- `connectViaSsh` (boolean) — Whether SSH tunnel is used.
+- `includeMagic` (boolean) — Whether magic is included.
+- `allowWritebackCells` (boolean) — Whether writeback cells are allowed.
+
+## YAML Example
+
+```yaml
+hex_1:
+  type: hex
+  name: "Hex"
+  inputs:
+    operation: "hex_run_project"
+    apiKey: "{{HEX_API_KEY}}"
+    projectId: "5a6f8c2e-1234-4abc-9def-0123456789ab"
+    inputParams: '{"date_range": "2024-01-01", "department": "engineering"}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Generate an API key from your Hex workspace settings (Settings → API keys). It is passed as a Bearer token, so treat it as a secret and store it as an environment variable referenced with `{{HEX_API_KEY}}` rather than hardcoding it.
+- `hex_run_project` returns asynchronously: capture `{{hex_1.runId}}` and `{{hex_1.runStatusUrl}}`, then poll with `hex_get_run_status` (or feed the run into a wait/loop) to detect `COMPLETED`, `ERRORED`, or `KILLED` before continuing.
+- `inputParams` for `hex_run_project` may be a JSON object or a JSON string; string values are parsed automatically. Use keys that match the input parameter names defined in the Hex project.
+- All `projectId`, `runId`, `groupId`, `collectionId`, and `dataConnectionId` values are UUIDs from Hex — copy them from the project URL or the relevant list operation (`hex_list_projects`, `hex_list_groups`, etc.).

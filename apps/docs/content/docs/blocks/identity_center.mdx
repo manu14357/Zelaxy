@@ -1,0 +1,119 @@
+---
+title: AWS IAM Identity Center Block
+description: List users and groups, and resolve user IDs in an IAM Identity Center store
+icon: Box
+---
+
+# AWS IAM Identity Center Block
+
+Interact with the AWS IAM Identity Center Identity Store API to list users, list groups, and resolve a user ID by user name. All requests are authenticated using AWS access key credentials via SigV4 signing.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `identity_center` |
+| **Category** | `tools` |
+| **Color** | `#FF9900` |
+
+## When to Use
+
+- Enumerate all users in an IAM Identity Center identity store for audit or provisioning workflows.
+- List all groups in an identity store to drive access-control or onboarding logic.
+- Look up a specific user's internal IAM Identity Center user ID by their login name (e.g. to feed downstream permission-assignment steps).
+- Automate identity lifecycle workflows that need to query who exists in your AWS SSO directory.
+- Connect identity data from AWS IAM Identity Center into broader Zelaxy workflows involving condition checks, loops, or downstream API calls.
+
+## Configuration
+
+### Operation
+
+The top-level selector that controls which Identity Store API action the block executes. Pick one of:
+
+| Label | id |
+|-------|----|
+| List users | `identity_center_list_users` |
+| List groups | `identity_center_list_groups` |
+| Get user ID | `identity_center_get_user_id` |
+
+The selected operation determines which tool is invoked and which fields are active.
+
+### Identity Store ID
+
+- **Sub-block id**: `identityStoreId`
+- **Type**: short-input
+- **Placeholder**: `d-1234567890`
+- Visible for all three operations. This is the unique ID of your IAM Identity Center identity store (found in the AWS IAM Identity Center console). Required for every operation.
+
+### User Name
+
+- **Sub-block id**: `userName`
+- **Type**: short-input
+- **Placeholder**: `jdoe`
+- Visible only when **Operation** is `identity_center_get_user_id`. Provide the login/user name to resolve to an internal user ID.
+
+### AWS Region
+
+- **Sub-block id**: `awsRegion`
+- **Type**: short-input (half width)
+- **Placeholder**: `us-east-1`
+- **Required**: yes
+- The AWS region where your IAM Identity Center instance is configured (e.g. `us-east-1`, `eu-west-1`). Always required regardless of operation.
+
+### AWS Access Key ID
+
+- **Sub-block id**: `awsAccessKeyId`
+- **Type**: short-input (half width, password masked)
+- **Required**: yes
+- The AWS access key ID used to sign requests with SigV4. Store this as a workflow secret and reference it with `{{AWS_ACCESS_KEY_ID}}`.
+
+### AWS Secret Access Key
+
+- **Sub-block id**: `awsSecretAccessKey`
+- **Type**: short-input (full width, password masked)
+- **Required**: yes
+- The AWS secret access key paired with the access key ID. Store this as a workflow secret and reference it with `{{AWS_SECRET_ACCESS_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs**:
+
+- `operation` (string) — Operation to perform; must be one of the three tool IDs (`identity_center_list_users`, `identity_center_list_groups`, `identity_center_get_user_id`).
+- `awsRegion` (string) — AWS region (e.g. `us-east-1`).
+- `awsAccessKeyId` (string) — AWS access key ID.
+- `awsSecretAccessKey` (string) — AWS secret access key.
+- `identityStoreId` (string) — Identity store ID (e.g. `d-1234567890`).
+- `userName` (string) — User name to resolve; only required when operation is `identity_center_get_user_id`.
+
+**Outputs**:
+
+- `data` (json) — The raw Identity Store API response. Shape depends on operation:
+  - **List users**: `{ Users: [...], NextToken?: string }`
+  - **List groups**: `{ Groups: [...], NextToken?: string }`
+  - **Get user ID**: `{ UserId: string, IdentityStoreId: string }`
+
+## Tools
+
+**Identity Center List Users** (`identity_center_list_users`) — Lists all users in the specified identity store by calling `AWSIdentityStore.ListUsers` via a SigV4-signed POST. Returns a `Users` array and an optional `NextToken` for pagination. Required params: `awsRegion`, `awsAccessKeyId`, `awsSecretAccessKey`, `identityStoreId`.
+
+**Identity Center List Groups** (`identity_center_list_groups`) — Lists all groups in the specified identity store by calling `AWSIdentityStore.ListGroups` via a SigV4-signed POST. Returns a `Groups` array and an optional `NextToken` for pagination. Required params: `awsRegion`, `awsAccessKeyId`, `awsSecretAccessKey`, `identityStoreId`.
+
+**Identity Center Get User ID** (`identity_center_get_user_id`) — Resolves an internal IAM Identity Center user ID from a login user name by calling `AWSIdentityStore.GetUserId` via a SigV4-signed POST. Uses a `UniqueAttribute` alternate identifier with `AttributePath: "userName"`. Returns `{ UserId, IdentityStoreId }`. Required params: `awsRegion`, `awsAccessKeyId`, `awsSecretAccessKey`, `identityStoreId`, `userName`.
+
+## YAML Example
+
+```yaml
+identity_center_1:
+  type: identity_center
+  name: "Resolve User ID"
+  inputs:
+    operation: identity_center_get_user_id
+    identityStoreId: "d-1234567890"
+    userName: "{{trigger.userName}}"
+    awsRegion: "{{AWS_REGION}}"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

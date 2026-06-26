@@ -1,0 +1,141 @@
+---
+title: Cal.com Tools
+description: Manage bookings, availability slots, and event types in Cal.com scheduling workflows
+icon: Box
+---
+
+# Cal.com Tools
+
+Cal.com is an open scheduling platform that lets you manage bookings and availability. Use these tools in workflows to automate appointment booking, check available slots, retrieve or cancel bookings, and list event types programmatically.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `calcom` |
+| **Category** | tools |
+| **Auth** | OAuth (Bearer Token — Cal.com OAuth access token injected automatically via connected account) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List Bookings | `calcom_list_bookings` | List all bookings with optional status filter, pagination |
+| Create Booking | `calcom_create_booking` | Create a new booking for a given event type |
+| Get Booking | `calcom_get_booking` | Get full details of a specific booking by its UID |
+| Cancel Booking | `calcom_cancel_booking` | Cancel an existing booking by its UID |
+| Get Available Slots | `calcom_get_slots` | Get available time slots for an event type within a date range |
+| List Event Types | `calcom_list_event_types` | Retrieve all event types defined in the account |
+
+## Configuration
+
+### calcom_list_bookings
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Cal.com OAuth access token (injected from connected account, hidden from UI) |
+| `status` | string | No | Filter by booking status. Accepted values: `upcoming`, `recurring`, `past`, `cancelled`, `unconfirmed` |
+| `take` | number | No | Number of bookings to return (page size) |
+| `skip` | number | No | Number of bookings to skip (offset for pagination) |
+
+### calcom_create_booking
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Cal.com OAuth access token (injected from connected account, hidden from UI) |
+| `eventTypeId` | number | Yes | The numeric ID of the event type to book |
+| `start` | string | Yes | Start time in UTC ISO 8601 format, e.g. `2024-01-15T10:00:00Z` |
+| `attendee` | object | Yes | Attendee information object containing `name`, `email`, and `timeZone` fields |
+| `guests` | array | No | Array of additional guest email address strings |
+| `lengthInMinutes` | number | No | Override the default event duration in minutes |
+| `metadata` | object | No | Custom key-value metadata to attach to the booking |
+
+### calcom_get_booking
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Cal.com OAuth access token (injected from connected account, hidden from UI) |
+| `bookingUid` | string | Yes | Unique identifier (UID) of the booking to retrieve |
+
+### calcom_cancel_booking
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Cal.com OAuth access token (injected from connected account, hidden from UI) |
+| `bookingUid` | string | Yes | Unique identifier (UID) of the booking to cancel |
+| `cancellationReason` | string | No | Human-readable reason for the cancellation |
+
+### calcom_get_slots
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Cal.com OAuth access token (injected from connected account, hidden from UI) |
+| `start` | string | Yes | Start of the time range in UTC ISO 8601 format |
+| `end` | string | Yes | End of the time range in UTC ISO 8601 format |
+| `eventTypeId` | number | No | Numeric ID of the event type to check slots for |
+| `eventTypeSlug` | string | No | Slug of the event type (alternative to `eventTypeId`) |
+| `username` | string | No | Cal.com username for personal event types |
+| `timeZone` | string | No | IANA timezone name for the returned slot times (e.g. `America/New_York`) |
+| `duration` | number | No | Override slot length in minutes |
+
+### calcom_list_event_types
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Cal.com OAuth access token (injected from connected account, hidden from UI) |
+| `sortCreatedAt` | string | No | Sort order by creation date. Accepted values: `asc`, `desc` |
+
+## Outputs
+
+### calcom_list_bookings
+
+- `status` (string) — Response status from the Cal.com API
+- `data` (array) — Array of booking objects, each containing booking UID, event type, attendee details, start/end times, and status
+
+### calcom_create_booking
+
+- `status` (string) — Response status from the Cal.com API
+- `data` (object) — Created booking details including the assigned UID, confirmation status, attendee info, and start/end times
+
+### calcom_get_booking
+
+- `status` (string) — Response status from the Cal.com API
+- `data` (object) — Full booking details for the requested UID
+
+### calcom_cancel_booking
+
+- `status` (string) — Response status from the Cal.com API
+- `data` (object) — Cancelled booking details including updated status
+
+### calcom_get_slots
+
+- `status` (string) — Response status from the Cal.com API
+- `data` (json) — Available time slots grouped by date; each date key maps to an array of slot objects with start times
+
+### calcom_list_event_types
+
+- `status` (string) — Response status from the Cal.com API
+- `data` (array) — Array of event type objects including ID, slug, title, duration, and scheduling constraints
+
+## YAML Example
+
+```yaml
+calcom_1:
+  type: calcom
+  name: "Cal.com"
+  inputs:
+    operation: "calcom_list_bookings"
+    status: "upcoming"
+    take: 20
+    skip: 0
+    accessToken: "{{CALCOM_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **OAuth setup**: Connect a Cal.com account via the block's OAuth credential picker. The `accessToken` is injected automatically and never needs to be set manually in your workflow inputs.
+- **Checking availability before booking**: Chain `calcom_get_slots` before `calcom_create_booking` — pass a slot's start time from `{{calcom_1.data}}` directly into the `start` parameter of the create step.
+- **Booking UIDs vs IDs**: The `bookingUid` used by `calcom_get_booking` and `calcom_cancel_booking` is the string UID (e.g. `abc123xyz`), not a numeric integer ID. Retrieve it from the `data` array returned by `calcom_list_bookings`.

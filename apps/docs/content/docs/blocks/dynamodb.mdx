@@ -6,7 +6,7 @@ icon: Box
 
 # Amazon DynamoDB Block
 
-The Amazon DynamoDB block integrates AWS DynamoDB into your workflows. Use it to get, put, update, and delete items, run queries and scans against tables, and perform batch writes — all from a single configurable block.
+The Amazon DynamoDB block integrates AWS DynamoDB into your workflows. Use it to get, put, update, and delete items, run key-based queries and full-table scans, and perform batch writes — all from a single configurable block.
 
 ## Overview
 
@@ -28,33 +28,82 @@ The Amazon DynamoDB block integrates AWS DynamoDB into your workflows. Use it to
 ## Configuration
 
 ### Operation
-Dropdown selecting which DynamoDB action to run: Get Item, Put Item, Update Item, Delete Item, Query, Scan, or Batch Write. The chosen operation determines which additional fields appear.
+
+Required dropdown. Selects which DynamoDB action to run. The chosen operation determines which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| Get Item | `dynamodb_get_item` |
+| Put Item | `dynamodb_put_item` |
+| Update Item | `dynamodb_update_item` |
+| Delete Item | `dynamodb_delete_item` |
+| Query | `dynamodb_query` |
+| Scan | `dynamodb_scan` |
+| Batch Write | `dynamodb_batch_write` |
 
 ### AWS Region
-The AWS region your table lives in (e.g. `us-east-1`). Required.
 
-### Access Key ID / Secret Access Key
-AWS credentials used to authenticate the request. Both are required and stored as secrets.
+Required. The AWS region your table lives in (e.g. `us-east-1`).
+
+### Access Key ID
+
+Required. Your AWS access key ID, stored as a secret (password field).
+
+### Secret Access Key
+
+Required. Your AWS secret access key, stored as a secret (password field).
 
 ### Table Name
-The name of the DynamoDB table to operate on. Required.
 
-### Primary Key (JSON)
-The item's primary key as JSON. Shown for Get Item, Update Item, and Delete Item operations.
+Required. The name of the DynamoDB table to operate on.
 
-### Item (JSON)
-The full item to write as JSON. Shown for the Put Item operation.
+### Primary Key (JSON) — `key`
 
-### Key Condition
-The key condition expression (e.g. `pk = :pk`) used for Query operations.
+A JSON object containing the item's primary (and optional sort) key, e.g. `{"pk": "value", "sk": "sort_value"}`. Shown when the operation is **Get Item**, **Update Item**, or **Delete Item**.
 
-### Filter Expression
-An optional filter expression applied to Scan and Query results.
+### Item (JSON) — `item`
+
+A JSON object representing the full item to write, e.g. `{"pk": "value", "sk": "sort", "data": "content"}`. Shown when the operation is **Put Item**.
+
+### Key Condition — `keyConditionExpression`
+
+A DynamoDB key condition expression string (e.g. `pk = :pk`). Required when the operation is **Query**.
+
+### Filter Expression — `filterExpression`
+
+An optional filter expression applied after the read, e.g. `attribute = :val`. Shown when the operation is **Scan** or **Query**.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `awsRegion` (string), `awsAccessKeyId` (string), `awsSecretAccessKey` (string), `tableName` (string), `key` (json), `item` (json), `keyConditionExpression` (string), `filterExpression` (string)
-- **Outputs**: `item` (json), `items` (json), `count` (number)
+**Inputs** (all subBlock ids map directly to the inputs map):
+
+- `operation` (string) — Operation to perform (one of the operation IDs above)
+- `awsRegion` (string) — AWS region
+- `awsAccessKeyId` (string) — AWS access key ID
+- `awsSecretAccessKey` (string) — AWS secret access key
+- `tableName` (string) — Table name
+- `key` (json) — Primary key (used by Get Item, Update Item, Delete Item)
+- `item` (json) — Item data (used by Put Item)
+- `keyConditionExpression` (string) — Key condition expression (used by Query)
+- `filterExpression` (string) — Filter expression (used by Query and Scan)
+
+**Outputs** (available on the block's result):
+
+- `item` (json) — Retrieved item (Get Item)
+- `items` (json) — Array of results from Query or Scan
+- `count` (number) — Number of items returned by Query or Scan
+
+## Tools
+
+Each operation resolves to a dedicated tool registered in `tools/registry.ts`:
+
+- **DynamoDB Get Item** (`dynamodb_get_item`) — Fetches a single item by its primary key. Returns `item`.
+- **DynamoDB Put Item** (`dynamodb_put_item`) — Inserts or replaces an item. Returns `success` (boolean).
+- **DynamoDB Update Item** (`dynamodb_update_item`) — Updates attributes of an existing item using an update expression and expression attribute values. Returns `attributes` (the updated item attributes).
+- **DynamoDB Delete Item** (`dynamodb_delete_item`) — Deletes an item by its primary key. Returns `success` (boolean).
+- **DynamoDB Query** (`dynamodb_query`) — Queries a table using a key condition expression, with optional filter, index name, and limit. Returns `items`, `count`, and `lastEvaluatedKey` (for pagination).
+- **DynamoDB Scan** (`dynamodb_scan`) — Scans all items in a table with an optional filter expression and limit. Returns `items`, `count`, and `lastEvaluatedKey`.
+- **DynamoDB Batch Write** (`dynamodb_batch_write`) — Executes multiple put and delete requests in a single call. Accepts `requestItems` as a JSON map of table → array of `PutRequest`/`DeleteRequest`. Returns `unprocessedItems` (empty if all succeeded).
 
 ## YAML Example
 
@@ -65,8 +114,8 @@ dynamodb_1:
   inputs:
     operation: "dynamodb_get_item"
     awsRegion: "us-east-1"
-    awsAccessKeyId: "{{secrets.AWS_ACCESS_KEY_ID}}"
-    awsSecretAccessKey: "{{secrets.AWS_SECRET_ACCESS_KEY}}"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
     tableName: "MyTable"
     key: '{"pk": "{{start.input}}"}'
   connections:

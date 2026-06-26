@@ -64,6 +64,14 @@ Optional maximum number of rows to return for `query`.
 - **Inputs**: `operation` (string), `projectId` (string), `table` (string), `apiKey` (string), `data` (json), `filter` (string), `orderBy` (string), `limit` (number)
 - **Outputs**: `message` (string), `results` (json)
 
+## Tools
+
+- **Supabase Query** (`supabase_query`) — Fetches multiple rows from a table via a GET request to the Supabase REST API. Supports optional PostgREST filter, order-by, and limit params.
+- **Supabase Get Row** (`supabase_get_row`) — Fetches a single row from a table using a required PostgREST filter; internally applies `limit=1` and returns the first matching record (or null if none found).
+- **Supabase Insert** (`supabase_insert`) — Inserts one or more rows into a table via a POST request. Accepts a JSON object (auto-wrapped in an array) or a JSON array.
+- **Supabase Update Row** (`supabase_update`) — Updates rows that match a required PostgREST filter via a PATCH request. Returns the updated records.
+- **Supabase Delete Row** (`supabase_delete`) — Deletes rows that match a required PostgREST filter via a DELETE request. A filter is mandatory to prevent accidental full-table deletion.
+
 ## YAML Example
 
 ```yaml

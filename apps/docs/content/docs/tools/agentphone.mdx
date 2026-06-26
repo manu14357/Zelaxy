@@ -1,0 +1,121 @@
+---
+title: AgentPhone
+description: Provision phone numbers, send SMS/iMessage, and initiate AI-powered voice calls via AgentPhone
+icon: Phone
+---
+
+# AgentPhone
+
+Automate voice and messaging communication with AgentPhone. Provision phone numbers, send outbound SMS and iMessage, and trigger AI-powered voice calls — all from within a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `agentphone` |
+| **Category** | Tool — Communication |
+| **Auth** | API Key (Bearer token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Create Number** | `agentphone_create_number` | Provision a new SMS- and voice-enabled phone number |
+| **List Numbers** | `agentphone_list_numbers` | List all phone numbers provisioned for the account |
+| **Release Number** | `agentphone_release_number` | Permanently release (delete) a provisioned phone number |
+| **Send Message** | `agentphone_send_message` | Send an outbound SMS or iMessage from an AgentPhone agent |
+| **Create Call** | `agentphone_create_call` | Initiate an outbound AI-powered voice call from an AgentPhone agent |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | AgentPhone API key. Store as `{{AGENTPHONE_API_KEY}}` and reference it here. Sent as a `Bearer` token on every request. |
+| `country` | `string` | No | Two-letter country code for number provisioning (e.g. `US`, `CA`). Defaults to `US`. Only used by **Create Number**. |
+| `areaCode` | `string` | No | Preferred area code when provisioning a US or CA number (e.g. `415`). Only used by **Create Number**. |
+| `agentId` | `string` | No / Yes | AgentPhone agent ID. Required for **Create Call** and **Send Message**; optional for **Create Number** (attaches the number to the agent immediately). |
+| `numberId` | `string` | No / Yes | ID of an existing provisioned phone number. Required for **Release Number**; optional for **Send Message** (sets the sender) and **Create Call** (maps to `fromNumberId`). |
+| `toNumber` | `string` | Yes (Send Message, Create Call) | Destination phone number in E.164 format, e.g. `+14155551234`. |
+| `body` | `string` | Yes (Send Message) | Text content of the message to send. |
+| `mediaUrl` | `string` | No | URL of an image, video, or file to attach as MMS. Only used by **Send Message**. |
+| `fromNumberId` | `string` | No | Phone number ID to use as caller ID. Only used by **Create Call** (same as `numberId` in the block UI). |
+| `initialGreeting` | `string` | No | Optional greeting spoken when the recipient answers the call. Only used by **Create Call**. |
+| `voice` | `string` | No | Voice ID override for the call. Only used by **Create Call**. |
+| `systemPrompt` | `string` | No | System prompt passed to the agent's built-in LLM for the call conversation. Only used by **Create Call**. |
+| `limit` | `number` | No | Max number of phone numbers to return (default 20, max 100). Only used by **List Numbers**. |
+| `offset` | `number` | No | Number of results to skip for pagination. Only used by **List Numbers**. |
+
+## Outputs
+
+### Create Number
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique phone number ID |
+| `phoneNumber` | `string` | Provisioned phone number in E.164 format |
+| `country` | `string` | Two-letter country code |
+| `status` | `string` | Number status (e.g. `active`) |
+| `type` | `string` | Number type (e.g. `sms`) |
+| `agentId` | `string` | Agent the number is attached to (if any) |
+| `createdAt` | `string` | ISO 8601 timestamp when the number was created |
+
+### List Numbers
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `array` | Array of phone number objects |
+| `data[].id` | `string` | Phone number ID |
+| `data[].phoneNumber` | `string` | Phone number in E.164 format |
+| `data[].country` | `string` | Two-letter country code |
+| `data[].status` | `string` | Number status |
+| `data[].type` | `string` | Number type (e.g. `sms`) |
+| `data[].agentId` | `string` | Attached agent ID (if any) |
+| `data[].createdAt` | `string` | ISO 8601 creation timestamp |
+| `hasMore` | `boolean` | Whether more results are available beyond this page |
+| `total` | `number` | Total number of phone numbers in the account |
+
+### Release Number
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | ID of the released phone number |
+| `released` | `boolean` | Whether the number was released successfully |
+
+### Send Message
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Message ID |
+| `status` | `string` | Delivery status |
+| `channel` | `string` | Message channel: `sms`, `mms`, or `imessage` |
+| `fromNumber` | `string` | Sender phone number |
+| `toNumber` | `string` | Recipient phone number |
+
+### Create Call
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique call identifier |
+| `agentId` | `string` | Agent handling the call |
+| `status` | `string` | Initial call status |
+| `toNumber` | `string` | Destination phone number |
+| `fromNumber` | `string` | Caller ID used for the call |
+| `phoneNumberId` | `string` | ID of the phone number used |
+| `direction` | `string` | Call direction (outbound) |
+| `startedAt` | `string` | ISO 8601 timestamp when the call started |
+
+## Example
+
+```
+[Starter] → [AgentPhone: Send Message] → [Agent: log the result]
+```
+
+When a form submission triggers the workflow, the **Send Message** block reads the customer phone number from `{{starter.toNumber}}` and sends a personalised confirmation SMS using the text from `{{starter.messageBody}}`. The API key is stored as `{{AGENTPHONE_API_KEY}}` and injected into the block's `apiKey` field. The agent block downstream receives `{{agentphone.id}}` and `{{agentphone.status}}` to log the delivery outcome.
+
+## Tips
+
+- **Phone numbers must be in E.164 format** for both `toNumber` and `fromNumberId`/`numberId` — always include the country code prefix (e.g. `+14155551234`).
+- **Release Number is irreversible.** Protect this operation with a Condition block that confirms the correct `numberId` before calling `agentphone_release_number`.
+- **Attach a number to an agent at provisioning time** by passing `agentId` to **Create Number** — this avoids a separate configuration step in the AgentPhone dashboard.
+- **Use List Numbers with pagination** when managing large fleets: set `limit` and `offset` via upstream block outputs (e.g. `{{pagination.offset}}`) to iterate over all provisioned numbers.
+- **Override voice and system prompt per call** using the `voice` and `systemPrompt` params in **Create Call** to personalise each outbound conversation without changing the agent's default configuration.

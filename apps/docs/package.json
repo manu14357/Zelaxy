@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "DOCS_DEV_ORIGIN=http://docs.localhost:3001 next dev -p 3001 --hostname docs.localhost",
+    "dev:local": "next dev -p 3001",
     "build": "next build",
     "start": "next start -p 3001 --hostname docs.localhost",
+    "start:local": "next start -p 3001",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

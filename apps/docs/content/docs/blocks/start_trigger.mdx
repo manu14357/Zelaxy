@@ -35,6 +35,10 @@ The `inputFormat` sub-block lets you add custom fields beyond the built-in `inpu
 - **Inputs**: none declared on the block (`inputs: {}`) — values arrive from the run context (chat, manual, or API) via the configured input format
 - **Outputs**: none declared on the block (`outputs: {}`) — provided fields such as `input`, `conversationId`, and `files` are referenced by downstream blocks
 
+## Tools
+
+The Start block has no tool integrations (`tools.access: []`). It is a trigger block — it initiates execution from the run context (chat, manual, or API) rather than calling an external service.
+
 ## YAML Example
 
 ```yaml

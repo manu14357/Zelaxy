@@ -1,0 +1,139 @@
+---
+title: Lemlist Block
+description: Manage outreach campaigns and leads in Lemlist
+icon: Box
+---
+
+# Lemlist Block
+
+List and retrieve campaigns, add leads to a campaign, and list campaign activities through the Lemlist API. Authenticate with a Lemlist API key. Reach for this block whenever a workflow needs to interact with Lemlist outreach sequences — whether that means pulling campaign data, enrolling new leads, or monitoring engagement activity.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `lemlist` |
+| **Category** | `tools` |
+| **Color** | `#4A4AEE` |
+
+## When to Use
+
+- Fetch all Lemlist campaigns to display or filter them in a workflow dashboard.
+- Retrieve a single campaign's full details (settings, stats, sequence steps) by its ID.
+- Enroll a new prospect into a specific campaign as a lead, optionally providing their name.
+- Pull the full activity log (opens, clicks, replies) across all campaigns to drive downstream reporting or CRM sync.
+- Chain with an Agent block to let an LLM decide which campaign a contact should enter based on their profile.
+- Trigger further automation (e.g. Slack alert, database write) whenever a new lead is successfully added.
+
+## Configuration
+
+### Operation
+
+Selects which Lemlist API action the block performs. Every other field's visibility depends on this choice.
+
+| Label | ID |
+|-------|----|
+| List campaigns | `lemlist_list_campaigns` |
+| Get campaign | `lemlist_get_campaign` |
+| Add lead | `lemlist_add_lead` |
+| List activities | `lemlist_list_activities` |
+
+Default: `lemlist_list_campaigns`.
+
+---
+
+### Campaign ID
+
+- **Sub-block id**: `campaignId`
+- **Type**: short-input
+- **Placeholder**: `cam_abc123def456`
+- **Visible when**: operation is `lemlist_get_campaign` OR `lemlist_add_lead`
+
+The unique Lemlist campaign identifier. Copy it from the Lemlist dashboard URL or from a previous "List campaigns" block's output (`{{lemlist_1.data[0]._id}}`).
+
+---
+
+### Email
+
+- **Sub-block id**: `email`
+- **Type**: short-input
+- **Placeholder**: `lead@example.com`
+- **Visible when**: operation is `lemlist_add_lead`
+
+The email address of the lead to enroll. This is the primary identifier Lemlist uses for the lead record and is required for the Add lead operation.
+
+---
+
+### First Name
+
+- **Sub-block id**: `firstName`
+- **Type**: short-input
+- **Placeholder**: `Jane`
+- **Visible when**: operation is `lemlist_add_lead`
+
+Optional first name of the lead. Used for personalisation variables inside Lemlist sequence steps.
+
+---
+
+### Last Name
+
+- **Sub-block id**: `lastName`
+- **Type**: short-input
+- **Placeholder**: `Doe`
+- **Visible when**: operation is `lemlist_add_lead`
+
+Optional last name of the lead.
+
+---
+
+### Lemlist API Key
+
+- **Sub-block id**: `apiKey`
+- **Type**: short-input (password)
+- **Required**: yes
+- **Visible**: always
+
+Your Lemlist API key, available in **Lemlist → Settings → Integrations → API**. Store it as a workflow secret and reference it with `{{LEMLIST_API_KEY}}` rather than pasting it in plain text.
+
+---
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform; one of the four tool IDs listed above.
+- `apiKey` (string) — Lemlist API key used to authenticate every request.
+- `campaignId` (string) — Campaign ID; required for `lemlist_get_campaign` and `lemlist_add_lead`.
+- `email` (string) — Lead email address; required for `lemlist_add_lead`.
+- `firstName` (string) — Lead first name; optional, used by `lemlist_add_lead`.
+- `lastName` (string) — Lead last name; optional, used by `lemlist_add_lead`.
+
+**Outputs**
+
+- `data` (json) — Result object or array from Lemlist. For list operations this is an array of campaign or activity objects; for single-resource operations it is the campaign or lead object.
+- `metadata` (json) — Response metadata. For list operations contains `count` (number of items returned); for single-resource operations contains `id` (the resource ID).
+
+## Tools
+
+- **Lemlist List Campaigns** (`lemlist_list_campaigns`) — Sends a GET request to `https://api.lemlist.com/api/campaigns` and returns all campaigns in the account as a JSON array. Only requires `apiKey`.
+- **Lemlist Get Campaign** (`lemlist_get_campaign`) — Sends a GET request to `https://api.lemlist.com/api/campaigns/{campaignId}` and returns the full campaign object. Requires `apiKey` and `campaignId`.
+- **Lemlist Add Lead** (`lemlist_add_lead`) — Sends a POST request to `https://api.lemlist.com/api/campaigns/{campaignId}/leads/{email}` to enroll a new lead. Requires `apiKey`, `campaignId`, and `email`; `firstName` and `lastName` are optional body fields.
+- **Lemlist List Activities** (`lemlist_list_activities`) — Sends a GET request to `https://api.lemlist.com/api/activities` and returns all campaign activity events (opens, clicks, replies) as a JSON array. Only requires `apiKey`.
+
+## YAML Example
+
+```yaml
+lemlist_1:
+  type: lemlist
+  name: "Add Lead to Campaign"
+  inputs:
+    operation: "lemlist_add_lead"
+    apiKey: "{{LEMLIST_API_KEY}}"
+    campaignId: "cam_abc123def456"
+    email: "{{crm_block.email}}"
+    firstName: "{{crm_block.firstName}}"
+    lastName: "{{crm_block.lastName}}"
+  connections:
+    outgoing:
+      - target: notify-slack-block
+```

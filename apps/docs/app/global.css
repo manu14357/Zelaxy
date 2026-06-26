@@ -997,3 +997,225 @@ nav[data-navbar] [data-search-trigger]:hover {
 [data-sidebar] {
   animation: slide-in-left 0.3s ease-out both;
 }
+
+/* ==========================================================================
+   2025 ENHANCEMENTS — cards, navbar menu, page actions, breadcrumb
+   ========================================================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Card grids (Fumadocs <Cards>/<Card>) — modern hover lift + gradient edge ── */
+.prose .grid a,
+#nd-page .grid a[href] {
+  position: relative;
+  border-radius: calc(var(--fd-radius) + 0.15rem);
+  border: 1px solid hsl(var(--fd-border));
+  background:
+    linear-gradient(180deg, hsl(var(--fd-card) / 0.6), hsl(var(--fd-card) / 0.3));
+  transition:
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
+  overflow: hidden;
+}
+
+.prose .grid a::before,
+#nd-page .grid a[href]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, hsl(var(--fd-primary) / 0.5), transparent 45%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+  pointer-events: none;
+}
+
+.prose .grid a:hover,
+#nd-page .grid a[href]:hover {
+  transform: translateY(-3px);
+  border-color: hsl(var(--fd-primary) / 0.35);
+  box-shadow:
+    0 10px 30px -10px hsl(var(--fd-primary) / 0.18),
+    0 2px 6px hsl(220 13% 0% / 0.04);
+}
+
+.prose .grid a:hover::before,
+#nd-page .grid a[href]:hover::before {
+  opacity: 1;
+}
+
+/* ── Navbar dropdown menu (Resources) ── */
+#nd-nav [role="menu"],
+[data-radix-popper-content-wrapper] {
+  border-radius: var(--fd-radius);
+}
+
+/* ── Navbar main links — pill hover ── */
+nav[data-navbar] a[data-active],
+#nd-nav a {
+  border-radius: 0.5rem;
+}
+
+/* ── Breadcrumb — refined, chip-on-hover ── */
+[data-breadcrumb] {
+  margin-bottom: 0.25rem;
+  font-weight: 450;
+}
+
+[data-breadcrumb] a:hover {
+  color: hsl(var(--fd-primary));
+}
+
+/* ── Callouts — softer, branded ── */
+#nd-page [data-callout],
+.prose [data-callout] {
+  border-radius: calc(var(--fd-radius) + 0.1rem);
+  border-width: 1px;
+  box-shadow: 0 1px 3px hsl(220 13% 0% / 0.04);
+}
+
+/* ── Clerk-style TOC marker ── */
+[data-toc] [role="presentation"],
+#nd-tocnav svg {
+  color: hsl(var(--fd-primary));
+}
+
+/* ── Page actions row sits flush with the title block ── */
+.not-prose:has(button[aria-label="Copy page as Markdown"]) {
+  margin-top: -0.25rem;
+}
+
+/* ── Edit-on-GitHub / footer links ── */
+a[href*="github.com"]:has(svg) {
+  transition: color 0.15s ease;
+}
+
+/* ── Subtle entrance for cards ── */
+@keyframes card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.prose .grid > a,
+#nd-page .grid > a[href] {
+  animation: card-rise 0.4s ease-out both;
+}
+
+.prose .grid > a:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.prose .grid > a:nth-child(3) {
+  animation-delay: 0.1s;
+}
+.prose .grid > a:nth-child(4) {
+  animation-delay: 0.15s;
+}
+
+/* ==========================================================================
+   FULL-WIDTH TOP NAVBAR (Notebook layout)
+   The announcement <Banner> sits ABOVE the navbar and offsets the whole layout
+   itself via --fd-banner-height, so no manual sidebar/content offsets needed.
+   ========================================================================== */
+
+/* The notebook navbar is a full-width fixed header (#nd-subnav). Give it a
+   refined glass + hairline border that reads as a real top navigation bar,
+   with comfortable, vertically-centred controls. */
+#nd-subnav {
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid hsl(var(--fd-border) / 0.55);
+  background: hsl(var(--fd-background) / 0.78) !important;
+}
+
+/* Keep the navbar's interactive controls vertically centred on the row. */
+#nd-subnav a,
+#nd-subnav button {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ==========================================================================
+   RESPONSIVE SAFEGUARDS — phones, tablets, and everything between
+   ========================================================================== */
+
+/* Never allow a stray wide element to create horizontal scroll on the page.
+   `clip` (not `hidden`) so sticky/fixed positioning still works. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* The announcement message must truncate, never push the bar wider. */
+.fd-ann,
+[id^='nd-banner'] {
+  max-width: 100vw;
+}
+[id^='nd-banner'] a,
+.fd-ann a {
+  min-width: 0;
+}
+[id^='nd-banner'] .truncate,
+.fd-ann .truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  /* Tighten the full-width navbar gutters on small screens. */
+  #nd-subnav {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    gap: 0.5rem;
+  }
+
+  /* Card grids collapse to a single column on phones. */
+  #nd-page .grid,
+  .prose .grid,
+  .grid[class*='grid-cols'] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Give the announcement room for the dismiss button and keep it centred. */
+  [id^='nd-banner'],
+  .fd-ann {
+    padding-left: 0.75rem;
+    padding-right: 2.25rem;
+    text-align: center;
+  }
+}
+
+/* Tablets: comfortable two-column cards, roomy content. */
+@media (min-width: 641px) and (max-width: 1024px) {
+  #nd-page .grid,
+  .prose .grid {
+    gap: 0.75rem;
+  }
+}
+
+/* Make embedded media / wide pre blocks never overflow their column. */
+.prose pre,
+.prose table,
+.prose img,
+.prose iframe {
+  max-width: 100%;
+}

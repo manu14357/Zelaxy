@@ -1,0 +1,171 @@
+---
+title: Google Tasks Block
+description: Manage task lists and tasks in Google Tasks
+icon: ListTodo
+---
+
+# Google Tasks Block
+
+List task lists, list tasks, create tasks, and mark tasks as completed through the Google Tasks API. Authenticate with a Google OAuth access token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_tasks` |
+| **Category** | `tools` |
+| **Color** | `#2684FC` |
+
+## When to Use
+
+- Retrieve all task lists available for the authenticated Google account.
+- List tasks in a specific task list, optionally filtering out completed tasks.
+- Create a new task with a title, optional notes, and an optional due date.
+- Mark an existing task as completed by its task ID.
+- Build automation workflows that update Google Tasks in response to triggers from other blocks.
+- Chain task creation with data from upstream blocks (for example, create a task for each row returned by a Sheets or database block).
+
+## Configuration
+
+### Operation
+
+The **Operation** dropdown selects which Google Tasks API action to perform. All other fields appear or hide based on this selection.
+
+| Label | ID |
+|-------|----|
+| List task lists | `google_tasks_list_tasklists` |
+| List tasks | `google_tasks_list_tasks` |
+| Create task | `google_tasks_create_task` |
+| Complete task | `google_tasks_complete_task` |
+
+Default value: `google_tasks_list_tasklists`.
+
+---
+
+### Task List ID (`tasklist`)
+
+- **Type**: short-input
+- **Placeholder**: `@default`
+- **Visible for operations**: `google_tasks_list_tasks`, `google_tasks_create_task`, `google_tasks_complete_task`
+
+The ID of the task list to operate on. Use `@default` to target the user's primary task list. Obtain a list ID by first running the **List task lists** operation and reading `data[n].id` from the output.
+
+---
+
+### Title (`title`)
+
+- **Type**: short-input
+- **Placeholder**: `My task`
+- **Visible for operations**: `google_tasks_create_task`
+
+The title of the task to create. Required when the **Create task** operation is selected.
+
+---
+
+### Notes (`notes`)
+
+- **Type**: long-input
+- **Visible for operations**: `google_tasks_create_task`
+
+Optional free-text notes or description to attach to the task.
+
+---
+
+### Due Date (`due`)
+
+- **Type**: short-input
+- **Placeholder**: `2025-06-03T00:00:00.000Z`
+- **Visible for operations**: `google_tasks_create_task`
+
+Optional due date in RFC 3339 format (UTC timestamp). Example: `2025-06-03T00:00:00.000Z`.
+
+---
+
+### Task ID (`task`)
+
+- **Type**: short-input
+- **Visible for operations**: `google_tasks_complete_task`
+
+The ID of the task to mark as completed. Obtain a task ID by first running **List tasks** and reading `data[n].id` from the output.
+
+---
+
+### Max Results (`maxResults`)
+
+- **Type**: short-input
+- **Placeholder**: `20`
+- **Visible for operations**: `google_tasks_list_tasklists`, `google_tasks_list_tasks`
+
+Optional upper bound on the number of items to return. The Google Tasks API enforces a maximum of 100 per page.
+
+---
+
+### Show Completed (`showCompleted`)
+
+- **Type**: short-input
+- **Placeholder**: `true`
+- **Visible for operations**: `google_tasks_list_tasks`
+
+Whether to include tasks that have already been marked as completed. Accepts `true` or `false`.
+
+---
+
+### Google Access Token (`accessToken`) — required
+
+- **Type**: short-input (password)
+- **Placeholder**: `ya29....`
+- **Required**: yes (all operations)
+
+A valid Google OAuth 2.0 access token with the `https://www.googleapis.com/auth/tasks` scope. Store the token as a workflow secret and reference it with `{{GOOGLE_ACCESS_TOKEN}}`.
+
+## Inputs & Outputs
+
+### Inputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `operation` | string | Operation to perform (maps to a tool ID) |
+| `accessToken` | string | Google OAuth access token |
+| `tasklist` | string | Task list ID (defaults to `@default`) |
+| `title` | string | Task title (required for create) |
+| `notes` | string | Task notes / description |
+| `due` | string | Due date in RFC 3339 format |
+| `task` | string | Task ID (required for complete) |
+| `maxResults` | number | Maximum number of results to return |
+| `showCompleted` | boolean | Whether to include completed tasks in list results |
+
+### Outputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `data` | json | Result object or array from Google Tasks (task list objects, task objects, the created task, or the updated task depending on the operation) |
+| `metadata` | json | Response metadata — for list operations: `{ count, nextPageToken }`; for single-object operations: `{ id }` |
+
+## Tools
+
+**Google Tasks List Task Lists** (`google_tasks_list_tasklists`) — Retrieves all task lists for the authenticated user via `GET /tasks/v1/users/@me/lists`. Accepts `accessToken` and optional `maxResults`. Returns an array of task list objects and list metadata.
+
+**Google Tasks List Tasks** (`google_tasks_list_tasks`) — Lists all tasks in a given task list via `GET /tasks/v1/lists/{tasklist}/tasks`. Accepts `accessToken`, optional `tasklist` (defaults to `@default`), optional `maxResults`, and optional `showCompleted`. Returns an array of task objects and list metadata.
+
+**Google Tasks Create Task** (`google_tasks_create_task`) — Creates a new task in a task list via `POST /tasks/v1/lists/{tasklist}/tasks`. Accepts `accessToken`, optional `tasklist`, required `title`, optional `notes`, and optional `due` (RFC 3339). Returns the created task object and its `id` in metadata.
+
+**Google Tasks Complete Task** (`google_tasks_complete_task`) — Marks an existing task as completed via `PATCH /tasks/v1/lists/{tasklist}/tasks/{task}` with `status: "completed"`. Accepts `accessToken`, optional `tasklist`, and required `task` (task ID). Returns the updated task object and its `id` in metadata.
+
+## YAML Example
+
+```yaml
+# Example: Create a task in Google Tasks
+google_tasks_1:
+  type: google_tasks
+  name: "Create Task"
+  inputs:
+    operation: "google_tasks_create_task"
+    accessToken: "{{GOOGLE_ACCESS_TOKEN}}"
+    tasklist: "@default"
+    title: "Review report from {{previous_block.data.title}}"
+    notes: "Automatically created by workflow"
+    due: "2025-07-01T00:00:00.000Z"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

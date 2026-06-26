@@ -1,0 +1,71 @@
+---
+title: Text to Speech Tools
+description: Convert text into spoken audio using ElevenLabs voices.
+icon: Volume2
+---
+
+# Text to Speech Tools
+
+The Text to Speech provider converts text into spoken audio using ElevenLabs voices and returns base64-encoded MP3 audio. Use it in a workflow whenever you need to generate voice output from text (for example, narrating an answer, producing audio notifications, or building voice responses).
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `tts` |
+| **Category** | `tools` |
+| **Auth** | API Key (ElevenLabs `xi-api-key` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Synthesize | `tts_synthesize` | Convert text to speech audio using ElevenLabs voices |
+
+## Configuration
+
+### `tts_synthesize`
+
+Convert text to speech audio using ElevenLabs voices.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | ElevenLabs API key. **Secret** — provided by the user only (`user-only` visibility); sent as the `xi-api-key` request header. |
+| `text` | string | Yes | The text content to convert to speech. Can be supplied by the user or an LLM. |
+| `voiceId` | string | Yes | ElevenLabs voice identifier (e.g. `21m00Tcm4TlvDq8ikWAM`). Can be supplied by the user or an LLM. |
+| `modelId` | string | No | ElevenLabs model ID. Defaults to `eleven_turbo_v2_5`. Can be supplied by the user or an LLM. |
+
+The tool issues a `POST` request to `https://api.elevenlabs.io/v1/text-to-speech/{voiceId}` with headers `Accept: audio/mpeg`, `Content-Type: application/json`, and `xi-api-key: {apiKey}`. The request body sends `text` and `model_id`.
+
+## Outputs
+
+### `tts_synthesize`
+
+- `data` (json) — Base64-encoded audio with MIME type and format. Object shape: `audioBase64` (string, the base64-encoded MP3), `mimeType` (string, `audio/mpeg`), `format` (string, `mp3`).
+- `metadata` (json) — Synthesis metadata:
+  - `voiceId` (string) — Voice ID used for synthesis.
+  - `characterCount` (number) — Number of characters synthesized.
+
+## YAML Example
+
+```yaml
+tts_1:
+  type: tts
+  name: "Text to Speech"
+  inputs:
+    operation: "tts_synthesize"
+    text: "Hello, welcome to our service!"
+    voiceId: "21m00Tcm4TlvDq8ikWAM"
+    modelId: "eleven_turbo_v2_5"
+    apiKey: "{{TTS_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authentication uses an ElevenLabs API key passed as the `xi-api-key` header. Store it as an environment variable and reference it with `{{TTS_API_KEY}}` rather than hardcoding the secret.
+- `voiceId` is required — use a valid ElevenLabs voice identifier such as `21m00Tcm4TlvDq8ikWAM`. The value is URL-encoded and trimmed before the API call.
+- `modelId` is optional and defaults to `eleven_turbo_v2_5` when omitted; set it only if you need a specific ElevenLabs model.
+- The audio is returned as base64-encoded MP3 inside `data.audioBase64` (MIME type `audio/mpeg`). Pass `{{tts_1.data.audioBase64}}` to a downstream block to store, upload, or play the audio.

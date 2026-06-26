@@ -1,0 +1,93 @@
+---
+title: Fireflies
+description: Access and retrieve meeting transcripts and user information from Fireflies.ai
+icon: Mic
+---
+
+# Fireflies
+
+Retrieve meeting transcripts, summaries, action items, and user account information from [Fireflies.ai](https://fireflies.ai) via its GraphQL API. Use this integration to pull meeting data into your workflows for analysis, reporting, or downstream automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `fireflies` |
+| **Category** | Tool — Productivity / Meetings |
+| **Auth** | API Key (Bearer token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **List Transcripts** | `fireflies_list_transcripts` | List recent meeting transcripts, optionally limited to a specified count |
+| **Get Transcript** | `fireflies_get_transcript` | Retrieve a single transcript by ID, including full summary, action items, and keywords |
+| **Get User** | `fireflies_get_user` | Fetch user account details; returns the API key owner if no user ID is provided |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Fireflies API key used as a Bearer token. Store as a secret and reference with `{{FIREFLIES_API_KEY}}`. |
+| `limit` | `number` | No | Maximum number of transcripts to return (List Transcripts only). Defaults to 10. |
+| `transcriptId` | `string` | Yes (Get Transcript) | The unique ID of the transcript to retrieve. |
+| `userId` | `string` | No | The user ID to look up (Get User only). Omit to return the authenticated API key owner. |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | The primary result — a user object, a single transcript object, or an array of transcript objects depending on the operation. |
+| `metadata` | `json` | Response metadata. For Get User and Get Transcript, contains `id` (string). For List Transcripts, contains `count` (number of transcripts returned). |
+
+### Transcript object fields (Get Transcript)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Transcript ID |
+| `title` | `string` | Meeting title |
+| `date` | `string` | Meeting date |
+| `duration` | `number` | Meeting duration |
+| `host_email` | `string` | Email of the meeting host |
+| `participants` | `json` | List of participant emails |
+| `transcript_url` | `string` | URL to the full transcript on Fireflies.ai |
+| `summary.overview` | `string` | AI-generated meeting overview |
+| `summary.action_items` | `string` | Extracted action items |
+| `summary.keywords` | `json` | Key topics from the meeting |
+
+### Transcript list item fields (List Transcripts)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Transcript ID |
+| `title` | `string` | Meeting title |
+| `date` | `string` | Meeting date |
+| `duration` | `number` | Meeting duration |
+| `host_email` | `string` | Email of the meeting host |
+| `participants` | `json` | List of participant emails |
+
+### User object fields (Get User)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `user_id` | `string` | Fireflies user ID |
+| `name` | `string` | User's display name |
+| `email` | `string` | User's email address |
+| `is_admin` | `boolean` | Whether the user has admin privileges |
+| `num_transcripts` | `number` | Total number of transcripts owned by this user |
+| `minutes_consumed` | `number` | Total meeting minutes processed |
+
+## Example
+
+```
+[Starter] → [Fireflies: List Transcripts] → [Agent: Summarize meetings]
+```
+
+Set the Fireflies block's API Key to `{{FIREFLIES_API_KEY}}` and Limit to `5`. The block returns `data` — an array of recent transcripts — which the Agent block receives as `{{fireflies.data}}`. The Agent can then generate a weekly digest, extract recurring topics, or flag meetings that need follow-up. To drill into a specific meeting, chain a second Fireflies block using **Get Transcript** with `{{fireflies.data[0].id}}` as the Transcript ID, and surface `{{fireflies_1.data.summary.action_items}}` in a downstream notification.
+
+## Tips
+
+- **API key location:** Generate your Fireflies API key from the Fireflies.ai dashboard under Settings → API. Store it as a workflow secret and reference it with `{{FIREFLIES_API_KEY}}` rather than pasting it directly.
+- **List then fetch:** Use **List Transcripts** to discover IDs, then pass a specific `id` from `{{previousBlock.data}}` into **Get Transcript** to get the full summary, action items, and keywords — the list operation does not include these fields.
+- **Get User without an ID:** Leave `userId` empty in **Get User** to retrieve details about the account that owns the API key. This is useful for verifying the connection or checking `num_transcripts` and `minutes_consumed` at runtime.
+- **Default limit:** **List Transcripts** defaults to 10 results when no limit is set. Set a higher limit if your workflow needs to scan more recent meetings, keeping in mind API rate limits on your Fireflies plan.

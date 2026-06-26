@@ -1,0 +1,92 @@
+---
+title: SimilarWeb Block
+description: Get website traffic and rank data from SimilarWeb
+icon: Box
+---
+
+# SimilarWeb Block
+
+Retrieve total website visits and engagement over time and the global rank of a website through the SimilarWeb API. Authenticate with a SimilarWeb API key to pull traffic analytics and competitive intelligence data into any workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `similarweb` |
+| **Category** | `tools` |
+| **Color** | `#0061FF` |
+
+## When to Use
+
+- Pulling monthly visit trends for a competitor domain to feed into a market research workflow.
+- Benchmarking a website's global rank against others in a category.
+- Enriching a CRM record with traffic data by chaining this block after a lead-lookup block.
+- Scheduling a recurring workflow that logs website traffic metrics to a table.
+- Feeding SimilarWeb data into an Agent block for automated competitive analysis summaries.
+- Triggering alerts when a domain's traffic or rank changes beyond a threshold.
+
+## Configuration
+
+### Operation
+
+Selects which SimilarWeb data point to fetch. This dropdown controls which fields are shown and which tool is called.
+
+| Label | ID |
+|-------|----|
+| Total traffic | `similarweb_total_traffic` |
+| Website rank | `similarweb_website_rank` |
+
+Default: `similarweb_total_traffic`.
+
+Both operations require the **Domain** field.
+
+### Domain
+
+- **Type**: Short text input
+- **Placeholder**: `example.com`
+- **Required**: Yes (for both operations)
+- **Condition**: Shown for both `similarweb_total_traffic` and `similarweb_website_rank`
+
+The domain to analyze, without `https://` (e.g., `google.com`). Can be supplied as a literal or as a reference to another block's output using `{{blockName.field}}`.
+
+### API Key
+
+- **Type**: Short text input (password-masked)
+- **Placeholder**: `Your SimilarWeb API key`
+- **Required**: Yes (for all operations)
+
+Your SimilarWeb API key. Store it as an environment variable and reference it as `{{SIMILARWEB_API_KEY}}` so the key is not hard-coded in the workflow.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform; must be one of `similarweb_total_traffic` or `similarweb_website_rank`
+- `apiKey` (string) — SimilarWeb API key
+- `domain` (string) — Website domain to analyze
+
+**Outputs:**
+
+- `data` (json) — Result object from SimilarWeb; for `similarweb_total_traffic` this contains the monthly visits and engagement payload; for `similarweb_website_rank` this contains the global rank payload
+- `metadata` (json) — Response metadata; includes `domain` (string) — the analyzed domain
+
+## Tools
+
+**SimilarWeb Total Traffic** (`similarweb_total_traffic`) — Calls the SimilarWeb v1 endpoint `GET /website/{domain}/total-traffic-and-engagement/visits` with monthly granularity and returns total visits and engagement data. Requires `apiKey` and `domain`.
+
+**SimilarWeb Website Rank** (`similarweb_website_rank`) — Calls the SimilarWeb v1 endpoint `GET /website/{domain}/global-rank/global-rank` and returns the current global rank of the domain. Requires `apiKey` and `domain`.
+
+## YAML Example
+
+```yaml
+similarweb_1:
+  type: similarweb
+  name: "SimilarWeb"
+  inputs:
+    operation: "similarweb_total_traffic"
+    domain: "{{leadEnrich.domain}}"
+    apiKey: "{{SIMILARWEB_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

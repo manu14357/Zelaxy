@@ -37,8 +37,19 @@ Your OpenAI API key. Required and stored as a password field.
 
 ## Inputs & Outputs
 
-- **Inputs**: `input` (string), `model` (string), `apiKey` (string)
-- **Outputs**: `embeddings` (json), `model` (string), `usage` (json)
+- **Inputs**:
+  - `input` (string) — Text to embed
+  - `model` (string) — Embedding model to use
+  - `apiKey` (string) — OpenAI API key
+
+- **Outputs**:
+  - `embeddings` (json) — Generated embeddings (array of float vectors)
+  - `model` (string) — Model used for generating embeddings
+  - `usage` (json) — Token usage information (`prompt_tokens`, `total_tokens`)
+
+## Tools
+
+- **OpenAI Embeddings** (`openai_embeddings`) — Calls `POST https://api.openai.com/v1/embeddings` with the given text and model. Returns an array of embedding vectors plus token-usage metadata.
 
 ## YAML Example
 

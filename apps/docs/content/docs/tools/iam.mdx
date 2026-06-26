@@ -1,0 +1,111 @@
+---
+title: AWS IAM Tools
+description: List AWS IAM users and roles, and fetch IAM user details
+icon: ShieldCheck
+---
+
+# AWS IAM Tools
+
+Interact with AWS Identity and Access Management (IAM): list users, list roles, and get details for a specific user. Use these tools in a workflow to audit account access, look up an IAM user's ARN/ID, or enumerate roles before making downstream authorization decisions.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `iam` |
+| **Category** | tools |
+| **Auth** | AWS SigV4 (Access Key ID + Secret Access Key) |
+
+IAM is a global AWS service; all requests are signed against the `us-east-1` region regardless of the `awsRegion` value you supply.
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List users | `iam_list_users` | List AWS IAM users in the account |
+| List roles | `iam_list_roles` | List AWS IAM roles in the account |
+| Get user | `iam_get_user` | Get details for an AWS IAM user by name |
+
+All operations issue a `POST` to `https://iam.amazonaws.com/` with a form-encoded `Action` body (the AWS IAM Query API, version `2010-05-08`), authenticated with SigV4 headers derived from your access key credentials.
+
+## Configuration
+
+### `iam_list_users`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g. `us-east-1`). |
+| `awsAccessKeyId` | string | Yes | AWS access key ID. **Secret** — treat as a credential. |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key. **Secret** — treat as a credential. |
+
+### `iam_list_roles`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g. `us-east-1`). |
+| `awsAccessKeyId` | string | Yes | AWS access key ID. **Secret** — treat as a credential. |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key. **Secret** — treat as a credential. |
+
+### `iam_get_user`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g. `us-east-1`). |
+| `awsAccessKeyId` | string | Yes | AWS access key ID. **Secret** — treat as a credential. |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key. **Secret** — treat as a credential. |
+| `userName` | string | Yes | The IAM user name to look up. Can be provided by the user or supplied by the LLM. |
+
+## Outputs
+
+### `iam_list_users`
+
+- `data` (json) — IAM ListUsers result. Contains a `users` array of `{ userName, arn }` objects parsed from the response.
+
+### `iam_list_roles`
+
+- `data` (json) — IAM ListRoles result. Contains a `roles` array of `{ roleName, arn }` objects parsed from the response.
+
+### `iam_get_user`
+
+- `data` (json) — IAM GetUser result with `{ userName, arn, userId }` for the requested user.
+
+## YAML Example
+
+```yaml
+iam_1:
+  type: iam
+  name: "AWS IAM"
+  inputs:
+    operation: "iam_list_users"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To look up a single user with `iam_get_user`, also set `userName`:
+
+```yaml
+iam_2:
+  type: iam
+  name: "AWS IAM"
+  inputs:
+    operation: "iam_get_user"
+    userName: "my-iam-user"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Reference a result downstream with double braces, e.g. `{{iam_1.data}}`.
+
+## Tips
+
+- Auth is AWS SigV4, not an API key. Create an IAM user (or use an existing principal) with read permissions such as `iam:ListUsers`, `iam:ListRoles`, and `iam:GetUser`, then supply its Access Key ID and Secret Access Key. Store both as secrets/environment variables rather than inline.
+- IAM is a global service: requests are always signed against `us-east-1`. The `awsRegion` field is required but does not change the signing region, so `us-east-1` is the safe value.
+- `userName` is only used by `iam_get_user`; it is ignored by the list operations. The list tools take no entity-specific parameters and return every matching user/role found in the response.

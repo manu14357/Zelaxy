@@ -1,0 +1,124 @@
+---
+title: Loops Tools
+description: Manage Loops contacts, trigger event-based email sequences, and send transactional emails.
+icon: Box
+---
+
+# Loops Tools
+
+The Loops tools let a workflow create and update contacts in your Loops audience, fire events that trigger automated email sequences, and send transactional emails from Loops templates. Use them when you want to drive lifecycle/marketing email from inside a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `loops` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Loops API key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Create contact | `loops_create_contact` | Create a new contact in your Loops audience |
+| Update contact | `loops_update_contact` | Update an existing contact in Loops (upserts if not found) |
+| Send event | `loops_send_event` | Send an event to Loops to trigger automated email sequences |
+| Send transactional | `loops_send_transactional` | Send a transactional email using a Loops template |
+
+## Configuration
+
+### `loops_create_contact`
+
+Creates a new contact. Sends `POST https://app.loops.so/api/v1/contacts/create`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Loops API key. **Secret** — provided via the API Key field (`user-only`); do not expose to the LLM. |
+| `email` | string | Yes | The email address for the new contact. |
+| `firstName` | string | No | The contact first name. |
+| `lastName` | string | No | The contact last name. |
+
+### `loops_update_contact`
+
+Updates an existing contact, upserting it if no match is found. Sends `PUT https://app.loops.so/api/v1/contacts/update`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Loops API key. **Secret** (`user-only`). |
+| `email` | string | Yes | The email address of the contact. |
+| `firstName` | string | No | The contact first name. |
+| `lastName` | string | No | The contact last name. |
+
+### `loops_send_event`
+
+Fires a named event for a contact to trigger automated sequences. Sends `POST https://app.loops.so/api/v1/events/send`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Loops API key. **Secret** (`user-only`). |
+| `email` | string | Yes | The email address of the contact. |
+| `eventName` | string | Yes | The name of the event to trigger (e.g. `signed_up`). |
+
+### `loops_send_transactional`
+
+Sends a transactional email from a Loops template. Sends `POST https://app.loops.so/api/v1/transactional`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Loops API key. **Secret** (`user-only`). |
+| `transactionalId` | string | Yes | The ID of the transactional email template to send. |
+| `email` | string | Yes | The email address of the recipient. |
+
+## Outputs
+
+All four operations return the same output shape.
+
+### `loops_create_contact`
+
+- `data` (json) — The Loops API response.
+- `metadata` (json) — Contact result, with:
+  - `success` (boolean) — Whether the contact was created.
+  - `id` (string) — The Loops contact ID.
+
+### `loops_update_contact`
+
+- `data` (json) — The Loops API response.
+- `metadata` (json) — Contact result, with:
+  - `success` (boolean) — Whether the contact was updated.
+  - `id` (string) — The Loops contact ID.
+
+### `loops_send_event`
+
+- `data` (json) — The Loops API response.
+- `metadata` (json) — Event result, with:
+  - `success` (boolean) — Whether the event was sent.
+
+### `loops_send_transactional`
+
+- `data` (json) — The Loops API response.
+- `metadata` (json) — Send result, with:
+  - `success` (boolean) — Whether the email was sent.
+
+## YAML Example
+
+```yaml
+loops_1:
+  type: loops
+  name: "Loops"
+  inputs:
+    operation: "loops_create_contact"
+    email: "jane.doe@example.com"
+    firstName: "Jane"
+    lastName: "Doe"
+    apiKey: "{{LOOPS_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authentication is a Loops API key passed as a Bearer token (`Authorization: Bearer <key>`). Create one in the Loops dashboard under Settings → API and store it as an environment variable, then reference it with `{{LOOPS_API_KEY}}`.
+- `loops_update_contact` upserts: if no contact matches the `email`, Loops creates one — handy when you are not sure the contact already exists.
+- For `loops_send_event`, the `eventName` must match an event your Loops automations are listening for, otherwise nothing is triggered. For `loops_send_transactional`, `transactionalId` is the template ID from the Loops Transactional editor, not the template name.
+- Chain operations by referencing a prior block's output, e.g. `{{loops_1.metadata.id}}` for the created contact ID or `{{loops_1.metadata.success}}` to branch on whether the call succeeded.

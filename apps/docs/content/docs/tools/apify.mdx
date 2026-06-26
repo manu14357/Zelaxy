@@ -1,0 +1,100 @@
+---
+title: Apify
+description: Run web scraping and browser automation actors on Apify
+icon: Globe
+---
+
+# Apify
+
+Apify lets you run web scraping and browser automation actors — pre-built or custom — directly from your workflows. Use it to extract structured data from websites, trigger long-running crawls, and retrieve the resulting datasets.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `apify` |
+| **Category** | Tool — Web Scraping |
+| **Auth** | API Key (`Authorization: Bearer`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Run Actor (Sync)** | `apify_run_actor_sync` | Run an actor and wait for it to finish (max 5 minutes), returning dataset items immediately |
+| **Run Actor (Async)** | `apify_run_actor_async` | Start an actor asynchronously and poll until completion (up to 5 minutes), then fetch dataset items |
+| **Get Run** | `apify_get_run` | Fetch the status and metadata of an existing actor run by its run ID |
+| **Get Dataset** | `apify_get_dataset` | Fetch items from any Apify dataset by dataset ID, with optional pagination |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Apify API token from `console.apify.com/account#/integrations`. Used as `Authorization: Bearer` header and `token` query param. |
+| `actorId` | `string` | Yes (sync/async run) | Actor ID or slug in `username/actor-name` form. Examples: `apify/web-scraper`, `janedoe/my-actor`. |
+| `input` | `string` | No | Actor input as a JSON string. Example: `{"startUrls": [{"url": "https://example.com"}]}`. Parsed and sent as the POST body. |
+| `memory` | `number` | No | Memory in megabytes allocated for the run (128–32768). Passed as `?memory=` query param. |
+| `timeout` | `number` | No | Timeout in seconds for the actor run. Passed as `?timeout=` query param. |
+| `build` | `string` | No | Actor build tag to use. Examples: `latest`, `beta`. Passed as `?build=` query param. |
+| `waitForFinish` | `number` | No (async only) | Initial wait in seconds (0–60) before polling begins. |
+| `itemLimit` | `number` | No (async only) | Maximum dataset items to fetch after the run completes (1–250000, default 100). |
+| `runId` | `string` | Yes (Get Run / Get Dataset) | The run ID to inspect or dataset ID to read from. |
+| `datasetId` | `string` | Yes (Get Dataset) | The dataset ID to fetch items from. |
+| `limit` | `number` | No (Get Dataset) | Maximum number of items to return (default 100). |
+| `offset` | `number` | No (Get Dataset) | Number of items to skip, for pagination. |
+
+## Outputs
+
+### Run Actor (Sync) — `apify_run_actor_sync`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | Whether the actor run succeeded |
+| `runId` | `string` | Always `sync-execution` for sync runs |
+| `status` | `string` | Run status: `SUCCEEDED`, `FAILED`, etc. |
+| `items` | `array` | Dataset items returned by the actor |
+
+### Run Actor (Async) — `apify_run_actor_async`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | Whether the actor run succeeded |
+| `runId` | `string` | Apify run ID |
+| `status` | `string` | Terminal status: `SUCCEEDED`, `FAILED`, `ABORTED`, `TIMED-OUT`, or `TIMEOUT` (poll exhausted) |
+| `datasetId` | `string` | Default dataset ID containing results |
+| `items` | `array` | Dataset items (populated only when status is `SUCCEEDED`) |
+
+### Get Run — `apify_get_run`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Run ID |
+| `actId` | `string` | Actor ID |
+| `status` | `string` | Current run status |
+| `startedAt` | `string` | ISO timestamp when the run started |
+| `finishedAt` | `string` | ISO timestamp when the run finished (optional) |
+| `defaultDatasetId` | `string` | Default dataset ID for this run |
+
+### Get Dataset — `apify_get_dataset`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `items` | `array` | Dataset items |
+| `count` | `number` | Number of items returned in this response |
+| `total` | `number` | Total number of items in the dataset |
+| `offset` | `number` | Offset used for this request |
+| `limit` | `number` | Limit used for this request |
+
+## Example
+
+```
+[Starter] → [Apify: Run Actor (Async)] → [Agent: summarize the results]
+```
+
+Trigger the `apify/web-scraper` actor with `{{APIFY_API_KEY}}` as the API token and a start URL supplied by an upstream block (`{{starter.url}}`). Pass `{"startUrls": [{"url": "{{starter.url}}"}]}` as the JSON input and set `itemLimit` to `50`. Once the actor finishes polling, the `items` output flows into an Agent block that summarizes the scraped content, referencing it as `{{apify.items}}`.
+
+## Tips
+
+- **Sync vs Async** — Use `Run Actor (Sync)` for quick actors that finish in under 5 minutes. For heavy crawls or scrapes that may run longer, use `Run Actor (Async)`, which polls every 5 seconds for up to 5 minutes.
+- **API token** — Get your token from `console.apify.com/account#/integrations`. Store it as an environment variable and reference it as `{{APIFY_API_KEY}}` rather than pasting it directly into the block.
+- **Actor ID format** — Always use the `username/actor-name` slug (e.g. `apify/web-scraper`) or the actor's unique ID. Misformatted IDs will return a 404 from the Apify API.
+- **Paginating large datasets** — If an actor produces more items than your `itemLimit`, use `Get Dataset` with `offset` and `limit` to page through results using the `datasetId` from a completed run.

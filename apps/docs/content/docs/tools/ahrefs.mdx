@@ -1,0 +1,112 @@
+---
+title: Ahrefs
+description: Retrieve SEO metrics, backlinks, and keyword rankings from Ahrefs Site Explorer
+icon: Search
+---
+
+# Ahrefs
+
+Pull domain authority scores, backlink profiles, organic keyword rankings, and top-traffic pages directly from Ahrefs Site Explorer. Use this integration when you need programmatic SEO data inside an automated workflow — competitor analysis, link-building research, content audits, and rank-tracking pipelines.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `ahrefs` |
+| **Category** | Tool — SEO / Web Analytics |
+| **Auth** | API Key (Bearer token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Domain Rating** | `ahrefs_domain_rating` | Get the Domain Rating (0–100) and global Ahrefs Rank for a target domain |
+| **Backlinks** | `ahrefs_backlinks` | List backlinks pointing to a target domain or URL with anchor text, DR, and dofollow status |
+| **Organic Keywords** | `ahrefs_organic_keywords` | List keywords a domain or URL ranks for in Google, including volume, position, and difficulty |
+| **Top Pages** | `ahrefs_top_pages` | List the highest-traffic pages on a domain sorted by estimated organic traffic |
+| **Referring Domains** | `ahrefs_referring_domains` | List unique domains that link to a target with their DR and backlink counts |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Ahrefs API key. Passed as a `Bearer` token. Store as `{{AHREFS_API_KEY}}`. |
+| `target` | `string` | Yes | Domain or URL to analyze. Examples: `example.com` or `https://example.com/page`. |
+| `mode` | `string` | No | Scope of analysis: `domain` (full domain), `subdomains` (all subdomains), `prefix` (URL prefix), `exact` (exact URL). Defaults to `domain`. Not used by Domain Rating. |
+| `date` | `string` | No | Historical snapshot date in `YYYY-MM-DD` format. Defaults to today. |
+| `limit` | `number` | No | Maximum number of rows to return. Default: `100`. Not used by Domain Rating. |
+| `offset` | `number` | No | Number of rows to skip for pagination. Not used by Domain Rating. |
+| `country` | `string` | No | Two-letter country code for search-locale data (e.g. `us`, `gb`, `de`). Default: `us`. Used by Organic Keywords and Top Pages only. |
+| `select` | `string` | No | Comma-separated list of fields to return. Default: `url,traffic,keywords,top_keyword,value`. Used by Top Pages only. |
+
+## Outputs
+
+### Domain Rating (`ahrefs_domain_rating`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `domainRating` | `number` | Domain Rating score on a scale of 0–100 |
+| `ahrefsRank` | `number` | Global Ahrefs Rank based on backlink profile strength (lower = stronger) |
+
+### Backlinks (`ahrefs_backlinks`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `backlinks` | `array` | List of backlink objects (see sub-fields below) |
+| `backlinks[].urlFrom` | `string` | URL of the page containing the backlink |
+| `backlinks[].urlTo` | `string` | URL being linked to |
+| `backlinks[].anchor` | `string` | Anchor text of the link |
+| `backlinks[].domainRatingSource` | `number` | Domain Rating of the linking domain |
+| `backlinks[].isDofollow` | `boolean` | Whether the link passes link equity (dofollow) |
+| `backlinks[].firstSeen` | `string` | ISO date when the backlink was first discovered |
+| `backlinks[].lastVisited` | `string` | ISO date when the backlink was last crawled |
+
+### Organic Keywords (`ahrefs_organic_keywords`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `keywords` | `array` | List of keyword objects (see sub-fields below) |
+| `keywords[].keyword` | `string` | The keyword text |
+| `keywords[].volume` | `number` | Estimated monthly search volume |
+| `keywords[].position` | `number` | Current ranking position in Google |
+| `keywords[].url` | `string` | The page that ranks for the keyword |
+| `keywords[].traffic` | `number` | Estimated monthly organic traffic from this keyword |
+| `keywords[].keywordDifficulty` | `number` | Keyword difficulty score (0–100) |
+
+### Top Pages (`ahrefs_top_pages`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pages` | `array` | List of top-page objects (see sub-fields below) |
+| `pages[].url` | `string` | Page URL |
+| `pages[].traffic` | `number` | Estimated monthly organic traffic |
+| `pages[].keywords` | `number` | Number of keywords the page ranks for |
+| `pages[].topKeyword` | `string` | Primary keyword driving traffic to this page |
+| `pages[].value` | `number` | Estimated traffic value in USD |
+
+### Referring Domains (`ahrefs_referring_domains`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `referringDomains` | `array` | List of referring domain objects (see sub-fields below) |
+| `referringDomains[].domain` | `string` | The referring domain |
+| `referringDomains[].domainRating` | `number` | Domain Rating of the referring domain |
+| `referringDomains[].backlinks` | `number` | Total backlinks from this domain |
+| `referringDomains[].dofollowBacklinks` | `number` | Number of dofollow backlinks from this domain |
+| `referringDomains[].firstSeen` | `string` | ISO date when this domain was first seen linking |
+| `referringDomains[].lastVisited` | `string` | ISO date when this domain was last checked |
+
+## Example
+
+```
+[Starter] → [Ahrefs: Domain Rating] → [Ahrefs: Referring Domains] → [Agent: Analyze link-building opportunities]
+```
+
+Set `{{starter.domain}}` as the `target` for both blocks, and pass your key as `{{AHREFS_API_KEY}}`. The Domain Rating block returns a DR score and global rank for a quick authority snapshot; the Referring Domains block then retrieves every unique linking domain with its own DR. Feed both outputs to an Agent block to identify high-DR sites worth pursuing for outreach, or flag newly discovered low-DR links for disavowal review.
+
+## Tips
+
+- **Domain Rating is the fastest check** — use it as a qualifying step before running the heavier Backlinks or Referring Domains calls to avoid burning API credits on low-authority targets.
+- **`mode` controls scope** — `domain` covers all pages, `exact` targets a single URL. For content-level analysis (which blog post earns the most links?) use `exact` or `prefix`; for site-wide authority checks use `domain`.
+- **Paginate large datasets** with `limit` and `offset` inside a Loop block. Ahrefs returns up to 1,000 rows per call; use `offset` increments equal to `limit` until the returned array length is less than `limit`.
+- **Historical snapshots** — pass a `date` in `YYYY-MM-DD` format to compare link profiles or keyword rankings over time. Omit `date` to always fetch the most current data.

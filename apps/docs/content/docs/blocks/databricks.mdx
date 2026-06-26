@@ -18,43 +18,81 @@ The Databricks block integrates the Databricks platform into your workflows. Use
 
 ## When to Use
 
-- Run ad-hoc or templated SQL queries against a Databricks SQL warehouse and pull the results into a workflow.
+- Run ad-hoc or templated SQL queries against a Databricks SQL warehouse and pull results into downstream blocks.
 - Trigger a Databricks job run as part of a larger pipeline.
 - Poll the status of a job run to gate downstream steps until processing completes.
 - Enumerate available clusters before dispatching compute-heavy work.
 - List jobs to discover or validate the job ID you want to run.
-- List catalogs to explore the available Unity Catalog data scope.
+- List Unity Catalog catalogs to explore the available data scope.
 
 ## Configuration
 
 ### Operation
 
-Dropdown that selects what the block does. Options: Execute SQL (`databricks_execute_sql`), List Clusters (`databricks_list_clusters`), List Jobs (`databricks_list_jobs`), Run Job (`databricks_run_job`), Get Run Status (`databricks_get_run_status`), and List Catalogs (`databricks_list_catalogs`). Required.
+Dropdown (required) that selects what the block does. Every other field below becomes relevant based on this selection.
 
-### Workspace URL
+| Label | ID |
+|-------|-----|
+| Execute SQL | `databricks_execute_sql` |
+| List Clusters | `databricks_list_clusters` |
+| List Jobs | `databricks_list_jobs` |
+| Run Job | `databricks_run_job` |
+| Get Run Status | `databricks_get_run_status` |
+| List Catalogs | `databricks_list_catalogs` |
 
-The Databricks workspace host (e.g. `https://your-workspace.azuredatabricks.net`). Required.
+### Workspace URL (`host`)
 
-### Access Token
+The Databricks workspace host (e.g. `https://your-workspace.azuredatabricks.net`). Required for all operations.
 
-A Databricks personal access token (`dapi...`), stored as a password field. Required.
+### Access Token (`token`)
 
-### SQL Statement
+A Databricks personal access token (`dapi...`), stored as a password field. Required for all operations. Use an environment variable reference such as `{{DATABRICKS_TOKEN}}` to avoid hard-coding credentials.
 
-The SQL to run, shown only for the Execute SQL operation.
+### SQL Statement (`statement`)
 
-### Warehouse ID
+Shown only when **Operation** is `databricks_execute_sql`. The SQL statement to run against the warehouse.
 
-The SQL warehouse to execute against, shown only for the Execute SQL operation.
+### Warehouse ID (`warehouseId`)
 
-### Job ID
+Shown only when **Operation** is `databricks_execute_sql`. The ID of the SQL warehouse to execute against.
 
-The target job identifier, shown for the Run Job and Get Run Status operations.
+### Job ID (`jobId`)
+
+Shown when **Operation** is `databricks_run_job` or `databricks_get_run_status`. Identifies the job to run or the run ID to poll, respectively.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `host` (string), `token` (string), `statement` (string), `warehouseId` (string), `jobId` (string)
-- **Outputs**: `rows` (json), `clusters` (json), `jobs` (json), `runId` (string)
+**Inputs** (block-level `inputs` map — use these ids in the `inputs:` section of the YAML):
+
+- `operation` (string) — Operation to perform
+- `host` (string) — Workspace URL
+- `token` (string) — Access token
+- `statement` (string) — SQL statement (Execute SQL only)
+- `warehouseId` (string) — Warehouse ID (Execute SQL only)
+- `jobId` (string) — Job ID or Run ID (Run Job / Get Run Status)
+
+**Outputs** (block-level outputs available as `{{blockId.field}}` in downstream blocks):
+
+- `rows` (json) — Query results (Execute SQL)
+- `clusters` (json) — Cluster list (List Clusters)
+- `jobs` (json) — Job list (List Jobs)
+- `runId` (string) — Run ID (Run Job)
+
+Each tool also surfaces additional per-tool outputs described in the Tools section below.
+
+## Tools
+
+**Databricks Execute SQL** (`databricks_execute_sql`) — Executes a SQL statement against a Databricks SQL warehouse and returns the results inline. Key params: `host`, `token`, `warehouseId`, `statement`. Tool outputs: `statementId` (string), `status` (string — SUCCEEDED / FAILED / etc.), `columns` (json — column schema), `rows` (json — 2-D array of result rows), `totalRows` (number).
+
+**Databricks List Clusters** (`databricks_list_clusters`) — Lists all clusters in the workspace. Key params: `host`, `token`. Tool outputs: `clusters` (json — array of objects with `clusterId`, `name`, `state`, `source`, `sparkVersion`, `nodeTypeId`, `numWorkers`).
+
+**Databricks List Jobs** (`databricks_list_jobs`) — Lists jobs in the workspace (default limit 20). Key params: `host`, `token`. Tool outputs: `jobs` (json — array of objects with `jobId`, `name`), `hasMore` (boolean — whether additional jobs exist beyond the limit).
+
+**Databricks Run Job** (`databricks_run_job`) — Triggers a one-time run of a Databricks job by job ID. Key params: `host`, `token`, `jobId`. Tool outputs: `runId` (number), `numberInJob` (number — run count within the job).
+
+**Databricks Get Run Status** (`databricks_get_run_status`) — Retrieves the status and details of a job run by its run ID (pass the run ID in the `jobId` field). Key params: `host`, `token`, `jobId`. Tool outputs: `runId` (number), `jobId` (number), `runName` (string), `lifeCycleState` (string), `resultState` (string — optional), `stateMessage` (string), `startTime` (number — epoch ms), `endTime` (number — epoch ms), `runPageUrl` (string).
+
+**Databricks List Catalogs** (`databricks_list_catalogs`) — Lists Unity Catalog catalogs available in the workspace. Key params: `host`, `token`. Tool outputs: `catalogs` (json — array of objects with `name`, `comment`, `catalogType`).
 
 ## YAML Example
 
@@ -65,7 +103,7 @@ databricks_1:
   inputs:
     operation: "databricks_execute_sql"
     host: "https://your-workspace.azuredatabricks.net"
-    token: "{{credentials.databricks_token}}"
+    token: "{{DATABRICKS_TOKEN}}"
     statement: "SELECT * FROM catalog.schema.table LIMIT 100"
     warehouseId: "abc123xyz"
   connections:

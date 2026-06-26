@@ -1,0 +1,93 @@
+---
+title: Google Books Tools
+description: Search the Google Books catalog and retrieve detailed book volume information
+icon: Box
+---
+
+# Google Books Tools
+
+Search the Google Books catalog by keyword, title, author, ISBN, and more, or fetch detailed metadata for a specific volume by its ID. Use these tools in workflows that need to look up book information, enrich reading lists, or power book-recommendation agents.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-books` |
+| **Category** | `tools` |
+| **Auth** | API Key (`apiKey` parameter, passed as a query string to the Google Books API) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Search Volumes | `google_books_search_volumes` | Search for books using the Google Books API |
+| Get Volume | `google_books_get_volume` | Get detailed information about a specific book volume |
+
+## Configuration
+
+### google_books_search_volumes
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Google Books API key. Visibility: user-only (never sent to the LLM). |
+| `q` | `string` | Yes | Search query. Supports keyword prefixes: `intitle:`, `inauthor:`, `inpublisher:`, `subject:`, `isbn:`. Example: `intitle:flowers inauthor:keyes`. |
+| `maxResults` | `number` | No | Maximum number of volumes to return. Valid range: 1–40. Defaults to `10`. |
+
+### google_books_get_volume
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Google Books API key. Visibility: user-only (never sent to the LLM). |
+| `volumeId` | `string` | Yes | The unique Google Books volume ID to retrieve. Example: `zyTCAlFPjgYC`. |
+
+## Outputs
+
+### google_books_search_volumes
+
+- `data` (json) — Array of matching volume objects returned by the Google Books API. Each item follows the [Google Books Volume resource](https://developers.google.com/books/docs/v1/reference/volumes) schema (includes `id`, `volumeInfo`, `saleInfo`, `accessInfo`, etc.).
+- `metadata` (json) — List metadata.
+  - `metadata.totalItems` (number) — Total number of volumes that matched the query across all pages.
+  - `metadata.count` (number) — Number of volumes actually returned in this response (capped by `maxResults`).
+
+### google_books_get_volume
+
+- `data` (json) — The full volume object for the requested volume ID, following the Google Books Volume resource schema.
+- `metadata` (json) — Volume identifiers.
+  - `metadata.id` (string) — The volume ID of the retrieved book.
+
+## YAML Example
+
+```yaml
+google_books_1:
+  type: google_books
+  name: "Google Books"
+  inputs:
+    operation: "google_books_search_volumes"
+    q: "intitle:dune inauthor:herbert"
+    maxResults: 5
+    apiKey: "{{GOOGLE_BOOKS_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To retrieve a specific volume by ID instead:
+
+```yaml
+google_books_2:
+  type: google_books
+  name: "Google Books"
+  inputs:
+    operation: "google_books_get_volume"
+    volumeId: "{{google_books_1.data[0].id}}"
+    apiKey: "{{GOOGLE_BOOKS_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Get your API key** — Enable the Books API in the [Google Cloud Console](https://console.cloud.google.com/), then create an API key under *APIs & Services → Credentials*. The key does not require OAuth; a simple unrestricted (or HTTP-referrer-restricted) API key is sufficient for read-only book lookups.
+- **Use keyword prefixes for precision** — The `q` parameter supports structured keywords (`intitle:`, `inauthor:`, `isbn:`, `subject:`). Combine them for narrow results, e.g. `isbn:9780345339706` to fetch a book by its exact ISBN.
+- **Chain Search → Get Volume** — `google_books_search_volumes` returns volume IDs in `data[N].id`. Pass one of those IDs into a subsequent `google_books_get_volume` block via `{{blockName.data[0].id}}` to retrieve the full metadata (descriptions, categories, page count, preview links, etc.) for the top result.

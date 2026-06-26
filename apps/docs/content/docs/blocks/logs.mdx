@@ -1,7 +1,7 @@
 ---
 title: Logs Block
 description: Query workflow execution logs
-icon: Box
+icon: Library
 ---
 
 # Logs Block
@@ -29,44 +29,140 @@ The Logs block lets you search and inspect workflow execution logs from inside a
 
 ### Operation
 
-Choose what the block does: `Query Logs` (search), `Get Log by ID` (single entry), or `Get Execution Details` (full execution with per-block state). Defaults to Query Logs.
+Selects what the block does. Defaults to `query`.
+
+| Label | ID |
+|-------|----|
+| Query Logs | `query` |
+| Get Log by ID | `get_log` |
+| Get Execution Details | `get_execution` |
 
 ### Workflow IDs
 
-Comma-separated workflow IDs to scope a query to specific workflows.
+_Visible when operation is `query`._
+
+Comma-separated workflow IDs to scope the query to specific workflows. Leave blank to search across all workflows in the workspace.
 
 ### Execution ID
 
-When querying, restrict results to a single execution ID. (For full details, use the Get Execution Details operation instead.)
+_Visible when operation is `query`._
+
+Restrict query results to a single execution ID. To load full per-block state for an execution, use the `get_execution` operation instead.
 
 ### Level
 
-Filter query results by status: All, Info, Error, Running, or Pending. Defaults to All.
+_Visible when operation is `query`._ Defaults to `all`.
+
+Filter query results by execution status.
+
+| Label | ID |
+|-------|----|
+| All | `all` |
+| Info | `info` |
+| Error | `error` |
+| Running | `running` |
+| Pending | `pending` |
 
 ### Triggers
 
-Filter by trigger type, e.g. `api,webhook,schedule,manual,chat`.
+_Visible when operation is `query`._
+
+Comma-separated trigger type filter, e.g. `api,webhook,schedule,manual,chat`.
 
 ### Limit
 
-Maximum number of results to return (default 100, max 200).
+_Visible when operation is `query`._
 
-### Advanced Query Filters
+Maximum number of results to return. Default `100`, max `200`.
 
-Start Date and End Date (ISO 8601), free-text Search, Sort By (date, duration, cost, status), Sort Order (descending/ascending), and a pagination Cursor.
+### Start Date
+
+_Visible when operation is `query`. Advanced field._
+
+ISO 8601 timestamp. Only logs at or after this time are returned.
+
+### End Date
+
+_Visible when operation is `query`. Advanced field._
+
+ISO 8601 timestamp. Only logs at or before this time are returned.
+
+### Search
+
+_Visible when operation is `query`. Advanced field._
+
+Free-text search across log fields.
+
+### Sort By
+
+_Visible when operation is `query`. Advanced field._ Defaults to `date`.
+
+| Label | ID |
+|-------|----|
+| Date | `date` |
+| Duration | `duration` |
+| Cost | `cost` |
+| Status | `status` |
+
+### Sort Order
+
+_Visible when operation is `query`. Advanced field._ Defaults to `desc`.
+
+| Label | ID |
+|-------|----|
+| Descending | `desc` |
+| Ascending | `asc` |
+
+### Cursor
+
+_Visible when operation is `query`. Advanced field._
+
+Opaque pagination cursor returned by a previous query response (`nextCursor`). Pass this value to retrieve the next page of results.
 
 ### Log ID
 
-Required for Get Log by ID — the id of the single log entry to fetch.
+_Visible when operation is `get_log`. Required._
+
+The id of the single log entry to fetch.
 
 ### Execution ID (lookup)
 
-Required for Get Execution Details — the execution id whose full details and per-block state snapshot to load.
+_Visible when operation is `get_execution`. Required._
+
+The execution id whose full details and per-block state snapshot to load.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `workflowIds` (string), `executionId` (string), `level` (string), `triggers` (string), `limit` (number), `startDate` (string), `endDate` (string), `search` (string), `sortBy` (string), `sortOrder` (string), `cursor` (string), `logId` (string), `executionIdLookup` (string)
-- **Outputs**: `logs` (json), `total` (number), `nextCursor` (string), `log` (json), `execution` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`query`, `get_log`, or `get_execution`)
+  - `workflowIds` (string) — Comma-separated workflow IDs
+  - `executionId` (string) — Filter by execution ID (query operation)
+  - `level` (string) — Log level filter (`all`, `info`, `error`, `running`, `pending`)
+  - `triggers` (string) — Trigger type filter
+  - `limit` (number) — Max results (default 100, max 200)
+  - `startDate` (string) — Start date filter (ISO 8601)
+  - `endDate` (string) — End date filter (ISO 8601)
+  - `search` (string) — Free-text search
+  - `sortBy` (string) — Sort field (`date`, `duration`, `cost`, `status`)
+  - `sortOrder` (string) — Sort direction (`asc` or `desc`)
+  - `cursor` (string) — Pagination cursor from a previous response
+  - `logId` (string) — Log entry ID (get_log operation)
+  - `executionIdLookup` (string) — Execution ID to look up (get_execution operation)
+
+- **Outputs**:
+  - `logs` (json) — Log entries returned by a query
+  - `total` (number) — Total matching logs
+  - `nextCursor` (string) — Next pagination cursor; null when no more results
+  - `log` (json) — Single log entry (get_log operation)
+  - `execution` (json) — Execution details (get_execution operation)
+
+## Tools
+
+**Query Logs** (`logs_query`) — Queries workflow execution logs in the current workspace with filters. Accepts `workflowIds`, `executionId`, `level`, `triggers`, `limit`, `cursor`, `sortBy`, `sortOrder`, `startDate`, `endDate`, and `search`. Returns an array of log entries and an optional `nextCursor` for pagination.
+
+**Get Log by ID** (`logs_get`) — Fetches a single workflow execution log entry by its log ID. Requires the `id` param (mapped from the `logId` sub-block). Returns the `log` object.
+
+**Get Execution Details** (`logs_get_execution`) — Fetches full execution details for a workflow run, including the per-block state snapshot. Requires the `executionId` param (mapped from the `executionIdLookup` sub-block). Returns `executionId`, `workflowId`, `workflowState` (per-block state snapshot), and `executionMetadata` (trigger, timestamps, `totalDurationMs`, and cost).
 
 ## YAML Example
 
@@ -78,7 +174,8 @@ logs_1:
     operation: "query"
     level: "error"
     triggers: "api,schedule"
-    limit: 100
+    limit: 50
+    startDate: "{{trigger.startDate}}"
   connections:
     outgoing:
       - target: next-block-id

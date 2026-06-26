@@ -1,0 +1,146 @@
+---
+title: Trello Tools
+description: Create and manage Trello boards and cards through the Trello REST API.
+icon: Trello
+---
+
+# Trello Tools
+
+The Trello provider lets a workflow create cards, list cards, get and create boards, and move cards across lists using the Trello REST API. Use these tools when you want a workflow to read from or write to a Trello workspace — for example, opening a card from an incoming request, triaging items into the right list, or spinning up a fresh board.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `trello` |
+| **Category** | tools |
+| **Auth** | API Key (Trello `key` + `token` passed as query parameters) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Create card | `trello_create_card` | Create a new card in a Trello list |
+| List cards | `trello_list_cards` | List cards on a Trello board |
+| Get board | `trello_get_board` | Get a Trello board by ID |
+| Create board | `trello_create_board` | Create a new Trello board |
+| Move card | `trello_move_card` | Move a Trello card to a different list |
+
+## Configuration
+
+All operations authenticate the same way: a Trello **API key** (`apiKey`) and **API token** (`token`), both required and both secrets. They are appended to the request URL as the `key` and `token` query parameters.
+
+### trello_create_card
+
+Creates a new card in a Trello list.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Trello API key. **Secret** — visibility `user-only`. |
+| `token` | string | Yes | Trello API token. **Secret** — visibility `user-only`. |
+| `idList` | string | Yes | ID of the list to add the card to. |
+| `name` | string | Yes | Name/title of the card. |
+| `desc` | string | No | Description of the card. |
+
+### trello_list_cards
+
+Lists cards on a Trello board.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Trello API key. **Secret** — visibility `user-only`. |
+| `token` | string | Yes | Trello API token. **Secret** — visibility `user-only`. |
+| `boardId` | string | Yes | ID of the board to list cards from. |
+
+### trello_get_board
+
+Gets a Trello board by ID.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Trello API key. **Secret** — visibility `user-only`. |
+| `token` | string | Yes | Trello API token. **Secret** — visibility `user-only`. |
+| `boardId` | string | Yes | ID of the board to retrieve. |
+
+### trello_create_board
+
+Creates a new Trello board.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Trello API key. **Secret** — visibility `user-only`. |
+| `token` | string | Yes | Trello API token. **Secret** — visibility `user-only`. |
+| `name` | string | Yes | Name of the new board. |
+| `desc` | string | No | Description of the board. |
+
+### trello_move_card
+
+Moves a Trello card to a different list.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Trello API key. **Secret** — visibility `user-only`. |
+| `token` | string | Yes | Trello API token. **Secret** — visibility `user-only`. |
+| `cardId` | string | Yes | ID of the card to move. |
+| `idList` | string | Yes | ID of the destination list. |
+
+## Outputs
+
+### trello_create_card
+
+- `data` (json) — The created Trello card object.
+- `metadata` (json) — Card identifiers, containing:
+  - `id` (string) — Card ID.
+  - `url` (string) — Full card URL.
+
+### trello_list_cards
+
+- `data` (json) — Array of Trello card objects.
+- `metadata` (json) — List metadata, containing:
+  - `count` (number) — Number of cards returned.
+
+### trello_get_board
+
+- `data` (json) — The Trello board object.
+- `metadata` (json) — Board identifiers, containing:
+  - `id` (string) — Board ID.
+  - `url` (string) — Full board URL.
+
+### trello_create_board
+
+- `data` (json) — The created Trello board object.
+- `metadata` (json) — Board identifiers, containing:
+  - `id` (string) — Board ID.
+  - `url` (string) — Full board URL.
+
+### trello_move_card
+
+- `data` (json) — The updated Trello card object.
+- `metadata` (json) — Card identifiers, containing:
+  - `id` (string) — Card ID.
+  - `url` (string) — Full card URL.
+
+## YAML Example
+
+```yaml
+trello_1:
+  type: trello
+  name: "Trello"
+  inputs:
+    operation: "trello_create_card"
+    idList: "5abbe4b7ddc1b351ef961414"
+    name: "Follow up with customer"
+    desc: "Created automatically from the incoming request"
+    apiKey: "{{TRELLO_API_KEY}}"
+    token: "{{TRELLO_API_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** Generate an API key and token from the Trello developer portal (https://trello.com/app-key). Both `apiKey` and `token` are required on every operation and are sent as URL query parameters (`key` and `token`); store them as secrets and reference them with `{{TRELLO_API_KEY}}` / `{{TRELLO_API_TOKEN}}`.
+- **Chaining IDs:** `trello_create_card`, `trello_create_board`, `trello_get_board`, and `trello_move_card` all return `metadata.id`. Pass it downstream with `{{trello_1.metadata.id}}` — for example, create a board, then feed its list ID into a later create-card step.
+- **List vs board IDs:** Card creation and moves use a **list** ID (`idList`), while `trello_list_cards` and `trello_get_board` use a **board** ID (`boardId`). Mixing them up is the most common error. Use `trello_list_cards` to discover the cards (and their list IDs) on a board.
+- **Counting results:** `trello_list_cards` returns an array in `data` plus `metadata.count`, so you can branch on whether any cards were found with `{{trello_1.metadata.count}}`.

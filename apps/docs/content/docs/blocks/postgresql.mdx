@@ -73,8 +73,28 @@ JSON object defining the WHERE conditions. Shown for `update` and `delete` actio
 
 ## Inputs & Outputs
 
-- **Inputs**: `host` (string), `port` (number), `database` (string), `username` (string), `password` (string), `ssl` (boolean), `action` (string), `query` (string), `table` (string), `data` (json), `conditions` (json)
-- **Outputs**: `data` (json), `affectedRows` (number), `metadata` (json), `error` (string), `errorDetails` (json)
+- **Inputs**:
+  - `host` (string) — PostgreSQL hostname or IP address
+  - `port` (number) — PostgreSQL port (default: 5432)
+  - `database` (string) — Target database name
+  - `username` (string) — Database username
+  - `password` (string) — Database password
+  - `ssl` (boolean) — Enable SSL/TLS connection
+  - `action` (string) — Operation to perform: `execute`, `insert`, `update`, or `delete`
+  - `query` (string) — SQL query to execute (used with `execute` action)
+  - `table` (string) — Table name for `insert`, `update`, and `delete` actions
+  - `data` (json) — Data object or array of objects for `insert` and `update` actions
+  - `conditions` (json) — WHERE conditions for `update` and `delete` actions
+- **Outputs**:
+  - `data` (json) — Query results returned by SELECT operations
+  - `affectedRows` (number) — Number of rows affected by INSERT, UPDATE, or DELETE operations
+  - `metadata` (json) — Query execution metadata including timing and row counts
+  - `error` (string) — Error message if the operation fails
+  - `errorDetails` (json) — Detailed error information including error type and execution time
+
+## Tools
+
+**PostgreSQL** (`postgresql_database`) — Executes SQL queries and manages data in PostgreSQL databases. Supports raw query execution, parameterized inserts, condition-based updates and deletes, and connection pooling with optional SSL. Calls the `/api/tools/postgresql` endpoint internally.
 
 ## YAML Example
 

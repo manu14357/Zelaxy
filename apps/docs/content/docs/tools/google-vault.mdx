@@ -1,0 +1,120 @@
+---
+title: Google Vault Tools
+description: Manage matters and exports in Google Vault for eDiscovery and legal hold
+icon: Vault
+---
+
+# Google Vault Tools
+
+Google Vault is Google Workspace's eDiscovery and information-governance service. These tools let a workflow list and create matters, fetch a specific matter, and list a matter's exports through the Google Vault REST API — useful for automating legal hold, retention, and export tracking flows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-vault` |
+| **Category** | tools |
+| **Auth** | OAuth (Google access token, sent as a Bearer token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List Matters | `google_vault_list_matters` | List matters in Google Vault |
+| Get Matter | `google_vault_get_matter` | Get a specific matter from Google Vault |
+| Create Matter | `google_vault_create_matter` | Create a new matter in Google Vault |
+| List Exports | `google_vault_list_exports` | List exports for a matter in Google Vault |
+
+## Configuration
+
+All operations authenticate with a Google OAuth **access token** passed as the `accessToken` parameter. It is a secret (marked `password`/`user-only`) and is sent in the request as `Authorization: Bearer <accessToken>`. The token must be authorized for the Google Vault API scope.
+
+### google_vault_list_matters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for the Google Vault API. **Secret** — supplied by the user (`user-only` visibility). |
+| `pageSize` | number | No | Number of matters to return per page. |
+
+### google_vault_get_matter
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for the Google Vault API. **Secret** — supplied by the user (`user-only` visibility). |
+| `matterId` | string | Yes | The matter ID to fetch. |
+
+### google_vault_create_matter
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for the Google Vault API. **Secret** — supplied by the user (`user-only` visibility). |
+| `name` | string | Yes | Name for the new matter. |
+| `description` | string | No | Optional description for the matter. |
+
+### google_vault_list_exports
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | OAuth access token for the Google Vault API. **Secret** — supplied by the user (`user-only` visibility). |
+| `matterId` | string | Yes | The matter ID to list exports for. |
+| `pageSize` | number | No | Number of exports to return per page. |
+
+## Outputs
+
+### google_vault_list_matters
+
+- `data` (json) — Array of matter objects.
+- `metadata` (json) — List metadata. Contains `nextPageToken` (string) — token for the next page of results.
+
+### google_vault_get_matter
+
+- `data` (json) — The matter object.
+- `metadata` (json) — Response metadata.
+
+### google_vault_create_matter
+
+- `data` (json) — The created matter object.
+- `metadata` (json) — Response metadata.
+
+### google_vault_list_exports
+
+- `data` (json) — Array of export objects.
+- `metadata` (json) — List metadata. Contains `nextPageToken` (string) — token for the next page of results.
+
+## YAML Example
+
+```yaml
+google_vault_1:
+  type: google_vault
+  name: "Google Vault"
+  inputs:
+    operation: "google_vault_list_matters"
+    pageSize: 50
+    accessToken: "{{GOOGLE_VAULT_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+A create-matter example:
+
+```yaml
+google_vault_create_1:
+  type: google_vault
+  name: "Google Vault"
+  inputs:
+    operation: "google_vault_create_matter"
+    name: "Q3 Litigation Hold"
+    description: "Matter for the Q3 legal review"
+    accessToken: "{{GOOGLE_VAULT_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** Provide a Google OAuth 2.0 access token authorized for the Google Vault API (`https://www.googleapis.com/auth/ediscovery`). The token is sent as a Bearer token; supply it via an environment variable reference like `{{GOOGLE_VAULT_ACCESS_TOKEN}}` rather than hardcoding it.
+- **Matter IDs:** `google_vault_get_matter` and `google_vault_list_exports` both require a `matterId`. Run `google_vault_list_matters` first and read the IDs from its `data` array — reference them downstream with `{{google_vault_1.data}}`.
+- **Pagination:** List operations return a `metadata.nextPageToken`; use `pageSize` to control page length and follow the token (e.g. `{{google_vault_1.metadata}}`) to page through large result sets.
+- **Order of operations:** Vault requires a matter to exist before you can export from it — create or look up the matter first, then list its exports.

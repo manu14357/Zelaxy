@@ -13,39 +13,90 @@ The CloudFormation block integrates AWS CloudFormation into your workflows. Use 
 | Property | Value |
 |----------|-------|
 | **Type** | `cloudformation` |
-| **Category** | Tools |
+| **Category** | tools |
 | **Color** | `#B0084D` |
 
 ## When to Use
 
-- Fetch the status and details of one or more CloudFormation stacks
-- List the resources managed by a given stack
-- Pull recent stack events to audit deployments or troubleshoot failures
-- Detect configuration drift between a stack and its actual deployed resources
-- Retrieve the deployed template body for a stack
-- Validate a CloudFormation template before deploying it
+- Fetch the status and details of one or more CloudFormation stacks (or all stacks in a region)
+- List every resource managed by a specific stack
+- Pull the event history for a stack to audit deployments or troubleshoot failures
+- Detect configuration drift between a stack's expected and actual deployed state
+- Retrieve the live template body for a deployed stack
+- Validate a CloudFormation template for syntax and structural correctness before deploying
 
 ## Configuration
 
 ### Operation
-Dropdown selecting which CloudFormation action to perform: Describe Stacks, List Stack Resources, Describe Stack Events, Detect Stack Drift, Get Template, or Validate Template.
+
+Dropdown (required). Selects the CloudFormation action to perform. Every value here becomes the tool that runs at execution time.
+
+| Label | id |
+|-------|----|
+| Describe Stacks | `cloudformation_describe_stacks` |
+| List Stack Resources | `cloudformation_list_stack_resources` |
+| Describe Stack Events | `cloudformation_describe_stack_events` |
+| Detect Stack Drift | `cloudformation_detect_stack_drift` |
+| Get Template | `cloudformation_get_template` |
+| Validate Template | `cloudformation_validate_template` |
 
 ### AWS Region
-The AWS region the stacks live in (for example `us-east-1`). Required.
 
-### Access Key ID / Secret Access Key
-AWS credentials used to authenticate the request. Both are required and stored as secrets.
+Short text input (required). The AWS region where the target stacks live, for example `us-east-1`.
+
+### Access Key ID
+
+Short text input (required, password). Your AWS access key ID (e.g. `AKIAIOSFODNN7EXAMPLE`). Store it as a workflow secret and reference it with `{{AWS_ACCESS_KEY_ID}}`.
+
+### Secret Access Key
+
+Short text input (required, password). Your AWS secret access key. Store it as a workflow secret and reference it with `{{AWS_SECRET_ACCESS_KEY}}`.
 
 ### Stack Name
-The target stack name. Required for Describe Stacks, List Stack Resources, Describe Stack Events, Detect Stack Drift, and Get Template.
+
+Short text input (optional for some operations). The target stack name or stack ID. Shown for these operations: **Describe Stacks**, **List Stack Resources**, **Describe Stack Events**, **Detect Stack Drift**, **Get Template**. For Describe Stacks it is optional (omit to list all stacks in the region); for the remaining four it is required.
 
 ### Template Body
-The CloudFormation template to check. Used only by the Validate Template operation.
+
+Code editor input. The CloudFormation template body (JSON or YAML). Shown only for the **Validate Template** operation.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `awsRegion` (string), `awsAccessKeyId` (string), `awsSecretAccessKey` (string), `stackName` (string), `templateBody` (string)
-- **Outputs**: `stacks` (json), `resources` (json), `template` (json)
+**Inputs** (all subBlock ids passed at runtime):
+
+- `operation` (string) — Operation to perform; one of the operation ids listed above
+- `awsRegion` (string) — AWS region
+- `awsAccessKeyId` (string) — AWS access key ID
+- `awsSecretAccessKey` (string) — AWS secret access key
+- `stackName` (string) — Stack name or stack ID (operation-dependent)
+- `templateBody` (string) — CloudFormation template body (Validate Template only)
+
+**Outputs** (depend on the selected operation):
+
+- `stacks` (json) — Stack list returned by Describe Stacks
+- `resources` (json) — Stack resources returned by List Stack Resources
+- `events` (json) — Stack event history returned by Describe Stack Events
+- `stackDriftDetectionId` (string) — Drift detection job ID returned by Detect Stack Drift
+- `templateBody` (string) — Template body (JSON or YAML) returned by Get Template
+- `stagesAvailable` (json) — Available template stages returned by Get Template
+- `description` (string) — Template description returned by Validate Template
+- `parameters` (json) — Template parameters returned by Validate Template
+- `capabilities` (json) — Required IAM/transform capabilities returned by Validate Template
+- `template` (json) — Legacy alias for template output
+
+## Tools
+
+**CloudFormation Describe Stacks** (`cloudformation_describe_stacks`) — Lists and describes CloudFormation stacks. Pass an optional `stackName` to scope results to a single stack; omit it to return all stacks in the region. Returns `stacks` (array).
+
+**CloudFormation List Stack Resources** (`cloudformation_list_stack_resources`) — Lists all resources belonging to the given stack. Requires `stackName`. Returns `resources` (array).
+
+**CloudFormation Describe Stack Events** (`cloudformation_describe_stack_events`) — Retrieves the event history for a stack, useful for auditing or diagnosing a failed deployment. Requires `stackName`; accepts an optional `limit` (default 50). Returns `events` (array).
+
+**CloudFormation Detect Stack Drift** (`cloudformation_detect_stack_drift`) — Initiates an asynchronous drift-detection job on the stack. Requires `stackName`. Returns `stackDriftDetectionId` (string) that can be used to poll for drift results.
+
+**CloudFormation Get Template** (`cloudformation_get_template`) — Retrieves the deployed template body for a stack. Requires `stackName`. Returns `templateBody` (string, JSON or YAML) and `stagesAvailable` (array of available template stages).
+
+**CloudFormation Validate Template** (`cloudformation_validate_template`) — Validates a CloudFormation template for syntax and structural correctness. Requires `templateBody`. Returns `description` (string), `parameters` (array), and `capabilities` (array of required IAM/transform capabilities).
 
 ## YAML Example
 
@@ -56,8 +107,8 @@ cloudformation_1:
   inputs:
     operation: "cloudformation_describe_stacks"
     awsRegion: "us-east-1"
-    awsAccessKeyId: "{{secrets.AWS_ACCESS_KEY_ID}}"
-    awsSecretAccessKey: "{{secrets.AWS_SECRET_ACCESS_KEY}}"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
     stackName: "my-stack"
   connections:
     outgoing:

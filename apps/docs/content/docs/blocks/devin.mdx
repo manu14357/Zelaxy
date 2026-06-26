@@ -19,46 +19,99 @@ The Devin block integrates the Devin AI software engineer into your workflows. U
 ## When to Use
 
 - Kick off an autonomous Devin coding session from a task prompt as part of a workflow.
-- Poll or fetch the status, URL, and details of an existing Devin session.
-- List existing Devin sessions to audit or branch on prior work.
-- Send a follow-up message to steer an in-progress Devin session.
+- Poll or fetch the status, URL, and full details of an existing Devin session.
+- List all Devin sessions in the organization to audit or branch on prior work.
+- Send a follow-up message to steer an in-progress or suspended Devin session.
 - Add or delete secrets (e.g. API keys) that a Devin session needs to access external services.
-- Retrieve a snapshot of a session's state for later reference or hand-off.
+- Retrieve a screenshot snapshot of a session's current state for hand-off or inspection.
 
 ## Configuration
 
 ### Operation
 
-Dropdown that selects what the block does. Options: Create Session (`devin_create_session`), Get Session (`devin_get_session`), List Sessions (`devin_list_sessions`), Send Message (`devin_send_message`), Add Secret (`devin_add_secret`), Delete Secret (`devin_delete_secret`), and Get Snapshot (`devin_get_snapshot`). Required.
+Dropdown that selects what the block does. Required.
+
+| Label | ID |
+|-------|----|
+| Create Session | `devin_create_session` |
+| Get Session | `devin_get_session` |
+| List Sessions | `devin_list_sessions` |
+| Send Message | `devin_send_message` |
+| Add Secret | `devin_add_secret` |
+| Delete Secret | `devin_delete_secret` |
+| Get Snapshot | `devin_get_snapshot` |
 
 ### API Key
 
-Your Devin API key, stored as a password field. Required for every operation.
+Your Devin API key (a service user credential starting with `cog_`). Stored as a password field. Required for every operation. Pass it with `{{DEVIN_API_KEY}}`.
 
 ### Task Prompt
 
-The task description for Devin to complete. Shown when the operation is Create Session.
+The task description for Devin to complete. Free-form long text. Shown only when operation is **Create Session** (`devin_create_session`).
 
 ### Session ID
 
-The target session identifier. Shown for Get Session, Send Message, and Get Snapshot.
+The identifier of the target Devin session. Shown when operation is **Get Session**, **Send Message**, or **Get Snapshot** (`devin_get_session`, `devin_send_message`, `devin_get_snapshot`).
 
 ### Message
 
-The message to send to an active session. Shown for Send Message.
+The message to send to an active or suspended session. Shown only when operation is **Send Message** (`devin_send_message`). A suspended session is automatically resumed when a message is sent.
 
 ### Secret Name
 
-The name of the secret to add or remove (e.g. `API_KEY`). Shown for Add Secret and Delete Secret.
+The name of the secret to add or remove (e.g. `API_KEY`). Shown for **Add Secret** and **Delete Secret** (`devin_add_secret`, `devin_delete_secret`).
 
 ### Secret Value
 
-The value of the secret to store, kept as a password field. Shown for Add Secret.
+The value of the secret to store. Kept as a password field. Shown only for **Add Secret** (`devin_add_secret`).
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `prompt` (string), `sessionId` (string), `message` (string), `secretName` (string), `secretValue` (string)
-- **Outputs**: `sessionId` (string), `status` (string), `url` (string)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (one of the tool IDs listed above)
+  - `apiKey` (string) — Devin API key for authentication
+  - `prompt` (string) — Task prompt for Create Session
+  - `sessionId` (string) — Target session ID for Get Session, Send Message, Get Snapshot
+  - `message` (string) — Message to send for Send Message
+  - `secretName` (string) — Secret name for Add Secret / Delete Secret
+  - `secretValue` (string) — Secret value for Add Secret
+
+- **Outputs** (vary by operation):
+
+  **Create Session / Get Session / Send Message** (`devin_create_session`, `devin_get_session`, `devin_send_message`):
+  - `sessionId` (string) — Unique identifier for the session
+  - `url` (string) — URL to view the session in the Devin UI
+  - `status` (string) — Session status: `new`, `claimed`, `running`, `exit`, `error`, `suspended`, `resuming`
+  - `statusDetail` (string, optional) — Detailed status: `working`, `waiting_for_user`, `waiting_for_approval`, `finished`, `inactivity`, etc.
+  - `title` (string, optional) — Session title
+  - `createdAt` (number, optional) — Unix timestamp when the session was created
+  - `updatedAt` (number, optional) — Unix timestamp when the session was last updated
+  - `acusConsumed` (number, optional) — ACUs consumed by the session
+  - `tags` (json, optional) — Tags associated with the session
+  - `pullRequests` (json, optional) — Pull requests created during the session
+  - `structuredOutput` (json, optional) — Structured output from the session
+  - `playbookId` (string, optional) — Associated playbook ID
+
+  **List Sessions** (`devin_list_sessions`):
+  - `sessions` (array) — List of session objects, each containing: `sessionId`, `url`, `status`, `statusDetail`, `title`, `createdAt`, `updatedAt`, `tags`
+
+  **Add Secret / Delete Secret** (`devin_add_secret`, `devin_delete_secret`):
+  - `success` (boolean) — Whether the operation succeeded
+  - `secretName` (string, optional) — Name of the secret that was added or deleted
+
+  **Get Snapshot** (`devin_get_snapshot`):
+  - `sessionId` (string, optional) — The session ID
+  - `snapshotUrl` (string, optional) — URL of the session screenshot image
+
+## Tools
+
+- **Create Session** (`devin_create_session`) — Creates a new Devin session with a task prompt. Devin autonomously works on the described task. Supports optional `playbookId`, `maxAcuLimit`, and comma-separated `tags` parameters.
+- **Get Session** (`devin_get_session`) — Retrieves full details of an existing session by ID, including status, tags, pull requests, and structured output.
+- **List Sessions** (`devin_list_sessions`) — Lists Devin sessions in the organization. Returns up to 100 sessions by default (configurable via a `limit` param, max 200).
+- **Send Message** (`devin_send_message`) — Sends a message to a Devin session. Automatically resumes suspended sessions. Returns the updated session state.
+- **Add Secret** (`devin_add_secret`) — Adds or updates a named secret in the Devin organization secrets store.
+- **Delete Secret** (`devin_delete_secret`) — Removes a named secret from the Devin organization secrets store.
+- **Get Snapshot** (`devin_get_snapshot`) — Retrieves a screenshot URL of the current visual state of a Devin session.
 
 ## YAML Example
 
@@ -68,7 +121,7 @@ devin_1:
   name: "Devin"
   inputs:
     operation: "devin_create_session"
-    apiKey: "{{secrets.DEVIN_API_KEY}}"
+    apiKey: "{{DEVIN_API_KEY}}"
     prompt: "Fix the failing unit tests in the auth module"
   connections:
     outgoing:

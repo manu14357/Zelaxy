@@ -1,0 +1,106 @@
+---
+title: Twilio Voice Block
+description: Make and manage voice calls with Twilio
+icon: Box
+---
+
+# Twilio Voice Block
+
+The Twilio Voice block lets you initiate outbound calls, list call history, and retrieve details about a specific call through the Twilio Voice API. Reach for it whenever a workflow needs to trigger phone calls, audit call logs, or inspect individual call records programmatically.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `twilio_voice` |
+| **Category** | tools |
+| **Color** | `#F22F46` |
+
+## When to Use
+
+- Trigger an automated outbound phone call to a customer or contact as part of a notification or alert workflow.
+- Play a dynamic TwiML message to a recipient by pointing the call to a URL that returns TwiML instructions.
+- List recent calls on your Twilio account to feed a reporting or auditing downstream step.
+- Fetch the full record for a specific call (by Call SID) to check status, duration, or direction.
+- Chain call initiation with other workflow blocks — for example, first look up a phone number in a CRM block, then pass it to this block to make a call.
+- Integrate voice calls into on-call incident response flows where a human-in-the-loop block precedes the call.
+
+## Configuration
+
+### Operation
+
+Choose which Twilio Voice action the block performs. Defaults to **Make call**.
+
+| Label | ID |
+|-------|----|
+| Make call | `twilio_voice_make_call` |
+| List calls | `twilio_voice_list_calls` |
+| Get call | `twilio_voice_get_call` |
+
+### To
+
+Phone number to call in E.164 format (e.g. `+19998887777`). Required for the **Make call** operation only.
+
+### From
+
+Twilio phone number to call from in E.164 format (e.g. `+15551234567`). Required for the **Make call** operation only.
+
+### TwiML URL
+
+A publicly accessible URL that returns TwiML instructions controlling what happens during the call (e.g. playing a message or connecting to an agent). Required for the **Make call** operation only.
+
+### Call SID
+
+The unique SID (starts with `CA`) identifying the call to retrieve. Required for the **Get call** operation only.
+
+### Limit
+
+Maximum number of call records to return. Optional for the **List calls** operation; defaults to Twilio's own page size when omitted.
+
+### Account SID
+
+Your Twilio Account SID (starts with `AC`). Required for every operation. Stored as a password field — pass this via an environment variable reference such as `{{TWILIO_ACCOUNT_SID}}`.
+
+### Auth Token
+
+Your Twilio Auth Token. Required for every operation. Stored as a password field — pass this via an environment variable reference such as `{{TWILIO_AUTH_TOKEN}}`.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`twilio_voice_make_call`, `twilio_voice_list_calls`, or `twilio_voice_get_call`)
+  - `accountSid` (string) — Twilio Account SID
+  - `authToken` (string) — Twilio Auth Token
+  - `To` (string) — Number to call (Make call only)
+  - `From` (string) — Twilio number to call from (Make call only)
+  - `Url` (string) — TwiML instructions URL (Make call only)
+  - `callSid` (string) — Call SID to retrieve (Get call only)
+  - `limit` (number) — Result limit (List calls only)
+
+- **Outputs**:
+  - `data` (json) — Result object (Make call / Get call) or array of call objects (List calls) returned by Twilio
+  - `metadata` (json) — Response metadata; contains `sid` (string) for Make call and Get call, or `count` (number) for List calls
+
+## Tools
+
+- **Twilio Make Call** (`twilio_voice_make_call`) — Posts to the Twilio Calls API (`POST /2010-04-01/Accounts/{AccountSid}/Calls.json`) to initiate an outbound voice call. Requires `To`, `From`, and `Url`. Returns the full Twilio call object plus the Call SID in `metadata.sid`.
+- **Twilio List Calls** (`twilio_voice_list_calls`) — Fetches the call list for the account (`GET /2010-04-01/Accounts/{AccountSid}/Calls.json`). Accepts an optional `limit` that maps to Twilio's `PageSize` query parameter. Returns an array of call objects in `data` and the count in `metadata.count`.
+- **Twilio Get Call** (`twilio_voice_get_call`) — Retrieves a single call record by SID (`GET /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}.json`). Returns the full call object in `data` and the SID in `metadata.sid`.
+
+## YAML Example
+
+```yaml
+twilio_voice_1:
+  type: twilio_voice
+  name: "Twilio Voice"
+  inputs:
+    operation: "twilio_voice_make_call"
+    accountSid: "{{TWILIO_ACCOUNT_SID}}"
+    authToken: "{{TWILIO_AUTH_TOKEN}}"
+    To: "{{crm_lookup.phoneNumber}}"
+    From: "+15551234567"
+    Url: "https://example.com/twiml/welcome"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

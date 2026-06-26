@@ -1,0 +1,55 @@
+---
+title: ClickHouse
+description: Run SQL queries and health checks against a ClickHouse instance over HTTP
+icon: Database
+---
+
+# ClickHouse
+
+Execute SQL queries and connectivity checks against a ClickHouse instance through its HTTP interface. Use this integration to pull analytics data, run aggregations, or verify that your ClickHouse service is reachable — all from within a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `clickhouse` |
+| **Category** | Tool — Database |
+| **Auth** | Basic (username + password, Base64-encoded in the `Authorization` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Query** | `clickhouse_query` | Run a SQL query against a ClickHouse instance and return JSON results |
+| **Ping** | `clickhouse_ping` | Check whether a ClickHouse instance is reachable |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `host` | `string` | Yes | Full base URL of the ClickHouse instance, e.g. `https://xxx.clickhouse.cloud:8443`. Include the scheme and port. |
+| `username` | `string` | Yes | ClickHouse username used for Basic auth. |
+| `password` | `string` | Yes | ClickHouse password used for Basic auth. Store this as a secret and reference it with `{{CLICKHOUSE_PASSWORD}}`. |
+| `sql` | `string` | Yes (Query only) | The SQL query to execute. Only required when the operation is `clickhouse_query`. |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | **Query:** the full ClickHouse result object containing `data` (rows), `rows` (row count), and `statistics`. **Ping:** an object with a `response` key holding the raw text response from `/ping`. |
+| `metadata` | `json` | **Query:** contains `rows` (number of rows returned) and `statistics` (ClickHouse query statistics). **Ping:** contains `ok` (boolean — `true` if the instance responded with HTTP 2xx). |
+
+## Example
+
+```
+[Starter] → [ClickHouse: Query] → [Agent: summarize results]
+```
+
+Connect to your ClickHouse Cloud instance by setting `host` to `{{CLICKHOUSE_HOST}}`, `username` to `{{CLICKHOUSE_USER}}`, and `password` to `{{CLICKHOUSE_PASSWORD}}`. Pass a SQL query such as `SELECT event, count() FROM events WHERE date = today() GROUP BY event ORDER BY count() DESC LIMIT 20` to the `sql` param using `{{starter.sql}}` when the query is dynamic. The Agent block downstream can then read `{{clickhouse.data}}` and produce a natural-language summary of the top events.
+
+## Tips
+
+- **Use Ping before Query in critical workflows** — add a Ping step at the start of a workflow to fail fast if the ClickHouse instance is unreachable, rather than discovering connectivity issues after expensive upstream steps.
+- **FORMAT JSON is appended automatically** — the Query tool appends `FORMAT JSON` to your SQL before sending it, so do not include it in your `sql` param or you will get a parse error.
+- **`host` must include the scheme and port** — ClickHouse Cloud uses HTTPS on port 8443 by default (`https://xxx.clickhouse.cloud:8443`). Self-hosted instances commonly use port 8123 for HTTP or 8443 for HTTPS.
+- **Store credentials as environment secrets** — reference them in the block using `{{CLICKHOUSE_HOST}}`, `{{CLICKHOUSE_USER}}`, and `{{CLICKHOUSE_PASSWORD}}` so they are never hardcoded in the workflow.

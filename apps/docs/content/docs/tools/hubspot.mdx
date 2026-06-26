@@ -1,0 +1,137 @@
+---
+title: HubSpot Tools
+description: Create, retrieve, list, and search contacts and create deals in HubSpot CRM.
+icon: Box
+---
+
+# HubSpot Tools
+
+The HubSpot tools let a workflow manage contacts and deals in HubSpot CRM through the HubSpot v3 CRM API. Use them to create or look up contacts, list and search your contact database, and create new deals as part of an automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `hubspot` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (HubSpot private app access token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Create contact | `hubspot_create_contact` | Create a new contact in HubSpot CRM |
+| Get contact | `hubspot_get_contact` | Retrieve a single contact by ID from HubSpot CRM |
+| List contacts | `hubspot_list_contacts` | List contacts from HubSpot CRM with pagination support |
+| Search contacts | `hubspot_search_contacts` | Search for contacts in HubSpot CRM using a query or filter groups |
+| Create deal | `hubspot_create_deal` | Create a new deal in HubSpot CRM |
+
+## Configuration
+
+### hubspot_create_contact
+
+Creates a new contact. `POST https://api.hubapi.com/crm/v3/objects/contacts`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | HubSpot private app access token. **Secret** — sent as the Bearer token. |
+| `properties` | json | Yes | Contact properties as a JSON object (e.g. `{"email":"john@example.com","firstname":"John","lastname":"Doe"}`). Accepts a JSON string, which is parsed automatically. |
+
+### hubspot_get_contact
+
+Retrieves one contact by ID. `GET https://api.hubapi.com/crm/v3/objects/contacts/{contactId}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | HubSpot private app access token. **Secret** — sent as the Bearer token. |
+| `contactId` | string | Yes | The HubSpot contact ID to retrieve. |
+| `properties` | string | No | Comma-separated list of property names to return (e.g. `email,firstname,lastname,phone`). |
+
+### hubspot_list_contacts
+
+Lists contacts with pagination. `GET https://api.hubapi.com/crm/v3/objects/contacts`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | HubSpot private app access token. **Secret** — sent as the Bearer token. |
+| `limit` | number | No | Maximum number of results per page (max 100, default 10). |
+| `after` | string | No | Pagination cursor for the next page of results. |
+| `properties` | string | No | Comma-separated list of property names to return (e.g. `email,firstname,lastname,phone`). |
+
+### hubspot_search_contacts
+
+Searches contacts via query and/or filter groups. `POST https://api.hubapi.com/crm/v3/objects/contacts/search`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | HubSpot private app access token. **Secret** — sent as the Bearer token. |
+| `query` | string | No | Search query string to match against contact text fields. |
+| `filterGroups` | json | No | Array of filter groups as JSON. Each group has a `filters` array of `{propertyName, operator, value}`. Accepts a JSON string, which is parsed automatically. |
+| `properties` | json | No | Array of property names to return (e.g. `["email","firstname","lastname"]`). Accepts a JSON string, which is parsed automatically. |
+| `limit` | number | No | Maximum number of results to return (max 100). |
+
+### hubspot_create_deal
+
+Creates a new deal. `POST https://api.hubapi.com/crm/v3/objects/deals`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | HubSpot private app access token. **Secret** — sent as the Bearer token. |
+| `properties` | json | Yes | Deal properties as a JSON object (e.g. `{"dealname":"New Deal","amount":"5000","dealstage":"appointmentscheduled"}`). Accepts a JSON string, which is parsed automatically. |
+
+## Outputs
+
+### hubspot_create_contact
+
+- `data` (json) — The created HubSpot contact object.
+- `metadata` (json) — Contact identifiers. Contains:
+  - `id` (string) — Contact ID.
+
+### hubspot_get_contact
+
+- `data` (json) — The retrieved HubSpot contact object.
+- `metadata` (json) — Contact identifiers. Contains:
+  - `id` (string) — Contact ID.
+
+### hubspot_list_contacts
+
+- `data` (json) — Array of HubSpot contact objects.
+- `metadata` (json) — List metadata. Contains:
+  - `count` (number) — Number of items returned.
+  - `after` (string) — Pagination cursor for the next page, if any.
+
+### hubspot_search_contacts
+
+- `data` (json) — Array of matching HubSpot contact objects.
+- `metadata` (json) — Search result metadata. Contains:
+  - `count` (number) — Number of items returned.
+  - `after` (string) — Pagination cursor for the next page, if any.
+
+### hubspot_create_deal
+
+- `data` (json) — The created HubSpot deal object.
+- `metadata` (json) — Deal identifiers. Contains:
+  - `id` (string) — Deal ID.
+
+## YAML Example
+
+```yaml
+hubspot_1:
+  type: hubspot
+  name: "HubSpot"
+  inputs:
+    operation: "hubspot_create_contact"
+    properties: '{"email": "john@example.com", "firstname": "John", "lastname": "Doe"}'
+    apiKey: "{{HUBSPOT_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Auth uses a HubSpot **private app access token** (looks like `pat-na1-...`), sent as a Bearer token in the `Authorization` header. Create one in HubSpot under Settings → Integrations → Private Apps and grant the CRM scopes you need. Store it as an environment variable and reference it with `{{HUBSPOT_API_KEY}}` rather than hardcoding it.
+- `properties` is JSON-shaped but differs per operation: for `hubspot_create_contact` and `hubspot_create_deal` it is a JSON object of fields to set; for `hubspot_get_contact` and `hubspot_list_contacts` it is a comma-separated string of property names to return; for `hubspot_search_contacts` it is a JSON array of property names.
+- Pagination: `hubspot_list_contacts` returns `{{hubspot_1.metadata.after}}` when more results exist — feed it back into the `after` input to fetch the next page. `limit` is capped at 100 (default 10).
+- For `hubspot_search_contacts`, combine a free-text `query` with `filterGroups` for precise matching; each filter is `{propertyName, operator, value}` (e.g. operator `EQ`). Use the returned `{{hubspot_1.data}}` array to drive downstream blocks.
+```

@@ -47,6 +47,13 @@ For the `get` and `cancel` actions: **Email ID**, the id returned from a previou
 - **Inputs**: `apiKey` (string), `action` (string), `from` (string), `to` (string), `subject` (string), `html` (string), `text` (string), `cc` (string), `bcc` (string), `replyTo` (string), `scheduledAt` (string), `headers` (string, JSON), `tags` (string, JSON), `attachments` (string, JSON), `emails` (string, JSON), `emailId` (string)
 - **Outputs**: `id` (string), `ids` (json), `email` (json), `status` (string), `error` (string)
 
+## Tools
+
+- **Resend Send Email** (`resend_send`) — Sends a single email via the Resend API. Accepts `apiKey`, `from`, `to`, `subject`, and optional `html`, `text`, `cc`, `bcc`, `replyTo`, `scheduledAt`, `headers`, `tags`, and `attachments`. Returns `id`, `status`, and `error`.
+- **Resend Batch Send** (`resend_batch`) — Sends multiple emails in a single Resend API call. Accepts `apiKey` and `emails` (a JSON array of email objects). Returns `ids` (array of created email IDs) and `error`.
+- **Resend Get Email** (`resend_get`) — Retrieves full details of a previously sent email by its ID. Accepts `apiKey` and `emailId`. Returns `email` (JSON object with full email details) and `error`.
+- **Resend Cancel Email** (`resend_cancel`) — Cancels a scheduled (not-yet-delivered) email by its ID. Accepts `apiKey` and `emailId`. Returns `status` and `error`.
+
 ## YAML Example
 
 ```yaml

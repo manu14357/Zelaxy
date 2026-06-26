@@ -1,0 +1,162 @@
+---
+title: Greenhouse Block
+description: Manage candidates, jobs, and applications in Greenhouse
+icon: Box
+---
+
+# Greenhouse Block
+
+List candidates, jobs, and applications, and fetch candidate details through the Greenhouse Harvest API. Use this block whenever a workflow needs to read recruiting data — pipeline reviews, candidate lookups, job-status checks, or application audits — without leaving Zelaxy.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `greenhouse` |
+| **Category** | tools |
+| **Color** | `#24A47C` |
+
+## When to Use
+
+- Look up a specific candidate by their numeric Greenhouse ID to retrieve full profile data.
+- List all candidates in your ATS, optionally narrowed by email address or job posting.
+- Pull the full list of open, closed, or draft jobs to feed downstream routing or reporting blocks.
+- Retrieve all applications for a specific job to triage or score them with an agent block.
+- Page through large result sets (candidates, jobs, or applications) using `per_page` and `page` controls.
+- Combine with an Agent block to automate recruiting workflows such as status summaries or pipeline digests.
+
+## Configuration
+
+### Operation
+
+The operation dropdown selects which Greenhouse Harvest API action to execute. Every other field on the block is shown or hidden based on the selected operation.
+
+| Label | ID |
+|-------|----|
+| List candidates | `greenhouse_list_candidates` |
+| Get candidate | `greenhouse_get_candidate` |
+| List jobs | `greenhouse_list_jobs` |
+| List applications | `greenhouse_list_applications` |
+
+---
+
+### Candidate ID
+
+- **Sub-block id**: `id`
+- **Type**: short-input
+- **Placeholder**: `123456`
+- **Shown when**: operation = `greenhouse_get_candidate`
+
+The numeric Greenhouse candidate ID. Required to fetch a single candidate record.
+
+---
+
+### Email
+
+- **Sub-block id**: `email`
+- **Type**: short-input
+- **Placeholder**: `candidate@example.com`
+- **Shown when**: operation = `greenhouse_list_candidates`
+
+Optional filter. When provided, only candidates whose email matches are returned.
+
+---
+
+### Job ID
+
+- **Sub-block id**: `job_id`
+- **Type**: short-input
+- **Placeholder**: `654321`
+- **Shown when**: operation = `greenhouse_list_candidates` or `greenhouse_list_applications`
+
+Optional filter. Restricts results to candidates or applications associated with this Greenhouse job ID.
+
+---
+
+### Status
+
+- **Sub-block id**: `status`
+- **Type**: short-input
+- **Placeholder**: `active`
+- **Shown when**: operation = `greenhouse_list_jobs` or `greenhouse_list_applications`
+
+Optional filter string.
+
+- For **List jobs**: accepted values are `open`, `closed`, `draft`.
+- For **List applications**: accepted values are `active`, `converted`, `hired`, `rejected`.
+
+---
+
+### Per Page
+
+- **Sub-block id**: `per_page`
+- **Type**: short-input
+- **Placeholder**: `100`
+- **Shown when**: operation = `greenhouse_list_candidates`, `greenhouse_list_jobs`, or `greenhouse_list_applications`
+
+Number of results per page. Greenhouse supports 1–500; defaults to 100 when omitted.
+
+---
+
+### Page
+
+- **Sub-block id**: `page`
+- **Type**: short-input
+- **Placeholder**: `1`
+- **Shown when**: operation = `greenhouse_list_candidates`, `greenhouse_list_jobs`, or `greenhouse_list_applications`
+
+Page number for cursor-based pagination. Combine with `per_page` to walk through large result sets.
+
+---
+
+### API Key
+
+- **Sub-block id**: `apiKey`
+- **Type**: short-input (password field)
+- **Required**: yes
+- **Shown**: always
+
+Your Greenhouse Harvest API key. Stored securely and never exposed in block outputs. Use a workflow secret reference: `{{GREENHOUSE_API_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (`greenhouse_list_candidates`, `greenhouse_get_candidate`, `greenhouse_list_jobs`, or `greenhouse_list_applications`)
+- `apiKey` (string) — Greenhouse Harvest API key
+- `id` (string) — Candidate ID (required for `greenhouse_get_candidate`)
+- `email` (string) — Candidate email filter (used with `greenhouse_list_candidates`)
+- `job_id` (string) — Job ID filter (used with `greenhouse_list_candidates` and `greenhouse_list_applications`)
+- `status` (string) — Status filter (used with `greenhouse_list_jobs` and `greenhouse_list_applications`)
+- `per_page` (number) — Results per page (list operations; 1–500, default 100)
+- `page` (number) — Page number for pagination (list operations)
+
+**Outputs**
+
+- `data` (json) — Result object or array from Greenhouse. For list operations this is an array of Greenhouse objects; for `greenhouse_get_candidate` this is a single candidate object.
+- `metadata` (json) — Response metadata. For list operations includes `count` (number of items returned). For `greenhouse_get_candidate` includes `id` (string candidate ID).
+
+## Tools
+
+- **Greenhouse List Candidates** (`greenhouse_list_candidates`) — Calls `GET /v1/candidates` on the Greenhouse Harvest API. Returns a paginated array of candidate objects, optionally filtered by `email` and/or `job_id`.
+- **Greenhouse Get Candidate** (`greenhouse_get_candidate`) — Calls `GET /v1/candidates/{id}` on the Greenhouse Harvest API. Returns the full profile object for a single candidate by numeric ID.
+- **Greenhouse List Jobs** (`greenhouse_list_jobs`) — Calls `GET /v1/jobs` on the Greenhouse Harvest API. Returns a paginated array of job objects, optionally filtered by `status` (`open`, `closed`, `draft`).
+- **Greenhouse List Applications** (`greenhouse_list_applications`) — Calls `GET /v1/applications` on the Greenhouse Harvest API. Returns a paginated array of application objects, optionally filtered by `job_id` and/or `status` (`active`, `converted`, `hired`, `rejected`).
+
+## YAML Example
+
+```yaml
+greenhouse_1:
+  type: greenhouse
+  name: "Greenhouse"
+  inputs:
+    operation: "greenhouse_list_applications"
+    apiKey: "{{GREENHOUSE_API_KEY}}"
+    job_id: "654321"
+    status: "active"
+    per_page: 50
+    page: 1
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,106 @@
+---
+title: Mailgun Tools
+description: Send transactional emails and read delivery events through the Mailgun API.
+icon: Mail
+---
+
+# Mailgun Tools
+
+The Mailgun provider lets a workflow send transactional emails and read delivery events from a Mailgun sending domain. Use these tools when a workflow needs to notify users by email or audit message delivery (deliveries, opens, failures) for a domain.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `mailgun` |
+| **Category** | `tools` |
+| **Auth** | Basic Auth (HTTP Basic with username `api` and your Mailgun API key, base64-encoded) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Send email | `mailgun_send_email` | Send an email through the Mailgun API. |
+| List events | `mailgun_list_events` | List delivery events for a Mailgun domain. |
+
+## Configuration
+
+### `mailgun_send_email`
+
+Sends an email via `POST https://api.mailgun.net/v3/{domain}/messages` (form-urlencoded body).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Mailgun API key. **Secret** — visibility `user-only`; used for HTTP Basic auth (`api:<apiKey>`). |
+| `domain` | string | Yes | Mailgun sending domain (e.g. `mg.example.com`). Visibility `user-only`. |
+| `from` | string | Yes | Sender email address. Visibility `user-or-llm`. |
+| `to` | string | Yes | Recipient email address. Visibility `user-or-llm`. |
+| `subject` | string | Yes | Email subject line. Visibility `user-or-llm`. |
+| `text` | string | Yes | Plain text email body. Visibility `user-or-llm`. |
+
+### `mailgun_list_events`
+
+Lists events via `GET https://api.mailgun.net/v3/{domain}/events`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Mailgun API key. **Secret** — visibility `user-only`; used for HTTP Basic auth (`api:<apiKey>`). |
+| `domain` | string | Yes | Mailgun sending domain (e.g. `mg.example.com`). Visibility `user-only`. |
+| `limit` | number | No | Number of events to return. Visibility `user-or-llm`. Appended as the `limit` query parameter when set. |
+
+## Outputs
+
+### `mailgun_send_email`
+
+- `data` (json) — The Mailgun send response object.
+- `metadata` (json) — Response metadata.
+  - `metadata.statusCode` (number) — HTTP status code of the Mailgun response.
+
+### `mailgun_list_events`
+
+- `data` (json) — Array of Mailgun event objects (the `items` array from the Mailgun response).
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of events returned.
+
+## YAML Example
+
+```yaml
+mailgun_1:
+  type: mailgun
+  name: "Mailgun"
+  inputs:
+    operation: "mailgun_send_email"
+    domain: "mg.example.com"
+    from: "alerts@mg.example.com"
+    to: "user@example.com"
+    subject: "Your report is ready"
+    text: "Hi there, your weekly report has finished generating."
+    apiKey: "{{MAILGUN_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To list delivery events instead, set `operation: "mailgun_list_events"` and provide `domain`, `apiKey`, and an optional `limit`:
+
+```yaml
+mailgun_2:
+  type: mailgun
+  name: "Mailgun"
+  inputs:
+    operation: "mailgun_list_events"
+    domain: "mg.example.com"
+    limit: 25
+    apiKey: "{{MAILGUN_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** Authentication is HTTP Basic with username `api` and your Mailgun API key as the password — Zelaxy builds the `Authorization: Basic <base64>` header for you, so just supply `apiKey` (store it as an env var like `{{MAILGUN_API_KEY}}`, never inline).
+- **Domain matters:** The `domain` must be a verified Mailgun sending domain (e.g. `mg.example.com`) and is part of the request URL for both operations. The `from` address should belong to that domain.
+- **Region note:** Both tools call the US endpoint `api.mailgun.net`. If your Mailgun account is in the EU region (`api.eu.mailgun.net`), these tools will not reach it as written.
+- **Plain text only:** `mailgun_send_email` sends only the `text` (plain-text) body; there is no HTML, CC/BCC, or attachment parameter in this block.
+- **Consuming outputs:** Reference results downstream with double braces, e.g. `{{mailgun_1.data}}`, `{{mailgun_1.metadata.statusCode}}`, or `{{mailgun_2.metadata.count}}`.

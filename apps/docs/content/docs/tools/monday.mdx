@@ -1,0 +1,136 @@
+---
+title: Monday Tools
+description: Manage boards and items in Monday.com from a Zelaxy workflow.
+icon: Box
+---
+
+# Monday Tools
+
+The Monday provider lets a workflow read and write data in [Monday.com](https://monday.com) through its GraphQL API. Use these tools to list boards, fetch items from a board, create new items, and update a single column value on an existing item.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `monday` |
+| **Category** | `tools` |
+| **Auth** | API Key (Monday.com API token sent in the `Authorization` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List boards | `monday_list_boards` | List boards from your Monday.com account |
+| Get board items | `monday_get_board_items` | Get items (with column values) from a Monday.com board |
+| Create item | `monday_create_item` | Create a new item on a Monday.com board |
+| Update item | `monday_update_item` | Update a single column value of an item on a Monday.com board |
+
+All operations send a `POST` request to `https://api.monday.com/v2` with the headers `Authorization: <apiKey>`, `Content-Type: application/json`, and `API-Version: 2024-01`. The request body is a GraphQL query/mutation.
+
+## Configuration
+
+### `monday_list_boards`
+
+List boards from your Monday.com account.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Monday.com API token. **Secret** — sent in the `Authorization` header (`user-only` visibility). |
+| `limit` | number | No | Maximum number of boards to return. Defaults to `25` when omitted. |
+
+### `monday_get_board_items`
+
+Get items from a Monday.com board (each item includes its `column_values`).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Monday.com API token. **Secret** — sent in the `Authorization` header (`user-only` visibility). |
+| `boardId` | string | Yes | ID of the board to get items from. |
+| `limit` | number | No | Maximum number of items to return. Defaults to `25` when omitted. |
+
+### `monday_create_item`
+
+Create a new item on a Monday.com board.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Monday.com API token. **Secret** — sent in the `Authorization` header (`user-only` visibility). |
+| `boardId` | string | Yes | ID of the board to create the item on. |
+| `itemName` | string | Yes | Name of the new item. |
+
+### `monday_update_item`
+
+Update a single column value of an item on a Monday.com board.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Monday.com API token. **Secret** — sent in the `Authorization` header (`user-only` visibility). |
+| `itemId` | string | Yes | ID of the item to update. |
+| `columnId` | string | Yes | ID of the column to update (e.g. `status`). |
+| `value` | string | Yes | New simple value for the column (e.g. `Done`). Uses Monday's `change_simple_column_value` mutation. |
+
+## Outputs
+
+### `monday_list_boards`
+
+- `data` (json) — Array of Monday.com board objects (each with `id` and `name`).
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of boards returned.
+
+### `monday_get_board_items`
+
+- `data` (json) — Array of Monday.com item objects (each with `id`, `name`, and `column_values` containing `id`, `text`, `value`).
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of items returned.
+
+### `monday_create_item`
+
+- `data` (json) — The created Monday.com item object (`id`, `name`).
+- `metadata` (json) — Item identifiers.
+  - `id` (string) — Item ID.
+
+### `monday_update_item`
+
+- `data` (json) — The updated Monday.com item object (`id`, `name`).
+- `metadata` (json) — Item identifiers.
+  - `id` (string) — Item ID.
+
+## YAML Example
+
+```yaml
+monday_1:
+  type: monday
+  name: "Monday"
+  inputs:
+    operation: "monday_list_boards"
+    limit: 25
+    apiKey: "{{MONDAY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Create an item on a specific board:
+
+```yaml
+monday_create:
+  type: monday
+  name: "Monday Create Item"
+  inputs:
+    operation: "monday_create_item"
+    boardId: "1234567890"
+    itemName: "New item from workflow"
+    apiKey: "{{MONDAY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To use the created item's ID in a later block, reference it with double braces, e.g. `{{monday_create.metadata.id}}`.
+
+## Tips
+
+- **Auth setup:** Generate a personal API token in Monday.com under your avatar → Developers → My Access Tokens, then store it as the `apiKey`. It is sent directly in the `Authorization` header (no `Bearer` prefix). Keep it in an environment variable and reference it as `{{MONDAY_API_KEY}}` rather than hard-coding it.
+- **Finding IDs:** Run `monday_list_boards` first to discover board IDs, then `monday_get_board_items` to discover item IDs and column IDs (each item's `column_values` exposes the `id` you pass as `columnId`).
+- **Limit defaults:** Both `monday_list_boards` and `monday_get_board_items` default to returning `25` results when `limit` is omitted; raise it if you need more.
+- **Update is single-column:** `monday_update_item` updates exactly one column via `change_simple_column_value`. The `value` is a simple string — for complex column types you may need a value Monday accepts for that column (e.g. a label for a status column).

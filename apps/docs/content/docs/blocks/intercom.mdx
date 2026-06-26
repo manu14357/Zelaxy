@@ -1,0 +1,198 @@
+---
+title: Intercom Block
+description: Manage contacts in Intercom
+icon: Box
+---
+
+# Intercom Block
+
+The Intercom block lets you create, list, retrieve, and search contacts through the Intercom API. Use it whenever a workflow needs to provision or look up customer or lead records in your Intercom workspace.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `intercom` |
+| **Category** | tools |
+| **Color** | `#1F8DED` |
+
+## When to Use
+
+- Create a new Intercom contact (user or lead) automatically when a form submission or upstream block captures contact details.
+- List all contacts in your workspace, with pagination, to drive a downstream loop or export.
+- Retrieve a single contact by its Intercom ID to read its current state before deciding what to do next.
+- Search contacts by any field (email, name, etc.) using a comparison operator to find matching records.
+- Enrich or qualify leads by looking up their Intercom profile mid-workflow.
+- Sync external data into Intercom by creating contacts from CRM or marketing tool outputs.
+
+## Configuration
+
+### Operation
+
+Select which action the block performs. This drives which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| Create contact | `intercom_create_contact` |
+| List contacts | `intercom_list_contacts` |
+| Get contact | `intercom_get_contact` |
+| Search contacts | `intercom_search_contacts` |
+
+---
+
+### Role
+
+(Shown for **Create contact** only.) The role of the contact in Intercom. Accepts `user` or `lead`.
+
+- Type: short-input
+- Placeholder: `user or lead`
+- Required: no
+
+---
+
+### Email
+
+(Shown for **Create contact** only.) The email address of the new contact.
+
+- Type: short-input
+- Placeholder: `contact@example.com`
+- Required: no
+
+---
+
+### Name
+
+(Shown for **Create contact** only.) The display name of the new contact.
+
+- Type: short-input
+- Placeholder: `Jane Doe`
+- Required: no
+
+---
+
+### Phone
+
+(Shown for **Create contact** only.) The phone number of the new contact in E.164 format.
+
+- Type: short-input
+- Placeholder: `+15551234567`
+- Required: no
+
+---
+
+### Contact ID
+
+(Shown for **Get contact** only.) The unique Intercom identifier for the contact to retrieve.
+
+- Type: short-input
+- Placeholder: `5ba682d23d7cf92bef87bfd4`
+- Required: yes (for this operation)
+
+---
+
+### Field
+
+(Shown for **Search contacts** only.) The contact attribute to search on, e.g. `email` or `name`.
+
+- Type: short-input
+- Placeholder: `email`
+- Required: yes (for this operation)
+
+---
+
+### Operator
+
+(Shown for **Search contacts** only.) The comparison operator for the search query, e.g. `=`, `~`, `!=`, `>`, `<`.
+
+- Type: short-input
+- Placeholder: `=`
+- Required: yes (for this operation)
+
+---
+
+### Value
+
+(Shown for **Search contacts** only.) The value to match the chosen field against.
+
+- Type: short-input
+- Placeholder: `user@example.com`
+- Required: yes (for this operation)
+
+---
+
+### Per Page
+
+(Shown for **List contacts** only.) How many contacts to return per page. Maximum 150.
+
+- Type: short-input
+- Placeholder: `50`
+- Required: no
+
+---
+
+### Starting After
+
+(Shown for **List contacts** only.) Pagination cursor — the contact ID to start listing after (for fetching the next page).
+
+- Type: short-input
+- Required: no
+
+---
+
+### Access Token
+
+Your Intercom API access token. Stored as a password field and never exposed in logs.
+
+- Type: short-input (password)
+- Placeholder: `Intercom access token`
+- Required: **yes** (all operations)
+- Tip: store this as an environment variable and reference it with `{{INTERCOM_ACCESS_TOKEN}}`.
+
+---
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`intercom_create_contact`, `intercom_list_contacts`, `intercom_get_contact`, or `intercom_search_contacts`)
+  - `apiKey` (string) — Intercom access token
+  - `role` (string) — Contact role (user or lead); used by Create contact
+  - `email` (string) — Contact email; used by Create contact
+  - `name` (string) — Contact name; used by Create contact
+  - `phone` (string) — Contact phone; used by Create contact
+  - `id` (string) — Contact ID; used by Get contact
+  - `field` (string) — Search field; used by Search contacts
+  - `operator` (string) — Search operator; used by Search contacts
+  - `value` (string) — Search value; used by Search contacts
+  - `per_page` (number) — Results per page; used by List contacts
+  - `starting_after` (string) — Pagination cursor; used by List contacts
+
+- **Outputs**:
+  - `data` (json) — Result object (single contact) or array of contact objects from Intercom
+  - `metadata` (json) — Response metadata. For single-contact operations: `{ id, type }`. For list/search operations: `{ count, total_count }`
+
+## Tools
+
+- **Intercom Create Contact** (`intercom_create_contact`) — POSTs to `https://api.intercom.io/contacts` to create a new contact. Accepts `role`, `email`, `name`, and `phone`. Returns the created contact object plus `metadata.id` and `metadata.type`.
+- **Intercom List Contacts** (`intercom_list_contacts`) — GETs `https://api.intercom.io/contacts` with optional `per_page` and `starting_after` query params. Returns an array of contact objects and `metadata.count`/`metadata.total_count`.
+- **Intercom Get Contact** (`intercom_get_contact`) — GETs `https://api.intercom.io/contacts/{id}` to fetch a single contact by ID. Returns the contact object and `metadata.id`/`metadata.type`.
+- **Intercom Search Contacts** (`intercom_search_contacts`) — POSTs to `https://api.intercom.io/contacts/search` with a single-field query (`field`, `operator`, `value`). Returns matching contacts and `metadata.count`/`metadata.total_count`.
+
+All tools authenticate using `Bearer <apiKey>` and send `Intercom-Version: 2.11`.
+
+## YAML Example
+
+```yaml
+intercom_1:
+  type: intercom
+  name: "Intercom"
+  inputs:
+    operation: "intercom_create_contact"
+    apiKey: "{{INTERCOM_ACCESS_TOKEN}}"
+    role: "lead"
+    email: "{{form_trigger.email}}"
+    name: "{{form_trigger.name}}"
+    phone: "{{form_trigger.phone}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

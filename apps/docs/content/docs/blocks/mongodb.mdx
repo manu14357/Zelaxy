@@ -1,0 +1,180 @@
+---
+title: MongoDB Block
+description: Query and modify documents using the MongoDB Atlas Data API
+icon: Database
+---
+
+# MongoDB Block
+
+Find, insert, update, and delete documents in a MongoDB collection through the Atlas Data API over HTTP. Authenticate with your Data API URL, key, cluster (data source), and database — no native driver required.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mongodb` |
+| **Category** | `tools` |
+| **Color** | `#00ED64` |
+
+## When to Use
+
+- Query documents from a MongoDB Atlas collection using flexible filter expressions
+- Insert a new document into a collection as part of an automated workflow
+- Update an existing document matched by a filter (e.g. set a status field, increment a counter)
+- Delete a document that matches a specific filter condition
+- Integrate MongoDB Atlas as a persistent data store without managing a native driver or connection pool
+- Chain with agent or function blocks to read or write structured data dynamically at runtime
+
+## Configuration
+
+### Operation
+
+The operation to execute against the collection. Selecting an operation shows only the fields relevant to that operation.
+
+| Label | ID |
+|-------|----|
+| Find | `mongodb_find` |
+| Insert one | `mongodb_insert_one` |
+| Update one | `mongodb_update_one` |
+| Delete one | `mongodb_delete_one` |
+
+Default: `mongodb_find`.
+
+---
+
+### Collection
+
+**Shown for**: all operations.
+
+The name of the MongoDB collection to target (e.g. `myCollection`). This field is always visible once an operation is chosen.
+
+---
+
+### Filter
+
+**Shown for**: `mongodb_find`, `mongodb_update_one`, `mongodb_delete_one`.
+
+A JSON query filter document that selects which documents to return, update, or delete. Follows standard MongoDB query syntax.
+
+Example: `{ "status": "active" }`
+
+---
+
+### Limit
+
+**Shown for**: `mongodb_find` only.
+
+Maximum number of documents to return in the find result. Leave blank to use the API default.
+
+Example: `10`
+
+---
+
+### Document
+
+**Shown for**: `mongodb_insert_one` only.
+
+The JSON document to insert into the collection.
+
+Example: `{ "name": "Jane", "email": "jane@example.com" }`
+
+---
+
+### Update
+
+**Shown for**: `mongodb_update_one` only.
+
+A MongoDB update document describing the changes to apply to the first matching document. Use standard MongoDB update operators.
+
+Example: `{ "$set": { "status": "inactive" } }`
+
+---
+
+### Data API URL
+
+**Required.** The base URL of your MongoDB Atlas Data API endpoint.
+
+Example: `https://data.mongodb-api.com/app/<appId>/endpoint/data/v1`
+
+Store this value as an environment variable and reference it as `{{MONGODB_DATA_API_URL}}`.
+
+---
+
+### API Key
+
+**Required.** Your Atlas Data API key. This field is treated as a password (masked in the UI).
+
+Reference as `{{MONGODB_API_KEY}}` to avoid storing the raw key in the workflow.
+
+---
+
+### Data Source (Cluster)
+
+**Required.** The name of the Atlas cluster (data source) that contains the target database.
+
+Example: `Cluster0`
+
+---
+
+### Database
+
+**Required.** The name of the database that contains the target collection.
+
+Example: `myDatabase`
+
+---
+
+## Inputs & Outputs
+
+**Inputs** (all correspond to subBlock ids listed above):
+
+- `operation` (string) — Operation to perform (`mongodb_find` | `mongodb_insert_one` | `mongodb_update_one` | `mongodb_delete_one`)
+- `dataApiUrl` (string) — Atlas Data API base URL
+- `apiKey` (string) — Atlas Data API key
+- `dataSource` (string) — Cluster (data source) name
+- `database` (string) — Database name
+- `collection` (string) — Collection name
+- `filter` (json) — Query filter document (used by find, update one, delete one)
+- `limit` (number) — Maximum documents to return (find only)
+- `document` (json) — Document to insert (insert one only)
+- `update` (json) — Update document (update one only)
+
+**Outputs**:
+
+- `data` (json) — Result object from the MongoDB Data API (e.g. `{ documents: [...] }` for find, `{ insertedId: "..." }` for insert, `{ matchedCount: 1, modifiedCount: 1 }` for update, `{ deletedCount: 1 }` for delete)
+- `metadata` (json) — Response metadata
+
+---
+
+## Tools
+
+- **MongoDB Find** (`mongodb_find`) — POSTs to `/action/find` on the Data API. Accepts `filter` (optional) and `limit` (optional) to return matching documents from the specified collection.
+- **MongoDB Insert One** (`mongodb_insert_one`) — POSTs to `/action/insertOne`. Inserts the provided `document` JSON into the collection and returns the new document's `insertedId`.
+- **MongoDB Update One** (`mongodb_update_one`) — POSTs to `/action/updateOne`. Applies the `update` document (supporting all MongoDB update operators) to the first document matching `filter`. Returns `matchedCount` and `modifiedCount`.
+- **MongoDB Delete One** (`mongodb_delete_one`) — POSTs to `/action/deleteOne`. Removes the first document matching `filter` from the collection. Returns `deletedCount`.
+
+All four tools authenticate via the `api-key` HTTP header and share the same base connection parameters (`dataApiUrl`, `apiKey`, `dataSource`, `database`).
+
+---
+
+## YAML Example
+
+```yaml
+mongodb_1:
+  type: mongodb
+  name: "MongoDB"
+  inputs:
+    operation: "mongodb_find"
+    dataApiUrl: "{{MONGODB_DATA_API_URL}}"
+    apiKey: "{{MONGODB_API_KEY}}"
+    dataSource: "Cluster0"
+    database: "myDatabase"
+    collection: "users"
+    filter: '{ "status": "active" }'
+    limit: 20
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To reference the result in a downstream block, use `{{mongodb_1.data}}` for the full API response object.

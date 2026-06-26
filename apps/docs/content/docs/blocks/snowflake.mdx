@@ -28,30 +28,235 @@ The Snowflake block connects to your Snowflake Data Warehouse to execute SQL que
 ## Configuration
 
 ### Connection Mode
-Choose how to authenticate: `Credentials` (username/password), `OAuth`, or `Key Pair` (RSA private key). The relevant credential fields appear based on this selection.
+How to authenticate to Snowflake. Options:
 
-### Connection Details
-Set the required `Account Name`, `Database`, `Warehouse`, and `Schema`. An optional `Role` lets you assume a specific Snowflake security role.
+| Label | ID |
+|-------|----|
+| Credentials | `credentials` |
+| OAuth | `oauth` |
+| Key Pair | `keypair` |
 
-### Authentication
-For credentials mode, supply `Username` and `Password`. For OAuth, provide the `OAuth Token`. For key pair, provide the `Private Key` and optional `Private Key Passphrase`.
+Defaults to `credentials`. The relevant credential fields appear or hide based on this selection.
+
+### Account Name
+Your Snowflake account identifier (e.g. `mycompany.eu-central-1`). Required.
+
+### Database
+The Snowflake database to connect to. Required.
+
+### Warehouse
+The virtual warehouse to use for query execution. Required.
+
+### Schema
+The schema within the database. Required.
+
+### Username
+Username for authentication. Required when `connectionMode` is `credentials`.
+
+### Password
+Password for authentication (stored securely). Required when `connectionMode` is `credentials`.
+
+### Role
+Optional Snowflake security role to assume for the session.
+
+### OAuth Token
+OAuth token for authentication. Required when `connectionMode` is `oauth`.
+
+### Private Key
+RSA private key for key pair authentication (stored securely). Required when `connectionMode` is `keypair`.
+
+### Private Key Passphrase
+Passphrase for an encrypted private key. Only shown when `connectionMode` is `keypair`.
+
+### Keep Session Alive
+Toggle to keep the Snowflake session alive indefinitely. Defaults to off.
+
+### Connection Timeout (seconds)
+How long to wait when establishing a connection before failing. Range: 30–300 seconds. Default: 60.
+
+### Query Timeout (seconds)
+Maximum time allowed for a query to run before it is aborted. Range: 30–3600 seconds. Default: 300.
 
 ### Operation
-Pick what to run: Execute Query, Insert/Update/Delete Rows, Create/Drop/Truncate Table, Bulk Load, Execute Procedure, Get Schema Info, List Tables, or Test Connection.
+The action to perform. Required. Options:
+
+| Label | ID |
+|-------|----|
+| Execute Query | `query` |
+| Insert Rows | `insert` |
+| Update Rows | `update` |
+| Delete Rows | `delete` |
+| Create Table | `create_table` |
+| Drop Table | `drop_table` |
+| Truncate Table | `truncate` |
+| Bulk Load | `bulk_load` |
+| Execute Procedure | `procedure` |
+| Get Schema Info | `schema_info` |
+| List Tables | `list_tables` |
+| Test Connection | `test_connection` |
 
 ### SQL Query
-For query, create_table, drop_table, and truncate operations, enter the SQL to execute (with an AI wand to generate Snowflake-correct SQL).
+The SQL statement to execute. Shown for `query`, `create_table`, `drop_table`, and `truncate` operations. Required for those operations. Includes an AI wand that generates Snowflake-correct SQL (CTEs, window functions, VARIANT type, etc.) from a plain-English prompt.
 
-### Data & Table Fields
-Insert/update/delete operations use `Table Name`, a `Data Mode` (JSON object, key-value pairs, or SQL values), `Insert Data`/`Update Data`, and a `WHERE Clause` where applicable.
+### Table Name
+Target table (`table_name` or `schema.table_name`). Required for `insert`, `update`, `delete`, `drop_table`, `truncate`, and `bulk_load`.
 
-### Advanced Options
-Optional toggles for parameterized queries, pagination, retries, connection pooling, schema detection, query logging, and metrics, each with their own tuning sliders.
+### Data Mode
+How data is provided for `insert` and `update` operations. Options:
+
+| Label | ID |
+|-------|----|
+| JSON Object | `json` |
+| Key-Value Pairs | `pairs` |
+| SQL Values | `sql` |
+
+### Insert Data
+JSON object or array of objects representing the rows to insert. Shown for `insert` when `dataMode` is `json`.
+
+### Update Data (SET clause)
+JSON object whose keys are column names and values are the new values. Shown for `update` when `dataMode` is `json`.
+
+### WHERE Clause
+Filter condition for `update` and `delete` operations (e.g. `id = 123 AND status = 'active'`).
+
+### Stage Name
+Snowflake stage reference for bulk load (e.g. `@my_stage` or `@%table_name`). Shown for `bulk_load`.
+
+### File Format
+File format of the data in the stage. Shown for `bulk_load`. Options:
+
+| Label | ID |
+|-------|----|
+| CSV | `csv` |
+| JSON | `json` |
+| Parquet | `parquet` |
+| Avro | `avro` |
+| XML | `xml` |
+
+### Procedure Name
+Name of the stored procedure to call. Shown for `procedure`.
+
+### Procedure Parameters
+JSON array of positional arguments passed to the stored procedure (e.g. `["param1", 123]`). Shown for `procedure`.
+
+### Use Parameterized Query
+Toggle to use parameterized (bind-variable) queries for security. Shown for `query`, `insert`, `update`, and `delete`.
+
+### Query Parameters
+JSON object of parameter bindings for the parameterized query (e.g. `{"param1": "value1"}`). Shown when `useParameterizedQuery` is on.
+
+### Output Format
+How query results are returned. Shown for `query`, `schema_info`, and `list_tables`. Default: `json`. Options:
+
+| Label | ID |
+|-------|----|
+| JSON | `json` |
+| CSV | `csv` |
+| Table Preview | `table` |
+| Raw Result | `raw` |
+
+### Enable Pagination
+Toggle to paginate large result sets. Shown for `query`.
+
+### Page Size
+Number of rows per page. Range: 10–10000. Default: 1000. Shown when pagination is on.
+
+### Page Number
+Which page to retrieve (1-based). Range: 1–1000. Default: 1. Shown when pagination is on.
+
+### Enable Retry
+Toggle to automatically retry failed operations.
+
+### Max Retries
+Maximum retry attempts. Range: 1–10. Default: 3. Shown when retry is on.
+
+### Retry Delay (ms)
+Milliseconds to wait between retry attempts. Range: 100–10000. Default: 1000. Shown when retry is on.
+
+### Enable Connection Pooling
+Toggle to reuse database connections across invocations for better performance.
+
+### Max Connections
+Maximum number of connections in the pool. Range: 1–50. Default: 10. Shown when pooling is on.
+
+### Enable Schema Detection
+Toggle to automatically detect table schemas. Shown for `insert`, `update`, and `schema_info`.
+
+### Schema Table
+Table name to run schema detection against. Shown when schema detection is on.
+
+### Enable Query Logging
+Toggle to log all executed queries for debugging purposes.
+
+### Enable Metrics
+Toggle to collect execution metrics and performance statistics.
 
 ## Inputs & Outputs
 
-- **Inputs**: `accountName` (string), `database` (string), `warehouse` (string), `schema` (string), `username` (string), `password` (string), `role` (string), `connectionMode` (string), `oauthToken` (string), `privateKey` (string), `privateKeyPassphrase` (string), `clientSessionKeepAlive` (boolean), `connectionTimeout` (number), `queryTimeout` (number), `operation` (string), `sqlQuery` (string), `tableName` (string), `dataMode` (string), `insertData` (json), `updateData` (json), `whereClause` (string), `stageName` (string), `fileFormat` (string), `procedureName` (string), `procedureParams` (json), `useParameterizedQuery` (boolean), `parameters` (json), `outputFormat` (string), `enablePagination` (boolean), `pageSize` (number), `pageNumber` (number), `enableRetry` (boolean), `maxRetries` (number), `retryDelay` (number), `enableConnectionPooling` (boolean), `maxConnections` (number), `enableSchemaDetection` (boolean), `schemaTable` (string), `enableQueryLogging` (boolean), `enableMetrics` (boolean)
-- **Outputs**: `success` (boolean), `data` (json), `rowCount` (number), `executionTime` (number), `queryId` (string), `error` (string), `schema` (json), `tables` (json), `columns` (json), `hasNextPage` (boolean), `totalPages` (number), `currentPage` (number), `connectionInfo` (json), `warehouseInfo` (json), `metrics` (json), `queryLog` (json), `loadStatus` (json)
+- **Inputs**:
+  - `accountName` (string) — Snowflake account name
+  - `database` (string) — Database name
+  - `warehouse` (string) — Virtual warehouse name
+  - `schema` (string) — Schema name
+  - `username` (string) — Username for authentication
+  - `password` (string) — Password for authentication
+  - `role` (string) — Security role to assume
+  - `connectionMode` (string) — Authentication method
+  - `oauthToken` (string) — OAuth token for authentication
+  - `privateKey` (string) — Private key for key pair authentication
+  - `privateKeyPassphrase` (string) — Private key passphrase
+  - `clientSessionKeepAlive` (boolean) — Keep session alive
+  - `connectionTimeout` (number) — Connection timeout in seconds
+  - `queryTimeout` (number) — Query timeout in seconds
+  - `operation` (string) — Operation to perform
+  - `sqlQuery` (string) — SQL query to execute
+  - `tableName` (string) — Target table name
+  - `dataMode` (string) — Data input format
+  - `insertData` (json) — Data to insert
+  - `updateData` (json) — Data to update
+  - `whereClause` (string) — WHERE clause for update/delete
+  - `stageName` (string) — Stage name for bulk operations
+  - `fileFormat` (string) — File format for bulk load
+  - `procedureName` (string) — Stored procedure name
+  - `procedureParams` (json) — Procedure parameters
+  - `useParameterizedQuery` (boolean) — Use parameterized queries
+  - `parameters` (json) — Query parameters
+  - `outputFormat` (string) — Output format
+  - `enablePagination` (boolean) — Enable result pagination
+  - `pageSize` (number) — Number of rows per page
+  - `pageNumber` (number) — Page number to retrieve
+  - `enableRetry` (boolean) — Enable retry on failure
+  - `maxRetries` (number) — Maximum number of retries
+  - `retryDelay` (number) — Delay between retries in milliseconds
+  - `enableConnectionPooling` (boolean) — Enable connection pooling
+  - `maxConnections` (number) — Maximum number of pooled connections
+  - `enableSchemaDetection` (boolean) — Enable automatic schema detection
+  - `schemaTable` (string) — Table for schema detection
+  - `enableQueryLogging` (boolean) — Enable query logging
+  - `enableMetrics` (boolean) — Enable performance metrics
+
+- **Outputs**:
+  - `success` (boolean) — Whether the operation was successful
+  - `data` (json) — Query results or operation data
+  - `rowCount` (number) — Number of affected or returned rows
+  - `executionTime` (number) — Query execution time in milliseconds
+  - `queryId` (string) — Snowflake query ID for tracking
+  - `error` (string) — Error message if the operation failed
+  - `schema` (json) — Table schema information
+  - `tables` (json) — List of tables in the database
+  - `columns` (json) — Column information for the table
+  - `hasNextPage` (boolean) — Whether there are more pages available
+  - `totalPages` (number) — Total number of pages
+  - `currentPage` (number) — Current page number
+  - `connectionInfo` (json) — Connection status and details
+  - `warehouseInfo` (json) — Warehouse utilization information
+  - `metrics` (json) — Performance metrics and statistics
+  - `queryLog` (json) — Query execution log
+  - `loadStatus` (json) — Bulk load operation status
+
+## Tools
+
+**Snowflake Data Warehouse** (`snowflake_connector`) — Connects to Snowflake via the `snowflake-sdk`, establishes a connection (credentials, OAuth, or key pair), executes the requested SQL operation, and returns structured results including row data, row count, execution time, query ID, schema info, pagination metadata, and performance metrics. All parameters from the block are forwarded directly to this tool via a POST request to `/api/tools/snowflake`.
 
 ## YAML Example
 
@@ -65,8 +270,8 @@ snowflake_1:
     database: "ANALYTICS"
     warehouse: "COMPUTE_WH"
     schema: "PUBLIC"
-    username: "{{vars.SNOWFLAKE_USER}}"
-    password: "{{vars.SNOWFLAKE_PASSWORD}}"
+    username: "{{SNOWFLAKE_USER}}"
+    password: "{{SNOWFLAKE_PASSWORD}}"
     operation: "query"
     sqlQuery: "SELECT * FROM customers LIMIT 100;"
     outputFormat: "json"

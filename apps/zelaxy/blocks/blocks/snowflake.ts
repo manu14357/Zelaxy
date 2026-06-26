@@ -187,7 +187,6 @@ export const SnowflakeBlock: BlockConfig = {
       title: 'SQL Query',
       type: 'code',
       layout: 'full',
-      language: 'javascript',
       placeholder: 'SELECT * FROM my_table LIMIT 100;',
       required: true,
       condition: {
@@ -198,7 +197,7 @@ export const SnowflakeBlock: BlockConfig = {
         enabled: true,
         prompt:
           'You are a Snowflake SQL expert. Generate a syntactically correct Snowflake SQL query based on the user requirements. Consider Snowflake-specific features like:\n\n- Use proper quoting for identifiers with ""\n- Snowflake functions like CURRENT_TIMESTAMP, DATEADD, DATEDIFF\n- Snowflake data types like VARIANT for JSON\n- Window functions and CTEs\n- Proper JOIN syntax\n- LIMIT clause for large results\n\nReturn only the SQL query without explanations.',
-        generationType: 'javascript-function-body',
+        generationType: 'custom-tool-schema',
         placeholder:
           'Describe the SQL query you need (e.g., "Get top 10 customers by revenue this month")',
         maintainHistory: true,

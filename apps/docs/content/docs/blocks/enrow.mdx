@@ -1,0 +1,146 @@
+---
+title: Enrow Block
+description: Find and verify B2B email addresses
+icon: Box
+---
+
+# Enrow Block
+
+Find verified B2B email addresses from a name and company, verify email deliverability, and retrieve the result of an async find job through the Enrow API. Authenticate with an Enrow API key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `enrow` |
+| **Category** | `tools` |
+| **Color** | `#5E35B1` |
+
+## When to Use
+
+- Look up a professional's work email address when you only know their name and employer
+- Confirm that an email address is deliverable before sending outreach or adding it to a mailing list
+- Poll an async Enrow find-email job for its completed result using the job ID returned by a prior find step
+- Enrich a lead list by appending verified contact emails in a multi-step workflow
+- Gate downstream blocks on whether an email was found or verified successfully
+- Chain find → get-result steps for high-volume async lookups that Enrow processes in the background
+
+## Configuration
+
+### Operation
+
+The **Operation** dropdown selects which Enrow API action the block performs. It is required and defaults to `Find email`. The three available operations each expose a different set of input fields.
+
+| Label | ID |
+|-------|----|
+| Find email | `enrow_find_email` |
+| Verify email | `enrow_verify_email` |
+| Get result | `enrow_get_result` |
+
+### Full Name
+
+Visible when **Operation** is `Find email`.
+
+The full name of the person whose email you want to find (e.g. `John Doe`). Accepts a literal value or a reference like `{{previousBlock.fullname}}`.
+
+- **Sub-block id**: `fullname`
+- **Type**: short-input
+- **Layout**: half
+- **Condition**: `operation = enrow_find_email`
+
+### Company
+
+Visible when **Operation** is `Find email`.
+
+The company name or domain used to narrow the email search (e.g. `Apple` or `apple.com`). Accepts a literal value or a reference like `{{previousBlock.company}}`.
+
+- **Sub-block id**: `company`
+- **Type**: short-input
+- **Layout**: half
+- **Condition**: `operation = enrow_find_email`
+
+### Email
+
+Visible when **Operation** is `Verify email`.
+
+The email address to check for deliverability (e.g. `john@example.com`). Accepts a literal value or a reference like `{{previousBlock.email}}`.
+
+- **Sub-block id**: `email`
+- **Type**: short-input
+- **Layout**: full
+- **Condition**: `operation = enrow_verify_email`
+
+### Job ID
+
+Visible when **Operation** is `Get result`.
+
+The job ID returned by a previous `Find email` step. Use `{{findEmailBlock.metadata.id}}` to wire it from an upstream Enrow Find Email block.
+
+- **Sub-block id**: `id`
+- **Type**: short-input
+- **Layout**: full
+- **Condition**: `operation = enrow_get_result`
+
+### API Key
+
+Always visible. Your Enrow API key. Store it as a workspace secret and reference it as `{{ENROW_API_KEY}}` rather than pasting the raw value.
+
+- **Sub-block id**: `apiKey`
+- **Type**: short-input (password)
+- **Layout**: full
+- **Required**: yes
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform; one of `enrow_find_email`, `enrow_verify_email`, or `enrow_get_result`
+- `apiKey` (string) — Enrow API key
+- `fullname` (string) — Full name of the person (used by `enrow_find_email`)
+- `company` (string) — Company name or domain (used by `enrow_find_email`)
+- `email` (string) — Email address to verify (used by `enrow_verify_email`)
+- `id` (string) — Find-email job ID (used by `enrow_get_result`)
+
+**Outputs**
+
+- `data` (json) — Result object from Enrow; shape varies by operation (find result, verify result, or completed job result)
+- `metadata` (json) — Response metadata; always contains `id` — the job ID that can be passed to a subsequent `Get result` step
+
+## Tools
+
+- **Enrow Find Email** (`enrow_find_email`) — Sends a GET request to `https://api.enrow.io/email/find/single` with the provided `fullname` and `company`. Returns the find-email job response and a `metadata.id` you can use to poll for the completed result.
+- **Enrow Verify Email** (`enrow_verify_email`) — Sends a GET request to `https://api.enrow.io/email/verify/single` with the provided `email`. Returns the deliverability result and a `metadata.id`.
+- **Enrow Get Result** (`enrow_get_result`) — Sends a GET request to `https://api.enrow.io/email/find/single/result` with a job `id`. Returns the completed find-email result once the async job has finished.
+
+All three tools authenticate via the `x-api-key` request header using the supplied `apiKey`.
+
+## YAML Example
+
+```yaml
+enrow_1:
+  type: enrow
+  name: "Find Email"
+  inputs:
+    operation: "enrow_find_email"
+    apiKey: "{{ENROW_API_KEY}}"
+    fullname: "{{leadBlock.fullname}}"
+    company: "{{leadBlock.company}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To poll for the result of an async find job, chain a second block:
+
+```yaml
+enrow_2:
+  type: enrow
+  name: "Get Email Result"
+  inputs:
+    operation: "enrow_get_result"
+    apiKey: "{{ENROW_API_KEY}}"
+    id: "{{enrow_1.metadata.id}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

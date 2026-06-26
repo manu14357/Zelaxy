@@ -1,0 +1,58 @@
+---
+title: Findymail
+description: Find and verify B2B email addresses from name, company domain, or LinkedIn profile
+icon: Mail
+---
+
+# Findymail
+
+Find verified B2B email addresses using Findymail's API. Look up a contact's email from their name and company domain or directly from a LinkedIn profile URL, and verify deliverability of any known address — essential for sales prospecting and lead enrichment workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `findymail` |
+| **Category** | Tool — CRM & Sales |
+| **Auth** | API Key (`Authorization: Bearer` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Find Email** | `findymail_find_email` | Find an email address from a person's full name and company domain |
+| **Find From LinkedIn** | `findymail_find_from_linkedin` | Find an email address from a LinkedIn profile URL |
+| **Verify Email** | `findymail_verify_email` | Verify the deliverability of an email address |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Findymail API key — set as `{{FINDYMAIL_API_KEY}}`. Sent as a `Bearer` token in the `Authorization` header. This is a secret; mark it as a password input. |
+| `name` | `string` | Yes (Find Email) | Person's full name, e.g. `John Doe`. Used by `findymail_find_email`. |
+| `domain` | `string` | Yes (Find Email) | Company domain without protocol, e.g. `stripe.com`. Used by `findymail_find_email`. |
+| `linkedin_url` | `string` | Yes (Find From LinkedIn) | Full LinkedIn profile URL, e.g. `https://linkedin.com/in/johndoe`. Used by `findymail_find_from_linkedin`. |
+| `email` | `string` | Yes (Verify Email) | Email address to verify, e.g. `john@example.com`. Used by `findymail_verify_email`. |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | Full response object from Findymail, including the `contact` object with the found or verified email and associated metadata. |
+| `metadata` | `json` | Extracted identifiers from the response. |
+| `metadata.email` | `string` | The found or verified email address, or `null` if none was returned. |
+
+## Example
+
+```
+[Starter] → [Findymail: Find Email] → [Findymail: Verify Email] → [Agent: Draft outreach] → [Gmail: Send email]
+```
+
+Trigger the workflow with a list of prospects. Pass `{{starter.fullName}}` and `{{starter.domain}}` into the Findymail Find Email block using `{{FINDYMAIL_API_KEY}}` for auth. The block returns `{{findymail.metadata.email}}`; pipe that value into the Verify Email block to confirm deliverability before passing the verified address to an Agent block that drafts a personalised cold email, which Gmail then delivers.
+
+## Tips
+
+- **Chain Find + Verify for safe outreach.** Use `findymail_find_email` or `findymail_find_from_linkedin` to discover an address, then immediately pass `{{findymail.metadata.email}}` into a second Findymail block set to `findymail_verify_email` — this avoids hard bounces before sending.
+- **LinkedIn lookup skips the domain.** If you have a LinkedIn URL but not the company domain, `findymail_find_from_linkedin` is more direct — it only requires `linkedin_url`.
+- **Store the API key as an environment variable.** Reference it as `{{FINDYMAIL_API_KEY}}` in the `apiKey` field; never hard-code it in the workflow.
+- **Check `data.contact` for richer fields.** The `data` output contains the full Findymail contact object (name, company, job title, etc.) beyond just the email — pass it to an Agent block for further enrichment or qualification.

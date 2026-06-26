@@ -1,0 +1,101 @@
+---
+title: Infisical Tools
+description: List, fetch, and create secrets in an Infisical project environment
+icon: KeyRound
+---
+
+# Infisical Tools
+
+Infisical is a secrets-management platform. These tools let a workflow read and write secrets in an Infisical project (workspace) and environment through the Infisical API. Use them to fetch configuration/credentials at runtime or to store a generated secret back into your vault.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `infisical` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Infisical API token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List secrets | `infisical_list_secrets` | List the secrets in an Infisical project environment |
+| Get secret | `infisical_get_secret` | Get a single secret by name from an Infisical project environment |
+| Create secret | `infisical_create_secret` | Create a new secret in an Infisical project environment |
+
+All operations call the Infisical Raw Secrets API (`https://app.infisical.com/api/v3/secrets/raw`) and authenticate with `Authorization: Bearer <apiKey>`.
+
+## Configuration
+
+### `infisical_list_secrets`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Infisical API token. **Secret** — visibility `user-only` (never exposed to the LLM). Sent as a Bearer token. |
+| `workspaceId` | string | Yes | Infisical project (workspace) ID. |
+| `environment` | string | No | Environment slug. Defaults to `dev` when omitted. |
+
+### `infisical_get_secret`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Infisical API token. **Secret** — visibility `user-only`. Sent as a Bearer token. |
+| `workspaceId` | string | Yes | Infisical project (workspace) ID. |
+| `environment` | string | No | Environment slug. Defaults to `dev` when omitted. |
+| `secretName` | string | Yes | Name of the secret to retrieve (e.g. `DATABASE_URL`). |
+
+### `infisical_create_secret`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Infisical API token. **Secret** — visibility `user-only`. Sent as a Bearer token. |
+| `workspaceId` | string | Yes | Infisical project (workspace) ID. |
+| `environment` | string | No | Environment slug. Defaults to `dev` when omitted. |
+| `secretName` | string | Yes | Name of the secret to create. |
+| `secretValue` | string | Yes | Value to store for the secret. This is the secret payload — treat it as sensitive. |
+
+## Outputs
+
+### `infisical_list_secrets`
+
+- `data` (json) — Array of Infisical secret objects.
+- `metadata` (json) — List metadata, containing:
+  - `count` (number) — Number of secrets returned.
+
+### `infisical_get_secret`
+
+- `data` (json) — The Infisical secret object.
+- `metadata` (json) — Secret identifiers, containing:
+  - `secretName` (string) — Secret key name.
+
+### `infisical_create_secret`
+
+- `data` (json) — The created Infisical secret object.
+- `metadata` (json) — Secret identifiers, containing:
+  - `secretName` (string) — Secret key name.
+
+## YAML Example
+
+```yaml
+infisical_1:
+  type: infisical
+  name: "Infisical"
+  inputs:
+    operation: "infisical_list_secrets"
+    workspaceId: "65a1b2c3d4e5f6a7b8c9d0e1"
+    environment: "dev"
+    apiKey: "{{INFISICAL_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To fetch a single secret instead, set `operation: "infisical_get_secret"` and add `secretName`. To create one, use `operation: "infisical_create_secret"` with both `secretName` and `secretValue`. A downstream block can read a returned value with a reference such as `{{infisical_1.data}}`.
+
+## Tips
+
+- Generate an API token in the Infisical dashboard (Settings → Access Control / Service Tokens or a Machine Identity). It is passed as a Bearer token, so the token must have access to the target project and environment. Store it as an environment variable and reference it with `{{INFISICAL_API_KEY}}` rather than pasting it inline.
+- `workspaceId` is the Infisical **project** ID, not the Zelaxy workspace. `environment` is the environment slug (commonly `dev`, `staging`, `prod`) and defaults to `dev` if you leave it blank.
+- These tools target Infisical Cloud (`https://app.infisical.com`). The endpoint is fixed in code, so a self-hosted Infisical instance is not configurable here.
+- `secretValue` (on create) and the returned secret payloads are sensitive. Avoid logging them or echoing them into block outputs that get persisted.

@@ -1,7 +1,7 @@
 ---
 title: Airweave Block
 description: Search and retrieve data from Airweave collections
-icon: Box
+icon: Database
 ---
 
 # Airweave Block
@@ -23,34 +23,72 @@ The Airweave block brings semantic search into your workflows. Query a collectio
 - Get a synthesized, AI-generated answer directly from a collection without a separate LLM step.
 - Tune retrieval quality by switching between semantic, keyword, hybrid, or auto strategies.
 - Improve precision on large result sets by enabling reranking.
+- Surface context from synced sources (GitHub, Slack, and others) inside a multi-step workflow.
 
 ## Configuration
 
 ### Collection ID
-The ID of the Airweave collection to search. Required.
+
+The readable ID of the Airweave collection to search. Required. Can be passed from another block with `{{blockName.collectionId}}`.
 
 ### Query
-The natural-language search query describing what you want to find. Required.
+
+The natural-language search query describing what you want to find. Required. Supports `{{blockName.field}}` references to inject dynamic queries.
 
 ### Result Limit
-Maximum number of results to return. Choose from 5, 10, 20, or 50.
+
+Maximum number of results to return. Dropdown — choose one of:
+
+| Label | ID |
+|-------|----|
+| 5 | `5` |
+| 10 | `10` |
+| 20 | `20` |
+| 50 | `50` |
 
 ### Retrieval Strategy
-How matches are scored: Auto, Semantic, Keyword, or Hybrid.
+
+How matches are scored and retrieved. Dropdown — choose one of:
+
+| Label | ID |
+|-------|----|
+| Auto | `auto` |
+| Semantic | `semantic` |
+| Keyword | `keyword` |
+| Hybrid | `hybrid` |
+
+`hybrid` combines vector and keyword scoring and is the default strategy used by the underlying tool when no value is set.
 
 ### Generate Answer
-Toggle to have Airweave synthesize an AI-generated answer from the results.
+
+Toggle (switch). When enabled, Airweave synthesizes an AI-generated natural-language answer from the search results and returns it in the `completion` output.
 
 ### Rerank Results
-Toggle to rerank the returned results for higher precision.
+
+Toggle (switch). When enabled, the returned results are reordered by an LLM for higher relevance precision.
 
 ### API Key
-Your Airweave API key, stored securely. Required.
+
+Your Airweave API key, stored securely as a password field. Required. Use `{{AIRWEAVE_API_KEY}}` to reference an environment variable.
 
 ## Inputs & Outputs
 
-- **Inputs**: `collectionId` (string), `query` (string), `limit` (string), `retrievalStrategy` (string), `generateAnswer` (boolean), `rerank` (boolean), `apiKey` (string)
-- **Outputs**: `results` (json), `completion` (string)
+- **Inputs**:
+  - `collectionId` (string) — Collection ID to search
+  - `query` (string) — Search query text
+  - `limit` (string) — Maximum number of results to return
+  - `retrievalStrategy` (string) — Retrieval strategy (`auto`, `semantic`, `keyword`, or `hybrid`)
+  - `generateAnswer` (boolean) — Whether to generate an AI-powered answer from the results
+  - `rerank` (boolean) — Whether to rerank results for improved relevance
+  - `apiKey` (string) — Airweave API key for authentication
+
+- **Outputs**:
+  - `results` (json) — Array of search result objects, each containing: `entity_id`, `source_name`, `md_content` (markdown content, optional), `score` (relevance score), `metadata` (optional), `breadcrumbs` (navigation path, optional), `url` (link to original content, optional)
+  - `completion` (string) — AI-generated answer to the query; only present when `generateAnswer` is enabled
+
+## Tools
+
+**Airweave Search** (`airweave_search`) — Sends a POST request to `https://api.airweave.ai/collections/{collectionId}/search` using the provided API key. Supports semantic, keyword, and hybrid retrieval strategies. Optionally expands the query for better recall, reranks results with an LLM, and synthesizes a natural-language answer. Returns an array of result objects and an optional completion string.
 
 ## YAML Example
 
@@ -59,12 +97,13 @@ airweave_1:
   type: airweave
   name: "Airweave"
   inputs:
-    collectionId: "collection-id"
-    query: {{start.input}}
+    collectionId: "my-collection-id"
+    query: "{{start.input}}"
     limit: "10"
     retrievalStrategy: "hybrid"
     generateAnswer: true
-    apiKey: "{{secrets.AIRWEAVE_API_KEY}}"
+    rerank: false
+    apiKey: "{{AIRWEAVE_API_KEY}}"
   connections:
     outgoing:
       - target: next-block-id

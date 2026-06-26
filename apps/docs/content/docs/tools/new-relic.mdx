@@ -1,0 +1,80 @@
+---
+title: New Relic Tools
+description: Run NRQL queries and list alert policies in New Relic via the NerdGraph API.
+icon: Box
+---
+
+# New Relic Tools
+
+New Relic is an observability platform for querying telemetry and managing alerting. Use these tools in a workflow to run NRQL queries against a New Relic account or to enumerate the account's alert policies through the NerdGraph GraphQL API.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `new-relic` |
+| **Category** | `tools` |
+| **Auth** | API Key (New Relic user API key sent as the `Api-Key` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| NRQL query | `new_relic_nrql_query` | Run a NRQL query against a New Relic account using NerdGraph. |
+| List alert policies | `new_relic_list_alert_policies` | List alert policies for a New Relic account using NerdGraph. |
+
+## Configuration
+
+Both operations call the New Relic NerdGraph endpoint `POST https://api.newrelic.com/graphql`. Authentication is a New Relic **user API key** passed in the `Api-Key` request header.
+
+### `new_relic_nrql_query`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | New Relic user API key for NerdGraph. **Secret** — visibility `user-only` (not exposed to the LLM). |
+| `accountId` | number | Yes | New Relic account ID to query. Visibility `user-or-llm`. |
+| `nrql` | string | Yes | NRQL query to execute (e.g. `SELECT count(*) FROM Transaction SINCE 1 hour ago`). Visibility `user-or-llm`. |
+
+### `new_relic_list_alert_policies`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | New Relic user API key for NerdGraph. **Secret** — visibility `user-only` (not exposed to the LLM). |
+| `accountId` | number | Yes | New Relic account ID to list alert policies for. Visibility `user-or-llm`. |
+
+## Outputs
+
+### `new_relic_nrql_query`
+
+- `data` (json) — NRQL result rows (array of row objects).
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of result rows returned.
+
+### `new_relic_list_alert_policies`
+
+- `data` (json) — Array of alert policy objects (each with `id`, `name`, and `incidentPreference`).
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of alert policies returned.
+
+## YAML Example
+
+```yaml
+new_relic_1:
+  type: new_relic
+  name: "New Relic"
+  inputs:
+    operation: "new_relic_nrql_query"
+    accountId: 1234567
+    nrql: "SELECT count(*) FROM Transaction SINCE 1 hour ago"
+    apiKey: "{{NEW_RELIC_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Auth setup: Generate a **user API key** (it typically starts with `NRAK-`) in New Relic under API keys, and supply it as `apiKey`. It is sent as the `Api-Key` header to NerdGraph; keep it as a secret/env reference like `{{NEW_RELIC_API_KEY}}`.
+- The `accountId` must be a numeric account ID — it is truncated to an integer before being embedded in the GraphQL query, so pass a plain number (e.g. `1234567`), not a string with separators.
+- Both operations always return a `data` array plus `metadata.count`. When a query yields no rows or the account has no policies, `data` is an empty array and `count` is `0` rather than an error — branch on `{{new_relic_1.metadata.count}}` if you need to handle the empty case.
+- For NRQL, write valid NRQL in the `nrql` field (it is JSON-escaped into the NerdGraph query). The `nrql` parameter only applies to the `new_relic_nrql_query` operation.

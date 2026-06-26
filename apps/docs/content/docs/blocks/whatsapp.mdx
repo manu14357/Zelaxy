@@ -26,25 +26,42 @@ The WhatsApp block sends messages to WhatsApp users through the WhatsApp Busines
 
 ## Configuration
 
-### Recipient Phone Number
+### Recipient Phone Number (`phoneNumber`)
 The destination number in full international format, including country code (e.g., `+1234567890`). Required.
 
-### Message
-The text body to send to the recipient. Required.
+### Message (`message`)
+The text body to send to the recipient. Supports `{{block.field}}` references so you can inject dynamic content from earlier blocks. Required.
 
-### WhatsApp Phone Number ID
-Your WhatsApp Business Phone Number ID used to send the message. Required.
+### WhatsApp Phone Number ID (`phoneNumberId`)
+Your WhatsApp Business Phone Number ID used to authenticate and route the outbound message. Required.
 
-### Access Token
-Your WhatsApp Business API access token. Stored as a secret. Required.
+### Access Token (`accessToken`)
+Your WhatsApp Business API access token. Stored as a password field. Required. Provide via `{{WHATSAPP_ACCESS_TOKEN}}` to avoid embedding credentials in plaintext.
 
-### Trigger Configuration
-Configures the `whatsapp_webhook` trigger so the block can also receive inbound WhatsApp messages and start a workflow.
+### Trigger Configuration (`triggerConfig`)
+Configures the `whatsapp_webhook` trigger so the block can also receive inbound WhatsApp messages and start a workflow. When enabled, the block exposes the `from`, `to`, `text`, `timestamp`, and `type` outputs that carry the payload of the incoming message.
 
 ## Inputs & Outputs
 
-- **Inputs**: `phoneNumber` (string), `message` (string), `phoneNumberId` (string), `accessToken` (string)
-- **Outputs**: `success` (boolean), `messageId` (string), `error` (string), `from` (string), `to` (string), `text` (string), `timestamp` (string), `type` (string)
+- **Inputs**:
+  - `phoneNumber` (string) — Recipient phone number with country code
+  - `message` (string) — Message text to send
+  - `phoneNumberId` (string) — WhatsApp Business Phone Number ID
+  - `accessToken` (string) — WhatsApp Business API access token
+
+- **Outputs**:
+  - `success` (boolean) — Send success status
+  - `messageId` (string) — WhatsApp message identifier returned by the API
+  - `error` (string) — Error information if sending fails
+  - `from` (string) — Sender phone number (webhook trigger output)
+  - `to` (string) — Recipient phone number (webhook trigger output)
+  - `text` (string) — Message text content (webhook trigger output)
+  - `timestamp` (string) — Message timestamp (webhook trigger output)
+  - `type` (string) — Message type, e.g. `text`, `image` (webhook trigger output)
+
+## Tools
+
+- **WhatsApp** (`whatsapp_send_message`) — Sends a text message to a WhatsApp user via the WhatsApp Business API (`graph.facebook.com/v22.0`). Requires `phoneNumber`, `message`, `phoneNumberId`, and `accessToken`. Returns `success`, `messageId`, `phoneNumber`, `status`, and `timestamp`.
 
 ## YAML Example
 
@@ -56,7 +73,7 @@ whatsapp_1:
     phoneNumber: "+1234567890"
     message: "{{start.input}}"
     phoneNumberId: "123456789012345"
-    accessToken: "{{secrets.WHATSAPP_ACCESS_TOKEN}}"
+    accessToken: "{{WHATSAPP_ACCESS_TOKEN}}"
   connections:
     outgoing:
       - target: next-block-id

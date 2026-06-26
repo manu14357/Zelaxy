@@ -22,54 +22,109 @@ The ArXiv block lets you search for academic papers, retrieve paper metadata, an
 - Look up the full metadata of a specific paper when you already have its ArXiv ID.
 - Retrieve the publication list for a given author.
 - Build research-assistant workflows that gather citations or related work automatically.
-- Filter results by a specific field (title, author, abstract, category) and control sorting.
+- Filter search results by a specific field (title, author, abstract, category) and control result ordering.
+- Cap the number of results returned to keep downstream processing manageable.
 
 ## Configuration
 
 ### Operation
 
-Dropdown that selects what the block does: Search Papers (`arxiv_search`), Get Paper Details (`arxiv_get_paper`), or Get Author Papers (`arxiv_get_author_papers`). Defaults to Search Papers.
+Dropdown (required). Selects what the block does. Defaults to Search Papers.
+
+| Label | ID |
+|-------|----|
+| Search Papers | `arxiv_search` |
+| Get Paper Details | `arxiv_get_paper` |
+| Get Author Papers | `arxiv_get_author_papers` |
 
 ### Search Query
 
-The terms to search for (required for the Search Papers operation).
+Long text input (required for `arxiv_search`). The keywords or phrases to search for (e.g. `"machine learning"`, `"quantum physics"`).
+
+Only shown when **Operation** is `arxiv_search`.
 
 ### Search Field
 
-Restricts the search to a field: All Fields, Title, Author, Abstract, Comment, Journal Reference, Category, or Report Number.
+Dropdown (optional, `arxiv_search` only). Restricts the query to a specific metadata field. Defaults to All Fields.
+
+| Label | ID |
+|-------|----|
+| All Fields | `all` |
+| Title | `ti` |
+| Author | `au` |
+| Abstract | `abs` |
+| Comment | `co` |
+| Journal Reference | `jr` |
+| Category | `cat` |
+| Report Number | `rn` |
+
+Only shown when **Operation** is `arxiv_search`.
 
 ### Max Results
 
-Maximum number of papers to return for search and author-paper operations.
+Short text input (optional). Maximum number of papers to return. Defaults to 10; ArXiv caps at 2000.
 
-### Sort By / Sort Order
+Shown for both `arxiv_search` and `arxiv_get_author_papers` operations.
 
-Order results by Relevance, Last Updated Date, or Submitted Date, in Descending or Ascending order.
+### Sort By
+
+Dropdown (optional, `arxiv_search` only). Controls how results are ordered. Defaults to Relevance.
+
+| Label | ID |
+|-------|----|
+| Relevance | `relevance` |
+| Last Updated Date | `lastUpdatedDate` |
+| Submitted Date | `submittedDate` |
+
+Only shown when **Operation** is `arxiv_search`.
+
+### Sort Order
+
+Dropdown (optional, `arxiv_search` only). Controls ascending or descending order. Defaults to Descending.
+
+| Label | ID |
+|-------|----|
+| Descending | `descending` |
+| Ascending | `ascending` |
+
+Only shown when **Operation** is `arxiv_search`.
 
 ### Paper ID
 
-The ArXiv identifier (e.g. `1706.03762`) required for the Get Paper Details operation.
+Short text input (required for `arxiv_get_paper`). The ArXiv identifier for the paper (e.g. `1706.03762` or `cs.AI/0001001`). Full `arxiv.org/abs/` URLs are accepted and stripped automatically.
+
+Only shown when **Operation** is `arxiv_get_paper`.
 
 ### Author Name
 
-The author to look up papers for, required for the Get Author Papers operation.
+Short text input (required for `arxiv_get_author_papers`). The name of the author whose papers you want to retrieve (e.g. `"John Smith"`).
+
+Only shown when **Operation** is `arxiv_get_author_papers`.
 
 ## Inputs & Outputs
 
 - **Inputs**:
-  - `operation` (string)
-  - `searchQuery` (string)
-  - `searchField` (string)
-  - `maxResults` (number)
-  - `sortBy` (string)
-  - `sortOrder` (string)
-  - `paperId` (string)
-  - `authorName` (string)
+  - `operation` (string) — Operation to perform (`arxiv_search`, `arxiv_get_paper`, or `arxiv_get_author_papers`)
+  - `searchQuery` (string) — Search terms for the Search Papers operation
+  - `searchField` (string) — Metadata field to restrict the search to
+  - `maxResults` (number) — Maximum number of results to return
+  - `sortBy` (string) — Field to sort results by
+  - `sortOrder` (string) — Sort direction (ascending or descending)
+  - `paperId` (string) — ArXiv paper identifier for the Get Paper Details operation
+  - `authorName` (string) — Author name for the Get Author Papers operation
 - **Outputs**:
-  - `papers` (json)
-  - `totalResults` (number)
-  - `paper` (json)
-  - `authorPapers` (json)
+  - `papers` (json) — Array of papers matching the search query (Search Papers)
+  - `totalResults` (number) — Total result count (Search Papers and Get Author Papers)
+  - `paper` (json) — Detailed metadata for a single paper (Get Paper Details)
+  - `authorPapers` (json) — Array of papers authored by the specified author (Get Author Papers)
+
+Each paper object (in `papers`, `paper`, and `authorPapers`) includes: `id`, `title`, `summary`, `authors`, `published`, `updated`, `link`, `pdfLink`, `categories`, `primaryCategory`, `comment`, `journalRef`, and `doi`.
+
+## Tools
+
+- **ArXiv Search** (`arxiv_search`) — Searches the ArXiv API for papers matching keywords or field-scoped queries. Accepts `searchQuery` (required), `searchField`, `maxResults`, `sortBy`, and `sortOrder`. Returns `papers` and `totalResults`.
+- **ArXiv Get Paper** (`arxiv_get_paper`) — Fetches detailed metadata for a single paper by its ArXiv ID. Accepts `paperId` (required). Returns `paper`.
+- **ArXiv Get Author Papers** (`arxiv_get_author_papers`) — Searches for all papers attributed to a specific author. Accepts `authorName` (required) and `maxResults`. Returns `authorPapers` and `totalResults`. Results are sorted by submitted date (descending) automatically.
 
 ## YAML Example
 

@@ -1,12 +1,12 @@
 ---
 title: Quiver Block
 description: Convert text and images to SVG with AI
-icon: Box
+icon: Pen
 ---
 
 # Quiver Block
 
-The Quiver block generates clean, scalable SVG graphics from text prompts or existing images using AI. Reach for it when you need vector artwork, icons, or illustrations produced on the fly within a workflow, with support for multiple generation models and reference images.
+The Quiver block generates clean, scalable SVG graphics from text prompts or existing images using AI. Reach for it when you need vector artwork, icons, or illustrations produced on the fly within a workflow, with support for multiple generation models and optional reference images.
 
 ## Overview
 
@@ -23,51 +23,131 @@ The Quiver block generates clean, scalable SVG graphics from text prompts or exi
 - Produce multiple SVG variants of a concept in a single step.
 - Steer output with reference images and detailed style instructions.
 - Discover which Quiver models are available before generating.
-- Tune generation behavior (temperature, top-p, output length) for deterministic or varied results.
+- Tune generation behavior (temperature, top-p, presence penalty, output length) for deterministic or more varied results.
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting what the block does: `Text to SVG`, `Image to SVG`, or `List Models`. Defaults to Text to SVG.
+Dropdown that selects what the block does. Defaults to `text_to_svg`.
+
+| Label | ID |
+|---|---|
+| Text to SVG | `text_to_svg` |
+| Image to SVG | `image_to_svg` |
+| List Models | `list_models` |
 
 ### API Key
 
-Your Quiver API key (required, stored as a password field).
+Required. Your Quiver API key, stored as a password field. Used by all three operations.
 
 ### Model
 
-Choose the generation model: `Quiver Mini` or `Quiver Pro`. Shown for the Text to SVG and Image to SVG operations.
+Dropdown to select the generation model. Shown for `text_to_svg` and `image_to_svg`. Defaults to `quiver-mini`.
+
+| Label | ID |
+|---|---|
+| Quiver Mini | `quiver-mini` |
+| Quiver Pro | `quiver-pro` |
 
 ### Prompt
 
-The text description of the SVG to generate (required for Text to SVG).
+Long-text input. Required for `text_to_svg`. A natural-language description of the SVG to generate.
 
 ### Instructions
 
-Optional style or detail instructions to refine Text to SVG output.
+Long-text input. Optional style or formatting guidance for the `text_to_svg` operation (e.g., "flat, minimal style with rounded corners").
 
-### Reference Images / Reference Image URLs
+### Reference Images
 
-Provide reference images either as file uploads (basic mode) or as comma-separated URLs (advanced mode) for Text to SVG.
+File-upload field (basic mode, multiple files allowed). Provide up to 4 reference images to guide generation. Shown for `text_to_svg`.
 
-### Image File / Image URL
+### Reference Image URLs
 
-The source image to vectorize for the Image to SVG operation, supplied as a file upload (basic) or a URL (advanced).
+Short-text input (advanced mode). Comma-separated image URLs used as references when operating in advanced mode. Shown for `text_to_svg`.
 
-### Advanced Options
+### Number of Variants
 
-`Number of Variants`, `Auto Crop`, `Target Size (px)`, `Temperature`, `Top P`, `Max Output Tokens`, and `Presence Penalty` fine-tune generation.
+Short-text input (advanced mode). How many SVG variants to generate (1–16, default 1). Shown for `text_to_svg`.
+
+### Image File
+
+File-upload field (basic mode, single file, required). The raster image to vectorize. Shown for `image_to_svg`.
+
+### Image URL
+
+Short-text input (advanced mode, required). URL of the raster image to vectorize. Shown for `image_to_svg`.
+
+### Auto Crop
+
+Dropdown (advanced mode). Whether to automatically crop the image before vectorizing. Shown for `image_to_svg`.
+
+| Label | ID |
+|---|---|
+| Default | `` (empty string) |
+| Yes | `true` |
+| No | `false` |
+
+### Target Size (px)
+
+Short-text input (advanced mode). Square resize target in pixels (128–4096). Shown for `image_to_svg`.
+
+### Temperature
+
+Short-text input (advanced mode). Sampling temperature (0–2, default 1.0). Available for all operations.
+
+### Top P
+
+Short-text input (advanced mode). Nucleus sampling probability (0–1, default 1.0). Available for all operations.
+
+### Max Output Tokens
+
+Short-text input (advanced mode). Maximum output tokens (1–131072, default 65536). Available for all operations.
+
+### Presence Penalty
+
+Short-text input (advanced mode). Token penalty for tokens that already appear in output (−2 to 2, default 0). Available for all operations.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `model` (string), `prompt` (string), `instructions` (string), `referenceFiles` (json), `referenceInput` (string), `n` (number), `imageFile` (json), `imageInput` (string), `autoCrop` (string), `targetSize` (number), `temperature` (number), `topP` (number), `maxOutputTokens` (number), `presencePenalty` (number)
-- **Outputs**: `file` (json), `files` (json), `svgContent` (string), `id` (string), `usage` (json), `models` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`text_to_svg`, `image_to_svg`, or `list_models`)
+  - `apiKey` (string) — Quiver API key
+  - `model` (string) — Model to use for generation
+  - `prompt` (string) — Text prompt for SVG generation (text_to_svg only)
+  - `instructions` (string) — Style instructions for the SVG (text_to_svg only)
+  - `referenceFiles` (json) — Reference image files uploaded directly (text_to_svg, basic mode)
+  - `referenceInput` (string) — Reference image URLs, comma-separated (text_to_svg, advanced mode)
+  - `n` (number) — Number of SVG variants to generate (text_to_svg only)
+  - `imageFile` (json) — Image file to vectorize (image_to_svg, basic mode)
+  - `imageInput` (string) — Image URL to vectorize (image_to_svg, advanced mode)
+  - `autoCrop` (string) — Auto crop the image before processing (image_to_svg only)
+  - `targetSize` (number) — Target size in pixels for resizing (image_to_svg only)
+  - `temperature` (number) — Generation temperature
+  - `topP` (number) — Top-p sampling parameter
+  - `maxOutputTokens` (number) — Maximum output tokens
+  - `presencePenalty` (number) — Presence penalty
+
+- **Outputs**:
+  - `file` (json) — Generated SVG file (first result)
+  - `files` (json) — Array of all generated SVG files when `n > 1`
+  - `svgContent` (string) — SVG content as a raw markup string
+  - `id` (string) — Generation request ID
+  - `usage` (json) — Token usage statistics (`totalTokens`, `inputTokens`, `outputTokens`)
+  - `models` (json) — List of available QuiverAI models (list_models only)
+
+## Tools
+
+**Quiver Text to SVG** (`quiver_text_to_svg`) — Calls the QuiverAI API to generate one or more SVG images from a text prompt. Supports reference images, style instructions, and sampling parameters.
+
+**Quiver Image to SVG** (`quiver_image_to_svg`) — Converts a raster image (supplied as a file or URL) into vector SVG format using QuiverAI. Supports auto-crop, target-size resizing, and sampling parameters.
+
+**Quiver List Models** (`quiver_list_models`) — Retrieves all available QuiverAI models from the `/v1/models` endpoint, returning metadata including supported operations, input/output modalities, and context lengths.
 
 ## YAML Example
 
 ```yaml
-quiver-1:
+quiver_1:
   type: quiver
   name: "Quiver"
   inputs:
@@ -76,6 +156,7 @@ quiver-1:
     model: "quiver-mini"
     prompt: "{{start.input}}"
     instructions: "Flat, minimal style with rounded corners"
+    n: 1
   connections:
     outgoing:
       - target: next-block-id

@@ -1,0 +1,104 @@
+---
+title: Amazon SQS Tools
+description: Send, receive, and list messages on Amazon SQS queues from a workflow.
+icon: Box
+---
+
+# Amazon SQS Tools
+
+The Amazon SQS provider lets a workflow interact with Amazon Simple Queue Service (SQS): send messages onto a queue, receive (poll) messages from a queue, and list the queues in an AWS account. Use these tools to decouple workflow steps from downstream consumers, fan out work to a queue, or drain pending messages for processing. Requests are signed directly with AWS Signature Version 4 (SigV4) using your AWS access key credentials — no AWS SDK or proxy is required.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `sqs` |
+| **Category** | `tools` |
+| **Auth** | AWS SigV4 (AWS access key ID + secret access key, signed per request) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Send message | `sqs_send_message` | Send a message to an Amazon SQS queue |
+| Receive messages | `sqs_receive_message` | Receive (poll) messages from an Amazon SQS queue |
+| List queues | `sqs_list_queues` | List Amazon SQS queues, optionally filtered by name prefix |
+
+All three operations issue a signed `POST` to `https://sqs.{awsRegion}.amazonaws.com/` using the AWS JSON protocol (the `X-Amz-Target` header selects the specific SQS action).
+
+## Configuration
+
+### `sqs_send_message`
+
+Send a message to an Amazon SQS queue.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g. `us-east-1`). Used to build the endpoint URL and the SigV4 credential scope. |
+| `awsAccessKeyId` | string | Yes | AWS access key ID. **Secret** — set as a password/credential, not a literal. |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key. **Secret** — set as a password/credential, not a literal. |
+| `queueUrl` | string | Yes | The SQS queue URL (e.g. `https://sqs.us-east-1.amazonaws.com/123456789012/my-queue`). |
+| `messageBody` | string | Yes | The message body to send. |
+
+### `sqs_receive_message`
+
+Receive messages from an Amazon SQS queue.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g. `us-east-1`). Used to build the endpoint URL and the SigV4 credential scope. |
+| `awsAccessKeyId` | string | Yes | AWS access key ID. **Secret** — set as a password/credential, not a literal. |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key. **Secret** — set as a password/credential, not a literal. |
+| `queueUrl` | string | Yes | The SQS queue URL to receive messages from. |
+| `maxMessages` | number | No | Max messages to return (1-10, default 10). |
+
+### `sqs_list_queues`
+
+List Amazon SQS queues, optionally filtered by name prefix.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g. `us-east-1`). Used to build the endpoint URL and the SigV4 credential scope. |
+| `awsAccessKeyId` | string | Yes | AWS access key ID. **Secret** — set as a password/credential, not a literal. |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key. **Secret** — set as a password/credential, not a literal. |
+| `prefix` | string | No | Filter queues by name prefix. Omit to return all queues. |
+
+## Outputs
+
+### `sqs_send_message`
+
+- `data` (json) — SQS `SendMessage` result (e.g. `MessageId`, `MD5OfMessageBody`).
+
+### `sqs_receive_message`
+
+- `data` (json) — SQS `ReceiveMessage` result (a `Messages` array; empty/absent when no messages are available).
+
+### `sqs_list_queues`
+
+- `data` (json) — SQS `ListQueues` result (a `QueueUrls` array).
+
+## YAML Example
+
+```yaml
+sqs_1:
+  type: sqs
+  name: "Amazon SQS"
+  inputs:
+    operation: "sqs_send_message"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+    queueUrl: "https://sqs.us-east-1.amazonaws.com/123456789012/my-queue"
+    messageBody: "Hello from Zelaxy"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To receive messages instead, set `operation: "sqs_receive_message"` with `queueUrl` (and optional `maxMessages`); to list queues, set `operation: "sqs_list_queues"` with an optional `prefix`. Reference the result downstream with `{{sqs_1.data}}` (for example, the message id after a send or the `Messages` array after a receive).
+
+## Tips
+
+- Auth is AWS SigV4, not an API key or OAuth. You must supply `awsRegion`, `awsAccessKeyId`, and `awsSecretAccessKey` on every operation; each request is signed individually. Store the access key id and secret as secrets/environment variables (e.g. `{{AWS_ACCESS_KEY_ID}}`, `{{AWS_SECRET_ACCESS_KEY}}`) rather than inlining them.
+- The `awsRegion` must match the region of your `queueUrl` — it is used to build both the endpoint host (`https://sqs.{awsRegion}.amazonaws.com/`) and the signing scope, so a mismatch will fail signature verification or hit the wrong queue.
+- `sqs_receive_message` returns up to `maxMessages` (1-10, default 10) and may legitimately return no `Messages` when the queue is empty — handle the empty case downstream. Note this tool receives messages but does not delete them; messages will reappear after the queue's visibility timeout unless you delete them separately.

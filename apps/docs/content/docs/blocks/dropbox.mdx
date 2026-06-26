@@ -22,33 +22,82 @@ The Dropbox block integrates Dropbox file storage into your workflows. Use it to
 - Download an existing Dropbox file so a later block can process its contents.
 - List the contents of a folder to drive downstream logic over each item.
 - Create folders to organize generated output.
-- Delete files that are no longer needed.
-- Generate a shareable link for a stored file, or search Dropbox by filename or keyword.
+- Delete files or folders that are no longer needed after processing.
+- Generate a shareable link for a stored file, retrieve metadata, or search Dropbox by filename or keyword.
 
 ## Configuration
 
 ### Operation
-Select the Dropbox action to run: Upload File, Download File, List Folder, Create Folder, Delete File, Get File Metadata, Create Shared Link, or Search Files. This choice drives which other fields are shown.
+
+Required dropdown. Selects which Dropbox action to run and controls which additional fields are shown.
+
+| Label | id |
+|-------|----|
+| Upload File | `dropbox_upload_file` |
+| Download File | `dropbox_download_file` |
+| List Folder | `dropbox_list_folder` |
+| Create Folder | `dropbox_create_folder` |
+| Delete File | `dropbox_delete_file` |
+| Get File Metadata | `dropbox_get_file_metadata` |
+| Create Shared Link | `dropbox_create_shared_link` |
+| Search Files | `dropbox_search_files` |
 
 ### Dropbox Account
-Connect the Dropbox account to use via OAuth (`credential`).
+
+OAuth connection to the Dropbox account to use (`credential`, type: `oauth-input`, provider: `dropbox`). Required for all operations.
 
 ### Path
-The file or folder path to operate on (for example `/path/to/file.pdf`). Required.
+
+The Dropbox file or folder path to operate on (e.g. `/path/to/file.pdf`). Required for all operations except Search Files (which uses `query` instead). Use `""` for the root folder when listing.
 
 ### Search Query
-The filename or keyword to match. Shown for the Search Files operation.
+
+A filename or keyword to match. Shown only for the **Search Files** (`dropbox_search_files`) operation. Condition: `operation == dropbox_search_files`.
 
 ### File
-The file to upload. Shown for the Upload File operation.
+
+The file to upload (`uploadFile`, type: `file-upload`). Shown only for the **Upload File** (`dropbox_upload_file`) operation. Condition: `operation == dropbox_upload_file`.
 
 ### Write Mode
-How to write an uploaded file — Add or Overwrite. Shown for the Upload File operation.
+
+How to handle an upload when a file already exists at the destination path. Shown only for the **Upload File** operation. Condition: `operation == dropbox_upload_file`.
+
+| Label | id |
+|-------|----|
+| Add | `add` |
+| Overwrite | `overwrite` |
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `oauthCredential` (string), `path` (string), `query` (string), `mode` (string)
-- **Outputs**: `file` (json — file metadata), `files` (json — file list), `sharedLink` (string — shared link URL)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (matches one of the operation option ids above)
+  - `oauthCredential` (string) — OAuth credential for authenticating with Dropbox
+  - `path` (string) — File or folder path in Dropbox
+  - `query` (string) — Search query (Search Files operation only)
+  - `mode` (string) — Write mode (`add` or `overwrite`, Upload File operation only)
+
+- **Outputs**:
+  - `file` (json) — File metadata returned by single-item operations (upload, download, create folder, delete, get metadata, create shared link)
+  - `files` (json) — File list returned by listing and search operations
+  - `sharedLink` (string) — Shared link URL returned by the Create Shared Link operation
+
+## Tools
+
+**Dropbox Upload File** (`dropbox_upload_file`) — Uploads file content to a destination path in Dropbox. Accepts `path`, `content` (text), `mode` (`add`/`overwrite`/`update`), and `autorename`. Returns `id`, `path`, `name`, `size`, and `modified`.
+
+**Dropbox Download File** (`dropbox_download_file`) — Downloads a file from Dropbox by path. Returns `content` (file text), `name`, and `size`.
+
+**Dropbox List Folder** (`dropbox_list_folder`) — Lists the contents of a Dropbox folder. Accepts `path` (use `""` for root). Returns `entries` (array of file/folder objects), `cursor`, and `hasMore`.
+
+**Dropbox Create Folder** (`dropbox_create_folder`) — Creates a new folder at the given path. Returns `id`, `path`, and `name`.
+
+**Dropbox Delete File** (`dropbox_delete_file`) — Deletes a file or folder at the given path. Returns `path` and `name` of the deleted item.
+
+**Dropbox Get File Metadata** (`dropbox_get_file_metadata`) — Retrieves metadata for a file or folder. Returns `id`, `path`, `name`, `size` (optional), `modified` (optional), and `isFolder`.
+
+**Dropbox Create Shared Link** (`dropbox_create_shared_link`) — Creates a public shared link for a file or folder. Returns `url`, `path`, and `name`.
+
+**Dropbox Search Files** (`dropbox_search_files`) — Searches across all files and folders in Dropbox using a query string (up to 100 results). Returns `matches` (array), `cursor`, and `hasMore`.
 
 ## YAML Example
 
@@ -58,7 +107,7 @@ dropbox_1:
   name: "Dropbox"
   inputs:
     operation: "dropbox_upload_file"
-    credential: "{{DROPBOX_CREDENTIAL}}"
+    oauthCredential: "{{DROPBOX_CREDENTIAL}}"
     path: "/reports/summary.pdf"
     uploadFile: "{{start.file}}"
     mode: "overwrite"

@@ -6,50 +6,82 @@ icon: Box
 
 # Confluence Block
 
-The Confluence block connects to Confluence workspaces to retrieve and search documentation. Reach for it when you need to pull page content and metadata into a workflow, or push updates back to a Confluence page.
+The Confluence block connects to Confluence workspaces to retrieve and update documentation pages. Reach for it when you need to pull page content and metadata into a workflow, or push updates back to a Confluence page.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `confluence` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#E0E0E0` |
 
 ## When to Use
 
-- Read the content and metadata of a Confluence page to feed it into downstream steps.
+- Read the content and metadata of a specific Confluence page to feed it into downstream steps.
 - Bring product or internal documentation into an AI agent's context.
-- Update an existing Confluence page's title and content programmatically.
-- Sync workflow-generated output back to a knowledge base page.
+- Update an existing Confluence page's title and body content programmatically.
+- Sync workflow-generated output back to a team knowledge-base page.
 - Automate documentation maintenance triggered by other workflow events.
+- Chain multiple Confluence reads to aggregate documentation from several pages.
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting what to do: `Read Page` (`read`) or `Update Page` (`update`). Defaults to `read`.
+Dropdown selecting what action to perform. Defaults to `read`.
+
+| Label | ID |
+|-------|----|
+| Read Page | `read` |
+| Update Page | `update` |
 
 ### Domain
 
-The Confluence domain to connect to (for example `zelaxy.atlassian.net`). Required.
+`domain` — short text input. Your Confluence domain (for example `zelaxy.atlassian.net`). Required for both operations.
 
 ### Confluence Account
 
-OAuth credential for the Confluence account, with read/write page scopes. Required.
+`credential` — OAuth credential picker. Connect the Confluence account that will be used to call the API. Requires the following OAuth scopes: `read:page:confluence`, `write:page:confluence`, `read:me`, `offline_access`. Required.
 
-### Select Page / Page ID
+### Select Page
 
-In basic mode, pick a page with the file selector (`pageId`). In advanced mode, enter the page identifier manually (`manualPageId`).
+`pageId` — file selector (basic mode). Browse and pick a Confluence page from the connected account. Available when the block is in basic mode.
 
-### New Title / New Content
+### Page ID
 
-Shown only for the `update` operation: the new `title` and `content` to write to the page.
+`manualPageId` — short text input (advanced mode). Enter the Confluence page ID directly. Available when the block is in advanced mode. Either `pageId` or `manualPageId` must resolve to a non-empty value at runtime.
+
+### New Title
+
+`title` — short text input. The replacement title for the page. Shown only when **Operation** is `update`.
+
+### New Content
+
+`content` — long text input. The replacement body content for the page, in Confluence storage format (HTML-like markup). Shown only when **Operation** is `update`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `domain` (string), `credential` (string), `pageId` (string), `manualPageId` (string), `title` (string), `content` (string)
-- **Outputs**: `ts` (string), `pageId` (string), `content` (string), `title` (string), `success` (boolean)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`read` or `update`)
+  - `domain` (string) — Confluence domain
+  - `credential` (string) — Confluence access token (OAuth)
+  - `pageId` (string) — Page identifier selected via file picker (basic mode)
+  - `manualPageId` (string) — Manual page identifier (advanced mode)
+  - `title` (string) — New page title (update operation only)
+  - `content` (string) — New page content (update operation only)
+
+- **Outputs**:
+  - `ts` (string) — Timestamp of the operation
+  - `pageId` (string) — Confluence page identifier
+  - `content` (string) — Page content with HTML tags stripped (read operation)
+  - `title` (string) — Page title
+  - `success` (boolean) — Operation success status
+
+## Tools
+
+- **Confluence Retrieve** (`confluence_retrieve`) — Fetches the content, title, and metadata of a Confluence page by page ID. Uses a POST request to the Confluence page API route and strips HTML tags from the returned body. Used when `operation` is `read`.
+- **Confluence Update** (`confluence_update`) — Updates the title and/or body content of an existing Confluence page by page ID. Sends a PUT request with the new title and content in Confluence storage format, along with a version object to prevent edit conflicts. Used when `operation` is `update`.
 
 ## YAML Example
 
@@ -60,8 +92,8 @@ confluence_1:
   inputs:
     operation: "read"
     domain: "zelaxy.atlassian.net"
-    credential: "{{credentials.confluence}}"
-    pageId: "123456"
+    credential: "{{CONFLUENCE_ACCESS_TOKEN}}"
+    pageId: "123456789"
   connections:
     outgoing:
       - target: next-block-id

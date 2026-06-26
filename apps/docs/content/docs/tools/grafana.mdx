@@ -1,0 +1,133 @@
+---
+title: Grafana Tools
+description: Search dashboards and inspect data sources and alerts in Grafana
+icon: Box
+---
+
+# Grafana Tools
+
+The Grafana provider lets a workflow query a Grafana instance over its HTTP API: search dashboards, fetch a dashboard by UID, list configured data sources, and list provisioned alert rules. Use these tools when a workflow needs to read observability metadata from Grafana, for example to look up a dashboard before posting a link or to audit alert rules and data sources.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `grafana` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Grafana service account token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Search dashboards | `grafana_search_dashboards` | Search and list dashboards in a Grafana instance |
+| Get dashboard | `grafana_get_dashboard` | Get a Grafana dashboard by its UID |
+| List datasources | `grafana_list_datasources` | List all data sources configured in a Grafana instance |
+| List alerts | `grafana_list_alerts` | List all provisioned alert rules in a Grafana instance |
+
+## Configuration
+
+Every operation authenticates with a Grafana service account token, sent as `Authorization: Bearer <apiKey>`. The `instanceUrl` is the base URL of your Grafana instance (any trailing slash is trimmed automatically).
+
+### grafana_search_dashboards
+
+Calls `GET {instanceUrl}/api/search?type=dash-db` (the `query` value is appended as the `query` search parameter when provided).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grafana service account token. **Secret** — provided by the user (`user-only`), not the LLM. |
+| `instanceUrl` | string | Yes | Grafana instance URL, e.g. `https://your.grafana.net` (`user-only`). |
+| `query` | string | No | Search query to filter dashboards by title (`user-or-llm`). |
+
+### grafana_get_dashboard
+
+Calls `GET {instanceUrl}/api/dashboards/uid/{uid}` (the `uid` is trimmed of surrounding whitespace).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grafana service account token. **Secret** — provided by the user (`user-only`), not the LLM. |
+| `instanceUrl` | string | Yes | Grafana instance URL, e.g. `https://your.grafana.net` (`user-only`). |
+| `uid` | string | Yes | UID of the dashboard to retrieve (`user-or-llm`). |
+
+### grafana_list_datasources
+
+Calls `GET {instanceUrl}/api/datasources`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grafana service account token. **Secret** — provided by the user (`user-only`), not the LLM. |
+| `instanceUrl` | string | Yes | Grafana instance URL, e.g. `https://your.grafana.net` (`user-only`). |
+
+### grafana_list_alerts
+
+Calls `GET {instanceUrl}/api/v1/provisioning/alert-rules`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grafana service account token. **Secret** — provided by the user (`user-only`), not the LLM. |
+| `instanceUrl` | string | Yes | Grafana instance URL, e.g. `https://your.grafana.net` (`user-only`). |
+
+## Outputs
+
+### grafana_search_dashboards
+
+- `data` (json) — Array of dashboard search results.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of dashboards returned.
+
+### grafana_get_dashboard
+
+- `data` (json) — The dashboard object and metadata returned by Grafana.
+- `metadata` (json) — Dashboard identifiers.
+  - `metadata.uid` (string) — Dashboard UID.
+
+### grafana_list_datasources
+
+- `data` (json) — Array of data source objects.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of data sources returned.
+
+### grafana_list_alerts
+
+- `data` (json) — Array of alert rule objects.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of alert rules returned.
+
+## YAML Example
+
+```yaml
+grafana_1:
+  type: grafana
+  name: "Grafana"
+  inputs:
+    operation: "grafana_search_dashboards"
+    instanceUrl: "https://your.grafana.net"
+    query: "production"
+    apiKey: "{{GRAFANA_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To fetch a specific dashboard instead, switch the operation and supply a `uid`:
+
+```yaml
+grafana_2:
+  type: grafana
+  name: "Grafana"
+  inputs:
+    operation: "grafana_get_dashboard"
+    instanceUrl: "https://your.grafana.net"
+    uid: "abc123def"
+    apiKey: "{{GRAFANA_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authenticate with a Grafana **service account token** (a value starting with `glsa_`), not a username/password. It is sent as a Bearer token and should be stored as an environment variable and referenced with `{{GRAFANA_API_KEY}}` rather than hard-coded.
+- `instanceUrl` is the base URL only (e.g. `https://your.grafana.net`); the tool appends the API path and strips any trailing slash, so do not include `/api/...` yourself.
+- `grafana_list_alerts` reads **provisioned** alert rules via `/api/v1/provisioning/alert-rules`; the service account token must have permission to read provisioning, otherwise the call will fail.
+- Reference a previous block's results downstream with `{{grafana_1.data}}` and `{{grafana_1.metadata.count}}`. The `data` field is always JSON — an array for the search/list operations and a single object for get-dashboard.

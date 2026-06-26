@@ -23,19 +23,31 @@ The DSPy block runs DSPy language model programs inside your workflow, letting y
 - Build multi-step LLM pipelines that need composition and optimization
 - Run structured prediction tasks where you want a typed prediction object back
 - Integrate existing DSPy programs into a larger Zelaxy workflow
+- Connect to a self-hosted or remote DSPy server with optional API key authentication
 
 ## Configuration
 
 ### DSPy Program (Code)
-A required code editor where you write the DSPy program to run (e.g. `import dspy` and your module/signature definitions).
+
+A required code editor where you write the DSPy program to run. Start with `import dspy` and define your module, signature, or chain. This field is mapped to the `program` input.
 
 ### Input
-A long-input field providing the input passed to the DSPy program at execution time. Commonly references an upstream block's output.
+
+A long-input field providing the data passed to the DSPy program at execution time. Commonly references an upstream block's output using `{{blockName.field}}`. Mapped to the `input` input.
 
 ## Inputs & Outputs
 
-- **Inputs**: `program` (string — DSPy program code), `input` (string — program input)
-- **Outputs**: `output` (string — program output), `prediction` (json — prediction object)
+- **Inputs**:
+  - `program` (string) — DSPy program code to execute
+  - `input` (string) — Input to pass to the DSPy program
+
+- **Outputs**:
+  - `output` (string) — Program output (resolved from `output`, `answer`, or `response` field in the server response)
+  - `prediction` (json) — Full prediction object returned by the DSPy server
+
+## Tools
+
+**DSPy Run** (`dspy_run`) — Sends the program code and input to a running DSPy server via `POST /run` and returns the prediction output. Requires a `baseUrl` pointing to your DSPy server (e.g. `https://your-dspy-server.com`). Supports an optional `apiKey` for Bearer token authentication. Both `baseUrl` and `apiKey` are user-only params (not visible to the LLM); `program` and `input` are user-or-llm params.
 
 ## YAML Example
 

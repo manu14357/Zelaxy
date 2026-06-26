@@ -1,0 +1,130 @@
+---
+title: Pipedrive Tools
+description: Create and list deals, create persons, and search deals in Pipedrive CRM
+icon: Box
+---
+
+# Pipedrive Tools
+
+The Pipedrive block lets a workflow create and manage records in the [Pipedrive](https://www.pipedrive.com/) CRM. Use it to create deals and persons (contacts), list deals filtered by status, and search deals by term during a workflow run.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `pipedrive` |
+| **Category** | `tools` |
+| **Auth** | API Key (Pipedrive API token, sent as the `api_token` query parameter) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Create deal | `pipedrive_create_deal` | Create a new deal in Pipedrive |
+| List deals | `pipedrive_list_deals` | List deals from Pipedrive, optionally filtered by status |
+| Create person | `pipedrive_create_person` | Create a new person (contact) in Pipedrive |
+| Search deals | `pipedrive_search_deals` | Search for deals in Pipedrive by a search term |
+
+## Configuration
+
+### `pipedrive_create_deal`
+
+`POST https://api.pipedrive.com/v1/deals`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Pipedrive API token. **Secret** — sent as the `api_token` query parameter. |
+| `title` | string | Yes | The title of the deal. |
+| `value` | number | No | The monetary value of the deal. |
+| `currency` | string | No | Currency code (e.g. `USD`, `EUR`, `GBP`). |
+| `person_id` | number | No | ID of the person this deal is associated with. |
+| `org_id` | number | No | ID of the organization this deal is associated with. |
+| `stage_id` | number | No | ID of the stage this deal should be placed in. |
+| `status` | string | No | Status of the deal. One of: `open`, `won`, `lost`. |
+
+### `pipedrive_list_deals`
+
+`GET https://api.pipedrive.com/v1/deals`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Pipedrive API token. **Secret** — sent as the `api_token` query parameter. |
+| `status` | string | No | Filter deals by status. One of: `open`, `won`, `lost`, `deleted`, `all_not_deleted`. |
+| `limit` | number | No | Number of results to return (default `100`). |
+| `start` | number | No | Pagination start offset. |
+
+### `pipedrive_create_person`
+
+`POST https://api.pipedrive.com/v1/persons`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Pipedrive API token. **Secret** — sent as the `api_token` query parameter. |
+| `name` | string | Yes | The name of the person. |
+| `email` | string | No | Email address of the person. |
+| `phone` | string | No | Phone number of the person. |
+| `org_id` | number | No | ID of the organization this person belongs to. |
+
+### `pipedrive_search_deals`
+
+`GET https://api.pipedrive.com/v1/deals/search`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Pipedrive API token. **Secret** — sent as the `api_token` query parameter. |
+| `term` | string | Yes | The search term to look for (minimum 2 characters). |
+| `limit` | number | No | Number of results to return (default `100`). |
+
+## Outputs
+
+### `pipedrive_create_deal`
+
+- `data` (json) — The created Pipedrive deal object.
+- `metadata` (json) — Deal identifiers.
+  - `id` (number) — Deal ID.
+
+### `pipedrive_list_deals`
+
+- `data` (json) — Array of Pipedrive deal objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of items returned.
+  - `has_more` (boolean) — Whether more items exist beyond this page.
+
+### `pipedrive_create_person`
+
+- `data` (json) — The created Pipedrive person object.
+- `metadata` (json) — Person identifiers.
+  - `id` (number) — Person ID.
+
+### `pipedrive_search_deals`
+
+- `data` (json) — Array of matching Pipedrive deal search results.
+- `metadata` (json) — Search result metadata.
+  - `count` (number) — Number of items returned.
+  - `has_more` (boolean) — Whether more items exist beyond this page.
+
+## YAML Example
+
+```yaml
+pipedrive_1:
+  type: pipedrive
+  name: "Pipedrive"
+  inputs:
+    operation: "pipedrive_create_deal"
+    title: "Enterprise Software License"
+    value: 5000
+    currency: "USD"
+    apiKey: "{{PIPEDRIVE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Generate an API token in Pipedrive under **Settings → Personal preferences → API**, then store it as an environment variable and reference it with `{{PIPEDRIVE_API_KEY}}`. The token is passed as the `api_token` query parameter on every request — there is no OAuth flow.
+- The block defaults to the `pipedrive_create_deal` operation. Set `operation` to one of `pipedrive_create_deal`, `pipedrive_list_deals`, `pipedrive_create_person`, or `pipedrive_search_deals` to switch behavior.
+- For `pipedrive_search_deals`, the `term` must be at least 2 characters or Pipedrive will reject the request. Search results are returned under `data` as an array of match items (not the same shape as full deal objects from `pipedrive_list_deals`).
+- Reference outputs in downstream blocks with double braces, e.g. `{{pipedrive_1.metadata.id}}` for a newly created deal/person ID or `{{pipedrive_1.data}}` for the returned array or object.
+- `person_id`, `org_id`, and `stage_id` expect numeric Pipedrive IDs. Use `pipedrive_search_deals` or the Pipedrive UI to look up the correct IDs before creating linked records.
+```

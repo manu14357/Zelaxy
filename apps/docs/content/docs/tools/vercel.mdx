@@ -1,0 +1,145 @@
+---
+title: Vercel Tools
+description: List Vercel projects and deployments, fetch deployment details, and create new deployments.
+icon: Triangle
+---
+
+# Vercel Tools
+
+The Vercel provider lets a workflow manage Vercel projects and deployments through the Vercel REST API. Use these tools to list projects, list and inspect deployments, and trigger a new deployment from a Git source as part of an automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `vercel` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Vercel access token, sent as `Authorization: Bearer <token>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List projects | `vercel_list_projects` | List projects in a Vercel team or account |
+| List deployments | `vercel_list_deployments` | List deployments for a Vercel project or team |
+| Get deployment | `vercel_get_deployment` | Get details of a specific Vercel deployment |
+| Create deployment | `vercel_create_deployment` | Create a new Vercel deployment from a Git source |
+
+## Configuration
+
+### vercel_list_projects
+
+Calls `GET https://api.vercel.com/v9/projects`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Vercel access token. **Secret** — sent as `Authorization: Bearer <token>`. |
+| `search` | string | No | Search projects by name. |
+| `limit` | number | No | Maximum number of projects to return. |
+| `teamId` | string | No | Team ID to scope the request. |
+
+### vercel_list_deployments
+
+Calls `GET https://api.vercel.com/v6/deployments`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Vercel access token. **Secret** — sent as `Authorization: Bearer <token>`. |
+| `projectId` | string | No | Filter deployments by project ID or name. |
+| `target` | string | No | Filter by environment: `production` or `staging`. |
+| `state` | string | No | Filter by state: `BUILDING`, `ERROR`, `INITIALIZING`, `QUEUED`, `READY`, `CANCELED`. |
+| `limit` | number | No | Maximum number of deployments to return. |
+| `teamId` | string | No | Team ID to scope the request. |
+
+### vercel_get_deployment
+
+Calls `GET https://api.vercel.com/v13/deployments/{deploymentId}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Vercel access token. **Secret** — sent as `Authorization: Bearer <token>`. |
+| `deploymentId` | string | Yes | The unique deployment identifier or URL. |
+| `teamId` | string | No | Team ID to scope the request. |
+
+### vercel_create_deployment
+
+Calls `POST https://api.vercel.com/v13/deployments`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Vercel access token. **Secret** — sent as `Authorization: Bearer <token>`. |
+| `name` | string | Yes | Project name for the deployment. |
+| `project` | string | No | Project ID (overrides `name` for project lookup). |
+| `target` | string | No | Target environment: `production` or `staging`. |
+| `gitSource` | json | No | Git source to deploy, e.g. `{"type":"github","repo":"owner/repo","ref":"main"}`. |
+| `teamId` | string | No | Team ID to scope the request. |
+
+## Outputs
+
+### vercel_list_projects
+
+- `data` (json) — Array of Vercel project objects.
+- `metadata` (json) — List metadata:
+  - `count` (number) — Number of projects returned.
+  - `hasMore` (boolean) — Whether more projects exist beyond this page.
+
+### vercel_list_deployments
+
+- `data` (json) — Array of Vercel deployment objects.
+- `metadata` (json) — List metadata:
+  - `count` (number) — Number of deployments returned.
+  - `hasMore` (boolean) — Whether more deployments exist beyond this page.
+
+### vercel_get_deployment
+
+- `data` (json) — The Vercel deployment object.
+- `metadata` (json) — Deployment identifiers:
+  - `id` (string) — Deployment ID.
+  - `name` (string) — Deployment name.
+
+### vercel_create_deployment
+
+- `data` (json) — The created Vercel deployment object.
+- `metadata` (json) — Deployment identifiers:
+  - `id` (string) — Deployment ID.
+  - `name` (string) — Deployment name.
+
+## YAML Example
+
+```yaml
+vercel_1:
+  type: vercel
+  name: "Vercel"
+  inputs:
+    operation: "vercel_list_projects"
+    search: "my-app"
+    limit: 20
+    apiKey: "{{VERCEL_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Create a deployment from a GitHub source:
+
+```yaml
+vercel_deploy:
+  type: vercel
+  name: "Vercel"
+  inputs:
+    operation: "vercel_create_deployment"
+    name: "my-app"
+    target: "production"
+    gitSource: '{"type":"github","repo":"owner/repo","ref":"main"}'
+    apiKey: "{{VERCEL_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Auth is a single Vercel access token (created at vercel.com/account/tokens). It is sent as a Bearer token, so the `apiKey` field holds the raw token — store it as a secret/environment variable and reference it with `{{VERCEL_API_KEY}}` rather than pasting it inline.
+- For tokens scoped to a team (rather than a personal account), pass `teamId` on every operation; without it the request runs against the personal scope and may return no results.
+- `vercel_get_deployment` accepts either a deployment ID (`dpl_...`) or a deployment URL as `deploymentId`. You can chain it after `vercel_list_deployments` by referencing an item, e.g. `{{vercel_list.data}}`, to drill into a specific deployment.
+- `vercel_create_deployment` needs at least `name`; supply `gitSource` (and optionally `project`/`target`) to deploy from a Git repository. Set `state` on `vercel_list_deployments` to one of the enum values (e.g. `READY`) to filter results.

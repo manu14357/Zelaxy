@@ -391,7 +391,7 @@ When users report issues or ask "why isn't this working?":
    - Configure these parameters:
      - to: <recipient email>
      - subject: 'Your subject here'
-     - body: Can reference <previousblock.output>
+     - body: Can reference {{previousblock.output}}
    - Connect it after your [existing block]"
 4. "Here's the YAML configuration you'll need:
    \`\`\`yaml
@@ -402,7 +402,7 @@ When users report issues or ask "why isn't this working?":
        to: '{{RECIPIENT_EMAIL}}'
        subject: 'Workflow Notification'
        body: |
-         Result from processing: <dataprocessor.content>
+         Result from processing: {{dataprocessor.content}}
    \`\`\`"
 5. "This approach ensures reliable email delivery and allows you to template the content dynamically"
 
@@ -519,7 +519,7 @@ const WORKFLOW_ANALYSIS_GUIDELINES = `
 "I can see your workflow has a 'Customer Data Processor' block that outputs formatted data. To add email notifications, you'll want to add a Gmail block right after it, connecting the processor's output to the email body..."
 
 **Good General Response:**
-"To add email notifications to any workflow, you typically place a Gmail block after your data processing step. The Gmail block can reference the previous block's output using the pattern <blockname.output>..."
+"To add email notifications to any workflow, you typically place a Gmail block after your data processing step. The Gmail block can reference the previous block's output using the pattern {{blockname.output}}..."
 
 ### 🎯 BALANCE SPECIFICITY
 - Be specific when you have their workflow
@@ -691,10 +691,10 @@ blocks:
 - Keep them short but meaningful
 
 ### 3. Block References
-⚠️ **CRITICAL**: References use the block NAME, not ID!
-- Block name: "Email Sender" → Reference: \`<emailsender.output>\`
-- Convert to lowercase, remove spaces
-- Special cases: \`{{start.input}}\`, \`{{loop.item}}\`, \`{{loop.index}}\`
+⚠️ **CRITICAL**: ALL references use DOUBLE CURLY BRACES \`{{...}}\` — never angle brackets \`<...>\`.
+- Reference a block's output by its NAME (lowercase, spaces removed): block "Email Sender" → \`{{emailsender.content}}\`
+- Use a REAL output field of that block (e.g. an agent/jina block → \`.content\`, an api block → \`.data\`); a function block's return is under \`.result\` (e.g. \`{{format.result.rows}}\`)
+- Env vars / secrets: \`{{API_KEY}}\` (no dot). Special: \`{{start.input}}\`, \`{{loop.currentItem}}\`, \`{{loop.index}}\`, \`{{loop.items}}\`, \`{{variable.NAME}}\`
 
 ### 4. String Escaping
 **ALWAYS QUOTE** these values:
@@ -722,7 +722,7 @@ analyzer:
   type: agent
   name: Data Analyzer
   inputs:
-    model: gpt-4
+    model: gpt-4o
     systemPrompt: "You are a data analyst"
     userPrompt: |
       Analyze this data: {{start.input}}
@@ -741,7 +741,7 @@ email-sender:
     to: "{{RECIPIENT_EMAIL}}"
     subject: "Analysis Complete"
     body: |
-      Results: <analyzer.content>
+      Results: {{analyzer.content}}
   connections:
     success: next-block
     error: error-handler
@@ -766,9 +766,9 @@ decision-router:
   type: router
   name: Route by Category
   inputs:
-    model: gpt-4
+    model: gpt-4o
     prompt: |
-      Route based on: <analyzer.content>
+      Route based on: {{analyzer.content}}
       
       Routes:
       - urgent: Critical issues
@@ -799,7 +799,7 @@ blocks:
   type: agent
   name: Email Classifier
   inputs:
-      model: gpt-4
+      model: gpt-4o
       systemPrompt: "Classify emails into: support, sales, feedback"
     userPrompt: |
       Classify this email: {{start.input}}
@@ -811,9 +811,9 @@ blocks:
     type: router  
     name: Route by Type
   inputs:
-      model: gpt-4
+      model: gpt-4o
       prompt: |
-        Route email based on classification: <classifier.content>
+        Route email based on classification: {{classifier.content}}
         
         Routes:
         - support: Customer support issues
@@ -852,12 +852,12 @@ start:
     type: agent
     name: Record Processor
     inputs:
-      model: gpt-4
+      model: gpt-4o
       parentId: data-loop  # Links to parent loop
       userPrompt: |
         Process record #{{loop.index}}:
-        {{loop.item}}
-        
+        {{loop.currentItem}}
+
         Extract key information
     connections:
       success: store-result
@@ -880,10 +880,10 @@ start:
     type: agent
     name: Create Summary
     inputs:
-      model: gpt-4
+      model: gpt-4o
       userPrompt: |
         Summarize all processed records:
-        <dataloop.output>
+        {{dataloop.output}}
     connections:
       success: send-report
 \`\`\`
@@ -908,13 +908,13 @@ prompt: |
 ### Complex References
 \`\`\`yaml
 # Nested data access
-data: <processor.output.results[0].value>
+data: {{processor.output.results[0].value}}
 
 # Multiple references
 message: |
   Original: {{start.input}}
-  Processed: <processor.content>
-  Status: <validator.output.status>
+  Processed: {{processor.content}}
+  Status: {{validator.output.status}}
 \`\`\`
 
 ## 🚨 COMMON MISTAKES TO AVOID
@@ -925,7 +925,7 @@ message: |
 prompt: <email-analyzer.content>
 
 # Good - using block name
-prompt: <emailanalyzer.content>
+prompt: {{emailanalyzer.content}}
 \`\`\`
 
 ❌ **Missing Quotes**

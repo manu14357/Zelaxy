@@ -1,0 +1,144 @@
+---
+title: Zendesk Tools
+description: Create, retrieve, list, update, and search Zendesk support tickets from a workflow.
+icon: Box
+---
+
+# Zendesk Tools
+
+The Zendesk tools let a workflow manage customer-support tickets through the Zendesk REST API (v2). Use them to open new tickets, fetch or list existing ones, change a ticket's status, and run searches across tickets, users, and organizations.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `zendesk` |
+| **Category** | tools |
+| **Auth** | Basic Auth (account email + API token, base64-encoded as `email/token:apiToken`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Create ticket | `zendesk_create_ticket` | Create a new ticket in Zendesk |
+| List tickets | `zendesk_list_tickets` | List tickets in Zendesk |
+| Get ticket | `zendesk_get_ticket` | Get a single ticket from Zendesk by ID |
+| Update ticket | `zendesk_update_ticket` | Update an existing ticket in Zendesk |
+| Search | `zendesk_search` | Search across tickets, users, and organizations in Zendesk |
+
+## Configuration
+
+All operations share three authentication parameters: `subdomain`, `email`, and `apiToken`. The `apiToken` is a **secret** and should be supplied via an environment variable.
+
+### `zendesk_create_ticket`
+
+`POST https://{subdomain}.zendesk.com/api/v2/tickets.json`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `subdomain` | string | Yes | Your Zendesk subdomain (e.g. `acme` for `acme.zendesk.com`). |
+| `email` | string | Yes | Your Zendesk account email address. |
+| `apiToken` | string | Yes | **Secret.** Zendesk API token. |
+| `subject` | string | Yes | Ticket subject. |
+| `body` | string | Yes | Ticket comment body (the first comment). |
+
+### `zendesk_list_tickets`
+
+`GET https://{subdomain}.zendesk.com/api/v2/tickets.json`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `subdomain` | string | Yes | Your Zendesk subdomain (e.g. `acme` for `acme.zendesk.com`). |
+| `email` | string | Yes | Your Zendesk account email address. |
+| `apiToken` | string | Yes | **Secret.** Zendesk API token. |
+
+### `zendesk_get_ticket`
+
+`GET https://{subdomain}.zendesk.com/api/v2/tickets/{ticketId}.json`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `subdomain` | string | Yes | Your Zendesk subdomain (e.g. `acme` for `acme.zendesk.com`). |
+| `email` | string | Yes | Your Zendesk account email address. |
+| `apiToken` | string | Yes | **Secret.** Zendesk API token. |
+| `ticketId` | string | Yes | The ID of the ticket to retrieve. |
+
+### `zendesk_update_ticket`
+
+`PUT https://{subdomain}.zendesk.com/api/v2/tickets/{ticketId}.json`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `subdomain` | string | Yes | Your Zendesk subdomain (e.g. `acme` for `acme.zendesk.com`). |
+| `email` | string | Yes | Your Zendesk account email address. |
+| `apiToken` | string | Yes | **Secret.** Zendesk API token. |
+| `ticketId` | string | Yes | The ID of the ticket to update. |
+| `status` | string | No | New status. One of: `new`, `open`, `pending`, `hold`, `solved`, `closed`. |
+
+### `zendesk_search`
+
+`GET https://{subdomain}.zendesk.com/api/v2/search.json?query={query}`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `subdomain` | string | Yes | Your Zendesk subdomain (e.g. `acme` for `acme.zendesk.com`). |
+| `email` | string | Yes | Your Zendesk account email address. |
+| `apiToken` | string | Yes | **Secret.** Zendesk API token. |
+| `query` | string | Yes | Search query using Zendesk search syntax (e.g. `type:ticket status:open`). |
+
+## Outputs
+
+### `zendesk_create_ticket`
+
+- `data` (json) — The created Zendesk ticket object.
+- `metadata` (json) — Ticket identifiers.
+  - `metadata.id` (number) — Ticket ID.
+
+### `zendesk_list_tickets`
+
+- `data` (json) — Array of Zendesk ticket objects.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of tickets returned.
+
+### `zendesk_get_ticket`
+
+- `data` (json) — The Zendesk ticket object.
+- `metadata` (json) — Ticket identifiers.
+  - `metadata.id` (number) — Ticket ID.
+
+### `zendesk_update_ticket`
+
+- `data` (json) — The updated Zendesk ticket object.
+- `metadata` (json) — Ticket identifiers.
+  - `metadata.id` (number) — Ticket ID.
+
+### `zendesk_search`
+
+- `data` (json) — Array of matching Zendesk objects.
+- `metadata` (json) — Search metadata.
+  - `metadata.count` (number) — Number of results.
+
+## YAML Example
+
+```yaml
+zendesk_1:
+  type: zendesk
+  name: "Zendesk"
+  inputs:
+    operation: "zendesk_create_ticket"
+    subject: "Cannot log in"
+    body: "The customer reports they cannot log in to their account."
+    subdomain: "acme"
+    email: "agent@acme.com"
+    apiToken: "{{ZENDESK_API_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** Authentication is Basic Auth built from `email/token:apiToken`. Create an API token in the Zendesk Admin Center (Apps and integrations -> APIs -> Zendesk API -> Token access), then provide your `subdomain`, account `email`, and the token. Store the token in an environment variable and reference it as `{{ZENDESK_API_TOKEN}}` rather than hard-coding it.
+- **Chaining tickets:** Reference a created ticket's ID downstream with `{{zendesk_1.metadata.id}}`, or read the full object via `{{zendesk_1.data}}`, to feed a subsequent get or update operation.
+- **Search syntax:** `zendesk_search` uses Zendesk's search query language. Combine filters like `type:ticket status:open priority:high` in the `query` field; results are returned as an array in `data` with a `metadata.count`.
+- **Update scope:** `zendesk_update_ticket` currently only sends the `status` field in the request body, so it is intended for status transitions (e.g. moving a ticket to `solved` or `closed`). Other fields are not modified.

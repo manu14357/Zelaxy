@@ -1,0 +1,109 @@
+---
+title: People Data Labs Tools
+description: Enrich and search people and company data with the People Data Labs API
+icon: Users
+---
+
+# People Data Labs Tools
+
+People Data Labs (PDL) provides B2B person and company datasets. Use these tools in a workflow to enrich a single person or company from partial identifiers (email, name, website, ticker), or to search the PDL person dataset with an Elasticsearch DSL query or a SQL string.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `peopledatalabs` |
+| **Category** | tools |
+| **Auth** | API Key (sent as the `X-Api-Key` request header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Enrich person | `peopledatalabs_person_enrich` | Enrich a single person profile by email, name, or company. |
+| Enrich company | `peopledatalabs_company_enrich` | Enrich a single company by name, website, or ticker. |
+| Search person | `peopledatalabs_person_search` | Search the People Data Labs person dataset by Elasticsearch DSL query or SQL. |
+
+## Configuration
+
+### `peopledatalabs_person_enrich`
+
+Calls `GET https://api.peopledatalabs.com/v5/person/enrich`. Provide at least one identifier (`email`, or `name` together with `company`).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | People Data Labs API key. **Secret** — sent as the `X-Api-Key` header. |
+| `email` | string | No | Email address to match. |
+| `name` | string | No | Full name (use together with `company`). |
+| `company` | string | No | Company name or website. |
+| `min_likelihood` | number | No | Minimum match likelihood (1–10). Results below this threshold are not returned. |
+
+### `peopledatalabs_company_enrich`
+
+Calls `GET https://api.peopledatalabs.com/v5/company/enrich`. Provide at least one identifier (`name`, `website`, or `ticker`).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | People Data Labs API key. **Secret** — sent as the `X-Api-Key` header. |
+| `name` | string | No | Company name. |
+| `website` | string | No | Company website domain (e.g. `acme.com`). |
+| `ticker` | string | No | Stock ticker symbol. |
+
+### `peopledatalabs_person_search`
+
+Calls `POST https://api.peopledatalabs.com/v5/person/search`. Provide either `query` or `sql`, not both.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | People Data Labs API key. **Secret** — sent as the `X-Api-Key` header. |
+| `query` | json | No | Elasticsearch DSL query object. Use either `query` or `sql`, not both. |
+| `sql` | string | No | PDL SQL query string. Use either `query` or `sql`, not both. |
+| `size` | number | No | Number of results to return (1–100, default 1). |
+
+## Outputs
+
+### `peopledatalabs_person_enrich`
+
+- `data` (json) — The matched person record.
+- `metadata` (json) — Match metadata. Contains:
+  - `status` (number) — API status code.
+  - `likelihood` (number) — Match likelihood score (1–10).
+
+### `peopledatalabs_company_enrich`
+
+- `data` (json) — The matched company record.
+- `metadata` (json) — Match metadata. Contains:
+  - `status` (number) — API status code.
+  - `likelihood` (number) — Match likelihood score (1–10).
+
+### `peopledatalabs_person_search`
+
+- `data` (json) — Array of matching person records.
+- `metadata` (json) — Search metadata. Contains:
+  - `status` (number) — API status code.
+  - `total` (number) — Total matching records in the dataset.
+
+## YAML Example
+
+```yaml
+peopledatalabs_1:
+  type: peopledatalabs
+  name: "People Data Labs"
+  inputs:
+    operation: "peopledatalabs_person_enrich"
+    email: "jane@example.com"
+    name: "Jane Doe"
+    company: "Acme"
+    min_likelihood: 6
+    apiKey: "{{PEOPLEDATALABS_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** All three operations authenticate with a single People Data Labs API key, passed in the `X-Api-Key` header. Store it as an environment variable and reference it with `{{PEOPLEDATALABS_API_KEY}}` rather than hardcoding the secret.
+- **Pick the right operation:** Set `operation` to one of the three tool IDs. For person enrichment, supply `email` for the best match, or pair `name` with `company`. For company enrichment, any of `name`, `website`, or `ticker` works. Tune precision with `min_likelihood` (1–10) on person enrich.
+- **Search by query or SQL, not both:** `peopledatalabs_person_search` accepts either an Elasticsearch DSL `query` object (e.g. `{"term":{"job_title_role":"engineering"}}`) or a `sql` string (e.g. `SELECT * FROM person WHERE job_title='engineer'`). Set `size` (1–100) to control result count; it defaults to 1.
+- **Consume results downstream:** Reference enrich output with `{{peopledatalabs_1.data}}` and `{{peopledatalabs_1.metadata.likelihood}}`. For search, `{{peopledatalabs_1.data}}` is an array and `{{peopledatalabs_1.metadata.total}}` is the total dataset match count.

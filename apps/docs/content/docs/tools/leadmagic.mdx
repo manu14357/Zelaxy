@@ -1,0 +1,125 @@
+---
+title: LeadMagic Tools
+description: B2B lead enrichment, email finding, and verification via the LeadMagic API
+icon: Box
+---
+
+# LeadMagic Tools
+
+LeadMagic is a B2B data provider for finding and verifying professional email addresses and enriching person/company records. Use these tools in a workflow when you need to turn partial lead data (name + company, or a LinkedIn profile) into a verified work email or a richer contact profile.
+
+<Callout type="warn">
+**Stub documentation — provider not yet implemented in this codebase.** No
+`leadmagic` tool files exist under `apps/zelaxy/tools/leadmagic/`, and no
+`apps/zelaxy/blocks/blocks/leadmagic.ts` block file was found. The operations,
+parameters, and outputs below are inferred from LeadMagic's public API and are
+**not** verified against source code. Update this page with exact tool `id`s,
+`params`, `outputs`, and the `request` config once the provider is implemented
+and registered in [tools/registry.ts](https://github.com/) (`tools/registry.ts`).
+</Callout>
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `leadmagic` |
+| **Category** | tools |
+| **Auth** | API Key (sent as the `X-API-Key` request header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Find Email | `leadmagic_email_finder` | Find a verified work email from a person's name and company domain. |
+| Verify Email | `leadmagic_email_validate` | Validate the deliverability and status of an email address. |
+| Enrich Person | `leadmagic_person_enrich` | Enrich a person profile (e.g. from a LinkedIn URL or email). |
+
+<Callout type="info">
+Tool IDs above are **proposed** placeholders. When implementing, the registry
+key in `tools/registry.ts` MUST equal each tool's `id`, and the block's
+`tools.access` ids (plus everything `tools.config.tool(params)` returns) must
+match these keys exactly.
+</Callout>
+
+## Configuration
+
+### `leadmagic_email_finder`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** LeadMagic API key. Sent as the `X-API-Key` header. |
+| `firstName` | string | Yes | The lead's first name. |
+| `lastName` | string | Yes | The lead's last name. |
+| `domain` | string | Yes | Company domain (e.g. `acme.com`) to search within. |
+
+### `leadmagic_email_validate`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** LeadMagic API key. Sent as the `X-API-Key` header. |
+| `email` | string | Yes | The email address to validate. |
+
+### `leadmagic_person_enrich`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** LeadMagic API key. Sent as the `X-API-Key` header. |
+| `email` | string | No | Email address of the person to enrich. |
+| `linkedinUrl` | string | No | LinkedIn profile URL of the person to enrich. |
+
+<Callout type="info">
+Provide at least one identifier (`email` or `linkedinUrl`) for the enrich
+operation. Exact required/optional rules must be confirmed against the
+implemented tool's `params` schema.
+</Callout>
+
+## Outputs
+
+### `leadmagic_email_finder`
+
+- `email` (string) — The discovered work email address.
+- `status` (string) — Discovery/verification status (e.g. `valid`, `not_found`).
+- `credits` (number) — Credits consumed by the request.
+
+### `leadmagic_email_validate`
+
+- `email` (string) — The email address that was validated.
+- `status` (string) — Validation result (e.g. `valid`, `invalid`, `catch_all`, `unknown`).
+- `isValid` (boolean) — Whether the email is deliverable.
+
+### `leadmagic_person_enrich`
+
+- `fullName` (string) — The person's full name.
+- `jobTitle` (string) — Current job title.
+- `company` (string) — Current company name.
+- `email` (string) — Enriched email address, when available.
+
+<Callout type="info">
+Output field names and types are inferred. Replace this section with the exact
+`outputs` schema from each tool file once implemented.
+</Callout>
+
+## YAML Example
+
+```yaml
+leadmagic_1:
+  type: leadmagic
+  name: "LeadMagic"
+  inputs:
+    operation: "leadmagic_email_finder"
+    firstName: "Jane"
+    lastName: "Doe"
+    domain: "acme.com"
+    apiKey: "{{LEADMAGIC_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Store your LeadMagic API key as an environment variable and reference it with `{{LEADMAGIC_API_KEY}}` rather than hardcoding it; it is a secret and is sent in the `X-API-Key` header.
+- Chain operations: pipe the output of `leadmagic_email_finder` into `leadmagic_email_validate` (reference the prior block, e.g. `{{leadmagic_1.email}}`) to confirm deliverability before sending outreach.
+- LeadMagic bills per request via a credit system — guard high-volume enrichment behind conditions or batching to control cost.
+- This page is a stub: before relying on it, implement the provider under `apps/zelaxy/tools/leadmagic/`, register each tool in `tools/registry.ts` (key = tool `id`), and run `node scripts/verify-blocks.mjs` to confirm the block's `tools.access` ids resolve. Then replace the inferred ids/params/outputs here with the exact values from the code.
+```

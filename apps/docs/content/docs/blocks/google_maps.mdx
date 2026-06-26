@@ -1,0 +1,165 @@
+---
+title: Google Maps Block
+description: Geocode addresses, search places, and get directions
+icon: Map
+---
+
+# Google Maps Block
+
+Convert addresses to coordinates and back, search for places by text query, and get directions between locations using the Google Maps Platform APIs. Authenticate with a Google Maps API key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_maps` |
+| **Category** | `tools` |
+| **Color** | `#34A853` |
+
+## When to Use
+
+- Convert a street address into latitude/longitude coordinates for downstream mapping or spatial logic.
+- Convert raw GPS coordinates back into a human-readable address (reverse geocoding).
+- Search for nearby or relevant places using a natural-language text query (e.g., "coffee shops near downtown").
+- Get turn-by-turn route data between two locations, with support for driving, walking, bicycling, and transit modes.
+- Enrich CRM or form data with validated geographic coordinates.
+- Build location-aware workflows that branch or trigger based on proximity or address resolution.
+
+## Configuration
+
+### Operation
+
+Selects which Google Maps API call this block makes. Every other visible field depends on this selection.
+
+| Label | ID |
+|-------|----|
+| Geocode | `google_maps_geocode` |
+| Reverse geocode | `google_maps_reverse_geocode` |
+| Place search | `google_maps_place_search` |
+| Directions | `google_maps_directions` |
+
+Default: `google_maps_geocode`.
+
+---
+
+### Address
+
+- **Sub-block ID**: `address`
+- **Type**: short-input
+- **Visible when**: Operation = `google_maps_geocode`
+- **Placeholder**: `1600 Amphitheatre Parkway, Mountain View, CA`
+
+The street address you want to convert to coordinates. Accepts any address string that the Google Maps Geocoding API can resolve.
+
+---
+
+### Coordinates (lat,lng)
+
+- **Sub-block ID**: `latlng`
+- **Type**: short-input
+- **Visible when**: Operation = `google_maps_reverse_geocode`
+- **Placeholder**: `40.714224,-73.961452`
+
+A comma-separated latitude/longitude pair to convert into a human-readable address. Format must be `lat,lng` with no spaces.
+
+---
+
+### Query
+
+- **Sub-block ID**: `query`
+- **Type**: short-input
+- **Visible when**: Operation = `google_maps_place_search`
+- **Placeholder**: `restaurants in Times Square`
+
+A free-text search query passed to the Google Maps Places Text Search API. The query can include place type, name, and location.
+
+---
+
+### Origin
+
+- **Sub-block ID**: `origin`
+- **Type**: short-input
+- **Visible when**: Operation = `google_maps_directions`
+- **Placeholder**: `New York, NY`
+
+The starting point of the route. Accepts an address string or a `lat,lng` coordinate pair.
+
+---
+
+### Destination
+
+- **Sub-block ID**: `destination`
+- **Type**: short-input
+- **Visible when**: Operation = `google_maps_directions`
+- **Placeholder**: `Boston, MA`
+
+The end point of the route. Accepts an address string or a `lat,lng` coordinate pair.
+
+---
+
+### Travel Mode
+
+- **Sub-block ID**: `mode`
+- **Type**: short-input
+- **Visible when**: Operation = `google_maps_directions`
+- **Placeholder**: `driving, walking, bicycling, transit`
+
+Optional. Specifies the transportation mode for the route. Accepted values: `driving`, `walking`, `bicycling`, `transit`. Defaults to `driving` if omitted.
+
+---
+
+### Google Maps API Key
+
+- **Sub-block ID**: `apiKey`
+- **Type**: short-input (password)
+- **Required**: yes
+- **Visible**: always
+
+Your Google Maps Platform API key. The key must have the Geocoding API, Places API, and/or Directions API enabled depending on which operations you use. Store this as a workflow secret and reference it with `{{GOOGLE_MAPS_API_KEY}}`.
+
+---
+
+## Inputs & Outputs
+
+**Inputs** — every field accepted by the block:
+
+- `operation` (string) — Operation to perform (`google_maps_geocode`, `google_maps_reverse_geocode`, `google_maps_place_search`, or `google_maps_directions`)
+- `apiKey` (string) — Google Maps API key
+- `address` (string) — Address to geocode (Geocode operation only)
+- `latlng` (string) — Coordinates as `lat,lng` (Reverse geocode operation only)
+- `query` (string) — Place search query (Place search operation only)
+- `origin` (string) — Directions origin (Directions operation only)
+- `destination` (string) — Directions destination (Directions operation only)
+- `mode` (string) — Travel mode (Directions operation only; optional)
+
+**Outputs** — fields available to downstream blocks via `{{google_maps_1.data}}` etc.:
+
+- `data` (json) — Result array from Google Maps. For Geocode/Reverse geocode: array of geocoding result objects. For Place search: array of place objects. For Directions: array of route objects.
+- `metadata` (json) — Response metadata containing `status` (string, API response status code such as `OK` or `ZERO_RESULTS`) and `count` (number, number of items returned in `data`).
+
+## Tools
+
+**Google Maps Geocode** (`google_maps_geocode`) — Converts a street address into geographic coordinates via the Google Maps Geocoding API (`GET /maps/api/geocode/json?address=...`). Required params: `apiKey`, `address`.
+
+**Google Maps Reverse Geocode** (`google_maps_reverse_geocode`) — Converts a `lat,lng` coordinate pair into a human-readable address via the Google Maps Geocoding API (`GET /maps/api/geocode/json?latlng=...`). Required params: `apiKey`, `latlng`.
+
+**Google Maps Place Search** (`google_maps_place_search`) — Searches for places matching a free-text query via the Google Maps Places Text Search API (`GET /maps/api/place/textsearch/json?query=...`). Required params: `apiKey`, `query`.
+
+**Google Maps Directions** (`google_maps_directions`) — Returns route and navigation data between an origin and a destination via the Google Maps Directions API (`GET /maps/api/directions/json`). Required params: `apiKey`, `origin`, `destination`. Optional param: `mode`.
+
+## YAML Example
+
+```yaml
+google_maps_1:
+  type: google_maps
+  name: "Get Directions"
+  inputs:
+    operation: google_maps_directions
+    apiKey: "{{GOOGLE_MAPS_API_KEY}}"
+    origin: "{{form_1.origin_address}}"
+    destination: "{{form_1.destination_address}}"
+    mode: driving
+  connections:
+    outgoing:
+      - target: next-block-id
+```

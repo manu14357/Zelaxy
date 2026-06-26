@@ -6,7 +6,7 @@ icon: Box
 
 # Outlook Block
 
-The Outlook block integrates Microsoft Outlook into your workflow so you can read, draft, and send email messages. Reach for it when you need to automate email communication or process incoming email content using OAuth-authenticated access to a Microsoft account.
+The Outlook block integrates Microsoft Outlook into your workflow so you can read, draft, and send email messages via the Microsoft Graph API. Reach for it when you need to automate email communications or process incoming email content using OAuth-authenticated access to a Microsoft account.
 
 ## Overview
 
@@ -29,32 +29,101 @@ The Outlook block integrates Microsoft Outlook into your workflow so you can rea
 
 ### Operation
 
-Choose what the block does: Send Email (`send_outlook`), Draft Email (`draft_outlook`), or Read Email (`read_outlook`). Defaults to Send Email.
+**Type**: dropdown — selects which Outlook action to run. Required; defaults to `send_outlook`.
+
+| Label | ID |
+|-------|----|
+| Send Email | `send_outlook` |
+| Draft Email | `draft_outlook` |
+| Read Email | `read_outlook` |
 
 ### Microsoft Account
 
-OAuth credential for the Outlook provider. Required for all operations; requests the mail read/write/send scopes plus offline access.
+**Type**: oauth-input — OAuth credential for the Outlook provider. Required for all operations. Requests the following Microsoft scopes: `Mail.ReadWrite`, `Mail.ReadBasic`, `Mail.Read`, `Mail.Send`, `offline_access`, `openid`, `profile`, `email`.
 
-### To / Subject / Body
+### To
 
-The recipient address, subject line, and message content. Required when sending or drafting an email.
+**Type**: short-input — recipient email address. Required for `send_outlook` and `draft_outlook`.
 
-### CC / BCC / Reply to Message ID / Conversation ID
+### Subject
 
-Advanced fields for additional recipients and thread continuation (reply/conversation IDs apply to sends).
+**Type**: short-input — email subject line. Required for `send_outlook` and `draft_outlook`.
 
-### Folder / Message ID / Number of Emails / Include Attachments
+### Body
 
-Read-operation fields: pick a folder (selector in basic mode or manual name in advanced mode), optionally fetch a specific message ID, set how many emails to retrieve, and toggle whether attachments are included.
+**Type**: long-input — email body content. Required for `send_outlook` and `draft_outlook`.
+
+### Reply to Message ID _(advanced)_
+
+**Type**: short-input — the ID of an existing message to reply to, which enables thread continuation. Optional; applies to `send_outlook` only.
+
+### Conversation ID _(advanced)_
+
+**Type**: short-input — conversation ID used to associate the sent message with an existing thread. Optional; applies to `send_outlook` only.
+
+### CC _(advanced)_
+
+**Type**: short-input — comma-separated CC recipient addresses. Optional; applies to `send_outlook` and `draft_outlook`.
+
+### BCC _(advanced)_
+
+**Type**: short-input — comma-separated BCC recipient addresses. Optional; applies to `send_outlook` and `draft_outlook`.
+
+### Folder _(basic mode)_
+
+**Type**: folder-selector — interactive picker for an Outlook mail folder. Applies to `read_outlook` only. Uses the same OAuth credential; requires scopes `Mail.ReadWrite`, `Mail.ReadBasic`, `Mail.Read`.
+
+### Folder _(advanced mode — `manualFolder`)_
+
+**Type**: short-input — manually enter a folder name (e.g. `INBOX`, `SENT`, or a custom folder name). Applies to `read_outlook` only. When provided, overrides the folder selector. Defaults to `INBOX` if neither field is set.
+
+### Message ID
+
+**Type**: short-input — a specific message ID to fetch directly, overriding the folder selection. Applies to `read_outlook` only.
+
+### Number of Emails
+
+**Type**: short-input — how many emails to retrieve (default: 1). Applies to `read_outlook` only.
+
+### Include Attachments
+
+**Type**: switch — when enabled, downloads and returns file attachments alongside the email content. Applies to `read_outlook` only.
 
 ### Trigger Configuration
 
-When trigger mode is active, configures the `outlook_poller` to start workflows on new email.
+**Type**: trigger-config — visible only when the block is used in trigger mode. Configures the `outlook_poller` trigger so that new incoming emails start the workflow automatically.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `to` (string), `subject` (string), `body` (string), `folder` (string), `manualFolder` (string), `messageId` (string), `maxResults` (number), `includeAttachments` (boolean)
-- **Outputs**: `content` (string), `metadata` (json), `attachments` (json), `message` (string), `messageId` (string), `status` (string), `email` (json), `rawEmail` (json)
+**Inputs**:
+
+- `operation` (string) — Operation to perform (`send_outlook`, `draft_outlook`, or `read_outlook`)
+- `credential` (string) — Outlook OAuth access token
+- `to` (string) — Recipient email address (send and draft operations)
+- `subject` (string) — Email subject (send and draft operations)
+- `body` (string) — Email content (send and draft operations)
+- `folder` (string) — Email folder selected via the folder picker (read operation)
+- `manualFolder` (string) — Manual folder name override (read operation, advanced mode)
+- `messageId` (string) — Specific message ID to fetch (read operation)
+- `maxResults` (number) — Maximum number of emails to retrieve (read operation)
+- `includeAttachments` (boolean) — Whether to download and include email attachments (read operation)
+
+**Outputs**:
+
+- `content` (string) — Email body text content (read operation)
+- `metadata` (json) — Email metadata including id, from, to, cc, subject, date, hasAttachments, attachmentCount, isRead, importance, bodyPreview (read operation)
+- `attachments` (json) — Array of email attachments (read operation)
+- `message` (string) — Success or error response message (send and draft operations)
+- `messageId` (string) — ID of the sent message or created draft (send and draft operations)
+- `status` (string) — Delivery or draft status (send and draft operations)
+- `email` (json) — Full email data from trigger: id, subject, from, to, body, attachments (trigger mode)
+- `rawEmail` (json) — Complete raw email data from the Microsoft Graph API (trigger mode)
+
+## Tools
+
+- **Outlook Send** (`outlook_send`) — Sends an email via the Microsoft Graph API (`POST /me/sendMail` or `POST /me/messages/{id}/reply` for threaded replies). Accepts `to`, `subject`, `body`, and optional `cc`, `bcc`, `replyToMessageId`, `conversationId`. Returns a success message and timestamp.
+- **Outlook Draft** (`outlook_draft`) — Creates a draft email in the authenticated user's mailbox (`POST /me/messages`). Accepts `to`, `subject`, `body`, and optional `cc`, `bcc`. Returns the draft `messageId`, subject, status, and timestamp.
+- **Outlook Read** (`outlook_read`) — Reads emails from the authenticated user's mailbox (`GET /me/mailFolders/{folder}/messages` or `GET /me/messages/{id}`). Accepts `folder`, `maxResults`, `messageId`, and `includeAttachments`. Returns `content`, `metadata`, and `attachments`.
 
 ## YAML Example
 
@@ -64,7 +133,7 @@ outlook_1:
   name: "Outlook"
   inputs:
     operation: "send_outlook"
-    credential: "{{credentials.outlook}}"
+    credential: "{{oauthBlock.accessToken}}"
     to: "recipient@example.com"
     subject: "Workflow notification"
     body: "{{start.input}}"

@@ -1,0 +1,163 @@
+---
+title: Microsoft Entra ID Block
+description: Manage users and groups in Microsoft Entra ID
+icon: Box
+---
+
+# Microsoft Entra ID Block
+
+List and retrieve users, list groups, and create users in Microsoft Entra ID (Azure AD) through the Microsoft Graph API. Authenticate with a Graph bearer access token. Reach for this block whenever a workflow needs to automate identity lifecycle tasks — onboarding new employees, auditing directory members, or looking up user records — directly against your Azure tenant.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `microsoft_ad` |
+| **Category** | `tools` |
+| **Color** | `#0078D4` |
+
+## When to Use
+
+- Enumerate all users (or a filtered subset) in your Azure AD tenant for reporting or downstream processing.
+- Look up a specific user by their object ID or user principal name to retrieve profile details.
+- List security or Microsoft 365 groups, optionally filtered with OData expressions.
+- Provision new user accounts programmatically during employee onboarding workflows.
+- Pass filtered user or group lists to downstream blocks for approval, notification, or enrichment steps.
+- Integrate identity data from Entra ID into multi-step automation pipelines alongside other tools.
+
+## Configuration
+
+### Operation
+
+Selects which Microsoft Graph action to perform. This field is always visible.
+
+| Label | ID |
+|-------|----|
+| List users | `microsoft_ad_list_users` |
+| Get user | `microsoft_ad_get_user` |
+| List groups | `microsoft_ad_list_groups` |
+| Create user | `microsoft_ad_create_user` |
+
+Default: `microsoft_ad_list_users`.
+
+---
+
+### Top _(visible for: List users, List groups)_
+
+**Type:** short-input — **Required:** no
+
+Maximum number of results to return per call. The Microsoft Graph API enforces a ceiling of 999. Leave blank to use the server default (typically 100). Example: `50`.
+
+---
+
+### Filter (OData) _(visible for: List users, List groups)_
+
+**Type:** short-input — **Required:** no
+
+An OData `$filter` expression sent verbatim to the Graph API. Examples:
+- `department eq 'Sales'` — users in the Sales department.
+- `securityEnabled eq true` — security-enabled groups only.
+
+---
+
+### User ID _(visible for: Get user)_
+
+**Type:** short-input — **Required:** yes (for this operation)
+
+The object ID (GUID) or user principal name of the target user. Example: `user@example.com` or `a1b2c3d4-...`.
+
+---
+
+### Display Name _(visible for: Create user)_
+
+**Type:** short-input — **Required:** yes (for this operation)
+
+The full display name of the new user. Example: `Jane Doe`.
+
+---
+
+### Mail Nickname _(visible for: Create user)_
+
+**Type:** short-input — **Required:** yes (for this operation)
+
+The mail alias (without the domain) used for the user's email address. Example: `janed`.
+
+---
+
+### User Principal Name _(visible for: Create user)_
+
+**Type:** short-input — **Required:** yes (for this operation)
+
+The sign-in name in UPN format: `alias@domain`. Must match a verified domain in your tenant. Example: `jane.doe@example.com`.
+
+---
+
+### Initial Password _(visible for: Create user)_
+
+**Type:** short-input (password masked) — **Required:** yes (for this operation)
+
+The temporary password assigned to the new account. The Graph API enforces Azure AD password-complexity rules. The new user will be required to change it at first sign-in (`forceChangePasswordNextSignIn: true`).
+
+---
+
+### Access Token _(always visible)_
+
+**Type:** short-input (password masked) — **Required:** yes
+
+A Microsoft Graph API bearer access token scoped with the permissions your operation requires:
+- `User.Read.All` — list / get users.
+- `Group.Read.All` — list groups.
+- `User.ReadWrite.All` — create users.
+
+Use `{{MICROSOFT_GRAPH_ACCESS_TOKEN}}` to inject from an environment variable, or pass the token from an upstream OAuth credential block.
+
+---
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform; one of the tool ids above.
+- `accessToken` (string) — Microsoft Graph bearer access token.
+- `top` (number) — Maximum results to return (optional; for list operations).
+- `filter` (string) — OData filter expression (optional; for list operations).
+- `userId` (string) — User ID or user principal name (required for Get user).
+- `displayName` (string) — Display name (required for Create user).
+- `mailNickname` (string) — Mail alias (required for Create user).
+- `userPrincipalName` (string) — User principal name (required for Create user).
+- `password` (string) — Initial password (required for Create user).
+- `accountEnabled` (boolean) — Whether the account is enabled on creation (optional; defaults to `true`).
+
+**Outputs:**
+
+- `data` (json) — Result object or array from Microsoft Graph. For list operations: an array of user or group objects. For get/create operations: a single user object.
+- `metadata` (json) — Response metadata. For list operations: `{ count: number }`. For get/create operations: `{ id: string }` (the object's GUID).
+
+## Tools
+
+**Microsoft Entra List Users** (`microsoft_ad_list_users`) — Issues a `GET /v1.0/users` request to the Microsoft Graph API. Accepts optional `top` (max results, up to 999) and `filter` (OData expression) params. Returns an array of user objects in `data` and `{ count }` in `metadata`.
+
+**Microsoft Entra Get User** (`microsoft_ad_get_user`) — Issues a `GET /v1.0/users/{userId}` request. Requires `userId` (object ID or UPN). Returns the full user profile object in `data` and `{ id }` in `metadata`.
+
+**Microsoft Entra List Groups** (`microsoft_ad_list_groups`) — Issues a `GET /v1.0/groups` request. Accepts optional `top` and `filter` params. Returns an array of group objects in `data` and `{ count }` in `metadata`.
+
+**Microsoft Entra Create User** (`microsoft_ad_create_user`) — Issues a `POST /v1.0/users` request with the account payload. Requires `displayName`, `mailNickname`, `userPrincipalName`, and `password`. Sets `forceChangePasswordNextSignIn: true` automatically. Returns the newly created user object in `data` and `{ id }` in `metadata`.
+
+## YAML Example
+
+```yaml
+microsoft_ad_1:
+  type: microsoft_ad
+  name: "Provision New Employee"
+  inputs:
+    operation: microsoft_ad_create_user
+    accessToken: "{{MICROSOFT_GRAPH_ACCESS_TOKEN}}"
+    displayName: "{{onboarding_form.fullName}}"
+    mailNickname: "{{onboarding_form.alias}}"
+    userPrincipalName: "{{onboarding_form.upn}}"
+    password: "{{onboarding_form.tempPassword}}"
+    accountEnabled: true
+  connections:
+    outgoing:
+      - target: notify_manager_block
+```

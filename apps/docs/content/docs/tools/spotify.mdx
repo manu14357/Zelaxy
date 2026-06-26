@@ -1,0 +1,152 @@
+---
+title: Spotify Tools
+description: Search and fetch tracks, artists, and playlists from the Spotify Web API.
+icon: Music
+---
+
+# Spotify Tools
+
+The Spotify provider lets a workflow search Spotify and retrieve details for tracks, artists, and playlists, as well as list the authenticated user's own playlists, through the Spotify Web API. Use these tools when a workflow needs music metadata, catalog lookups, or playlist data driven by an LLM or upstream block output.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `spotify` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Spotify access token, passed as `apiKey`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Search | `spotify_search` | Search Spotify for tracks or artists |
+| Get track | `spotify_get_track` | Get detailed information about a Spotify track by its ID |
+| Get artist | `spotify_get_artist` | Get detailed information about a Spotify artist by its ID |
+| Get playlist | `spotify_get_playlist` | Get detailed information about a Spotify playlist by its ID |
+| List my playlists | `spotify_list_my_playlists` | List the current user's Spotify playlists |
+
+## Configuration
+
+### `spotify_search`
+
+Searches Spotify and returns matching tracks or artists.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Spotify access token. **Secret** — provided as a password field (user-only). |
+| `query` | string | Yes | Search query (e.g. a track or artist name). |
+| `type` | string | No | Type of item to search for: `track` or `artist`. Defaults to `track`. |
+| `limit` | number | No | Number of results to return (default 20, max 50). |
+
+### `spotify_get_track`
+
+Fetches a single track by its Spotify ID.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Spotify access token. **Secret** — provided as a password field (user-only). |
+| `trackId` | string | Yes | The Spotify ID of the track. |
+
+### `spotify_get_artist`
+
+Fetches a single artist by its Spotify ID.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Spotify access token. **Secret** — provided as a password field (user-only). |
+| `artistId` | string | Yes | The Spotify ID of the artist. |
+
+### `spotify_get_playlist`
+
+Fetches a single playlist by its Spotify ID.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Spotify access token. **Secret** — provided as a password field (user-only). |
+| `playlistId` | string | Yes | The Spotify ID of the playlist. |
+
+### `spotify_list_my_playlists`
+
+Lists the playlists owned or followed by the authenticated user (the token holder).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Spotify access token. **Secret** — provided as a password field (user-only). |
+| `limit` | number | No | Number of playlists to return (default 20, max 50). |
+
+## Outputs
+
+### `spotify_search`
+
+- `data` (json) — Array of matching Spotify items (track or artist objects).
+- `metadata` (json) — Search metadata, with properties:
+  - `count` (number) — Number of items returned.
+  - `total` (number) — Total number of matches available.
+
+### `spotify_get_track`
+
+- `data` (json) — The Spotify track object.
+- `metadata` (json) — Track identifiers, with properties:
+  - `id` (string) — Track ID.
+  - `type` (string) — Object type.
+
+### `spotify_get_artist`
+
+- `data` (json) — The Spotify artist object.
+- `metadata` (json) — Artist identifiers, with properties:
+  - `id` (string) — Artist ID.
+  - `type` (string) — Object type.
+
+### `spotify_get_playlist`
+
+- `data` (json) — The Spotify playlist object.
+- `metadata` (json) — Playlist identifiers, with properties:
+  - `id` (string) — Playlist ID.
+  - `type` (string) — Object type.
+
+### `spotify_list_my_playlists`
+
+- `data` (json) — Array of Spotify playlist objects.
+- `metadata` (json) — List metadata, with properties:
+  - `count` (number) — Number of items returned.
+  - `total` (number) — Total number of playlists.
+
+## YAML Example
+
+```yaml
+spotify_1:
+  type: spotify
+  name: "Spotify"
+  inputs:
+    operation: "spotify_search"
+    query: "Bohemian Rhapsody"
+    type: "track"
+    limit: 20
+    apiKey: "{{SPOTIFY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Example fetching a single track by ID, referencing an upstream block's output:
+
+```yaml
+spotify_track:
+  type: spotify
+  name: "Spotify"
+  inputs:
+    operation: "spotify_get_track"
+    trackId: "{{spotify_1.data}}"
+    apiKey: "{{SPOTIFY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth is a raw Bearer token.** The `apiKey` value is sent directly as `Authorization: Bearer <apiKey>` to `https://api.spotify.com/v1/...`. Supply a valid Spotify Web API access token (it appears as the "Spotify Access Token" password field in the block). Spotify access tokens are short-lived (about one hour), so for long-running or scheduled workflows plan to refresh the token rather than hardcoding an expiring one.
+- **`spotify_list_my_playlists` is user-scoped.** It calls `/v1/me/playlists`, so it returns the playlists of whoever owns the token and requires a user-authorized token (the `playlist-read-private` scope), not just a client-credentials token.
+- **IDs vs URLs.** The `trackId`, `artistId`, and `playlistId` params expect the bare Spotify ID (e.g. `11dFghVXANMlKmJXsNCbNl`), not a full open.spotify.com URL or `spotify:` URI. Use `spotify_search` first to obtain IDs from `data`, then feed them into the get operations with `{{spotify_1.data}}`.
+- **Search returns one type at a time.** The `type` field accepts only `track` or `artist`; the response `data` array contains whichever type was requested.

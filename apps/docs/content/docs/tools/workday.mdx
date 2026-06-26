@@ -1,0 +1,102 @@
+---
+title: Workday Tools
+description: Retrieve worker data from the Workday Staffing REST API.
+icon: Box
+---
+
+# Workday Tools
+
+Workday is a cloud HR and finance platform; these tools read worker data from its Staffing REST API. Use them in a workflow to list workers or fetch a single worker by ID when you need HR/employee context for downstream blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `workday` |
+| **Category** | `tools` |
+| **Auth** | OAuth (Bearer access token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Get workers | `workday_get_workers` | List workers from the Workday Staffing REST API. |
+| Get worker | `workday_get_worker` | Retrieve a single worker by ID from the Workday Staffing REST API. |
+
+## Configuration
+
+### `workday_get_workers`
+
+Calls `GET {tenantUrl}/workers?limit=...&offset=...` with header `Authorization: Bearer {accessToken}` and `Accept: application/json`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tenantUrl` | string | Yes | Workday Staffing API base URL including tenant, e.g. `https://wd5-impl-services1.workday.com/ccx/api/staffing/v6/your_tenant`. A trailing slash is stripped automatically. |
+| `accessToken` | string | Yes | **Secret.** Workday OAuth bearer access token. Sent as `Authorization: Bearer <token>`. |
+| `limit` | number | No | Maximum number of workers to return (default 20). |
+| `offset` | number | No | Number of records to skip for pagination. |
+
+### `workday_get_worker`
+
+Calls `GET {tenantUrl}/workers/{workerId}` with header `Authorization: Bearer {accessToken}` and `Accept: application/json`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tenantUrl` | string | Yes | Workday Staffing API base URL including tenant, e.g. `https://wd5-impl-services1.workday.com/ccx/api/staffing/v6/your_tenant`. A trailing slash is stripped automatically. |
+| `accessToken` | string | Yes | **Secret.** Workday OAuth bearer access token. Sent as `Authorization: Bearer <token>`. |
+| `workerId` | string | Yes | Workday worker ID (WID) to retrieve. URL-encoded into the request path. |
+
+## Outputs
+
+### `workday_get_workers`
+
+- `data` (json) — Array of Workday worker objects.
+- `metadata` (json) — List metadata, with properties:
+  - `count` (number) — Number of workers returned.
+  - `total` (number) — Total number of matching workers.
+
+### `workday_get_worker`
+
+- `data` (json) — The requested Workday worker object.
+- `metadata` (json) — Worker identifiers, with properties:
+  - `id` (string) — Worker ID.
+
+## YAML Example
+
+```yaml
+workday_1:
+  type: workday
+  name: "Workday"
+  inputs:
+    operation: "workday_get_workers"
+    tenantUrl: "https://wd5-impl-services1.workday.com/ccx/api/staffing/v6/your_tenant"
+    limit: 20
+    offset: 0
+    accessToken: "{{WORKDAY_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To fetch a single worker, switch the operation and provide a `workerId`:
+
+```yaml
+workday_get_worker_1:
+  type: workday
+  name: "Workday"
+  inputs:
+    operation: "workday_get_worker"
+    tenantUrl: "https://wd5-impl-services1.workday.com/ccx/api/staffing/v6/your_tenant"
+    workerId: "3aa5550b7fe348b98d7b5741afc65534"
+    accessToken: "{{WORKDAY_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Auth is a raw OAuth bearer token, not an API key exchange. Obtain an access token from your Workday OAuth client (the tools do not refresh it) and store it as a secret like `{{WORKDAY_ACCESS_TOKEN}}` — it is sent verbatim as `Authorization: Bearer <token>`.
+- The `tenantUrl` must already include the full Staffing API path and your tenant, e.g. `.../ccx/api/staffing/v6/your_tenant`. The tools append `/workers` (and `/{workerId}`), so do not add `/workers` yourself; a trailing slash is trimmed for you.
+- For pagination over large worker sets, page with `limit` and `offset`; read `{{workday_1.metadata.total}}` to know how many records match and `{{workday_1.metadata.count}}` for the size of the current page.
+```

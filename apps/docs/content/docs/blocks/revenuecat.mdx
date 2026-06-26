@@ -1,0 +1,94 @@
+---
+title: RevenueCat Block
+description: Manage customers and subscriptions in RevenueCat
+icon: Box
+---
+
+# RevenueCat Block
+
+The RevenueCat block lets you retrieve customers, list customers, and fetch customer subscriptions through the RevenueCat v2 API. Use it whenever a workflow needs to look up subscription status, enumerate your customer base, or pull per-customer entitlement data from RevenueCat.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `revenuecat` |
+| **Category** | tools |
+| **Color** | `#F25A5A` |
+
+## When to Use
+
+- Retrieve a single customer record by their app user ID
+- List all customers in a RevenueCat project with optional pagination
+- Fetch all active and historical subscriptions for a specific customer
+- Gate downstream workflow steps on a customer's subscription state
+- Sync RevenueCat customer or subscription data into another system (CRM, database, notification service)
+- Audit or report on subscription activity across your project
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the action to perform. Required. Defaults to `revenuecat_get_customer`.
+
+| Label | ID |
+|-------|----|
+| Get customer | `revenuecat_get_customer` |
+| List customers | `revenuecat_list_customers` |
+| Get subscription | `revenuecat_get_subscription` |
+
+### Customer ID
+
+The app user ID that identifies the customer in RevenueCat (e.g., `app_user_id`). Required for the **Get customer** (`revenuecat_get_customer`) and **Get subscription** (`revenuecat_get_subscription`) operations. Not shown for **List customers**.
+
+### Limit
+
+Maximum number of customers to return per page (default `20`, max `100`). Optional. Shown only for the **List customers** operation.
+
+### Starting After
+
+Pagination cursor — pass the customer ID of the last record from the previous page to retrieve the next page. Optional. Shown only for the **List customers** operation.
+
+### Project ID
+
+Your RevenueCat project identifier (e.g., `projXXXXXXXX`). Required for all operations.
+
+### RevenueCat Secret Key
+
+Your RevenueCat v2 secret API key (begins with `sk_...`). Stored as a password field. Required for all operations. Pass this as a secret reference: `{{REVENUECAT_SECRET_KEY}}`.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`revenuecat_get_customer`, `revenuecat_list_customers`, or `revenuecat_get_subscription`)
+  - `apiKey` (string) — RevenueCat v2 secret API key
+  - `projectId` (string) — RevenueCat project ID
+  - `customerId` (string) — Customer (app user) ID
+  - `limit` (number) — Result limit (list customers only)
+  - `startingAfter` (string) — Pagination cursor (list customers only)
+
+- **Outputs**:
+  - `data` (json) — Result object (Get customer) or array (List customers, Get subscription) from RevenueCat
+  - `metadata` (json) — Response metadata. For **Get customer**: `{ id, object }`. For **List customers** and **Get subscription**: `{ count, next_page }`
+
+## Tools
+
+- **RevenueCat Get Customer** (`revenuecat_get_customer`) — Calls `GET /v2/projects/{projectId}/customers/{customerId}` to retrieve a single customer object and its identifiers.
+- **RevenueCat List Customers** (`revenuecat_list_customers`) — Calls `GET /v2/projects/{projectId}/customers` with optional `limit` and `starting_after` query parameters to page through all customers in a project.
+- **RevenueCat Get Subscription** (`revenuecat_get_subscription`) — Calls `GET /v2/projects/{projectId}/customers/{customerId}/subscriptions` to list all subscription objects for a given customer.
+
+## YAML Example
+
+```yaml
+revenuecat_1:
+  type: revenuecat
+  name: "RevenueCat"
+  inputs:
+    operation: "revenuecat_get_customer"
+    apiKey: "{{REVENUECAT_SECRET_KEY}}"
+    projectId: "projXXXXXXXX"
+    customerId: "{{input_trigger.userId}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

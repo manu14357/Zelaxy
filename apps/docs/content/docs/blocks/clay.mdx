@@ -28,15 +28,19 @@ The Clay block sends data to a Clay workbook through a webhook, letting you popu
 
 ### Webhook URL
 
-The Clay webhook URL that the data is posted to. Required.
+The Clay webhook URL that the data is posted to. Accepts a plain URL or a `{{blockName.field}}` reference. Required.
 
 ### Data (JSON or Plain Text)
 
-The payload to populate your Clay table. Use JSON when populating multiple columns, or plain text for free-form rows. Required.
+The payload to populate your Clay table. Use JSON when populating multiple columns, or plain text for free-form rows. Can reference an upstream block's output with `{{blockName.field}}`. Required.
+
+> **JSON vs. Plain Text:**
+> - **JSON**: Best for populating multiple columns.
+> - **Plain Text**: Best for populating a table in free-form style.
 
 ### Auth Token
 
-Your Clay auth token used to authenticate the webhook request. Stored as a password field. Required.
+Your Clay auth token used to authenticate the webhook request (`Authorization: Bearer <token>`). Stored as a password field and cannot accept a connection from another block. Use `{{CLAY_AUTH_TOKEN}}` to reference an environment secret. Required.
 
 ## Inputs & Outputs
 
@@ -45,7 +49,11 @@ Your Clay auth token used to authenticate the webhook request. Stored as a passw
   - `webhookURL` (string) — Clay webhook URL
   - `data` (json) — Data to populate
 - **Outputs**:
-  - `data` (json) — Response data
+  - `data` (json) — Response data returned from the Clay webhook
+
+## Tools
+
+**Clay Populate** (`clay_populate`) — Posts data to a Clay webhook endpoint via HTTP POST with a `Bearer` auth header. Accepts the webhook URL, a JSON or text payload, and an auth token; returns the raw response from Clay (JSON when the Content-Type is `application/json`, otherwise wrapped as `{ message: "<text>" }`).
 
 ## YAML Example
 
@@ -55,8 +63,8 @@ clay_1:
   name: "Clay"
   inputs:
     webhookURL: "https://api.clay.com/v3/sources/webhook/your-id"
-    data: {{start.input}}
-    authToken: "your-clay-auth-token"
+    data: "{{previous_block.enriched_data}}"
+    authToken: "{{CLAY_AUTH_TOKEN}}"
   connections:
     outgoing:
       - target: next-block-id

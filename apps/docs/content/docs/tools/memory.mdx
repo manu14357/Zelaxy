@@ -1,0 +1,141 @@
+---
+title: Memory Tools
+description: Store, retrieve, and manage persistent agent memory records across workflow executions.
+icon: Brain
+---
+
+# Memory Tools
+
+Memory is Zelaxy's built-in persistent storage for agent conversation history and other keyed data. Use these tools when a workflow needs to remember information across runs — for example, accumulating chat turns under a record identifier, reading back history to feed an agent, or clearing stale records.
+
+This is an internal Zelaxy store (it calls the platform's own `/api/memory` endpoint), so there is no external service to sign up for and no API key to configure. Records are automatically scoped to the workflow that writes them via the execution context.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `memory` |
+| **Category** | `blocks` |
+| **Auth** | none (internal API; records are scoped by the workflow execution context) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Store New Data | `memory_add` | Store a new record, or append a message to an existing record with the same identifier. |
+| Fetch Specific Record | `memory_get` | Retrieve a single record by its unique identifier, with optional limit and sort order. |
+| Retrieve All Records | `memory_get_all` | Retrieve all records for the workflow, with optional limit, sort order, and role filtering. |
+| Remove Record | `memory_delete` | Permanently delete a record by its identifier. |
+
+## Configuration
+
+### `memory_add`
+
+Stores a new record or appends to an existing record that shares the same identifier. Every record is stored as `agent` type, and each entry is a `{ role, content }` message object.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | string | Yes | Unique identifier for the record. If a record with this ID already exists, the new message is appended to it. |
+| `role` | string | Yes | Message role classification. One of `user`, `assistant`, or `system`. |
+| `content` | string | Yes | Data content to store in the record. |
+
+No secrets are required. The workflow identifier is supplied automatically from the execution context (not a user-provided parameter).
+
+### `memory_get`
+
+Retrieves a single record by its identifier.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | string | Yes | Unique identifier for the record to retrieve. |
+| `limit` | number | No | Maximum number of messages to retrieve from the record (default: 10). |
+| `sortOrder` | string | No | Sort order for retrieved messages. One of `asc` or `desc` (default: `desc`). |
+
+### `memory_get_all`
+
+Retrieves all records for the current workflow, with optional filtering and sorting.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `limit` | number | No | Maximum number of messages to retrieve per record (default: all messages). |
+| `sortOrder` | string | No | Sort direction. `asc` for oldest first, `desc` for newest first. |
+| `filterType` | string | No | Filter by message role. One of `user`, `assistant`, `system`, or `all` (passing `all` applies no filter). |
+
+### `memory_delete`
+
+Permanently removes a record.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | string | Yes | Unique identifier for the record to remove. |
+
+## Outputs
+
+### `memory_add`
+
+- `success` (boolean) — Whether the record was stored successfully.
+- `memories` (array) — Array of record (message) objects including the new or updated data.
+- `count` (number) — Number of records in the updated storage.
+- `error` (string) — Error details if the storage operation failed.
+
+### `memory_get`
+
+- `success` (boolean) — Whether the record was retrieved successfully.
+- `memories` (array) — Array of record data for the requested identifier, with the applied limit.
+- `count` (number) — Number of memory entries retrieved within the specified limit.
+- `totalCount` (number) — Total number of memory entries available in the record.
+- `limit` (number) — The retrieval limit that was applied.
+- `sortOrder` (string) — The sort order that was applied (`asc`/`desc`).
+- `message` (string) — Operation result message with limit and count information.
+- `error` (string) — Error details if retrieval failed.
+
+### `memory_get_all`
+
+- `success` (boolean) — Whether all records were retrieved successfully.
+- `memories` (array) — Array of memory records with metadata and timestamps (`key`, `type`, `data`, `createdAt`, `updatedAt`).
+- `count` (number) — Number of records returned after filtering.
+- `total` (number) — Total number of records before filtering.
+- `message` (string) — Operation result message.
+- `error` (string) — Error details if the operation failed.
+
+### `memory_delete`
+
+- `success` (boolean) — Whether the record was removed successfully.
+- `message` (string) — Operation result confirmation.
+- `error` (string) — Error details if removal failed.
+
+## YAML Example
+
+```yaml
+memory_1:
+  type: memory
+  name: "Memory Storage"
+  inputs:
+    operation: "add"
+    id: "conversation-{{start.input.sessionId}}"
+    role: "user"
+    content: "{{start.input.message}}"
+  connections:
+    outgoing:
+      - target: agent-1
+
+# Later in the workflow, read the history back:
+memory_2:
+  type: memory
+  name: "Memory Storage"
+  inputs:
+    operation: "get"
+    id: "conversation-{{start.input.sessionId}}"
+    limit: 10
+    sortOrder: "desc"
+  connections:
+    outgoing:
+      - target: agent-1
+```
+
+## Tips
+
+- No API key is needed. Memory is an internal Zelaxy store, and records are automatically scoped to the workflow that creates them via the execution context — there is no `apiKey`/`token` parameter to set.
+- Reuse the same `id` to build up a conversation. `memory_add` appends to an existing record with that identifier instead of overwriting it, so a stable per-session id (for example `conversation-{{start.input.sessionId}}`) accumulates chat turns over time.
+- For `memory_get` and `memory_get_all`, use `sortOrder: "desc"` with a small `limit` to pull only the most recent turns into an agent's context, and `filterType` (on `getAll`) to read back just `user`, `assistant`, or `system` messages.
+- The `role` field only accepts `user`, `assistant`, or `system`; all records are stored internally as the `agent` type. Reference outputs in downstream blocks with double braces, e.g. `{{memory_2.memories}}`.

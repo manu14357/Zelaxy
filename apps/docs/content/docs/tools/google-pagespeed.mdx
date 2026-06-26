@@ -1,0 +1,66 @@
+---
+title: Google PageSpeed Tools
+description: Analyze webpage performance, accessibility, SEO, and best practices using Google PageSpeed Insights
+icon: Box
+---
+
+# Google PageSpeed Tools
+
+Run Lighthouse audits against any public URL using the Google PageSpeed Insights API. Use these tools in a workflow to measure performance scores, gate deployments on quality thresholds, or collect historical web vitals data.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-pagespeed` |
+| **Category** | tools |
+| **Auth** | API Key (`apiKey` — Google Cloud API key with PageSpeed Insights API enabled) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Analyze | `google_pagespeed_analyze` | Analyze a webpage for performance, accessibility, SEO, and best practices using Google PageSpeed Insights |
+
+## Configuration
+
+### google_pagespeed_analyze
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Google Cloud API key with the PageSpeed Insights API enabled. Visibility: user-only (never sent to the LLM). |
+| `url` | string | Yes | The fully-qualified URL of the webpage to analyze (e.g. `https://example.com`). |
+| `strategy` | string | No | Device strategy to simulate. Accepted values: `mobile` (default when omitted) or `desktop`. |
+| `category` | string | No | Lighthouse category to include in the audit. Accepted values: `performance` (default when omitted), `accessibility`, `best-practices`, or `seo`. |
+
+## Outputs
+
+### google_pagespeed_analyze
+
+- `data` (json) — The full PageSpeed Insights analysis result returned by the Google PageSpeed Insights v5 API. Contains the complete Lighthouse report object including audit scores, metrics, and diagnostics.
+- `metadata` (json) — Compact summary of the analysis:
+  - `id` (string) — The analyzed URL as echoed back by the API.
+  - `strategy` (string) — The form factor / strategy that was used (`mobile` or `desktop`).
+
+## YAML Example
+
+```yaml
+google_pagespeed_1:
+  type: google_pagespeed
+  name: "Google PageSpeed"
+  inputs:
+    operation: "google_pagespeed_analyze"
+    url: "https://example.com"
+    strategy: "desktop"
+    category: "performance"
+    apiKey: "{{GOOGLE_PAGESPEED_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Enable the API first** — go to Google Cloud Console, create a project, enable the "PageSpeed Insights API", and generate an API key. Store the key as a workflow secret and reference it with `{{GOOGLE_PAGESPEED_API_KEY}}` rather than hard-coding the value.
+- **Gate deployments on scores** — connect the `data` output to a Condition block that checks `data.lighthouseResult.categories.performance.score` against a minimum threshold (e.g. `0.9` for 90+) before allowing a deployment to proceed.
+- **Compare strategies in parallel** — use two Google PageSpeed blocks in parallel branches with `strategy: mobile` and `strategy: desktop` to compare scores for the same URL simultaneously, then merge results in a downstream block.

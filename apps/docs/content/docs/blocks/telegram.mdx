@@ -71,6 +71,10 @@ When trigger mode is active, configures the `telegram_webhook` trigger so the wo
   - `date` (number) — Date the message was sent (Unix timestamp)
   - `entities` (json) — Special entities in the message (mentions, hashtags, etc.)
 
+## Tools
+
+**Telegram Message** (`telegram_message`) — Sends a message to a Telegram channel or user via the Telegram Bot API. Accepts a bot token, a target chat ID, and the message text. The message body is automatically converted from Markdown to HTML before delivery. Returns the sent message's ID, chat info, timestamp, and bot sender details.
+
 ## YAML Example
 
 ```yaml
@@ -78,7 +82,7 @@ telegram_1:
   type: telegram
   name: "Telegram"
   inputs:
-    botToken: "{{secrets.TELEGRAM_BOT_TOKEN}}"
+    botToken: "{{TELEGRAM_BOT_TOKEN}}"
     chatId: "-1001234567890"
     text: "{{start.input}}"
   connections:

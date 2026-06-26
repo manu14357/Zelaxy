@@ -20,32 +20,77 @@ The Brandfetch block brings brand intelligence into your workflows, returning lo
 
 - Fetch a brand's logos and icons by domain for use in generated content or templates.
 - Pull a brand's official color palette to keep designs and emails on-brand.
-- Retrieve company information (typography, metadata) for enrichment pipelines.
-- Search for brands by name when you only know the company, not its domain.
-- Automate brand-asset gathering for onboarding, CRM enrichment, or marketing tasks.
+- Retrieve typography and company metadata for enrichment pipelines.
+- Look up a brand by stock ticker, ISIN, or crypto symbol in addition to its domain.
+- Search for brands by name when you only know the company name, not its domain.
+- Automate brand-asset gathering for onboarding, CRM enrichment, or marketing workflows.
 
 ## Configuration
 
 ### Operation
 
-Choose what to do: **Get Brand** (`brandfetch_get_brand`) to look up a brand by domain, or **Search Brands** (`brandfetch_search`) to find brands by name.
+**Required.** Dropdown that selects what the block does. Options:
+
+| Label | ID |
+|-------|----|
+| Get Brand | `brandfetch_get_brand` |
+| Search Brands | `brandfetch_search` |
 
 ### API Key
 
-Your Brandfetch API key (stored securely). Required for all operations.
+**Required.** Your Brandfetch API key (stored as a password field). Passed as a Bearer token on every request.
 
 ### Domain
 
-The brand domain to look up (e.g. `example.com`). Shown when the operation is **Get Brand**.
+The brand identifier to look up. Accepts a domain (`nike.com`), stock ticker (`NKE`), ISIN (`US6541061031`), or crypto symbol (`BTC`). Shown only when **Operation** is **Get Brand**.
 
 ### Brand Name
 
-The brand name to search for (e.g. `Apple`). Shown when the operation is **Search Brands**.
+The company or brand name to search for (e.g. `Apple`). Shown only when **Operation** is **Search Brands**.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `identifier` (string), `name` (string)
-- **Outputs**: `id` (string), `name` (string), `domain` (string), `logos` (json), `colors` (json), `company` (json)
+### Inputs
+
+- `operation` (string) — Operation to perform (`brandfetch_get_brand` or `brandfetch_search`)
+- `apiKey` (string) — Brandfetch API key
+- `identifier` (string) — Brand domain, ticker, ISIN, or crypto symbol (used by Get Brand)
+- `name` (string) — Brand name to search (used by Search Brands)
+
+### Outputs
+
+The outputs available depend on the operation executed.
+
+**Get Brand** (`brandfetch_get_brand`) outputs:
+
+- `id` (string) — Unique brand identifier
+- `name` (string) — Brand name
+- `domain` (string) — Brand domain
+- `claimed` (boolean) — Whether the brand profile is claimed by the brand owner
+- `description` (string) — Short brand description
+- `longDescription` (string) — Detailed brand description
+- `links` (json) — Social media and website links (each has `name` and `url`)
+- `logos` (json) — Brand logos with `type`, `theme`, and `formats` (each format has `src`, `format`, `width`, `height`)
+- `colors` (json) — Brand colors with `hex`, `type` (accent/dark/light/brand), and `brightness`
+- `fonts` (json) — Brand fonts with `name`, `type` (title/body), and `origin` (google/custom/system)
+- `company` (json) — Company firmographic data including `employees`, `foundedYear`, `kind`, `location`, and `industries`
+- `qualityScore` (number) — Data quality score from 0 to 1
+- `isNsfw` (boolean) — Whether the brand contains adult content
+
+**Search Brands** (`brandfetch_search`) outputs:
+
+- `results` (array) — List of matching brands; each item contains:
+  - `brandId` (string) — Unique brand identifier
+  - `name` (string) — Brand name
+  - `domain` (string) — Brand domain
+  - `claimed` (boolean) — Whether the brand profile is claimed
+  - `icon` (string) — Brand icon URL
+
+## Tools
+
+**Brandfetch Get Brand** (`brandfetch_get_brand`) — Retrieves full brand assets (logos, colors, fonts, company info) for a brand identified by domain, stock ticker, ISIN, or crypto symbol. Calls `GET https://api.brandfetch.io/v2/brands/{identifier}`.
+
+**Brandfetch Search** (`brandfetch_search`) — Searches for brands by name and returns a list of matches with their domains and icon URLs. Calls `GET https://api.brandfetch.io/v2/search/{name}`.
 
 ## YAML Example
 
@@ -56,7 +101,22 @@ brandfetch_1:
   inputs:
     operation: "brandfetch_get_brand"
     apiKey: "{{BRANDFETCH_API_KEY}}"
-    identifier: "example.com"
+    identifier: "nike.com"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Search example:
+
+```yaml
+brandfetch_1:
+  type: brandfetch
+  name: "Brandfetch"
+  inputs:
+    operation: "brandfetch_search"
+    apiKey: "{{BRANDFETCH_API_KEY}}"
+    name: "Apple"
   connections:
     outgoing:
       - target: next-block-id

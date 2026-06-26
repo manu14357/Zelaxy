@@ -23,6 +23,7 @@ The Linear block integrates your workflow with Linear so you can fetch and filte
 - File issues automatically when an upstream condition or trigger fires.
 - Sync issue data into another system after fetching it from Linear.
 - Build triage flows that read issues and route them based on their contents.
+- Auto-generate issues from AI-produced summaries or structured output blocks.
 
 ## Configuration
 
@@ -30,30 +31,59 @@ The Linear block integrates your workflow with Linear so you can fetch and filte
 
 Choose between **Read Issues** (`read`) and **Create Issue** (`write`). Defaults to `read`.
 
+| Label | ID |
+|-------|----|
+| Read Issues | `read` |
+| Create Issue | `write` |
+
 ### Linear Account
 
-OAuth credential for connecting your Linear account (requires `read` and `write` scopes). Required.
+OAuth credential for connecting your Linear account (requires `read` and `write` scopes). Required for all operations.
 
-### Team
+### Team (basic mode)
 
-Select a Linear team via the team selector (basic mode), or enter a team ID manually with **Team ID** (advanced mode). A team is required for both operations.
+Select a Linear team via the team selector (available in basic mode). A team is required for both operations.
 
-### Project
+### Project (basic mode)
 
-Select a Linear project via the project selector (basic mode), or enter a project ID manually with **Project ID** (advanced mode). A project is required for both operations.
+Select a Linear project via the project selector (available in basic mode). A project is required for both operations.
+
+### Team ID (advanced mode)
+
+Enter a Linear team ID manually. Used instead of the team selector when in advanced mode.
+
+### Project ID (advanced mode)
+
+Enter a Linear project ID manually. Used instead of the project selector when in advanced mode.
 
 ### Title
 
-The issue title. Required when the operation is **Create Issue**.
+The issue title. Required when the operation is **Create Issue** (`write`).
 
 ### Description
 
-The issue body. Required when the operation is **Create Issue**.
+The issue body text. Required when the operation is **Create Issue** (`write`).
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `teamId` (string), `projectId` (string), `manualTeamId` (string), `manualProjectId` (string), `title` (string), `description` (string)
-- **Outputs**: `issues` (json), `issue` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`read` or `write`)
+  - `credential` (string) — Linear OAuth access token
+  - `teamId` (string) — Linear team identifier (from team selector, basic mode)
+  - `projectId` (string) — Linear project identifier (from project selector, basic mode)
+  - `manualTeamId` (string) — Manual team identifier (advanced mode, overrides `teamId`)
+  - `manualProjectId` (string) — Manual project identifier (advanced mode, overrides `projectId`)
+  - `title` (string) — Issue title (required for `write` operation)
+  - `description` (string) — Issue description (required for `write` operation)
+
+- **Outputs**:
+  - `issues` (json) — Array of issues returned by the **Read Issues** operation; each issue has `id`, `title`, `description`, `state`, `teamId`, and `projectId`
+  - `issue` (json) — Single issue object returned by the **Create Issue** operation; contains `id`, `title`, `description`, `state`, `teamId`, and `projectId`
+
+## Tools
+
+- **Linear Issue Reader** (`linear_read_issues`) — Fetches all issues from the specified Linear team and project via the Linear GraphQL API. Returns an array of issue objects, each with `id`, `title`, `description`, `state`, `teamId`, and `projectId`.
+- **Linear Issue Writer** (`linear_create_issue`) — Creates a new issue in the specified Linear team and project via the Linear GraphQL API. Requires `title` (and optionally `description`). Returns the created issue object.
 
 ## YAML Example
 

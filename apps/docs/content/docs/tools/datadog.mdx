@@ -1,0 +1,102 @@
+---
+title: Datadog
+description: Query metrics, search logs, manage monitors, and create incidents in Datadog from workflows
+icon: ChartBar
+---
+
+# Datadog
+
+Integrate Datadog observability into your workflows. Query time-series metrics, search logs, inspect monitors, and create or list incidents — all wired to upstream data and downstream agents without leaving the workflow canvas.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `datadog` |
+| **Category** | Tool — Observability / Monitoring |
+| **Auth** | API Key + Application Key (`DD-API-KEY` / `DD-APPLICATION-KEY` headers) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Query Metrics** | `datadog_query_metrics` | Query time-series metric data for a given expression and time range using the v1 metrics API |
+| **Query Logs** | `datadog_query_logs` | Search log events using Datadog's v2 Logs Search API for a given filter and time window |
+| **List Monitors** | `datadog_list_monitors` | Retrieve all monitors configured in the account via the v1 monitor API |
+| **Create Incident** | `datadog_create_incident` | Open a new incident in Datadog with a given title using the v2 Incidents API |
+| **List Incidents** | `datadog_list_incidents` | List all incidents in the account, with pagination cursor support |
+| **List Dashboards** | `datadog_list_dashboards` | Retrieve all dashboards in the account via the v1 dashboard API |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` | Yes (all operations) | **Secret.** Datadog API Key. Pass as `{{DATADOG_API_KEY}}`. Sent as the `DD-API-KEY` header on every request. |
+| `appKey` | `string` | Yes (all operations) | **Secret.** Datadog Application Key. Pass as `{{DATADOG_APP_KEY}}`. Sent as the `DD-APPLICATION-KEY` header. The Application Key scopes which data the API Key can access. |
+| `site` | `string` | No | Datadog site hostname. Defaults to `datadoghq.com` (US1). Supported values: `datadoghq.com` (US1), `us3.datadoghq.com` (US3), `us5.datadoghq.com` (US5), `datadoghq.eu` (EU). |
+| `query` | `string` | Yes (`datadog_query_metrics`, `datadog_query_logs`) | For metrics: a Datadog metric query expression, e.g. `avg:system.cpu.user{*}`. For logs: a log search filter, e.g. `service:myapp status:error`. |
+| `from` | `number` | Yes (`datadog_query_metrics`, `datadog_query_logs`) | Start of the time range as a Unix epoch timestamp in **seconds**, e.g. `1700000000`. |
+| `to` | `number` | Yes (`datadog_query_metrics`, `datadog_query_logs`) | End of the time range as a Unix epoch timestamp in **seconds**, e.g. `1700003600`. |
+| `title` | `string` | Yes (`datadog_create_incident`) | Title of the new incident to create. |
+
+## Outputs
+
+### `datadog_query_metrics`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `series` | `json` | Array of metric series objects returned by Datadog, each containing the metric name, scope, pointlist, and aggregated values |
+| `from` | `number` | Query start time echoed back by the API (optional) |
+| `to` | `number` | Query end time echoed back by the API (optional) |
+| `query` | `string` | The metric query string that was executed |
+
+### `datadog_query_logs`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `logs` | `json` | Array of log event objects matching the search filter, up to 50 per page |
+| `cursor` | `string` | Pagination cursor (`after` token) for retrieving the next page of results (optional) |
+
+### `datadog_list_monitors`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `monitors` | `json` | Array of monitor objects, each including the monitor's id, name, type, state, and query |
+
+### `datadog_create_incident`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier of the newly created incident |
+| `title` | `string` | Title of the created incident as confirmed by Datadog |
+| `status` | `string` | Current status of the incident (e.g. `active`) |
+| `created` | `string` | ISO 8601 creation timestamp of the incident (optional) |
+
+### `datadog_list_incidents`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `incidents` | `json` | Array of incident data objects, each with id, type, and attributes (title, status, created, etc.) |
+| `cursor` | `string` | Pagination cursor (`next_offset`) for fetching the next page of incidents (optional) |
+
+### `datadog_list_dashboards`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `dashboards` | `json` | Array of dashboard objects, each containing the dashboard's id, title, url, and layout type |
+
+## Example
+
+```
+[Starter] → [Datadog: Query Metrics] → [Agent: analyze result]
+```
+
+A scheduled workflow fires every 15 minutes and queries CPU utilization using the Datadog block with `apiKey` set to `{{DATADOG_API_KEY}}`, `appKey` set to `{{DATADOG_APP_KEY}}`, `query` set to `avg:system.cpu.user{env:production}`, and the `from`/`to` values derived from the Starter block's trigger timestamp as `{{starter.windowStart}}` and `{{starter.windowEnd}}`. The downstream Agent block reads `{{datadog.series}}` to detect anomalies and — when CPU exceeds a threshold — feeds the finding into a second Datadog block running **Create Incident** with `title` set to `High CPU detected in production at {{starter.windowEnd}}`.
+
+## Tips
+
+- **Both keys are always required.** The `apiKey` authenticates the request at the Datadog API gateway; the `appKey` determines which resources that key can access (monitors, logs, incidents). Keep them separate secrets and store them as environment variables (`{{DATADOG_API_KEY}}` and `{{DATADOG_APP_KEY}}`).
+- **Pick the right site.** If your Datadog organization is on EU (`datadoghq.eu`), US3, or US5, you must set `site` accordingly — the default `datadoghq.com` (US1) will return auth errors for accounts on other sites.
+- **Time ranges for logs and metrics are in Unix epoch seconds**, not milliseconds. To convert a JavaScript `Date.now()` value from an upstream block, divide by 1000.
+- **Log search is paginated at 50 results per page.** If `{{datadog.cursor}}` is non-null after a Query Logs call, use it in a loop block to fetch subsequent pages.
+- **`datadog_create_incident` sets `customerImpacted: false` by default.** If you need to mark an incident as customer-impacting, use the Datadog API directly via an HTTP block after creating the incident and updating its attributes.

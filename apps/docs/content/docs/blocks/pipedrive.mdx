@@ -1,0 +1,141 @@
+---
+title: Pipedrive Block
+description: Manage deals and persons in Pipedrive CRM
+icon: Box
+---
+
+# Pipedrive Block
+
+Create and list deals, create persons, and search deals in Pipedrive CRM. Authenticate with a Pipedrive API token. Use this block whenever a workflow needs to push lead data into Pipedrive, retrieve a list of open deals for processing, or look up existing records by keyword.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `pipedrive` |
+| **Category** | tools |
+| **Color** | `#017737` |
+
+## When to Use
+
+- Create a new deal in Pipedrive after a lead completes a form or passes a qualification step.
+- Add a new person (contact) to Pipedrive and optionally link them to an organization.
+- List all deals in a given status (`open`, `won`, `lost`) to feed downstream reporting or routing logic.
+- Search deals by keyword to check whether a deal already exists before creating a duplicate.
+- Chain deal creation with person creation to set up a fully linked CRM record in one workflow run.
+- Paginate through large deal lists using `start` and `limit` to process records in batches.
+
+## Configuration
+
+### Operation
+
+Selects which Pipedrive action to run. Required. Default: `pipedrive_create_deal`.
+
+| Label | ID |
+|-------|----|
+| Create deal | `pipedrive_create_deal` |
+| List deals | `pipedrive_list_deals` |
+| Create person | `pipedrive_create_person` |
+| Search deals | `pipedrive_search_deals` |
+
+### Title
+
+The title of the deal to create (e.g. `Enterprise Software License`). Shown when **Operation** is `pipedrive_create_deal`. Required for that operation.
+
+### Value
+
+The monetary value of the deal (e.g. `5000`). Shown when **Operation** is `pipedrive_create_deal`. Optional.
+
+### Currency
+
+Currency code for the deal value (e.g. `USD`, `EUR`, `GBP`). Shown when **Operation** is `pipedrive_create_deal`. Optional.
+
+### Stage ID
+
+Numeric ID of the pipeline stage to place the deal in (e.g. `2`). Shown when **Operation** is `pipedrive_create_deal`. Optional.
+
+### Person ID
+
+Numeric ID of an existing Pipedrive person to associate with the deal (e.g. `456`). Shown when **Operation** is `pipedrive_create_deal`. Optional.
+
+### Name
+
+The full name of the person to create (e.g. `Jane Doe`). Shown when **Operation** is `pipedrive_create_person`. Required for that operation.
+
+### Email
+
+Email address of the person (e.g. `jane@example.com`). Shown when **Operation** is `pipedrive_create_person`. Optional.
+
+### Phone
+
+Phone number of the person (e.g. `+15551234567`). Shown when **Operation** is `pipedrive_create_person`. Optional.
+
+### Organization ID
+
+Numeric ID of the organization to associate with the deal or person (e.g. `789`). Shown when **Operation** is `pipedrive_create_deal` or `pipedrive_create_person`. Optional.
+
+### Search Term
+
+Keyword to search for in deal titles and fields (e.g. `enterprise`, minimum 2 characters). Shown when **Operation** is `pipedrive_search_deals`. Required for that operation.
+
+### Status
+
+Filter deals by status. Accepts `open`, `won`, `lost`, `deleted`, or `all_not_deleted`. Shown when **Operation** is `pipedrive_list_deals`. Optional.
+
+### Limit
+
+Maximum number of records to return (default `100`). Shown when **Operation** is `pipedrive_list_deals` or `pipedrive_search_deals`. Optional.
+
+### Pipedrive API Token
+
+Your Pipedrive API token, stored as a password field. Required for all operations. Use `{{PIPEDRIVE_API_KEY}}` to reference an environment variable.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform
+  - `apiKey` (string) — Pipedrive API token
+  - `title` (string) — Deal title
+  - `value` (number) — Deal value
+  - `currency` (string) — Currency code
+  - `person_id` (number) — Person ID
+  - `org_id` (number) — Organization ID
+  - `stage_id` (number) — Stage ID
+  - `status` (string) — Deal status
+  - `name` (string) — Person name
+  - `email` (string) — Person email
+  - `phone` (string) — Person phone
+  - `term` (string) — Search term
+  - `limit` (number) — Result limit
+  - `start` (number) — Pagination start offset
+
+- **Outputs**:
+  - `data` (json) — Result object or array from Pipedrive (a single deal/person object for create operations; an array of deal objects for list/search operations)
+  - `metadata` (json) — Response metadata (for create operations: `{ id }` — the created record's ID; for list/search operations: `{ count, has_more }` — item count and pagination flag)
+
+## Tools
+
+- **Pipedrive Create Deal** (`pipedrive_create_deal`) — POSTs to the Pipedrive v1 deals API to create a new deal with optional value, currency, stage, linked person, and organization.
+- **Pipedrive List Deals** (`pipedrive_list_deals`) — GETs a paginated list of deals from Pipedrive, optionally filtered by status.
+- **Pipedrive Create Person** (`pipedrive_create_person`) — POSTs to the Pipedrive v1 persons API to create a new contact with optional email, phone, and organization link.
+- **Pipedrive Search Deals** (`pipedrive_search_deals`) — GETs deal search results from Pipedrive using a keyword term, with optional result limit.
+
+## YAML Example
+
+```yaml
+pipedrive_1:
+  type: pipedrive
+  name: "Pipedrive"
+  inputs:
+    operation: "pipedrive_create_deal"
+    apiKey: "{{PIPEDRIVE_API_KEY}}"
+    title: "{{lead_form.dealName}}"
+    value: "{{lead_form.budget}}"
+    currency: "USD"
+    stage_id: "2"
+    person_id: "{{create_person_block.data.id}}"
+    org_id: "{{org_lookup.data.id}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

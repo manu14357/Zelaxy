@@ -1,0 +1,118 @@
+---
+title: ServiceNow Block
+description: Query, create, read, and update records in ServiceNow tables
+icon: Box
+---
+
+# ServiceNow Block
+
+Work with the ServiceNow Table API to query records with encoded queries, create new records, read a record by sys_id, and update existing records. Authenticate with your instance URL and Basic auth credentials. Reach for this block whenever a workflow needs to read or write ITSM data — incidents, tasks, users, change requests, or any custom table — in a ServiceNow instance.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `servicenow` |
+| **Category** | tools |
+| **Color** | `#62D84E` |
+
+## When to Use
+
+- Query a ServiceNow table (e.g. `incident`, `task`, `sys_user`) with an encoded query and retrieve matching records.
+- Create a new record in any ServiceNow table by supplying a JSON object of field values.
+- Fetch a single record by its `sys_id` when you already know the exact record identifier.
+- Update one or more fields on an existing record identified by its `sys_id`.
+- Integrate ITSM data into broader AI workflows — for example, automatically opening an incident when a monitoring alert fires, or resolving a ticket after a remediation step completes.
+- Pass ServiceNow record data downstream to an Agent or other processing blocks for analysis or enrichment.
+
+## Configuration
+
+### Operation (required)
+
+Selects which ServiceNow Table API action the block executes. The value determines which additional fields appear.
+
+| Label | ID |
+|-------|----|
+| Query table | `servicenow_query_table` |
+| Create record | `servicenow_create_record` |
+| Get record | `servicenow_get_record` |
+| Update record | `servicenow_update_record` |
+
+### Table Name (required)
+
+The name of the ServiceNow table to target (e.g. `incident`, `task`, `sys_user`, `change_request`). Required for all operations.
+
+### Encoded Query
+
+An encoded query string used to filter records (e.g. `active=true^priority=1`). Follows the ServiceNow encoded query syntax. Only shown when **Operation** is `servicenow_query_table`. Optional — omit to return the first N records from the table with no filter.
+
+### Limit
+
+Maximum number of records to return. Defaults to `10` when not set. Only shown when **Operation** is `servicenow_query_table`. Optional.
+
+### Record sys_id
+
+The `sys_id` of the specific record to retrieve or update (e.g. `6816f79cc0a8016401c5a33be04be441`). Shown when **Operation** is `servicenow_get_record` or `servicenow_update_record`. Required for those operations.
+
+### Fields
+
+A JSON object of field names and values to write. For `servicenow_create_record`, this defines the new record (e.g. `{"short_description": "Issue title", "priority": "1"}`). For `servicenow_update_record`, only the fields listed are changed; all other fields remain untouched. Shown when **Operation** is `servicenow_create_record` or `servicenow_update_record`. Required for those operations.
+
+### Instance URL (required)
+
+The full URL of your ServiceNow instance (e.g. `https://dev12345.service-now.com`). Required for all operations. Do not include a trailing slash.
+
+### Username (required)
+
+The ServiceNow username used for Basic authentication. Required for all operations.
+
+### Password (required)
+
+The ServiceNow password for the above username. Stored as a secret. Required for all operations.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform; one of `servicenow_query_table`, `servicenow_create_record`, `servicenow_get_record`, or `servicenow_update_record`.
+- `instanceUrl` (string) — ServiceNow instance URL.
+- `username` (string) — ServiceNow username.
+- `password` (string) — ServiceNow password.
+- `tableName` (string) — Table name.
+- `sysId` (string) — Record sys_id (used by Get record and Update record operations).
+- `fields` (json) — Field values as a JSON object (used by Create record and Update record operations).
+- `query` (string) — Encoded query string (used by Query table operation).
+- `limit` (number) — Result limit (used by Query table operation).
+
+**Outputs:**
+
+- `data` (json) — Result record or array from ServiceNow. For `servicenow_query_table` this is an array of records; for the other operations it is a single record object.
+- `metadata` (json) — Response metadata. For Query table: `{ table, count }`. For Get/Create/Update record: `{ table, sysId }`.
+
+## Tools
+
+- **ServiceNow Query Table** (`servicenow_query_table`) — Issues a GET request to `/api/now/table/{tableName}` with an optional `sysparm_query` filter and `sysparm_limit`. Returns an array of matching records plus a count in metadata.
+- **ServiceNow Create Record** (`servicenow_create_record`) — Issues a POST request to `/api/now/table/{tableName}` with a JSON body of field values. Returns the newly created record and its `sys_id` in metadata.
+- **ServiceNow Get Record** (`servicenow_get_record`) — Issues a GET request to `/api/now/table/{tableName}/{sysId}`. Returns the single requested record and its `sys_id` in metadata.
+- **ServiceNow Update Record** (`servicenow_update_record`) — Issues a PATCH request to `/api/now/table/{tableName}/{sysId}` with a JSON body of the fields to change. Returns the updated record and its `sys_id` in metadata.
+
+All tools authenticate using HTTP Basic auth (username + password encoded as a Base64 header).
+
+## YAML Example
+
+```yaml
+servicenow_1:
+  type: servicenow
+  name: "ServiceNow"
+  inputs:
+    operation: "servicenow_query_table"
+    instanceUrl: "{{SERVICENOW_INSTANCE_URL}}"
+    username: "{{SERVICENOW_USERNAME}}"
+    password: "{{SERVICENOW_PASSWORD}}"
+    tableName: "incident"
+    query: "active=true^priority=1"
+    limit: 20
+  connections:
+    outgoing:
+      - target: next-block-id
+```

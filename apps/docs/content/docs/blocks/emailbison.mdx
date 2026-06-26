@@ -1,7 +1,7 @@
 ---
 title: Email Bison Block
 description: Find and verify email addresses with Email Bison
-icon: Box
+icon: Mail
 ---
 
 # Email Bison Block
@@ -20,31 +20,64 @@ The Email Bison block integrates the Email Bison email finder into your workflow
 
 - Find a professional email address from a person's first name, last name, and company domain
 - Verify whether an email address is valid and deliverable before sending outreach
-- Run a bulk find across many contacts to enrich a lead list
-- Discover email addresses associated with a company domain
+- Run a bulk find across many contacts to enrich a lead list at once
+- Discover all email addresses associated with a company domain
 - Add confidence scoring to contact data feeding a downstream CRM or email block
+- Gate outreach campaigns on verified deliverability results
 
 ## Configuration
 
 ### Operation
-A required dropdown that selects which action to perform: **Find Email** (`emailbison_find_email`), **Verify Email** (`emailbison_verify_email`), **Bulk Find Emails** (`emailbison_bulk_find`), or **Domain Search** (`emailbison_domain_search`). The other fields show/hide based on this choice.
+Required dropdown that selects which action to perform. All other fields show or hide based on this choice.
+
+| Label | ID |
+|-------|----|
+| Find Email | `emailbison_find_email` |
+| Verify Email | `emailbison_verify_email` |
+| Bulk Find Emails | `emailbison_bulk_find` |
+| Domain Search | `emailbison_domain_search` |
 
 ### API Key
-Required, masked input for your Email Bison API key used to authenticate requests.
+Required, masked (`password`) input for your Email Bison API key used to authenticate all requests.
 
-### First Name / Last Name
-Shown for the **Find Email** operation. The person's name used to locate their email address.
+### First Name
+Shown only for **Find Email** (`emailbison_find_email`). The person's given name used to locate their professional email.
+
+### Last Name
+Shown only for **Find Email** (`emailbison_find_email`). The person's family name.
 
 ### Domain
-Shown for **Find Email** and **Domain Search**. The company domain to search against (e.g. `example.com`).
+Shown for **Find Email** (`emailbison_find_email`) and **Domain Search** (`emailbison_domain_search`). The company domain to search against (e.g. `example.com`).
 
 ### Email
-Shown for the **Verify Email** operation. The email address to check for deliverability.
+Shown only for **Verify Email** (`emailbison_verify_email`). The email address to check for deliverability.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `firstName` (string), `lastName` (string), `domain` (string), `email` (string)
-- **Outputs**: `email` (string), `verified` (boolean), `confidence` (number)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (the tool id, e.g. `emailbison_find_email`)
+  - `apiKey` (string) — API key for authentication
+  - `firstName` (string) — First name of the person (Find Email only)
+  - `lastName` (string) — Last name of the person (Find Email only)
+  - `domain` (string) — Company domain (Find Email and Domain Search)
+  - `email` (string) — Email address to verify (Verify Email only)
+
+- **Outputs** (block-level):
+  - `email` (string) — Found or verified email address
+  - `verified` (boolean) — Email verification result
+  - `confidence` (number) — Confidence score
+
+## Tools
+
+Each operation maps to a dedicated tool. The block routes to the correct tool based on the `operation` input.
+
+**EmailBison Find Email** (`emailbison_find_email`) — Finds the email address of a person by first name, last name, and company domain. Required params: `apiKey`, `firstName`, `lastName`, `domain`. Returns: `email` (string), `score` (number, optional), `status` (string), `firstName` (string), `lastName` (string), `domain` (string).
+
+**EmailBison Verify Email** (`emailbison_verify_email`) — Verifies whether an email address is valid and deliverable. Required params: `apiKey`, `email`. Returns: `email` (string), `status` (string), `isValid` (boolean), `score` (number, optional).
+
+**EmailBison Bulk Find** (`emailbison_bulk_find`) — Finds email addresses for multiple people in a single POST request. Required params: `apiKey`, `people` (JSON array of objects with `first_name`, `last_name`, `domain`). Returns: `results` (json — array of email find results for each person).
+
+**EmailBison Domain Search** (`emailbison_domain_search`) — Searches for all email addresses associated with a company domain. Required params: `apiKey`, `domain`. Optional params: `limit` (number — maximum emails to return). Returns: `emails` (json — array of email addresses), `domain` (string), `total` (number).
 
 ## YAML Example
 
@@ -54,7 +87,7 @@ emailbison_1:
   name: "Email Bison"
   inputs:
     operation: "emailbison_find_email"
-    apiKey: "{{secrets.EMAIL_BISON_API_KEY}}"
+    apiKey: "{{EMAIL_BISON_API_KEY}}"
     firstName: "John"
     lastName: "Doe"
     domain: "example.com"

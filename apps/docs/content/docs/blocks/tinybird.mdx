@@ -1,0 +1,92 @@
+---
+title: Tinybird Block
+description: Query data and list resources in Tinybird
+icon: Box
+---
+
+# Tinybird Block
+
+Run SQL queries and list pipes and data sources in your Tinybird workspace through the Tinybird API. Authenticate with an API token to access your real-time analytics data directly inside a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `tinybird` |
+| **Category** | `tools` |
+| **Color** | `#27F795` |
+
+## When to Use
+
+- Run ad-hoc or scheduled SQL queries against Tinybird pipes or raw data sources and pass results to downstream blocks.
+- Inspect which pipes exist in a workspace before routing logic to the correct pipe name.
+- Discover all available data sources in a Tinybird workspace to drive dynamic workflow behavior.
+- Feed Tinybird query results into an Agent or Function block for further processing or summarization.
+- Validate workspace connectivity and token permissions during workflow setup or debugging.
+- Build analytics dashboards or reports that pull fresh data from Tinybird on every workflow run.
+
+## Configuration
+
+### Operation
+
+**Required.** A dropdown that selects which Tinybird API call the block makes. Every workflow run executes exactly one operation.
+
+| Label | Id |
+|-------|----|
+| Query | `tinybird_query` |
+| List pipes | `tinybird_list_pipes` |
+| List data sources | `tinybird_list_datasources` |
+
+### SQL
+
+Only visible when **Operation** is `tinybird_query`.
+
+The SQL statement to execute against Tinybird. You can query any pipe or data source by name. Tinybird SQL is a ClickHouse-compatible dialect.
+
+- Placeholder: `SELECT * FROM my_pipe LIMIT 10`
+- Accepts `{{blockName.field}}` references to inject dynamic values.
+- Not shown or required when the operation is `tinybird_list_pipes` or `tinybird_list_datasources`.
+
+### API Token
+
+**Required.** Your Tinybird API token (starts with `p.eyJ…`). The value is stored as a password field and is never echoed in the UI.
+
+- Use `{{TINYBIRD_API_KEY}}` to pull the token from a workflow secret or environment variable rather than hard-coding it.
+- The token is passed as a `Bearer` header on every request.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform. One of `tinybird_query`, `tinybird_list_pipes`, or `tinybird_list_datasources`.
+- `apiKey` (string) — Tinybird API token used to authenticate all requests.
+- `sql` (string) — SQL query to execute. Only consumed when `operation` is `tinybird_query`.
+
+**Outputs:**
+
+- `data` (json) — Result object returned from Tinybird. Shape varies by operation:
+  - `tinybird_query`: `{ meta, data, rows }` — the standard Tinybird query response.
+  - `tinybird_list_pipes`: `{ pipes }` — array of pipe objects.
+  - `tinybird_list_datasources`: `{ datasources }` — array of data source objects.
+- `metadata` (json) — Response metadata containing a `count` field (number of rows / pipes / data sources returned).
+
+## Tools
+
+- **Tinybird Query** (`tinybird_query`) — Sends a `GET` request to `https://api.tinybird.co/v0/sql?q=<encoded-sql>` and returns the query result as JSON. Requires `apiKey` and `sql`.
+- **Tinybird List Pipes** (`tinybird_list_pipes`) — Sends a `GET` request to `https://api.tinybird.co/v0/pipes` and returns all pipes in the workspace. Requires only `apiKey`.
+- **Tinybird List Data Sources** (`tinybird_list_datasources`) — Sends a `GET` request to `https://api.tinybird.co/v0/datasources` and returns all data sources in the workspace. Requires only `apiKey`.
+
+## YAML Example
+
+```yaml
+tinybird_1:
+  type: tinybird
+  name: "Tinybird"
+  inputs:
+    operation: "tinybird_query"
+    apiKey: "{{TINYBIRD_API_KEY}}"
+    sql: "SELECT event, count() AS total FROM {{trigger_block.pipe_name}} GROUP BY event ORDER BY total DESC LIMIT 20"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

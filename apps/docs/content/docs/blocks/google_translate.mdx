@@ -1,0 +1,127 @@
+---
+title: Google Translate Block
+description: Translate text, detect languages, and list supported languages
+icon: Languages
+---
+
+# Google Translate Block
+
+Translate text between languages, detect the language of a piece of text, and enumerate every language supported by the Google Cloud Translation API. Authenticate with a Google Cloud API key to access the service.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_translate` |
+| **Category** | `tools` |
+| **Color** | `#4285F4` |
+
+## When to Use
+
+- Translate user-supplied or prior-block text into any of the 100+ languages supported by Google Cloud Translation.
+- Auto-detect the source language of text before routing it to language-specific processing steps.
+- Enumerate all supported language codes and their human-readable names (optionally localised to a display language).
+- Build multilingual pipelines where an Agent block determines the target language and passes it into this block dynamically.
+- Validate whether a particular language code is supported before attempting a translation.
+- Convert HTML content (not just plain text) between languages while preserving markup.
+
+## Configuration
+
+### Operation
+
+Selects which Google Cloud Translation API endpoint to call. The default is **Translate**.
+
+| Label | id |
+|-------|----|
+| Translate | `google_translate_translate` |
+| Detect language | `google_translate_detect_language` |
+| List languages | `google_translate_list_languages` |
+
+---
+
+### Text (`q`)
+
+**Type:** long-input  
+**Shown for:** `Translate`, `Detect language`
+
+The text to translate or identify. Accepts plain text or HTML. Supports dynamic references such as `{{previousBlock.output}}`.
+
+---
+
+### Target Language (`target`)
+
+**Type:** short-input  
+**Shown for:** `Translate`, `List languages`
+
+BCP-47 / ISO-639-1 language code for the translation target (e.g. `es` for Spanish, `fr` for French, `ja` for Japanese). For **List languages**, this controls the language in which the language names are returned (defaults to `en` when omitted).
+
+---
+
+### Source Language (`source`)
+
+**Type:** short-input  
+**Shown for:** `Translate` only  
+**Required:** No
+
+BCP-47 / ISO-639-1 code of the source language (e.g. `en`). When omitted, the API auto-detects the source language and returns the detected code in `metadata.detectedSourceLanguage`.
+
+---
+
+### Format (`format`)
+
+**Type:** short-input  
+**Shown for:** `Translate` only  
+**Required:** No
+
+Format of the input text. Accepted values: `text` (default) or `html`. Use `html` to preserve tags when translating HTML fragments.
+
+---
+
+### Google Cloud API Key (`apiKey`)
+
+**Type:** short-input (password)  
+**Required:** Yes (all operations)
+
+Your Google Cloud API key with the **Cloud Translation API** enabled. Store the key as a workspace secret and reference it as `{{GOOGLE_TRANSLATE_API_KEY}}` rather than pasting it in plain text.
+
+---
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform; one of `google_translate_translate`, `google_translate_detect_language`, or `google_translate_list_languages`.
+- `apiKey` (string) — Google Cloud API key.
+- `q` (string) — Text to translate or detect (required for Translate and Detect language).
+- `target` (string) — Target / display language code (required for Translate; optional for List languages).
+- `source` (string) — Source language code (optional; Translate only).
+- `format` (string) — Text format: `text` or `html` (optional; Translate only).
+
+**Outputs:**
+
+- `data` (json) — Result object or array from Google Translate. For **Translate**: an object with `translatedText` and optionally `detectedSourceLanguage`. For **Detect language**: an object with `language` and `confidence`. For **List languages**: an array of `{ language, name }` objects.
+- `metadata` (json) — Response metadata. For **Translate**: `{ detectedSourceLanguage }`. For **Detect language**: `{ language }`. For **List languages**: `{ count }` (number of languages returned).
+
+## Tools
+
+- **Google Translate Translate Text** (`google_translate_translate`) — Posts the text (`q`) to `https://translation.googleapis.com/language/translate/v2` and returns the translated string plus the auto-detected source language when `source` is omitted.
+- **Google Translate Detect Language** (`google_translate_detect_language`) — Posts the text (`q`) to `https://translation.googleapis.com/language/translate/v2/detect` and returns the detected language code and confidence score.
+- **Google Translate List Languages** (`google_translate_list_languages`) — Calls `https://translation.googleapis.com/language/translate/v2/languages` and returns the full list of supported BCP-47 language codes with their localised names.
+
+## YAML Example
+
+```yaml
+google_translate_1:
+  type: google_translate
+  name: "Translate to Spanish"
+  inputs:
+    operation: "google_translate_translate"
+    apiKey: "{{GOOGLE_TRANSLATE_API_KEY}}"
+    q: "{{extract_block.data}}"
+    target: "es"
+    source: "en"
+    format: "text"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

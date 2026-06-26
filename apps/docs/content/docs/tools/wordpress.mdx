@@ -1,0 +1,130 @@
+---
+title: WordPress Tools
+description: Create, list, retrieve, and update posts on a self-hosted WordPress site via the WordPress REST API.
+icon: Box
+---
+
+# WordPress Tools
+
+The WordPress tools manage blog posts on a self-hosted WordPress site through the WordPress REST API (`/wp-json/wp/v2/posts`). Use them in a workflow to publish, fetch, list, or edit posts programmatically — for example, turning AI-generated content into a draft or published article.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `wordpress` |
+| **Category** | `tools` |
+| **Auth** | Basic Auth (username + application password, base64-encoded) |
+
+Authentication is handled by combining `username` and `appPassword` into an HTTP Basic `Authorization` header (`Basic base64(username:appPassword)`). Every operation requires `siteUrl`, `username`, and `appPassword`.
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Create post | `wordpress_create_post` | Create a new post on a self-hosted WordPress site |
+| List posts | `wordpress_list_posts` | List posts from a self-hosted WordPress site |
+| Get post | `wordpress_get_post` | Get a single post by ID from a self-hosted WordPress site |
+| Update post | `wordpress_update_post` | Update an existing post on a self-hosted WordPress site |
+
+## Configuration
+
+### `wordpress_create_post`
+
+`POST {siteUrl}/wp-json/wp/v2/posts`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `siteUrl` | string | Yes | WordPress site URL (e.g. `https://example.com`) |
+| `username` | string | Yes | WordPress username |
+| `appPassword` | string | Yes | WordPress application password. **Secret** — store as an environment variable, not inline |
+| `title` | string | Yes | Post title |
+| `content` | string | No | Post content (HTML or plain text) |
+| `status` | string | No | Post status: `publish`, `draft`, `pending`, or `private` |
+
+### `wordpress_list_posts`
+
+`GET {siteUrl}/wp-json/wp/v2/posts`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `siteUrl` | string | Yes | WordPress site URL (e.g. `https://example.com`) |
+| `username` | string | Yes | WordPress username |
+| `appPassword` | string | Yes | WordPress application password. **Secret** — store as an environment variable, not inline |
+| `perPage` | number | No | Number of posts to return per page (default 10, max 100). Sent as the `per_page` query parameter |
+
+### `wordpress_get_post`
+
+`GET {siteUrl}/wp-json/wp/v2/posts/{postId}`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `siteUrl` | string | Yes | WordPress site URL (e.g. `https://example.com`) |
+| `username` | string | Yes | WordPress username |
+| `appPassword` | string | Yes | WordPress application password. **Secret** — store as an environment variable, not inline |
+| `postId` | string | Yes | ID of the post to retrieve |
+
+### `wordpress_update_post`
+
+`POST {siteUrl}/wp-json/wp/v2/posts/{postId}`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `siteUrl` | string | Yes | WordPress site URL (e.g. `https://example.com`) |
+| `username` | string | Yes | WordPress username |
+| `appPassword` | string | Yes | WordPress application password. **Secret** — store as an environment variable, not inline |
+| `postId` | string | Yes | ID of the post to update |
+| `title` | string | No | Post title |
+| `content` | string | No | Post content (HTML or plain text) |
+| `status` | string | No | Post status: `publish`, `draft`, `pending`, or `private` |
+
+## Outputs
+
+### `wordpress_create_post`
+
+- `data` (json) — The created WordPress post object
+- `metadata` (json) — Post identifiers
+  - `metadata.id` (string) — Post ID
+
+### `wordpress_list_posts`
+
+- `data` (json) — Array of WordPress post objects
+- `metadata` (json) — List metadata
+  - `metadata.count` (number) — Number of items returned
+
+### `wordpress_get_post`
+
+- `data` (json) — The WordPress post object
+- `metadata` (json) — Post identifiers
+  - `metadata.id` (string) — Post ID
+
+### `wordpress_update_post`
+
+- `data` (json) — The updated WordPress post object
+- `metadata` (json) — Post identifiers
+  - `metadata.id` (string) — Post ID
+
+## YAML Example
+
+```yaml
+wordpress_1:
+  type: wordpress
+  name: "WordPress"
+  inputs:
+    operation: "wordpress_create_post"
+    siteUrl: "https://example.com"
+    username: "admin"
+    appPassword: "{{WORDPRESS_APP_PASSWORD}}"
+    title: "My First Automated Post"
+    content: "<p>Published from a Zelaxy workflow.</p>"
+    status: "draft"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Generate an application password, not your login password.** In the WordPress admin under Users → Profile → Application Passwords, create a dedicated app password (it looks like `xxxx xxxx xxxx xxxx xxxx xxxx`) and supply it as `appPassword`. Keep it in an environment variable and reference it as `{{WORDPRESS_APP_PASSWORD}}`.
+- **`siteUrl` should be the bare site root** (e.g. `https://example.com`) with no trailing slash and no `/wp-json` suffix — the tools append `/wp-json/wp/v2/posts` for you. Ensure the REST API is reachable (pretty permalinks enabled).
+- **Chaining operations:** capture the new post's ID from a create step with `{{wordpress_1.metadata.id}}` and pass it as `postId` to a later get/update step. Note that `wordpress_update_post` uses `POST` (the WordPress REST convention for partial updates), and only the fields you provide (`title`, `content`, `status`) are sent.

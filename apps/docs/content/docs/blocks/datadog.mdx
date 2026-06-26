@@ -1,7 +1,7 @@
 ---
 title: Datadog Block
 description: Query metrics, logs, and manage incidents in Datadog
-icon: Box
+icon: ChartBar
 ---
 
 # Datadog Block
@@ -29,32 +29,86 @@ The Datadog block brings observability data into your workflows. Use it to query
 
 ### Operation
 
-Choose what the block does: Query Metrics, Query Logs, List Monitors, Create Incident, List Incidents, or List Dashboards. Required.
+Required. Selects which Datadog API action to perform. Available options:
+
+| Label | ID |
+|-------|----|
+| Query Metrics | `datadog_query_metrics` |
+| Query Logs | `datadog_query_logs` |
+| List Monitors | `datadog_list_monitors` |
+| Create Incident | `datadog_create_incident` |
+| List Incidents | `datadog_list_incidents` |
+| List Dashboards | `datadog_list_dashboards` |
 
 ### API Key
 
-Your Datadog API key. Required and stored as a secret.
+Required. Your Datadog API key, stored as a secret (`apiKey`).
 
 ### Application Key
 
-Your Datadog application key. Required and stored as a secret.
+Required. Your Datadog application key, stored as a secret (`appKey`).
 
 ### Site
 
-The Datadog site/region for the API: US1 (datadoghq.com), US3, EU (datadoghq.eu), or US5.
+The Datadog site/region for all API calls. Defaults to `datadoghq.com` when not specified. Available options:
+
+| Label | ID |
+|-------|----|
+| US1 (datadoghq.com) | `datadoghq.com` |
+| US3 (us3.datadoghq.com) | `us3.datadoghq.com` |
+| EU (datadoghq.eu) | `datadoghq.eu` |
+| US5 (us5.datadoghq.com) | `us5.datadoghq.com` |
 
 ### Query
 
-The query expression. Shown for Query Metrics and Query Logs (e.g. `avg:system.cpu.user{*}`).
+The query expression to evaluate. Shown only for the `datadog_query_metrics` and `datadog_query_logs` operations. For metrics use Datadog metric syntax (e.g. `avg:system.cpu.user{*}`); for logs use the log search query syntax (e.g. `service:myapp status:error`).
 
-### From / To
+### From (Unix timestamp)
 
-Unix timestamps bounding the time range. Shown for Query Metrics and Query Logs.
+Start of the time range as a Unix epoch timestamp in seconds. Shown only for `datadog_query_metrics` and `datadog_query_logs`.
+
+### To (Unix timestamp)
+
+End of the time range as a Unix epoch timestamp in seconds. Shown only for `datadog_query_metrics` and `datadog_query_logs`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `appKey` (string), `site` (string), `query` (string), `from` (string), `to` (string)
-- **Outputs**: `series` (json), `logs` (json), `monitors` (json)
+**Inputs** (subBlock ids passed to the block at runtime):
+
+- `operation` (string) — Operation to perform (one of the operation IDs above)
+- `apiKey` (string) — API key
+- `appKey` (string) — Application key
+- `site` (string) — Datadog site
+- `query` (string) — Query expression (metrics or logs operations only)
+- `from` (string) — Start time as Unix epoch seconds (metrics or logs operations only)
+- `to` (string) — End time as Unix epoch seconds (metrics or logs operations only)
+
+**Outputs** (fields available on the block's result, depending on the operation chosen):
+
+- `series` (json) — Metrics series returned by Query Metrics
+- `logs` (json) — Log events returned by Query Logs
+- `monitors` (json) — Monitor list returned by List Monitors
+- `incidents` (json) — Incident list returned by List Incidents
+- `dashboards` (json) — Dashboard list returned by List Dashboards
+- `id` (string) — Incident ID returned by Create Incident
+- `title` (string) — Incident title returned by Create Incident
+- `status` (string) — Incident status returned by Create Incident
+- `created` (string, optional) — Creation timestamp returned by Create Incident
+- `cursor` (string, optional) — Pagination cursor returned by Query Logs and List Incidents
+- `from` (number, optional) — Query start time echoed by Query Metrics
+- `to` (number, optional) — Query end time echoed by Query Metrics
+- `query` (string) — The query string used, echoed by Query Metrics
+
+## Tools
+
+Each operation maps to a dedicated tool registered in the tool registry:
+
+- **Datadog Query Metrics** (`datadog_query_metrics`) — Queries the Datadog v1 metrics API for a given metric expression over a Unix time range. Returns `series`, `from`, `to`, and `query`.
+- **Datadog Query Logs** (`datadog_query_logs`) — Searches the Datadog v2 logs events API for log entries matching a query string over a time range. Returns up to 50 `logs` per call plus a `cursor` for pagination.
+- **Datadog List Monitors** (`datadog_list_monitors`) — Retrieves all monitors defined in the Datadog account via the v1 monitor API. Returns `monitors`.
+- **Datadog Create Incident** (`datadog_create_incident`) — Creates a new incident in Datadog via the v2 incidents API using the supplied `title`. Returns `id`, `title`, `status`, and `created`.
+- **Datadog List Incidents** (`datadog_list_incidents`) — Lists all incidents in the Datadog account via the v2 incidents API. Returns `incidents` and an optional `cursor` for pagination.
+- **Datadog List Dashboards** (`datadog_list_dashboards`) — Lists all dashboards in the Datadog account via the v1 dashboard API. Returns `dashboards`.
 
 ## YAML Example
 
@@ -64,8 +118,8 @@ datadog_1:
   name: "Datadog"
   inputs:
     operation: "datadog_query_metrics"
-    apiKey: "{{secrets.DATADOG_API_KEY}}"
-    appKey: "{{secrets.DATADOG_APP_KEY}}"
+    apiKey: "{{DATADOG_API_KEY}}"
+    appKey: "{{DATADOG_APP_KEY}}"
     site: "datadoghq.com"
     query: "avg:system.cpu.user{*}"
     from: "1700000000"

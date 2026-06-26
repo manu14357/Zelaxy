@@ -19,46 +19,92 @@ The LinkedIn block connects your workflow to LinkedIn so you can create posts, v
 ## When to Use
 
 - Publish a LinkedIn post automatically as part of a content or marketing workflow.
-- Share an article or external link with a custom title and description.
+- Share an article or external link with a custom title and description on a post.
 - Post on behalf of a company page by supplying an organization ID.
-- Fetch the authenticated member's profile data for personalization or routing.
-- Look up details about a LinkedIn company/organization by ID.
+- Fetch the authenticated member's profile data for personalization or downstream routing.
+- Look up details (name, description, follower count, website) about a LinkedIn company by ID.
 - Remove a previously published post by its URN.
 
 ## Configuration
 
 ### Operation
 
-Choose the action to perform: Create Post, Get Profile, Get Company, or Delete Post. Defaults to Create Post.
+Choose the action to perform. Defaults to `linkedin_create_post`.
+
+| Label | ID |
+|-------|----|
+| Create Post | `linkedin_create_post` |
+| Get Profile | `linkedin_get_profile` |
+| Get Company | `linkedin_get_company` |
+| Delete Post | `linkedin_delete_post` |
 
 ### LinkedIn Account
 
-OAuth credential used to authenticate. Requires the `openid`, `profile`, `email`, and `w_member_social` scopes.
+OAuth credential used to authenticate with LinkedIn. Requires the `openid`, `profile`, `email`, and `w_member_social` scopes. Select the connected LinkedIn account from the OAuth input.
 
 ### Post Content
 
-The text body of the post. Required when the operation is Create Post.
+The text body of the post. Required when the operation is **Create Post**.
 
 ### Visibility
 
-Sets who can see the post: Public or Connections Only. Defaults to Public. Applies to Create Post.
+Sets who can see the post. Applies only to **Create Post**. Defaults to `PUBLIC`.
 
-### Link Fields
+| Label | ID |
+|-------|-----|
+| Public | `PUBLIC` |
+| Connections Only | `CONNECTIONS` |
 
-Optional `mediaUrl`, `mediaTitle`, and `mediaDescription` attach and describe a shared link on a created post.
+### Link URL
 
-### Organization ID
+Optional URL of an article or external link to attach to the post (`mediaUrl`). Applies to **Create Post**.
 
-For Create Post, the optional `organizationId` posts on behalf of a company page (leave empty for a personal post). For Get Company, `companyOrganizationId` is the required ID to look up.
+### Link Title
+
+Optional title for the shared link preview (`mediaTitle`). Applies to **Create Post**.
+
+### Link Description
+
+Optional description for the shared link preview (`mediaDescription`). Applies to **Create Post**.
+
+### Organization ID (Create Post)
+
+Optional LinkedIn organization/company ID (`organizationId`). When provided, the post is published on behalf of that company page. Leave empty to post as the authenticated personal profile. Applies to **Create Post**.
+
+### Organization ID (Get Company)
+
+The LinkedIn organization/company ID to look up (`companyOrganizationId`). Required when the operation is **Get Company**.
 
 ### Post ID
 
-The post URN to remove (e.g., `urn:li:share:123456`). Required for Delete Post.
+The post URN to remove (e.g., `urn:li:share:123456`). Required when the operation is **Delete Post**.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `text` (string), `visibility` (string), `mediaUrl` (string), `mediaTitle` (string), `mediaDescription` (string), `organizationId` (string), `companyOrganizationId` (string), `postId` (string)
-- **Outputs**: `post` (json), `profile` (json), `organization` (json), `deleted` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`linkedin_create_post`, `linkedin_get_profile`, `linkedin_get_company`, or `linkedin_delete_post`)
+  - `credential` (string) — LinkedIn account credential (OAuth token)
+  - `text` (string) — Post text content; required for Create Post
+  - `visibility` (string) — Post visibility setting (`PUBLIC` or `CONNECTIONS`); used by Create Post
+  - `mediaUrl` (string) — URL of link to share; used by Create Post
+  - `mediaTitle` (string) — Title for shared link; used by Create Post
+  - `mediaDescription` (string) — Description for shared link; used by Create Post
+  - `organizationId` (string) — Organization ID for company posts; used by Create Post
+  - `companyOrganizationId` (string) — Organization ID to look up; used by Get Company
+  - `postId` (string) — Post URN to delete; used by Delete Post
+
+- **Outputs**:
+  - `post` (json) — Created post data (`id`, `status`); populated by Create Post
+  - `profile` (json) — User profile data (`id`, `localizedFirstName`, `localizedLastName`, `localizedHeadline`, `vanityName`, `profilePicture`); populated by Get Profile
+  - `organization` (json) — Company/organization data (`id`, `localizedName`, `vanityName`, `localizedDescription`, `logoUrl`, `followersCount`, `staffCount`, `industries`, `websiteUrl`); populated by Get Company
+  - `deleted` (json) — Deletion confirmation (`deleted`, `postId`); populated by Delete Post
+
+## Tools
+
+- **LinkedIn Create Post** (`linkedin_create_post`) — Creates a new UGC post on LinkedIn via `POST /v2/ugcPosts`. Supports personal and company-page authorship, link attachments, and visibility control.
+- **LinkedIn Get Profile** (`linkedin_get_profile`) — Retrieves the authenticated member's profile via `GET /v2/userinfo`, returning name, email, and profile picture.
+- **LinkedIn Get Company** (`linkedin_get_company`) — Fetches organization/company page details via `GET /rest/organizations/{id}`, including name, description, follower count, staff count, industries, and website.
+- **LinkedIn Delete Post** (`linkedin_delete_post`) — Removes a post by URN via `DELETE /rest/posts/{id}` and confirms deletion with the post ID.
 
 ## YAML Example
 
@@ -69,8 +115,11 @@ linkedin_1:
   inputs:
     operation: "linkedin_create_post"
     credential: "{{LINKEDIN_CREDENTIAL}}"
-    text: "{{start.input}}"
+    text: "{{content_block.result}}"
     visibility: "PUBLIC"
+    mediaUrl: "https://example.com/article"
+    mediaTitle: "Check out this article"
+    mediaDescription: "An insightful piece on workflow automation"
   connections:
     outgoing:
       - target: next-block-id

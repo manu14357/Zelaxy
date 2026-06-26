@@ -1,0 +1,94 @@
+---
+title: Fathom
+description: Retrieve meeting transcripts, summaries, and team data from Fathom AI meeting recorder
+icon: ChartBar
+---
+
+# Fathom
+
+Integrate Fathom AI meeting recorder into your workflows. List recorded meetings, pull full transcripts and AI-generated summaries for a specific recording, and browse team and member data — all without leaving your workflow canvas.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `fathom` |
+| **Category** | Tool — Productivity / Meeting Intelligence |
+| **Auth** | API Key (`X-Api-Key` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **List Meetings** | `fathom_list_meetings` | List recent meetings recorded by the user or shared to their team, with optional inline summary, transcript, action items, and CRM matches |
+| **Get Summary** | `fathom_get_summary` | Get the AI-generated call summary for a specific meeting recording |
+| **Get Transcript** | `fathom_get_transcript` | Get the full speaker-attributed transcript for a specific meeting recording |
+| **List Team Members** | `fathom_list_team_members` | List members in your Fathom organization, optionally filtered by team |
+| **List Teams** | `fathom_list_teams` | List teams in your Fathom organization |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` | Yes (all operations) | **Secret.** Your Fathom API Key. Sent as the `X-Api-Key` request header on every call. |
+| `recordingId` | `string` | Yes (`fathom_get_summary`, `fathom_get_transcript`) | The recording ID of the meeting whose summary or transcript you want to retrieve. |
+| `includeSummary` | `string` | No (`fathom_list_meetings`) | Pass `"true"` to embed the default summary in each meeting object returned by List Meetings. |
+| `includeTranscript` | `string` | No (`fathom_list_meetings`) | Pass `"true"` to embed the full transcript in each meeting object returned by List Meetings. |
+| `includeActionItems` | `string` | No (`fathom_list_meetings`) | Pass `"true"` to embed action items in each meeting object returned by List Meetings. |
+| `includeCrmMatches` | `string` | No (`fathom_list_meetings`) | Pass `"true"` to embed linked CRM record matches in each meeting object returned by List Meetings. |
+| `createdAfter` | `string` | No (`fathom_list_meetings`) | ISO 8601 timestamp — only return meetings created after this time (e.g. `2024-01-01T00:00:00Z`). |
+| `createdBefore` | `string` | No (`fathom_list_meetings`) | ISO 8601 timestamp — only return meetings created before this time. |
+| `recordedBy` | `string` | No (`fathom_list_meetings`) | Filter meetings by the recorder's email address. |
+| `teams` | `string` | No (`fathom_list_meetings`, `fathom_list_team_members`) | Filter results by team name. |
+| `cursor` | `string` | No (`fathom_list_meetings`, `fathom_list_team_members`, `fathom_list_teams`) | Pagination cursor returned by a previous response. Pass it to retrieve the next page of results. |
+
+## Outputs
+
+### `fathom_list_meetings`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `meetings` | `array` | List of meeting objects. Each object contains: `title` (string), `meeting_title` (string, optional), `recording_id` (number, optional), `url` (string), `share_url` (string), `created_at` (string), `scheduled_start_time` (string, optional), `scheduled_end_time` (string, optional), `recording_start_time` (string, optional), `recording_end_time` (string, optional), `transcript_language` (string), `calendar_invitees_domains_type` (string, optional), `recorded_by` (object with `name`, `email`, `email_domain`, `team`; optional), `calendar_invitees` (array), `default_summary` (object, optional), `transcript` (object, optional), `action_items` (object, optional), `crm_matches` (object, optional) |
+| `next_cursor` | `string` | Pagination cursor for the next page of results. `null` when there are no more pages. |
+
+### `fathom_get_summary`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `template_name` | `string` | Name of the summary template that was used to generate the summary. Optional — may be `null`. |
+| `markdown_formatted` | `string` | Full AI-generated summary formatted in Markdown. Optional — may be `null` if no summary exists yet. |
+
+### `fathom_get_transcript`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `transcript` | `array` | Ordered list of transcript entries. Each entry contains: `speaker` (object with `display_name` string and `matched_calendar_invitee_email` string or null), `text` (string — the spoken words), and `timestamp` (string — `HH:MM:SS` format). |
+
+### `fathom_list_team_members`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `members` | `array` | List of team member objects. Each contains: `name` (string), `email` (string), `created_at` (string — date the member was added). |
+| `next_cursor` | `string` | Pagination cursor for the next page. `null` when there are no more pages. |
+
+### `fathom_list_teams`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `teams` | `array` | List of team objects. Each contains: `name` (string — team name), `created_at` (string — date the team was created). |
+| `next_cursor` | `string` | Pagination cursor for the next page. `null` when there are no more pages. |
+
+## Example
+
+```
+[Starter] → [Fathom: List Meetings] → [Agent: summarize and route]
+```
+
+A scheduled Starter fires daily and triggers the Fathom block with `{{FATHOM_API_KEY}}` to call `fathom_list_meetings`, filtering to meetings from the past 24 hours using `createdAfter` set to `{{starter.yesterdayISO}}` and `includeSummary` set to `"true"`. The downstream Agent block reads `{{fathom.meetings}}`, extracts action items from each meeting's `default_summary`, and posts a consolidated digest to your team's Slack channel.
+
+## Tips
+
+- **Get the `recording_id` first.** Both `fathom_get_summary` and `fathom_get_transcript` require a `recordingId`. Use `fathom_list_meetings` in an upstream block and reference `{{fathomList.meetings[0].recording_id}}` to feed it downstream.
+- **Embed vs. dedicated fetch.** For one-off meetings, set `includeSummary` or `includeTranscript` to `"true"` on `fathom_list_meetings` to avoid an extra block. For deeper processing or large transcripts, use the dedicated `fathom_get_summary` / `fathom_get_transcript` operations instead.
+- **Paginate large result sets.** All list operations return a `next_cursor` field. Wire it into a Loop block and pass `{{fathomList.next_cursor}}` as the `cursor` param on each iteration to page through all results.
+- **API Key security.** Store your Fathom API Key as a workflow secret and reference it as `{{FATHOM_API_KEY}}` rather than pasting it directly into the block. The `apiKey` param has `user-only` visibility and is never exposed in outputs.

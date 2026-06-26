@@ -1,0 +1,151 @@
+---
+title: Icypeas Block
+description: Find and verify professional email addresses
+icon: Box
+---
+
+# Icypeas Block
+
+Find professional email addresses from a name and company, verify email deliverability, and discover emails for a company domain through the Icypeas API. Authenticate with an Icypeas API key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `icypeas` |
+| **Category** | `tools` |
+| **Color** | `#00B8D9` |
+
+## When to Use
+
+- Look up the professional email address of a specific person when you know their name and employer domain or company name.
+- Validate whether a known email address is real and deliverable before adding it to a campaign or CRM.
+- Enumerate email addresses across an entire company domain for prospecting or outreach research.
+- Enrich lead data inside a workflow by chaining the output of a search block into a verification block.
+- Automate B2B contact discovery as part of a sales or recruitment pipeline.
+- Cross-check email quality at scale without leaving the Zelaxy workflow canvas.
+
+## Configuration
+
+### Operation
+
+Selects which Icypeas API action to perform. This is a required dropdown that controls which other fields are displayed.
+
+| Label | ID |
+|-------|----|
+| Email search | `icypeas_email_search` |
+| Email verification | `icypeas_email_verification` |
+| Domain search | `icypeas_domain_search` |
+
+---
+
+### First Name
+
+- **Sub-block ID**: `firstname`
+- **Type**: short-input
+- **Layout**: half-width
+- **Placeholder**: `John`
+- **Visible when**: `operation` = `icypeas_email_search`
+
+The first name of the person whose professional email you want to find.
+
+---
+
+### Last Name
+
+- **Sub-block ID**: `lastname`
+- **Type**: short-input
+- **Layout**: half-width
+- **Placeholder**: `Doe`
+- **Visible when**: `operation` = `icypeas_email_search`
+
+The last name of the person whose professional email you want to find.
+
+---
+
+### Domain or Company
+
+- **Sub-block ID**: `domainOrCompany`
+- **Type**: short-input
+- **Layout**: full-width
+- **Placeholder**: `stripe.com or Stripe`
+- **Visible when**: `operation` = `icypeas_email_search`
+
+The employer's domain (e.g. `stripe.com`) or company name (e.g. `Stripe`). Icypeas accepts either form.
+
+---
+
+### Email
+
+- **Sub-block ID**: `email`
+- **Type**: short-input
+- **Layout**: full-width
+- **Placeholder**: `john@stripe.com`
+- **Visible when**: `operation` = `icypeas_email_verification`
+
+The email address to check for validity and deliverability.
+
+---
+
+### Domain
+
+- **Sub-block ID**: `domain`
+- **Type**: short-input
+- **Layout**: full-width
+- **Placeholder**: `stripe.com`
+- **Visible when**: `operation` = `icypeas_domain_search`
+
+The company domain whose associated email addresses you want to discover.
+
+---
+
+### API Key
+
+- **Sub-block ID**: `apiKey`
+- **Type**: short-input (password)
+- **Layout**: full-width
+- **Required**: yes
+
+Your Icypeas API key. Store it as a secret and reference it as `{{ICYPEAS_API_KEY}}` rather than pasting it directly.
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (`icypeas_email_search`, `icypeas_email_verification`, or `icypeas_domain_search`).
+- `apiKey` (string) — Icypeas API key used to authenticate every request.
+- `firstname` (string) — Target person's first name (Email search only).
+- `lastname` (string) — Target person's last name (Email search only).
+- `domainOrCompany` (string) — Company domain or name (Email search only).
+- `email` (string) — Email address to verify (Email verification only).
+- `domain` (string) — Company domain to search (Domain search only).
+
+**Outputs**
+
+- `data` (json) — The full result object returned by Icypeas (varies by operation).
+- `metadata` (json) — Response metadata, including:
+  - `searchId` (string | null) — Icypeas internal ID for the submitted search/verification request.
+  - `status` (string | null) — Current status of the request as reported by Icypeas.
+
+## Tools
+
+- **Icypeas Email Search** (`icypeas_email_search`) — POSTs to `https://app.icypeas.com/api/email-search` with a first name, last name, and domain/company to find a professional email address. Returns the raw Icypeas response and a `metadata` object with the search ID and status.
+- **Icypeas Email Verification** (`icypeas_email_verification`) — POSTs to `https://app.icypeas.com/api/email-verification` with a single email address to check whether it is valid and deliverable. Returns the raw Icypeas response and a `metadata` object with the verification ID and status.
+- **Icypeas Domain Search** (`icypeas_domain_search`) — POSTs to `https://app.icypeas.com/api/domain-search` with a company domain to discover email addresses associated with that domain. Returns the raw Icypeas response and a `metadata` object with the search ID and status.
+
+## YAML Example
+
+```yaml
+icypeas_1:
+  type: icypeas
+  name: "Find Email for Prospect"
+  inputs:
+    operation: "icypeas_email_search"
+    apiKey: "{{ICYPEAS_API_KEY}}"
+    firstname: "{{lead_block.firstname}}"
+    lastname: "{{lead_block.lastname}}"
+    domainOrCompany: "{{lead_block.company}}"
+  connections:
+    outgoing:
+      - target: verify_email_1
+```

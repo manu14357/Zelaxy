@@ -1,0 +1,108 @@
+---
+title: Google Forms Tools
+description: Read Google Forms structures and their submitted responses inside a workflow
+icon: Box
+---
+
+# Google Forms Tools
+
+The Google Forms provider lets a workflow read a form's structure (items, settings, and metadata) and retrieve the responses people have submitted to it. Use these tools when you need to inspect a form definition or pull answer data into downstream blocks for processing, reporting, or routing.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `google-forms` |
+| **Category** | tools |
+| **Auth** | OAuth (Google OAuth access token sent as a Bearer token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Get form | `google_forms_get_form` | Retrieve a Google Form structure including its items, settings, and metadata |
+| List responses | `google_forms_list_responses` | List responses submitted to a Google Form |
+| Get response | `google_forms_get_response` | Retrieve a single response submitted to a Google Form |
+
+## Configuration
+
+### `google_forms_get_form`
+
+Retrieve a Google Form structure including its items, settings, and metadata.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (secret — `user-only`, supplied at runtime, never by the LLM) |
+| `formId` | string | Yes | Google Forms form ID to retrieve (`user-or-llm`) |
+
+Calls `GET https://forms.googleapis.com/v1/forms/{formId}` with an `Authorization: Bearer {accessToken}` header.
+
+### `google_forms_list_responses`
+
+List responses submitted to a Google Form.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (secret — `user-only`, supplied at runtime, never by the LLM) |
+| `formId` | string | Yes | Google Forms form ID (`user-or-llm`) |
+| `pageSize` | number | No | Maximum number of responses to return (`user-or-llm`) |
+| `pageToken` | string | No | Page token from a previous list response to fetch the next page (`user-or-llm`) |
+| `filter` | string | No | Filter responses, e.g. `timestamp > 2024-01-01T00:00:00Z` (`user-or-llm`) |
+
+Calls `GET https://forms.googleapis.com/v1/forms/{formId}/responses` with `pageSize`, `pageToken`, and `filter` appended as query parameters when provided, and an `Authorization: Bearer {accessToken}` header.
+
+### `google_forms_get_response`
+
+Retrieve a single response submitted to a Google Form.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accessToken` | string | Yes | Google OAuth access token (secret — `user-only`, supplied at runtime, never by the LLM) |
+| `formId` | string | Yes | Google Forms form ID (`user-or-llm`) |
+| `responseId` | string | Yes | The ID of the response to retrieve (`user-or-llm`) |
+
+Calls `GET https://forms.googleapis.com/v1/forms/{formId}/responses/{responseId}` with an `Authorization: Bearer {accessToken}` header.
+
+## Outputs
+
+### `google_forms_get_form`
+
+- `data` (json) — The Google Form object.
+- `metadata` (json) — Form identifiers.
+  - `metadata.id` (string) — Form ID.
+
+### `google_forms_list_responses`
+
+- `data` (json) — Array of form response objects.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of responses returned.
+  - `metadata.nextPageToken` (string) — Token to fetch the next page of responses (`null` when there are no more pages).
+
+### `google_forms_get_response`
+
+- `data` (json) — The form response object.
+- `metadata` (json) — Response identifiers.
+  - `metadata.id` (string) — Response ID.
+
+## YAML Example
+
+```yaml
+google_forms_1:
+  type: google_forms
+  name: "Google Forms"
+  inputs:
+    operation: "google_forms_get_form"
+    formId: "1FAIpQLSc..."
+    accessToken: "{{GOOGLE_FORMS_ACCESS_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Auth setup: every operation requires a valid Google OAuth access token with Forms API scope (for example `https://www.googleapis.com/auth/forms.body.readonly` to read form structure and `https://www.googleapis.com/auth/forms.responses.readonly` to read responses). The token is `user-only` and never provided by the LLM — pass it via an environment variable like `{{GOOGLE_FORMS_ACCESS_TOKEN}}`.
+- Paginating responses: `google_forms_list_responses` returns at most `pageSize` items per call. When `metadata.nextPageToken` is non-null, feed it back as `pageToken` to fetch the next page, e.g. `{{google_forms_1.metadata.nextPageToken}}`.
+- Filtering: use the `filter` parameter (e.g. `timestamp > 2024-01-01T00:00:00Z`) to scope `list_responses` to recent submissions rather than pulling the entire response set.
+- Reference outputs downstream with double braces, e.g. `{{google_forms_1.data}}` for the form/response payload or `{{google_forms_1.metadata.id}}` for the returned form or response ID.
+```

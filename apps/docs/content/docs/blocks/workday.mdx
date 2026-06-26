@@ -1,0 +1,143 @@
+---
+title: Workday Block
+description: Retrieve worker data from Workday
+icon: Box
+---
+
+# Workday Block
+
+List workers and retrieve a single worker by ID through the Workday Staffing REST API. Authenticate with your tenant API base URL and an OAuth bearer access token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `workday` |
+| **Category** | `tools` |
+| **Color** | `#F58220` |
+
+## When to Use
+
+- Look up a specific employee record by their Workday WID to populate downstream blocks with HR data.
+- Page through the full worker roster to sync employee lists to an external system or database.
+- Drive HR automation workflows that need real-time headcount or worker details from Workday.
+- Validate that a worker ID exists before triggering an approval or provisioning step.
+- Enrich agent context with org-chart or staffing data pulled directly from Workday.
+
+## Configuration
+
+### Operation
+
+**Type:** dropdown | **Required:** yes (defaults to `workday_get_workers`)
+
+Selects which Workday Staffing API call to make. Changing this shows or hides the fields relevant to that call.
+
+| Label | ID |
+|-------|----|
+| Get workers | `workday_get_workers` |
+| Get worker | `workday_get_worker` |
+
+---
+
+### Worker ID
+
+**Type:** short-input | **Required:** when operation is `workday_get_worker`
+
+The Workday Worker ID (WID) of the specific employee to retrieve. Example placeholder: `3aa5550b7fe348b98d7b5741afc65534`.
+
+Shown only when **Operation** = `workday_get_worker`.
+
+---
+
+### Limit
+
+**Type:** short-input | **Required:** no | **Default:** `20`
+
+Maximum number of workers to return in a single call. Shown only when **Operation** = `workday_get_workers`.
+
+---
+
+### Offset
+
+**Type:** short-input | **Required:** no | **Default:** `0`
+
+Number of worker records to skip before returning results; use with `limit` to paginate through large rosters. Shown only when **Operation** = `workday_get_workers`.
+
+---
+
+### Tenant API URL
+
+**Type:** short-input | **Required:** yes
+
+The full Workday Staffing REST API base URL for your tenant, including the version and tenant name. Example:
+
+```
+https://wd5-impl-services1.workday.com/ccx/api/staffing/v6/your_tenant
+```
+
+---
+
+### Access Token
+
+**Type:** short-input (password) | **Required:** yes
+
+Workday OAuth 2.0 bearer access token used to authenticate all API requests. Store the token as an environment variable and reference it as `{{WORKDAY_ACCESS_TOKEN}}`.
+
+---
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`workday_get_workers` or `workday_get_worker`)
+- `tenantUrl` (string) — Workday tenant API base URL
+- `accessToken` (string) — Workday OAuth bearer token
+- `workerId` (string) — Worker ID (required for `workday_get_worker` operation)
+- `limit` (number) — Result limit (used by `workday_get_workers`)
+- `offset` (number) — Pagination offset (used by `workday_get_workers`)
+
+**Outputs:**
+
+- `data` (json) — Result object or array from Workday (a single worker object for `workday_get_worker`; an array of worker objects for `workday_get_workers`)
+- `metadata` (json) — Response metadata (contains `id` for single-worker lookups; contains `count` and `total` for list calls)
+
+## Tools
+
+**Workday Get Workers** (`workday_get_workers`) — Issues a GET request to `{tenantUrl}/workers` with optional `limit` and `offset` query parameters. Returns an array of worker objects under `data` and list statistics (`count`, `total`) under `metadata`.
+
+**Workday Get Worker** (`workday_get_worker`) — Issues a GET request to `{tenantUrl}/workers/{workerId}` for the specified WID. Returns the full worker object under `data` and the worker's `id` under `metadata`.
+
+## YAML Example
+
+### List workers (paginated)
+
+```yaml
+workday_1:
+  type: workday
+  name: "List Workday Workers"
+  inputs:
+    operation: workday_get_workers
+    tenantUrl: "{{WORKDAY_TENANT_URL}}"
+    accessToken: "{{WORKDAY_ACCESS_TOKEN}}"
+    limit: 50
+    offset: 0
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+### Retrieve a single worker
+
+```yaml
+workday_2:
+  type: workday
+  name: "Get Workday Worker"
+  inputs:
+    operation: workday_get_worker
+    tenantUrl: "{{WORKDAY_TENANT_URL}}"
+    accessToken: "{{WORKDAY_ACCESS_TOKEN}}"
+    workerId: "{{trigger.workerId}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

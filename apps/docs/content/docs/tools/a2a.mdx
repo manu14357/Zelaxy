@@ -1,0 +1,124 @@
+---
+title: A2A (Agent-to-Agent)
+description: Send messages and manage tasks with remote AI agents using the A2A protocol
+icon: Bot
+---
+
+# A2A (Agent-to-Agent)
+
+Interact with any A2A-compatible AI agent over the standardized Agent-to-Agent protocol. Use this integration to delegate tasks, poll their status, receive structured artifacts, and wire up webhook callbacks — all from inside a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `a2a` |
+| **Category** | Tool — AI Agents |
+| **Auth** | API Key (optional, passed per-request) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Send Message** | `a2a_send_message` | Send a message to an external A2A-compatible agent and receive its response, task ID, and any output artifacts |
+| **Get Task** | `a2a_get_task` | Query the current status, state, and artifacts of an existing A2A task by ID |
+| **Cancel Task** | `a2a_cancel_task` | Cancel a running A2A task and confirm whether cancellation succeeded |
+| **Get Agent Card** | `a2a_get_agent_card` | Fetch the discovery document (Agent Card) for an A2A agent to inspect its capabilities and skills |
+| **Resubscribe** | `a2a_resubscribe` | Reconnect to a streaming A2A task to retrieve new updates since the last poll |
+| **Set Push Notification** | `a2a_set_push_notification` | Register a webhook URL to receive push notifications whenever an A2A task changes state |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `agentUrl` | `string` | Yes (all operations) | The base endpoint URL of the remote A2A agent (e.g. `https://agent.example.com`) |
+| `message` | `string` | Yes — `a2a_send_message` | The text message to deliver to the agent |
+| `taskId` | `string` | Yes — `a2a_get_task`, `a2a_cancel_task`, `a2a_set_push_notification`, `a2a_resubscribe` | ID of the task to act on |
+| `contextId` | `string` | No | Context ID for conversation continuity across multiple messages |
+| `data` | `string` | No | Structured data to include with the message as a JSON string |
+| `files` | `array` | No | Files to attach to the message (each item: `type`, `data`, `name`, `mime`) |
+| `historyLength` | `number` | No — `a2a_get_task` | Number of conversation history messages to include in the response |
+| `webhookUrl` | `string` | Yes — `a2a_set_push_notification` | HTTPS URL to receive task-state change notifications |
+| `token` | `string` | No — `a2a_set_push_notification` | Authentication token included in outgoing webhook requests for validation |
+| `apiKey` | `string` | No (all operations) | **Secret.** API key sent to the remote agent for authentication. Use `{{A2A_API_KEY}}` to reference an environment secret |
+
+## Outputs
+
+The fields returned depend on the operation selected.
+
+### Send Message (`a2a_send_message`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | Text response content returned by the agent |
+| `taskId` | `string` | Unique identifier of the created or continued task |
+| `contextId` | `string` | Groups related tasks and messages for conversation continuity |
+| `state` | `string` | Task lifecycle state: `working`, `completed`, `failed`, `canceled`, `rejected`, `input_required`, or `auth_required` |
+| `artifacts` | `array` | Output artifacts produced by the agent (array of objects) |
+| `history` | `array` | Conversation history (array of Message objects) |
+
+### Get Task (`a2a_get_task`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `taskId` | `string` | Unique task identifier |
+| `contextId` | `string` | Context group identifier |
+| `state` | `string` | Current lifecycle state of the task |
+| `artifacts` | `array` | Task output artifacts |
+| `history` | `array` | Conversation history up to `historyLength` messages |
+
+### Cancel Task (`a2a_cancel_task`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `cancelled` | `boolean` | Whether the cancellation was accepted by the agent |
+| `state` | `string` | Task state after the cancellation attempt |
+
+### Get Agent Card (`a2a_get_agent_card`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string` | Agent display name |
+| `description` | `string` | Agent purpose and capabilities summary |
+| `url` | `string` | Service endpoint URL from the Agent Card |
+| `provider` | `object` | Creator organization details (`name`, optional `url`) |
+| `capabilities` | `object` | Feature support matrix (`streaming`, `pushNotifications`, `extendedAgentCard`) |
+| `skills` | `array` | Available operations exposed by the agent |
+| `version` | `string` | A2A protocol version supported by the agent |
+| `defaultInputModes` | `array` | Default input content types accepted by the agent |
+| `defaultOutputModes` | `array` | Default output content types produced by the agent |
+
+### Resubscribe (`a2a_resubscribe`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `taskId` | `string` | Task identifier |
+| `contextId` | `string` | Context group identifier |
+| `state` | `string` | Current lifecycle state |
+| `isRunning` | `boolean` | Whether the task is still executing |
+| `artifacts` | `array` | Task output artifacts accumulated so far |
+| `history` | `array` | Conversation history |
+
+### Set Push Notification (`a2a_set_push_notification`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | `string` | The registered HTTPS webhook URL |
+| `token` | `string` | Authentication token for validating incoming webhook requests |
+| `success` | `boolean` | Whether the push notification subscription was registered successfully |
+
+## Example
+
+```
+[Starter] → [A2A: Send Message] → [Agent: Summarize result]
+```
+
+Trigger the workflow with a user prompt stored in `{{starter.input}}`. Pass it to the A2A block with `agentUrl` set to `https://research-agent.example.com` and `apiKey` set to `{{A2A_API_KEY}}`. The `a2a_send_message` tool returns a `taskId` and `content`; feed `{{a2a.content}}` to a downstream Agent block that summarizes and formats the result for the end user.
+
+## Tips
+
+- **Discover before you send.** Run `a2a_get_agent_card` first to inspect an agent's `capabilities` and `skills`. If `capabilities.streaming` is `false`, the agent responds synchronously and you will receive `content` immediately on `a2a_send_message`.
+- **Long-running tasks.** If `state` comes back as `working`, use `a2a_get_task` (poll with a Wait block) or `a2a_set_push_notification` to receive an async callback when the task reaches `completed` or `failed`.
+- **Continue conversations.** Pass `{{a2a.taskId}}` and `{{a2a.contextId}}` back as `taskId` and `contextId` in a subsequent `a2a_send_message` call to continue the same conversational thread rather than starting a fresh task.
+- **Auth is per-request.** The `apiKey` is forwarded directly to the remote agent; store it as a Zelaxy environment secret and reference it as `{{A2A_API_KEY}}` rather than hard-coding it in the block config.
+- **Graceful cancellation.** Always check `cancelled` in the `a2a_cancel_task` output — some agents reject cancellation for tasks in terminal states (`completed`, `failed`), and the final `state` field tells you where the task actually ended up.

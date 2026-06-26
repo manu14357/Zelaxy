@@ -40,8 +40,25 @@ Optional for the **Search Pages** operation. Caps how many search results are re
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `pageTitle` (string), `query` (string), `searchLimit` (number)
-- **Outputs**: `summary` (json), `searchResults` (json), `totalHits` (number), `content` (json), `randomPage` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`wikipedia_summary`, `wikipedia_search`, `wikipedia_content`, or `wikipedia_random`)
+  - `pageTitle` (string) — Wikipedia page title; required for Get Page Summary and Get Page Content
+  - `query` (string) — Search query terms; required for Search Pages
+  - `searchLimit` (number) — Maximum number of search results to return; optional, defaults to 10, max 50
+
+- **Outputs**:
+  - `summary` (json) — Page summary data: title, extract, description, thumbnail, content_urls, pageid (returned by Get Page Summary)
+  - `searchResults` (json) — Array of matching Wikipedia pages, each with title, excerpt, and URL (returned by Search Pages)
+  - `totalHits` (number) — Total number of search results found (returned by Search Pages)
+  - `content` (json) — Full HTML content and metadata of the page: html, revision, timestamp (returned by Get Page Content)
+  - `randomPage` (json) — Random page data: title, extract, description, thumbnail, content_urls, pageid (returned by Random Page)
+
+## Tools
+
+- **Wikipedia Page Summary** (`wikipedia_summary`) — Fetches a concise summary and metadata for a named Wikipedia article via the REST API (`/page/summary/{title}`). Params: `pageTitle` (required).
+- **Wikipedia Search** (`wikipedia_search`) — Searches Wikipedia by keyword using the OpenSearch API and returns a ranked list of matching pages. Params: `query` (required), `searchLimit` (optional, default 10, max 50).
+- **Wikipedia Page Content** (`wikipedia_content`) — Retrieves the full HTML content of a specific Wikipedia article via the REST API (`/page/html/{title}`). Params: `pageTitle` (required).
+- **Wikipedia Random Page** (`wikipedia_random`) — Returns a randomly selected Wikipedia article summary via the REST API (`/page/random/summary`). No params required.
 
 ## YAML Example
 

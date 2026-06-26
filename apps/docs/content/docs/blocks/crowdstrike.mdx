@@ -6,7 +6,7 @@ icon: Box
 
 # CrowdStrike Block
 
-The CrowdStrike block integrates CrowdStrike Falcon endpoint security into your workflows. Reach for it when you need to query sensors, retrieve host details, or pull aggregate statistics directly from Falcon.
+The CrowdStrike block integrates CrowdStrike Falcon endpoint security into your workflows. Reach for it when you need to query identity protection sensors, retrieve full host details, or pull aggregate statistics directly from the Falcon API.
 
 ## Overview
 
@@ -18,42 +18,76 @@ The CrowdStrike block integrates CrowdStrike Falcon endpoint security into your 
 
 ## When to Use
 
-- Query the fleet of Falcon sensors filtered by platform, hostname, or other FQL criteria.
-- Retrieve detailed host information for a specific sensor during an incident investigation.
-- Pull aggregate sensor statistics to feed dashboards or reporting workflows.
-- Enrich a security automation flow with live endpoint data before taking action.
-- Trigger downstream remediation based on the presence or state of hosts in your environment.
+- Query the fleet of Falcon identity protection sensors filtered by platform, hostname, IP address, or any FQL expression.
+- Retrieve detailed host information for one or more specific sensor device IDs during an incident investigation.
+- Pull aggregate sensor statistics to feed dashboards, compliance reports, or downstream automation.
+- Enrich a security workflow with live endpoint data before triggering a remediation action.
+- Gate downstream blocks on the presence, status, or policy assignment of hosts in your environment.
+- Combine with condition or router blocks to branch logic based on sensor health or threat indicator state.
 
 ## Configuration
 
 ### Operation
 
-Choose what the block does: Query Sensors, Get Sensor Details, or Get Sensor Aggregates. Required.
+Choose what the block does. Required.
+
+| Label | ID |
+|-------|----|
+| Query Sensors | `crowdstrike_query_sensors` |
+| Get Sensor Details | `crowdstrike_get_sensor_details` |
+| Get Sensor Aggregates | `crowdstrike_get_sensor_aggregates` |
 
 ### Client ID
 
-Your CrowdStrike API client ID. Required.
+Your CrowdStrike Falcon API client ID. Required. Pass as `{{CROWDSTRIKE_CLIENT_ID}}` to keep the credential in an environment variable.
 
 ### Client Secret
 
-Your CrowdStrike API client secret (stored as a password field). Required.
+Your CrowdStrike Falcon API client secret (rendered as a password field). Required. Pass as `{{CROWDSTRIKE_CLIENT_SECRET}}`.
 
 ### Cloud Region
 
-The Falcon cloud region for your tenant: US-1, US-2, EU-1, or US-GOV-1.
+The Falcon cloud region that matches your tenant. Optional — defaults to the API default if omitted.
+
+| Label | ID |
+|-------|-----|
+| US-1 | `us-1` |
+| US-2 | `us-2` |
+| EU-1 | `eu-1` |
+| US-GOV-1 | `us-gov-1` |
 
 ### FQL Filter
 
-A Falcon Query Language filter (for example `platform_name:"Windows"`) used to narrow results. Shown only for the Query Sensors operation.
+A Falcon Query Language (FQL) expression used to narrow sensor results — for example `platform_name:"Windows"`. Shown only when **Operation** is `crowdstrike_query_sensors`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `clientId` (string), `clientSecret` (string), `cloud` (string), `filter` (string)
-- **Outputs**: `sensors` (json), `sensorDetails` (json)
+**Inputs** (sub-block IDs — use these under `inputs:` in YAML):
+
+- `operation` (string) — Operation to perform (`crowdstrike_query_sensors`, `crowdstrike_get_sensor_details`, or `crowdstrike_get_sensor_aggregates`)
+- `clientId` (string) — Client ID for Falcon API authentication
+- `clientSecret` (string) — Client secret for Falcon API authentication
+- `cloud` (string) — Cloud region identifier (e.g. `us-1`)
+- `filter` (string) — FQL filter expression; used only by Query Sensors
+
+**Outputs** (fields available on the block's result for downstream references):
+
+- `sensors` (json) — Sensor list returned by Query Sensors or Get Sensor Details operations
+- `sensorDetails` (json) — Sensor details (alias surface for Get Sensor Details results)
+
+## Tools
+
+The block selects one of three tools based on the `operation` value:
+
+**CrowdStrike Query Sensors** (`crowdstrike_query_sensors`) — Searches CrowdStrike identity protection sensors by hostname, IP, or any FQL-supported field. Accepts optional `filter`, `limit`, `offset`, and `sort` parameters. Returns `sensors` (array of sensor records), `count` (number of records), and `pagination` (pagination metadata).
+
+**CrowdStrike Get Sensor Details** (`crowdstrike_get_sensor_details`) — Fetches full identity protection sensor detail records for one or more device IDs supplied as a JSON array in `ids`. Returns `sensors` (array of detailed sensor objects), `count`, and `pagination`.
+
+**CrowdStrike Get Sensor Aggregates** (`crowdstrike_get_sensor_aggregates`) — Runs a structured aggregate query (passed as a JSON object in `aggregateQuery`) against the Falcon sensor dataset. Supports grouping, date ranges, sub-aggregates, and filtering. Returns `aggregates` (array of aggregate result groups) and `count`.
 
 ## YAML Example
 
-Use the block's REAL `type` and REAL sub-block ids. This is the workflow YAML format the agent builder uses:
+The example below uses the Query Sensors operation. Swap `operation` and the relevant fields to use the other operations.
 
 ```yaml
 crowdstrike_1:
@@ -61,10 +95,42 @@ crowdstrike_1:
   name: "CrowdStrike"
   inputs:
     operation: "crowdstrike_query_sensors"
-    clientId: "{{start.input}}"
-    clientSecret: "{{start.input}}"
+    clientId: "{{CROWDSTRIKE_CLIENT_ID}}"
+    clientSecret: "{{CROWDSTRIKE_CLIENT_SECRET}}"
     cloud: "us-1"
     filter: 'platform_name:"Windows"'
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To look up sensor details by device ID:
+
+```yaml
+crowdstrike_1:
+  type: crowdstrike
+  name: "CrowdStrike Get Details"
+  inputs:
+    operation: "crowdstrike_get_sensor_details"
+    clientId: "{{CROWDSTRIKE_CLIENT_ID}}"
+    clientSecret: "{{CROWDSTRIKE_CLIENT_SECRET}}"
+    cloud: "us-1"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To run an aggregate query:
+
+```yaml
+crowdstrike_1:
+  type: crowdstrike
+  name: "CrowdStrike Aggregates"
+  inputs:
+    operation: "crowdstrike_get_sensor_aggregates"
+    clientId: "{{CROWDSTRIKE_CLIENT_ID}}"
+    clientSecret: "{{CROWDSTRIKE_CLIENT_SECRET}}"
+    cloud: "us-1"
   connections:
     outgoing:
       - target: next-block-id

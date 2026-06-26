@@ -1,0 +1,109 @@
+---
+title: PostgreSQL Tools
+description: Execute SQL queries and manage data in PostgreSQL databases with full CRUD support.
+icon: Database
+---
+
+# PostgreSQL Tools
+
+The PostgreSQL provider connects directly to a PostgreSQL database to run raw SQL queries and perform structured insert, update, and delete operations. Use it in a workflow whenever you need to read from or write to a Postgres database — for example pulling rows to feed an agent, persisting results, or maintaining application data.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `postgresql` |
+| **Category** | `tools` |
+| **Auth** | Database credentials (host / database / username / password, optional SSL) — no API key |
+
+This tool does not use an HTTP API key or OAuth. It authenticates by opening a pooled connection to your PostgreSQL server using the host, database, username, and (optional) password you supply. Enable `ssl` for encrypted connections to managed/cloud databases.
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| PostgreSQL | `postgresql_database` | Execute SQL queries and manage data (execute / insert / update / delete) in a PostgreSQL database. The specific operation is chosen via the `action` parameter. |
+
+There is a single tool that handles all four operations. Pick the operation with the `action` parameter: `execute`, `insert`, `update`, or `delete`.
+
+## Configuration
+
+### `postgresql_database`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `host` | string | Yes | PostgreSQL hostname or IP address (e.g. `localhost` or `db.example.com`). |
+| `database` | string | Yes | Database name to connect to. |
+| `username` | string | Yes | Database username. |
+| `password` | string | Yes (secret) | Database password. **Secret** — mark as sensitive. The block UI treats this as a password field; it may be left empty for trust/peer auth, but the tool param is marked required. |
+| `port` | number | No | PostgreSQL port. Defaults to `5432`. |
+| `ssl` | boolean | No | Enable SSL/TLS for the connection. Defaults to `false`. When enabled the connection uses `rejectUnauthorized: false`. |
+| `action` | string | Yes | Operation to perform. Enum: `execute`, `insert`, `update`, `delete`. |
+| `query` | string | No | SQL query to run. Required when `action` is `execute`. Supports parameterized placeholders (`$1`, `$2`, ...). |
+| `table` | string | No | Target table name. Required when `action` is `insert`, `update`, or `delete`. |
+| `data` | object | No | Data to insert or update — a single object or an array of objects. Required when `action` is `insert` or `update`. |
+| `conditions` | object | No | JSON object of WHERE conditions (key/value equality, combined with AND). Required when `action` is `update` or `delete`. |
+
+Notes from the implementation:
+- `execute` runs your raw `query` (optionally parameterized) and returns the result rows.
+- `insert` builds an `INSERT` statement from the `data` object/array; table and column identifiers are sanitized.
+- `update` builds `UPDATE ... SET ... WHERE ...` from `data` (SET clause) and `conditions` (WHERE clause).
+- `delete` builds `DELETE FROM ... WHERE ...` from `conditions`.
+
+## Outputs
+
+### `postgresql_database`
+
+- `success` (boolean) — Whether the operation was successful.
+- `data` (array, optional) — Query result rows for SELECT/`execute` operations (also used to carry structured error records). 
+- `affectedRows` (number, optional) — Number of rows affected by INSERT/UPDATE/DELETE.
+- `error` (string, optional) — Error message if the operation failed.
+- `metadata` (object, optional) — Execution metadata: `executionTime` (ms), `rowCount`, and `columns` (column names for query results).
+
+The block also surfaces an `errorDetails` (json) output with detailed error information including type and execution time.
+
+## YAML Example
+
+```yaml
+postgresql_1:
+  type: postgresql
+  name: "PostgreSQL"
+  inputs:
+    action: "execute"
+    host: "db.example.com"
+    port: 5432
+    database: "my_database"
+    username: "postgres"
+    password: "{{POSTGRESQL_PASSWORD}}"
+    ssl: true
+    query: "SELECT id, email FROM users WHERE active = true"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Insert example (set `action: "insert"`):
+
+```yaml
+postgresql_2:
+  type: postgresql
+  name: "PostgreSQL"
+  inputs:
+    action: "insert"
+    host: "db.example.com"
+    database: "my_database"
+    username: "postgres"
+    password: "{{POSTGRESQL_PASSWORD}}"
+    table: "users"
+    data: '{"name": "John Doe", "email": "john@example.com", "active": true}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Auth is via database credentials, not an API key. Store the password in an environment variable and reference it as `{{POSTGRESQL_PASSWORD}}` rather than hardcoding it.
+- Set `ssl: true` for managed/cloud Postgres (Supabase, RDS, Neon, etc.); most require TLS. The pool connects with `rejectUnauthorized: false`, so it accepts self-signed certs.
+- Match the `action` to its required fields: `execute` needs `query`; `insert`/`update` need `table` + `data`; `update`/`delete` need `conditions`. Conditions are combined with AND on exact equality only.
+- Reference upstream block outputs inside your query or data with double-brace syntax, e.g. `{{agent2.content}}` or `{{variable.userId}}`. Prefer parameterized queries (`$1`, `$2`) for user-supplied values to avoid SQL injection.

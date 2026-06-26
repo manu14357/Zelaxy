@@ -6,7 +6,7 @@ icon: Box
 
 # Mem0 Block
 
-The Mem0 block adds long-term memory to your AI agents using Mem0. Add, search, and retrieve memories so you can persist conversation history, user preferences, and context across workflow executions.
+The Mem0 block adds long-term memory to your AI agents using Mem0. Add, search, and retrieve memories to persist conversation history, user preferences, and context across workflow executions for enhanced AI agent capabilities.
 
 ## Overview
 
@@ -21,39 +21,76 @@ The Mem0 block adds long-term memory to your AI agents using Mem0. Add, search, 
 - Store conversation messages so an agent remembers prior turns across executions
 - Persist user preferences and facts tied to a specific user ID
 - Search past memories with a natural-language query to enrich an agent's context
-- Retrieve a specific memory by ID or pull memories within a date range
-- Limit how many memory results return for search and get operations
+- Retrieve a specific memory by ID or pull all memories for a user within a date range
+- Cap the number of results returned from search and get operations with a result limit
+- Build personalized agent experiences that carry context from one workflow run to the next
 
 ## Configuration
 
 ### Operation
-Dropdown that selects the action: **Add Memories** (`add`), **Search Memories** (`search`), or **Get Memories** (`get`). Defaults to `add`.
+
+Dropdown that selects which action to perform. Defaults to `add`.
+
+| Label | ID |
+|-------|----|
+| Add Memories | `add` |
+| Search Memories | `search` |
+| Get Memories | `get` |
 
 ### User ID
-Required identifier that scopes memories to a particular user.
+
+Required for all operations. Scopes memories to a specific user so that stored data is isolated per-user.
 
 ### Messages
-Required for the `add` operation. A JSON array of message objects, each with `role` and `content` (e.g. `[{"role": "user", "content": "I love Zelaxy!"}]`).
+
+Shown only when `operation` is `add`. Required. A JSON array of message objects, each with `role` and `content` fields (e.g. `[{"role": "user", "content": "I love Zelaxy!"}]`). The array must be non-empty and every element must have both `role` and `content`.
 
 ### Search Query
-Required for the `search` operation. The natural-language query used to find relevant memories.
+
+Shown only when `operation` is `search`. Required. A natural-language query used for semantic search over stored memories.
 
 ### Memory ID
-Optional, shown for the `get` operation. Retrieves a specific memory by its ID.
+
+Shown only when `operation` is `get`. Optional. When provided, retrieves that single specific memory by its ID using the `GET /v1/memories/{id}/` endpoint. When omitted, all memories matching the user and date filters are returned.
 
 ### Start Date / End Date
-Optional date filters (`YYYY-MM-DD`) for the `get` operation.
+
+Shown only when `operation` is `get`. Optional date range filters in `YYYY-MM-DD` format. Memories whose `created_at` timestamp falls within the range are returned.
 
 ### API Key
-Required Mem0 API key for all operations. Stored as a password field.
+
+Required for all operations. Your Mem0 platform API key. Stored as a password (masked) field. Pass it as a secret reference: `{{MEM0_API_KEY}}`.
 
 ### Result Limit
-Slider (1–50) that caps results, shown for the `search` and `get` operations.
+
+Slider (1–50, integer steps). Shown when `operation` is `search` or `get`. Caps the number of results returned. Defaults to 10 when not set.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `userId` (string), `version` (string), `messages` (json), `query` (string), `memoryId` (string), `startDate` (string), `endDate` (string), `limit` (number)
-- **Outputs**: `ids` (json), `memories` (json), `searchResults` (json)
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`add`, `search`, or `get`)
+- `apiKey` (string) — Mem0 API key
+- `userId` (string) — User identifier
+- `version` (string) — API version
+- `messages` (json) — Message data array (required for `add`)
+- `query` (string) — Search query (required for `search`)
+- `memoryId` (string) — Memory identifier (optional, for `get`)
+- `startDate` (string) — Start date filter in YYYY-MM-DD format (for `get`)
+- `endDate` (string) — End date filter in YYYY-MM-DD format (for `get`)
+- `limit` (number) — Result limit (for `search` and `get`)
+
+**Outputs:**
+
+- `ids` (json) — Memory identifiers returned by the operation
+- `memories` (json) — Memory data objects returned by `add` and `get` operations
+- `searchResults` (json) — Search result objects returned by the `search` operation, each containing `id`, `data.memory`, and `score`
+
+## Tools
+
+- **Add Memories** (`mem0_add_memories`) — POSTs a messages array to `https://api.mem0.ai/v1/memories/` scoped to the given `user_id`. Returns `ids` (array of created memory IDs) and `memories` (array of created memory objects).
+- **Search Memories** (`mem0_search_memories`) — POSTs a semantic search request to `https://api.mem0.ai/v2/memories/search/` with the query and `user_id` filter. Returns `searchResults` (array of objects with `id`, `data.memory`, and `score`) and `ids`.
+- **Get Memories** (`mem0_get_memories`) — Retrieves memories by user or by a specific ID. When `memoryId` is provided, calls `GET https://api.mem0.ai/v1/memories/{id}/`; otherwise POSTs to `https://api.mem0.ai/v2/memories/` with user and date-range filters. Returns `memories` and `ids`.
 
 ## YAML Example
 
@@ -63,7 +100,7 @@ mem0_1:
   name: "Mem0"
   inputs:
     operation: "add"
-    userId: "{{start.input}}"
+    userId: "{{start.userId}}"
     messages: '[{"role": "user", "content": "I love Zelaxy!"}]'
     apiKey: "{{MEM0_API_KEY}}"
   connections:

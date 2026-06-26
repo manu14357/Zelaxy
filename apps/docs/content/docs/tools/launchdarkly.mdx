@@ -1,0 +1,109 @@
+---
+title: LaunchDarkly Tools
+description: List and retrieve LaunchDarkly feature flags and projects via the LaunchDarkly REST API.
+icon: Box
+---
+
+# LaunchDarkly Tools
+
+LaunchDarkly is a feature-management platform for delivering and controlling software features with feature flags. Use these tools in a workflow to read your LaunchDarkly configuration: list feature flags for a project, fetch a single flag by key, or list your projects.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `launchdarkly` |
+| **Category** | `tools` |
+| **Auth** | API Key (access token sent in the `Authorization` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List flags | `launchdarkly_list_flags` | List feature flags for a LaunchDarkly project |
+| Get flag | `launchdarkly_get_flag` | Get a single feature flag by key |
+| List projects | `launchdarkly_list_projects` | List LaunchDarkly projects |
+
+## Configuration
+
+### launchdarkly_list_flags
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | LaunchDarkly API access token. **Secret** — store as an environment variable, not inline. Visibility: user-only. |
+| `projectKey` | string | No | Project key. Defaults to `"default"` when omitted. Visibility: user-only. |
+
+### launchdarkly_get_flag
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | LaunchDarkly API access token. **Secret** — store as an environment variable, not inline. Visibility: user-only. |
+| `projectKey` | string | No | Project key. Defaults to `"default"` when omitted. Visibility: user-only. |
+| `flagKey` | string | Yes | The key of the feature flag to retrieve. Visibility: user-or-llm (can be supplied by the agent). |
+
+### launchdarkly_list_projects
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | LaunchDarkly API access token. **Secret** — store as an environment variable, not inline. Visibility: user-only. |
+
+## Outputs
+
+### launchdarkly_list_flags
+
+- `data` (json) — Array of feature flag objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of flags returned.
+  - `totalCount` (number) — Total number of flags available.
+
+### launchdarkly_get_flag
+
+- `data` (json) — The feature flag object.
+- `metadata` (json) — Flag identifiers.
+  - `key` (string) — Flag key.
+  - `name` (string) — Flag name.
+
+### launchdarkly_list_projects
+
+- `data` (json) — Array of project objects.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of projects returned.
+  - `totalCount` (number) — Total number of projects available.
+
+## YAML Example
+
+```yaml
+launchdarkly_1:
+  type: launchdarkly
+  name: "LaunchDarkly"
+  inputs:
+    operation: "launchdarkly_list_flags"
+    projectKey: "default"
+    apiKey: "{{LAUNCHDARKLY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To fetch a single flag instead, set the operation and provide `flagKey`:
+
+```yaml
+launchdarkly_2:
+  type: launchdarkly
+  name: "LaunchDarkly"
+  inputs:
+    operation: "launchdarkly_get_flag"
+    projectKey: "default"
+    flagKey: "my-feature-flag"
+    apiKey: "{{LAUNCHDARKLY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** Create an API access token in the LaunchDarkly UI (Account settings → Authorization). The token is sent directly in the `Authorization` header (no `Bearer ` prefix), so paste the raw token. Store it as an environment variable and reference it with `{{LAUNCHDARKLY_API_KEY}}` rather than hardcoding the secret.
+- **Project defaults:** `projectKey` is optional for `launchdarkly_list_flags` and `launchdarkly_get_flag` — if you omit it, the tools call the `default` project. Set it explicitly when working across multiple projects.
+- **Chaining:** Pipe a flag key from one block into `launchdarkly_get_flag` using reference syntax, e.g. `{{launchdarkly_1.metadata.key}}`, or read the full flag config from `{{launchdarkly_1.data}}` in a downstream block.
+- **Read-only:** These tools only read from LaunchDarkly (all calls are HTTP `GET`); they do not create, toggle, or modify flags.

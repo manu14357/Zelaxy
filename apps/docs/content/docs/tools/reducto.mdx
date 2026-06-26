@@ -1,0 +1,137 @@
+---
+title: Reducto Tools
+description: Parse, extract, and split documents with the Reducto document API.
+icon: Box
+---
+
+# Reducto Tools
+
+Reducto turns documents (PDFs and other files reachable by URL) into structured content. Use these tools in a workflow to parse a document into structured chunks, extract specific fields against a JSON schema, or split a document into labeled sections.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `reducto` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Reducto API key sent as `Authorization: Bearer <apiKey>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Parse | `reducto_parse` | Parse a document into structured content (chunks, blocks, usage) via `POST /parse`. |
+| Extract | `reducto_extract` | Extract structured data from a document against a JSON schema via `POST /extract`. |
+| Split | `reducto_split` | Split a document into sections based on described categories via `POST /split`. |
+
+## Configuration
+
+### `reducto_parse`
+
+Parses a document at a public URL into structured content. Request: `POST https://platform.reducto.ai/parse`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Reducto API key. **Secret** — sent as `Authorization: Bearer <apiKey>`. Visibility: user-only. |
+| `documentUrl` | string | Yes | Publicly accessible URL of the document to parse. Visibility: user-or-llm. |
+
+### `reducto_extract`
+
+Extracts structured data from a document against a JSON schema. Request: `POST https://platform.reducto.ai/extract`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Reducto API key. **Secret** — sent as `Authorization: Bearer <apiKey>`. Visibility: user-only. |
+| `documentUrl` | string | Yes | Publicly accessible URL of the document to extract from. Visibility: user-or-llm. |
+| `schema` | json | Yes | JSON schema describing the fields to extract. Visibility: user-or-llm. |
+| `systemPrompt` | string | No | Optional system prompt guiding the extraction. Visibility: user-or-llm. |
+
+### `reducto_split`
+
+Splits a document into sections based on described categories. Request: `POST https://platform.reducto.ai/split`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Reducto API key. **Secret** — sent as `Authorization: Bearer <apiKey>`. Visibility: user-only. |
+| `documentUrl` | string | Yes | Publicly accessible URL of the document to split. Visibility: user-or-llm. |
+| `splitDescription` | json | Yes | Array of category objects defining the sections to split into, e.g. `[{"name":"invoice","description":"Pages containing an invoice"}]`. Visibility: user-or-llm. |
+
+## Outputs
+
+All three tools return the same output shape.
+
+### `reducto_parse`
+
+- `data` (json) — Parsed document content (chunks, blocks, usage).
+- `metadata` (json) — Job metadata. Contains:
+  - `jobId` (string) — Reducto job identifier.
+  - `status` (number) — HTTP status code returned by Reducto.
+
+### `reducto_extract`
+
+- `data` (json) — Extracted structured data and citations.
+- `metadata` (json) — Job metadata. Contains:
+  - `jobId` (string) — Reducto job identifier.
+  - `status` (number) — HTTP status code returned by Reducto.
+
+### `reducto_split`
+
+- `data` (json) — Split result with detected sections and page ranges.
+- `metadata` (json) — Job metadata. Contains:
+  - `jobId` (string) — Reducto job identifier.
+  - `status` (number) — HTTP status code returned by Reducto.
+
+## YAML Example
+
+```yaml
+reducto_1:
+  type: reducto
+  name: "Reducto"
+  inputs:
+    operation: "reducto_parse"
+    documentUrl: "https://example.com/document.pdf"
+    apiKey: "{{REDUCTO_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Extract example (operation `reducto_extract`):
+
+```yaml
+reducto_2:
+  type: reducto
+  name: "Reducto"
+  inputs:
+    operation: "reducto_extract"
+    documentUrl: "https://example.com/invoice.pdf"
+    schema: '{"type":"object","properties":{"total":{"type":"number"}}}'
+    systemPrompt: "Be precise and thorough."
+    apiKey: "{{REDUCTO_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Split example (operation `reducto_split`):
+
+```yaml
+reducto_3:
+  type: reducto
+  name: "Reducto"
+  inputs:
+    operation: "reducto_split"
+    documentUrl: "https://example.com/bundle.pdf"
+    splitDescription: '[{"name":"invoice","description":"Pages containing an invoice"}]'
+    apiKey: "{{REDUCTO_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** A single Reducto API key authenticates every operation. It is sent as a Bearer token (`Authorization: Bearer <apiKey>`), so store it as a secret/environment variable and reference it with `{{REDUCTO_API_KEY}}` rather than hardcoding it.
+- **Documents must be reachable by URL:** `documentUrl` has to be publicly accessible — Reducto fetches the file itself. Pass an upstream block's output with `{{blockName.field}}` if the URL is produced earlier in the workflow.
+- **`schema` and `splitDescription` are JSON:** For Extract, provide a valid JSON schema object describing the fields to pull out. For Split, provide a JSON array of `{"name", "description"}` category objects. Malformed JSON will cause the request to fail.
+- **Reading results:** Every operation returns the same shape — use `{{reducto_1.data}}` for the result payload and `{{reducto_1.metadata.jobId}}` / `{{reducto_1.metadata.status}}` for job tracking and the HTTP status.

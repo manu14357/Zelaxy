@@ -1,0 +1,94 @@
+---
+title: MillionVerifier Tools
+description: Verify email deliverability and check remaining account credits with MillionVerifier.
+icon: MailCheck
+---
+
+# MillionVerifier Tools
+
+MillionVerifier is an email verification service that checks whether an email address is valid and deliverable. Use these tools in a workflow to validate addresses before sending, clean lead lists, or monitor your remaining verification credits.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `millionverifier` |
+| **Category** | tools |
+| **Auth** | API Key (passed as the `api` query parameter to the MillionVerifier v3 API) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Verify email | `millionverifier_verify_email` | Verify the deliverability of an email address using MillionVerifier. |
+| Get credits | `millionverifier_get_credits` | Retrieve the remaining verification credits for the MillionVerifier account. |
+
+## Configuration
+
+### `millionverifier_verify_email`
+
+Verifies the deliverability of a single email address. Calls `GET https://api.millionverifier.com/api/v3/` with the `api` and `email` query parameters.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | MillionVerifier API key. **Secret** — visibility `user-only` (not exposed to the LLM). |
+| `email` | string | Yes | Email address to verify. Visibility `user-or-llm` (can be supplied by the model or by you). |
+
+### `millionverifier_get_credits`
+
+Retrieves the remaining verification credits for the account. Calls `GET https://api.millionverifier.com/api/v3/credits` with the `api` query parameter.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | MillionVerifier API key. **Secret** — visibility `user-only` (not exposed to the LLM). |
+
+## Outputs
+
+### `millionverifier_verify_email`
+
+- `data` (json) — The full MillionVerifier verification result object.
+- `metadata` (json) — Verification identifiers, with the following properties:
+  - `email` (string) — The verified email address.
+  - `result` (string) — Verification result (e.g. the deliverability status returned by MillionVerifier).
+
+### `millionverifier_get_credits`
+
+- `data` (json) — The MillionVerifier credits response object.
+- `metadata` (json) — Credit information, with the following property:
+  - `credits` (number) — Remaining verification credits.
+
+## YAML Example
+
+```yaml
+millionverifier_1:
+  type: millionverifier
+  name: "MillionVerifier"
+  inputs:
+    operation: "millionverifier_verify_email"
+    email: "john@example.com"
+    apiKey: "{{MILLIONVERIFIER_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To check remaining credits instead, set `operation` to `millionverifier_get_credits` and omit the `email` field:
+
+```yaml
+millionverifier_credits:
+  type: millionverifier
+  name: "MillionVerifier"
+  inputs:
+    operation: "millionverifier_get_credits"
+    apiKey: "{{MILLIONVERIFIER_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authenticate with a MillionVerifier API key from your account dashboard. The key is sent as the `api` query parameter — store it as an environment variable and reference it with `{{MILLIONVERIFIER_API_KEY}}` rather than hard-coding it.
+- The `email` parameter is `user-or-llm`, so an agent can fill it from upstream block output (e.g. `{{previous_block.email}}`) when verifying addresses dynamically.
+- Read the deliverability status from `{{millionverifier_1.metadata.result}}` and the verified address from `{{millionverifier_1.metadata.email}}`; the complete raw response is available under `{{millionverifier_1.data}}`.
+- Run `millionverifier_get_credits` before large batch verifications to confirm you have enough credits; the remaining balance is exposed at `{{millionverifier_credits.metadata.credits}}`.

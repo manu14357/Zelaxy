@@ -1,0 +1,86 @@
+---
+title: Pulse Tools
+description: Parse and extract text, structure, and data from PDFs, Office documents, and images using the Pulse OCR API.
+icon: FileText
+---
+
+# Pulse Tools
+
+Pulse is a document-understanding (OCR) provider that extracts text, structure, figures, and structured data from PDFs, Word documents, PowerPoints, spreadsheets, and images. Use this tool in a workflow when you need to turn an uploaded file or a document URL into clean markdown, HTML, chunked text, or structured output for downstream blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `pulse` |
+| **Category** | tools |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Pulse Document Parser | `pulse_parser` | Parse documents (PDF, images, Office docs) using the Pulse OCR API |
+
+## Configuration
+
+### `pulse_parser`
+
+Parse documents (PDF, images, Office docs) using the Pulse OCR API. Provide either a file upload or a document URL/path — at least one file input is required.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `filePath` | string | No | URL to a document to be processed (HTTP/HTTPS URL, or an absolute path starting with `/`). |
+| `file` | json | No | Document file object to be processed. |
+| `fileUpload` | json | No | File upload data from the file-upload component (hidden; populated by the UI). Used as the file input when `file` is not provided. |
+| `pages` | string | No | Page range to process, 1-indexed (e.g. `1-2,5`). Leave blank to process all pages. |
+| `extractFigure` | boolean | No | Enable figure extraction from the document (hidden). |
+| `figureDescription` | boolean | No | Generate descriptions/captions for extracted figures (hidden). |
+| `returnHtml` | boolean | No | Include HTML in the response (hidden). |
+| `chunking` | string | No | Chunking strategies, comma-separated: `semantic`, `header`, `page`, `recursive`. |
+| `chunkSize` | number | No | Maximum characters per chunk when chunking is enabled (default in UI: 512). |
+| `apiKey` | string | **Yes** | Pulse API key. **Secret** — store as an environment variable. |
+
+Notes:
+- A valid `apiKey` is always required; the request is rejected if it is missing or empty.
+- You must supply a file input: either upload a file (`fileUpload`/`file`) or provide a `filePath`. If neither is present the request fails with a "Missing file input" error.
+- `filePath` values that are not absolute paths must be valid HTTP or HTTPS URLs.
+
+## Outputs
+
+### `pulse_parser`
+
+- `markdown` (string) — Extracted content in markdown format.
+- `page_count` (number) — Number of pages in the document.
+- `job_id` (string) — Unique job identifier.
+- `plan-info` (json) — Plan usage information (e.g. `pages_used`, `tier`).
+- `bounding_boxes` (json, optional) — Bounding box layout information.
+- `extraction_url` (string, optional) — URL for extraction results (for large documents).
+- `html` (string, optional) — HTML content if requested.
+- `structured_output` (json, optional) — Structured output if a schema was provided.
+- `chunks` (json, optional) — Chunked content if chunking was enabled.
+- `figures` (json, optional) — Extracted figures if figure extraction was enabled.
+
+## YAML Example
+
+```yaml
+pulse_1:
+  type: pulse
+  name: "Pulse"
+  inputs:
+    operation: "pulse_parser"
+    filePath: "https://example.com/contract.pdf"
+    pages: "1-3,5"
+    chunking: "semantic"
+    chunkSize: 512
+    apiKey: "{{PULSE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Set your Pulse API key once as an environment variable (for example `PULSE_API_KEY`) and reference it as `{{PULSE_API_KEY}}` rather than pasting the raw key into the block.
+- Provide exactly one file source per run: a `fileUpload` from the file-upload control or a `filePath` URL/path. If both are set, the uploaded file takes precedence.
+- Reference the parsed output in downstream blocks with double braces, e.g. `{{pulse_1.markdown}}` for the markdown text or `{{pulse_1.chunks}}` when chunking is enabled. For very large documents Pulse may return an `extraction_url` instead of inline content, so handle that case when wiring follow-on steps.

@@ -1,0 +1,115 @@
+---
+title: Linq Block
+description: Send and read iMessage, SMS, and RCS chats with Linq
+icon: Box
+---
+
+# Linq Block
+
+Send messages to chats, list chats, and list messages through the Linq messaging API. Use this block whenever a workflow needs to dispatch iMessage/SMS/RCS messages or retrieve conversation history from a Linq account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `linq` |
+| **Category** | tools |
+| **Color** | `#0EA5E9` |
+
+## When to Use
+
+- Send a text, image, video, or rich link preview to an existing Linq chat as part of an automated notification or follow-up workflow.
+- Attach a media file (image, video, or document) to a Linq message using a public HTTPS URL.
+- Send a rich link preview as a standalone message to a Linq chat.
+- Retrieve a paginated list of Linq chats, optionally filtered by sender phone number or participant handle.
+- Retrieve the message history for a specific Linq chat with cursor-based pagination.
+- Chain multiple Linq operations in a single workflow — for example, list chats, then list messages for each chat.
+
+## Configuration
+
+### Operation
+
+Dropdown that selects which Linq API action to perform. Required — defaults to `Send message`.
+
+| Label | ID |
+|-------|----|
+| Send message | `linq_send_message` |
+| List chats | `linq_list_chats` |
+| List messages | `linq_list_messages` |
+
+### Chat ID
+
+Short text input for the unique Linq chat identifier (format: `chat_...`). Shown for the `linq_send_message` and `linq_list_messages` operations. Required by both of those operations.
+
+### Text
+
+Long text input for the body of the message to send. Shown only for the `linq_send_message` operation. Optional — omit if sending only a media attachment or link preview.
+
+### Media URL
+
+Short text input for a publicly accessible HTTPS URL of an image, video, or file to attach. Shown only for the `linq_send_message` operation. Optional.
+
+### Link URL
+
+Short text input for a URL to send as a rich link preview (sent as its own message part). Shown only for the `linq_send_message` operation. Optional. When a `linkUrl` is provided it takes precedence — the message is sent as a link part and text/media are ignored.
+
+### From
+
+Short text input to filter chats by sender phone number in E.164 format (e.g., `+15551234567`). Shown only for the `linq_list_chats` operation. Optional.
+
+### To
+
+Short text input to filter chats by participant handle (phone number or email). Shown only for the `linq_list_chats` operation. Optional.
+
+### Limit
+
+Short text input for the maximum number of results to return per page (default 20, max 100 for list chats). Shown for the `linq_list_chats` and `linq_list_messages` operations. Optional.
+
+### Cursor
+
+Short text input for the pagination cursor returned from a previous list response (`nextCursor` value). Shown for the `linq_list_chats` and `linq_list_messages` operations. Optional — omit for the first page.
+
+### Linq API Key
+
+Password field for your Linq API key used to authenticate all requests. Required for every operation.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`linq_send_message`, `linq_list_chats`, or `linq_list_messages`)
+  - `apiKey` (string) — Linq API key
+  - `chatId` (string) — Chat ID (used by `linq_send_message` and `linq_list_messages`)
+  - `text` (string) — Message text (used by `linq_send_message`)
+  - `mediaUrl` (string) — Media URL (used by `linq_send_message`)
+  - `linkUrl` (string) — Link URL (used by `linq_send_message`)
+  - `from` (string) — Sender phone number filter in E.164 format (used by `linq_list_chats`)
+  - `to` (string) — Participant handle filter (used by `linq_list_chats`)
+  - `limit` (number) — Result limit (used by `linq_list_chats` and `linq_list_messages`)
+  - `cursor` (string) — Pagination cursor (used by `linq_list_chats` and `linq_list_messages`)
+
+- **Outputs**:
+  - `data` (json) — For `linq_send_message`: the sent Linq message object with its parts. For `linq_list_chats`: array of Linq chat objects. For `linq_list_messages`: array of Linq message objects.
+  - `metadata` (json) — For `linq_send_message`: `{ id }` (sent message ID). For list operations: `{ count, nextCursor }` (number of items returned and cursor for the next page, null when none).
+
+## Tools
+
+- **Linq Send Message** (`linq_send_message`) — Posts a new message to an existing Linq chat via `POST /api/partner/v3/chats/{chatId}/messages`. Supports text parts, media attachments (image/video/file by HTTPS URL), and rich link previews. Authenticates with a Bearer token.
+- **Linq List Chats** (`linq_list_chats`) — Retrieves a paginated list of Linq chats via `GET /api/partner/v3/chats`. Supports optional `from` (sender) and `to` (participant) filters plus `limit` and `cursor` pagination. Returns an array of chat objects and a `nextCursor`.
+- **Linq List Messages** (`linq_list_messages`) — Retrieves a paginated list of messages for a specific Linq chat via `GET /api/partner/v3/chats/{chatId}/messages`. Supports `limit` and `cursor` pagination. Returns an array of message objects and a `nextCursor`.
+
+## YAML Example
+
+```yaml
+linq_1:
+  type: linq
+  name: "Linq"
+  inputs:
+    operation: "linq_send_message"
+    apiKey: "{{LINQ_API_KEY}}"
+    chatId: "chat_abc123"
+    text: "Your order {{orders_block.orderId}} has shipped!"
+    mediaUrl: "https://example.com/tracking-qr.png"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

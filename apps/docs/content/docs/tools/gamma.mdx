@@ -1,0 +1,175 @@
+---
+title: Gamma Tools
+description: Generate AI-powered presentations, documents, webpages, and social posts using the Gamma API.
+icon: Box
+---
+
+# Gamma Tools
+
+Gamma is an AI-powered content creation platform for building presentations, documents, webpages, and social posts. Use these tools in a workflow to programmatically generate polished content from plain text, clone and adapt templates, check async generation status, and look up available workspace themes and folders.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `gamma` |
+| **Category** | `tools` |
+| **Auth** | API Key (`X-API-KEY` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Generate | `gamma_generate` | Generate a new Gamma presentation, document, webpage, or social post from text input. |
+| Generate from Template | `gamma_generate_from_template` | Generate a new Gamma by adapting an existing template with a prompt. |
+| Check Status | `gamma_check_status` | Check the status of a Gamma generation job. Returns the gamma URL when completed. |
+| List Themes | `gamma_list_themes` | List available themes in your Gamma workspace. |
+| List Folders | `gamma_list_folders` | List available folders in your Gamma workspace. |
+
+## Configuration
+
+### gamma_generate
+
+`POST https://public-api.gamma.app/v1.0/generations`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Gamma API key (sent as `X-API-KEY` header). |
+| `inputText` | string | Yes | Text used to generate your Gamma (1–100,000 tokens). |
+| `textMode` | string | Yes | How to handle input text. Enum: `generate`, `condense`, `preserve`. |
+| `format` | string | No | Output format. Enum: `presentation`, `document`, `webpage`, `social`. Defaults to `presentation`. |
+| `themeId` | string | No | Custom Gamma workspace theme ID (use List Themes to find valid IDs). |
+| `numCards` | number | No | Number of cards/slides to generate (1–75). |
+| `cardSplit` | string | No | How to split content across cards. Enum: `auto`, `inputTextBreaks`. |
+| `cardDimensions` | string | No | Card aspect ratio. Presentation: `fluid`, `16x9`, `4x3`. Document: `fluid`, `pageless`, `letter`, `a4`. Social: `1x1`, `4x5`, `9x16`. |
+| `additionalInstructions` | string | No | Additional instructions for AI generation (max 2,000 characters). |
+| `exportAs` | string | No | Optionally export the finished Gamma. Enum: `pdf`, `pptx`. |
+| `folderIds` | string | No | Comma-separated folder IDs to store the Gamma in (use List Folders to find valid IDs). |
+| `textAmount` | string | No | Amount of text per card. Enum: `brief`, `medium`, `detailed`, `extensive`. |
+| `textTone` | string | No | Tone of the generated text (e.g., `professional`, `casual`, `academic`). |
+| `textAudience` | string | No | Target audience for the generated text (e.g., `executives`, `students`). |
+| `textLanguage` | string | No | BCP-47 language code for generated text (default: `en`). |
+| `imageSource` | string | No | Image source. Enum: `aiGenerated`, `pictographic`, `unsplash`, `webAllImages`, `webFreeToUse`, `webFreeToUseCommercially`, `giphy`, `placeholder`, `noImages`. |
+| `imageModel` | string | No | AI image generation model (only relevant when `imageSource` is `aiGenerated`). |
+| `imageStyle` | string | No | Style directive for AI-generated images (e.g., `watercolor`, `photorealistic`, `minimalist`). |
+
+---
+
+### gamma_generate_from_template
+
+`POST https://public-api.gamma.app/v1.0/generations/from-template`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Gamma API key. |
+| `gammaId` | string | Yes | The ID of the existing template Gamma to adapt. |
+| `prompt` | string | Yes | Instructions describing how to adapt the template content. |
+| `themeId` | string | No | Custom Gamma workspace theme ID to apply. |
+| `exportAs` | string | No | Optionally export the finished Gamma. Enum: `pdf`, `pptx`. |
+| `folderIds` | string | No | Comma-separated folder IDs to store the Gamma in. |
+| `imageModel` | string | No | AI image generation model. |
+| `imageStyle` | string | No | Style directive for AI-generated images. |
+
+---
+
+### gamma_check_status
+
+`GET https://public-api.gamma.app/v1.0/generations/{generationId}`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Gamma API key. |
+| `generationId` | string | Yes | The generation ID returned by `gamma_generate` or `gamma_generate_from_template`. |
+
+---
+
+### gamma_list_themes
+
+`GET https://public-api.gamma.app/v1.0/themes`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Gamma API key. |
+| `query` | string | No | Search query to filter themes by name. |
+| `limit` | number | No | Maximum number of themes per page (max 50). |
+| `after` | string | No | Pagination cursor from a previous response's `nextCursor` field. |
+
+---
+
+### gamma_list_folders
+
+`GET https://public-api.gamma.app/v1.0/folders`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Gamma API key. |
+| `query` | string | No | Search query to filter folders by name. |
+| `limit` | number | No | Maximum number of folders per page (max 50). |
+| `after` | string | No | Pagination cursor from a previous response's `nextCursor` field. |
+
+## Outputs
+
+### gamma_generate
+
+- `generationId` (string) — The ID of the generation job. Pass this to `gamma_check_status` to poll for completion.
+
+### gamma_generate_from_template
+
+- `generationId` (string) — The ID of the generation job. Pass this to `gamma_check_status` to poll for completion.
+
+### gamma_check_status
+
+- `generationId` (string) — The generation ID that was polled.
+- `status` (string) — Current status of the job: `pending`, `completed`, or `failed`.
+- `gammaUrl` (string, optional) — Public URL of the generated Gamma. Present only when `status` is `completed`.
+- `credits` (json, optional) — Credit usage information. Contains `deducted` and `remaining` fields.
+- `error` (json, optional) — Error details when `status` is `failed`. Contains `message` and `statusCode` fields.
+
+### gamma_list_themes
+
+- `themes` (array) — List of available theme objects. Each item contains `id`, `name`, `type`, `colorKeywords`, and `toneKeywords`.
+- `hasMore` (boolean) — Whether additional pages of results are available.
+- `nextCursor` (string, optional) — Pagination cursor to pass as `after` in the next request.
+
+### gamma_list_folders
+
+- `folders` (array) — List of available folder objects. Each item contains `id` and `name`.
+- `hasMore` (boolean) — Whether additional pages of results are available.
+- `nextCursor` (string, optional) — Pagination cursor to pass as `after` in the next request.
+
+## YAML Example
+
+```yaml
+gamma_1:
+  type: gamma
+  name: "Gamma"
+  inputs:
+    operation: "gamma_generate"
+    inputText: "{{agent_1.output}}"
+    textMode: "generate"
+    format: "presentation"
+    numCards: 10
+    textAmount: "medium"
+    imageSource: "aiGenerated"
+    apiKey: "{{GAMMA_API_KEY}}"
+  connections:
+    outgoing:
+      - target: gamma_status_1
+
+gamma_status_1:
+  type: gamma
+  name: "Gamma Check Status"
+  inputs:
+    operation: "gamma_check_status"
+    generationId: "{{gamma_1.generationId}}"
+    apiKey: "{{GAMMA_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Generation is asynchronous.** `gamma_generate` and `gamma_generate_from_template` return a `generationId` immediately, but the Gamma may not be ready yet. Always follow up with `gamma_check_status` (polling until `status` is `completed`) before using `gammaUrl` downstream.
+- **Find theme and folder IDs first.** Use `gamma_list_themes` and `gamma_list_folders` earlier in the workflow to discover valid IDs, then pass those IDs to the generate operations via `{{listThemesBlock.themes}}` and `{{listFoldersBlock.folders}}`.
+- **Card dimensions depend on format.** Valid `cardDimensions` values differ by `format`: presentations support `fluid`, `16x9`, `4x3`; documents support `fluid`, `pageless`, `letter`, `a4`; social posts support `1x1`, `4x5`, `9x16`. Mismatches may be rejected by the API.

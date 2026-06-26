@@ -1,0 +1,161 @@
+---
+title: Salesforce Block
+description: Create, query, update, and retrieve Salesforce records
+icon: Box
+---
+
+# Salesforce Block
+
+Create records, run SOQL queries, update records, and get records for any Salesforce sObject. Authenticate with a Salesforce access token and your instance URL.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `salesforce` |
+| **Category** | `tools` |
+| **Color** | `#00A1E0` |
+
+## When to Use
+
+- Create new Contacts, Accounts, Leads, or Opportunities in Salesforce from workflow data
+- Run SOQL queries to retrieve filtered sets of records for downstream processing
+- Update existing records (e.g. mark a Lead as converted, change an Opportunity stage)
+- Fetch a single record by ID when you already know the Salesforce record identifier
+- Automate CRM data entry from form submissions, webhook payloads, or other workflow outputs
+- Sync external data into Salesforce as part of a multi-step integration workflow
+
+## Configuration
+
+### Operation
+
+Selects which Salesforce action to perform. All other visible fields depend on this selection.
+
+| Label | ID |
+|-------|-----|
+| Create record | `salesforce_create_record` |
+| Query (SOQL) | `salesforce_query` |
+| Update record | `salesforce_update_record` |
+| Get record | `salesforce_get_record` |
+
+Default: `salesforce_create_record`
+
+---
+
+### sObject Type
+
+- **ID**: `sobject`
+- **Type**: short-input
+- **Placeholder**: `Contact`
+- **Visible for operations**: `salesforce_create_record`, `salesforce_update_record`, `salesforce_get_record`
+
+The API name of the Salesforce object to operate on (e.g. `Contact`, `Account`, `Lead`, `Opportunity`, or any custom object API name ending in `__c`).
+
+---
+
+### Record ID
+
+- **ID**: `recordId`
+- **Type**: short-input
+- **Placeholder**: `003xx000004TmiQAAS`
+- **Visible for operations**: `salesforce_update_record`, `salesforce_get_record`
+
+The 18-character Salesforce record ID of the record to update or retrieve. Use `{{previousBlock.data.id}}` to pass an ID from a prior step.
+
+---
+
+### Fields (JSON) — for Create and Update
+
+- **ID**: `fields`
+- **Type**: long-input
+- **Placeholder**: `{"LastName": "Doe", "Email": "john@example.com"}`
+- **Visible for operations**: `salesforce_create_record`, `salesforce_update_record`
+
+A JSON object of field API names to their values. For `salesforce_create_record` all required fields for the sObject must be included. For `salesforce_update_record` only include the fields you want to change.
+
+---
+
+### Fields (comma-separated) — for Get Record
+
+- **ID**: `fields`
+- **Type**: short-input
+- **Placeholder**: `Id,Name,Email`
+- **Visible for operations**: `salesforce_get_record`
+
+Optional comma-separated list of field API names to return. If omitted, Salesforce returns all accessible fields for the record.
+
+---
+
+### SOQL Query
+
+- **ID**: `query`
+- **Type**: long-input
+- **Placeholder**: `SELECT Id, Name FROM Account LIMIT 10`
+- **Visible for operations**: `salesforce_query`
+
+A full SOQL query string. Supports all standard SOQL clauses: `SELECT`, `FROM`, `WHERE`, `ORDER BY`, `LIMIT`, `OFFSET`, relationship queries, and aggregate functions.
+
+---
+
+### Instance URL
+
+- **ID**: `instanceUrl`
+- **Type**: short-input
+- **Required**: yes
+- **Placeholder**: `https://your-domain.my.salesforce.com`
+
+Your Salesforce org's instance URL. Do not include a trailing slash. Use `{{SALESFORCE_INSTANCE_URL}}` to inject from an environment variable.
+
+---
+
+### Access Token
+
+- **ID**: `apiKey`
+- **Type**: short-input (password)
+- **Required**: yes
+- **Placeholder**: `Salesforce OAuth access token`
+
+A valid Salesforce OAuth 2.0 access token (Bearer token). Use `{{SALESFORCE_ACCESS_TOKEN}}` to inject from an environment variable. Tokens are masked in the UI.
+
+---
+
+## Inputs & Outputs
+
+**Inputs** (all subBlock ids passed at runtime):
+
+- `operation` (string) — Operation to perform; one of `salesforce_create_record`, `salesforce_query`, `salesforce_update_record`, `salesforce_get_record`
+- `apiKey` (string) — Salesforce OAuth access token
+- `instanceUrl` (string) — Salesforce instance URL
+- `sobject` (string) — sObject type (e.g. `Contact`, `Account`, `Lead`)
+- `recordId` (string) — Record ID (used by update and get operations)
+- `fields` (json) — Field values as a JSON object (create/update) or comma-separated field names (get)
+- `query` (string) — SOQL query string (query operation only)
+
+**Outputs**:
+
+- `data` (json) — Result object or array from Salesforce. For `salesforce_query` this is an array of record objects; for `salesforce_create_record`, `salesforce_update_record`, and `salesforce_get_record` it is a single record object (or `{"updated": true}` on a successful PATCH).
+- `metadata` (json) — Response metadata. For create/update/get: `{ id: string }` containing the affected record's ID. For query: `{ totalSize: number, done: boolean }`.
+
+## Tools
+
+- **Salesforce Create Record** (`salesforce_create_record`) — POSTs a new record to `/services/data/v59.0/sobjects/{sObject}`. Returns the new record ID and create result.
+- **Salesforce Query** (`salesforce_query`) — Executes a SOQL query via `/services/data/v59.0/query?q=...`. Returns an array of matching records plus `totalSize` and `done` pagination metadata.
+- **Salesforce Update Record** (`salesforce_update_record`) — PATCHes an existing record at `/services/data/v59.0/sobjects/{sObject}/{recordId}`. Salesforce returns HTTP 204 on success; the block normalises this to `{ updated: true }`.
+- **Salesforce Get Record** (`salesforce_get_record`) — GETs a single record at `/services/data/v59.0/sobjects/{sObject}/{recordId}` with an optional `?fields=` projection. Returns the full record object.
+
+## YAML Example
+
+```yaml
+salesforce_1:
+  type: salesforce
+  name: "Create Salesforce Contact"
+  inputs:
+    operation: salesforce_create_record
+    instanceUrl: "{{SALESFORCE_INSTANCE_URL}}"
+    apiKey: "{{SALESFORCE_ACCESS_TOKEN}}"
+    sobject: Contact
+    fields: '{"LastName": "{{form_block.lastName}}", "Email": "{{form_block.email}}", "Company": "{{form_block.company}}"}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

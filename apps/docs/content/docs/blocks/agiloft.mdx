@@ -6,7 +6,7 @@ icon: Box
 
 # Agiloft Block
 
-The Agiloft block integrates Agiloft Contract Lifecycle Management into your workflows. Reach for it when you need to create, read, update, or delete records, or run queries across any Agiloft table.
+The Agiloft block integrates Agiloft Contract Lifecycle Management into your workflows. Reach for it when you need to create, read, update, or delete individual records, or run queries across any Agiloft table.
 
 ## Overview
 
@@ -22,46 +22,87 @@ The Agiloft block integrates Agiloft Contract Lifecycle Management into your wor
 - Read a specific record by its ID to pull contract details into your workflow.
 - Update fields on an existing record as part of an automated CLM process.
 - Delete a record by ID when cleaning up or retiring data.
-- Run a query against a table (e.g. `status = "Active"`) to retrieve matching records.
+- Run a query against a table (e.g. `status = "Active"`) to retrieve a filtered set of matching records.
+- Automate multi-step CLM workflows that chain create, read, update, and query steps together.
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting the action to perform: Create Record (`agiloft_create_record`), Read Record (`agiloft_read_record`), Update Record (`agiloft_update_record`), Delete Record (`agiloft_delete_record`), or Query Records (`agiloft_query_records`).
+**Required.** Dropdown selecting the action to perform. Every option maps directly to the tool that executes it:
+
+| Label | id |
+|-------|----|
+| Create Record | `agiloft_create_record` |
+| Read Record | `agiloft_read_record` |
+| Update Record | `agiloft_update_record` |
+| Delete Record | `agiloft_delete_record` |
+| Query Records | `agiloft_query_records` |
 
 ### Instance URL
 
-The base URL of your Agiloft instance, e.g. `https://your-instance.agiloft.com`. Required.
+**Required.** The base URL of your Agiloft instance, e.g. `https://your-instance.agiloft.com`. Visible for all operations.
 
 ### Knowledge Base
 
-The name of the Agiloft knowledge base to operate against. Required.
+**Required.** The name of the Agiloft knowledge base to operate against (e.g. `KB Name`). Visible for all operations.
 
-### Login & Password
+### Login
 
-The username and password credentials used to authenticate against Agiloft. Both required.
+**Required.** The Agiloft username used to authenticate. Visible for all operations.
+
+### Password
+
+**Required.** The Agiloft password used to authenticate. Stored as a secret field. Visible for all operations.
 
 ### Table
 
-The Agiloft table to target, e.g. `Contract`. Required.
+**Required.** The Agiloft table to target, e.g. `Contract` or `contacts.employees`. Visible for all operations.
 
 ### Record ID
 
-The ID of the record to act on. Used for Read, Update, and Delete operations.
+The ID of the record to act on (e.g. `12345`). Shown only for **Read Record**, **Update Record**, and **Delete Record** operations.
 
 ### Data (JSON)
 
-A JSON object of field values, e.g. `{"field": "value"}`. Used for Create and Update operations.
+A JSON object of field values to write, e.g. `{"field": "value"}`. Shown only for **Create Record** and **Update Record** operations.
 
 ### Query
 
-A query string, e.g. `status = "Active"`. Used for the Query Records operation.
+A query string using Agiloft query syntax, e.g. `status = "Active"`. Shown only for the **Query Records** operation.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `instanceUrl` (string), `knowledgeBase` (string), `login` (string), `password` (string), `table` (string), `recordId` (string), `data` (string), `query` (string)
-- **Outputs**: `recordId` (string), `data` (json), `records` (json), `recordCount` (number)
+**Inputs** (every field the block accepts):
+
+- `operation` (string) — Operation to perform
+- `instanceUrl` (string) — Instance URL
+- `knowledgeBase` (string) — Knowledge base
+- `login` (string) — Login
+- `password` (string) — Password
+- `table` (string) — Table name
+- `recordId` (string) — Record ID (used by Read, Update, Delete)
+- `data` (string) — Record data as a JSON string (used by Create, Update)
+- `query` (string) — Query string (used by Query Records)
+
+**Outputs** (fields available to downstream blocks via `{{agiloft_1.<field>}}`):
+
+- `recordId` (string) — Record ID
+- `data` (json) — Record data
+- `records` (json) — Query results
+- `recordCount` (number) — Number of records
+
+## Tools
+
+**Agiloft Create Record** (`agiloft_create_record`) — Creates a new record in the specified Agiloft table. Accepts `instanceUrl`, `knowledgeBase`, `login`, `password`, `table`, and `data` (JSON string of field values). Returns `id` (string) and `fields` (json) of the created record.
+
+**Agiloft Read Record** (`agiloft_read_record`) — Reads a record by ID from an Agiloft table. Accepts `instanceUrl`, `knowledgeBase`, `login`, `password`, `table`, `recordId`, and an optional `fields` (comma-separated field names to return). Returns `id` (string) and `fields` (json).
+
+**Agiloft Update Record** (`agiloft_update_record`) — Updates an existing record in an Agiloft table. Accepts `instanceUrl`, `knowledgeBase`, `login`, `password`, `table`, `recordId`, and `data` (JSON string of updated field values). Returns `id` (string) and `fields` (json) of the updated record.
+
+**Agiloft Delete Record** (`agiloft_delete_record`) — Deletes a record from an Agiloft table. Accepts `instanceUrl`, `knowledgeBase`, `login`, `password`, `table`, and `recordId`. Returns `id` (string) and `deleted` (boolean) indicating whether the deletion succeeded.
+
+**Agiloft Query Records** (`agiloft_query_records`) — Searches for records in an Agiloft table using Agiloft query syntax. Accepts `instanceUrl`, `knowledgeBase`, `login`, `password`, `table`, `query`, and optional `fields`, `page`, and `limit` parameters. Returns `records` (json array), `totalCount` (number), `page` (number), and `limit` (number).
 
 ## YAML Example
 
@@ -73,10 +114,10 @@ agiloft_1:
     operation: "agiloft_create_record"
     instanceUrl: "https://your-instance.agiloft.com"
     knowledgeBase: "KB Name"
-    login: "username"
-    password: "password"
+    login: "{{AGILOFT_LOGIN}}"
+    password: "{{AGILOFT_PASSWORD}}"
     table: "Contract"
-    data: '{"name": "{{start.input}}"}'
+    data: '{"name": "{{start.input}}", "status": "Active"}'
   connections:
     outgoing:
       - target: next-block-id

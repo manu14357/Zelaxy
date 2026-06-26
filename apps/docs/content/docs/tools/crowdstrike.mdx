@@ -1,0 +1,65 @@
+---
+title: CrowdStrike
+description: Query endpoint sensors and host data in CrowdStrike Falcon
+icon: ShieldCheck
+---
+
+# CrowdStrike
+
+The CrowdStrike block integrates your workflows with the CrowdStrike Falcon Identity Protection API. Use it to search for sensors by hostname or IP, retrieve detailed device records, and compute aggregate statistics across your endpoint fleet.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `crowdstrike` |
+| **Category** | Tool — Security |
+| **Auth** | OAuth 2.0 Client Credentials (Client ID + Client Secret passed per request) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Query Sensors** | `crowdstrike_query_sensors` | Search identity protection sensors by hostname, IP, or any Falcon Query Language (FQL) filter |
+| **Get Sensor Details** | `crowdstrike_get_sensor_details` | Retrieve full detail records for one or more sensors by their device IDs |
+| **Get Sensor Aggregates** | `crowdstrike_get_sensor_aggregates` | Compute aggregate statistics (counts, groupings) over sensors using a JSON aggregate query body |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `clientId` | `string` | Yes | CrowdStrike Falcon API client ID. Store as a secret and reference with `{{CROWDSTRIKE_CLIENT_ID}}`. |
+| `clientSecret` | `string` | Yes | CrowdStrike Falcon API client secret. Store as a secret and reference with `{{CROWDSTRIKE_CLIENT_SECRET}}`. |
+| `cloud` | `string` | Yes | Falcon cloud region. One of `us-1`, `us-2`, `eu-1`, or `us-gov-1`. |
+| `filter` | `string` | No | Falcon Query Language (FQL) filter expression for **Query Sensors** (e.g. `platform_name:"Windows"`). |
+| `limit` | `number` | No | Maximum number of sensor records to return per page (Query Sensors only). |
+| `offset` | `number` | No | Pagination offset for the identity sensor query (Query Sensors only). |
+| `sort` | `string` | No | Sort expression applied to identity sensor results (Query Sensors only). |
+| `ids` | `json` | Yes* | JSON array of CrowdStrike sensor device IDs. Required for **Get Sensor Details**. |
+| `aggregateQuery` | `json` | Yes* | JSON aggregate query body as defined by the CrowdStrike Falcon API. Required for **Get Sensor Aggregates**. |
+
+\* Required only for the indicated operation.
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sensors` | `array` | Matching CrowdStrike identity sensor records (returned by Query Sensors and Get Sensor Details). |
+| `aggregates` | `array` | Aggregate result groups returned by CrowdStrike (returned by Get Sensor Aggregates). |
+| `count` | `number` | Number of records or aggregate groups returned. |
+| `pagination` | `json` | Pagination metadata (offset, total, next page token) when available. |
+
+## Example
+
+```
+[Starter] → [CrowdStrike: Query Sensors] → [Agent: summarize endpoint risk]
+```
+
+Configure the Query Sensors operation with `clientId` set to `{{CROWDSTRIKE_CLIENT_ID}}`, `clientSecret` set to `{{CROWDSTRIKE_CLIENT_SECRET}}`, `cloud` set to `us-1`, and `filter` set to `{{starter.input.fqlFilter}}` (e.g. `platform_name:"Windows"+status:"normal"`). The block returns a `sensors` array that the downstream Agent block can analyze to surface risky or misconfigured endpoints and produce a summary report.
+
+## Tips
+
+- **Start with Query Sensors, then Get Sensor Details.** Query Sensors returns lightweight records with device IDs; pipe those IDs as a JSON array into `{{crowdstrike.sensors}}` and pass them to Get Sensor Details to retrieve full host metadata in a second step.
+- **Use FQL for precise filtering.** The `filter` param accepts any valid Falcon Query Language expression, for example `hostname:"web-prod-*"` or `os_version:"Windows 10"+status:"normal"`. Test your FQL in the Falcon UI before wiring it into a workflow.
+- **Aggregates need a valid JSON body.** The `aggregateQuery` param must match the CrowdStrike aggregate endpoint schema (include `date_ranges`, `field`, `filter`, `interval`, `min_doc_count`, `missing`, `name`, `q`, `ranges`, `size`, `sort`, `sub_aggregates`, `time_zone`, `type`). Start from the CrowdStrike API Explorer examples.
+- **Store credentials as environment secrets.** Never hardcode `clientId` or `clientSecret` in block config. Use `{{CROWDSTRIKE_CLIENT_ID}}` and `{{CROWDSTRIKE_CLIENT_SECRET}}` so the values are injected at runtime without appearing in workflow definitions.

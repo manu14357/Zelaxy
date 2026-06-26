@@ -1,0 +1,143 @@
+---
+title: People Data Labs Block
+description: Enrich and search people and company data with People Data Labs
+icon: Box
+---
+
+# People Data Labs Block
+
+The People Data Labs block lets you enrich a single person or company profile using email, name, website, or stock ticker, or search the People Data Labs person dataset using an Elasticsearch DSL query or SQL. Reach for it when you need to hydrate a contact record, qualify an account, or bulk-discover professionals matching specific criteria.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `peopledatalabs` |
+| **Category** | tools |
+| **Color** | `#6C5CE7` |
+
+## When to Use
+
+- Enrich a lead's profile (job title, location, social handles) from their email address.
+- Hydrate a known person record using their full name and company when no email is available.
+- Look up firmographic data for a company by its website domain or stock ticker.
+- Search for professionals in a specific role or industry using an Elasticsearch DSL query.
+- Run an SQL-style query against the People Data Labs person dataset to pull a targeted list.
+- Gate or score leads based on the match `likelihood` score returned alongside the enriched record.
+
+## Configuration
+
+### Operation
+
+Selects which People Data Labs action to execute. Required. Options:
+
+| Label | ID |
+|-------|----|
+| Enrich person | `peopledatalabs_person_enrich` |
+| Enrich company | `peopledatalabs_company_enrich` |
+| Search person | `peopledatalabs_person_search` |
+
+The fields displayed below this selector depend on the chosen operation.
+
+### Email
+
+_(Enrich person only)_ The email address to match against the People Data Labs person dataset. Using a high-quality email is the most reliable signal for a precise match.
+
+Placeholder: `jane@example.com`
+
+### Name
+
+_(Enrich person and Enrich company)_ Full name of the person, or the company name. When enriching a person, combine with **Company** to improve match precision when no email is available.
+
+Placeholder: `Jane Doe`
+
+### Company
+
+_(Enrich person only)_ Company name or website to narrow the person match. Useful when you have a name but no email.
+
+Placeholder: `Acme`
+
+### Min Likelihood
+
+_(Enrich person only)_ Integer between 1 and 10 that sets the minimum acceptable match confidence. Records below this threshold are not returned. Higher values mean stricter matching; 6 is a common starting point.
+
+Placeholder: `6`
+
+### Website
+
+_(Enrich company only)_ The company's website domain (without protocol), used to locate the company record.
+
+Placeholder: `acme.com`
+
+### Ticker
+
+_(Enrich company only)_ The company's stock ticker symbol, used to locate publicly traded companies.
+
+Placeholder: `ACME`
+
+### Query
+
+_(Search person only)_ An Elasticsearch DSL query object (JSON) that filters the person dataset. Use either **Query** or **SQL** — not both.
+
+Placeholder: `{"term":{"job_title_role":"engineering"}}`
+
+### SQL
+
+_(Search person only)_ A PDL SQL query string that filters the person dataset. Use either **SQL** or **Query** — not both.
+
+Placeholder: `SELECT * FROM person WHERE job_title='engineer'`
+
+### Size
+
+_(Search person only)_ Number of person records to return (1–100). Defaults to 1 when omitted.
+
+Placeholder: `10`
+
+### People Data Labs API Key
+
+Your People Data Labs API key. Stored as a password field and sent as the `X-Api-Key` header on every request. Required for all operations.
+
+Placeholder: `Enter your People Data Labs API key`
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`peopledatalabs_person_enrich`, `peopledatalabs_company_enrich`, or `peopledatalabs_person_search`)
+  - `apiKey` (string) — People Data Labs API key
+  - `email` (string) — Email address (Enrich person)
+  - `name` (string) — Person or company name (Enrich person, Enrich company)
+  - `company` (string) — Company name or website (Enrich person)
+  - `min_likelihood` (number) — Minimum match likelihood score 1–10 (Enrich person)
+  - `website` (string) — Company website domain (Enrich company)
+  - `ticker` (string) — Stock ticker symbol (Enrich company)
+  - `query` (json) — Elasticsearch DSL query object (Search person)
+  - `sql` (string) — PDL SQL query string (Search person)
+  - `size` (number) — Number of results to return (Search person)
+
+- **Outputs**:
+  - `data` (json) — Result object (Enrich operations) or array of matching person records (Search person)
+  - `metadata` (json) — Response metadata: `status` (API HTTP status code), `likelihood` (match confidence 1–10, Enrich person only), `total` (dataset-wide match count, Search person only)
+
+## Tools
+
+- **People Data Labs Person Enrich** (`peopledatalabs_person_enrich`) — Calls `GET https://api.peopledatalabs.com/v5/person/enrich` with the provided email, name, and/or company to return a single enriched person record and a `likelihood` score.
+- **People Data Labs Company Enrich** (`peopledatalabs_company_enrich`) — Calls `GET https://api.peopledatalabs.com/v5/company/enrich` with the provided name, website, and/or ticker to return a single enriched company record.
+- **People Data Labs Person Search** (`peopledatalabs_person_search`) — Calls `POST https://api.peopledatalabs.com/v5/person/search` with an Elasticsearch DSL query or SQL string and returns an array of up to `size` matching person records along with the total dataset count.
+
+## YAML Example
+
+```yaml
+peopledatalabs_1:
+  type: peopledatalabs
+  name: "People Data Labs"
+  inputs:
+    operation: "peopledatalabs_person_enrich"
+    apiKey: "{{PEOPLEDATALABS_API_KEY}}"
+    email: "{{extract_email_block.email}}"
+    name: "Jane Doe"
+    company: "Acme"
+    min_likelihood: 6
+  connections:
+    outgoing:
+      - target: next-block-id
+```

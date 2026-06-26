@@ -1,0 +1,127 @@
+---
+title: Upstash Block
+description: Read, write, and run commands against Upstash Redis over HTTP
+icon: Database
+---
+
+# Upstash Block
+
+Get and set keys or run arbitrary Redis commands through the Upstash Redis REST API. Authenticate with your REST URL and REST token to interact with your Upstash Redis database directly from any workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `upstash` |
+| **Category** | `tools` |
+| **Color** | `#00E9A3` |
+
+## When to Use
+
+- Cache workflow results in Redis so subsequent blocks can retrieve them instantly without re-computing
+- Store and retrieve session state, counters, or flags shared across multiple workflow runs
+- Increment or decrement counters atomically using the `Run command` operation with commands like `INCR` or `DECR`
+- Read configuration values or feature flags stored in Redis at runtime
+- Write structured data (as serialized strings) to Redis for consumption by other workflows or services
+- Execute any Redis command not covered by the dedicated GET/SET operations via `Run command`
+
+## Configuration
+
+### Operation
+
+Selects which Redis operation the block performs. This is a required dropdown with the following options:
+
+| Label | ID | Required fields |
+|-------|----|-----------------|
+| Redis GET | `upstash_redis_get` | `key`, `restUrl`, `restToken` |
+| Redis SET | `upstash_redis_set` | `key`, `value`, `restUrl`, `restToken` |
+| Run command | `upstash_run_command` | `command`, `restUrl`, `restToken` |
+
+Default value is `upstash_redis_get`.
+
+### Key
+
+- **Sub-block ID**: `key`
+- **Type**: Short text input
+- **Placeholder**: `my-key`
+- **Visible when**: Operation is `Redis GET` or `Redis SET`
+
+The Redis key to read or write. Supports `{{blockName.field}}` references to pass dynamic key names from upstream blocks.
+
+### Value
+
+- **Sub-block ID**: `value`
+- **Type**: Short text input
+- **Placeholder**: `my-value`
+- **Visible when**: Operation is `Redis SET`
+
+The value to store at the specified key. Supports `{{blockName.field}}` references to store dynamic values from upstream blocks.
+
+### Command (JSON array)
+
+- **Sub-block ID**: `command`
+- **Type**: Long text input
+- **Placeholder**: `["INCR","counter"]`
+- **Visible when**: Operation is `Run command`
+
+The Redis command to execute, expressed as a JSON array where the first element is the command name and subsequent elements are its arguments. Examples:
+- `["INCR","page-views"]` — atomically increment a counter
+- `["EXPIRE","session:abc","3600"]` — set a TTL of 3600 seconds on a key
+- `["LPUSH","queue","job1"]` — push an item onto a list
+- `["HSET","user:1","name","Alice"]` — set a hash field
+
+### REST URL
+
+- **Sub-block ID**: `restUrl`
+- **Type**: Short text input
+- **Placeholder**: `https://xxx.upstash.io`
+- **Required**: yes
+
+The Upstash Redis REST endpoint URL. Found in the Upstash console under your database's **REST API** section. Use `{{UPSTASH_REST_URL}}` to inject this from a workflow environment variable.
+
+### REST Token
+
+- **Sub-block ID**: `restToken`
+- **Type**: Short text input (password masked)
+- **Required**: yes
+
+The Upstash Redis REST token that authorizes requests. Found alongside the REST URL in the Upstash console. Use `{{UPSTASH_REST_TOKEN}}` to inject this securely from a workflow environment variable.
+
+## Inputs & Outputs
+
+**Inputs**:
+
+- `operation` (string) — Operation to perform (`upstash_redis_get`, `upstash_redis_set`, or `upstash_run_command`)
+- `restUrl` (string) — Upstash Redis REST URL
+- `restToken` (string) — Upstash Redis REST token
+- `key` (string) — Redis key (GET and SET operations)
+- `value` (string) — Value to store (SET operation only)
+- `command` (json) — Redis command as a JSON array (Run command operation only)
+
+**Outputs**:
+
+- `data` (json) — Result object from Upstash; contains the raw response body, including a `result` field with the command's return value
+- `metadata` (json) — Response metadata; contains a `result` field that surfaces the value returned by the Redis command (e.g. the stored value for GET, `"OK"` for SET, or a number for INCR)
+
+## Tools
+
+- **Upstash Redis GET** (`upstash_redis_get`) — Issues a `GET /<restUrl>/get/<key>` HTTP request and returns the value stored at the key. Responds with `{ result: <value> }`.
+- **Upstash Redis SET** (`upstash_redis_set`) — Issues a `POST /<restUrl>/set/<key>/<value>` HTTP request to store a value. Responds with `{ result: "OK" }` on success.
+- **Upstash Run Command** (`upstash_run_command`) — POSTs the JSON array command body directly to the REST URL, enabling any Redis command. Responds with `{ result: <command-output> }`.
+
+## YAML Example
+
+```yaml
+upstash_1:
+  type: upstash
+  name: "Upstash"
+  inputs:
+    operation: "upstash_redis_set"
+    restUrl: "{{UPSTASH_REST_URL}}"
+    restToken: "{{UPSTASH_REST_TOKEN}}"
+    key: "{{extract_1.key}}"
+    value: "{{transform_1.result}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

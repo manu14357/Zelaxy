@@ -1,0 +1,96 @@
+---
+title: incident.io Tools
+description: List, create, and retrieve incidents through the incident.io v2 API.
+icon: Siren
+---
+
+# incident.io Tools
+
+incident.io is an incident-management platform for declaring, coordinating, and resolving operational incidents. Use these tools in a workflow to list existing incidents, create a new incident, or fetch a single incident by ID via the incident.io v2 REST API.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `incidentio` |
+| **Category** | tools |
+| **Auth** | Bearer Token (API key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List incidents | `incidentio_list_incidents` | List incidents from incident.io |
+| Create incident | `incidentio_create_incident` | Create a new incident in incident.io |
+| Get incident | `incidentio_get_incident` | Get a single incident by ID |
+
+## Configuration
+
+### `incidentio_list_incidents`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | incident.io API key. **Secret** — sent as a Bearer token (visibility: user-only). |
+| `pageSize` | number | No | Number of results to return per page (sent as the `page_size` query parameter). |
+
+### `incidentio_create_incident`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | incident.io API key. **Secret** — sent as a Bearer token (visibility: user-only). |
+| `name` | string | Yes | The name of the incident. |
+| `idempotencyKey` | string | No | A unique key to deduplicate the request. If omitted, a random UUID is generated automatically. |
+
+Note: created incidents default to `visibility: "public"` in the request body.
+
+### `incidentio_get_incident`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | incident.io API key. **Secret** — sent as a Bearer token (visibility: user-only). |
+| `incidentId` | string | Yes | The ID of the incident to retrieve. |
+
+## Outputs
+
+### `incidentio_list_incidents`
+
+- `data` (json) — Array of incident objects.
+- `metadata` (json) — List metadata, containing:
+  - `count` (number) — Number of incidents returned.
+  - `after` (string) — Cursor for the next page.
+
+### `incidentio_create_incident`
+
+- `data` (json) — The created incident object.
+- `metadata` (json) — Incident identifiers, containing:
+  - `id` (string) — Incident ID.
+  - `reference` (string) — Incident reference.
+
+### `incidentio_get_incident`
+
+- `data` (json) — The incident object.
+- `metadata` (json) — Incident identifiers, containing:
+  - `id` (string) — Incident ID.
+  - `reference` (string) — Incident reference.
+
+## YAML Example
+
+```yaml
+incidentio_1:
+  type: incidentio
+  name: "incident.io"
+  inputs:
+    operation: "incidentio_create_incident"
+    name: "Checkout is failing for some users"
+    idempotencyKey: "checkout-failure-2026-06-26"
+    apiKey: "{{INCIDENTIO_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authentication is a Bearer API key. Generate one in the incident.io dashboard (Settings → API keys) and store it as an environment variable, then reference it with `{{INCIDENTIO_API_KEY}}` — never hard-code the key.
+- For create operations, set `idempotencyKey` when retrying or when the same event might fire twice; if you leave it blank a random UUID is generated, so repeated runs will create duplicate incidents.
+- The `metadata.after` cursor returned by `incidentio_list_incidents` is incident.io's pagination cursor — feed it forward (or page through with `pageSize`) when you need more than one page of results. Pass an incident's `metadata.id` (e.g. `{{incidentio_1.metadata.id}}`) into a downstream `incidentio_get_incident` step to fetch full details.

@@ -1,0 +1,159 @@
+---
+title: Google Contacts Block
+description: List, search, get, and create contacts in Google Contacts
+icon: ContactRound
+---
+
+# Google Contacts Block
+
+List contacts, search contacts, retrieve a single contact, and create new contacts through the Google People API. Authenticate with a Google OAuth access token. Reach for this block any time a workflow needs to read from or write to a user's Google Contacts address book.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_contacts` |
+| **Category** | `tools` |
+| **Color** | `#1A73E8` |
+
+## When to Use
+
+- Retrieve a full list of contacts from the authenticated user's Google address book for CRM sync or bulk processing
+- Look up a specific contact by its resource name (e.g., `people/c1234567890`) to get their names and email addresses
+- Search contacts by name, email, or phone number to find relevant people before sending a message or creating a task
+- Create a new contact programmatically (e.g., after a form submission, sales lead capture, or new employee onboarding)
+- Paginate through large contact lists using `pageSize` and `pageToken` to process contacts in batches
+- Feed contact data from Google Contacts into downstream blocks (e.g., Gmail, agent, or function blocks) in the same workflow
+
+## Configuration
+
+### Operation
+
+**Required.** Selects which Google People API action to execute. Every other field in the block is shown or hidden based on this choice.
+
+| Label | ID |
+|-------|----|
+| List contacts | `google_contacts_list_contacts` |
+| Get contact | `google_contacts_get_contact` |
+| Search contacts | `google_contacts_search_contacts` |
+| Create contact | `google_contacts_create_contact` |
+
+Default: `google_contacts_list_contacts`.
+
+---
+
+### Resource Name
+
+Shown when **Operation** is `google_contacts_get_contact`.
+
+The People API resource identifier for the contact you want to retrieve. Always in the form `people/<numericId>` (e.g., `people/c1234567890`). You can obtain the resource name from the `data[*].resourceName` output of a previous List or Search operation.
+
+---
+
+### Search Query
+
+Shown when **Operation** is `google_contacts_search_contacts`.
+
+Free-text query matched against contact names, email addresses, and phone numbers (e.g., `Jane Doe`). The underlying API caps results at 30 per request.
+
+---
+
+### First Name
+
+Shown when **Operation** is `google_contacts_create_contact`.
+
+The `givenName` field of the new contact (e.g., `Jane`). Required by the Create Contact tool.
+
+---
+
+### Last Name
+
+Shown when **Operation** is `google_contacts_create_contact`.
+
+The `familyName` field of the new contact (e.g., `Doe`). Optional.
+
+---
+
+### Email
+
+Shown when **Operation** is `google_contacts_create_contact`.
+
+Primary email address to store on the new contact (e.g., `jane@example.com`). Optional.
+
+---
+
+### Phone
+
+Shown when **Operation** is `google_contacts_create_contact`.
+
+Primary phone number to store on the new contact in E.164 format (e.g., `+15551234567`). Optional.
+
+---
+
+### Page Size
+
+Shown when **Operation** is `google_contacts_list_contacts` or `google_contacts_search_contacts`.
+
+How many results to return per request. For list operations the People API accepts 1–1000; for search the effective maximum is 30. Defaults to the API default when omitted.
+
+---
+
+### Page Token
+
+Shown when **Operation** is `google_contacts_list_contacts`.
+
+Opaque token returned in `metadata.nextPageToken` from a previous List Contacts call. Supply it to retrieve the next page of results.
+
+---
+
+### Google Access Token
+
+**Required.** A Google OAuth 2.0 bearer token (`ya29...`) with the `https://www.googleapis.com/auth/contacts` scope. Store this in a Zelaxy secret and reference it as `{{GOOGLE_ACCESS_TOKEN}}`.
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (one of the four tool IDs)
+- `accessToken` (string) — Google OAuth access token
+- `resourceName` (string) — Contact resource name (Get Contact only)
+- `query` (string) — Search query (Search Contacts only)
+- `givenName` (string) — First name (Create Contact only)
+- `familyName` (string) — Last name (Create Contact only)
+- `email` (string) — Email address (Create Contact only)
+- `phone` (string) — Phone number (Create Contact only)
+- `pageSize` (number) — Number of results to return (List and Search only)
+- `pageToken` (string) — Pagination token (List Contacts only)
+
+**Outputs**
+
+- `data` (json) — Result object or array from Google Contacts. For list/search operations this is an array of Person objects; for get/create it is a single Person object.
+- `metadata` (json) — Response metadata. For list/search: `{ count, nextPageToken }`. For get/create: `{ resourceName }`.
+
+## Tools
+
+**Google Contacts List Contacts** (`google_contacts_list_contacts`) — Calls `GET https://people.googleapis.com/v1/people/me/connections` to retrieve the authenticated user's contacts. Returns an array of Person objects with `names`, `emailAddresses`, and `phoneNumbers` fields, plus a `metadata` object containing the total count and an optional `nextPageToken` for pagination.
+
+**Google Contacts Get Contact** (`google_contacts_get_contact`) — Calls `GET https://people.googleapis.com/v1/{resourceName}` to retrieve a single contact by its People API resource name. Returns the Person object with `names` and `emailAddresses`, plus a `metadata` object containing the `resourceName`.
+
+**Google Contacts Search Contacts** (`google_contacts_search_contacts`) — Calls `GET https://people.googleapis.com/v1/people:searchContacts` to search contacts by name, email, or phone. Returns an array of matching Person objects with `names` and `emailAddresses`, plus `metadata` with the count and optional `nextPageToken`. Maximum 30 results per request.
+
+**Google Contacts Create Contact** (`google_contacts_create_contact`) — Calls `POST https://people.googleapis.com/v1/people:createContact` to create a new contact. Accepts `givenName` (required), and optional `familyName`, `email`, and `phone`. Returns the newly created Person object and a `metadata` object containing its `resourceName`.
+
+## YAML Example
+
+```yaml
+google_contacts_1:
+  type: google_contacts
+  name: "Create Contact"
+  inputs:
+    operation: "google_contacts_create_contact"
+    accessToken: "{{GOOGLE_ACCESS_TOKEN}}"
+    givenName: "{{form_trigger.firstName}}"
+    familyName: "{{form_trigger.lastName}}"
+    email: "{{form_trigger.email}}"
+    phone: "{{form_trigger.phone}}"
+  connections:
+    outgoing:
+      - target: notify_block
+```

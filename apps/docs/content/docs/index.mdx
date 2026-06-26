@@ -1,12 +1,17 @@
 ---
-title: Zelaxy Documentation
-description: Complete reference for building AI-powered workflow automations with Zelaxy
+title: Zelaxy
+description: Build AI-powered workflow automations on a visual, block-based canvas
 icon: BookOpen
 ---
 
-# Zelaxy Documentation
+Zelaxy is an AI-powered workflow automation platform built on a modular, block-based architecture. You connect **blocks** on a visual canvas — each performs a specific function — to build powerful automation pipelines without writing code.
 
-Zelaxy is an AI-powered workflow automation platform built on a modular, block-based architecture. You connect blocks on a visual canvas — each block performs a specific function — to create powerful automation pipelines without writing code.
+<Cards>
+  <Card title="Core Blocks" href="/docs/blocks" description="260+ building blocks — AI agents, conditions, routers, loops, functions, and more." />
+  <Card title="Tool Integrations" href="/docs/tools" description="240+ external services — messaging, email, databases, search, AI/ML, and more." />
+  <Card title="Triggers" href="/docs/triggers" description="Webhooks, schedules, and service events that start workflows automatically." />
+  <Card title="Getting Started" href="/docs#how-it-works" description="Understand how blocks connect and build your first workflow in minutes." />
+</Cards>
 
 ## How It Works
 
@@ -16,6 +21,10 @@ Every workflow in Zelaxy follows the same pattern:
 2. **Blocks process data** — AI agents reason, conditions branch, tools fetch or send data
 3. **Outputs flow between blocks** using `{{blockName.outputField}}` references
 4. **A response block** (optional) returns the final result to the user
+
+<Callout type="info">
+  References always use **double braces**: `{{blockName.field}}` for another block's output, and `{{ENV_VAR}}` for secrets and API keys. Angle brackets like `<block.field>` do **not** resolve.
+</Callout>
 
 ## Core Concepts
 
@@ -40,24 +49,11 @@ Here's a simple workflow that auto-responds to support emails:
 3. **Condition Block** checks `{{agent.content}}` for urgency level
 4. If urgent → **Slack** notifies the team; otherwise → **Gmail** sends the auto-reply
 
-## Block Categories
+## Explore the Platform
 
-### Core Blocks
-The building blocks of every workflow — AI agents, conditions, routers, loops, functions, and more. [See all blocks →](/docs/blocks)
-
-### Tool Integrations
-57+ external service integrations — messaging, email, databases, search, AI/ML, and more. [See all tools →](/docs/tools)
-
-### Triggers
-Webhooks, schedules, and service events that start workflows automatically. [See all triggers →](/docs/triggers)
-
-## Tech Stack
-
-- **Framework:** Next.js 15 (App Router) + React 19
-- **Language:** TypeScript (strict mode)
-- **Runtime:** Bun 1.2+
-- **Database:** PostgreSQL 17 + pgvector (Drizzle ORM)
-- **Auth:** better-auth with OAuth 2.0
-- **UI:** Tailwind CSS + shadcn/ui
-- **Real-time:** Socket.io
-- **Background Jobs:** Trigger.dev
+<Cards>
+  <Card title="AI & Reasoning" href="/docs/blocks/agent" description="The Agent block — multi-provider LLMs with tool calling, structured output, and memory." />
+  <Card title="Flow Control" href="/docs/blocks/condition" description="Conditions, routers, switches, loops, and parallel execution." />
+  <Card title="Knowledge & RAG" href="/docs/blocks/knowledge" description="Vector search across your documents for retrieval-augmented generation." />
+  <Card title="Build a Tool Call" href="/docs/tools/slack" description="Connect an Agent to real services like Slack, Gmail, and Notion." />
+</Cards>

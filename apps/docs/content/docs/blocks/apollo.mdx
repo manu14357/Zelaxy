@@ -21,43 +21,73 @@ The Apollo block brings Apollo.io sales intelligence into your workflows. Use it
 - Search for people by job title, location, or company to build prospect lists.
 - Enrich a known person record using their email address.
 - Search for organizations by name or domain to qualify accounts.
-- Enrich an organization's profile from its domain.
+- Enrich an organization's full profile from its domain.
 - Find a verified email address for a contact during outbound prospecting.
+- Combine multiple operations in a workflow to research and qualify leads end-to-end.
 
 ## Configuration
 
 ### Operation
 
-Selects which Apollo action to run. Options: Search People (`apollo_people_search`), Enrich Person (`apollo_people_enrich`), Search Organizations (`apollo_organization_search`), Enrich Organization (`apollo_organization_enrich`), and Find Email (`apollo_find_email`). Required.
+Selects which Apollo action to run. Required. One of:
+
+| Label | ID |
+|-------|----|
+| Search People | `apollo_people_search` |
+| Enrich Person | `apollo_people_enrich` |
+| Search Organizations | `apollo_organization_search` |
+| Enrich Organization | `apollo_organization_enrich` |
+| Find Email | `apollo_find_email` |
 
 ### API Key
 
-Your Apollo API key, stored as a password field. Required.
+Your Apollo.io API key, stored as a password field. Required for all operations. Use `{{APOLLO_API_KEY}}` to reference a workspace secret.
 
-### Job Titles
+### Job Titles (JSON array)
 
-JSON array of job titles to filter by (e.g. `["CEO", "CTO"]`). Used with Search People.
+JSON array of job titles to filter by (e.g. `["CEO", "CTO"]`). Visible when operation is **Search People** (`apollo_people_search`).
 
-### Locations
+### Locations (JSON array)
 
-JSON array of locations to filter by (e.g. `["San Francisco, CA"]`). Used with Search People.
+JSON array of geographic locations to filter people by (e.g. `["San Francisco, CA"]`). Visible when operation is **Search People** (`apollo_people_search`).
 
-### Organization Names
+### Organization Names (JSON array)
 
-JSON array of organization names (e.g. `["Apple", "Google"]`). Used with Search People and Search Organizations.
+JSON array of company names to filter by (e.g. `["Apple", "Google"]`). Visible when operation is **Search People** (`apollo_people_search`) or **Search Organizations** (`apollo_organization_search`).
 
 ### Email
 
-The email address of the person to enrich or look up. Used with Enrich Person and Find Email.
+The email address of the person to look up or enrich. Visible when operation is **Enrich Person** (`apollo_people_enrich`) or **Find Email** (`apollo_find_email`).
 
 ### Domain
 
-The organization domain (e.g. `example.com`). Used with Enrich Organization and Search Organizations.
+The company domain to enrich or search within (e.g. `example.com`). Visible when operation is **Enrich Organization** (`apollo_organization_enrich`) or **Search Organizations** (`apollo_organization_search`).
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `personTitles` (json), `personLocations` (json), `organizationNames` (json), `email` (string), `domain` (string)
-- **Outputs**: `people` (json), `organizations` (json), `contacts` (json)
+**Inputs:**
+
+- `operation` (string) — Operation to perform (one of the tool IDs listed above)
+- `apiKey` (string) — Apollo API key
+- `personTitles` (json) — Job title filters (JSON array)
+- `personLocations` (json) — Location filters (JSON array)
+- `organizationNames` (json) — Organization name filters (JSON array)
+- `email` (string) — Email address for person enrichment or email lookup
+- `domain` (string) — Organization domain for org enrichment or search
+
+**Outputs:**
+
+- `people` (json) — People results (populated by Search People)
+- `organizations` (json) — Organization results (populated by Search Organizations)
+- `contacts` (json) — Contact details
+
+## Tools
+
+- **Apollo People Search** (`apollo_people_search`) — Searches Apollo's database for people using demographic filters such as job titles, locations, seniority levels, company names, domains, employee-count ranges, and email status. Returns a paginated list of matching people.
+- **Apollo People Enrichment** (`apollo_people_enrich`) — Enriches data for a single person using their email, name, Apollo ID, LinkedIn URL, or company information. Optionally reveals personal emails or phone numbers (uses credits).
+- **Apollo Organization Search** (`apollo_organization_search`) — Searches Apollo's database for companies using filters such as HQ location, employee-count ranges, industry tags, domain lists, and organization name. Returns a paginated list of matching organizations.
+- **Apollo Organization Enrichment** (`apollo_organization_enrich`) — Enriches data for a single organization given its domain (e.g. `apollo.io`). Returns full company profile data.
+- **Apollo Find Email** (`apollo_find_email`) — Finds a person's email address using Apollo's people-match endpoint given their name, company domain, organization name, or LinkedIn URL. Returns the email address and its verification status.
 
 ## YAML Example
 
@@ -67,7 +97,7 @@ apollo_1:
   name: "Apollo"
   inputs:
     operation: "apollo_people_search"
-    apiKey: "{{secrets.APOLLO_API_KEY}}"
+    apiKey: "{{APOLLO_API_KEY}}"
     personTitles: '["CEO", "CTO"]'
     personLocations: '["San Francisco, CA"]'
     organizationNames: '["Apple", "Google"]'

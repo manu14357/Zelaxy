@@ -1,0 +1,56 @@
+---
+title: CloudWatch Tools
+description: Monitor AWS resources and retrieve metrics, alarms, and logs from Amazon CloudWatch
+icon: Box
+---
+
+# CloudWatch Tools
+
+> **Note:** The CloudWatch tool implementation files (`apps/zelaxy/tools/cloudwatch/`) were not found in the codebase at the time this page was generated. The documentation below is a stub. Once the tool files are added, regenerate this page with accurate tool IDs, parameters, and outputs.
+
+Amazon CloudWatch lets you collect and monitor metrics, logs, and events from AWS services and applications. Use these tools in a workflow to query resource utilization, set alarm thresholds, retrieve log streams, and trigger automations based on AWS health data.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `cloudwatch` |
+| **Category** | tools |
+| **Auth** | AWS Access Key + Secret (inferred — confirm once tool files are added) |
+
+## Operations
+
+_No tool files were found. The table below will be populated once `apps/zelaxy/tools/cloudwatch/*.ts` files exist._
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| _(pending)_ | _(pending)_ | _(pending)_ |
+
+## Configuration
+
+_Parameters will be documented here once the tool source files are available._
+
+## Outputs
+
+_Output fields will be documented here once the tool source files are available._
+
+## YAML Example
+
+```yaml
+cloudwatch_1:
+  type: cloudwatch
+  name: "CloudWatch"
+  inputs:
+    operation: "<tool_id>"
+    region: "us-east-1"
+    apiKey: "{{CLOUDWATCH_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **AWS credentials** — use an IAM user or role with the minimum CloudWatch permissions required (e.g., `cloudwatch:GetMetricData`, `logs:FilterLogEvents`).
+- **Region matters** — CloudWatch data is region-scoped; always specify the same region as the monitored resource.
+- **Alarm-driven workflows** — combine CloudWatch alarms with a webhook trigger block to react to threshold breaches in near-real-time.

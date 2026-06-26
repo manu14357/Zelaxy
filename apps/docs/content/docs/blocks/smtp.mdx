@@ -27,28 +27,90 @@ The SMTP Email block sends emails through any SMTP server — Gmail, Outlook/Off
 
 ## Configuration
 
-### SMTP Host & Port
-Set the SMTP server hostname (e.g. `smtp.gmail.com`) and port (`587` for STARTTLS, `465` for SSL).
+### SMTP Host (`host`)
 
-### Username & Password
-Provide the SMTP login (usually your email) and the SMTP password or app-specific password. The password field is masked.
+Required. The SMTP server hostname, e.g. `smtp.gmail.com` for Gmail or `smtp.office365.com` for Outlook.
 
-### Use SSL/TLS
-Switch on for port 465 (SSL); leave off for port 587 (STARTTLS).
+### Port (`port`)
 
-### To, Subject & Body
-The required recipient address(es) (comma-separated for multiple), the subject line, and the email content.
+The SMTP server port. Default is `587` (STARTTLS). Use `465` for SSL/TLS connections.
 
-### Send as HTML
-Switch to treat the body as HTML content rather than plain text.
+### Username (`username`)
 
-### Advanced
-Optionally override the sender with From Email and From Name, add CC/BCC recipients, and set a Reply-To address.
+Required. SMTP login username — usually your email address.
+
+### Password (`password`)
+
+Required. SMTP password or app-specific password. The field is masked in the UI.
+
+### Use SSL/TLS (`secure`)
+
+Toggle switch. Enable for port 465 (SSL/TLS); leave off for port 587 (STARTTLS). Defaults to off.
+
+### To (`to`)
+
+Required. Recipient email addresses. Separate multiple addresses with commas.
+
+### Subject (`subject`)
+
+Required. The email subject line.
+
+### Body (`body`)
+
+Required. The email body content. Can be plain text or HTML depending on the Send as HTML setting.
+
+### Send as HTML (`isHtml`)
+
+Toggle switch. When enabled, the body is sent as HTML content rather than plain text. Defaults to off.
+
+### From Email (`from`) — Advanced
+
+Optional. Override the sender email address. Defaults to the username if not provided.
+
+### From Name (`fromName`) — Advanced
+
+Optional. Sender display name shown in the recipient's email client.
+
+### CC (`cc`) — Advanced
+
+Optional. CC recipient email addresses (comma-separated).
+
+### BCC (`bcc`) — Advanced
+
+Optional. BCC recipient email addresses (comma-separated).
+
+### Reply-To (`replyTo`) — Advanced
+
+Optional. Reply-to email address if different from the sender.
 
 ## Inputs & Outputs
 
-- **Inputs**: `host` (string), `port` (number), `username` (string), `password` (string), `secure` (boolean), `to` (string), `subject` (string), `body` (string), `isHtml` (boolean), `from` (string), `fromName` (string), `cc` (string), `bcc` (string), `replyTo` (string)
-- **Outputs**: `messageId` (string), `accepted` (json), `rejected` (json), `status` (string), `error` (string)
+- **Inputs**:
+  - `host` (string) — SMTP server hostname
+  - `port` (number) — SMTP server port
+  - `username` (string) — SMTP username
+  - `password` (string) — SMTP password
+  - `secure` (boolean) — Use SSL/TLS connection
+  - `to` (string) — Recipient email addresses
+  - `subject` (string) — Email subject
+  - `body` (string) — Email body content
+  - `isHtml` (boolean) — Send body as HTML
+  - `from` (string) — Sender email address
+  - `fromName` (string) — Sender display name
+  - `cc` (string) — CC recipients
+  - `bcc` (string) — BCC recipients
+  - `replyTo` (string) — Reply-to email address
+
+- **Outputs**:
+  - `messageId` (string) — Message ID from the SMTP server
+  - `accepted` (json) — List of accepted recipient addresses
+  - `rejected` (json) — List of rejected recipient addresses
+  - `status` (string) — SMTP server response status
+  - `error` (string) — Error message if sending failed
+
+## Tools
+
+**SMTP Send Email** (`smtp_send`) — Sends an email via any SMTP server (Gmail, Outlook, Yahoo, custom SMTP, etc.). Accepts all connection parameters (`host`, `port`, `username`, `password`, `secure`) plus the full set of email fields (`to`, `cc`, `bcc`, `replyTo`, `subject`, `body`, `isHtml`, `from`, `fromName`) and returns `messageId`, `accepted`, `rejected`, `status`, and `error`.
 
 ## YAML Example
 
@@ -59,8 +121,8 @@ send_email:
   inputs:
     host: "smtp.gmail.com"
     port: 587
-    username: "your-email@example.com"
-    password: "app-password"
+    username: "{{SMTP_USERNAME}}"
+    password: "{{SMTP_APP_PASSWORD}}"
     secure: false
     to: "recipient@example.com"
     subject: "Workflow notification"

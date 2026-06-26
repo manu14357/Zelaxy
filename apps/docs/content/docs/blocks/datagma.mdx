@@ -1,0 +1,112 @@
+---
+title: Datagma Block
+description: Enrich people and find verified work emails with Datagma
+icon: Box
+---
+
+# Datagma Block
+
+Enrich a person profile from their name and company, or find a verified work email through the Datagma API. Authenticate with an API key passed as the `apiId` query parameter.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `datagma` |
+| **Category** | `tools` |
+| **Color** | `#1F6FEB` |
+
+## When to Use
+
+- Enrich a lead or contact record with full profile data (job title, social links, company info) given only a name and company.
+- Find a verified professional work email for a known person at a known company.
+- Automate prospect enrichment in sales or marketing pipelines without manual research.
+- Verify whether a person record or email exists in Datagma's dataset before passing data downstream.
+- Combine with CRM or email blocks to create end-to-end lead-generation workflows.
+- Use inside a Loop block to enrich a list of contacts one at a time.
+
+## Configuration
+
+### Operation
+
+Selects which Datagma API endpoint to call. This field is required and drives which inputs are active.
+
+| Option Label | Option ID |
+|---|---|
+| Enrich person | `datagma_enrich_person` |
+| Find email | `datagma_find_email` |
+
+**Enrich person** (`datagma_enrich_person`) — calls the `/full` endpoint and returns a complete enriched person profile. Requires the `firstName`, `lastName`, and/or `company` fields.
+
+**Find email** (`datagma_find_email`) — calls the `/findEmail` endpoint and returns a verified work email address. Requires the `firstName`, `lastName`, and/or `company` fields.
+
+Both operations share the same name/company input fields; they differ only in the endpoint called and the shape of data returned.
+
+### First Name
+
+- **Sub-block id**: `firstName`
+- **Type**: short-input (half-width)
+- **Placeholder**: `Jane`
+- Shown for both `datagma_enrich_person` and `datagma_find_email` operations.
+- The person's first name. Optional but improves match accuracy.
+
+### Last Name
+
+- **Sub-block id**: `lastName`
+- **Type**: short-input (half-width)
+- **Placeholder**: `Doe`
+- Shown for both `datagma_enrich_person` and `datagma_find_email` operations.
+- The person's last name. Optional but improves match accuracy.
+
+### Company
+
+- **Sub-block id**: `company`
+- **Type**: short-input (full-width)
+- **Placeholder**: `Acme`
+- Shown for both `datagma_enrich_person` and `datagma_find_email` operations.
+- Company name or domain associated with the person. Optional but strongly recommended.
+
+### Datagma API Key
+
+- **Sub-block id**: `apiKey`
+- **Type**: short-input (full-width, password)
+- **Required**: yes
+- **Placeholder**: `Enter your Datagma API key`
+- Always visible regardless of operation. Store the value as a workflow secret and reference it with `{{DATAGMA_API_KEY}}` to avoid embedding the key in plaintext.
+
+## Inputs & Outputs
+
+**Inputs**:
+
+- `operation` (string) — Operation to perform (`datagma_enrich_person` or `datagma_find_email`)
+- `apiKey` (string) — Datagma API key
+- `firstName` (string) — First name of the person to look up
+- `lastName` (string) — Last name of the person to look up
+- `company` (string) — Company name or domain
+
+**Outputs**:
+
+- `data` (json) — Result object from Datagma. For `datagma_enrich_person` this is the enriched person profile; for `datagma_find_email` this contains the verified email and related data.
+- `metadata` (json) — Response metadata. Contains a `found` boolean: `true` if a matching record was located, `false` otherwise.
+
+## Tools
+
+- **Datagma Enrich Person** (`datagma_enrich_person`) — Calls `GET https://gateway.datagma.net/api/ingress/full` with `apiId`, `firstName`, `lastName`, and `company` as query parameters. Returns a full enriched profile object. The `metadata.found` flag is `true` when the response contains a `name`, `email`, or `firstName` field.
+- **Datagma Find Email** (`datagma_find_email`) — Calls `GET https://gateway.datagma.net/api/ingress/findEmail` with the same query parameters. Returns verified work email data. The `metadata.found` flag is `true` when the response contains an `email` field.
+
+## YAML Example
+
+```yaml
+datagma_1:
+  type: datagma
+  name: "Enrich Contact"
+  inputs:
+    operation: "datagma_enrich_person"
+    apiKey: "{{DATAGMA_API_KEY}}"
+    firstName: "{{contacts_block.firstName}}"
+    lastName: "{{contacts_block.lastName}}"
+    company: "{{contacts_block.company}}"
+  connections:
+    outgoing:
+      - target: crm_update_block
+```

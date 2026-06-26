@@ -1,0 +1,69 @@
+---
+title: Workflow Tools
+description: Execute another Zelaxy workflow inline as a block within the current workflow
+icon: Workflow
+---
+
+# Workflow Tools
+
+The Workflow provider lets a workflow call another workflow as a nested block, passing input data into the child and receiving its result back. Use it to compose reusable sub-workflows, break a large automation into modular pieces, or invoke shared logic without duplicating blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `workflow` |
+| **Category** | `blocks` |
+| **Auth** | none (internal session — runs against the Zelaxy app API, no API key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Execute Workflow | `workflow_executor` | Execute another workflow inline as a block |
+
+## Configuration
+
+### `workflow_executor`
+
+Executes another workflow inline as a block within the current workflow. Used by the Workflow block (and its dedicated `WorkflowBlockHandler`) to provide nested-execution capability. Posts to the internal endpoint `/api/tools/workflow-executor`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `workflowId` | string | Yes | The ID of the workflow to execute. In the block UI this is chosen from a dropdown of available workflows (the current workflow is excluded to prevent recursion). |
+| `inputMapping` | object | No | JSON object mapping parent data to child workflow inputs. The block surfaces this as a single optional input variable that becomes `start.input` inside the child workflow. |
+
+No API key, token, or secret parameters are required — the tool calls the Zelaxy app's own internal API using the active session.
+
+## Outputs
+
+### `workflow_executor`
+
+- `success` (boolean) — Whether the child workflow executed successfully.
+- `duration` (number) — Execution time of the child workflow, in milliseconds.
+- `childWorkflowId` (string) — The ID of the workflow that was executed.
+- `childWorkflowName` (string) — The name of the child workflow that was executed.
+- Additional fields — The full response from the child workflow is spread onto the output, so any result keys the child returns are also available (the block exposes these as `result`, plus an `error` string on failure).
+
+## YAML Example
+
+```yaml
+workflow_1:
+  type: workflow
+  name: "Workflow"
+  inputs:
+    operation: "workflow_executor"
+    workflowId: "wf_7f3a9c2b1e"
+    inputMapping:
+      input: "{{previous-block.content}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- No authentication setup is needed. This provider runs against Zelaxy's own internal API using the current session, so there is no API key or token to configure.
+- The data you pass via `inputMapping` (the block's input variable) is available inside the child workflow as `start.input` — reference it there to consume the parent's data.
+- The child workflow dropdown excludes the current workflow to prevent infinite recursion; you cannot select a workflow to call itself. Avoid building indirect cycles (A calls B, B calls A) for the same reason.
+- Reference parent block outputs with double braces, e.g. `{{block-name.field}}`; never use angle brackets, which do not resolve in Zelaxy.

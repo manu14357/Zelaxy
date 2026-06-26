@@ -1,0 +1,130 @@
+---
+title: Gong Block
+description: Retrieve calls and users from Gong
+icon: Box
+---
+
+# Gong Block
+
+List calls by date range, retrieve a specific call, and list users through the Gong API. Authenticate with a Gong Access Key and Access Key Secret.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `gong` |
+| **Category** | `tools` |
+| **Color** | `#8039DF` |
+
+## When to Use
+
+- Fetch a list of recorded sales calls within a specific date range for pipeline analysis or coaching
+- Retrieve detailed data for a single call by its ID to extract transcripts, participants, or metadata
+- List all users in your Gong account to map call ownership or audit team members
+- Feed Gong call data into downstream blocks (agents, conditions, functions) as part of a revenue intelligence workflow
+- Automate periodic exports of call records by chaining this block with a scheduler trigger and storage blocks
+
+## Configuration
+
+### Operation
+
+Selects which Gong API action to execute. The operation controls which additional fields are displayed.
+
+| Label | ID | Notes |
+|-------|----|-------|
+| List calls | `gong_list_calls` | Returns an array of calls; optionally filtered by date range |
+| Get call | `gong_get_call` | Returns detailed data for a single call; requires a Call ID |
+| List users | `gong_list_users` | Returns an array of all users in the Gong account |
+
+**Default:** `gong_list_calls`
+
+---
+
+### From Date/Time
+
+- **Shown when:** `operation` = `gong_list_calls`
+- **Type:** Short text input (half-width)
+- **Placeholder:** `2024-01-01T00:00:00Z`
+- **Required:** No
+- ISO-8601 timestamp that sets the start of the date range for filtering calls. If omitted, Gong returns calls without a lower time bound.
+
+---
+
+### To Date/Time
+
+- **Shown when:** `operation` = `gong_list_calls`
+- **Type:** Short text input (half-width)
+- **Placeholder:** `2024-01-31T23:59:59Z`
+- **Required:** No
+- ISO-8601 timestamp that sets the end of the date range for filtering calls. If omitted, Gong returns calls without an upper time bound.
+
+---
+
+### Call ID
+
+- **Shown when:** `operation` = `gong_get_call`
+- **Type:** Short text input (full-width)
+- **Placeholder:** `Gong call ID`
+- **Required:** Yes (when using Get call operation)
+- The unique identifier for a specific Gong call. Obtain this from a prior `gong_list_calls` result via `{{gong_1.data[0].id}}`.
+
+---
+
+### Access Key
+
+- **Type:** Short text input (full-width, password-masked)
+- **Required:** Yes
+- Your Gong API Access Key. Generate this in Gong under **Settings > API**. Store it as a workflow secret and reference it with `{{GONG_ACCESS_KEY}}`.
+
+---
+
+### Access Key Secret
+
+- **Type:** Short text input (full-width, password-masked)
+- **Required:** Yes
+- Your Gong API Access Key Secret, paired with the Access Key for Basic authentication. Reference it with `{{GONG_ACCESS_KEY_SECRET}}`.
+
+## Inputs & Outputs
+
+### Inputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `operation` | string | Operation to perform (`gong_list_calls`, `gong_get_call`, or `gong_list_users`) |
+| `accessKey` | string | Gong API Access Key |
+| `accessKeySecret` | string | Gong API Access Key Secret |
+| `fromDateTime` | string | Start date/time in ISO-8601 format (used with List calls) |
+| `toDateTime` | string | End date/time in ISO-8601 format (used with List calls) |
+| `callId` | string | Gong call ID (used with Get call) |
+
+### Outputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `data` | json | Result object or array from Gong. For `gong_list_calls` and `gong_list_users` this is an array; for `gong_get_call` this is a single call object. |
+| `metadata` | json | Response metadata. For list operations: `{ count: number }`. For get-call: `{ id: string }`. |
+
+## Tools
+
+**Gong List Calls** (`gong_list_calls`) — Queries `GET /v2/calls` with optional `fromDateTime` and `toDateTime` query parameters. Returns an array of call objects and a `count` metadata field. Authentication uses HTTP Basic with the Access Key and Access Key Secret encoded in Base64.
+
+**Gong Get Call** (`gong_get_call`) — Queries `GET /v2/calls/{callId}` for a single call. Returns the full call object and a metadata field containing the call `id`. Requires `callId` to be provided.
+
+**Gong List Users** (`gong_list_users`) — Queries `GET /v2/users` to return all users in the Gong account. Returns an array of user objects and a `count` metadata field. No additional parameters beyond credentials are required.
+
+## YAML Example
+
+```yaml
+gong_1:
+  type: gong
+  name: "List January Calls"
+  inputs:
+    operation: "gong_list_calls"
+    accessKey: "{{GONG_ACCESS_KEY}}"
+    accessKeySecret: "{{GONG_ACCESS_KEY_SECRET}}"
+    fromDateTime: "2024-01-01T00:00:00Z"
+    toDateTime: "2024-01-31T23:59:59Z"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

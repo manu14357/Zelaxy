@@ -1,0 +1,97 @@
+---
+title: AWS AppConfig Block
+description: List applications, environments, and configuration profiles in AWS AppConfig
+icon: Box
+---
+
+# AWS AppConfig Block
+
+Interact with the AWS AppConfig control plane to list applications, environments for an application, and configuration profiles. Authenticate with AWS access key credentials using SigV4 request signing.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `appconfig` |
+| **Category** | `tools` |
+| **Color** | `#FF9900` |
+
+## When to Use
+
+- Discover all AppConfig applications in a given AWS region
+- List the deployment environments (e.g. `production`, `staging`) defined for an application
+- Enumerate configuration profiles attached to an application to know what feature flags or freeform configs are available
+- Build audit or inventory workflows that catalogue AWS AppConfig resources
+- Dynamically look up an application ID before querying its environments or profiles in a later block
+- Chain with other AWS blocks to correlate configuration state with infrastructure resources
+
+## Configuration
+
+### Operation
+
+Selects which AppConfig API action to execute. This is a required dropdown field that defaults to `appconfig_list_applications`.
+
+| Label | ID |
+|-------|----|
+| List applications | `appconfig_list_applications` |
+| List environments | `appconfig_list_environments` |
+| List configuration profiles | `appconfig_list_configuration_profiles` |
+
+### Application ID
+
+**Visible when**: `operation` is `appconfig_list_environments` or `appconfig_list_configuration_profiles`.
+
+The alphanumeric AppConfig application ID (e.g. `abcd123`) that scopes the environment or configuration profile listing. Reference a previous block's output with `{{blockName.data}}` or type the ID directly.
+
+### AWS Region
+
+**Required.** The AWS region where your AppConfig resources are deployed (e.g. `us-east-1`, `eu-west-1`). Accepts a static value or a block reference such as `{{blockName.data}}`.
+
+### AWS Access Key ID
+
+**Required.** Your AWS IAM access key ID. Store this as an environment variable and reference it with `{{AWS_ACCESS_KEY_ID}}` rather than pasting the value directly. The field is masked (password mode).
+
+### AWS Secret Access Key
+
+**Required.** The secret access key that pairs with the access key ID above. Store it as an environment variable and reference it with `{{AWS_SECRET_ACCESS_KEY}}`. The field is masked (password mode).
+
+## Inputs & Outputs
+
+**Inputs**:
+
+- `operation` (string) — Operation to perform (`appconfig_list_applications`, `appconfig_list_environments`, or `appconfig_list_configuration_profiles`)
+- `awsRegion` (string) — AWS region
+- `awsAccessKeyId` (string) — AWS access key ID
+- `awsSecretAccessKey` (string) — AWS secret access key
+- `applicationId` (string) — AppConfig application ID (required when operation is `appconfig_list_environments` or `appconfig_list_configuration_profiles`)
+
+**Outputs**:
+
+- `data` (json) — AppConfig API response containing the result of the selected operation. For list operations the response shape follows the AWS AppConfig REST API: an `Items` array of resource objects and an optional `NextToken` for pagination.
+
+## Tools
+
+**AppConfig List Applications** (`appconfig_list_applications`) — Calls `GET /applications` on the AppConfig regional endpoint to return all applications in the account. Requires `awsRegion`, `awsAccessKeyId`, and `awsSecretAccessKey`. Returns `Items` (list of application objects) and an optional `NextToken`.
+
+**AppConfig List Environments** (`appconfig_list_environments`) — Calls `GET /applications/{applicationId}/environments` to return all environments defined for a specific application. Requires `awsRegion`, `awsAccessKeyId`, `awsSecretAccessKey`, and `applicationId`. Returns `Items` (list of environment objects) and an optional `NextToken`.
+
+**AppConfig List Configuration Profiles** (`appconfig_list_configuration_profiles`) — Calls `GET /applications/{applicationId}/configurationprofiles` to return all configuration profiles for a specific application. Requires `awsRegion`, `awsAccessKeyId`, `awsSecretAccessKey`, and `applicationId`. Returns `Items` (list of profile objects) and an optional `NextToken`.
+
+All three tools use AWS SigV4 request signing (`service: appconfig`).
+
+## YAML Example
+
+```yaml
+appconfig_1:
+  type: appconfig
+  name: "AWS AppConfig"
+  inputs:
+    operation: "appconfig_list_environments"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+    applicationId: "{{list_apps_block.data.Items[0].Id}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

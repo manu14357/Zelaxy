@@ -1,77 +1,114 @@
 ---
 title: API Block
-description: Make HTTP requests to any REST API endpoint
+description: Connect to any external API with support for all standard HTTP methods and customizable request parameters.
 icon: Globe
 ---
 
 # API Block
 
-The API block sends HTTP requests to external endpoints. It supports all HTTP methods, custom headers, request bodies, query parameters, and authentication. Use it to integrate with any REST API that doesn't have a dedicated tool block.
+The API block connects to any external REST API with support for all standard HTTP methods and customizable request parameters. Configure headers, query parameters, and request bodies to integrate with any service that does not have a dedicated tool block. Standard headers (User-Agent, Accept, Cache-Control, etc.) are automatically included.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `api` |
-| **Category** | Core Block |
-| **Color** | `#2563EB` (Blue) |
+| **Category** | `blocks` |
+| **Color** | `#EA580C` |
 
 ## When to Use
 
-- Call any REST API (internal or external)
-- Fetch data that no existing tool block supports
-- Post data to webhooks or custom services
-- Integrate with your own backend APIs
+- Call any REST API endpoint — internal services, third-party providers, or public data APIs
+- Fetch data from a service that has no dedicated Zelaxy tool block
+- POST structured JSON payloads to webhooks or custom backends
+- Execute PUT, PATCH, or DELETE operations against a resource
+- Chain API responses into downstream agent or condition blocks using `{{api_1.data}}`
+- Pass secrets and API keys safely via `{{ENV_VAR_NAME}}` references in headers or body
 
 ## Configuration
 
-| Setting | Type | Description |
-|---------|------|-------------|
-| URL | Short input | Full URL with optional `{{variables}}` |
-| Method | Dropdown | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` |
-| Headers | Table | Key-value header pairs (e.g., `Authorization: Bearer {{key}}`) |
-| Body | Code editor | JSON request body (shown for POST/PUT/PATCH) |
-| Query Parameters | Table | Key-value query params appended to URL |
-| Timeout | Slider | Request timeout in milliseconds |
+### URL (required)
 
-## Outputs
+A short text input for the full endpoint URL. Supports `{{...}}` references to other block outputs and environment variables.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `response` | `json` | Parsed response body |
-| `status` | `number` | HTTP status code |
-| `headers` | `json` | Response headers |
+Example: `https://api.example.com/users/{{starter.userId}}`
 
-## Example: Fetch Weather Data
+### Method (required)
 
-**Goal:** Get current weather for a city and include it in a response.
+Dropdown that selects the HTTP verb for the request.
 
-**Workflow:**
+| Label | id |
+|-------|----|
+| GET | `GET` |
+| POST | `POST` |
+| PUT | `PUT` |
+| DELETE | `DELETE` |
+| PATCH | `PATCH` |
+
+### Query Params
+
+A key-value table (columns: **Key**, **Value**) of URL query parameters appended to the URL at runtime. Each row becomes `?key=value&...` in the final request.
+
+### Headers
+
+A key-value table (columns: **Key**, **Value**) of custom HTTP headers. Standard headers such as `User-Agent`, `Accept`, and `Cache-Control` are added automatically — you only need to add headers specific to the API (e.g. `Authorization: Bearer {{MY_API_KEY}}`).
+
+### Body
+
+A code editor (JSON mode) for the request body, used with POST, PUT, and PATCH requests. Supports `{{blockName.field}}` references to other blocks and `{{ENV_VAR_NAME}}` for environment variables. An AI wand is available to generate the JSON body from a plain-language description.
+
+Example body:
+```json
+{
+  "name": "{{agent1.content}}",
+  "userId": "{{starter.userId}}",
+  "apiKey": "{{MY_SERVICE_KEY}}"
+}
 ```
-[Starter] → [API Block] → [Agent] → [Response]
+
+## Inputs & Outputs
+
+**Inputs** (subBlock ids that can be set in the workflow editor or passed from other blocks):
+
+- `url` (string) — Request URL
+- `method` (string) — HTTP method (GET, POST, PUT, DELETE, PATCH)
+- `headers` (json) — Request headers as key-value pairs
+- `body` (json) — Request body data (for POST, PUT, PATCH)
+- `params` (json) — URL query parameters as key-value pairs
+
+**Outputs** (reference as `{{blockId.field}}` in downstream blocks):
+
+- `data` (json) — API response data (JSON object, plain text, or other format depending on the Content-Type the server returns)
+- `status` (number) — HTTP status code returned by the server (e.g. 200, 404, 500)
+- `headers` (json) — HTTP response headers as key-value pairs
+
+## Tools
+
+**HTTP Request** (`http_request`) — Makes HTTP requests with comprehensive support for methods, headers, query parameters, path parameters, and form data. Features configurable timeout and status validation. Proxy-aware: external URLs are routed through the Zelaxy proxy endpoint transparently. Response handling auto-detects JSON vs. plain-text content and unwraps Zelaxy proxy response envelopes.
+
+## YAML Example
+
+```yaml
+api_1:
+  type: api
+  name: "API"
+  inputs:
+    url: "https://api.openweathermap.org/data/2.5/weather"
+    method: "GET"
+    params:
+      - key: "q"
+        value: "{{starter.city}}"
+      - key: "appid"
+        value: "{{OPENWEATHER_API_KEY}}"
+      - key: "units"
+        value: "metric"
+  connections:
+    outgoing:
+      - target: agent_1
 ```
 
-**Configuration:**
-- **URL:** `https://api.openweathermap.org/data/2.5/weather`
-- **Method:** `GET`
-- **Query Parameters:**
-  | Key | Value |
-  |-----|-------|
-  | q | `{{starter.input}}` |
-  | appid | `your-api-key` |
-  | units | `metric` |
+After the API block runs, downstream blocks can access:
 
-**Agent's user prompt:** `Given this weather data: {{api.response}}, provide a friendly weather summary.`
-
-**How it works:**
-1. User types a city name
-2. API block fetches weather from OpenWeatherMap
-3. Agent reads the JSON response and generates a natural-language summary
-4. Response block returns the summary
-
-## Tips
-
-- **Use headers for auth** — add `Authorization: Bearer {{token}}` for secured APIs
-- **Dynamic URLs** — embed variables: `https://api.example.com/users/{{starter.userId}}`
-- **Check `{{api.status}}`** with a Condition block to handle errors gracefully
-- **POST bodies** can include block references: `{"query": "{{starter.input}}"}`
+- `{{api_1.data}}` — the parsed JSON weather payload
+- `{{api_1.status}}` — e.g. `200`
+- `{{api_1.headers}}` — response headers including `content-type`

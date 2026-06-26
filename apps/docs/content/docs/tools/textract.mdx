@@ -1,0 +1,82 @@
+---
+title: Amazon Textract Tools
+description: Extract text, tables, and forms from documents stored in Amazon S3 with Amazon Textract
+icon: FileText
+---
+
+# Amazon Textract Tools
+
+Amazon Textract uses machine learning to read text, tables, and forms from scanned documents (PDFs and images) stored in Amazon S3. Use these tools in a workflow when you need to OCR a document, pull structured data out of forms and tables, or feed extracted text into a downstream Agent block.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `textract` |
+| **Category** | tools |
+| **Auth** | AWS SigV4 (Access Key ID + Secret Access Key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Detect document text | `textract_detect_document_text` | Detect lines and words of text in a document stored in S3 |
+| Analyze document | `textract_analyze_document` | Analyze a document in S3 for tables, forms, and other features |
+
+## Configuration
+
+### `textract_detect_document_text`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | `string` | Yes | AWS region (e.g. `us-east-1`). Visibility: user-only |
+| `awsAccessKeyId` | `string` | Yes | **Secret.** AWS access key ID. Visibility: user-only |
+| `awsSecretAccessKey` | `string` | Yes | **Secret.** AWS secret access key. Visibility: user-only |
+| `s3Bucket` | `string` | Yes | S3 bucket containing the document. Visibility: user-or-llm |
+| `s3Name` | `string` | Yes | S3 object key (name) of the document. Visibility: user-or-llm |
+
+### `textract_analyze_document`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | `string` | Yes | AWS region (e.g. `us-east-1`). Visibility: user-only |
+| `awsAccessKeyId` | `string` | Yes | **Secret.** AWS access key ID. Visibility: user-only |
+| `awsSecretAccessKey` | `string` | Yes | **Secret.** AWS secret access key. Visibility: user-only |
+| `s3Bucket` | `string` | Yes | S3 bucket containing the document. Visibility: user-or-llm |
+| `s3Name` | `string` | Yes | S3 object key (name) of the document. Visibility: user-or-llm |
+| `featureTypes` | `json` | No | Feature types to analyze, e.g. `["TABLES","FORMS"]`. Common values: `TABLES`, `FORMS`, `QUERIES`, `SIGNATURES`, `LAYOUT`. Defaults to `["TABLES","FORMS"]` when omitted. Visibility: user-or-llm |
+
+## Outputs
+
+### `textract_detect_document_text`
+
+- `data` (json) — Textract DetectDocumentText result (the raw API response, containing the `Blocks` array, `DocumentMetadata`, etc.)
+
+### `textract_analyze_document`
+
+- `data` (json) — Textract AnalyzeDocument result (the raw API response, containing the `Blocks` array with table/form relationships, `DocumentMetadata`, etc.)
+
+## YAML Example
+
+```yaml
+textract_1:
+  type: textract
+  name: "Amazon Textract"
+  inputs:
+    operation: "textract_detect_document_text"
+    s3Bucket: "my-bucket"
+    s3Name: "path/to/document.pdf"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth is AWS SigV4, not an API key.** Provide `awsRegion`, `awsAccessKeyId`, and `awsSecretAccessKey`; the request is signed and sent to `https://textract.{awsRegion}.amazonaws.com/`. The IAM user/role needs `textract:DetectDocumentText` / `textract:AnalyzeDocument` plus `s3:GetObject` on the source bucket.
+- **The document must already live in S3.** Both operations read from `s3Bucket` + `s3Name` (the object key) — there is no inline byte upload. Make sure the bucket is in the same region as `awsRegion`.
+- **Choose the right operation.** Use `textract_detect_document_text` for plain OCR (lines and words). Use `textract_analyze_document` with `featureTypes` set to `["TABLES","FORMS"]` (or add `QUERIES`/`SIGNATURES`/`LAYOUT`) when you need structured tables and key-value form data.
+- **The `data` output is the raw Textract response.** Parse the `Blocks` array (e.g. `{{textract_1.data}}`) in a Function or Agent block to assemble lines, tables, or form fields downstream.

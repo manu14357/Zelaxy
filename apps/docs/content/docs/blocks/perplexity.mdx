@@ -52,8 +52,22 @@ Your required Perplexity API key (stored securely).
 
 ## Inputs & Outputs
 
-- **Inputs**: `content` (string), `systemPrompt` (string), `model` (string), `max_tokens` (string), `temperature` (string), `apiKey` (string)
-- **Outputs**: `content` (string), `model` (string), `usage` (json)
+- **Inputs**:
+  - `content` (string) — User prompt content sent to the model (required)
+  - `systemPrompt` (string) — System instructions to guide model behavior (optional)
+  - `model` (string) — AI model to use (e.g. `sonar`)
+  - `max_tokens` (string) — Maximum output tokens (optional)
+  - `temperature` (string) — Response randomness, 0–1 (optional)
+  - `apiKey` (string) — Perplexity API key (required)
+
+- **Outputs**:
+  - `content` (string) — Generated response text
+  - `model` (string) — Model identifier used for the request
+  - `usage` (json) — Token usage breakdown (`prompt_tokens`, `completion_tokens`, `total_tokens`)
+
+## Tools
+
+**Perplexity Chat** (`perplexity_chat`) — Posts a chat-completions request to `https://api.perplexity.ai/chat/completions`. Builds a messages array (optional system message + user message), passes the chosen model and optional `max_tokens`/`temperature`, and returns the generated text along with model name and token-usage stats.
 
 ## YAML Example
 
@@ -63,7 +77,7 @@ perplexity_1:
   name: "Perplexity"
   inputs:
     systemPrompt: "You are a concise research assistant."
-    content: {{start.input}}
+    content: "{{start.input}}"
     model: "sonar"
     temperature: 0.7
     max_tokens: 1024

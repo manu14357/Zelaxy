@@ -1,0 +1,168 @@
+---
+title: Ashby
+description: Manage candidates and job applications in Ashby ATS
+icon: Users
+---
+
+# Ashby
+
+Integrate Ashby applicant tracking into your workflows to list, create, and update candidates, query job postings, and filter applications. Use it to automate hiring pipelines — from sourcing candidates to tracking offer stages.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `ashby` |
+| **Category** | Tool — CRM / ATS |
+| **Auth** | Basic Auth (API Key as username, empty password) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **List Candidates** | `ashby_list_candidates` | Lists all candidates in the organization with cursor-based pagination and optional date filter |
+| **Get Candidate** | `ashby_get_candidate` | Retrieves full details about a single candidate by their UUID |
+| **Create Candidate** | `ashby_create_candidate` | Creates a new candidate record in Ashby |
+| **Update Candidate** | `ashby_update_candidate` | Updates an existing candidate record; only provided fields are changed |
+| **List Applications** | `ashby_list_applications` | Lists all applications with pagination and optional filters for status, job, candidate, and creation date |
+| **Get Job Postings** | `ashby_get_job_postings` | Retrieves full details about a single job posting by its UUID |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Ashby API key. Sent as Basic Auth username with an empty password. Store as `{{ASHBY_API_KEY}}`. |
+| `candidateId` | `string` | Conditional | UUID of the candidate to fetch or update. Required for `ashby_get_candidate` and `ashby_update_candidate`. |
+| `name` | `string` | Conditional | Candidate full name. Required for `ashby_create_candidate`; optional for `ashby_update_candidate`. |
+| `email` | `string` | No | Primary email address for the candidate. Used by `ashby_create_candidate` and `ashby_update_candidate`. |
+| `phoneNumber` | `string` | No | Primary phone number for the candidate. Used by `ashby_create_candidate` and `ashby_update_candidate`. |
+| `linkedInUrl` | `string` | No | LinkedIn profile URL. Used by `ashby_create_candidate` and `ashby_update_candidate`. |
+| `githubUrl` | `string` | No | GitHub profile URL. Used by `ashby_create_candidate` and `ashby_update_candidate`. |
+| `website` | `string` | No | Personal website URL (`ashby_create_candidate` only). |
+| `websiteUrl` | `string` | No | Personal website URL (`ashby_update_candidate` only). |
+| `sourceId` | `string` | No | UUID of the attribution source. Used by create and update candidate operations. |
+| `creditedToUserId` | `string` | No | UUID of the Ashby user to credit with sourcing. Used by create and update candidate operations. |
+| `createdAt` | `string` | No | Backdated creation timestamp in ISO 8601 format (e.g. `2024-01-01T00:00:00Z`). Used by create and update operations. |
+| `alternateEmailAddresses` | `json` | No | Array of additional email address strings (e.g. `["alias@example.com"]`). Used by `ashby_create_candidate`. |
+| `alternateEmail` | `string` | No | Single additional email address to add. Used by `ashby_update_candidate`. |
+| `sendNotifications` | `boolean` | No | Whether to send a notification when the source is updated. Defaults to `true`. Used by `ashby_update_candidate`. |
+| `socialLinks` | `json` | No | Array of social link objects to set (e.g. `[{"type":"LinkedIn","url":"https://..."}]`). Used by `ashby_update_candidate`. |
+| `cursor` | `string` | No | Opaque pagination cursor from a previous response `nextCursor` value. Used by list operations. |
+| `perPage` | `number` | No | Number of results per page; defaults to 100. Used by list operations. |
+| `createdAfter` | `string` | No | ISO 8601 timestamp — only return records created after this date. Used by `ashby_list_candidates` and `ashby_list_applications`. |
+| `status` | `string` | No | Filter applications by status: `Active`, `Hired`, `Archived`, or `Lead`. Used by `ashby_list_applications`. |
+| `jobId` | `string` | No | Filter applications by a specific job UUID. Used by `ashby_list_applications`. |
+| `jobPostingId` | `string` | Conditional | UUID of the job posting to fetch. Required for `ashby_get_job_postings`. |
+| `jobBoardId` | `string` | No | Optional job board UUID. Defaults to the external job board if omitted. Used by `ashby_get_job_postings`. |
+| `expandJob` | `boolean` | No | Whether to expand and include the related job object in the job posting response. |
+
+## Outputs
+
+### Candidate outputs (`ashby_get_candidate`, `ashby_create_candidate`, `ashby_update_candidate`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Candidate UUID |
+| `name` | `string` | Full name |
+| `primaryEmailAddress` | `object` | Primary email contact info (`value`, `type`, `isPrimary`) |
+| `primaryPhoneNumber` | `object` | Primary phone contact info (`value`, `type`, `isPrimary`) |
+| `emailAddresses` | `array` | All email addresses (each with `value`, `type`, `isPrimary`) |
+| `phoneNumbers` | `array` | All phone numbers (each with `value`, `type`, `isPrimary`) |
+| `socialLinks` | `array` | Social network links (each with `type` and `url`) |
+| `linkedInUrl` | `string` | LinkedIn profile URL (optional) |
+| `githubUrl` | `string` | GitHub profile URL (optional) |
+| `profileUrl` | `string` | URL to the Ashby candidate profile (optional) |
+| `position` | `string` | Current position or title (optional) |
+| `company` | `string` | Current company (optional) |
+| `school` | `string` | Most recent school (optional) |
+| `timezone` | `string` | Candidate timezone (optional) |
+| `location` | `object` | Candidate location with `id`, `locationSummary`, and `locationComponents` array (optional) |
+| `tags` | `array` | Tags applied to the candidate (each with `id`, `title`, `isArchived`) |
+| `applicationIds` | `array` | UUIDs of associated applications |
+| `customFields` | `array` | Custom field values (each with `id`, `title`, `isPrivate`, `valueLabel`, `value`) |
+| `resumeFileHandle` | `object` | Resume file reference with `id`, `name`, `handle` (optional) |
+| `fileHandles` | `array` | All uploaded file references (each with `id`, `name`, `handle`) |
+| `source` | `object` | Attribution source with `id`, `title`, `isArchived`, and nested `sourceType` (optional) |
+| `creditedToUser` | `object` | User credited with sourcing (`id`, `firstName`, `lastName`, `email`, `globalRole`, `isEnabled`, `updatedAt`, `managerId`) (optional) |
+| `fraudStatus` | `string` | Fraud detection status (optional) |
+| `createdAt` | `string` | ISO 8601 creation timestamp |
+| `updatedAt` | `string` | ISO 8601 last update timestamp |
+
+### List candidates outputs (`ashby_list_candidates`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `candidates` | `array` | List of candidate objects (same shape as single candidate above) |
+| `moreDataAvailable` | `boolean` | Whether more pages of results exist |
+| `nextCursor` | `string` | Opaque cursor for fetching the next page (optional) |
+
+### List applications outputs (`ashby_list_applications`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `applications` | `array` | List of application objects (see below) |
+| `moreDataAvailable` | `boolean` | Whether more pages of results exist |
+| `nextCursor` | `string` | Opaque cursor for fetching the next page (optional) |
+
+**Application object fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Application UUID |
+| `status` | `string` | Status: `Active`, `Hired`, `Archived`, or `Lead` |
+| `customFields` | `array` | Custom field values on the application |
+| `candidate` | `object` | Candidate summary (`id`, `name`, `primaryEmailAddress`, `primaryPhoneNumber`) |
+| `currentInterviewStage` | `object` | Current interview stage with `id`, `title`, `type`, `orderInInterviewPlan`, `interviewStageGroupId`, `interviewPlanId` (optional) |
+| `source` | `object` | Attribution source summary (optional) |
+| `archiveReason` | `object` | Reason for archival with `id`, `text`, `reasonType`, `isArchived`, `customFields` (optional) |
+| `archivedAt` | `string` | ISO 8601 archive timestamp (optional) |
+| `job` | `object` | Associated job summary (`id`, `title`, `locationId`, `departmentId`) |
+| `creditedToUser` | `object` | User credited with the application (optional) |
+| `hiringTeam` | `array` | Hiring team members (each with `userId`, `firstName`, `lastName`, `email`, `role`) |
+| `appliedViaJobPostingId` | `string` | Job posting UUID the candidate applied through (optional) |
+| `submitterClientIp` | `string` | Submitter IP address (optional) |
+| `submitterUserAgent` | `string` | Submitter browser user agent (optional) |
+| `createdAt` | `string` | ISO 8601 creation timestamp |
+| `updatedAt` | `string` | ISO 8601 last update timestamp |
+| `applicationHistory` | `array` | Stage history (each with `id`, `stageId`, `stageNumber`, `title`, `enteredStageAt`, `actorId`) |
+
+### Job posting outputs (`ashby_get_job_postings`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Job posting UUID |
+| `title` | `string` | Job posting title |
+| `descriptionPlain` | `string` | Full description in plain text (optional) |
+| `descriptionHtml` | `string` | Full description in HTML (optional) |
+| `descriptionSocial` | `string` | Shortened description for social sharing (optional) |
+| `departmentName` | `string` | Department name (optional) |
+| `teamName` | `string` | Team name (optional) |
+| `teamNameHierarchy` | `array` | Hierarchy of team names from root to team |
+| `jobId` | `string` | Associated job UUID (optional) |
+| `locationName` | `string` | Primary location name (optional) |
+| `isRemote` | `boolean` | Whether the posting is remote |
+| `workplaceType` | `string` | Workplace type: `OnSite`, `Remote`, or `Hybrid` (optional) |
+| `employmentType` | `string` | Employment type (optional) |
+| `isListed` | `boolean` | Whether publicly listed on the job board |
+| `publishedDate` | `string` | ISO 8601 published date (optional) |
+| `applicationDeadline` | `string` | ISO 8601 application deadline (optional) |
+| `externalLink` | `string` | External link to the job posting (optional) |
+| `applyLink` | `string` | Direct apply link (optional) |
+| `updatedAt` | `string` | ISO 8601 last update timestamp (optional) |
+| `job` | `object` | Expanded job object when `expandJob` is `true` (optional) |
+
+## Example
+
+```
+[Starter] → [Ashby: List Candidates] → [Agent: summarize new hires] → [Slack: post digest]
+```
+
+Connect an API key stored as `{{ASHBY_API_KEY}}` and set `createdAfter` to `{{starter.since}}` to pull only candidates added since a given date. The Agent block receives `{{ashby.candidates}}` and produces a summary, which a Slack block then posts to a recruiting channel.
+
+## Tips
+
+- **API key auth** — Ashby uses HTTP Basic Auth with your API key as the username and an empty password. The integration encodes this automatically; you only need to supply the raw key value.
+- **Pagination** — Both list operations return `moreDataAvailable` and `nextCursor`. Chain a second Ashby block with `cursor` set to `{{ashby.nextCursor}}` to fetch the next page inside a loop block.
+- **Status filters** — When listing applications, the `status` param accepts exactly `Active`, `Hired`, `Archived`, or `Lead`. Any other value is silently ignored by the Ashby API.
+- **Expand job details** — Set `expandJob` to `true` on `ashby_get_job_postings` to receive the full nested job object alongside the posting, saving a separate lookup call.
+- **Backdating records** — Both create and update candidate support `createdAt` for importing historical data. The update operation can only change `createdAt` if the record was originally created with a backdated timestamp.

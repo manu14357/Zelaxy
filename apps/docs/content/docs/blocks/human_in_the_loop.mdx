@@ -1,12 +1,12 @@
 ---
 title: Human in the Loop Block
 description: Pause workflow execution for human review or approval
-icon: Box
+icon: Users
 ---
 
 # Human in the Loop Block
 
-The Human in the Loop block pauses workflow execution and waits for a person to review, approve, reject, or provide input before the run continues. Reach for it whenever a workflow needs human judgment or sign-off at a critical step, with configurable timeouts and multiple approvers.
+The Human in the Loop block pauses workflow execution and waits for a person to review, approve, reject, or provide input before the run continues. Reach for it whenever a workflow needs human judgment or sign-off at a critical step, with configurable timeouts and multiple approvers — a unique review link is generated and sent to each specified approver.
 
 ## Overview
 
@@ -21,44 +21,89 @@ The Human in the Loop block pauses workflow execution and waits for a person to 
 - Require manual approval before publishing content or sending external communications
 - Gate high-risk actions (payments, deletions, deployments) behind human sign-off
 - Collect free-text input or corrections from a reviewer mid-workflow
-- Send an acknowledgement step that a human must confirm before proceeding
+- Add an acknowledgement step a human must confirm before the workflow proceeds
 - Route a decision to specific approvers by email with a unique review link
 - Auto-resume or fail a stalled workflow after a configurable timeout
 
 ## Configuration
 
 ### Review Title
-Required short title for the review request, shown to the approver (e.g. "Approve content before publishing").
+
+Required short title for the review request, shown to the approver (e.g. `Approve content before publishing`). Accepts `{{blockName.field}}` references from earlier blocks.
 
 ### Instructions
-Long-form instructions displayed to the human reviewer explaining what to evaluate.
+
+Long-form instructions displayed to the human reviewer explaining what to evaluate or decide (e.g. `Please review the content and approve or reject it.`). Optional.
 
 ### Approval Type
-Dropdown selecting the interaction mode: Approve / Reject (`approve_reject`), Acknowledge Only (`acknowledge`), or Provide Input (`input`). Defaults to `approve_reject`.
+
+Dropdown selecting the interaction mode for the reviewer. Defaults to `approve_reject`.
+
+| Option | ID |
+|--------|----|
+| Approve / Reject | `approve_reject` |
+| Acknowledge Only | `acknowledge` |
+| Provide Input | `input` |
 
 ### Timeout
-Numeric time before the workflow auto-resumes; `0` means no timeout. Paired with the Timeout Unit dropdown (Minutes, Hours, or Days — defaults to Hours).
+
+Numeric value for how long to wait before the workflow auto-resumes. Set to `0` for no timeout. Works together with the **Timeout Unit** field.
+
+### Timeout Unit
+
+Dropdown selecting the unit for the timeout value. Defaults to `hours`.
+
+| Option | ID |
+|--------|-----|
+| Minutes | `minutes` |
+| Hours | `hours` |
+| Days | `days` |
 
 ### On Timeout
-Dropdown for what happens if no response arrives before the timeout: Auto-approve (`approve`), Auto-reject (`reject`, default), or Fail workflow (`fail`).
+
+Dropdown for what happens if no response arrives before the timeout expires. Defaults to `reject`.
+
+| Option | ID |
+|--------|-----|
+| Auto-approve | `approve` |
+| Auto-reject | `reject` |
+| Fail workflow | `fail` |
 
 ### Approvers
-Comma-separated email addresses of people allowed to approve this step; each receives the review link.
+
+Comma-separated email addresses of people allowed to approve this step. Each address receives the unique review link. Optional — if omitted, any authenticated user with access can respond.
 
 ## Inputs & Outputs
 
-- **Inputs**: `title` (string), `message` (string), `approvalType` (string), `timeout` (number), `timeoutUnit` (string), `timeoutAction` (string), `approvers` (string)
-- **Outputs**: `status` (string), `response` (string), `approvedBy` (string), `contextId` (string), `resumedAt` (string)
+- **Inputs**:
+  - `title` (string) — Title of the human review request
+  - `message` (string) — Instructions shown to the human reviewer
+  - `approvalType` (string) — Type of human review: `approve_reject`, `acknowledge`, or `input`
+  - `timeout` (number) — Timeout value (in `timeoutUnit` units); `0` means no timeout
+  - `timeoutUnit` (string) — Unit for the timeout: `minutes`, `hours`, or `days`
+  - `timeoutAction` (string) — Action on timeout: `approve`, `reject`, or `fail`
+  - `approvers` (string) — Comma-separated email addresses of approvers
+
+- **Outputs**:
+  - `status` (string) — Review outcome: `approved`, `rejected`, `pending`, or `timeout`
+  - `response` (string) — Free-text response provided by the reviewer
+  - `approvedBy` (string) — Email of the person who approved or rejected the request
+  - `contextId` (string) — Unique ID for this human review request
+  - `resumedAt` (string) — ISO timestamp when the workflow was resumed
+
+## Tools
+
+This block uses no external tools. All pausing and resuming logic is handled internally by the Zelaxy execution engine; no third-party API calls are made.
 
 ## YAML Example
 
 ```yaml
-human_review_1:
+human_in_the_loop_1:
   type: human_in_the_loop
   name: "Human in the Loop"
   inputs:
     title: "Approve content before publishing"
-    message: "Please review the content and approve or reject it."
+    message: "Please review the generated content and approve or reject it."
     approvalType: "approve_reject"
     timeout: 24
     timeoutUnit: "hours"

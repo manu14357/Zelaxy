@@ -1,0 +1,157 @@
+---
+title: Mailgun Block
+description: Send emails and read delivery events with Mailgun
+icon: Mail
+---
+
+# Mailgun Block
+
+Send transactional emails and list delivery events through the Mailgun API. Authenticate with a Mailgun API key and sending domain. Reach for this block whenever a workflow needs to dispatch email notifications or audit the delivery history of a Mailgun domain.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `mailgun` |
+| **Category** | `tools` |
+| **Color** | `#C02126` |
+
+## When to Use
+
+- Send a transactional email (order confirmation, password reset, alert) as part of an automated workflow.
+- Notify a user or team when a workflow step completes or fails.
+- Forward AI-generated content (summaries, reports) directly to an email recipient.
+- Retrieve recent delivery events to audit whether messages were accepted, delivered, or bounced.
+- Chain with other blocks so that the result of a previous step becomes the email body via `{{blockName.data}}`.
+- Pass API credentials from environment variables (`{{MAILGUN_API_KEY}}`) so secrets are never hard-coded.
+
+## Configuration
+
+### Operation
+
+Selects which Mailgun action the block performs. The choice controls which additional fields are displayed.
+
+| Label | ID |
+|-------|----|
+| Send email | `mailgun_send_email` |
+| List events | `mailgun_list_events` |
+
+Default: `mailgun_send_email`.
+
+---
+
+### From (Send email only)
+
+- **Sub-block id**: `from`
+- **Type**: short-input
+- **Placeholder**: `sender@example.com`
+- Sender email address. Must be an address authorised on your Mailgun domain. Shown only when Operation is `mailgun_send_email`.
+
+### To (Send email only)
+
+- **Sub-block id**: `to`
+- **Type**: short-input
+- **Placeholder**: `recipient@example.com`
+- Recipient email address. Shown only when Operation is `mailgun_send_email`.
+
+### Subject (Send email only)
+
+- **Sub-block id**: `subject`
+- **Type**: short-input
+- **Placeholder**: `Email subject`
+- Subject line of the email. Shown only when Operation is `mailgun_send_email`.
+
+### Content (Send email only)
+
+- **Sub-block id**: `text`
+- **Type**: long-input
+- **Placeholder**: `Email body text`
+- Plain-text body of the email. Shown only when Operation is `mailgun_send_email`.
+
+---
+
+### Limit (List events only)
+
+- **Sub-block id**: `limit`
+- **Type**: short-input
+- **Placeholder**: `25`
+- Maximum number of delivery events to return. Optional. Shown only when Operation is `mailgun_list_events`.
+
+---
+
+### Domain (all operations, required)
+
+- **Sub-block id**: `domain`
+- **Type**: short-input
+- **Placeholder**: `mg.example.com`
+- **Required**: yes
+- The Mailgun sending domain associated with your account (e.g. `mg.yourdomain.com`). Always visible regardless of the selected operation.
+
+### Mailgun API Key (all operations, required)
+
+- **Sub-block id**: `apiKey`
+- **Type**: short-input (password masked)
+- **Placeholder**: `key-...`
+- **Required**: yes
+- Your Mailgun private API key. Store it as a workflow secret and reference it as `{{MAILGUN_API_KEY}}` so the raw value is never exposed. Always visible regardless of the selected operation.
+
+## Inputs & Outputs
+
+**Inputs** (every field the block accepts):
+
+- `operation` (string) — Operation to perform (`mailgun_send_email` or `mailgun_list_events`).
+- `apiKey` (string) — Mailgun API key.
+- `domain` (string) — Mailgun sending domain.
+- `from` (string) — Sender email. Used by `mailgun_send_email`.
+- `to` (string) — Recipient email. Used by `mailgun_send_email`.
+- `subject` (string) — Email subject. Used by `mailgun_send_email`.
+- `text` (string) — Email body (plain text). Used by `mailgun_send_email`.
+- `limit` (number) — Result limit. Used by `mailgun_list_events`.
+
+**Outputs** (always present regardless of operation):
+
+- `data` (json) — For `mailgun_send_email`: the Mailgun send-response object (includes `id` and `message`). For `mailgun_list_events`: an array of Mailgun event objects.
+- `metadata` (json) — For `mailgun_send_email`: `{ statusCode: <number> }`. For `mailgun_list_events`: `{ count: <number> }` indicating how many events were returned.
+
+## Tools
+
+**Mailgun Send Email** (`mailgun_send_email`) — Posts a plain-text email to the Mailgun `/v3/{domain}/messages` endpoint using HTTP Basic authentication. Required params: `apiKey`, `domain`, `from`, `to`, `subject`, `text`.
+
+**Mailgun List Events** (`mailgun_list_events`) — Fetches delivery event records from the Mailgun `/v3/{domain}/events` endpoint. Required params: `apiKey`, `domain`. Optional: `limit` (number of events to return).
+
+## YAML Example
+
+### Send an email
+
+```yaml
+mailgun_1:
+  type: mailgun
+  name: "Send Notification Email"
+  inputs:
+    operation: "mailgun_send_email"
+    apiKey: "{{MAILGUN_API_KEY}}"
+    domain: "mg.example.com"
+    from: "noreply@example.com"
+    to: "{{trigger.recipientEmail}}"
+    subject: "Your report is ready"
+    text: "{{report_block.data}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+### List delivery events
+
+```yaml
+mailgun_2:
+  type: mailgun
+  name: "Fetch Delivery Events"
+  inputs:
+    operation: "mailgun_list_events"
+    apiKey: "{{MAILGUN_API_KEY}}"
+    domain: "mg.example.com"
+    limit: 50
+  connections:
+    outgoing:
+      - target: next-block-id
+```

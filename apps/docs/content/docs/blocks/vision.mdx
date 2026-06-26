@@ -1,75 +1,93 @@
 ---
 title: Vision Block
-description: Analyze images with AI vision models for descriptions and extraction
+description: Analyze images with vision models
 icon: Eye
 ---
 
 # Vision Block
 
-The Vision block sends images to multimodal AI models (GPT-4o, Claude, Gemini) for visual analysis. It can describe images, extract text (OCR), identify objects, read charts, and answer questions about visual content.
+Process visual content with customizable prompts to extract insights and information from images. Reach for this block whenever a workflow needs to describe images, extract text (OCR), interpret charts, or answer questions about visual content using a multimodal AI model.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `vision` |
-| **Category** | Core Block |
-| **Color** | `#8B5CF6` (Violet) |
+| **Category** | `tools` |
+| **Color** | `#C2410C` |
 
 ## When to Use
 
-- Extract text from images or screenshots (OCR)
-- Describe or caption images
-- Analyze charts, graphs, or diagrams
-- Answer questions about visual content
-- Process receipts, invoices, or documents
+- Describe or caption an image from a public URL
+- Extract text from screenshots, receipts, or scanned documents (OCR)
+- Analyze charts, diagrams, or graphs and summarize findings
+- Answer specific questions about visual content with a custom prompt
+- Route images through GPT-4o or Claude 3 depending on quality needs
+- Feed the structured analysis result into downstream blocks (Function, Google Sheets, etc.)
 
 ## Configuration
 
-| Setting | Type | Description |
-|---------|------|-------------|
-| Image | File upload | Upload image or provide URL |
-| Image URL | Short input | Direct URL to an image |
-| Prompt | Long text | What to analyze (e.g., "Extract all text from this image") |
-| Model | Dropdown | Vision-capable model (GPT-4o, Claude 3, etc.) |
-| API Key | Password | Provider API key |
-| Detail Level | Dropdown | `low` (fast) or `high` (detailed) |
+### Image URL
 
-## Outputs
+A publicly accessible URL pointing to the image to analyze. This field is required and accepts any `http://` or `https://` URL, or a reference from another block such as `{{imageFetcher.url}}`.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `content` | `string` | AI's analysis of the image |
-| `text` | `string` | Extracted text (OCR mode) |
-| `objects` | `json` | Detected objects/elements |
+**Sub-block id:** `imageUrl` | **Type:** short-input | **Required:** yes
 
-## Example: Receipt Data Extraction
+### Vision Model
 
-**Goal:** Extract structured data from receipt photos.
+The multimodal AI model used for analysis. Defaults to `gpt-4o`.
 
-**Workflow:**
+**Sub-block id:** `model` | **Type:** dropdown | **Required:** no (defaults to `gpt-4o`)
+
+| Label | ID |
+|-------|----|
+| gpt-4o | `gpt-4o` |
+| claude-3-opus | `claude-3-opus-20240229` |
+| claude-3-sonnet | `claude-3-sonnet-20240229` |
+
+### Prompt
+
+A natural-language instruction describing what to analyze or extract from the image. If left empty the tool falls back to a default description prompt. This field is required.
+
+**Sub-block id:** `prompt` | **Type:** long-input | **Required:** yes
+
+### API Key
+
+The API key for the selected model provider. Use `{{OPENAI_API_KEY}}` for GPT-4o or `{{ANTHROPIC_API_KEY}}` for Claude 3 models. The value is treated as a password (masked in the UI).
+
+**Sub-block id:** `apiKey` | **Type:** short-input | **Required:** yes
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `apiKey` (string) — Provider API key
+- `imageUrl` (string) — Image URL
+- `model` (string) — Vision model
+- `prompt` (string) — Analysis prompt
+
+**Outputs:**
+
+- `content` (string) — Analysis result returned by the model
+- `model` (string) — Model that was used for analysis
+- `tokens` (number) — Total tokens consumed by the request
+
+## Tools
+
+**Vision Tool** (`vision_tool`) — Sends the image URL and prompt to the selected vision model's API. For GPT-4o it calls `https://api.openai.com/v1/chat/completions`; for Claude 3 models it calls `https://api.anthropic.com/v1/messages`. Capable of understanding image content, extracting text, identifying objects, and providing detailed visual descriptions.
+
+## YAML Example
+
+```yaml
+vision_1:
+  type: vision
+  name: "Vision"
+  inputs:
+    imageUrl: "{{starter.imageUrl}}"
+    model: "gpt-4o"
+    prompt: "Extract all visible text from this image and return it as plain text."
+    apiKey: "{{OPENAI_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
 ```
-[Starter: Upload Receipt] → [Vision] → [Function: Parse] → [Google Sheets]
-```
-
-**Configuration:**
-- **Image:** `{{starter.file}}`
-- **Prompt:**
-  ```
-  Extract structured data from this receipt. Return JSON with:
-  - store_name
-  - date
-  - items (array of {name, quantity, price})
-  - subtotal, tax, total
-  ```
-- **Model:** `gpt-4o`
-- **Detail Level:** `high`
-
-**Function block** parses the JSON from `{{vision.content}}` and formats it for Google Sheets.
-
-## Tips
-
-- **GPT-4o and Claude 3** are the best vision models — both handle complex images well
-- **High detail** costs more tokens but is essential for small text and fine details
-- **Combine with structured output** in the prompt to get parseable JSON from image analysis
-- **URL input** is useful when images come from other blocks (Image Search, API responses)

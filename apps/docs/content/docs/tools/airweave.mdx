@@ -1,0 +1,66 @@
+---
+title: Airweave
+description: Search synced data collections in Airweave with semantic, hybrid, or keyword retrieval
+icon: Database
+---
+
+# Airweave
+
+Search and retrieve information from your Airweave data collections using natural language. Supports hybrid, neural, and keyword retrieval strategies, optional query expansion, result reranking, and AI-generated answers — ideal for building RAG pipelines over your connected data sources.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `airweave` |
+| **Category** | Tool — Vector Database / Knowledge Retrieval |
+| **Auth** | API Key (`X-API-Key` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Search** | `airweave_search` | Search a collection using semantic, hybrid, or keyword retrieval, with optional query expansion, reranking, and AI-generated answers |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Your Airweave API key, sent as the `X-API-Key` request header. Store as `{{AIRWEAVE_API_KEY}}`. |
+| `collectionId` | `string` | Yes | The readable ID of the Airweave collection to search (e.g. `my-collection`). |
+| `query` | `string` | Yes | The natural-language search query text. |
+| `limit` | `number` | No | Maximum number of results to return. Defaults to `100`. Block UI offers 5 / 10 / 20 / 50. |
+| `retrievalStrategy` | `string` | No | Retrieval strategy: `hybrid` (default), `neural`, or `keyword`. The block UI also exposes `auto` and `semantic` labels — pass the string value that matches what Airweave's API accepts for your account. |
+| `expandQuery` | `boolean` | No | When `true`, Airweave generates query variations to improve recall before searching. |
+| `rerank` | `boolean` | No | When `true`, results are reordered by an LLM for improved relevance after retrieval. |
+| `generateAnswer` | `boolean` | No | When `true`, Airweave generates a natural-language answer synthesized from the top search results, returned in the `completion` field. |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `array` | List of search result objects (see result fields below). |
+| `results[].entity_id` | `string` | Unique identifier for the result entity within Airweave. |
+| `results[].source_name` | `string` | Name of the originating data source (e.g. `"GitHub"`, `"Slack"`). |
+| `results[].md_content` | `string` | Markdown-formatted content of the result (optional — may be `null`). |
+| `results[].score` | `number` | Relevance score returned by the retrieval strategy. |
+| `results[].metadata` | `object` | Additional metadata associated with the result (optional). |
+| `results[].breadcrumbs` | `array` | Navigation path segments leading to the result within its source (optional). |
+| `results[].url` | `string` | URL pointing to the original content in the source system (optional). |
+| `completion` | `string` | AI-generated answer to the query (only present when `generateAnswer` is `true`). |
+
+## Example
+
+```
+[Starter] → [Airweave: Search] → [Agent: answer from results]
+```
+
+Connect a Starter block that accepts a user question as `{{starter.query}}`, pass it to Airweave with `collectionId` set to your knowledge-base collection (e.g. `engineering-docs`), and authenticate with `{{AIRWEAVE_API_KEY}}`. Enable `generateAnswer` so Airweave returns a `completion` you can pipe directly to a Response block, or feed `{{airweave.results}}` into an Agent block that synthesizes a final answer from the raw chunks.
+
+## Tips
+
+- **Choose the right retrieval strategy.** `hybrid` (the default) combines neural and keyword signals and works well for most queries. Use `neural`/`semantic` for conceptual queries where exact terms do not matter, and `keyword` when you need precise term matching (e.g. error codes, identifiers).
+- **Enable `expandQuery` for broad recall.** When users phrase queries loosely, query expansion generates richer variants that surface more relevant chunks — especially useful in support or Q&A workflows.
+- **Enable `rerank` for precision.** Reranking re-scores the initial result set with an LLM, which improves top-result quality at the cost of a small added latency. Use it when the downstream block (Agent, Response) consumes only the top few results.
+- **Use `generateAnswer` for direct responses.** If you do not need to post-process individual chunks, set `generateAnswer: true` and wire `{{airweave.completion}}` straight to a Response block to skip the Agent step entirely.
+- **Keep `limit` small for RAG.** Passing hundreds of chunks to an LLM inflates token usage. Values of 5–20 are typically sufficient; increase only when broad coverage matters more than latency.

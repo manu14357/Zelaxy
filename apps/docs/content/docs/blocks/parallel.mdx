@@ -1,67 +1,133 @@
 ---
 title: Parallel Block
-description: Execute multiple workflow branches simultaneously
+description: Execute workflow blocks in parallel
 icon: Columns3
 ---
 
 # Parallel Block
 
-The Parallel block runs multiple branches of your workflow at the same time, then waits for all branches to complete before continuing. Use it to speed up workflows by running independent tasks concurrently.
+Container block that executes child workflow blocks in parallel. Supports both count-based parallel execution and collection-based distribution. Child blocks placed inside the parallel container will be executed concurrently. Use it whenever independent tasks can run at the same time and you want to reduce overall workflow execution time.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `parallel` |
-| **Category** | Core Block |
-| **Color** | `#8B5CF6` (Violet) |
+| **Category** | `blocks` |
+| **Color** | `#FEE12B` |
 
 ## When to Use
 
-- Run independent API calls simultaneously
-- Query multiple data sources at once
-- Generate multiple AI outputs in parallel (e.g., summaries in different styles)
-- Speed up workflows where tasks don't depend on each other
+- Run independent API calls simultaneously instead of sequentially
+- Process every item in a list concurrently (e.g., enrich each row of a dataset in parallel)
+- Query multiple data sources at the same time and collect all results
+- Generate multiple AI outputs in parallel (e.g., the same prompt sent to several providers)
+- Speed up workflows where tasks do not depend on each other's output
+- Control concurrency limits to avoid hitting external rate limits
 
 ## Configuration
 
-The Parallel block is a container. Place blocks inside each branch. Each branch runs independently and the parallel block waits for all branches to finish.
+### Parallel Type
 
-| Setting | Type | Description |
-|---------|------|-------------|
-| Branches | Container | 2+ parallel execution paths |
-| Wait for All | Toggle | Wait for all branches before continuing (default: true) |
+**Dropdown** — selects the mode of parallel execution.
 
-## Outputs
+| Option | id | Description |
+|--------|----|-------------|
+| Parallel Count | `count` | Runs child blocks a fixed number of times concurrently |
+| Parallel Each (Collection) | `collection` | Distributes items from an array or object across parallel executions |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `results` | `json` | Object containing results from all branches |
-| `completedBranches` | `number` | Count of branches that finished |
-| `branchErrors` | `json` | Any errors from individual branches |
+---
 
-## Example: Multi-Source Research
+### Parallel Executions
 
-**Goal:** Research a topic across Wikipedia, ArXiv, and web search simultaneously.
+**Short input** — only shown when **Parallel Type** is `count`.
 
-**Workflow:**
+- **id**: `count`
+- **Placeholder**: `3`
+- Specifies how many concurrent executions to launch.
+
+---
+
+### Distribution Items
+
+**Long input** — only shown when **Parallel Type** is `collection`.
+
+- **id**: `collection`
+- **Placeholder**: `['item1', 'item2', 'item3'] or {{previous_block.output}}`
+- Array or object to distribute across parallel executions. Use `{{block_id.output}}` to reference another block's output.
+
+---
+
+### Max Concurrency
+
+**Slider** — always visible.
+
+- **id**: `maxConcurrency`
+- **Range**: 1 – 20
+- Maximum number of parallel executions allowed to run at the same time. Useful for staying within external API rate limits.
+
+---
+
+### Wait for All
+
+**Switch** — always visible.
+
+- **id**: `waitForAll`
+- When enabled, the block waits for every parallel execution to finish before the workflow continues downstream.
+
+---
+
+### Stop on Error
+
+**Switch** — always visible.
+
+- **id**: `stopOnError`
+- When enabled, all in-flight parallel executions are cancelled as soon as any single execution fails.
+
+---
+
+### Timeout (seconds)
+
+**Short input** — always visible.
+
+- **id**: `timeout`
+- **Placeholder**: `300`
+- Maximum wall-clock time (in seconds) to wait for all executions to complete before the block times out.
+
+## Inputs & Outputs
+
+### Inputs
+
+- `collection` (json) — Collection of items to distribute across parallel executions
+- `count` (number) — Number of parallel executions
+
+### Outputs
+
+- `executions` (number) — Total number of parallel executions completed
+- `results` (json) — Array of results from each parallel execution
+- `executionTime` (number) — Total execution time in milliseconds
+- `status` (string) — Parallel execution status (`completed`, `error`, or `cancelled`)
+- `currentExecution` (number) — Current execution number (available during execution)
+- `currentItem` (json) — Current item being processed (for collection-based parallel execution)
+
+## Tools
+
+This block uses no external tools (`tools.access` is empty). All execution logic is handled internally by the parallel executor handler.
+
+## YAML Example
+
+```yaml
+parallel_1:
+  type: parallel
+  name: "Parallel"
+  inputs:
+    parallelType: "collection"
+    collection: "{{fetch_data_1.results}}"
+    maxConcurrency: 5
+    waitForAll: true
+    stopOnError: false
+    timeout: "120"
+  connections:
+    outgoing:
+      - target: next-block-id
 ```
-                        ┌→ [Google Search] ─→ [Agent: Web Summary]   ─┐
-[Starter] → [Parallel]  → [Wikipedia]     ─→ [Agent: Wiki Summary]    → [Agent: Combine] → [Response]
-                        └→ [ArXiv]        ─→ [Agent: Paper Summary] ─┘
-```
-
-**How it works:**
-1. User provides a research topic
-2. Parallel block launches 3 branches simultaneously:
-   - Branch 1: Google Search → summarize web results
-   - Branch 2: Wikipedia → summarize encyclopedia content
-   - Branch 3: ArXiv → summarize academic papers
-3. All branches complete concurrently (3x faster than sequential)
-4. Final Agent combines all summaries into a comprehensive report
-
-## Tips
-
-- **Only parallelize independent tasks** — if branch B needs branch A's output, they can't run in parallel
-- **Great for multi-provider AI** — run the same prompt on GPT-4o, Claude, and Gemini simultaneously to compare
-- **Watch rate limits** — parallel API calls may trigger rate limiting on external services

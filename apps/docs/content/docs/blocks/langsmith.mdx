@@ -1,0 +1,162 @@
+---
+title: LangSmith Block
+description: Inspect runs and submit feedback in LangSmith
+icon: Box
+---
+
+# LangSmith Block
+
+List runs in a session, fetch a single run by ID, and create feedback through the LangSmith API. Use this block whenever a workflow needs to inspect LangChain execution traces or programmatically rate run quality from inside an automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `langsmith` |
+| **Category** | `tools` |
+| **Color** | `#1C3C3C` |
+
+## When to Use
+
+- Retrieve a list of recent runs from a LangSmith project/session for monitoring or debugging
+- Fetch the full details of a specific run by its UUID to extract inputs, outputs, or error info
+- Submit human or automated feedback (e.g. a correctness score) against a completed run
+- Build evaluation loops that run an LLM chain, then score the result and write feedback back to LangSmith
+- Surface LangSmith run data in dashboards or downstream blocks by passing `{{langsmith_1.data}}`
+- Automate quality-assurance workflows that act on runs whose scores fall below a threshold
+
+## Configuration
+
+### Operation
+
+Selects which LangSmith API action to perform. This is a required dropdown; the fields that appear below it change based on your selection.
+
+| Label | ID |
+|-------|----|
+| List runs | `langsmith_list_runs` |
+| Get run | `langsmith_get_run` |
+| Create feedback | `langsmith_create_feedback` |
+
+---
+
+### Session ID — `session`
+
+*Shown when operation is `langsmith_list_runs`.*
+
+The LangSmith project or session ID whose runs you want to list. Maps to the `session` query parameter sent to `POST /runs/query`.
+
+- **Type**: short-input (half width)
+- **Placeholder**: `project / session ID`
+- **Required for this operation**: yes (tool marks it required)
+
+---
+
+### Limit — `limit`
+
+*Shown when operation is `langsmith_list_runs`.*
+
+Maximum number of runs to return. Leave blank to use the LangSmith API default.
+
+- **Type**: short-input (half width)
+- **Placeholder**: `10`
+- **Required**: no
+
+---
+
+### Run ID — `runId`
+
+*Shown when operation is `langsmith_get_run`.*
+
+The UUID of the run to retrieve. Sent as a path parameter to `GET /runs/{runId}`.
+
+- **Type**: short-input (full width)
+- **Placeholder**: `run UUID`
+- **Required for this operation**: yes
+
+---
+
+### Run ID — `run_id`
+
+*Shown when operation is `langsmith_create_feedback`.*
+
+The UUID of the run to attach feedback to. Note: this field uses the id `run_id` (with underscore), distinct from the `runId` field used by Get Run.
+
+- **Type**: short-input (full width)
+- **Placeholder**: `run UUID`
+- **Required for this operation**: yes
+
+---
+
+### Feedback Key — `key`
+
+*Shown when operation is `langsmith_create_feedback`.*
+
+A string label that categorises the feedback, such as `correctness`, `helpfulness`, or `toxicity`. Sent as the `key` field in the feedback payload.
+
+- **Type**: short-input (half width)
+- **Placeholder**: `correctness`
+- **Required for this operation**: yes
+
+---
+
+### Score — `score`
+
+*Shown when operation is `langsmith_create_feedback`.*
+
+A numeric value associated with the feedback key (e.g. `0` or `1` for a binary rating, or a float for a continuous scale). Optional — omit to submit label-only feedback.
+
+- **Type**: short-input (half width)
+- **Placeholder**: `1`
+- **Required**: no
+
+---
+
+### API Key — `apiKey`
+
+Your LangSmith API key (starts with `lsv2_`). Stored as a password field and sent as the `x-api-key` header on every request. Store the value in an environment variable and reference it as `{{LANGSMITH_API_KEY}}`.
+
+- **Type**: short-input (full width), password
+- **Required**: yes (all operations)
+
+## Inputs & Outputs
+
+**Inputs**:
+
+- `operation` (string) — Operation to perform (`langsmith_list_runs`, `langsmith_get_run`, or `langsmith_create_feedback`)
+- `apiKey` (string) — LangSmith API key
+- `session` (string) — Session (project) ID (used by List Runs)
+- `limit` (number) — Result limit (used by List Runs)
+- `runId` (string) — Run ID to retrieve (used by Get Run)
+- `run_id` (string) — Run ID to attach feedback to (used by Create Feedback)
+- `key` (string) — Feedback key (used by Create Feedback)
+- `score` (number) — Feedback score (used by Create Feedback)
+
+**Outputs**:
+
+- `data` (json) — Result object or array from LangSmith. For List Runs this is an array of run objects; for Get Run it is a single run object; for Create Feedback it is the created feedback object.
+- `metadata` (json) — Response metadata. For List Runs: `{ count: number }`. For Get Run and Create Feedback: `{ id: string }`.
+
+## Tools
+
+**LangSmith List Runs** (`langsmith_list_runs`) — Posts to `https://api.smith.langchain.com/runs/query` with `session` and optional `limit` to return an array of run objects from the specified project.
+
+**LangSmith Get Run** (`langsmith_get_run`) — Fetches `https://api.smith.langchain.com/runs/{runId}` to retrieve the full details of a single run by its UUID.
+
+**LangSmith Create Feedback** (`langsmith_create_feedback`) — Posts to `https://api.smith.langchain.com/feedback` with `run_id`, `key`, and optional `score` to record human or automated feedback against a run.
+
+## YAML Example
+
+```yaml
+langsmith_1:
+  type: langsmith
+  name: "LangSmith"
+  inputs:
+    operation: "langsmith_create_feedback"
+    apiKey: "{{LANGSMITH_API_KEY}}"
+    run_id: "{{previous_block.runId}}"
+    key: "correctness"
+    score: 1
+  connections:
+    outgoing:
+      - target: next-block-id
+```

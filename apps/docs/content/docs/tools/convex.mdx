@@ -1,0 +1,58 @@
+---
+title: Convex
+description: Run Convex query and mutation functions via the HTTP API
+icon: Database
+---
+
+# Convex
+
+Call Convex query and mutation functions through the Convex HTTP API. Use this integration to read data from your Convex backend with queries or write data with mutations — directly from a workflow block.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `convex` |
+| **Category** | Tool — Database |
+| **Auth** | API Key (`Authorization: Convex <adminKey>`, optional) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Run Query** | `convex_run_query` | Call a Convex query function and return its result |
+| **Run Mutation** | `convex_run_mutation` | Call a Convex mutation function to write or update data |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `deploymentUrl` | `string` | Yes | Your Convex deployment URL, e.g. `https://xxx.convex.cloud` |
+| `adminKey` | `string` (secret) | No | Admin key for your deployment — required only for admin-only functions. Store as a secret and reference with `{{CONVEX_ADMIN_KEY}}` |
+| `path` | `string` | Yes | Dot/colon-separated function path, e.g. `messages:list` or `tasks:getByUser` |
+| `args` | `json` | No | JSON arguments object passed to the function, e.g. `{ "channel": "general" }` |
+
+## Outputs
+
+Both operations return the same output shape:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | The full Convex response object, containing `status` and `value` fields |
+| `metadata` | `json` | Response metadata object |
+| `metadata.status` | `string` | Convex execution status — `"success"` or `"error"` |
+
+## Example
+
+```
+[Starter] → [Convex: Run Query] → [Agent: summarise the results]
+```
+
+Connect a Convex block configured with `{{CONVEX_DEPLOYMENT_URL}}` and `{{CONVEX_ADMIN_KEY}}`, set the function path to `messages:list`, and pass `{ "channel": "{{starter.channel}}" }` as arguments. The query result lands in `{{convex.data}}` — pass that to an Agent block to summarise or act on the returned records.
+
+## Tips
+
+- **Admin key is optional** — omit it if your query or mutation function is publicly accessible. Only include `adminKey` for functions guarded by Convex admin-only access.
+- **Function path format** follows Convex conventions: `<module>:<exportName>`, e.g. `tasks:create` or `users:getById`. Check your Convex dashboard or source files for exact paths.
+- **Use Run Query for reads, Run Mutation for writes** — Convex enforces this distinction at the API level; calling a mutation via the query endpoint (or vice versa) will return an error.
+- **Pass structured args as JSON** — the `args` field accepts any valid JSON object. Reference upstream block outputs with `{{blockName.field}}` to build dynamic argument payloads.

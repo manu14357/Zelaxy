@@ -118,6 +118,91 @@ const iconColorMap: Record<string, string> = {
 
   // Categories — section headers
   Blocks: '#3b82f6',
+
+  // ── Extended coverage for the full integration catalogue ──────────────────
+  // AI & ML — violet
+  BrainCircuit: '#8b5cf6',
+
+  // Flow / dev — blue
+  Network: '#3b82f6',
+
+  // Code & API — emerald
+  TextCursorInput: '#10b981',
+
+  // Data & analytics — amber
+  ChartColumn: '#f59e0b',
+  ChartBar: '#f59e0b',
+  BarChart: '#f59e0b',
+  BarChart2: '#f59e0b',
+  BarChart3: '#f59e0b',
+  TrendingUp: '#f59e0b',
+  Activity: '#f59e0b',
+  Radar: '#f59e0b',
+  Columns3: '#f59e0b',
+  GraduationCap: '#f59e0b',
+  FlaskConical: '#f59e0b',
+
+  // Communication — pink
+  MessageSquareMore: '#ec4899',
+  PhoneCall: '#ec4899',
+  Inbox: '#ec4899',
+  MailCheck: '#ec4899',
+
+  // Search & research — cyan
+  FileSearch: '#06b6d4',
+  PackageSearch: '#06b6d4',
+  UserSearch: '#06b6d4',
+  FileQuestion: '#06b6d4',
+  CircleHelp: '#06b6d4',
+
+  // Web & social — orange
+  Youtube: '#f97316',
+  MonitorPlay: '#f97316',
+  Share2: '#f97316',
+
+  // Storage & cloud — slate
+  CloudUpload: '#64748b',
+  Vault: '#64748b',
+
+  // Security & identity — teal
+  ShieldCheck: '#14b8a6',
+  KeyRound: '#14b8a6',
+  Siren: '#14b8a6',
+  Bug: '#14b8a6',
+  UserCheck: '#14b8a6',
+
+  // People / CRM — indigo
+  Users: '#6366f1',
+  ContactRound: '#6366f1',
+  Trello: '#6366f1',
+  SquareKanban: '#6366f1',
+  NotebookPen: '#6366f1',
+  Presentation: '#6366f1',
+  LayoutTemplate: '#6366f1',
+
+  // Finance & commerce — green
+  CreditCard: '#22c55e',
+  DollarSign: '#22c55e',
+  ShoppingCart: '#22c55e',
+  ShoppingBag: '#22c55e',
+  Receipt: '#22c55e',
+
+  // Media — rose
+  Mic: '#f43f5e',
+  AudioLines: '#f43f5e',
+  Volume2: '#f43f5e',
+  Signature: '#f43f5e',
+  Pen: '#f43f5e',
+  MapPin: '#f43f5e',
+  Map: '#f43f5e',
+
+  // Misc brand-ish
+  Grape: '#7c3aed',
+  TreePine: '#16a34a',
+  Snowflake: '#38bdf8',
+  Heart: '#ef4444',
+  Flag: '#ef4444',
+  TicketCheck: '#6366f1',
 }
 
 /**

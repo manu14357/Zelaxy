@@ -1,0 +1,73 @@
+---
+title: Brandfetch
+description: Retrieve brand assets, logos, colors, and company data by domain or name
+icon: Image
+---
+
+# Brandfetch
+
+Integrate Brandfetch brand intelligence into your workflows. Search for companies by name or pull full brand kits — logos, colors, typography, and firmographic data — for any brand using its domain, stock ticker, ISIN, or crypto symbol.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `brandfetch` |
+| **Category** | Tool — Data Enrichment |
+| **Auth** | API Key |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Get Brand** | `brandfetch_get_brand` | Retrieve full brand assets including logos, colors, fonts, and company info by domain, ticker, ISIN, or crypto symbol |
+| **Search Brands** | `brandfetch_search` | Search for brands by name and return matching domains and logo icons |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Your Brandfetch API key. Store as a secret and reference it with `{{BRANDFETCH_API_KEY}}`. |
+| `identifier` | `string` | Yes (Get Brand) | Brand identifier: domain (`nike.com`), stock ticker (`NKE`), ISIN (`US6541061031`), or crypto symbol (`BTC`). Only used by `brandfetch_get_brand`. |
+| `name` | `string` | Yes (Search Brands) | Company or brand name to search for (e.g. `Apple`). Only used by `brandfetch_search`. |
+
+## Outputs
+
+### Get Brand (`brandfetch_get_brand`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique Brandfetch brand identifier |
+| `name` | `string` | Brand name (optional) |
+| `domain` | `string` | Brand's primary domain |
+| `claimed` | `boolean` | Whether the brand has claimed its Brandfetch profile |
+| `description` | `string` | Short brand description (optional) |
+| `longDescription` | `string` | Detailed brand description (optional) |
+| `links` | `array` | Social media and website links, each with `name` and `url` |
+| `logos` | `array` | Brand logos with `type` (logo, icon, symbol, other), `theme` (light, dark), and `formats` (src URL, format, width, height) |
+| `colors` | `array` | Brand colors with `hex` code, `type` (accent, dark, light, brand), and `brightness` value |
+| `fonts` | `array` | Brand fonts with `name`, `type` (title, body), and `origin` (google, custom, system) |
+| `company` | `json` | Firmographic data including employees, location, and industries (optional) |
+| `qualityScore` | `number` | Data quality score from 0 to 1 (optional) |
+| `isNsfw` | `boolean` | Whether the brand contains adult content |
+
+### Search Brands (`brandfetch_search`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `array` | List of matching brands, each with `brandId`, `name`, `domain`, `claimed`, and `icon` (icon URL) |
+
+## Example
+
+```
+[Starter] → [Brandfetch: Get Brand] → [Agent: use the result]
+```
+
+Pass a company domain from an earlier block — for example `{{starter.domain}}` — to the Brandfetch Get Brand block, authenticating with `{{BRANDFETCH_API_KEY}}`. The block returns the full brand kit including logo URLs, hex color palette, and company firmographics. An Agent block downstream can then summarize the brand identity or insert the logo URL into a report.
+
+## Tips
+
+- **Domain is the most reliable identifier** — use `example.com` format rather than `http://example.com`. Tickers and ISINs work for public companies; crypto symbols work for major tokens.
+- **Use Search Brands first** when you only have a company name: it returns domains and icon URLs you can then feed into Get Brand for the full asset set.
+- **Quality score** (`qualityScore`) ranges from 0 to 1 — filter for scores above `0.5` to ensure you have usable logo and color data before passing assets to downstream blocks.
+- **`apiKey` is marked `user-only`** — always store it as a workflow secret (reference with `{{BRANDFETCH_API_KEY}}`) rather than entering it as plain text.

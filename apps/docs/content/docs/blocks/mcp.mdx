@@ -6,84 +6,150 @@ icon: Box
 
 # MCP Integration Block
 
-The MCP Integration block connects your workflow to Model Context Protocol (MCP) servers, enabling automatic tool discovery, dynamic integration, and server management. Reach for it when you want an AI agent to use tools exposed by an external MCP server (stdio, SSE, or HTTP) or to test and manage those server connections.
+The MCP Integration block connects your workflow to Model Context Protocol (MCP) servers, enabling automatic tool discovery, dynamic integration, and comprehensive server management. Reach for it when you want an AI agent to use tools exposed by an external MCP server (stdio, SSE, or HTTP), or when you need to test, connect, disconnect, or refresh those server connections from within a workflow.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `mcp` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#EA580C` |
 
 ## When to Use
 
 - Connect to an MCP server already configured in Settings > MCP and execute one of its discovered tools.
-- Quickly test a new MCP server by pasting a Claude Desktop-style JSON config.
-- Discover and refresh the list of tools available from a server.
-- Stand up a stdio (command-line), SSE (server-sent events), or HTTP (REST) MCP connection.
-- Test, connect, disconnect, or refresh a server connection as part of a workflow.
-- Pass structured JSON parameters to a specific MCP tool and capture its result.
+- Quickly test a new MCP server by pasting a Claude Desktop-style JSON config (`mcpServers` wrapper format).
+- Discover and refresh the full list of tools available from a running server.
+- Stand up a stdio (command-line), SSE (server-sent events), or HTTP (REST) MCP connection as part of a workflow.
+- Test, connect, disconnect, or refresh a server connection without leaving the workflow canvas.
+- Pass structured JSON parameters to a specific MCP tool and capture its result for downstream blocks.
 
 ## Configuration
 
-### Use Existing Server
+The block has two high-level modes controlled by the **Use Existing Server** switch. When it is on, you pick a pre-configured server and optionally execute one of its tools. When it is off, you define a brand-new server — either with a form or by pasting raw JSON.
 
-Switch that connects to a server already configured in MCP Settings rather than defining a new one.
+### Use Existing Server (`useExistingServer`)
 
-### Select Server
+Switch (default: off). When on, hides all new-server fields and shows the **Select Server** dropdown and **Execute Tool** controls. Configure servers permanently in Settings > MCP; use this toggle to connect to them in a workflow.
 
-Dropdown to choose a pre-configured server (shown when Use Existing Server is on). Populated from Settings > MCP.
+### Select Server (`existingServerId`)
 
-### Use JSON Config
+Dropdown — shown only when **Use Existing Server** is on. Dynamically populated from your MCP Settings. Required when the toggle is on.
 
-Switch (for new servers) to paste an MCP server config JSON directly, in the standard Claude Desktop / Cursor format.
+### Use JSON Config (`useRawConfig`)
 
-### MCP Server Configuration
+Switch (default: off) — shown only when **Use Existing Server** is off. When on, replaces the form fields with a single JSON code editor so you can paste a config directly.
 
-JSON code field for the raw `mcpServers` config, used when Use JSON Config is on.
+### MCP Server Configuration (`rawMcpConfig`)
 
-### Server Name & Connection Type
+JSON code editor — shown when **Use Existing Server** is off AND **Use JSON Config** is on. Accepts the standard `mcpServers` wrapper format (same as Claude Desktop, Cursor, etc.):
 
-For new form-based servers: a unique server name plus a Connection Type dropdown — Stdio (Command Line), SSE (Server-Sent Events), or HTTP (REST API).
+```json
+{
+  "mcpServers": {
+    "time": {
+      "command": "uvx",
+      "args": ["mcp-server-time", "--local-timezone=America/New_York"]
+    }
+  }
+}
+```
 
-### Connection-specific fields
+Required when Use JSON Config is on.
 
-- **Stdio**: Command Path, Script Path/Arguments, and Environment Variables table.
-- **SSE**: SSE Endpoint URL and Authentication Headers table.
-- **HTTP**: Base URL, API Key / Token, and Custom Headers table.
+### Server Name (`serverName`)
 
-### Execute Tool & Tool Parameters
+Short text input — shown when **Use Existing Server** is off AND **Use JSON Config** is off. A unique identifier for the new server (e.g. `filesystem-server`, `database-connector`). Required in form mode.
 
-When using an existing server, pick a discovered tool from the Execute Tool dropdown and supply its JSON parameters in Tool Parameters.
+### Connection Type (`serverType`)
 
-### Connection Management
+Dropdown — shown when **Use Existing Server** is off AND **Use JSON Config** is off. Default: `stdio`.
 
-Dropdown action: Test Connection, Connect, Disconnect, or Refresh Tools.
+| Label | ID |
+|-------|----|
+| Stdio (Command Line) | `stdio` |
+| SSE (Server-Sent Events) | `sse` |
+| HTTP (REST API) | `http` |
 
-### Advanced
+### Stdio fields (shown when `serverType` = `stdio` and form mode)
 
-Connection Timeout (seconds) and Retry Attempts sliders.
+- **Command Path** (`stdioCommand`) — path to the MCP server executable or npx command. Required.
+- **Script Path/Arguments** (`stdioArgs`) — path to the script file or additional command arguments.
+- **Environment Variables** (`stdioEnv`) — key/value table of environment variables for the process.
+
+### SSE fields (shown when `serverType` = `sse` and form mode)
+
+- **SSE Endpoint URL** (`sseEndpoint`) — full URL of the SSE endpoint (e.g. `https://api.example.com/mcp/sse`). Required.
+- **Authentication Headers** (`sseHeaders`) — header/value table for auth or custom headers.
+
+### HTTP fields (shown when `serverType` = `http` and form mode)
+
+- **Base URL** (`httpBaseUrl`) — base URL of the HTTP MCP server (e.g. `https://api.example.com`). Required.
+- **API Key / Token** (`httpApiKey`) — API key or bearer token (stored as a password field).
+- **Custom Headers** (`httpHeaders`) — header/value table for additional request headers.
+
+### Execute Tool (`selectedTool`)
+
+Dropdown — shown only when **Use Existing Server** is on. Dynamically populated with tools discovered from the selected server. Leave empty to perform only a connection action.
+
+### Tool Parameters (`toolParams`)
+
+JSON code editor — shown when **Use Existing Server** is on and a tool is selected. Parameters to pass to the chosen tool.
+
+```json
+{
+  "param1": "value1",
+  "param2": "value2"
+}
+```
+
+### Connection Management (`connectionAction`)
+
+Dropdown — always visible. Controls what the block does when executed. Default: `test`.
+
+| Label | ID |
+|-------|-----|
+| Test Connection | `test` |
+| Connect | `connect` |
+| Disconnect | `disconnect` |
+| Refresh Tools | `refresh` |
+
+### Advanced settings
+
+- **Connection Timeout** (`timeout`) — slider, 5–300 seconds, step 5. Default: 30 seconds.
+- **Retry Attempts** (`retryAttempts`) — slider, 0–10, step 1. Default: 3.
 
 ## Inputs & Outputs
 
 - **Inputs**:
-  - `workspaceId` (string) — workspace identifier (provided by context)
+  - `workspaceId` (string) — workspace identifier (provided automatically by execution context)
   - `serverName` (string) — name of the MCP server
-  - `serverType` (string) — type of MCP connection
-  - `config` (json) — server configuration parameters
-  - `rawMcpConfig` (json) — raw MCP JSON configuration (Claude Desktop format)
-  - `settings` (json) — connection and behavior settings
+  - `serverType` (string) — type of MCP connection (`stdio`, `sse`, or `http`)
+  - `config` (json) — server configuration parameters (built from form fields or raw JSON)
+  - `rawMcpConfig` (json) — raw MCP JSON configuration in Claude Desktop format
+  - `settings` (json) — connection and behavior settings (timeout, retryAttempts)
   - `execution` (json) — tool execution parameters
   - `action` (string) — connection management action
+
 - **Outputs**:
   - `serverId` (string) — unique server identifier
   - `serverName` (string) — server display name
-  - `connectionStatus` (string) — current connection status
-  - `availableTools` (json) — array of tools available from this server
-  - `serverMetadata` (json) — server information and statistics
-  - `executionResult` (json) — result from tool execution (if applicable)
-  - `error` (string) — error message if operation failed
+  - `connectionStatus` (string) — current connection status (`connected`, `disconnected`, or `error`)
+  - `availableTools` (json) — array of tools available from this server, each with id, name, description, category, inputSchema, and outputSchema
+  - `serverMetadata` (json) — server information and statistics (type, version, lastConnected, toolCount, avgLatency)
+  - `executionResult` (json) — result from tool execution when a tool was selected (toolName, result, success, latency, timestamp)
+  - `error` (string) — error message if the operation failed
+
+## Tools
+
+**MCP Server Creation** (`mcp_create_server`) — Creates and registers a new MCP server from form fields or pasted raw JSON config. Posts to `/api/mcp/create-server` and returns the server id, connection status, and available tools. Used when **Use Existing Server** is off.
+
+**MCP Server Connect** (`mcp_connect`) — Connects to or disconnects from a pre-configured MCP server. Uses `POST` for connect/test and `DELETE` for disconnect on `/api/mcp/servers/{id}/connection`. Returns connection status and available tools. Used when **Use Existing Server** is on and no tool is selected, or when the action is `disconnect`.
+
+**MCP Tool Discovery** (`mcp_discover_tools`) — Refreshes the tool catalog from a connected server. Posts to `/api/mcp/discover-tools` and returns `availableTools` along with discovery statistics (toolsFound, categoriesFound, lastUpdated). Used when the connection action is `refresh`.
+
+**MCP Tool Execution** (`mcp_execute_tool`) — Executes a named tool on a connected server with the supplied JSON parameters. Posts to `/api/mcp/execute-tool` and returns the `executionResult` (result data, latency, timestamp) and `toolMetadata`. Used when **Use Existing Server** is on and a tool is selected.
 
 ## YAML Example
 

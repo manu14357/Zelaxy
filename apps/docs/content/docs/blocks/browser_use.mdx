@@ -6,7 +6,7 @@ icon: Box
 
 # Browser Use Block
 
-The Browser Use block executes browser automation tasks with BrowserUse, letting an AI agent navigate the web, scrape data, and perform actions as if a real user were driving the browser. Reach for it when a workflow needs live, interactive web behavior that a simple HTTP request can't accomplish.
+The Browser Use block executes browser automation tasks with BrowserUse, letting an AI agent navigate the web, scrape data, and perform actions as if a real user were driving the browser. Reach for it when a workflow needs live, interactive web behavior that a simple HTTP request cannot accomplish. The task runs asynchronously and the block polls for completion before returning results.
 
 ## Overview
 
@@ -21,30 +21,55 @@ The Browser Use block executes browser automation tasks with BrowserUse, letting
 - Automate multi-step web interactions (logging in, filling forms, clicking through flows) that require a real browser.
 - Scrape data from sites that render content dynamically with JavaScript.
 - Perform research or data collection tasks described in natural language rather than hardcoded selectors.
-- Drive site actions that depend on session state or browser cookies (enable Save Browser Data to persist it).
-- Run tasks that must reason about page content step by step using an AI model.
+- Drive site actions that depend on session state or browser cookies (enable Save Browser Data to persist the session).
+- Run tasks that must reason about page content step by step using a chosen AI model.
+- Integrate browser-based automation into a larger workflow that then processes the extracted output or steps downstream.
 
 ## Configuration
 
 ### Task
-The natural-language instruction describing what the browser agent should do. Required.
+The natural-language instruction describing what the browser agent should do. This is the primary prompt sent to the BrowserUse AI agent. **Required.**
+
+Example: `Go to https://example.com, search for "AI workflows", and return the top 5 result titles.`
 
 ### Variables (Secrets)
-A key/value table of variables (e.g. credentials or dynamic values) passed into the task for substitution.
+A key/value table of variables passed into the task as secrets (e.g. credentials, tokens, or dynamic values). Each row has a **Key** and a **Value** column. The tool sends these as a `secrets` object so the agent can use them without embedding raw credentials in the task text.
 
 ### Model
-Dropdown selecting the AI model that drives the agent. Options: `gpt-4o`, `gemini-2.0-flash`, `gemini-2.0-flash-lite`, `claude-3-7-sonnet-20250219`, `llama-4-maverick-17b-128e-instruct`.
+Dropdown selecting the AI model that drives the browser agent. Default is `gpt-4o`.
+
+| Label | ID |
+|-------|----|
+| gpt-4o | `gpt-4o` |
+| gemini-2.0-flash | `gemini-2.0-flash` |
+| gemini-2.0-flash-lite | `gemini-2.0-flash-lite` |
+| claude-3-7-sonnet-20250219 | `claude-3-7-sonnet-20250219` |
+| llama-4-maverick-17b-128e-instruct | `llama-4-maverick-17b-128e-instruct` |
 
 ### Save Browser Data
-Switch to persist browser data (such as session/cookies) from the run.
+Switch (boolean) to persist browser session data (cookies, local storage) from the run so subsequent tasks can reuse the authenticated session.
 
 ### API Key
-Your BrowserUse API key, stored as a password field. Required.
+Your BrowserUse cloud API key, stored as a password field. Obtain one from the BrowserUse dashboard. **Required.** Use `{{BROWSER_USE_API_KEY}}` to pull the value from a workspace secret rather than hard-coding it.
 
 ## Inputs & Outputs
 
-- **Inputs**: `task` (string), `apiKey` (string), `variables` (json), `model` (string), `save_browser_data` (boolean)
-- **Outputs**: `id` (string), `success` (boolean), `output` (json), `steps` (json)
+- **Inputs**:
+  - `task` (string) — Browser automation task description
+  - `apiKey` (string) — BrowserUse API key
+  - `variables` (json) — Task variables / secrets passed to the agent
+  - `model` (string) — AI model to use for the browser agent
+  - `save_browser_data` (boolean) — Whether to save browser session data
+
+- **Outputs**:
+  - `id` (string) — Task execution identifier assigned by BrowserUse
+  - `success` (boolean) — Whether the task completed successfully (`finished` status)
+  - `output` (json) — Final output data returned by the task
+  - `steps` (json) — Array of execution steps taken by the agent, each containing goal, evaluation, URL, and any extracted data
+
+## Tools
+
+**Browser Use** (`browser_use_run_task`) — Submits a browser automation task to the BrowserUse API (`https://api.browser-use.com/api/v1/run-task`), then polls the task status endpoint every 5 seconds (up to 3 minutes) until the task reaches `finished`, `failed`, or `stopped`. Returns the final task output and step-by-step execution trace. Ad blocking and element highlighting are enabled by default on every run.
 
 ## YAML Example
 
@@ -53,10 +78,15 @@ browser_use_1:
   type: browser_use
   name: "Browser Use"
   inputs:
-    task: "Go to example.com and extract the page title"
+    task: "Go to https://example.com and extract the page title and first paragraph"
     model: "gpt-4o"
     save_browser_data: false
-    apiKey: "{{secrets.BROWSER_USE_API_KEY}}"
+    apiKey: "{{BROWSER_USE_API_KEY}}"
+    variables:
+      - Key: "username"
+        Value: "{{SITE_USERNAME}}"
+      - Key: "password"
+        Value: "{{SITE_PASSWORD}}"
   connections:
     outgoing:
       - target: next-block-id

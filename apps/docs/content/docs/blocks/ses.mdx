@@ -1,0 +1,156 @@
+---
+title: Amazon SES Block
+description: Send emails and list identities with Amazon SES v2
+icon: Mail
+---
+
+# Amazon SES Block
+
+Interact with Amazon Simple Email Service (SES) v2 to send transactional emails and list configured email identities. Authentication is handled via AWS access key credentials using SigV4 request signing.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `ses` |
+| **Category** | `tools` |
+| **Color** | `#FF9900` |
+
+## When to Use
+
+- Send transactional or automated emails (order confirmations, alerts, notifications) via a verified AWS SES sender address.
+- Deliver workflow output or generated content as an email to one or more recipients.
+- Audit or enumerate which email addresses and domains are verified in your SES account.
+- Chain with other blocks so that upstream results (e.g. a generated report) are emailed automatically.
+- Authenticate outbound messages securely using SigV4-signed AWS credentials — no SMTP relay needed.
+
+## Configuration
+
+### Operation
+
+**Required.** Selects which SES API action to invoke.
+
+| Label | ID |
+|-------|----|
+| Send email | `ses_send_email` |
+| List identities | `ses_list_identities` |
+
+Default: `ses_send_email`.
+
+---
+
+### From Email
+
+*Visible only when Operation = `ses_send_email`.*
+
+The verified sender email address in your SES account (e.g. `sender@example.com`). The address must be verified or belong to a verified domain in SES before emails can be sent from it.
+
+- **Type**: short-input (string)
+- **Placeholder**: `sender@example.com`
+
+---
+
+### To Email
+
+*Visible only when Operation = `ses_send_email`.*
+
+The recipient email address.
+
+- **Type**: short-input (string)
+- **Placeholder**: `recipient@example.com`
+
+---
+
+### Subject
+
+*Visible only when Operation = `ses_send_email`.*
+
+The subject line of the email.
+
+- **Type**: short-input (string)
+- **Placeholder**: `Email subject`
+
+---
+
+### Body
+
+*Visible only when Operation = `ses_send_email`.*
+
+The plain-text body content of the email.
+
+- **Type**: long-input (string)
+- **Placeholder**: `Email body`
+
+---
+
+### AWS Region
+
+**Required.** The AWS region where your SES account is configured (e.g. `us-east-1`).
+
+- **Type**: short-input (string)
+- **Placeholder**: `us-east-1`
+
+---
+
+### AWS Access Key ID
+
+**Required.** Your AWS IAM access key ID used for SigV4 request signing. Store this as a secret and reference it with `{{AWS_ACCESS_KEY_ID}}`.
+
+- **Type**: short-input (string, password)
+
+---
+
+### AWS Secret Access Key
+
+**Required.** Your AWS IAM secret access key used for SigV4 request signing. Store this as a secret and reference it with `{{AWS_SECRET_ACCESS_KEY}}`.
+
+- **Type**: short-input (string, password)
+
+---
+
+## Inputs & Outputs
+
+### Inputs
+
+- `operation` (string) — Operation to perform (`ses_send_email` or `ses_list_identities`)
+- `awsRegion` (string) — AWS region (e.g. `us-east-1`)
+- `awsAccessKeyId` (string) — AWS access key ID
+- `awsSecretAccessKey` (string) — AWS secret access key
+- `fromEmail` (string) — Sender email address (required for `ses_send_email`)
+- `toEmail` (string) — Recipient email address (required for `ses_send_email`)
+- `subject` (string) — Email subject line (required for `ses_send_email`)
+- `body` (string) — Email body plain text (required for `ses_send_email`)
+
+### Outputs
+
+- `data` (json) — Raw SES API response object. For `ses_send_email`, contains `MessageId`. For `ses_list_identities`, contains the list of email identity objects returned by the SES v2 API.
+
+---
+
+## Tools
+
+**SES Send Email** (`ses_send_email`) — Posts to the SES v2 `/v2/email/outbound-emails` endpoint to send a plain-text email from a verified sender address to a single recipient. All requests are signed using AWS SigV4. Required params: `awsRegion`, `awsAccessKeyId`, `awsSecretAccessKey`, `fromEmail`, `toEmail`, `subject`, `body`. Returns a JSON object containing the SES `MessageId`.
+
+**SES List Identities** (`ses_list_identities`) — Issues a GET request to the SES v2 `/v2/email/identities` endpoint to retrieve all verified email addresses and domains configured in the account. Required params: `awsRegion`, `awsAccessKeyId`, `awsSecretAccessKey`. Returns the full identities list from the SES v2 API.
+
+---
+
+## YAML Example
+
+```yaml
+ses_1:
+  type: ses
+  name: "Amazon SES"
+  inputs:
+    operation: "ses_send_email"
+    awsRegion: "{{AWS_REGION}}"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+    fromEmail: "notifications@example.com"
+    toEmail: "{{trigger.recipientEmail}}"
+    subject: "Your report is ready"
+    body: "{{report_block.summary}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

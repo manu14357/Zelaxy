@@ -1,0 +1,113 @@
+---
+title: Monday Block
+description: Manage boards and items in Monday.com
+icon: Box
+---
+
+# Monday Block
+
+The Monday block connects your workflows to the Monday.com GraphQL API. Use it to list boards, fetch items from a board, create new items, or update a column value on an existing item — authenticated with a Monday.com API token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `monday` |
+| **Category** | tools |
+| **Color** | `#FF3D57` |
+
+## When to Use
+
+- Retrieve a list of all boards in your Monday.com account to discover board IDs for downstream steps.
+- Fetch all items (rows) from a specific board so an agent can read their current column values.
+- Automatically create a new item on a board when a form is submitted, an email arrives, or an upstream block fires.
+- Update a single column value on an existing item — for example, moving a status column to "Done" after a task completes.
+- Bridge a multi-step workflow with Monday.com as the system of record for project work.
+- Report results back to Monday.com after an AI block finishes processing.
+
+## Configuration
+
+### Operation
+
+Selects which Monday.com action to execute. This field controls which additional fields appear.
+
+| Label | ID |
+|-------|----|
+| List boards | `monday_list_boards` |
+| Get board items | `monday_get_board_items` |
+| Create item | `monday_create_item` |
+| Update item | `monday_update_item` |
+
+**Field visibility by operation:**
+
+- `monday_list_boards` — shows **Limit**
+- `monday_get_board_items` — shows **Board ID**, **Limit**
+- `monday_create_item` — shows **Board ID**, **Item Name**
+- `monday_update_item` — shows **Item ID**, **Column ID**, **Value**
+
+### Board ID
+
+The numeric Monday.com board identifier (e.g. `1234567890`). Required for **Get board items** and **Create item**.
+
+### Limit
+
+Maximum number of records to return. Defaults to `25` when left blank. Applies to **List boards** and **Get board items**.
+
+### Item Name
+
+The display name for the new item. Required for **Create item**.
+
+### Item ID
+
+The numeric identifier of the item to update. Required for **Update item** (e.g. `9876543210`).
+
+### Column ID
+
+The Monday.com column identifier whose value will be changed. Required for **Update item** (e.g. `status`).
+
+### Value
+
+The new simple value to write to the column. Required for **Update item** (e.g. `Done`).
+
+### Monday API Token
+
+Your Monday.com personal or app API token. This field is **required**, stored as a password, and applies to every operation. Pass it as an environment variable reference: `{{MONDAY_API_KEY}}`.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`monday_list_boards`, `monday_get_board_items`, `monday_create_item`, or `monday_update_item`)
+  - `apiKey` (string) — Monday.com API token
+  - `boardId` (string) — Board ID (used by Get board items and Create item)
+  - `limit` (number) — Result limit (used by List boards and Get board items)
+  - `itemName` (string) — Item name (used by Create item)
+  - `itemId` (string) — Item ID (used by Update item)
+  - `columnId` (string) — Column ID (used by Update item)
+  - `value` (string) — Column value (used by Update item)
+
+- **Outputs**:
+  - `data` (json) — Result object or array from Monday.com (board list, item list, created item, or updated item)
+  - `metadata` (json) — Response metadata (e.g. `count` for list operations, `id` for mutation operations)
+
+## Tools
+
+- **Monday List Boards** (`monday_list_boards`) — Queries the Monday.com GraphQL API for all boards in the account up to the specified limit; returns an array of `{ id, name }` objects.
+- **Monday Get Board Items** (`monday_get_board_items`) — Fetches items from a single board identified by `boardId`; returns item objects with `id`, `name`, and all `column_values` (id, text, value).
+- **Monday Create Item** (`monday_create_item`) — Runs a `create_item` GraphQL mutation to add a new item with the given `itemName` to the specified board; returns the created item's `id` and `name`.
+- **Monday Update Item** (`monday_update_item`) — Runs a `change_simple_column_value` GraphQL mutation to update a single column on an existing item identified by `itemId`; returns the item's `id` and `name` after the update.
+
+## YAML Example
+
+```yaml
+monday_1:
+  type: monday
+  name: "Monday"
+  inputs:
+    operation: "monday_create_item"
+    apiKey: "{{MONDAY_API_KEY}}"
+    boardId: "1234567890"
+    itemName: "{{start.taskTitle}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

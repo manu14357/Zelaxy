@@ -1,0 +1,126 @@
+---
+title: Railway Tools
+description: List Railway projects, fetch project details, and list service deployments via the Railway GraphQL API.
+icon: Box
+---
+
+# Railway Tools
+
+Railway is a deployment platform for shipping applications and services. Use these tools in a workflow to inspect your Railway account: enumerate projects, read a project's services and environments, and list the deployments for a given service in an environment. All operations call the Railway GraphQL API and authenticate with a Railway API token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `railway` |
+| **Category** | `tools` |
+| **Auth** | Bearer Token (Railway API token, sent as `Authorization: Bearer <apiKey>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List projects | `railway_list_projects` | List Railway projects visible to the provided token |
+| Get project | `railway_get_project` | Get a Railway project with its services and environments |
+| List deployments | `railway_list_deployments` | List deployments for a Railway service in an environment |
+
+## Configuration
+
+### railway_list_projects
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Railway API token. **Secret** (user-only; not exposed to the LLM). Sent as a Bearer token. |
+| `first` | number | No | Maximum number of projects to return. Defaults to `20` when omitted. |
+
+### railway_get_project
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Railway API token. **Secret** (user-only; not exposed to the LLM). Sent as a Bearer token. |
+| `projectId` | string | Yes | Railway project ID. |
+
+### railway_list_deployments
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Railway API token. **Secret** (user-only; not exposed to the LLM). Sent as a Bearer token. |
+| `projectId` | string | Yes | Railway project ID. |
+| `serviceId` | string | Yes | Railway service ID. |
+| `environmentId` | string | Yes | Railway environment ID. |
+| `first` | number | No | Maximum number of deployments to return. Defaults to `10` when omitted. |
+
+## Outputs
+
+### railway_list_projects
+
+- `data` (json) — Array of Railway project objects. Each project includes `id`, `name`, `description`, and `createdAt`.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of projects returned.
+
+### railway_get_project
+
+- `data` (json) — The Railway project object, including `id`, `name`, `description`, `createdAt`, `services` (edges of `{ id, name }` nodes), and `environments` (edges of `{ id, name }` nodes).
+- `metadata` (json) — Project identifiers.
+  - `id` (string) — Project ID.
+
+### railway_list_deployments
+
+- `data` (json) — Array of Railway deployment objects. Each deployment includes `id`, `status`, `createdAt`, `url`, and `staticUrl`.
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of deployments returned.
+
+## YAML Example
+
+```yaml
+railway_1:
+  type: railway
+  name: "Railway"
+  inputs:
+    operation: "railway_list_projects"
+    first: 20
+    apiKey: "{{RAILWAY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Get a single project (with its services and environments):
+
+```yaml
+railway_2:
+  type: railway
+  name: "Railway"
+  inputs:
+    operation: "railway_get_project"
+    projectId: "{{railway_1.data.0.id}}"
+    apiKey: "{{RAILWAY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+List deployments for a service in an environment:
+
+```yaml
+railway_3:
+  type: railway
+  name: "Railway"
+  inputs:
+    operation: "railway_list_deployments"
+    projectId: "your-project-id"
+    serviceId: "your-service-id"
+    environmentId: "your-environment-id"
+    first: 10
+    apiKey: "{{RAILWAY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** Create an API token in your Railway account settings and pass it as `apiKey`. The token is sent as `Authorization: Bearer <apiKey>` to the Railway GraphQL endpoint (`https://backboard.railway.app/graphql/v2`). The field is marked secret (user-only), so the LLM never sees it — supply it from an environment variable like `{{RAILWAY_API_KEY}}`.
+- **Discover IDs first:** `railway_get_project` returns the project's `services` and `environments`. Run it before `railway_list_deployments` to obtain the `serviceId` and `environmentId` you need, e.g. `{{railway_2.data.services.edges.0.node.id}}` and `{{railway_2.data.environments.edges.0.node.id}}`.
+- **Limits:** `first` controls how many results come back. If omitted, `railway_list_projects` defaults to 20 and `railway_list_deployments` defaults to 10. Use it to keep result payloads small.
+- **All operations share one token:** Every operation requires the same `apiKey`. The token's visibility determines which projects, services, and deployments are returned.

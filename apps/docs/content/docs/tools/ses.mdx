@@ -1,0 +1,85 @@
+---
+title: Amazon SES Tools
+description: Send transactional emails and list verified identities with Amazon SES v2
+icon: Mail
+---
+
+# Amazon SES Tools
+
+Amazon Simple Email Service (SES) v2 lets you send transactional and marketing emails and inspect the email identities configured in your AWS account. Use these tools in a workflow to deliver notifications, alerts, or any outbound email from a verified sender, or to confirm which identities are available before sending.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `ses` |
+| **Category** | `tools` |
+| **Auth** | AWS SigV4 (AWS access key ID + secret access key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Send email | `ses_send_email` | Send a plain-text email through Amazon SES v2 |
+| List identities | `ses_list_identities` | List the email identities configured in Amazon SES v2 |
+
+## Configuration
+
+All operations authenticate with AWS SigV4 signing against the `ses` service. You provide the AWS region plus an access key ID and secret access key; the tool signs each request automatically (no separate API key or OAuth token). The access key ID and secret access key are secrets and should be supplied via environment variables.
+
+### `ses_send_email`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g. `us-east-1`). User-only — provided by the workflow author, not the LLM. |
+| `awsAccessKeyId` | string | Yes | **Secret.** AWS access key ID. User-only. |
+| `awsSecretAccessKey` | string | Yes | **Secret.** AWS secret access key. User-only. |
+| `fromEmail` | string | Yes | Verified sender email address. Can be set by the user or supplied by the LLM. |
+| `toEmail` | string | Yes | Recipient email address. Can be set by the user or supplied by the LLM. |
+| `subject` | string | Yes | Email subject line. Can be set by the user or supplied by the LLM. |
+| `body` | string | Yes | Email body (plain text). Can be set by the user or supplied by the LLM. |
+
+### `ses_list_identities`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g. `us-east-1`). User-only. |
+| `awsAccessKeyId` | string | Yes | **Secret.** AWS access key ID. User-only. |
+| `awsSecretAccessKey` | string | Yes | **Secret.** AWS secret access key. User-only. |
+
+## Outputs
+
+### `ses_send_email`
+
+- `data` (json) — SES SendEmail result, including the assigned `MessageId`.
+
+### `ses_list_identities`
+
+- `data` (json) — SES ListEmailIdentities result (the configured email identities).
+
+## YAML Example
+
+```yaml
+ses_1:
+  type: ses
+  name: "Amazon SES"
+  inputs:
+    operation: "ses_send_email"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{SES_AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{SES_AWS_SECRET_ACCESS_KEY}}"
+    fromEmail: "sender@example.com"
+    toEmail: "recipient@example.com"
+    subject: "Hello from Zelaxy"
+    body: "This email was sent through Amazon SES."
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authentication is AWS SigV4, not an API key — supply the AWS region, access key ID, and secret access key. The secret access key and access key ID are sensitive; reference them via environment variables (e.g. `{{SES_AWS_SECRET_ACCESS_KEY}}`) rather than hardcoding them.
+- The `fromEmail` must be a verified identity in the same region. Run `ses_list_identities` first to confirm which sender addresses or domains are available before sending.
+- The request hits `https://email.{awsRegion}.amazonaws.com`, so the `awsRegion` value must be the region where your SES identities are configured — a region mismatch will cause the send to fail.
+- `ses_send_email` sends plain-text bodies only (the body is delivered as `Text`); there is no HTML body parameter. Capture the returned `MessageId` from `{{ses_1.data}}` for downstream tracking.

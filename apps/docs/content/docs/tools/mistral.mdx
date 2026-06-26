@@ -1,0 +1,72 @@
+---
+title: Mistral Tools
+description: Extract text and structure from PDF documents using Mistral's OCR API.
+icon: FileText
+---
+
+# Mistral Tools
+
+The Mistral provider exposes Mistral's OCR API for extracting text and structure from PDF documents. Use it in a workflow when you need to turn a PDF (from a public URL or a direct upload) into Markdown, plain text, or raw JSON for downstream blocks.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `mistral` |
+| **Category** | tools |
+| **Auth** | API Key (sent as a `Bearer` token in the `Authorization` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Mistral PDF Parser | `mistral_parser` | Parse PDF documents using the Mistral OCR API |
+
+## Configuration
+
+### `mistral_parser`
+
+Parse a PDF document and return its content in the requested format. Calls `POST https://api.mistral.ai/v1/ocr` with the `mistral-ocr-latest` model.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `filePath` | string | Yes | URL to a PDF document to be processed. Must be a publicly accessible HTTP/HTTPS URL pointing to a valid PDF. Google Drive, Dropbox, and other cloud-storage links are not supported. (visibility: user-only) |
+| `fileUpload` | object | No | File-upload data from the file-upload component. When provided (and `filePath` is empty), its `url`/`path` is resolved to an absolute URL and used as the document source. (visibility: hidden) |
+| `resultType` | string | No | Output format for the extracted content. One of `markdown`, `text`, or `json`. Defaults to `markdown`. (visibility: user-or-llm) |
+| `includeImageBase64` | boolean | No | Include base64-encoded images in the response. (visibility: hidden) |
+| `pages` | array | No | Specific pages to process, as an array of zero-indexed page numbers (e.g. `[0, 1, 2]`). Leave empty to process all pages. Invalid/negative numbers are dropped. (visibility: user-only) |
+| `imageLimit` | number | No | Maximum number of images to extract from the PDF. Must be a positive integer. Supported by the parser but disabled in the UI. (visibility: hidden) |
+| `imageMinSize` | number | No | Minimum height and width (in pixels) for images to extract from the PDF. Must be a positive integer. Supported by the parser but disabled in the UI. (visibility: hidden) |
+| `apiKey` | string | Yes | **Secret.** Mistral API key (`MISTRAL_API_KEY`). Sent as `Authorization: Bearer <apiKey>`. (visibility: user-only) |
+
+## Outputs
+
+### `mistral_parser`
+
+- `success` (boolean) — Whether the PDF was parsed successfully.
+- `content` (string) — Extracted content in the requested format (Markdown, plain text, or JSON).
+- `metadata` (object) — Processing metadata. Includes `jobId`, `fileType`, `fileName`, `source`, `pageCount`, `usageInfo` (with `pagesProcessed` and `docSizeBytes`), `model`, `resultType`, `processedAt`, and `sourceUrl` (only for user-provided URLs).
+
+## YAML Example
+
+```yaml
+mistral_1:
+  type: mistral_parse
+  name: "Mistral Parser"
+  inputs:
+    operation: "mistral_parser"
+    filePath: "https://example.com/document.pdf"
+    resultType: "markdown"
+    pages: [0, 1, 2]
+    apiKey: "{{MISTRAL_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Set the API key via an environment variable and reference it with double braces, e.g. `apiKey: "{{MISTRAL_API_KEY}}"`. The key is sent as a Bearer token to `https://api.mistral.ai/v1/ocr`.
+- Provide a direct, publicly accessible `.pdf` URL. Google Drive, Dropbox, and other cloud-storage share links are rejected by the OCR API — use a direct download link from a web server instead. Alternatively, upload the PDF directly through the block (handled via `fileUpload`).
+- Choose `resultType` based on the next block: `markdown` (default) keeps formatting, `text` strips Markdown markers, and `json` returns the raw OCR response. Downstream blocks read the result via `{{mistral_1.content}}` and metadata via `{{mistral_1.metadata}}`.
+- Use `pages` (zero-indexed) to limit OCR to specific pages of large documents and reduce processing cost; leave it empty to process every page.

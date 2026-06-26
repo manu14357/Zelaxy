@@ -1,0 +1,94 @@
+---
+title: AWS STS Tools
+description: Retrieve the caller identity and request temporary session tokens from AWS Security Token Service (STS).
+icon: KeyRound
+---
+
+# AWS STS Tools
+
+AWS Security Token Service (STS) lets you confirm which IAM identity a set of credentials belongs to and mint short-lived, temporary AWS credentials. Use these tools in a workflow when you need to verify the account/principal behind your AWS keys or hand a downstream step time-limited session credentials instead of long-lived secrets.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `sts` |
+| **Category** | tools |
+| **Auth** | AWS SigV4 (AWS access key ID + secret access key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Get caller identity | `sts_get_caller_identity` | Return details about the IAM identity whose credentials are used to call the API. |
+| Get session token | `sts_get_session_token` | Return a set of temporary credentials for an AWS account or IAM user. |
+
+## Configuration
+
+Every operation calls the regional STS endpoint `https://sts.{awsRegion}.amazonaws.com/` over `POST` with a form-encoded body (`Action`, `Version`, and operation params). Requests are signed with AWS Signature Version 4 using the supplied access key ID and secret access key; there is no separate API key or bearer token.
+
+### `sts_get_caller_identity`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g. `us-east-1`). Determines the STS endpoint host. |
+| `awsAccessKeyId` | string | Yes | AWS access key ID. **Secret** — treat as a credential. |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key. **Secret** — treat as a credential. |
+
+### `sts_get_session_token`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `awsRegion` | string | Yes | AWS region (e.g. `us-east-1`). Determines the STS endpoint host. |
+| `awsAccessKeyId` | string | Yes | AWS access key ID. **Secret** — treat as a credential. |
+| `awsSecretAccessKey` | string | Yes | AWS secret access key. **Secret** — treat as a credential. |
+| `durationSeconds` | number | No | Duration of the temporary credentials in seconds. Defaults to `3600` (1 hour). |
+
+## Outputs
+
+### `sts_get_caller_identity`
+
+- `data` (json) — STS GetCallerIdentity result. Contains `Arn`, `UserId`, and `Account`.
+
+### `sts_get_session_token`
+
+- `data` (json) — STS GetSessionToken result. Contains `AccessKeyId`, `SecretAccessKey`, `SessionToken`, and `Expiration`.
+
+## YAML Example
+
+```yaml
+sts_1:
+  type: sts
+  name: "AWS STS"
+  inputs:
+    operation: "sts_get_caller_identity"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To mint temporary credentials instead, switch the operation and add an optional duration:
+
+```yaml
+sts_2:
+  type: sts
+  name: "AWS STS"
+  inputs:
+    operation: "sts_get_session_token"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+    durationSeconds: 3600
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth is AWS SigV4, not an API key.** Provide `awsAccessKeyId` and `awsSecretAccessKey` (store them as environment variables and reference with `{{AWS_ACCESS_KEY_ID}}` / `{{AWS_SECRET_ACCESS_KEY}}`); the request is signed for the `sts` service in the chosen `awsRegion`. There is no `apiKey` parameter.
+- **Verify identity before privileged steps.** Run `sts_get_caller_identity` and read `{{sts_1.data.Account}}` or `{{sts_1.data.Arn}}` to confirm a workflow is using the AWS account/principal you expect before performing sensitive AWS actions.
+- **Use session tokens to avoid spreading long-lived keys.** `sts_get_session_token` returns `{{sts_1.data.SessionToken}}` (plus `AccessKeyId`, `SecretAccessKey`, `Expiration`). Pass these temporary credentials to downstream blocks and keep `durationSeconds` as short as your use case allows.

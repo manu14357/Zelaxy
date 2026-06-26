@@ -1,7 +1,7 @@
 ---
 title: Video Generator (Legacy) Block
 description: Generate videos from text and images using AI
-icon: Box
+icon: Video
 ---
 
 # Video Generator (Legacy) Block
@@ -27,31 +27,169 @@ The Video Generator block creates AI videos from text prompts and optional start
 
 ## Configuration
 
-### Provider
-Choose the video generation backend: Fal.ai, Runway, Luma, Minimax, or Veo. The selected provider determines which model dropdown is shown.
+### Provider (`provider`)
 
-### Model
-A provider-specific model dropdown (`falaiModel`, `runwayModel`, `lumaModel`, `minimaxModel`, or `veoModel`) appears based on the chosen provider — e.g. Wan / Kling / Seedance for Fal.ai, Gen4 Turbo for Runway, Ray 2 for Luma.
+Required. Choose the video generation backend. The selected provider determines which model dropdown is shown.
 
-### Prompt
-Required text describing the video you want to generate.
+| Label | ID |
+|-------|----|
+| Fal.ai | `falai` |
+| Runway | `runway` |
+| Luma | `luma` |
+| Minimax | `minimax` |
+| Veo | `veo` |
 
-### Duration, Resolution & Aspect Ratio
-Set clip length in seconds, output resolution (480p / 720p / 1080p), and aspect ratio (16:9, 9:16, 1:1, 4:3, 3:4).
+### Fal.ai Model (`falaiModel`)
 
-### Start / End Image
-Provide a start image via file upload (`imageFile`) or URL (`imageUrl`) for image-to-video. An end image URL (`endImageUrl`) enables interpolation on Luma, Runway, and Fal.ai.
+Shown when **Provider** is `falai`. Default: `fal-ai/wan/v2.1/1.3b/text-to-video`.
 
-### Advanced Options
-`enableAudio` (Minimax / Fal.ai), `cameraMotion` (Luma), `negativePrompt`, and `seed` for reproducibility.
+| Label | ID |
+|-------|----|
+| Wan T2V (720p) | `fal-ai/wan/v2.1/1.3b/text-to-video` |
+| Wan T2V 14B (480p) | `fal-ai/wan/v2.1/14b/text-to-video/480p` |
+| Wan T2V 14B (720p) | `fal-ai/wan/v2.1/14b/text-to-video` |
+| LTX Video | `fal-ai/ltx-video` |
+| Kling 2.0 Pro (T2V) | `fal-ai/kling-video/v2/master/text-to-video` |
+| Kling 2.0 Pro (I2V) | `fal-ai/kling-video/v2/master/image-to-video` |
+| Kling 1.6 Pro (T2V) | `fal-ai/kling-video/v1.6/pro/text-to-video` |
+| Kling 1.6 Pro (I2V) | `fal-ai/kling-video/v1.6/pro/image-to-video` |
+| Minimax Hailuo-02 | `fal-ai/minimax/video-01-live` |
+| Seedance 1.0 Lite | `fal-ai/bytedance/seedance/v1/lite/text-to-video` |
+| Seedance 1.0 Pro (T2V) | `fal-ai/bytedance/seedance/v1/pro/text-to-video` |
+| Seedance 1.0 Pro (I2V) | `fal-ai/bytedance/seedance/v1/pro/image-to-video` |
 
-### API Key
-Required provider API key (stored as a password field).
+### Runway Model (`runwayModel`)
+
+Shown when **Provider** is `runway`. Default: `gen4_turbo`.
+
+| Label | ID |
+|-------|----|
+| Gen4 Turbo | `gen4_turbo` |
+| Gen3 Alpha Turbo | `gen3a_turbo` |
+
+### Luma Model (`lumaModel`)
+
+Shown when **Provider** is `luma`. Default: `ray-2-flash`.
+
+| Label | ID |
+|-------|----|
+| Ray 2 Flash | `ray-2-flash` |
+| Ray 2 | `ray-2` |
+| Ray 1.6 Fast | `ray-1-6` |
+
+### Minimax Model (`minimaxModel`)
+
+Shown when **Provider** is `minimax`. Default: `video-01`.
+
+| Label | ID |
+|-------|----|
+| Hailuo-02 Standard | `video-01` |
+| Hailuo-02 Pro | `video-01-pro` |
+
+### Veo Model (`veoModel`)
+
+Shown when **Provider** is `veo`. Default: `veo-2`.
+
+| Label | ID |
+|-------|----|
+| Veo 2 | `veo-2` |
+| Veo 3 Fast | `veo-3-fast` |
+
+### Prompt (`prompt`)
+
+Required. Free-text description of the video you want to generate (long-input field).
+
+### Duration (`duration`)
+
+Optional. Clip length in seconds (e.g. `5`). Supported values depend on the provider — Runway accepts 5 or 10 seconds.
+
+### Resolution (`resolution`)
+
+Optional. Output resolution. Default: provider default.
+
+| Label | ID |
+|-------|----|
+| Default | *(empty)* |
+| 480p | `480p` |
+| 720p | `720p` |
+| 1080p | `1080p` |
+
+### Aspect Ratio (`aspectRatio`)
+
+Optional. Output aspect ratio. Default: `16:9`.
+
+| Label | ID |
+|-------|----|
+| 16:9 | `16:9` |
+| 9:16 | `9:16` |
+| 1:1 | `1:1` |
+| 4:3 | `4:3` |
+| 3:4 | `3:4` |
+
+### Start Image (`imageFile` / `imageUrl`)
+
+Optional. Provide a start image for image-to-video generation either by uploading a file (`imageFile`) or entering a URL (`imageUrl`). When both are provided, `imageFile` takes precedence. Available in basic/advanced mode respectively.
+
+### End Image URL (`endImageUrl`) — Advanced
+
+Optional. URL of an image to use as the last frame for interpolation. Available when **Provider** is `luma`, `runway`, or `falai`.
+
+### Enable Audio (`enableAudio`) — Advanced
+
+Optional toggle. Enables audio generation. Available when **Provider** is `minimax` or `falai`.
+
+### Camera Motion (`cameraMotion`) — Advanced
+
+Optional. Camera motion description string (e.g. `camera dolly forward`). Available when **Provider** is `luma`.
+
+### Negative Prompt (`negativePrompt`) — Advanced
+
+Optional. Elements to exclude from the generated video.
+
+### Seed (`seed`) — Advanced
+
+Optional. Integer seed for reproducible results.
+
+### API Key (`apiKey`)
+
+Required. Provider-specific API key (stored as a password field). Use `{{YOUR_PROVIDER_API_KEY}}` to reference a workflow secret.
 
 ## Inputs & Outputs
 
-- **Inputs**: `provider` (string), `falaiModel` (string), `runwayModel` (string), `lumaModel` (string), `minimaxModel` (string), `veoModel` (string), `prompt` (string), `duration` (string), `resolution` (string), `aspectRatio` (string), `imageUrl` (string), `imageFile` (json), `endImageUrl` (string), `enableAudio` (boolean), `cameraMotion` (string), `negativePrompt` (string), `seed` (string), `apiKey` (string)
-- **Outputs**: `videoUrl` (string), `id` (string), `status` (string), `duration` (number), `thumbnailUrl` (string)
+- **Inputs**:
+  - `provider` (string) — Video generation provider
+  - `falaiModel` (string) — Fal.ai model ID
+  - `runwayModel` (string) — Runway model ID
+  - `lumaModel` (string) — Luma model ID
+  - `minimaxModel` (string) — Minimax model ID
+  - `veoModel` (string) — Veo model ID
+  - `prompt` (string) — Video generation prompt
+  - `duration` (string) — Video duration in seconds
+  - `resolution` (string) — Output resolution
+  - `aspectRatio` (string) — Output aspect ratio
+  - `imageUrl` (string) — Start image URL
+  - `imageFile` (json) — Start image file object
+  - `endImageUrl` (string) — End image URL for interpolation
+  - `enableAudio` (boolean) — Whether to enable audio generation
+  - `cameraMotion` (string) — Camera motion description (Luma)
+  - `negativePrompt` (string) — Elements to exclude from the video
+  - `seed` (string) — Random seed for reproducibility
+  - `apiKey` (string) — Provider API key
+
+- **Outputs**:
+  - `videoUrl` (string) — URL to the generated video
+  - `id` (string) — Generation job ID
+  - `status` (string) — Generation status
+  - `duration` (number) — Video duration in seconds
+  - `thumbnailUrl` (string) — Video thumbnail URL
+
+## Tools
+
+- **Generate Video with Runway** (`runway_generate_video`) — Generates a video via the Runway API (Gen4 Turbo or Gen3 Alpha Turbo). Accepts a text prompt and optional start/end frame images, duration, aspect ratio, negative prompt, and seed.
+- **Generate Video with Luma AI** (`luma_generate_video`) — Generates a video using Luma AI Dream Machine models (Ray 2 / Ray 2 Flash / Ray 1.6 Fast). Supports image-to-video, camera motion control, resolution, aspect ratio, negative prompt, and seed.
+- **Generate Video with MiniMax** (`minimax_generate_video`) — Generates a video using MiniMax Hailuo video models. Accepts prompt, duration, resolution, start image, prompt optimizer toggle, negative prompt, and seed.
+- **Generate Video with fal.ai** (`falai_generate_video`) — Generates a video using any fal.ai video endpoint (Wan, Kling, Seedance, LTX, etc.). Accepts prompt, model endpoint, duration, aspect ratio, start image, audio flag, negative prompt, and seed.
+- **Generate Video with Google Veo** (`veo_generate_video`) — Generates a video using Google Veo models (Veo 2 or Veo 3 Fast). Accepts prompt, model, duration, aspect ratio, resolution, start image, audio flag, negative prompt, and seed.
 
 ## YAML Example
 

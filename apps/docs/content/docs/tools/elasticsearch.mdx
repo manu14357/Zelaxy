@@ -1,0 +1,104 @@
+---
+title: Elasticsearch
+description: Search, index, and manage documents in Elasticsearch clusters
+icon: Search
+---
+
+# Elasticsearch
+
+Search, index, and manage documents in Elasticsearch — the distributed full-text search and analytics engine. Use it to power keyword and JSON-query searches, ingest documents into indices, retrieve or delete specific records, and run bulk operations across your cluster.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `elasticsearch` |
+| **Category** | Tool — Database |
+| **Auth** | API Key (optional; passed as `ApiKey` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Search** | `elasticsearch_search` | Search documents in an index using an Elasticsearch query DSL object |
+| **Index Document** | `elasticsearch_index` | Create or replace a document in an index (auto-generates an ID when none is provided) |
+| **Get Document** | `elasticsearch_get` | Retrieve a single document by its ID |
+| **Delete Document** | `elasticsearch_delete` | Delete a document from an index by its ID |
+| **Bulk Operations** | `elasticsearch_bulk` | Perform multiple index, delete, or update operations in one NDJSON request |
+| **List Indices** | `elasticsearch_list_indices` | List all indices in the cluster with their metadata |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `url` | `string` | Yes | Elasticsearch base URL, e.g. `https://my-cluster.es.io:9200`. Used by every operation. |
+| `apiKey` | `string` (secret) | No | Elasticsearch API key for authentication. Sent as `Authorization: ApiKey <key>`. Omit when the cluster allows anonymous access. |
+| `index` | `string` | Yes (all except Bulk and List Indices) | Name of the target index. |
+| `documentId` | `string` | Yes (Get, Delete); No (Index) | ID of the document to retrieve, delete, or overwrite. If omitted for Index Document, Elasticsearch auto-generates an ID. |
+| `query` | `string` | Yes (Search) | Elasticsearch query as a JSON string, e.g. `{"match": {"title": "hello"}}`. Parsed and sent inside the `query` key of the request body. |
+| `size` | `number` | No (Search) | Maximum number of results to return. Defaults to `10`. |
+| `document` | `string` | Yes (Index Document) | Document body as a JSON string, e.g. `{"title": "hello", "score": 42}`. |
+| `body` | `string` | Yes (Bulk Operations) | Full NDJSON payload for the `_bulk` API. Each line must be a valid JSON object; action lines and source lines alternate. |
+
+## Outputs
+
+### Search (`elasticsearch_search`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `hits` | `json` | Array of matching document objects returned by Elasticsearch |
+| `total` | `number` | Total number of documents that matched the query |
+| `took` | `number` | Time in milliseconds Elasticsearch spent executing the search |
+
+### Index Document (`elasticsearch_index`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | ID assigned to the indexed document |
+| `index` | `string` | Name of the index the document was written to |
+| `result` | `string` | Outcome string from Elasticsearch (`created` or `updated`) |
+
+### Get Document (`elasticsearch_get`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | ID of the retrieved document |
+| `index` | `string` | Name of the index the document was retrieved from |
+| `source` | `json` | Full `_source` body of the document |
+
+### Delete Document (`elasticsearch_delete`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | ID of the deleted document |
+| `index` | `string` | Name of the index the document was deleted from |
+| `result` | `string` | Outcome string from Elasticsearch (`deleted`) |
+
+### Bulk Operations (`elasticsearch_bulk`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `took` | `number` | Time in milliseconds for the bulk request |
+| `errors` | `boolean` | Whether any individual operation in the batch had an error |
+| `items` | `json` | Array of per-operation result objects, one per action line in the NDJSON body |
+
+### List Indices (`elasticsearch_list_indices`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `indices` | `json` | Array of index metadata objects returned by the `_cat/indices` API |
+
+## Example
+
+```
+[Starter] → [Elasticsearch: Search] → [Agent: summarize the results]
+```
+
+Connect the Starter block to an Elasticsearch block configured with `url` set to `{{ELASTICSEARCH_URL}}` and `apiKey` set to `{{ELASTICSEARCH_API_KEY}}`. Set the `index` to `products` and pass the `query` as `{"match": {"description": "{{starter.input}}"}}`. The Agent block receives `{{elasticsearch.hits}}` and `{{elasticsearch.total}}` and produces a human-readable summary of the matching products.
+
+## Tips
+
+- **API Key is optional** — if your Elasticsearch cluster is open (e.g. a local dev node), leave `apiKey` blank. For Elastic Cloud or any secured deployment, generate an API key in Kibana under Stack Management > API keys and store it as a workflow secret referenced via `{{ELASTICSEARCH_API_KEY}}`.
+- **Use Bulk Operations for high-throughput ingestion** — instead of looping the Index Document operation, build an NDJSON body and send it in one `elasticsearch_bulk` call. Check the `errors` output and inspect `items` to identify any partial failures.
+- **Query DSL must be valid JSON** — the `query` param is parsed with `JSON.parse` before being sent, so double-check the JSON syntax. A minimal match-all query is `{"match_all": {}}`.
+- **Index Document auto-ID vs explicit ID** — omit `documentId` to let Elasticsearch assign a unique ID (uses POST `/_doc`); provide `documentId` to upsert by a known key (uses PUT `/_doc/<id>`). The `result` output tells you whether the document was `created` or `updated`.

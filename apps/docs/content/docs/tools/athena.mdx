@@ -1,0 +1,110 @@
+---
+title: AWS Athena
+description: Run SQL queries on data stored in Amazon S3 using AWS Athena
+icon: Database
+---
+
+# AWS Athena
+
+Execute SQL queries directly against data in Amazon S3 with AWS Athena — no servers to provision. Use it in workflows to query data lakes, retrieve results, monitor running queries, and cancel them when needed.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `athena` |
+| **Category** | Tool — Database |
+| **Auth** | AWS Access Key ID + Secret Access Key |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Start Query** | `athena_start_query` | Submit a SQL query for execution; returns the execution ID immediately (async) |
+| **Get Query Results** | `athena_get_query_results` | Retrieve the result rows of a completed query execution |
+| **Get Query Execution** | `athena_get_query_execution` | Check the status and performance details of any query execution |
+| **Stop Query** | `athena_stop_query` | Cancel a running or queued query execution |
+| **List Query Executions** | `athena_list_query_executions` | List recent query execution IDs in a workgroup |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `awsRegion` | `string` | Yes | AWS region where your Athena workgroup lives (e.g., `us-east-1`) |
+| `awsAccessKeyId` | `string` | Yes | **Secret.** AWS access key ID for the IAM user or role |
+| `awsSecretAccessKey` | `string` | Yes | **Secret.** AWS secret access key paired with the access key ID |
+| `queryString` | `string` | Yes (Start Query only) | SQL statement to execute (e.g., `SELECT * FROM logs LIMIT 100`) |
+| `database` | `string` | No | Database name within the catalog to run the query against |
+| `catalog` | `string` | No | Data catalog name; defaults to `AwsDataCatalog` |
+| `outputLocation` | `string` | No | S3 URI where Athena writes result files (e.g., `s3://my-bucket/query-results/`) |
+| `workGroup` | `string` | No | Athena workgroup to use; defaults to `primary` |
+| `queryExecutionId` | `string` | Yes (Get Results / Get Execution / Stop Query) | The execution ID returned by Start Query or List Query Executions |
+| `maxResults` | `number` | No | Maximum rows/IDs to return per page. Get Query Results: 1–999; List Query Executions: 0–50 |
+| `nextToken` | `string` | No | Pagination token from a previous Get Query Results or List Query Executions response |
+
+## Outputs
+
+### Start Query (`athena_start_query`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `queryExecutionId` | `string` | Unique ID of the started query execution; pass this to subsequent operations |
+
+### Get Query Results (`athena_get_query_results`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `columns` | `array` | Column metadata objects (name and type) |
+| `rows` | `array` | Result rows as key-value objects |
+| `nextToken` | `string` | Pagination token for the next page of results (optional) |
+| `updateCount` | `number` | Number of rows affected for INSERT/UPDATE statements (optional) |
+
+### Get Query Execution (`athena_get_query_execution`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `queryExecutionId` | `string` | The execution ID |
+| `query` | `string` | The SQL statement that was submitted |
+| `state` | `string` | Current state: `QUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED`, or `CANCELLED` |
+| `stateChangeReason` | `string` | Error message or reason for state transition (optional) |
+| `statementType` | `string` | Statement category: `DDL`, `DML`, or `UTILITY` (optional) |
+| `database` | `string` | Database the query ran against (optional) |
+| `catalog` | `string` | Data catalog used (optional) |
+| `workGroup` | `string` | Workgroup the query ran in (optional) |
+| `submissionDateTime` | `number` | Unix epoch ms when the query was submitted (optional) |
+| `completionDateTime` | `number` | Unix epoch ms when the query finished (optional) |
+| `dataScannedInBytes` | `number` | Bytes of S3 data scanned (optional) |
+| `engineExecutionTimeInMillis` | `number` | Time the engine spent executing in ms (optional) |
+| `queryPlanningTimeInMillis` | `number` | Time spent on query planning in ms (optional) |
+| `queryQueueTimeInMillis` | `number` | Time the query waited in queue in ms (optional) |
+| `totalExecutionTimeInMillis` | `number` | Total wall-clock execution time in ms (optional) |
+| `outputLocation` | `string` | S3 URI of the result files (optional) |
+
+### Stop Query (`athena_stop_query`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | `true` if the cancellation request was accepted |
+
+### List Query Executions (`athena_list_query_executions`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `queryExecutionIds` | `array` | List of query execution ID strings |
+| `nextToken` | `string` | Pagination token for the next page (optional) |
+
+## Example
+
+```
+[Starter] → [Athena: Start Query] → [Athena: Get Query Execution] → [Agent: summarize results]
+```
+
+Configure the Start Query block with `awsAccessKeyId: {{AWS_ACCESS_KEY_ID}}`, `awsSecretAccessKey: {{AWS_SECRET_ACCESS_KEY}}`, `awsRegion: us-east-1`, and a query like `SELECT user_id, event, COUNT(*) as cnt FROM events.clicks WHERE dt = '{{starter.date}}' GROUP BY 1, 2`. Feed the returned `{{startQuery.queryExecutionId}}` into Get Query Execution to poll for `SUCCEEDED`, then pass `{{startQuery.queryExecutionId}}` to Get Query Results and hand `{{getQueryResults.rows}}` to an Agent block to narrate the findings.
+
+## Tips
+
+- **Athena is asynchronous** — Start Query returns immediately with an execution ID; use Get Query Execution in a loop (or a Wait block) to poll until `state` is `SUCCEEDED` before calling Get Query Results.
+- **outputLocation is required unless your workgroup has a default** — if you omit it and your workgroup has no configured output location, Athena will reject the query with an error.
+- **Cost control** — use `LIMIT` clauses and partition filters in your SQL; check `dataScannedInBytes` from Get Query Execution to monitor scan volume.
+- **IAM permissions needed** — the access key must have `athena:StartQueryExecution`, `athena:GetQueryExecution`, `athena:GetQueryResults`, `athena:StopQueryExecution`, `athena:ListQueryExecutions`, and `s3:PutObject`/`s3:GetObject` on the output bucket.
+- **Pagination** — Get Query Results caps at 999 rows per call; use the returned `nextToken` in a loop to page through large result sets.

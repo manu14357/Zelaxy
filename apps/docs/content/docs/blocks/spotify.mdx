@@ -1,0 +1,166 @@
+---
+title: Spotify Block
+description: Search and fetch tracks, artists, and playlists from Spotify
+icon: Music
+---
+
+# Spotify Block
+
+Search Spotify for tracks and artists, retrieve track, artist, and playlist details, and list your own playlists through the Spotify Web API. Authenticate with a Spotify access token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `spotify` |
+| **Category** | `tools` |
+| **Color** | `#1DB954` |
+
+## When to Use
+
+- Search Spotify's catalog for tracks or artists by keyword and retrieve a ranked list of matches
+- Fetch the full metadata for a specific track when you know its Spotify ID (name, album, duration, popularity, preview URL, etc.)
+- Retrieve detailed information about a specific artist — genres, follower count, images, and popularity score
+- Load the full contents of any public playlist by its Spotify ID, including the track list and playlist metadata
+- List all playlists owned or followed by the authenticated user to build a personal music dashboard or sync tool
+- Chain Spotify lookups with other blocks — for example, search for a track, pass `{{spotify_1.data}}` to an Agent block that picks the best match, then fetch the full track details with a second Spotify block
+
+## Configuration
+
+### Operation
+
+The **Operation** dropdown selects which Spotify API call to execute. All other fields shown depend on the selected operation.
+
+| Label | ID |
+|-------|----|
+| Search | `spotify_search` |
+| Get track | `spotify_get_track` |
+| Get artist | `spotify_get_artist` |
+| Get playlist | `spotify_get_playlist` |
+| List my playlists | `spotify_list_my_playlists` |
+
+**Fields shown per operation:**
+
+| Operation | Fields required |
+|-----------|----------------|
+| `spotify_search` | `query`, `type`, `limit` |
+| `spotify_get_track` | `trackId` |
+| `spotify_get_artist` | `artistId` |
+| `spotify_get_playlist` | `playlistId` |
+| `spotify_list_my_playlists` | `limit` |
+
+---
+
+### Query *(Search only)*
+
+**Type:** short-input | **Required for Search**
+
+The keyword or phrase to search Spotify's catalog. Supports Spotify's full query syntax (e.g. `artist:Queen`, `year:1990-2000`).
+
+Example: `Bohemian Rhapsody`
+
+---
+
+### Type *(Search only)*
+
+**Type:** dropdown | **Optional (defaults to `track`)**
+
+The kind of item to search for.
+
+| Label | ID |
+|-------|----|
+| Track | `track` |
+| Artist | `artist` |
+
+---
+
+### Track ID *(Get track only)*
+
+**Type:** short-input | **Required for Get track**
+
+The Spotify track ID (22-character alphanumeric string from a Spotify track URL or URI).
+
+Example: `11dFghVXANMlKmJXsNCbNl`
+
+---
+
+### Artist ID *(Get artist only)*
+
+**Type:** short-input | **Required for Get artist**
+
+The Spotify artist ID found in the artist's Spotify URL or URI.
+
+Example: `0OdUWJ0sBjDrqHygGUXeCF`
+
+---
+
+### Playlist ID *(Get playlist only)*
+
+**Type:** short-input | **Required for Get playlist**
+
+The Spotify playlist ID from the playlist's share URL.
+
+Example: `37i9dQZF1DXcBWIGoYBM5M`
+
+---
+
+### Limit *(Search and List my playlists)*
+
+**Type:** short-input | **Optional**
+
+Maximum number of results to return. Defaults to 20; maximum is 50.
+
+Example: `20`
+
+---
+
+### Spotify Access Token
+
+**Type:** short-input (password) | **Required — all operations**
+
+A valid Spotify OAuth 2.0 Bearer access token. Obtain one from the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) using the Authorization Code or Client Credentials flow. Store it as a workflow secret and reference it as `{{SPOTIFY_ACCESS_TOKEN}}`.
+
+Example placeholder: `BQ...`
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`spotify_search`, `spotify_get_track`, `spotify_get_artist`, `spotify_get_playlist`, or `spotify_list_my_playlists`)
+- `apiKey` (string) — Spotify access token (Bearer token from Spotify OAuth)
+- `query` (string) — Search query (used by `spotify_search`)
+- `type` (string) — Search item type: `track` or `artist` (used by `spotify_search`)
+- `trackId` (string) — Track ID (used by `spotify_get_track`)
+- `artistId` (string) — Artist ID (used by `spotify_get_artist`)
+- `playlistId` (string) — Playlist ID (used by `spotify_get_playlist`)
+- `limit` (number) — Result limit, default 20, max 50 (used by `spotify_search` and `spotify_list_my_playlists`)
+
+**Outputs:**
+
+- `data` (json) — Result object or array from Spotify. For Search and List my playlists: an array of matching Spotify item objects. For Get track / Get artist / Get playlist: a single detailed Spotify object.
+- `metadata` (json) — Response metadata. For Search / List: `{ count, total }`. For Get track / Get artist / Get playlist: `{ id, type }`.
+
+## Tools
+
+- **Spotify Search** (`spotify_search`) — Calls `GET /v1/search` on the Spotify Web API with the provided `query` and `type`. Returns an array of matching track or artist objects plus pagination metadata (`count`, `total`).
+- **Spotify Get Track** (`spotify_get_track`) — Calls `GET /v1/tracks/{trackId}`. Returns a full Spotify track object (name, artists, album, duration, popularity, preview URL, etc.) plus `{ id, type }` metadata.
+- **Spotify Get Artist** (`spotify_get_artist`) — Calls `GET /v1/artists/{artistId}`. Returns a full Spotify artist object (name, genres, followers, popularity, images) plus `{ id, type }` metadata.
+- **Spotify Get Playlist** (`spotify_get_playlist`) — Calls `GET /v1/playlists/{playlistId}`. Returns the full Spotify playlist object including the track list, owner, description, and images, plus `{ id, type }` metadata.
+- **Spotify List My Playlists** (`spotify_list_my_playlists`) — Calls `GET /v1/me/playlists` for the authenticated user. Returns an array of the user's playlists (owned and followed) plus `{ count, total }` metadata.
+
+## YAML Example
+
+```yaml
+spotify_1:
+  type: spotify
+  name: "Spotify"
+  inputs:
+    operation: "spotify_search"
+    apiKey: "{{SPOTIFY_ACCESS_TOKEN}}"
+    query: "Bohemian Rhapsody"
+    type: "track"
+    limit: 10
+  connections:
+    outgoing:
+      - target: next-block-id
+```

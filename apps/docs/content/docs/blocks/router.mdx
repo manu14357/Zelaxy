@@ -1,77 +1,106 @@
 ---
 title: Router Block
-description: Route workflow execution to multiple paths based on AI classification
+description: Route workflow execution to different paths based on AI-powered input analysis
 icon: Route
 ---
 
 # Router Block
 
-The Router block splits workflow execution into up to 4 different paths based on AI-powered classification. Unlike the Condition block (which only does True/False), the Router can direct flow to multiple named destinations — making it ideal for classification, categorization, and multi-branch decision trees.
+Intelligently directs workflow execution to different paths based on input analysis. Use an AI model to determine the most appropriate next block in your workflow based on content, intent, or any criteria you express in a prompt.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `router` |
-| **Category** | Core Block |
-| **Color** | `#F7931E` (Amber) |
+| **Category** | `blocks` |
+| **Color** | `#28C43F` |
 
 ## When to Use
 
-- You need 3 or more branching paths (Condition only supports 2)
-- You want AI to classify input into categories
-- You're building a multi-intent chatbot or ticket routing system
-- You need to route based on content type, language, or topic
+- You need to fan out to 3 or more different workflow branches based on AI classification
+- You want to route support tickets, messages, or requests to the most appropriate handler
+- You are building a multi-intent chatbot where each intent leads to a different agent
+- You need dynamic path selection that reasons over content, topic, language, or intent
+- You want a single LLM call to replace a chain of condition blocks
+- You need to direct execution to a named block based on free-form instructions
 
 ## Configuration
 
-| Setting | Type | Description |
-|---------|------|-------------|
-| Route Prompt | Long text | Instructions for the LLM on how to classify input |
-| Context | Long text | The data to classify (e.g., `{{starter.input}}`) |
-| Model | Dropdown | LLM model for classification |
-| API Key | Password | Provider API key |
+### Prompt
 
-### Routes
-Define 2–4 named routes. Each route has a label that the LLM uses to make its decision. The LLM responds with the route name, and the workflow follows that path.
+A required long-text field (`prompt`) where you write the routing instructions for the AI. Describe what criteria the model should use to pick the destination block.
 
-## Outputs
+- **Type**: `long-input`
+- **Required**: yes
+- **Placeholder**: `Route to the correct block based on the input...`
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `content` | `string` | Router's classification response |
-| `selectedRoute` | `string` | Name of the chosen route |
-| `reasoning` | `string` | Why the route was selected |
-| `confidence` | `number` | Classification confidence |
+Use `{{blockName.field}}` references to inject upstream block outputs into the prompt. For example: `{{starter.input}}`.
 
-## Example: Customer Support Ticket Router
+### Model
 
-**Goal:** Automatically route support tickets to the right department.
+A required dropdown (`model`) that selects which AI model evaluates the routing prompt.
 
-**Workflow:**
+- **Type**: `dropdown`
+- **Required**: yes
+- **Options**: dynamically populated from all registered base model providers plus any locally running Ollama models. Examples include `gpt-4o`, `gpt-4o-mini`, `claude-3-5-sonnet-20241022`, `gemini-1.5-pro`, `deepseek-chat`, `deepseek-reasoner`, `grok-2-1212`, and any Ollama model the user has pulled.
+
+### API Key
+
+A required password field (`apiKey`) for the selected provider's API key.
+
+- **Type**: `short-input` (password)
+- **Required**: yes (on self-hosted; hidden automatically for hosted models when running in the hosted environment)
+- **Condition**: hidden for hosted models when the platform is running in hosted mode; shown for all models in self-hosted deployments
+
+Use the `{{ENV_VAR}}` syntax to reference a workspace secret instead of pasting a raw key — for example: `{{OPENAI_API_KEY}}`.
+
+### System Prompt (hidden)
+
+An internal code field (`systemPrompt`) that is auto-generated from the `prompt` value. It injects the routing instructions and the list of available downstream blocks into a structured system prompt that the model receives. This field is hidden from the UI and should not be set manually.
+
+## Inputs & Outputs
+
+**Inputs**:
+
+- `prompt` (string) — Routing prompt content; the instructions the AI uses to select a destination block
+- `model` (string) — AI model identifier to use for routing
+- `apiKey` (string) — Provider API key for authenticating the LLM request
+
+**Outputs**:
+
+- `content` (string) — Raw text response returned by the routing model (the selected block ID)
+- `model` (string) — The model that was actually used to process the request
+- `tokens` (json) — Token usage breakdown: `{ prompt, completion, total }`
+- `cost` (json) — Cost breakdown in USD: `{ input, output, total }`
+- `selectedPath` (json) — The resolved routing destination: `{ blockId, blockType, blockTitle }`
+
+## Tools
+
+The Router block executes through dedicated LLM provider handlers, not the generic tool registry. The provider used at runtime is determined by the selected `model`. The tool ids listed in `tools.access` map to these LLM providers:
+
+- **OpenAI Chat** (`openai_chat`) — Routes via an OpenAI model (e.g. `gpt-4o`, `gpt-4o-mini`)
+- **Anthropic Chat** (`anthropic_chat`) — Routes via an Anthropic model (e.g. `claude-3-5-sonnet-20241022`)
+- **Google Chat** (`google_chat`) — Routes via a Google model (e.g. `gemini-1.5-pro`)
+- **xAI Chat** (`xai_chat`) — Routes via an xAI model (e.g. `grok-2-1212`)
+- **DeepSeek Chat** (`deepseek_chat`) — Routes via DeepSeek's standard chat model
+- **DeepSeek Reasoner** (`deepseek_reasoner`) — Routes via DeepSeek's reasoning model
+
+The executor selects the correct provider based on the `model` parameter at runtime via `getAllModelProviders()`.
+
+## YAML Example
+
+```yaml
+router_1:
+  type: router
+  name: "Router"
+  inputs:
+    prompt: "Route this customer message to the correct department: {{starter.input}}"
+    model: "gpt-4o-mini"
+    apiKey: "{{OPENAI_API_KEY}}"
+  connections:
+    outgoing:
+      - target: billing-agent-id
+      - target: technical-agent-id
+      - target: sales-agent-id
 ```
-[Starter] → [Router] → [Agent: Billing]     (Route 1)
-                      → [Agent: Technical]   (Route 2)
-                      → [Agent: Sales]       (Route 3)
-                      → [Agent: General]     (Route 4)
-```
-
-**Configuration:**
-- **Route Prompt:** `Classify this customer support message into the correct department. Consider the topic, keywords, and intent.`
-- **Context:** `{{starter.input}}`
-- **Model:** `gpt-4o-mini`
-- **Routes:** `Billing`, `Technical`, `Sales`, `General`
-
-**How it works:**
-1. Customer submits a support message
-2. Router sends it to GPT-4o-mini for classification
-3. Model returns one of the 4 route names
-4. Workflow branches to the specialized Agent for that department
-5. Each department Agent has its own system prompt and tools
-
-## Tips
-
-- **Use descriptive route names** — the LLM uses them to decide, so `Billing Support` is better than `Route1`
-- **Keep to 2–4 routes** — more routes reduce classification accuracy
-- **Use Router over chained Conditions** when you have 3+ paths — it's cleaner and uses only 1 LLM call
-- **GPT-4o-mini works great** for simple classification — save expensive models for reasoning tasks

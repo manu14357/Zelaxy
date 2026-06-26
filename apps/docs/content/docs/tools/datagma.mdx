@@ -1,0 +1,62 @@
+---
+title: Datagma
+description: Enrich person profiles and find verified work emails using the Datagma API
+icon: UserSearch
+---
+
+# Datagma
+
+Enrich people profiles and discover verified work emails using the Datagma API. Use it in prospecting and lead generation workflows to fill in missing contact data from just a name and company.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `datagma` |
+| **Category** | Tool — CRM |
+| **Auth** | API Key (passed as `apiId` query parameter) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Enrich Person** | `datagma_enrich_person` | Enrich a person profile (name, email, social profiles, etc.) from their name and company |
+| **Find Email** | `datagma_find_email` | Find a verified work email address from a person's name and company or domain |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Your Datagma API key. Passed as the `apiId` query parameter on every request. Store as `{{DATAGMA_API_KEY}}`. |
+| `firstName` | `string` | No | The person's first name. Used by both operations. |
+| `lastName` | `string` | No | The person's last name. Used by both operations. |
+| `company` | `string` | No | Company name, keyword, or domain. For **Find Email** this should be the company domain (e.g. `acme.com`). |
+| `operation` | `string` | Yes | Which tool to invoke: `datagma_enrich_person` or `datagma_find_email`. Controlled by the Operation dropdown in the block UI. |
+
+## Outputs
+
+Both operations return the same output shape:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | The full response object from the Datagma API. For **Enrich Person** this contains the matched profile; for **Find Email** this contains the discovered email and related contact data. |
+| `metadata` | `json` | Response metadata object. |
+| `metadata.found` | `boolean` | For **Enrich Person**: `true` when a name or email was matched in the response. For **Find Email**: `true` when a verified email was returned. |
+
+## Example
+
+```
+[Starter] → [Datagma: Find Email] → [Agent: use the result]
+```
+
+Pass a prospect's first name, last name, and company domain from an upstream block — for example `{{starter.firstName}}`, `{{starter.lastName}}`, and `{{starter.domain}}` — along with your API key stored as `{{DATAGMA_API_KEY}}`. The **Find Email** operation returns a verified work address in `{{datagma.data}}`; feed that into an Agent block to draft a personalised outreach message, then route it through a Gmail or Resend block to send.
+
+For richer contact intelligence, chain **Find Email** first to discover the address, then pass `{{datagma.data}}` into **Enrich Person** (using the returned name and company) to pull a full profile before handing off to the Agent.
+
+## Tips
+
+- **API key placement** — Datagma authenticates via an `apiId` query parameter, not a header. The block handles this automatically; just supply the key in the `apiKey` field and never embed it as a plain string — reference it as `{{DATAGMA_API_KEY}}`.
+- **Supplying at least a last name and company** significantly improves match rates for both operations; the API accepts partial inputs but results improve with more signal.
+- **Use `company` as a domain for Find Email** — passing `acme.com` instead of `Acme Inc` gives the email-finder a precise target and reduces false positives.
+- **Check `metadata.found`** downstream (e.g. in a Condition block) to branch your workflow when no record was matched, avoiding downstream errors on empty `data` objects.
+- **Combine with Enrich Person** — run **Find Email** first to get a confirmed address, then use **Enrich Person** with the name and company to pull social profiles, job title, and firmographic data for a complete lead record.

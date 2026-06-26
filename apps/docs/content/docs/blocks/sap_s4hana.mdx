@@ -1,0 +1,181 @@
+---
+title: SAP S/4HANA Block
+description: Query business partners and products from SAP S/4HANA
+icon: Box
+---
+
+# SAP S/4HANA Block
+
+Read business partners and products from an SAP S/4HANA system via its OData v2 APIs (`API_BUSINESS_PARTNER`, `API_PRODUCT_SRV`). Authenticate with HTTP Basic credentials against your S/4HANA host.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `sap_s4hana` |
+| **Category** | `tools` |
+| **Color** | `#0FAAFF` |
+
+## When to Use
+
+- Retrieve a list of business partners (customers, vendors, or persons) with optional filtering and pagination.
+- Look up a single business partner by its unique BusinessPartner key (up to 10 characters).
+- List products (materials) from the SAP product catalog with OData filter expressions.
+- Paginate large result sets using `$top` / `$skip` to process data in manageable chunks.
+- Project only the fields you need with `$select` to reduce payload size.
+- Feed SAP master-data records into downstream workflow blocks for enrichment, routing, or storage.
+
+## Configuration
+
+### Operation
+
+Selects which SAP API call to make. This field is always visible and defaults to `Get business partners`.
+
+| Label | ID |
+|-------|----|
+| Get business partners | `sap_s4hana_get_business_partners` |
+| Get business partner | `sap_s4hana_get_business_partner` |
+| List products | `sap_s4hana_list_products` |
+
+---
+
+### Business Partner Key
+
+- **Sub-block id**: `businessPartner`
+- **Type**: short-input
+- **Placeholder**: `1000000`
+- **Visible when**: Operation = `Get business partner`
+
+The BusinessPartner key that uniquely identifies a single business partner entity in SAP (string, up to 10 characters). Required for the single-record lookup.
+
+---
+
+### OData $filter
+
+- **Sub-block id**: `filter`
+- **Type**: short-input
+- **Placeholder**: `BusinessPartnerCategory eq '1'`
+- **Visible when**: Operation = `Get business partners` or `List products`
+
+An OData v2 `$filter` expression to narrow results. For business partners, for example: `BusinessPartnerCategory eq '1'`. For products: `ProductType eq 'FERT'`. Leave blank to return unfiltered records (subject to `$top`).
+
+---
+
+### Top
+
+- **Sub-block id**: `top`
+- **Type**: short-input (half-width)
+- **Placeholder**: `10`
+- **Visible when**: Operation = `Get business partners` or `List products`
+
+Maximum number of records to return (`$top`). Defaults to `10` when left blank.
+
+---
+
+### Skip
+
+- **Sub-block id**: `skip`
+- **Type**: short-input (half-width)
+- **Placeholder**: `0`
+- **Visible when**: Operation = `Get business partners` or `List products`
+
+Number of records to skip before returning results (`$skip`). Use with `top` to implement pagination.
+
+---
+
+### OData $select
+
+- **Sub-block id**: `select`
+- **Type**: short-input
+- **Placeholder**: `BusinessPartner,BusinessPartnerName`
+- **Visible when**: All operations
+
+Comma-separated list of field names to include in the response (`$select`). Reduces payload size by projecting only the fields your workflow needs.
+
+---
+
+### Base URL
+
+- **Sub-block id**: `baseUrl`
+- **Type**: short-input
+- **Placeholder**: `https://my000000.s4hana.cloud.sap`
+- **Required**: yes
+
+The root URL of your SAP S/4HANA system. Do not include a trailing slash. For cloud systems this is typically `https://<tenant>.s4hana.cloud.sap`. Store this value as a workflow secret and reference it as `{{SAP_BASE_URL}}`.
+
+---
+
+### Username
+
+- **Sub-block id**: `username`
+- **Type**: short-input (half-width)
+- **Required**: yes
+
+The username for HTTP Basic authentication. Reference a secret: `{{SAP_USERNAME}}`.
+
+---
+
+### Password
+
+- **Sub-block id**: `password`
+- **Type**: short-input (half-width, masked)
+- **Required**: yes
+
+The password for HTTP Basic authentication. Always store as a secret and reference it: `{{SAP_PASSWORD}}`.
+
+---
+
+## Inputs & Outputs
+
+### Inputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `operation` | string | Operation to perform (`sap_s4hana_get_business_partners`, `sap_s4hana_get_business_partner`, or `sap_s4hana_list_products`) |
+| `baseUrl` | string | S/4HANA host base URL |
+| `username` | string | Basic auth username |
+| `password` | string | Basic auth password |
+| `businessPartner` | string | BusinessPartner key (used only by `Get business partner`) |
+| `filter` | string | OData `$filter` expression (list operations only) |
+| `top` | number | OData `$top` — maximum records to return (list operations only) |
+| `skip` | number | OData `$skip` — records to skip for pagination (list operations only) |
+| `select` | string | OData `$select` — comma-separated field names (all operations) |
+
+### Outputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `data` | json | OData result from SAP S/4HANA. For list operations the envelope is `{ d: { results: [...] } }`; for a single-record lookup it is `{ d: { ... } }`. |
+| `metadata` | json | Response metadata including `status` (HTTP status code) and, for list operations, `count` (number of records returned). |
+
+---
+
+## Tools
+
+**SAP S/4HANA Get Business Partners** (`sap_s4hana_get_business_partners`) — Lists business partner records from the `API_BUSINESS_PARTNER` OData service (`A_BusinessPartner` entity set). Accepts `filter`, `top`, `skip`, and `select` query options. Returns the full OData v2 envelope `{ d: { results: [...] } }` plus response metadata.
+
+**SAP S/4HANA Get Business Partner** (`sap_s4hana_get_business_partner`) — Retrieves a single business partner by its key from `API_BUSINESS_PARTNER / A_BusinessPartner('<key>')`. Requires `businessPartner`; accepts `select`. Returns the single-entity envelope `{ d: { ... } }` plus response metadata.
+
+**SAP S/4HANA List Products** (`sap_s4hana_list_products`) — Lists product (material) records from the `API_PRODUCT_SRV` OData service (`A_Product` entity set). Accepts `filter`, `top`, `skip`, and `select` query options. Returns the OData v2 envelope `{ d: { results: [...] } }` plus response metadata.
+
+---
+
+## YAML Example
+
+```yaml
+sap_s4hana_1:
+  type: sap_s4hana
+  name: "SAP S/4HANA"
+  inputs:
+    operation: sap_s4hana_get_business_partners
+    baseUrl: "{{SAP_BASE_URL}}"
+    username: "{{SAP_USERNAME}}"
+    password: "{{SAP_PASSWORD}}"
+    filter: "BusinessPartnerCategory eq '1'"
+    top: 50
+    skip: 0
+    select: "BusinessPartner,BusinessPartnerName,BusinessPartnerCategory"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

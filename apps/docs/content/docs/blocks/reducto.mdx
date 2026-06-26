@@ -1,0 +1,112 @@
+---
+title: Reducto Block
+description: Parse, extract, and split documents with Reducto
+icon: Box
+---
+
+# Reducto Block
+
+The Reducto block connects to the Reducto document AI API to parse documents into structured content, extract data against a JSON schema, and split documents into named sections. Reach for it when you need to process PDFs or other documents into machine-readable output without building your own document-parsing pipeline.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `reducto` |
+| **Category** | `tools` |
+| **Color** | `#6D28D9` |
+
+## When to Use
+
+- Convert a PDF or document URL into structured text chunks for downstream LLM or search workflows
+- Pull specific fields (e.g. totals, names, dates) from a document using a JSON schema extraction
+- Split a multi-section document (e.g. a contract or report) into labelled segments based on natural-language category descriptions
+- Automate invoice, receipt, or form processing where the output must conform to a known data shape
+- Pre-process documents before storing results in a knowledge base or table block
+
+## Configuration
+
+### Operation
+
+Dropdown — selects which Reducto API endpoint to call. Required.
+
+| Label | id |
+|-------|----|
+| Parse | `reducto_parse` |
+| Extract | `reducto_extract` |
+| Split | `reducto_split` |
+
+Choosing an operation controls which additional fields appear below.
+
+### Document URL
+
+Short text input — the publicly accessible URL of the document to process (PDF or other Reducto-supported format). Required for all three operations.
+
+Example: `https://example.com/document.pdf`
+
+### Extraction Schema
+
+_(Visible only when Operation is `reducto_extract`)_
+
+Long text input — a JSON Schema object describing the fields Reducto should extract from the document.
+
+Example: `{"type":"object","properties":{"total":{"type":"number"}}}`
+
+### System Prompt
+
+_(Visible only when Operation is `reducto_extract`)_
+
+Long text input — an optional natural-language instruction guiding the extraction model (e.g. `Be precise and thorough.`). Optional.
+
+### Split Description
+
+_(Visible only when Operation is `reducto_split`)_
+
+Long text input — a JSON array of category objects, each with a `name` and `description`, telling Reducto how to segment the document.
+
+Example: `[{"name":"invoice","description":"Pages containing an invoice"}]`
+
+### API Key
+
+Short text input (password-masked) — your Reducto API key. Required for all operations.
+
+Use the reference `{{REDUCTO_API_KEY}}` to pull this from an environment variable rather than hard-coding the secret.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — the selected operation id (`reducto_parse`, `reducto_extract`, or `reducto_split`)
+- `apiKey` (string) — Reducto API key
+- `documentUrl` (string) — URL of the document to process
+- `schema` (json) — JSON schema describing fields to extract (Extract operation only)
+- `systemPrompt` (string) — optional extraction guidance prompt (Extract operation only)
+- `splitDescription` (json) — array of category definitions for splitting (Split operation only)
+
+**Outputs:**
+
+- `data` (json) — the primary result object returned by Reducto (parsed chunks/blocks, extracted field values, or split sections depending on the operation)
+- `metadata` (json) — job metadata including `jobId` (Reducto job identifier) and `status` (HTTP status code)
+
+## Tools
+
+- **Reducto Parse** (`reducto_parse`) — calls `POST https://platform.reducto.ai/parse` with the document URL; returns parsed content as structured chunks and blocks with usage statistics.
+- **Reducto Extract** (`reducto_extract`) — calls `POST https://platform.reducto.ai/extract` with the document URL, a JSON schema, and an optional system prompt; returns extracted structured data and citations aligned to the schema.
+- **Reducto Split** (`reducto_split`) — calls `POST https://platform.reducto.ai/split` with the document URL and a split-description array; returns the document divided into named sections with detected page ranges.
+
+## YAML Example
+
+```yaml
+reducto_1:
+  type: reducto
+  name: "Reducto"
+  inputs:
+    operation: "reducto_extract"
+    documentUrl: "{{trigger.documentUrl}}"
+    schema: '{"type":"object","properties":{"invoice_total":{"type":"number"},"vendor":{"type":"string"}}}'
+    systemPrompt: "Be precise and extract only values explicitly stated in the document."
+    apiKey: "{{REDUCTO_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

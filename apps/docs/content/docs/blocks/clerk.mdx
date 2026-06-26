@@ -1,7 +1,7 @@
 ---
 title: Clerk Block
 description: Manage users, organizations, and sessions in Clerk
-icon: Box
+icon: ShieldCheck
 ---
 
 # Clerk Block
@@ -19,38 +19,99 @@ The Clerk block integrates Clerk authentication into your workflows, letting you
 ## When to Use
 
 - List or search your Clerk users to feed downstream automation or reporting.
-- Look up a single user's details by their Clerk user ID.
+- Look up a single user's full profile by their Clerk user ID.
 - Programmatically create a new Clerk user from an email address captured earlier in the workflow.
 - Update or delete an existing user as part of an account-lifecycle flow.
 - List or fetch organizations, or create a new organization on demand.
-- Audit active sessions or revoke a session for security/sign-out scenarios.
+- Audit active sessions or revoke a specific session for security and sign-out scenarios.
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting the Clerk action to perform: List Users, Get User, Create User, Update User, Delete User, List Organizations, Get Organization, Create Organization, List Sessions, or Revoke Session.
+**Required.** Dropdown that selects the Clerk API action to perform. Every operation requires the Secret Key. Additional fields appear conditionally based on the selected operation.
+
+| Label | ID |
+|-------|----|
+| List Users | `clerk_list_users` |
+| Get User | `clerk_get_user` |
+| Create User | `clerk_create_user` |
+| Update User | `clerk_update_user` |
+| Delete User | `clerk_delete_user` |
+| List Organizations | `clerk_list_organizations` |
+| Get Organization | `clerk_get_organization` |
+| Create Organization | `clerk_create_organization` |
+| List Sessions | `clerk_list_sessions` |
+| Revoke Session | `clerk_revoke_session` |
+
+**Operation-to-field mapping** (which configuration fields appear per operation):
+
+| Operation | Visible fields |
+|-----------|---------------|
+| `clerk_list_users` | Secret Key, Search Query |
+| `clerk_get_user` | Secret Key, User ID |
+| `clerk_create_user` | Secret Key, Email Address |
+| `clerk_update_user` | Secret Key, User ID |
+| `clerk_delete_user` | Secret Key, User ID |
+| `clerk_list_organizations` | Secret Key |
+| `clerk_get_organization` | Secret Key |
+| `clerk_create_organization` | Secret Key |
+| `clerk_list_sessions` | Secret Key |
+| `clerk_revoke_session` | Secret Key |
 
 ### Secret Key
 
-Your Clerk secret key (e.g. `sk_live_...`). Stored as a password field; required for every operation.
+**Required.** Your Clerk backend secret key (e.g. `sk_live_...`). Stored as a password field and passed as `Authorization: Bearer <key>` on every API call. Use `{{CLERK_SECRET_KEY}}` to reference an environment variable.
 
 ### User ID
 
-The target Clerk user ID (e.g. `user_xxx`). Shown for Get User, Update User, and Delete User.
+The target Clerk user ID (format: `user_xxx`). Shown for **Get User**, **Update User**, and **Delete User** operations.
 
 ### Email Address
 
-The email for the new account (e.g. `user@example.com`). Shown for Create User.
+The primary email address for the new account (e.g. `user@example.com`). Shown for **Create User**.
 
 ### Search Query
 
-A search term to filter results. Shown for List Users.
+A free-text search term to filter results across email, phone, username, and name fields. Shown for **List Users**.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `secretKey` (string), `userId` (string), `emailAddress` (string), `query` (string)
-- **Outputs**: `users` (json), `user` (json), `organizations` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (one of the operation IDs above)
+  - `secretKey` (string) — Secret key for Clerk API authentication
+  - `userId` (string) — User ID; used by Get User, Update User, Delete User
+  - `emailAddress` (string) — Email address; used by Create User
+  - `query` (string) — Search query; used by List Users
+
+- **Outputs**:
+  - `users` (json) — User list returned by List Users
+  - `user` (json) — User details returned by Get User, Create User, Update User
+  - `organizations` (json) — Organization list returned by List Organizations
+
+## Tools
+
+Each operation maps to a dedicated Clerk tool. All tools authenticate with the Clerk REST API using the `secretKey` as a Bearer token.
+
+**List Users from Clerk** (`clerk_list_users`) — Calls `GET /v1/users`. Returns a paginated array of user objects and a `totalCount`. Accepts optional params: `limit`, `offset`, `orderBy`, `emailAddress`, `phoneNumber`, `externalId`, `username`, `userId`, and `query` (free-text search).
+
+**Get User from Clerk** (`clerk_get_user`) — Calls `GET /v1/users/:userId`. Returns the full user object including `id`, `username`, `firstName`, `lastName`, and `emailAddresses`.
+
+**Create User in Clerk** (`clerk_create_user`) — Calls `POST /v1/users`. Accepts `emailAddress`, `phoneNumber`, `username`, `password`, `firstName`, `lastName`, `externalId`, `publicMetadata`, `privateMetadata`, `unsafeMetadata`, `skipPasswordChecks`, and `skipPasswordRequirement`. Returns the created user's `id` and `emailAddresses`.
+
+**Update User in Clerk** (`clerk_update_user`) — Calls `PATCH /v1/users/:userId`. Accepts the same profile fields as Create User plus `primaryEmailAddressId` and `primaryPhoneNumberId`. Returns the updated user's `id` and `emailAddresses`.
+
+**Delete User from Clerk** (`clerk_delete_user`) — Calls `DELETE /v1/users/:userId`. Returns the deleted user's `id` and a `deleted` boolean.
+
+**List Organizations from Clerk** (`clerk_list_organizations`) — Calls `GET /v1/organizations`. Returns `organizations` (array) and `totalCount`. Accepts optional `limit`, `offset`, `includeMembersCount`, `query`, and `orderBy`.
+
+**Get Organization from Clerk** (`clerk_get_organization`) — Calls `GET /v1/organizations/:organizationId`. Returns organization `id` and `name`.
+
+**Create Organization in Clerk** (`clerk_create_organization`) — Calls `POST /v1/organizations`. Requires `name` and `createdBy` (user ID of the initial admin). Accepts optional `slug`, `maxAllowedMemberships`, `publicMetadata`, and `privateMetadata`. Returns organization `id`, `name`, and `slug`.
+
+**List Sessions from Clerk** (`clerk_list_sessions`) — Calls `GET /v1/sessions`. Returns `sessions` (array) and `totalCount`. Accepts optional `userId`, `clientId`, `status` (abandoned, active, ended, expired, pending, removed, replaced, revoked), `limit`, and `offset`.
+
+**Revoke Session in Clerk** (`clerk_revoke_session`) — Calls `POST /v1/sessions/:sessionId/revoke`. Immediately invalidates the session. Returns the session `id` and its new `status` (revoked).
 
 ## YAML Example
 
@@ -60,8 +121,8 @@ clerk_1:
   name: "Clerk"
   inputs:
     operation: "clerk_list_users"
-    secretKey: "{{secrets.CLERK_SECRET_KEY}}"
-    query: "{{start.input}}"
+    secretKey: "{{CLERK_SECRET_KEY}}"
+    query: "{{search_trigger.query}}"
   connections:
     outgoing:
       - target: next-block-id

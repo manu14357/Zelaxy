@@ -1,0 +1,95 @@
+---
+title: RSS Tools
+description: Fetch and parse RSS and Atom feeds into structured items or channel info
+icon: Rss
+---
+
+# RSS Tools
+
+The RSS provider fetches an RSS or Atom feed by URL and parses it into structured data. Use it in a workflow to pull the latest items from a feed (title, link, publish date, description) or to read channel-level feed info. No authentication is required.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `rss` |
+| **Category** | tools |
+| **Auth** | none (public feed URL; no API key) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Fetch feed | `rss_fetch_feed` | Fetch and parse an RSS or Atom feed into a list of items |
+| Get feed info | `rss_get_feed_info` | Fetch an RSS or Atom feed and return its channel-level title, link, and description |
+
+## Configuration
+
+### `rss_fetch_feed`
+
+Fetches the feed at the given URL with `GET` and an `Accept: application/rss+xml, application/atom+xml, application/xml, text/xml` header, then parses each `<item>` (RSS) or `<entry>` (Atom) block.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `url` | string | Yes | URL of the RSS or Atom feed to fetch. Visibility: user-or-llm. |
+| `limit` | number | No | Maximum number of items to return. Only items up to this count are kept (applied when `limit > 0`). Visibility: user-or-llm. |
+
+No secrets or credentials are used by this tool.
+
+### `rss_get_feed_info`
+
+Fetches the feed at the given URL with `GET` and the same `Accept` header, then returns only the channel-level header info.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `url` | string | Yes | URL of the RSS or Atom feed to fetch. Visibility: user-or-llm. |
+
+No secrets or credentials are used by this tool.
+
+## Outputs
+
+### `rss_fetch_feed`
+
+- `data` (json) — Array of parsed feed items. Each item has: `title` (string), `link` (string), `pubDate` (string — from `pubDate`, `published`, or `updated`), and `description` (string — from `description` or `summary`).
+- `metadata` (json) — Feed metadata. Contains `count` (number) — number of items returned, and `title` (string) — feed (channel) title.
+
+### `rss_get_feed_info`
+
+- `data` (json) — Channel-level info: `title` (string), `link` (string), and `description` (string — from `description` or `subtitle`).
+- `metadata` (json) — Feed metadata. Contains `itemCount` (number) — number of items in the feed.
+
+## YAML Example
+
+```yaml
+rss_1:
+  type: rss
+  name: "RSS"
+  inputs:
+    operation: "rss_fetch_feed"
+    url: "https://example.com/feed.xml"
+    limit: 10
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+Get feed info instead:
+
+```yaml
+rss_info:
+  type: rss
+  name: "RSS"
+  inputs:
+    operation: "rss_get_feed_info"
+    url: "https://example.com/feed.xml"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- No authentication is needed — just provide a public feed `url`. There is no API key, OAuth, or token to configure.
+- Both RSS (`<item>`) and Atom (`<entry>`) formats are supported; date fields fall back across `pubDate` / `published` / `updated`, and descriptions fall back from `description` to `summary`/`subtitle`.
+- Set `limit` on `rss_fetch_feed` to cap how many items you process downstream (e.g. only the latest 10). Leaving it unset returns all items found in the feed.
+- Reference outputs downstream with double braces, e.g. `{{rss_1.data}}` for the item array or `{{rss_1.metadata.title}}` for the channel title.

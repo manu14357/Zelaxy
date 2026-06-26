@@ -1,0 +1,112 @@
+---
+title: Sentry Tools
+description: List Sentry projects, list and inspect issues, and update issue status from your workflows
+icon: Box
+---
+
+# Sentry Tools
+
+The Sentry provider lets a workflow read and manage error-tracking data in Sentry: enumerate the projects you can access, list and inspect issues for a project, and change an issue's status. Use these tools to triage errors, surface unresolved issues to an agent, or automatically resolve or ignore issues as part of an incident-response workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `sentry` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Sentry auth token sent as `Authorization: Bearer <token>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List projects | `sentry_list_projects` | List all projects accessible to the authenticated Sentry user. |
+| List issues | `sentry_list_issues` | List issues for a specific Sentry project, optionally filtered by a search query. |
+| Get issue | `sentry_get_issue` | Retrieve detailed information about a single Sentry issue by ID. |
+| Update issue | `sentry_update_issue` | Update a Sentry issue, for example to change its status (resolve/ignore). |
+
+## Configuration
+
+### `sentry_list_projects`
+
+`GET https://sentry.io/api/0/projects/`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** Sentry API authentication token. Sent as the `Authorization: Bearer` header. Visibility: user-only. |
+| `limit` | number | No | Number of projects to return per page (default 25, max 100). Sent as the `per_page` query parameter. Visibility: user-or-llm. |
+
+### `sentry_list_issues`
+
+`GET https://sentry.io/api/0/projects/{organizationSlug}/{projectSlug}/issues/`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** Sentry API authentication token. Sent as the `Authorization: Bearer` header. Visibility: user-only. |
+| `organizationSlug` | string | Yes | The slug of the organization (e.g., `my-org`). Visibility: user-or-llm. |
+| `projectSlug` | string | Yes | The slug of the project (e.g., `my-project`). Visibility: user-or-llm. |
+| `query` | string | No | Search query, e.g. `is:unresolved` or `level:error`. Sent as the `query` parameter. Visibility: user-or-llm. |
+
+### `sentry_get_issue`
+
+`GET https://sentry.io/api/0/issues/{issueId}/`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** Sentry API authentication token. Sent as the `Authorization: Bearer` header. Visibility: user-only. |
+| `issueId` | string | Yes | The unique ID of the issue to retrieve (e.g., `12345`). Visibility: user-or-llm. |
+
+### `sentry_update_issue`
+
+`PUT https://sentry.io/api/0/issues/{issueId}/`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** Sentry API authentication token. Sent as the `Authorization: Bearer` header. Visibility: user-only. |
+| `issueId` | string | Yes | The unique ID of the issue to update (e.g., `12345`). Visibility: user-or-llm. |
+| `status` | string | No | New status for the issue. One of: `resolved`, `unresolved`, `ignored`. Sent in the request body. Visibility: user-or-llm. |
+
+## Outputs
+
+### `sentry_list_projects`
+
+- `data` (json) — Array of Sentry project objects.
+- `metadata` (json) — List metadata. Contains `count` (number) — the number of items returned.
+
+### `sentry_list_issues`
+
+- `data` (json) — Array of Sentry issue objects.
+- `metadata` (json) — List metadata. Contains `count` (number) — the number of items returned.
+
+### `sentry_get_issue`
+
+- `data` (json) — The Sentry issue object.
+- `metadata` (json) — Issue identifiers. Contains `id` (string) — the issue ID.
+
+### `sentry_update_issue`
+
+- `data` (json) — The updated Sentry issue object.
+- `metadata` (json) — Issue identifiers. Contains `id` (string) — the issue ID.
+
+## YAML Example
+
+```yaml
+sentry_1:
+  type: sentry
+  name: "Sentry"
+  inputs:
+    operation: "sentry_list_issues"
+    organizationSlug: "my-org"
+    projectSlug: "my-project"
+    query: "is:unresolved level:error"
+    apiKey: "{{SENTRY_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth is a Sentry auth token, not OAuth.** Create an internal integration or personal auth token in your Sentry organization settings and store it as an environment variable, then reference it as `{{SENTRY_API_KEY}}`. It is sent as `Authorization: Bearer <token>`.
+- **`sentry_list_issues` needs both slugs.** The organization and project slugs are the URL slugs shown in your Sentry dashboard (e.g. `my-org` / `my-project`), not display names. Use the `query` parameter with Sentry's search syntax (`is:unresolved`, `level:error`) to narrow results.
+- **Chain operations by issue ID.** A common pattern is to list issues, pass an entry's id into `sentry_get_issue` to fetch full detail, then call `sentry_update_issue` with `status: resolved` (or `ignored`) to close it out. Reference upstream values with double braces, e.g. `{{sentry_1.data}}`.

@@ -1,0 +1,105 @@
+---
+title: Twilio Voice Tools
+description: Initiate, list, and inspect outbound voice calls via the Twilio Voice API.
+icon: Phone
+---
+
+# Twilio Voice Tools
+
+The Twilio Voice provider lets a workflow place outbound phone calls and inspect call records through the Twilio Programmable Voice REST API. Use these tools to trigger an automated call (driven by a TwiML URL), look up the status of a specific call, or list recent calls for an account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `twilio-voice` |
+| **Category** | `tools` |
+| **Auth** | Basic Auth (Twilio Account SID + Auth Token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Make call | `twilio_voice_make_call` | Initiate an outbound voice call with Twilio. |
+| List calls | `twilio_voice_list_calls` | List voice calls for a Twilio account. |
+| Get call | `twilio_voice_get_call` | Get details about a specific Twilio voice call. |
+
+## Configuration
+
+All three tools authenticate with HTTP Basic Auth, where the username is the **Account SID** and the password is the **Auth Token**. Both `accountSid` and `authToken` are secrets and should be supplied via environment variables, never hard-coded.
+
+### twilio_voice_make_call
+
+`POST https://api.twilio.com/2010-04-01/Accounts/{accountSid}/Calls.json`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accountSid` | string | Yes | Twilio Account SID. **Secret** — used as the Basic Auth username. |
+| `authToken` | string | Yes | Twilio Auth Token. **Secret** — used as the Basic Auth password. |
+| `To` | string | Yes | Phone number to call in E.164 format (e.g. `+19998887777`). |
+| `From` | string | Yes | Twilio phone number to call from, in E.164 format (e.g. `+15551234567`). |
+| `Url` | string | Yes | URL returning TwiML instructions that drive the call. |
+
+### twilio_voice_list_calls
+
+`GET https://api.twilio.com/2010-04-01/Accounts/{accountSid}/Calls.json`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accountSid` | string | Yes | Twilio Account SID. **Secret** — used as the Basic Auth username. |
+| `authToken` | string | Yes | Twilio Auth Token. **Secret** — used as the Basic Auth password. |
+| `limit` | number | No | Number of calls to return. Maps to the Twilio `PageSize` query parameter. |
+
+### twilio_voice_get_call
+
+`GET https://api.twilio.com/2010-04-01/Accounts/{accountSid}/Calls/{callSid}.json`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `accountSid` | string | Yes | Twilio Account SID. **Secret** — used as the Basic Auth username. |
+| `authToken` | string | Yes | Twilio Auth Token. **Secret** — used as the Basic Auth password. |
+| `callSid` | string | Yes | SID of the call to retrieve (e.g. `CA...`). |
+
+## Outputs
+
+### twilio_voice_make_call
+
+- `data` (json) — The Twilio call object.
+- `metadata` (json) — Call identifiers.
+  - `metadata.sid` (string) — Call SID.
+
+### twilio_voice_list_calls
+
+- `data` (json) — Array of Twilio call objects.
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of calls returned.
+
+### twilio_voice_get_call
+
+- `data` (json) — The Twilio call object.
+- `metadata` (json) — Call identifiers.
+  - `metadata.sid` (string) — Call SID.
+
+## YAML Example
+
+```yaml
+twilio_voice_1:
+  type: twilio_voice
+  name: "Twilio Voice"
+  inputs:
+    operation: "twilio_voice_make_call"
+    To: "+19998887777"
+    From: "+15551234567"
+    Url: "https://example.com/twiml"
+    accountSid: "{{TWILIO_ACCOUNT_SID}}"
+    authToken: "{{TWILIO_AUTH_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Authentication uses Basic Auth: the **Account SID** is the username and the **Auth Token** is the password. There is no single `apiKey` field — supply both `accountSid` and `authToken`, ideally from environment variables like `{{TWILIO_ACCOUNT_SID}}` and `{{TWILIO_AUTH_TOKEN}}`.
+- For `make_call`, `To` and `From` must be in E.164 format (e.g. `+15551234567`), and `From` must be a voice-capable Twilio number you own. The `Url` must return valid TwiML — Twilio fetches it to control what the call does once answered.
+- To branch on the result, reference the call SID downstream with `{{twilio_voice_1.metadata.sid}}`, then feed it into a `twilio_voice_get_call` operation to poll the call's current status.

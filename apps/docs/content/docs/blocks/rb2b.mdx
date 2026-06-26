@@ -1,0 +1,121 @@
+---
+title: RB2B Block
+description: Identify and retrieve website visitors
+icon: Box
+---
+
+# RB2B Block
+
+List website visitors identified by RB2B and retrieve a single visitor by ID through the RB2B API. Authenticate with an RB2B API token.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `rb2b` |
+| **Category** | `tools` |
+| **Color** | `#111827` |
+
+## When to Use
+
+- Fetch a paginated list of website visitors that RB2B has de-anonymized and identified.
+- Look up the full profile of a specific visitor when you already know their RB2B visitor ID.
+- Enrich leads by pulling RB2B visitor data into a downstream CRM or notification block.
+- Trigger follow-up workflows whenever a visitor of interest is identified on your site.
+- Audit who visited your site within a given period by storing the returned visitor array.
+- Pass a visitor ID surfaced by a webhook or upstream block to retrieve that visitor's full details in real time.
+
+## Configuration
+
+### Operation
+
+Select which RB2B API operation to perform. This choice controls which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| List visitors | `rb2b_list_visitors` |
+| Get visitor | `rb2b_get_visitor` |
+
+Default: `rb2b_list_visitors`.
+
+---
+
+### Limit _(List visitors only)_
+
+- **Sub-block id**: `limit`
+- **Type**: short-input (number)
+- **Required**: No
+- **Placeholder**: `50`
+- **Condition**: visible when `operation` = `rb2b_list_visitors`
+
+Maximum number of visitor records to return. Leave blank to use the RB2B API default. Accepts a literal number or a reference such as `{{previousBlock.count}}`.
+
+---
+
+### Visitor ID _(Get visitor only)_
+
+- **Sub-block id**: `id`
+- **Type**: short-input (string)
+- **Required**: Yes
+- **Placeholder**: `Enter the visitor ID`
+- **Condition**: visible when `operation` = `rb2b_get_visitor`
+
+The unique RB2B visitor ID to retrieve. Supply a literal string or a dynamic reference, e.g. `{{triggerBlock.visitorId}}`.
+
+---
+
+### RB2B API Token
+
+- **Sub-block id**: `apiKey`
+- **Type**: short-input (password)
+- **Required**: Yes
+- **Placeholder**: `Enter your RB2B API token`
+
+Your RB2B Bearer token. Store it as an environment variable and reference it as `{{RB2B_API_KEY}}` rather than hard-coding the value.
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (`rb2b_list_visitors` or `rb2b_get_visitor`)
+- `apiKey` (string) — RB2B API token used for Bearer authentication
+- `limit` (number) — Maximum number of visitor records to return (List visitors only)
+- `id` (string) — Visitor ID to retrieve (Get visitor only)
+
+**Outputs**
+
+- `data` (json) — For **List visitors**: an array of identified visitor objects. For **Get visitor**: the single visitor object.
+- `metadata` (json) — For **List visitors**: `{ count: number }` — number of visitors returned. For **Get visitor**: `{ id: string }` — the visitor ID echoed back.
+
+## Tools
+
+- **RB2B List Visitors** (`rb2b_list_visitors`) — Issues a GET request to `https://api.rb2b.com/visitors` (with an optional `limit` query parameter) and returns an array of de-anonymized visitor objects along with a count in metadata.
+- **RB2B Get Visitor** (`rb2b_get_visitor`) — Issues a GET request to `https://api.rb2b.com/visitors/{id}` and returns the full profile of a single identified visitor along with their ID in metadata.
+
+## YAML Example
+
+```yaml
+# Example: list the latest 25 RB2B visitors
+rb2b_1:
+  type: rb2b
+  name: "List RB2B Visitors"
+  inputs:
+    operation: rb2b_list_visitors
+    apiKey: "{{RB2B_API_KEY}}"
+    limit: 25
+  connections:
+    outgoing:
+      - target: next-block-id
+
+# Example: look up a specific visitor by ID
+rb2b_2:
+  type: rb2b
+  name: "Get RB2B Visitor"
+  inputs:
+    operation: rb2b_get_visitor
+    apiKey: "{{RB2B_API_KEY}}"
+    id: "{{triggerBlock.visitorId}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

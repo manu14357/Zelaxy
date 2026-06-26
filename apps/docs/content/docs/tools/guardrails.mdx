@@ -1,0 +1,115 @@
+---
+title: Guardrails Tools
+description: Validate workflow content with guardrails — JSON, regex, hallucination checks, and PII detection
+icon: ShieldCheck
+---
+
+# Guardrails Tools
+
+The Guardrails provider validates content flowing through a workflow before it is stored, returned, or passed downstream. A single `guardrails_validate` tool can check whether content is valid JSON, matches a regex pattern, is grounded in a knowledge base (hallucination check via RAG + LLM scoring), or contains personally identifiable information (PII) that should be blocked or masked. Use it as a safety gate between a generation step and an output/storage step.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `guardrails` |
+| **Category** | `blocks` |
+| **Auth** | API Key (only required for the `hallucination` validation type, to call the selected LLM provider — for hosted models on the hosted platform, or local Ollama models, no key is needed) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Validate | `guardrails_validate` | Validate content using guardrails. The `validationType` parameter selects the check: `json`, `regex`, `hallucination`, or `pii`. |
+
+The provider exposes one tool whose behavior branches on `validationType`. The four modes are:
+
+- `json` — passes if the input parses as valid JSON.
+- `regex` — passes if the input matches the supplied `regex` pattern.
+- `hallucination` — queries a knowledge base (RAG, `topK` chunks), then uses an LLM to score how well the input is supported on a 0–10 confidence scale; passes if the score is at or above `threshold`.
+- `pii` — detects PII entities; in `block` mode it fails when PII is found, in `mask` mode it passes and returns the text with each entity replaced by a `<TYPE>` placeholder.
+
+## Configuration
+
+### `guardrails_validate`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `input` | string | Yes | Content to validate. |
+| `validationType` | string | Yes | Type of validation to perform. One of: `json`, `regex`, `hallucination`, `pii`. |
+| `regex` | string | No (required when `validationType` is `regex`) | Regex pattern to match against the input. |
+| `knowledgeBaseId` | string | No (required when `validationType` is `hallucination`) | Knowledge base ID used to retrieve grounding context. |
+| `threshold` | number | No | Confidence threshold on a 0–10 scale; scores below it fail. Default: `3`. Used only for `hallucination`. |
+| `topK` | number | No | Number of knowledge base chunks to retrieve for context. Default: `5`. Used only for `hallucination`. |
+| `model` | string | No | LLM model used for confidence scoring (e.g. `gpt-4o-mini`). Used only for `hallucination`. |
+| `apiKey` | string | No | **Secret.** API key for the selected LLM provider. Used only for `hallucination` (not needed for hosted models on the hosted platform, or local Ollama models). |
+| `workflowId` | string | No | Workflow ID for authentication context when querying the knowledge base. Normally supplied automatically from execution context. |
+| `piiEntityTypes` | array | No | PII entity types to detect. Empty/omitted means detect all built-in types. Used only for `pii`. See the entity list below. |
+| `piiMode` | string | No | PII action mode: `block` (fail if PII found) or `mask` (return masked text). Default: `block`. Used only for `pii`. |
+| `piiLanguage` | string | No | Language for PII detection. Default: `en`. Options: `en`, `es`, `it`, `pl`, `fi`. Used only for `pii`. |
+| `customPiiPatterns` | json | No | Custom PII patterns as a JSON object: `{"TYPE_NAME": "regex_pattern"}`. Do not use `^` or `$` anchors; use double backslashes for escaping. Used only for `pii`. |
+| `azureEndpoint` | string | No | **Secret.** Azure OpenAI endpoint URL (e.g. `https://your-resource.openai.azure.com`). Used only for `hallucination` with Azure OpenAI models. |
+| `azureApiVersion` | string | No | Azure API version (e.g. `2024-07-01-preview`). Used only for `hallucination` with Azure OpenAI models. |
+
+**Supported `piiEntityTypes` ids:** `PERSON`, `EMAIL_ADDRESS`, `PHONE_NUMBER`, `INDIAN_MOBILE_NUMBER`, `LOCATION`, `DATE_TIME`, `IP_ADDRESS`, `URL`, `CREDIT_CARD`, `IBAN_CODE`, `CRYPTO`, `MEDICAL_LICENSE`, `NRP`, `IN_AADHAAR`, `IN_PAN`, `IN_VEHICLE_REGISTRATION`, `IN_VOTER`, `IN_PASSPORT`, `IN_BANK_ACCOUNT`, `IN_DRIVER_LICENSE`, `IN_GST`.
+
+## Outputs
+
+### `guardrails_validate`
+
+- `passed` (boolean) — Whether validation passed.
+- `validationType` (string) — The type of validation that was performed.
+- `input` (string) — The original input that was validated.
+- `score` (number, optional) — Confidence score from 0–10. Present only for `hallucination` checks.
+- `reasoning` (string, optional) — Explanation of the confidence score. Present only for `hallucination` checks.
+- `detectedEntities` (array, optional) — Detected PII entities, each with `type`, `start`, `end`, `score`, and `text`. Present only for `pii` detection.
+- `maskedText` (string, optional) — Text with PII replaced by `<TYPE>` placeholders. Present only for `pii` detection in `mask` mode.
+- `error` (string, optional) — Error message when validation fails.
+
+## YAML Example
+
+```yaml
+guardrails_1:
+  type: guardrails
+  name: "Guardrails"
+  inputs:
+    operation: "guardrails_validate"
+    input: "{{agent_1.content}}"
+    validationType: "pii"
+    piiMode: "block"
+    piiEntityTypes:
+      - "EMAIL_ADDRESS"
+      - "PHONE_NUMBER"
+      - "IN_AADHAAR"
+    piiLanguage: "en"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+A hallucination-check example:
+
+```yaml
+guardrails_2:
+  type: guardrails
+  name: "Guardrails"
+  inputs:
+    operation: "guardrails_validate"
+    input: "{{agent_1.content}}"
+    validationType: "hallucination"
+    knowledgeBaseId: "kb_abc123"
+    model: "gpt-4o-mini"
+    threshold: 3
+    topK: 5
+    apiKey: "{{OPENAI_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- The validation behavior is selected entirely by `validationType`. Supply only the parameters that mode needs: `regex` for regex checks, `knowledgeBaseId` / `model` / `apiKey` for hallucination checks, and `piiMode` / `piiEntityTypes` / `customPiiPatterns` for PII checks.
+- For `pii` masking, leave `piiEntityTypes` empty to scan for every built-in entity type, then read `{{guardrails_1.maskedText}}` downstream — it replaces each detection with a `<TYPE>` placeholder. In `block` mode the block fails (with `error` listing the detected entity counts) instead of returning masked text.
+- The `hallucination` check only needs an `apiKey` when the selected `model` is a non-hosted provider model (or a non-Ollama model when self-hosting). Reference the key with an environment variable, e.g. `apiKey: "{{OPENAI_API_KEY}}"`, and never hardcode it. For Azure OpenAI models, also set `azureEndpoint` and `azureApiVersion`.
+- A low hallucination score means the input was not well supported by the knowledge base; if no relevant chunks are retrieved, scoring falls back to general knowledge and stays deliberately strict, so make sure the knowledge base actually contains the domain content you are validating against.

@@ -29,43 +29,70 @@ The Microsoft Planner block integrates Planner task management into your workflo
 
 ### Operation
 
-Choose between `Read Task` and `Create Task`. This determines which fields are shown and which tool runs.
+Choose the action to perform. This selection determines which additional fields are displayed.
+
+| Label | ID |
+|-------|----|
+| Read Task | `read_task` |
+| Create Task | `create_task` |
 
 ### Microsoft Account
 
-OAuth credential used to authenticate against Microsoft Planner. Requires scopes including `Group.ReadWrite.All`, `Group.Read.All`, and `Tasks.ReadWrite`.
+OAuth credential used to authenticate against Microsoft Planner via the `microsoft-planner` provider. Required scopes: `openid`, `profile`, `email`, `Group.ReadWrite.All`, `Group.Read.All`, `Tasks.ReadWrite`, `offline_access`.
 
 ### Plan ID
 
-The Planner plan to operate on. Required when creating a task; optional when reading (used to fetch all tasks from that plan).
+The ID of the Planner plan to operate on. Shown for both `read_task` and `create_task`. For read operations it is optional — when supplied, all tasks from that plan are returned; when omitted together with Task ID, all tasks assigned to the authenticated user are returned. For create operations it is required.
 
-### Task ID
+### Task ID (basic mode)
 
-For read operations, select a task via the file selector (basic mode) or enter the task ID manually (advanced mode).
+Available for `read_task` only. A file-selector picker (basic mode) that lets you choose a task interactively from the connected Microsoft Planner account.
+
+### Manual Task ID (advanced mode)
+
+Available for `read_task` only. A free-text input (advanced mode) for entering a task ID directly. When provided, it takes priority over Plan ID and returns a single specific task.
 
 ### Task Title
 
-The title of the task to create. Required for the create operation.
+The title of the task to create. Required for `create_task`.
 
-### Description, Due Date, Assignee User ID, Bucket ID
+### Description
 
-Optional create-task fields. Due Date uses ISO 8601 format (e.g., `2024-12-31T23:59:59Z`); Assignee and Bucket organize and assign the task.
+An optional long-form description for the task being created. Shown only for `create_task`.
+
+### Due Date
+
+An optional due date/time for the task in ISO 8601 format (e.g., `2024-12-31T23:59:59Z`). Shown only for `create_task`.
+
+### Assignee User ID
+
+Optional. The Azure AD user ID of the person the task should be assigned to. Shown only for `create_task`.
+
+### Bucket ID
+
+Optional. The ID of the bucket (column) within the plan where the task should be placed. Shown only for `create_task`.
 
 ## Inputs & Outputs
 
 - **Inputs**:
-  - `operation` (string) — operation to perform
-  - `credential` (string) — Microsoft account credential
-  - `planId` (string) — plan ID
-  - `taskId` (string) — task ID
-  - `title` (string) — task title
-  - `description` (string) — task description
-  - `dueDateTime` (string) — due date
-  - `assigneeUserId` (string) — assignee user ID
-  - `bucketId` (string) — bucket ID
+  - `operation` (string) — Operation to perform (`read_task` or `create_task`)
+  - `credential` (string) — Microsoft account OAuth credential
+  - `planId` (string) — Plan ID (required for `create_task`; optional for `read_task`)
+  - `taskId` (string) — Task ID (for `read_task`; overrides `planId` when set)
+  - `title` (string) — Task title (required for `create_task`)
+  - `description` (string) — Task description (optional, `create_task` only)
+  - `dueDateTime` (string) — Due date in ISO 8601 format (optional, `create_task` only)
+  - `assigneeUserId` (string) — Azure AD user ID to assign the task to (optional, `create_task` only)
+  - `bucketId` (string) — Bucket ID within the plan (optional, `create_task` only)
 - **Outputs**:
-  - `task` (json) — the Microsoft Planner task object (id, title, description, status, due date, assignees)
-  - `metadata` (json) — additional metadata about the operation
+  - `task` (json) — The Microsoft Planner task object, including details such as id, title, description, status, due date, and assignees
+  - `metadata` (json) — Additional metadata about the operation, such as timestamps, request status, or other relevant information
+
+## Tools
+
+**Read Microsoft Planner Tasks** (`microsoft_planner_read_task`) — Reads tasks from Microsoft Planner via the Microsoft Graph API. Retrieves a single task when `taskId` is provided, all tasks from a specific plan when `planId` is provided, or all tasks assigned to the authenticated user when neither is supplied.
+
+**Create Microsoft Planner Task** (`microsoft_planner_create_task`) — Creates a new task in Microsoft Planner via the Microsoft Graph API. Requires `planId` and `title`; optionally accepts `description`, `dueDateTime`, `assigneeUserId`, and `bucketId`.
 
 ## YAML Example
 
@@ -75,11 +102,13 @@ planner_create:
   name: "Microsoft Planner"
   inputs:
     operation: "create_task"
-    credential: "{{credentials.microsoft-planner}}"
+    credential: "{{MICROSOFT_PLANNER_CREDENTIAL}}"
     planId: "AAkALgAAAAAAHYQDEapmEc2byACkI8OwAA"
     title: "Follow up with customer"
     description: "Reach out about the renewal"
     dueDateTime: "2024-12-31T23:59:59Z"
+    assigneeUserId: "{{user_lookup_1.userId}}"
+    bucketId: "BnD4zqJ5xUiZbPz8bHMWGmQAGGwn"
   connections:
     outgoing:
       - target: next-block-id

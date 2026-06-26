@@ -1,0 +1,109 @@
+---
+title: Sentry Block
+description: Manage projects and issues in Sentry
+icon: Box
+---
+
+# Sentry Block
+
+List projects, list and inspect issues, and update issue status through the Sentry API. Authenticate with a Sentry auth token to query your organization's error-tracking data or programmatically triage issues as part of a workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `sentry` |
+| **Category** | tools |
+| **Color** | `#362D59` |
+
+## When to Use
+
+- Fetch all Sentry projects visible to a given auth token to populate downstream selectors or reports.
+- Search for open issues in a specific project using Sentry's query syntax (e.g., `is:unresolved level:error`).
+- Retrieve the full detail object for a single Sentry issue by its numeric ID.
+- Automatically resolve, unresolve, or ignore a Sentry issue as part of a CI/CD or alert-response workflow.
+- Route high-severity Sentry issues into a Slack channel, ticket system, or AI triage agent.
+- Audit project health by counting unresolved errors returned in `metadata.count`.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting which Sentry API action the block performs. Defaults to `List projects`. Required.
+
+| Label | ID |
+|-------|----|
+| List projects | `sentry_list_projects` |
+| List issues | `sentry_list_issues` |
+| Get issue | `sentry_get_issue` |
+| Update issue | `sentry_update_issue` |
+
+Each operation shows only its relevant fields (see below).
+
+### Organization Slug
+
+Short text input for the Sentry organization slug (e.g., `my-org`). Shown when operation is **List issues**. Required for that operation.
+
+### Project Slug
+
+Short text input for the Sentry project slug (e.g., `my-project`). Shown when operation is **List issues**. Required for that operation.
+
+### Query
+
+Short text input for a Sentry issue search query (e.g., `is:unresolved level:error`). Shown when operation is **List issues**. Optional — omit to return all issues.
+
+### Issue ID
+
+Short text input for the numeric Sentry issue ID (e.g., `12345`). Shown when operation is **Get issue** or **Update issue**. Required for those operations.
+
+### Status
+
+Short text input for the new status to set on the issue. Shown when operation is **Update issue**. Accepted values: `resolved`, `unresolved`, `ignored`. Optional — omit to leave status unchanged.
+
+### Limit
+
+Short text input for the maximum number of projects to return per page (default `25`, max `100`). Shown when operation is **List projects**. Optional.
+
+### Sentry Auth Token
+
+Password field for the Sentry API authentication token. Always visible. Required for all operations. Store the value as a secret environment variable and reference it as `{{SENTRY_AUTH_TOKEN}}`.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`sentry_list_projects`, `sentry_list_issues`, `sentry_get_issue`, or `sentry_update_issue`)
+  - `apiKey` (string) — Sentry API authentication token
+  - `organizationSlug` (string) — Organization slug (List issues)
+  - `projectSlug` (string) — Project slug (List issues)
+  - `query` (string) — Issue search query (List issues)
+  - `issueId` (string) — Issue ID (Get issue, Update issue)
+  - `status` (string) — New issue status (Update issue)
+  - `limit` (number) — Result limit (List projects)
+
+- **Outputs**:
+  - `data` (json) — Result object or array from Sentry (project array, issue array, or single issue object depending on operation)
+  - `metadata` (json) — Response metadata (`count` for list operations; `id` for single-issue operations)
+
+## Tools
+
+- **Sentry List Projects** (`sentry_list_projects`) — Calls `GET https://sentry.io/api/0/projects/` to list all projects accessible to the authenticated user. Supports an optional `limit` (`per_page`) parameter. Returns an array of project objects in `data` and `metadata.count`.
+- **Sentry List Issues** (`sentry_list_issues`) — Calls `GET https://sentry.io/api/0/projects/{organizationSlug}/{projectSlug}/issues/` to list issues for a project. Accepts an optional Sentry search `query`. Returns an array of issue objects in `data` and `metadata.count`.
+- **Sentry Get Issue** (`sentry_get_issue`) — Calls `GET https://sentry.io/api/0/issues/{issueId}/` to retrieve full detail for a single issue. Returns the issue object in `data` and `metadata.id`.
+- **Sentry Update Issue** (`sentry_update_issue`) — Calls `PUT https://sentry.io/api/0/issues/{issueId}/` to update an issue (e.g., change its status). Returns the updated issue object in `data` and `metadata.id`.
+
+## YAML Example
+
+```yaml
+sentry_1:
+  type: sentry
+  name: "Sentry"
+  inputs:
+    operation: "sentry_list_issues"
+    apiKey: "{{SENTRY_AUTH_TOKEN}}"
+    organizationSlug: "my-org"
+    projectSlug: "my-project"
+    query: "is:unresolved level:error"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

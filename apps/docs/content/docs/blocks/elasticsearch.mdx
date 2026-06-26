@@ -1,12 +1,12 @@
 ---
 title: Elasticsearch Block
 description: Search and manage data in Elasticsearch
-icon: Box
+icon: Search
 ---
 
 # Elasticsearch Block
 
-The Elasticsearch block lets you integrate Elasticsearch into your workflows. Use it to search documents, index data, retrieve or delete documents, run bulk indexing, and list indices directly from a workflow.
+The Elasticsearch block lets you integrate Elasticsearch into your workflows. Use it to search documents, index data, retrieve or delete documents, run bulk operations, and list indices — all from a single configurable block.
 
 ## Overview
 
@@ -18,51 +18,85 @@ The Elasticsearch block lets you integrate Elasticsearch into your workflows. Us
 
 ## When to Use
 
-- Search an index with a JSON query and return matching hits.
-- Index a single document into an index.
+- Search an index with a JSON query and return matching document hits.
+- Index a single document into an index (create or replace by ID).
 - Retrieve a specific document by its ID.
-- Delete a document by its ID.
-- Bulk-index a batch of documents in one operation.
-- List the indices available on your Elasticsearch cluster.
+- Delete a document from an index by its ID.
+- Bulk-index a batch of documents in one NDJSON request.
+- List all indices available on your Elasticsearch cluster.
 
 ## Configuration
 
 ### Operation
 
-Choose what the block does. Options: Search (`elasticsearch_search`), Index Document (`elasticsearch_index`), Get Document (`elasticsearch_get`), Delete Document (`elasticsearch_delete`), Bulk Index (`elasticsearch_bulk`), and List Indices (`elasticsearch_list_indices`). Required.
+Required. Selects which Elasticsearch action the block performs. Every option corresponds directly to a registered tool:
+
+| Label | Option ID |
+|-------|-----------|
+| Search | `elasticsearch_search` |
+| Index Document | `elasticsearch_index` |
+| Get Document | `elasticsearch_get` |
+| Delete Document | `elasticsearch_delete` |
+| Bulk Index | `elasticsearch_bulk` |
+| List Indices | `elasticsearch_list_indices` |
 
 ### Elasticsearch URL
 
-The base URL of your Elasticsearch cluster (e.g. `https://localhost:9200`). Required.
+Required. The base URL of your Elasticsearch cluster, for example `https://localhost:9200` or `https://my-cluster.es.io:9200`.
 
 ### API Key
 
-Your Elasticsearch API key, used to authenticate requests. Stored as a secret.
+Optional. Your Elasticsearch API key used to authenticate requests. Stored as a secret — pass it with `{{ELASTICSEARCH_API_KEY}}`.
 
 ### Index
 
-The name of the target index (e.g. `my-index`). Required.
+Required. The name of the target index, for example `my-index`. Visible for all operations except Bulk Index and List Indices.
 
 ### Query (JSON)
 
-The search query body, in JSON. Shown for the Search operation.
+Shown only for the **Search** operation. A valid Elasticsearch query object in JSON, for example `{"match": {"title": "hello"}}`.
 
 ### Document (JSON)
 
-The document body to store, in JSON. Shown for the Index Document operation.
+Shown only for the **Index Document** operation. The document body to store, expressed as a JSON object, for example `{"field": "value"}`.
 
 ### Document ID
 
-The ID of the document to retrieve or delete. Shown for the Get Document and Delete Document operations.
+Shown only for the **Get Document** and **Delete Document** operations. The ID of the document to retrieve or delete.
 
 ### Max Results
 
-The maximum number of hits to return. Shown for the Search operation.
+Shown only for the **Search** operation. The maximum number of hits to return (defaults to `10` if left blank).
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `url` (string), `apiKey` (string), `index` (string), `query` (json), `document` (json), `id` (string), `size` (string)
-- **Outputs**: `hits` (json), `total` (number), `document` (json)
+**Inputs** (subBlock ids you can wire from other blocks):
+
+- `operation` (string) — Operation to perform; must be one of the option IDs listed above.
+- `url` (string) — Elasticsearch URL.
+- `apiKey` (string) — API key for authentication.
+- `index` (string) — Index name.
+- `query` (json) — Search query (used by Search operation).
+- `document` (json) — Document data (used by Index Document operation).
+- `id` (string) — Document ID (used by Get Document and Delete Document operations).
+- `size` (string) — Max results (used by Search operation).
+
+**Outputs** (fields available to downstream blocks via `{{elasticsearch_1.field}}`):
+
+- `hits` (json) — Array of matching documents returned by a search.
+- `total` (number) — Total number of matching documents.
+- `document` (json) — Retrieved document (Get Document operation).
+
+## Tools
+
+Each operation maps to a dedicated tool registered in the tools registry:
+
+- **Elasticsearch Search** (`elasticsearch_search`) — Executes a POST to `/{index}/_search` with a JSON query body and returns `hits`, `total`, and `took` (milliseconds).
+- **Elasticsearch Index Document** (`elasticsearch_index`) — Creates or replaces a document via POST/PUT to `/{index}/_doc/{id?}`. Returns `id`, `index`, and `result` (`created` or `updated`).
+- **Elasticsearch Get Document** (`elasticsearch_get`) — Retrieves a single document by ID via GET `/{index}/_doc/{id}`. Returns `id`, `index`, and `source` (the document body).
+- **Elasticsearch Delete Document** (`elasticsearch_delete`) — Deletes a document by ID via DELETE `/{index}/_doc/{id}`. Returns `id`, `index`, and `result` (`deleted`).
+- **Elasticsearch Bulk Operations** (`elasticsearch_bulk`) — Performs multiple index, delete, or update operations in a single POST to `/_bulk` using an NDJSON body. Returns `took`, `errors` (boolean), and `items` (per-operation results).
+- **Elasticsearch List Indices** (`elasticsearch_list_indices`) — Lists all indices in the cluster via GET `/_cat/indices?format=json`. Returns `indices` (array of index metadata objects).
 
 ## YAML Example
 
@@ -73,7 +107,7 @@ elasticsearch_1:
   inputs:
     operation: "elasticsearch_search"
     url: "https://localhost:9200"
-    apiKey: "{{secrets.ELASTICSEARCH_API_KEY}}"
+    apiKey: "{{ELASTICSEARCH_API_KEY}}"
     index: "my-index"
     query: '{"match": {"field": "value"}}'
     size: "10"

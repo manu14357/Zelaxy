@@ -1,0 +1,54 @@
+---
+title: DSPy
+description: Run DSPy AI programs and optimize prompts via a self-hosted server
+icon: Brain
+---
+
+# DSPy
+
+Execute DSPy language-model programs hosted on your own server and receive structured predictions. Use this block when you want to run compiled, optimized DSPy pipelines — such as chain-of-thought modules, multi-hop reasoners, or fine-tuned prompt chains — from inside a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `dspy` |
+| **Category** | Tool — AI & ML |
+| **Auth** | API Key (Bearer token, optional) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **DSPy Run** | `dspy_run` | POST a DSPy program and an input string to your server's `/run` endpoint and return the program's output and full prediction object. |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `baseUrl` | `string` | Yes | Base URL of your DSPy server (e.g., `https://your-dspy-server.com`). Trailing slashes are stripped automatically. |
+| `apiKey` | `string` | No | Bearer token for server authentication. Set this if your DSPy server requires an API key. Store as a secret and reference with `{{DSPY_API_KEY}}`. |
+| `program` | `string` | Yes | Python DSPy program code to execute. The block's code editor lets you write or paste the full module definition. |
+| `input` | `string` | Yes | Input value passed to the DSPy program at runtime. Can come from an upstream block using `{{blockName.output}}`. |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `output` | `string` | Primary text result returned by the DSPy program — resolved from the server response's `output`, `answer`, or `response` field (in that priority order). |
+| `prediction` | `json` | Full prediction object returned by the server. Contains all intermediate fields produced by the DSPy module (e.g., rationale, intermediate steps). |
+
+## Example
+
+```
+[Starter] → [DSPy: DSPy Run] → [Agent: use the result]
+```
+
+A Starter block collects a user question and passes it as `{{starter.input}}`. The DSPy block connects to `{{DSPY_BASE_URL}}`, authenticates with `{{DSPY_API_KEY}}`, runs a chain-of-thought program, and surfaces `{{dspy.output}}` to a downstream Agent that formats the final response for the user.
+
+## Tips
+
+- **Self-hosted server required** — DSPy programs run on your own inference server, not on a third-party API. Deploy a FastAPI or Flask wrapper that exposes a `POST /run` endpoint accepting `{ program, input }` and returning `{ output, prediction }`.
+- **API key is optional** — if your server is behind a private network or has no authentication, leave `apiKey` blank. If it does require auth, add the key as an environment secret and reference it as `{{DSPY_API_KEY}}`.
+- **`prediction` for debugging** — the raw `prediction` JSON output contains every intermediate field DSPy produced (e.g., rationale traces). Pass it to an Agent or log it in a Response block while iterating on your program.
+- **Upstream inputs** — pipe dynamic content into the `input` field with `{{blockName.field}}` syntax so the same DSPy program can handle varying user data without changing the program code.

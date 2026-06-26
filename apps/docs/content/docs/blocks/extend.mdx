@@ -1,0 +1,141 @@
+---
+title: Extend Block
+description: Parse and extract structured content from documents with Extend
+icon: Box
+---
+
+# Extend Block
+
+Parse documents into structured markdown or spatial content and retrieve processor run results through the Extend AI API. Authenticate with an Extend API key to unlock document parsing and run-status retrieval in any workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `extend` |
+| **Category** | `tools` |
+| **Color** | `#111827` |
+
+## When to Use
+
+- Convert a PDF, Word file, or any document at a public URL into structured markdown for downstream text processing.
+- Extract spatial/layout-aware content from documents where positional information matters.
+- Poll an Extend processor run by ID to check its status or fetch its completed output.
+- Build document-ingestion pipelines that feed parsed content into an agent or knowledge base.
+- Choose a specific parsing engine (`parse_performance` or `parse_light`) to balance speed versus quality.
+- Apply page-, document-, or section-level chunking strategies to align output size with your downstream needs.
+
+## Configuration
+
+### Operation
+
+Selects which Extend API action to perform. The fields shown in the block change based on this selection.
+
+| Label | ID |
+|-------|----|
+| Parse document | `extend_parse` |
+| Get run | `extend_get_run` |
+
+**Default:** `extend_parse`
+
+---
+
+### File URL _(shown when operation = `extend_parse`)_
+
+- **Type:** short-input
+- **Placeholder:** `https://example.com/document.pdf`
+- The publicly accessible URL of the document to parse. Must be reachable by Extend's servers.
+
+---
+
+### Output Format _(shown when operation = `extend_parse`)_
+
+- **Type:** short-input
+- **Placeholder:** `markdown`
+- Target output format for the parsed document. Accepted values: `markdown` (default) or `spatial`.
+
+---
+
+### Chunking Strategy _(shown when operation = `extend_parse`)_
+
+- **Type:** short-input
+- **Placeholder:** `page`
+- Controls how the parsed content is split. Accepted values: `page`, `document`, or `section`.
+
+---
+
+### Engine _(shown when operation = `extend_parse`)_
+
+- **Type:** short-input
+- **Placeholder:** `parse_performance`
+- Parsing engine to use. Accepted values: `parse_performance` (higher quality) or `parse_light` (faster).
+
+---
+
+### Run ID _(shown when operation = `extend_get_run`)_
+
+- **Type:** short-input
+- **Placeholder:** `run_...`
+- The ID of the Extend processor or parse run to retrieve. Returned by a prior `extend_parse` call as `{{extend_1.metadata.id}}`.
+
+---
+
+### Extend API Key _(always shown, required)_
+
+- **Type:** short-input (password)
+- **Required:** yes
+- Your Extend API key used to authenticate all requests. Store it as a workflow secret and reference it as `{{EXTEND_API_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (`extend_parse` or `extend_get_run`).
+- `apiKey` (string) — Extend API key.
+- `fileUrl` (string) — URL of the document to parse (used by `extend_parse`).
+- `outputFormat` (string) — Target output format (used by `extend_parse`).
+- `chunking` (string) — Chunking strategy (used by `extend_parse`).
+- `engine` (string) — Parsing engine (used by `extend_parse`).
+- `runId` (string) — Processor run ID to retrieve (used by `extend_get_run`).
+
+**Outputs**
+
+- `data` (json) — Result object from Extend. For `extend_parse` this is the parsed document object; for `extend_get_run` this is the processor run object.
+- `metadata` (json) — Response metadata containing `id` (string — run/parse ID) and `status` (string — processing status).
+
+## Tools
+
+**Extend Parse Document** (`extend_parse`) — Submits a POST request to `https://api.extend.ai/parse` with the document URL and optional configuration (output format, chunking strategy, engine). Returns the parsed document object and run identifiers.
+
+**Extend Get Run** (`extend_get_run`) — Issues a GET request to `https://api.extend.ai/processor_runs/{runId}` to retrieve the status and result of an existing Extend processor or parse run by its ID.
+
+## YAML Example
+
+```yaml
+# Example 1: Parse a PDF document into markdown
+extend_1:
+  type: extend
+  name: "Parse Document"
+  inputs:
+    operation: extend_parse
+    apiKey: "{{EXTEND_API_KEY}}"
+    fileUrl: "{{fetch_doc_block.url}}"
+    outputFormat: markdown
+    chunking: page
+    engine: parse_performance
+  connections:
+    outgoing:
+      - target: agent_1
+
+# Example 2: Retrieve an Extend run by ID
+extend_2:
+  type: extend
+  name: "Get Run Result"
+  inputs:
+    operation: extend_get_run
+    apiKey: "{{EXTEND_API_KEY}}"
+    runId: "{{extend_1.metadata.id}}"
+  connections:
+    outgoing:
+      - target: condition_1
+```

@@ -1,0 +1,111 @@
+---
+title: New Relic Block
+description: Query telemetry and list alert policies in New Relic
+icon: Box
+---
+
+# New Relic Block
+
+Run NRQL queries and list alert policies through the New Relic NerdGraph API. Use this block whenever a workflow needs to pull live telemetry data or inspect alerting configuration from a New Relic account.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `new_relic` |
+| **Category** | `tools` |
+| **Color** | `#1CE783` |
+
+## When to Use
+
+- Query transaction counts, error rates, or any custom event data using NRQL directly from a workflow step.
+- Aggregate or filter telemetry metrics to feed into a downstream AI analysis or notification block.
+- Enumerate all alert policies in a New Relic account for auditing or reporting purposes.
+- Trigger conditional workflow branches based on the number of query results or policy names returned.
+- Extract observability data to include in automatically generated incident reports.
+- Validate infrastructure health before proceeding with a deployment or automation task.
+
+## Configuration
+
+### Operation
+
+Select which New Relic operation to perform. This dropdown controls which additional fields are shown.
+
+| Label | ID |
+|---|---|
+| NRQL query | `new_relic_nrql_query` |
+| List alert policies | `new_relic_list_alert_policies` |
+
+**Default:** `new_relic_nrql_query`
+
+---
+
+### Account ID
+
+- **Sub-block id:** `accountId`
+- **Type:** short-input
+- **Required:** yes
+- **Placeholder:** `1234567`
+
+The numeric New Relic account ID that the query or policy lookup will run against. Applies to both operations.
+
+---
+
+### NRQL
+
+- **Sub-block id:** `nrql`
+- **Type:** long-input
+- **Required:** no (only shown when **Operation** is `new_relic_nrql_query`)
+- **Placeholder:** `SELECT count(*) FROM Transaction SINCE 1 hour ago`
+- **Condition:** visible only when `operation` = `new_relic_nrql_query`
+
+The NRQL query string to execute. Supports any valid NRQL syntax accepted by the NerdGraph `nrql` resolver (SELECT, FROM, WHERE, SINCE, UNTIL, FACET, LIMIT, etc.).
+
+---
+
+### API Key
+
+- **Sub-block id:** `apiKey`
+- **Type:** short-input (password)
+- **Required:** yes
+- **Placeholder:** `NRAK-...`
+
+Your New Relic **user API key** (starts with `NRAK-`). Store it as a workspace secret and reference it as `{{NEW_RELIC_API_KEY}}` rather than pasting the raw value.
+
+---
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (`new_relic_nrql_query` or `new_relic_list_alert_policies`)
+- `apiKey` (string) — New Relic user API key
+- `accountId` (number) — New Relic account ID
+- `nrql` (string) — NRQL query string (used only for the NRQL query operation)
+
+**Outputs**
+
+- `data` (json) — Result array from New Relic. For NRQL queries this is the array of result rows; for List Alert Policies it is the array of policy objects (each with `id`, `name`, and `incidentPreference`).
+- `metadata` (json) — Response metadata containing `count` (number of items in `data`).
+
+## Tools
+
+**New Relic NRQL Query** (`new_relic_nrql_query`) — Posts a NerdGraph GraphQL request to `https://api.newrelic.com/graphql` that executes a NRQL statement against the specified account. Params: `apiKey` (required), `accountId` (required), `nrql` (required). Returns `data` (NRQL result rows) and `metadata.count`.
+
+**New Relic List Alert Policies** (`new_relic_list_alert_policies`) — Posts a NerdGraph GraphQL request that retrieves all alert policies for the specified account via `alerts.policiesSearch`. Params: `apiKey` (required), `accountId` (required). Returns `data` (array of policy objects with `id`, `name`, `incidentPreference`) and `metadata.count`.
+
+## YAML Example
+
+```yaml
+new_relic_1:
+  type: new_relic
+  name: "Query Error Rate"
+  inputs:
+    operation: new_relic_nrql_query
+    apiKey: "{{NEW_RELIC_API_KEY}}"
+    accountId: "1234567"
+    nrql: "SELECT count(*) FROM TransactionError SINCE 1 hour ago FACET error.class"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

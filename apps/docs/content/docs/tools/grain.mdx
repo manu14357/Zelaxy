@@ -1,0 +1,181 @@
+---
+title: Grain Tools
+description: Access Grain meeting recordings, transcripts, AI summaries, and webhooks
+icon: Mic
+---
+
+# Grain Tools
+
+Grain captures, transcribes, and summarizes your meeting recordings. Use these tools in a workflow to list and fetch recordings, pull full transcripts and AI-generated summaries, browse views/teams/meeting types, and manage webhooks that notify your workflow when recordings change.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `grain` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Grain API key / Personal Access Token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List Recordings | `grain_list_recordings` | List recordings from Grain with optional filters and pagination |
+| Get Recording | `grain_get_recording` | Get details of a single recording by ID |
+| Get Transcript | `grain_get_transcript` | Get the full transcript of a recording |
+| List Views | `grain_list_views` | List saved views in Grain |
+| List Teams | `grain_list_teams` | List all teams in the Grain workspace |
+| List Meeting Types | `grain_list_meeting_types` | List all meeting types in the Grain workspace |
+| Create Webhook | `grain_create_hook` | Create a webhook to receive Grain recording events |
+| List Webhooks | `grain_list_hooks` | List all webhooks in the Grain workspace |
+| Delete Webhook | `grain_delete_hook` | Delete a webhook from the Grain workspace |
+
+## Configuration
+
+All operations authenticate with a Grain API key (Personal Access Token), sent as a `Bearer` token in the `Authorization` header. The `apiKey` parameter is a **secret** — store it as an environment variable and reference it with `{{...}}` rather than hard-coding it.
+
+### grain_list_recordings
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grain API key (Personal Access Token). **Secret.** |
+| `cursor` | string | No | Pagination cursor from a previous response |
+| `beforeDatetime` | string | No | Only recordings before this ISO8601 timestamp |
+| `afterDatetime` | string | No | Only recordings after this ISO8601 timestamp |
+| `participantScope` | string | No | Filter scope: `internal` or `external` |
+| `titleSearch` | string | No | Search term to filter by recording title |
+| `teamId` | string | No | Filter by team UUID |
+| `meetingTypeId` | string | No | Filter by meeting type UUID |
+| `includeHighlights` | boolean | No | Include highlights/clips in the response |
+| `includeParticipants` | boolean | No | Include the participant list in the response |
+| `includeAiSummary` | boolean | No | Include the AI-generated summary |
+
+### grain_get_recording
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grain API key. **Secret.** |
+| `recordingId` | string | Yes | The recording UUID |
+| `includeHighlights` | boolean | No | Include highlights/clips |
+| `includeParticipants` | boolean | No | Include the participant list |
+| `includeAiSummary` | boolean | No | Include the AI summary |
+| `includeCalendarEvent` | boolean | No | Include calendar event data |
+| `includeHubspot` | boolean | No | Include HubSpot associations |
+
+### grain_get_transcript
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grain API key. **Secret.** |
+| `recordingId` | string | Yes | The recording UUID |
+
+### grain_list_views
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grain API key. **Secret.** |
+| `typeFilter` | string | No | Filter by type: `recordings`, `highlights`, or `stories` |
+
+### grain_list_teams
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grain API key. **Secret.** |
+
+### grain_list_meeting_types
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grain API key. **Secret.** |
+
+### grain_create_hook
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grain API key. **Secret.** |
+| `hookUrl` | string | Yes | The URL to send webhook events to |
+| `viewId` | string | Yes | View ID to scope the webhook to |
+| `actions` | string | No | Comma-separated actions: `added`, `updated`, `removed` (defaults to all three) |
+
+### grain_list_hooks
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grain API key. **Secret.** |
+
+### grain_delete_hook
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Grain API key. **Secret.** |
+| `hookId` | string | Yes | The hook ID to delete |
+
+## Outputs
+
+### grain_list_recordings
+
+- `recordings` (array) — Array of recording objects
+- `cursor` (string, optional) — Cursor for the next page
+
+### grain_get_recording
+
+- `id` (string) — Recording UUID
+- `title` (string) — Recording title
+- `url` (string) — URL to view in Grain
+- `duration_ms` (number) — Duration in milliseconds
+- `participants` (array, optional) — Participants list
+- `ai_summary` (json, optional) — AI summary
+
+### grain_get_transcript
+
+- `transcript` (array) — Array of transcript sections with speaker, text, and start/end times
+
+### grain_list_views
+
+- `views` (array) — Array of view objects
+
+### grain_list_teams
+
+- `teams` (array) — Array of team objects with id and name
+
+### grain_list_meeting_types
+
+- `meeting_types` (array) — Array of meeting type objects
+
+### grain_create_hook
+
+- `id` (string) — Hook ID
+- `hook_url` (string) — Webhook URL
+- `enabled` (boolean) — Whether the hook is enabled
+
+### grain_list_hooks
+
+- `hooks` (array) — Array of webhook objects
+
+### grain_delete_hook
+
+- `success` (boolean) — Whether the hook was deleted
+
+## YAML Example
+
+```yaml
+grain_1:
+  type: grain
+  name: "Grain"
+  inputs:
+    operation: "grain_list_recordings"
+    apiKey: "{{GRAIN_API_KEY}}"
+    afterDatetime: "2024-01-01T00:00:00Z"
+    includeAiSummary: true
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup:** Generate a Personal Access Token in your Grain account settings and store it as an environment variable (e.g. `GRAIN_API_KEY`), then reference it with `{{GRAIN_API_KEY}}`. Every operation requires it. Requests are sent against `https://api.grain.com/_/public-api/v2` with the `Public-Api-Version: 2025-10-31` header.
+- **Pagination:** `grain_list_recordings` returns a `cursor` when more results exist. Pass it back as the `cursor` parameter to fetch the next page.
+- **Rich data is opt-in:** The `includeHighlights`, `includeParticipants`, `includeAiSummary`, `includeCalendarEvent`, and `includeHubspot` switches default to off — enable only what you need to keep responses small. Transcripts come from the separate `grain_get_transcript` operation.
+- **Webhooks need a view:** `grain_create_hook` requires a `viewId` to scope events; use `grain_list_views` to find one. When `actions` is omitted, the hook subscribes to `added`, `updated`, and `removed` events.
+```

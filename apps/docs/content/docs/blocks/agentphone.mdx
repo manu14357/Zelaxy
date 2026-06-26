@@ -6,7 +6,7 @@ icon: Box
 
 # AgentPhone Block
 
-The AgentPhone block automates voice communication through AgentPhone. Use it to provision and manage phone numbers, send messages, and initiate voice calls directly from your workflow.
+The AgentPhone block automates voice communication through AgentPhone. Use it to provision and manage phone numbers, send SMS or iMessage messages, and initiate outbound voice calls directly from your workflow.
 
 ## Overview
 
@@ -18,42 +18,83 @@ The AgentPhone block automates voice communication through AgentPhone. Use it to
 
 ## When to Use
 
-- Provision a new phone number in the US or Canada for a campaign or agent.
-- List the phone numbers currently available in your AgentPhone account.
-- Release a phone number you no longer need.
-- Send an outbound message from one of your numbers to a recipient.
-- Place an automated voice call from a managed number to a target number.
+- Provision a new SMS- and voice-enabled phone number in the US or Canada for an agent or campaign.
+- List all phone numbers currently available in your AgentPhone account.
+- Release (permanently delete) a phone number you no longer need.
+- Send an outbound SMS, MMS, or iMessage from a managed number to a recipient.
+- Initiate an outbound AI-powered voice call from a managed number to a target phone number.
+- Chain number provisioning with call or message steps: provision a number in one block, then pass its ID downstream.
 
 ## Configuration
 
 ### Operation
 
-Select the action to perform: Create Number, List Numbers, Release Number, Send Message, or Create Call. This drives which other fields are required.
+**Required.** Selects which AgentPhone action to execute. All other fields appear conditionally based on this choice.
+
+| Label | id |
+|-------|----|
+| Create Number | `agentphone_create_number` |
+| List Numbers | `agentphone_list_numbers` |
+| Release Number | `agentphone_release_number` |
+| Send Message | `agentphone_send_message` |
+| Create Call | `agentphone_create_call` |
 
 ### API Key
 
-Your AgentPhone API key. Stored securely and required for every operation.
+**Required for every operation.** Your AgentPhone API key, stored securely. Use `{{AGENTPHONE_API_KEY}}` to reference an environment secret rather than hardcoding the value.
 
 ### Country
 
-For Create Number, the country to provision the number in (United States or Canada).
+Shown for **Create Number** only. The country in which to provision the new number.
+
+| Label | id |
+|-------|-----|
+| United States | `US` |
+| Canada | `CA` |
+
+Defaults to `US` when not specified.
 
 ### Area Code
 
-For Create Number, an optional area code preference (for example, `415`).
+Shown for **Create Number** only. An optional 3-digit area code preference (US/CA only), for example `415`. If not provided, AgentPhone selects any available number.
 
 ### Number ID
 
-The id of the managed number to act on. Required for Release Number, Send Message, and Create Call.
+Shown for **Release Number**, **Send Message**, and **Create Call**. The unique ID of the managed phone number to act on. You can pipe `{{previousBlock.numberId}}` from a Create Number block upstream.
 
 ### To Number
 
-The destination phone number (E.164 format, for example `+14155551234`). Required for Send Message and Create Call.
+Shown for **Send Message** and **Create Call**. The destination phone number in E.164 format, for example `+14155551234`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `country` (string), `areaCode` (string), `numberId` (string), `toNumber` (string)
-- **Outputs**: `phoneNumber` (string), `numberId` (string), `callId` (string), `status` (string)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (one of the tool ids listed above)
+  - `apiKey` (string) — API key for authenticating with AgentPhone
+  - `country` (string) — Country code for number provisioning (`US` or `CA`)
+  - `areaCode` (string) — Preferred area code for number provisioning
+  - `numberId` (string) — ID of the managed phone number to act on
+  - `toNumber` (string) — Target phone number in E.164 format
+
+- **Outputs** (block-level; the exact fields populated depend on the operation):
+  - `phoneNumber` (string) — Phone number in E.164 format (Create Number)
+  - `numberId` (string) — ID of the phone number (Create Number)
+  - `callId` (string) — Unique call identifier (Create Call)
+  - `status` (string) — Status of the number, message, or call
+
+## Tools
+
+Each operation maps to a dedicated tool registered in the tool registry:
+
+- **Create Phone Number** (`agentphone_create_number`) — Calls `POST https://api.agentphone.to/v1/numbers`. Provisions a new SMS- and voice-enabled phone number. Accepts optional `country`, `areaCode`, and `agentId` params. Returns the provisioned number's `id`, `phoneNumber`, `country`, `status`, `type`, `agentId`, and `createdAt`.
+
+- **List Phone Numbers** (`agentphone_list_numbers`) — Calls `GET https://api.agentphone.to/v1/numbers`. Returns a paginated list of all phone numbers provisioned for the account. Accepts optional `limit` (default 20, max 100) and `offset` params. Returns `data` (array of number objects), `hasMore` (boolean), and `total` (number).
+
+- **Release Phone Number** (`agentphone_release_number`) — Calls `DELETE https://api.agentphone.to/v1/numbers/{numberId}`. Permanently releases a phone number. This action is irreversible. Returns `id` and `released` (boolean).
+
+- **Send Message** (`agentphone_send_message`) — Calls `POST https://api.agentphone.to/v1/messages`. Sends an outbound SMS, MMS, or iMessage from an AgentPhone agent. Requires `agentId`, `toNumber`, and `body`; accepts optional `mediaUrl` and `numberId`. Returns `id`, `status`, `channel` (sms/mms/imessage), `fromNumber`, and `toNumber`.
+
+- **Create Outbound Call** (`agentphone_create_call`) — Calls `POST https://api.agentphone.to/v1/calls`. Initiates an outbound AI-powered voice call from an AgentPhone agent. Requires `agentId` and `toNumber`; accepts optional `fromNumberId`, `initialGreeting`, `voice`, and `systemPrompt`. Returns `id`, `agentId`, `status`, `toNumber`, `fromNumber`, `phoneNumberId`, `direction`, and `startedAt`.
 
 ## YAML Example
 
@@ -63,8 +104,8 @@ agentphone_1:
   name: "AgentPhone"
   inputs:
     operation: "agentphone_create_call"
-    apiKey: "{{secrets.AGENTPHONE_API_KEY}}"
-    numberId: "number-id"
+    apiKey: "{{AGENTPHONE_API_KEY}}"
+    numberId: "{{provisionNumber.numberId}}"
     toNumber: "+14155551234"
   connections:
     outgoing:

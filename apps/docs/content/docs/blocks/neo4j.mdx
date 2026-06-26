@@ -1,0 +1,150 @@
+---
+title: Neo4j Block
+description: Run Cypher queries against a Neo4j database via the HTTP Query API
+icon: Database
+---
+
+# Neo4j Block
+
+Execute Cypher statements against a Neo4j database through the HTTP Query API. Authenticate with your database URL, username, and password to query, traverse, or mutate graph data from within any workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `neo4j` |
+| **Category** | `tools` |
+| **Color** | `#018BFF` |
+
+## When to Use
+
+- Query nodes, relationships, or paths in a Neo4j graph using Cypher.
+- Insert or update graph entities (nodes, edges, properties) as part of a workflow.
+- Retrieve recommendations, fraud-detection signals, or knowledge-graph results and pass them to downstream blocks.
+- Parameterize queries dynamically using values from earlier blocks (e.g., a user ID resolved from an agent or API block).
+- Chain graph results into LLM agent blocks for graph-augmented generation (GraphRAG).
+- Validate or audit graph data as a step inside a larger automated pipeline.
+
+## Configuration
+
+### Operation
+
+Selects which action the block performs against Neo4j.
+
+| Label | ID |
+|-------|----|
+| Run query | `neo4j_run_query` |
+
+Currently the only operation is **Run query** (`neo4j_run_query`). The operation selector defaults to this value.
+
+### Cypher Statement
+
+- **Sub-block id**: `statement`
+- **Type**: long-input
+- **Visible when**: operation = `neo4j_run_query`
+- **Placeholder**: `MATCH (n) RETURN n LIMIT 10`
+
+The full Cypher statement to execute. You can use named parameters (prefixed with `$`) that are bound at runtime via the **Parameters** field. Supports any valid Cypher syntax accepted by the Neo4j HTTP Query API v2.
+
+### Parameters
+
+- **Sub-block id**: `parameters`
+- **Type**: long-input (JSON)
+- **Visible when**: operation = `neo4j_run_query`
+- **Required**: no
+- **Placeholder**: `{ "name": "Jane" }`
+
+A JSON object whose keys map to the `$param` placeholders in your Cypher statement. For example, if your statement contains `WHERE n.name = $name`, supply `{ "name": "Jane" }`. Leave empty if your query has no parameters.
+
+### Database URL
+
+- **Sub-block id**: `dbUrl`
+- **Type**: short-input
+- **Required**: yes
+- **Placeholder**: `https://<id>.databases.neo4j.io`
+
+The base URL of your Neo4j instance. For Aura-hosted databases this follows the pattern `https://<instance-id>.databases.neo4j.io`. The block appends `/db/<database>/query/v2` automatically.
+
+### Username
+
+- **Sub-block id**: `username`
+- **Type**: short-input
+- **Required**: yes
+- **Placeholder**: `neo4j`
+
+The Neo4j username used for Basic authentication. Store this in an environment variable and reference it as `{{NEO4J_USERNAME}}`.
+
+### Password
+
+- **Sub-block id**: `password`
+- **Type**: short-input (password-masked)
+- **Required**: yes
+- **Placeholder**: `Your Neo4j password`
+
+The Neo4j password used for Basic authentication. Always reference via a secret environment variable: `{{NEO4J_PASSWORD}}`.
+
+### Database
+
+- **Sub-block id**: `database`
+- **Type**: short-input
+- **Required**: yes
+- **Placeholder**: `neo4j`
+
+The name of the database within the Neo4j instance to run the query against. For most Aura and single-server deployments this is `neo4j`.
+
+## Inputs & Outputs
+
+### Inputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `operation` | string | Operation to perform (always `neo4j_run_query` for the current version) |
+| `dbUrl` | string | Neo4j database URL |
+| `username` | string | Neo4j username |
+| `password` | string | Neo4j password |
+| `database` | string | Database name |
+| `statement` | string | Cypher statement to execute |
+| `parameters` | json | Parameters bound to `$placeholders` in the Cypher statement |
+
+### Outputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `data` | json | Full result object returned by the Neo4j HTTP Query API v2 — contains `data`, `errors`, and bookmarks fields as returned by Neo4j |
+| `metadata` | json | Response metadata (currently an empty object; reserved for future use) |
+
+Access outputs from a downstream block using `{{neo4j_1.data}}` or `{{neo4j_1.metadata}}`.
+
+## Tools
+
+**Neo4j Run Query** (`neo4j_run_query`) — Sends a `POST` request to `<dbUrl>/db/<database>/query/v2` with Basic authentication and a JSON body containing the `statement` and optional `parameters`. Returns the raw Neo4j Query API v2 JSON response as `data`.
+
+Key tool params:
+
+| Param | Required | Notes |
+|-------|----------|-------|
+| `dbUrl` | yes | Base URL of the Neo4j instance |
+| `username` | yes | Basic-auth username |
+| `password` | yes | Basic-auth password |
+| `database` | yes | Target database name |
+| `statement` | yes | Cypher statement |
+| `parameters` | no | JSON parameters for `$placeholders` |
+
+## YAML Example
+
+```yaml
+neo4j_1:
+  type: neo4j
+  name: "Query Person Node"
+  inputs:
+    operation: "neo4j_run_query"
+    dbUrl: "{{NEO4J_URL}}"
+    username: "{{NEO4J_USERNAME}}"
+    password: "{{NEO4J_PASSWORD}}"
+    database: "neo4j"
+    statement: "MATCH (p:Person {name: $name}) RETURN p"
+    parameters: '{"name": "{{input_block.personName}}"}'
+  connections:
+    outgoing:
+      - target: next-block-id
+```

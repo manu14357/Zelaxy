@@ -6,7 +6,7 @@ icon: Box
 
 # A2A Block
 
-The A2A block lets you interact with external AI agents using the A2A (Agent-to-Agent) protocol. Use it to send messages, retrieve or cancel task status, fetch an agent's capability card, resubscribe to a stream, and manage push notifications.
+Interact with AI agents using the A2A (Agent-to-Agent) protocol. Use this block to send messages, retrieve or cancel task status, fetch an agent's capability card, resubscribe to a streaming task, and configure push-notification callbacks — all from within a single block that selects the right underlying tool based on the chosen operation.
 
 ## Overview
 
@@ -18,31 +18,74 @@ The A2A block lets you interact with external AI agents using the A2A (Agent-to-
 
 ## When to Use
 
-- Send a message to a remote A2A-compatible agent and receive its response
-- Poll the status of a long-running agent task by its task ID
-- Cancel an in-flight agent task you no longer need
-- Discover a remote agent's capabilities by fetching its Agent Card
-- Resubscribe to an existing task's event stream after a disconnect
-- Configure push notifications so an agent can call back on task updates
+- Send a message to a remote A2A-compatible agent and receive its text response and task artifacts
+- Poll the current status of a long-running agent task using its task ID
+- Cancel an in-flight agent task you no longer need results from
+- Discover a remote agent's capabilities by fetching its Agent Card (name, skills, streaming support, etc.)
+- Resubscribe to an existing task's event stream after a disconnect or polling gap
+- Register a webhook URL so an agent can push task-status updates to your system automatically
 
 ## Configuration
 
 ### Operation
-Dropdown selecting which A2A action to run: **Send Message** (`a2a_send_message`), **Get Task** (`a2a_get_task`), **Cancel Task** (`a2a_cancel_task`), **Get Agent Card** (`a2a_get_agent_card`), **Resubscribe** (`a2a_resubscribe`), or **Set Push Notification** (`a2a_set_push_notification`). Required.
+
+Dropdown (required) — selects which A2A protocol action to run. Every operation requires **Agent URL**.
+
+| Label | ID | Additional required fields |
+|-------|----|---------------------------|
+| Send Message | `a2a_send_message` | `message` |
+| Get Task | `a2a_get_task` | `taskId` |
+| Cancel Task | `a2a_cancel_task` | `taskId` |
+| Get Agent Card | `a2a_get_agent_card` | _(none beyond Agent URL)_ |
+| Resubscribe | `a2a_resubscribe` | `taskId` (passed as block input; the UI shows the `message` field but the underlying tool requires `taskId`) |
+| Set Push Notification | `a2a_set_push_notification` | `taskId` |
 
 ### Agent URL
-The base URL of the target A2A agent (e.g. `https://agent.example.com`). Required for every operation.
+
+Short text input (required for all operations) — the base endpoint of the target A2A agent, e.g. `https://agent.example.com`.
 
 ### Message
-The message text to send. Shown for the **Send Message** and **Resubscribe** operations.
+
+Long text input — the message text to deliver to the agent. Shown only when **Operation** is **Send Message** or **Resubscribe**.
 
 ### Task ID
-The identifier of an existing task. Shown for the **Get Task**, **Cancel Task**, and **Set Push Notification** operations.
+
+Short text input — the identifier of an existing task. Shown only when **Operation** is **Get Task**, **Cancel Task**, or **Set Push Notification**.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `agentUrl` (string), `message` (string), `taskId` (string)
-- **Outputs**: `content` (string), `taskId` (string), `contextId` (string), `state` (string), `artifacts` (json)
+### Inputs (block-level)
+
+- `operation` (string) — Operation to perform (one of the six operation IDs above)
+- `agentUrl` (string) — Agent URL
+- `message` (string) — Message to send (used by `a2a_send_message`)
+- `taskId` (string) — Task ID (used by `a2a_get_task`, `a2a_cancel_task`, `a2a_resubscribe`, and `a2a_set_push_notification`)
+
+### Outputs (block-level)
+
+The block exposes a unified set of outputs drawn from whichever tool runs. Not every output is populated for every operation — see the per-tool detail in the Tools section below.
+
+- `content` (string) — Text response content returned by the agent
+- `taskId` (string) — Unique task identifier
+- `contextId` (string) — Groups related tasks/messages (optional)
+- `state` (string) — Current lifecycle state: `working`, `completed`, `failed`, `canceled`, `rejected`, `input_required`, or `auth_required`
+- `artifacts` (json) — Task output artifacts array
+
+## Tools
+
+Each operation maps directly to one tool. The block selects the tool via `params.operation`.
+
+**A2A Send Message** (`a2a_send_message`) — Posts a new message to an A2A-compatible agent and returns the response. Required params: `agentUrl`, `message`. Optional params: `taskId` (continue an existing task), `contextId` (conversation continuity), `data` (structured JSON string), `files` (file attachments), `apiKey` (bearer auth). Returns `content`, `taskId`, `contextId`, `state`, `artifacts`, and `history`.
+
+**A2A Get Task** (`a2a_get_task`) — Queries the current status of an existing task by `taskId`. Required params: `agentUrl`, `taskId`. Optional params: `historyLength` (number of history messages to include), `apiKey`. Returns `taskId`, `contextId`, `state`, `artifacts`, and `history`.
+
+**A2A Cancel Task** (`a2a_cancel_task`) — Signals the agent to cancel a running task identified by `taskId`. Required params: `agentUrl`, `taskId`. Optional params: `apiKey`. Returns `cancelled` (boolean) and `state`.
+
+**A2A Get Agent Card** (`a2a_get_agent_card`) — Fetches the agent's discovery document (Agent Card), which describes the agent's name, description, protocol version, supported input/output modes, skills, and capabilities (streaming, push notifications, extended card). Required params: `agentUrl`. Optional params: `apiKey`. Returns `name`, `description`, `url`, `provider`, `capabilities`, `skills`, `version`, `defaultInputModes`, and `defaultOutputModes`.
+
+**A2A Resubscribe** (`a2a_resubscribe`) — Resubscribes to a streaming A2A task to retrieve new updates after a disconnect. Required params: `agentUrl`, `taskId`. Optional params: `apiKey`. Returns `taskId`, `contextId`, `state`, `isRunning`, `artifacts`, and `history`.
+
+**A2A Set Push Notification** (`a2a_set_push_notification`) — Registers a webhook URL to receive push notifications for task-status changes on the given `taskId`. Required params: `agentUrl`, `taskId`, `webhookUrl`. Optional params: `token` (sent with webhook requests for validation), `apiKey`. Returns `url`, `token`, and `success`.
 
 ## YAML Example
 

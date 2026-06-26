@@ -18,30 +18,71 @@ The Fathom block integrates the Fathom AI meeting recorder into your workflows. 
 
 ## When to Use
 
-- List recent meetings to feed downstream processing
-- Retrieve the AI-generated summary of a specific recording
-- Pull the full transcript of a recording for analysis or storage
-- Fetch summaries and transcripts inline while listing meetings
-- List team members or teams for routing or reporting logic
+- List recent meetings to feed downstream processing or notifications
+- Retrieve the AI-generated summary of a specific recording for reporting
+- Pull the full transcript of a recording for analysis, storage, or search indexing
+- Fetch summaries and transcripts inline while listing meetings (single operation)
+- List team members for routing, filtering, or reporting logic
+- List teams to drive dynamic filtering or assignment in downstream blocks
 
 ## Configuration
 
 ### Operation
-Dropdown selecting the action to perform: **List Meetings** (`fathom_list_meetings`), **Get Summary** (`fathom_get_summary`), **Get Transcript** (`fathom_get_transcript`), **List Team Members** (`fathom_list_team_members`), or **List Teams** (`fathom_list_teams`). Required.
+
+Dropdown (required) selecting the action to perform. All five operations share the same `apiKey` credential routed through your environment.
+
+| Label | ID |
+|-------|----|
+| List Meetings | `fathom_list_meetings` |
+| Get Summary | `fathom_get_summary` |
+| Get Transcript | `fathom_get_transcript` |
+| List Team Members | `fathom_list_team_members` |
+| List Teams | `fathom_list_teams` |
 
 ### Recording ID
-The recording identifier. Shown and used when the operation is **Get Summary** or **Get Transcript**.
+
+Short text input (shown when operation is **Get Summary** or **Get Transcript**). Enter the numeric recording ID of the meeting whose summary or transcript you want to retrieve. Supports `{{blockName.field}}` references.
 
 ### Include Summary
-Switch (shown for **List Meetings**) to include each meeting's summary in the listing.
+
+Switch (shown when operation is **List Meetings**). When enabled, each meeting object in the response includes a `default_summary` field containing the template name and markdown-formatted summary text.
 
 ### Include Transcript
-Switch (shown for **List Meetings**) to include each meeting's transcript in the listing.
+
+Switch (shown when operation is **List Meetings**). When enabled, each meeting object in the response includes a `transcript` array of speaker-attributed entries.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `recordingId` (string), `includeSummary` (boolean), `includeTranscript` (boolean)
-- **Outputs**: `meetings` (json), `summary` (string), `transcript` (string)
+### Inputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `operation` | string | Operation to perform — one of the five tool IDs (e.g. `fathom_list_meetings`) |
+| `recordingId` | string | Recording ID; required for **Get Summary** and **Get Transcript** |
+| `includeSummary` | boolean | Include each meeting's summary when listing meetings |
+| `includeTranscript` | boolean | Include each meeting's transcript when listing meetings |
+
+### Outputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `meetings` | json | Array of meeting objects returned by **List Meetings** (each contains title, recording_id, url, share_url, created_at, recorded_by, calendar_invitees, and optionally default_summary/transcript/action_items/crm_matches) |
+| `summary` | string | Meeting summary text returned by **Get Summary** (markdown-formatted) |
+| `transcript` | string | Transcript returned by **Get Transcript** — an array of entries each with speaker display_name, text, and timestamp |
+
+## Tools
+
+**Fathom List Meetings** (`fathom_list_meetings`) — Calls `GET /external/v1/meetings`. Returns a paginated list of meetings recorded by the user or shared to their team. Supports optional filters: `includeSummary`, `includeTranscript`, `includeActionItems`, `includeCrmMatches`, `createdAfter` (ISO 8601), `createdBefore` (ISO 8601), `recordedBy` (email), `teams` (team name), and `cursor` for pagination. Output fields include `meetings` (array) and `next_cursor`.
+
+**Fathom Get Summary** (`fathom_get_summary`) — Calls `GET /external/v1/recordings/{recordingId}/summary`. Returns the AI-generated call summary for a specific recording. Output fields: `template_name` (summary template used) and `markdown_formatted` (the summary text).
+
+**Fathom Get Transcript** (`fathom_get_transcript`) — Calls `GET /external/v1/recordings/{recordingId}/transcript`. Returns the full transcript as an array of entries, each containing `speaker` (display_name, matched_calendar_invitee_email), `text`, and `timestamp` (HH:MM:SS).
+
+**Fathom List Team Members** (`fathom_list_team_members`) — Calls `GET /external/v1/team_members`. Returns a paginated list of members in your Fathom organization. Optional filters: `teams` (team name), `cursor`. Output fields: `members` (array of name/email/created_at) and `next_cursor`.
+
+**Fathom List Teams** (`fathom_list_teams`) — Calls `GET /external/v1/teams`. Returns a paginated list of teams in your Fathom organization. Optional filter: `cursor`. Output fields: `teams` (array of name/created_at) and `next_cursor`.
+
+All tools authenticate via an `X-Api-Key` header using your Fathom API key, which should be stored as an environment variable and referenced as `{{FATHOM_API_KEY}}`.
 
 ## YAML Example
 
@@ -51,7 +92,22 @@ fathom_1:
   name: "Fathom"
   inputs:
     operation: "fathom_get_transcript"
-    recordingId: "{{start.input}}"
+    recordingId: "{{start.recordingId}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+### List Meetings with Summary
+
+```yaml
+fathom_1:
+  type: fathom
+  name: "Fathom List Meetings"
+  inputs:
+    operation: "fathom_list_meetings"
+    includeSummary: true
+    includeTranscript: false
   connections:
     outgoing:
       - target: next-block-id

@@ -1,0 +1,137 @@
+---
+title: Findymail Block
+description: Find and verify B2B email addresses
+icon: Box
+---
+
+# Findymail Block
+
+Find verified email addresses from a name and company domain or a LinkedIn profile URL, and verify email deliverability through the Findymail API. Authenticate with a Findymail API key (bearer token).
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `findymail` |
+| **Category** | `tools` |
+| **Color** | `#2563EB` |
+
+## When to Use
+
+- Look up a B2B contact's email when you know their name and employer domain (e.g., `stripe.com`).
+- Enrich a list of LinkedIn profile URLs with verified email addresses automatically.
+- Validate whether an email address is deliverable before sending outbound messages.
+- Gate outreach sequences on email validity to reduce bounce rates.
+- Drive sales or lead-enrichment workflows that consume prospect data from upstream blocks.
+- Chain with a CRM or spreadsheet block to write the discovered or verified email back to a record.
+
+## Configuration
+
+### Operation
+
+Selects which Findymail API action to perform. The choice controls which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| Find email | `findymail_find_email` |
+| Find from LinkedIn | `findymail_find_from_linkedin` |
+| Verify email | `findymail_verify_email` |
+
+**Default:** `findymail_find_email`
+
+---
+
+### Name
+
+- **Sub-block id:** `name`
+- **Type:** short-input
+- **Layout:** half
+- **Placeholder:** `John Doe`
+- **Shown when:** Operation is `findymail_find_email`
+
+The person's full name used to search for their email address alongside the company domain.
+
+---
+
+### Domain
+
+- **Sub-block id:** `domain`
+- **Type:** short-input
+- **Layout:** half
+- **Placeholder:** `stripe.com`
+- **Shown when:** Operation is `findymail_find_email`
+
+The company's root domain (without protocol or path). Combined with `name` to locate the contact's email.
+
+---
+
+### LinkedIn URL
+
+- **Sub-block id:** `linkedin_url`
+- **Type:** short-input
+- **Layout:** full
+- **Placeholder:** `https://linkedin.com/in/johndoe`
+- **Shown when:** Operation is `findymail_find_from_linkedin`
+
+The full URL of the person's LinkedIn profile. Findymail resolves the associated email address from this URL.
+
+---
+
+### Email
+
+- **Sub-block id:** `email`
+- **Type:** short-input
+- **Layout:** full
+- **Placeholder:** `john@example.com`
+- **Shown when:** Operation is `findymail_verify_email`
+
+The email address to check for deliverability. Returns verification status and details from the Findymail API.
+
+---
+
+### API Key
+
+- **Sub-block id:** `apiKey`
+- **Type:** short-input (password)
+- **Layout:** full
+- **Required:** yes
+
+Your Findymail API key, sent as a Bearer token in the `Authorization` header. Use a secret reference: `{{FINDYMAIL_API_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`findymail_find_email`, `findymail_find_from_linkedin`, or `findymail_verify_email`)
+- `apiKey` (string) — Findymail API key
+- `name` (string) — Person full name (used by `findymail_find_email`)
+- `domain` (string) — Company domain (used by `findymail_find_email`)
+- `linkedin_url` (string) — LinkedIn profile URL (used by `findymail_find_from_linkedin`)
+- `email` (string) — Email address to verify (used by `findymail_verify_email`)
+
+**Outputs:**
+
+- `data` (json) — Result object from Findymail (the full API response body, including the `contact` object for find operations or verification details for verify)
+- `metadata` (json) — Response metadata; contains `email` (string or null) — the found or verified email address
+
+## Tools
+
+- **Findymail Find Email** (`findymail_find_email`) — Posts to `https://app.findymail.com/api/search/name` with `name` and `domain`; returns the contact object including the discovered email address.
+- **Findymail Find From LinkedIn** (`findymail_find_from_linkedin`) — Posts to `https://app.findymail.com/api/search/linkedin` with `linkedin_url`; returns the contact object for the given profile.
+- **Findymail Verify Email** (`findymail_verify_email`) — Posts to `https://app.findymail.com/api/verify` with `email`; returns deliverability status and details for the address.
+
+## YAML Example
+
+```yaml
+findymail_1:
+  type: findymail
+  name: "Find Email"
+  inputs:
+    operation: "findymail_find_email"
+    apiKey: "{{FINDYMAIL_API_KEY}}"
+    name: "{{prospect_block.name}}"
+    domain: "{{prospect_block.domain}}"
+  connections:
+    outgoing:
+      - target: crm_update_block
+```

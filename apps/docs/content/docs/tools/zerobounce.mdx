@@ -1,0 +1,80 @@
+---
+title: ZeroBounce Tools
+description: Validate email deliverability and check account credits with the ZeroBounce API
+icon: Box
+---
+
+# ZeroBounce Tools
+
+ZeroBounce is an email validation service that checks whether an email address is real, deliverable, and safe to send to. Use these tools in a workflow to verify email addresses in real time (for example, before adding a lead to a CRM or sending a campaign) and to monitor your remaining validation credits.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `zerobounce` |
+| **Category** | tools |
+| **Auth** | API Key (passed as the `api_key` query string parameter) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Validate email | `zerobounce_validate_email` | Validate an email address deliverability in real time using ZeroBounce |
+| Get credits | `zerobounce_get_credits` | Retrieve the remaining validation credits for the ZeroBounce account |
+
+## Configuration
+
+### `zerobounce_validate_email`
+
+Calls `GET https://api.zerobounce.net/v2/validate` with `api_key` and `email` appended as query parameters.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | ZeroBounce API key. **Secret** — supply via an environment variable, not inline. Visibility: user-only (not exposed to the LLM). |
+| `email` | string | Yes | Email address to validate. Visibility: user-or-llm. |
+
+### `zerobounce_get_credits`
+
+Calls `GET https://api.zerobounce.net/v2/getcredits` with `api_key` appended as a query parameter.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | ZeroBounce API key. **Secret** — supply via an environment variable, not inline. Visibility: user-only (not exposed to the LLM). |
+
+## Outputs
+
+### `zerobounce_validate_email`
+
+- `data` (json) — The ZeroBounce validation result object (the full raw API response, including fields such as `address`, `status`, and `sub_status`).
+- `metadata` (json) — Validation identifiers. Properties:
+  - `email` (string) — The validated email address.
+  - `status` (string) — Validation status (for example `valid`, `invalid`, `catch-all`, `unknown`, `spamtrap`, `abuse`, `do_not_mail`).
+
+### `zerobounce_get_credits`
+
+- `data` (json) — The ZeroBounce credits response object (the full raw API response).
+- `metadata` (json) — Credit information. Properties:
+  - `credits` (number) — Remaining validation credits.
+
+## YAML Example
+
+```yaml
+zerobounce_1:
+  type: zerobounce
+  name: "ZeroBounce"
+  inputs:
+    operation: "zerobounce_validate_email"
+    email: "john@example.com"
+    apiKey: "{{ZEROBOUNCE_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Get an API key from the ZeroBounce dashboard and store it as an environment variable (referenced as `{{ZEROBOUNCE_API_KEY}}`), since `apiKey` is a secret with `user-only` visibility and is never exposed to the LLM.
+- The `email` parameter on the validate operation is `user-or-llm`, so an upstream agent can supply it dynamically (for example `email: "{{previousBlock.email}}"`); the validated address and status come back in `metadata`.
+- Branch your workflow on `{{zerobounce_1.metadata.status}}` — a `valid` status means the address is safe to send to, while `invalid`, `spamtrap`, `abuse`, or `do_not_mail` should typically be filtered out. The complete raw response (including `sub_status`) is available in `{{zerobounce_1.data}}`.
+- Use `zerobounce_get_credits` to monitor `{{zerobounce_1.metadata.credits}}` and avoid running out of validation credits mid-run; it requires only the API key.

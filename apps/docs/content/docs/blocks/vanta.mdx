@@ -1,0 +1,155 @@
+---
+title: Vanta Block
+description: List compliance tests, controls, and vendors in Vanta
+icon: Box
+---
+
+# Vanta Block
+
+List automated compliance tests, security controls, and tracked vendors through the Vanta API. Authenticate with a Vanta API access token to pull live compliance posture data into your workflows.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `vanta` |
+| **Category** | `tools` |
+| **Color** | `#6749F0` |
+
+## When to Use
+
+- Fetch all automated compliance tests and filter by status (e.g. `NEEDS_ATTENTION`) to trigger remediation workflows.
+- Pull tests scoped to a specific compliance framework such as SOC 2 or ISO 27001.
+- Narrow test results to a single cloud integration (e.g. `aws`, `gcp`) for targeted reporting.
+- List all security controls mapped to one or more frameworks and feed them into a downstream analysis block.
+- Enumerate tracked vendors, filter by lifecycle status, and generate a vendor risk digest.
+- Paginate through large result sets using cursor-based pagination to process all records reliably.
+
+## Configuration
+
+### Operation
+
+Selects which Vanta API endpoint to call. This field is required and controls which additional fields are shown.
+
+| Label | ID |
+|-------|----|
+| List tests | `vanta_list_tests` |
+| List controls | `vanta_list_controls` |
+| List vendors | `vanta_list_vendors` |
+
+---
+
+### Status Filter _(List tests only)_
+
+**Sub-block id:** `statusFilter` · type: `short-input` · optional
+
+Filter tests by their current status. Accepted values from the Vanta API: `OK`, `DEACTIVATED`, `NEEDS_ATTENTION`, `IN_PROGRESS`, `INVALID`, `NOT_APPLICABLE`. Leave blank to return tests of all statuses.
+
+---
+
+### Framework Filter _(List tests only)_
+
+**Sub-block id:** `frameworkFilter` · type: `short-input` · optional
+
+Filter tests to those belonging to a single framework ID, for example `soc2`. Leave blank to return tests across all frameworks.
+
+---
+
+### Integration Filter _(List tests only)_
+
+**Sub-block id:** `integrationFilter` · type: `short-input` · optional
+
+Filter tests to those provided by a specific integration, for example `aws` or `github`. Leave blank to include all integrations.
+
+---
+
+### Frameworks _(List controls only)_
+
+**Sub-block id:** `frameworkMatchesAny` · type: `short-input` · optional
+
+Comma-separated list of framework IDs whose controls should be returned, for example `soc2,iso27001`. Leave blank to return controls across all frameworks. The tool sends each framework as a separate `frameworkMatchesAny` query parameter to the Vanta API.
+
+---
+
+### Vendor Name _(List vendors only)_
+
+**Sub-block id:** `name` · type: `short-input` · optional
+
+Filter vendors by an exact or partial name match.
+
+---
+
+### Statuses _(List vendors only)_
+
+**Sub-block id:** `statusMatchesAny` · type: `short-input` · optional
+
+Comma-separated vendor lifecycle statuses to include. Accepted values: `MANAGED`, `ARCHIVED`, `IN_PROCUREMENT`. Leave blank to return vendors in all statuses.
+
+---
+
+### Page Size _(all operations)_
+
+**Sub-block id:** `pageSize` · type: `short-input` · optional
+
+Maximum number of items to return per page. Accepts values from 1 to 100; the Vanta API defaults to 10 when omitted.
+
+---
+
+### Page Cursor _(all operations)_
+
+**Sub-block id:** `pageCursor` · type: `short-input` · optional
+
+Cursor token returned in a previous response's `metadata.pageInfo` object. Supply this value to fetch the next page of results.
+
+---
+
+### Vanta API Token
+
+**Sub-block id:** `apiKey` · type: `short-input` · **required** · password field
+
+The Vanta API access token used to authenticate every request (`Authorization: Bearer <token>`). Store the value as a workflow secret and reference it with `{{VANTA_API_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`vanta_list_tests`, `vanta_list_controls`, or `vanta_list_vendors`)
+- `apiKey` (string) — Vanta API access token
+- `statusFilter` (string) — Test status filter (used by `vanta_list_tests`)
+- `frameworkFilter` (string) — Framework ID filter (used by `vanta_list_tests`)
+- `integrationFilter` (string) — Integration ID filter (used by `vanta_list_tests`)
+- `frameworkMatchesAny` (string) — Comma-separated framework IDs (used by `vanta_list_controls`)
+- `name` (string) — Vendor name filter (used by `vanta_list_vendors`)
+- `statusMatchesAny` (string) — Comma-separated vendor statuses (used by `vanta_list_vendors`)
+- `pageSize` (number) — Items per page (used by all operations)
+- `pageCursor` (string) — Pagination cursor (used by all operations)
+
+**Outputs:**
+
+- `data` (json) — Result array from Vanta; each element is a test, control, or vendor object depending on the selected operation
+- `metadata` (json) — Response metadata including `count` (number of items returned) and `pageInfo` (cursor pagination info for fetching subsequent pages)
+
+## Tools
+
+**Vanta List Tests** (`vanta_list_tests`) — Calls `GET https://api.vanta.com/v1/tests`. Returns automated compliance test objects. Supports optional filtering by status, framework, and integration, plus cursor-based pagination.
+
+**Vanta List Controls** (`vanta_list_controls`) — Calls `GET https://api.vanta.com/v1/controls`. Returns security control objects. Supports optional multi-framework filtering via comma-separated IDs and cursor-based pagination.
+
+**Vanta List Vendors** (`vanta_list_vendors`) — Calls `GET https://api.vanta.com/v1/vendors`. Returns tracked vendor objects with risk levels and review schedules. Supports optional filtering by name and lifecycle status, plus cursor-based pagination.
+
+## YAML Example
+
+```yaml
+vanta_1:
+  type: vanta
+  name: "List Failing SOC 2 Tests"
+  inputs:
+    operation: "vanta_list_tests"
+    apiKey: "{{VANTA_API_KEY}}"
+    statusFilter: "NEEDS_ATTENTION"
+    frameworkFilter: "soc2"
+    pageSize: "25"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

@@ -1,0 +1,104 @@
+---
+title: Vanta Tools
+description: List compliance tests, security controls, and tracked vendors from Vanta
+icon: ShieldCheck
+---
+
+# Vanta Tools
+
+Vanta is a security and compliance automation platform. These tools read data from the Vanta API so a workflow can list automated compliance tests, security controls, and tracked vendors, then act on their status (for example, alerting when a SOC 2 test needs attention or summarizing vendor risk).
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `vanta` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Vanta API access token sent as `Authorization: Bearer <token>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List tests | `vanta_list_tests` | List automated compliance tests in Vanta, with optional filters |
+| List controls | `vanta_list_controls` | List security controls in Vanta, optionally filtered by framework |
+| List vendors | `vanta_list_vendors` | List vendors tracked in Vanta with risk levels and review schedules |
+
+## Configuration
+
+### vanta_list_tests
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Vanta API access token. **Secret** — keep it in an environment variable, not inline. |
+| `statusFilter` | string | No | Filter by test status. One of: `OK`, `DEACTIVATED`, `NEEDS_ATTENTION`, `IN_PROGRESS`, `INVALID`, `NOT_APPLICABLE`. |
+| `frameworkFilter` | string | No | Filter by framework ID (e.g. `soc2`). |
+| `integrationFilter` | string | No | Filter by integration ID (e.g. `aws`). |
+| `pageSize` | number | No | Maximum number of items per page (1-100, default 10). |
+| `pageCursor` | string | No | Pagination cursor from a previous response. |
+
+### vanta_list_controls
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Vanta API access token. **Secret** — keep it in an environment variable, not inline. |
+| `frameworkMatchesAny` | string | No | Comma-separated framework IDs to filter controls by (e.g. `soc2,iso27001`). Each value is sent as a repeated `frameworkMatchesAny` query parameter. |
+| `pageSize` | number | No | Maximum number of items per page (1-100, default 10). |
+| `pageCursor` | string | No | Pagination cursor from a previous response. |
+
+### vanta_list_vendors
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Vanta API access token. **Secret** — keep it in an environment variable, not inline. |
+| `name` | string | No | Filter vendors by name. |
+| `statusMatchesAny` | string | No | Comma-separated vendor statuses to filter by: `MANAGED`, `ARCHIVED`, `IN_PROCUREMENT`. Each value is sent as a repeated `statusMatchesAny` query parameter. |
+| `pageSize` | number | No | Maximum number of items per page (1-100, default 10). |
+| `pageCursor` | string | No | Pagination cursor from a previous response. |
+
+## Outputs
+
+### vanta_list_tests
+
+- `data` (json) — Array of Vanta test objects.
+- `metadata` (json) — List metadata, containing:
+  - `count` (number) — Number of items returned.
+  - `pageInfo` (json) — Cursor pagination info.
+
+### vanta_list_controls
+
+- `data` (json) — Array of Vanta control objects.
+- `metadata` (json) — List metadata, containing:
+  - `count` (number) — Number of items returned.
+  - `pageInfo` (json) — Cursor pagination info.
+
+### vanta_list_vendors
+
+- `data` (json) — Array of Vanta vendor objects.
+- `metadata` (json) — List metadata, containing:
+  - `count` (number) — Number of items returned.
+  - `pageInfo` (json) — Cursor pagination info.
+
+## YAML Example
+
+```yaml
+vanta_1:
+  type: vanta
+  name: "Vanta"
+  inputs:
+    operation: "vanta_list_tests"
+    statusFilter: "NEEDS_ATTENTION"
+    frameworkFilter: "soc2"
+    pageSize: 50
+    apiKey: "{{VANTA_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth setup**: Create an API access token in your Vanta account and store it as an environment variable (e.g. `VANTA_API_KEY`), then reference it as `{{VANTA_API_KEY}}`. The token is sent as a Bearer token on every request — never paste it directly into shared workflows.
+- **Status monitoring**: Use `vanta_list_tests` with `statusFilter: "NEEDS_ATTENTION"` to surface failing compliance checks, then route the `{{vanta_1.data}}` array into a notification or agent block to summarize what needs remediation.
+- **Pagination**: All three operations cap `pageSize` at 100 and default to 10. When the result set is large, read `{{vanta_1.metadata.pageInfo}}` from the response and pass its cursor back in via `pageCursor` to fetch the next page.
+- **Multi-value filters**: `statusMatchesAny` (vendors) and `frameworkMatchesAny` (controls) accept comma-separated lists (e.g. `soc2,iso27001`); each entry is expanded into a repeated query parameter automatically.

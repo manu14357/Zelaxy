@@ -1,0 +1,122 @@
+---
+title: PostHog Tools
+description: Capture events, run HogQL queries, and list insights in PostHog
+icon: Box
+---
+
+# PostHog Tools
+
+The PostHog tools let a workflow send product-analytics events to PostHog, run HogQL queries against a project, and list a project's saved insights. Use these tools when you need to instrument user actions, pull analytics data into a workflow, or surface PostHog dashboards/insights programmatically.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `posthog` |
+| **Category** | `tools` |
+| **Auth** | API Key (Bearer personal API key for query/insights; public project API key in the request body for event capture) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Capture event | `posthog_capture_event` | Capture a single event in PostHog |
+| Query | `posthog_query` | Execute a HogQL query in a PostHog project |
+| List insights | `posthog_list_insights` | List insights in a PostHog project |
+
+## Configuration
+
+### `posthog_capture_event`
+
+Capture a single event in PostHog. Sends a `POST` to `{host}/capture/` with the project API key embedded in the request body (no Authorization header).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `host` | string | Yes | PostHog host, e.g. `https://us.posthog.com`. Visibility: user-only. |
+| `projectApiKey` | string | Yes | **Secret.** PostHog project API key (public ingestion token, e.g. `phc_...`). Sent in the request body as `api_key`. Visibility: user-only. |
+| `event` | string | Yes | Name of the event to capture. Visibility: user-or-llm. |
+| `distinct_id` | string | Yes | Unique identifier for the user or device. Visibility: user-or-llm. |
+| `properties` | json | No | Set of key-value properties to attach to the event. Visibility: user-or-llm. |
+
+### `posthog_query`
+
+Execute a HogQL query in a PostHog project. Sends a `POST` to `{host}/api/projects/{projectId}/query` with the body `{ "query": { "kind": "HogQLQuery", "query": "<your query>" } }` and a Bearer Authorization header.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `host` | string | Yes | PostHog host, e.g. `https://us.posthog.com`. Visibility: user-only. |
+| `apiKey` | string | Yes | **Secret.** PostHog personal API key (e.g. `phx_...`). Sent as `Authorization: Bearer <apiKey>`. Visibility: user-only. |
+| `projectId` | string | Yes | PostHog project ID. Visibility: user-or-llm. |
+| `query` | string | Yes | HogQL query string to execute, e.g. `SELECT event, count() FROM events GROUP BY event`. Visibility: user-or-llm. |
+
+### `posthog_list_insights`
+
+List insights in a PostHog project. Sends a `GET` to `{host}/api/projects/{projectId}/insights` with a Bearer Authorization header.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `host` | string | Yes | PostHog host, e.g. `https://us.posthog.com`. Visibility: user-only. |
+| `apiKey` | string | Yes | **Secret.** PostHog personal API key (e.g. `phx_...`). Sent as `Authorization: Bearer <apiKey>`. Visibility: user-only. |
+| `projectId` | string | Yes | PostHog project ID. Visibility: user-or-llm. |
+
+## Outputs
+
+### `posthog_capture_event`
+
+- `data` (json) — The PostHog capture response.
+- `metadata` (json) — Capture metadata. Contains:
+  - `status` (string) — Capture status.
+
+### `posthog_query`
+
+- `data` (json) — The HogQL query result object.
+- `metadata` (json) — Query metadata. Contains:
+  - `status` (string) — Query status.
+
+### `posthog_list_insights`
+
+- `data` (json) — Array of insight objects.
+- `metadata` (json) — List metadata. Contains:
+  - `count` (number) — Number of insights returned.
+
+## YAML Example
+
+```yaml
+posthog_1:
+  type: posthog
+  name: "PostHog"
+  inputs:
+    operation: "posthog_capture_event"
+    host: "https://us.posthog.com"
+    event: "button_clicked"
+    distinct_id: "user123"
+    properties:
+      plan: "pro"
+    projectApiKey: "{{POSTHOG_PROJECT_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+A query example using the personal API key:
+
+```yaml
+posthog_query_1:
+  type: posthog
+  name: "PostHog"
+  inputs:
+    operation: "posthog_query"
+    host: "https://us.posthog.com"
+    projectId: "12345"
+    query: "SELECT event, count() FROM events GROUP BY event"
+    apiKey: "{{POSTHOG_PERSONAL_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Two different keys are required depending on the operation: event capture (`posthog_capture_event`) uses the **public project API key** (`phc_...`) sent in the request body, while `posthog_query` and `posthog_list_insights` use a **personal API key** (`phx_...`) sent as a `Bearer` token. Don't mix them up.
+- Always set `host` to your region's endpoint — `https://us.posthog.com` for US Cloud or `https://eu.posthog.com` for EU Cloud (a trailing slash is stripped automatically). Self-hosted instances use their own base URL.
+- For HogQL queries, the tool wraps your `query` string in a `HogQLQuery` payload automatically — pass only the raw SQL-like statement (e.g. `SELECT event, count() FROM events GROUP BY event`), not the full JSON envelope.

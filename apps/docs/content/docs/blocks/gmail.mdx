@@ -21,40 +21,120 @@ The Gmail block is a comprehensive Gmail integration with OAuth authentication. 
 - Send transactional or notification emails as part of a workflow.
 - Draft an email for later review instead of sending it immediately.
 - Read messages from a specific label/folder (e.g. INBOX) to feed their content into downstream steps.
-- Fetch a single message by its message ID.
-- Search a mailbox with Gmail query syntax to pull matching threads.
-- Trigger a workflow automatically when new emails arrive (via the Gmail poller).
+- Fetch a single message by its message ID when you already know the identifier.
+- Search a mailbox with Gmail query syntax to pull matching threads into a workflow.
+- Trigger a workflow automatically when new emails arrive via the Gmail poller.
 
 ## Configuration
 
 ### Operation
 
-Dropdown selecting the action to perform: **Send Email** (`send_gmail`), **Read Email** (`read_gmail`), **Draft Email** (`draft_gmail`), or **Search Email** (`search_gmail`). Defaults to Send Email.
+Dropdown selecting the action to perform. Defaults to `send_gmail`.
 
-### Gmail Account
+| Label | ID |
+|-------|----|
+| Send Email | `send_gmail` |
+| Read Email | `read_gmail` |
+| Draft Email | `draft_gmail` |
+| Search Email | `search_gmail` |
 
-OAuth credential (`credential`) connecting your Gmail account via the `google-email` provider. Required for all operations.
+### Gmail Account (`credential`)
 
-### Send / Draft Fields
+OAuth credential connecting your Gmail account via the `google-email` provider. Required for all operations. Requests the following scopes:
 
-`to`, `subject`, and `body` are required when sending or drafting. `cc` and `bcc` (comma-separated, advanced mode) add additional recipients.
+- `https://www.googleapis.com/auth/gmail.send`
+- `https://www.googleapis.com/auth/gmail.modify`
+- `https://www.googleapis.com/auth/gmail.readonly`
+- `https://www.googleapis.com/auth/gmail.labels`
 
-### Read Fields
+### To (`to`)
 
-`folder` (label selector) or `manualFolder` (advanced) chooses the label to read from; defaults to INBOX. `messageId` fetches a specific message and overrides the label. `unreadOnly` and `includeAttachments` are switches. `maxResults` caps the number returned.
+Shown for: `send_gmail`, `draft_gmail`. Required. The recipient email address.
 
-### Search Fields
+### Subject (`subject`)
 
-`query` (required) holds the Gmail search terms; `maxResults` limits the number of results.
+Shown for: `send_gmail`, `draft_gmail`. Required. The email subject line.
 
-### Trigger Configuration
+### Body (`body`)
 
-`triggerConfig` enables trigger mode using the `gmail_poller` to start workflows on new Gmail events.
+Shown for: `send_gmail`, `draft_gmail`. Required. The email content (plain text).
+
+### CC (`cc`)
+
+Shown for: `send_gmail`, `draft_gmail`. Optional (advanced mode). Comma-separated list of CC recipients.
+
+### BCC (`bcc`)
+
+Shown for: `send_gmail`, `draft_gmail`. Optional (advanced mode). Comma-separated list of BCC recipients.
+
+### Label (`folder`)
+
+Shown for: `read_gmail` (basic mode). A folder-selector UI that lists Gmail labels from your connected account. Requires `gmail.readonly` and `gmail.labels` scopes.
+
+### Label/Folder (`manualFolder`)
+
+Shown for: `read_gmail` (advanced mode). Free-text input for a Gmail label name, e.g. `INBOX`, `SENT`, or a custom label name.
+
+### Unread Only (`unreadOnly`)
+
+Shown for: `read_gmail`. Switch. When enabled, only unread messages are retrieved.
+
+### Include Attachments (`includeAttachments`)
+
+Shown for: `read_gmail`. Switch. When enabled, email attachments are downloaded and included in the output.
+
+### Message ID (`messageId`)
+
+Shown for: `read_gmail`. Optional. Fetches a specific message by its Gmail message ID, overriding the label/folder selection.
+
+### Search Query (`query`)
+
+Shown for: `search_gmail`. Required. Gmail search terms using standard Gmail query syntax (e.g. `from:boss@example.com subject:report`).
+
+### Max Results (`maxResults`)
+
+Shown for: `search_gmail`, `read_gmail`. Optional. Maximum number of messages to return. Defaults to 10 for search; defaults to 1 for read (max 10).
+
+### Trigger Configuration (`triggerConfig`)
+
+Enables trigger mode using the `gmail_poller` to start the workflow when Gmail events occur (e.g. new emails arriving).
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `to` (string), `subject` (string), `body` (string), `cc` (string), `bcc` (string), `folder` (string), `manualFolder` (string), `messageId` (string), `unreadOnly` (boolean), `includeAttachments` (boolean), `query` (string), `maxResults` (number)
-- **Outputs**: `content` (string), `metadata` (json), `attachments` (json), `message` (string), `messageId` (string), `threadId` (string), `email` (json), `rawEmail` (json)
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`send_gmail`, `read_gmail`, `draft_gmail`, `search_gmail`)
+- `credential` (string) — Gmail OAuth access token
+- `to` (string) — Recipient email address (send/draft)
+- `subject` (string) — Email subject (send/draft)
+- `body` (string) — Email content (send/draft)
+- `cc` (string) — CC recipients, comma-separated (send/draft)
+- `bcc` (string) — BCC recipients, comma-separated (send/draft)
+- `folder` (string) — Gmail label selected via the folder-selector UI (read)
+- `manualFolder` (string) — Manual label/folder name input (read, advanced)
+- `messageId` (string) — Message identifier to fetch a specific email (read)
+- `unreadOnly` (boolean) — Retrieve unread messages only (read)
+- `includeAttachments` (boolean) — Include email attachments in the response (read)
+- `query` (string) — Search query string (search)
+- `maxResults` (number) — Maximum number of results to return (search/read)
+
+**Outputs:**
+
+- `content` (string) — Email body text content (read) or success message (send/draft)
+- `metadata` (json) — Email metadata: id, threadId, from, to, subject, date, labelIds, etc.
+- `attachments` (json) — Email attachments array (read with includeAttachments)
+- `message` (string) — Response message from the API
+- `messageId` (string) — The Gmail message ID or draft ID of the created/fetched message
+- `threadId` (string) — The conversation thread ID
+- `email` (json) — Full email data from a trigger event (id, subject, from, to, body, attachments)
+- `rawEmail` (json) — Complete raw email data from the Gmail API (trigger mode)
+
+## Tools
+
+- **Gmail Send** (`gmail_send`) — Sends a plain-text email via the Gmail API using an OAuth access token. Accepts `to`, `subject`, `body`, and optional `cc`/`bcc` recipients. Returns the sent message's id and threadId.
+- **Gmail Draft** (`gmail_draft`) — Creates a draft in Gmail without sending it. Accepts the same fields as Send (`to`, `subject`, `body`, optional `cc`/`bcc`). Returns the draft id and the associated message id and threadId.
+- **Gmail Read** (`gmail_read`) — Reads one or more emails from a Gmail label/folder. Can fetch a specific message by `messageId` or list messages from a label filtered by `unreadOnly`. Optionally downloads attachments. Returns the email `content`, `metadata`, and `attachments`.
+- **Gmail Search** (`gmail_search`) — Searches the Gmail mailbox using standard Gmail query syntax. Returns a summary and an array of matching message metadata (id, threadId, subject, from, date, snippet).
 
 ## YAML Example
 
@@ -64,8 +144,8 @@ gmail_1:
   name: "Gmail"
   inputs:
     operation: "send_gmail"
-    credential: "{{credentials.gmail}}"
-    to: "{{start.input}}"
+    credential: "{{GMAIL_ACCESS_TOKEN}}"
+    to: "{{start.recipientEmail}}"
     subject: "Workflow notification"
     body: "Your workflow completed successfully."
   connections:

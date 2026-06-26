@@ -1,0 +1,156 @@
+---
+title: Infisical Block
+description: Manage secrets in an Infisical project
+icon: Box
+---
+
+# Infisical Block
+
+List, fetch, and create secrets in an Infisical project environment through the Infisical API. Authenticate with an API token and target a workspace and environment to manage secrets programmatically inside a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `infisical` |
+| **Category** | `tools` |
+| **Color** | `#EB5E34` |
+
+## When to Use
+
+- Retrieve all secrets from a specific Infisical project environment (e.g., `dev`, `staging`, `prod`) to pass downstream to other blocks.
+- Fetch a single named secret by key so that another block can use its value without hardcoding credentials.
+- Create a new secret in Infisical during a workflow run (e.g., storing a dynamically generated token or API key).
+- Bridge Infisical secret management into automated pipelines — for example, pulling a database URL before running a migration job.
+- Audit or inspect what secrets exist in a project environment as part of a governance workflow.
+
+## Configuration
+
+### Operation
+
+**Required.** Selects which Infisical API action to execute. All other field visibility is controlled by this choice.
+
+| Label | ID |
+|-------|----|
+| List secrets | `infisical_list_secrets` |
+| Get secret | `infisical_get_secret` |
+| Create secret | `infisical_create_secret` |
+
+- **`infisical_list_secrets`** — only `workspaceId`, `environment`, and `apiKey` are needed.
+- **`infisical_get_secret`** — requires `workspaceId`, `environment`, `secretName`, and `apiKey`.
+- **`infisical_create_secret`** — requires all fields: `workspaceId`, `environment`, `secretName`, `secretValue`, and `apiKey`.
+
+### Workspace ID
+
+**Required.** The Infisical project ID (also called workspace ID). This is the UUID shown in your Infisical project settings. Accepts a static value or a reference such as `{{previousBlock.data}}`.
+
+- Sub-block id: `workspaceId`
+- Type: `short-input`
+- Placeholder: `Infisical project ID`
+
+### Environment
+
+The environment slug to target (e.g., `dev`, `staging`, `prod`). Defaults to `dev` at the tool level when left blank.
+
+- Sub-block id: `environment`
+- Type: `short-input`
+- Placeholder: `dev`
+
+### Secret Name
+
+The key name of the secret to retrieve or create. Shown only when the operation is `infisical_get_secret` or `infisical_create_secret`.
+
+- Sub-block id: `secretName`
+- Type: `short-input`
+- Placeholder: `DATABASE_URL`
+
+### Secret Value
+
+The value to store for the new secret. Shown only when the operation is `infisical_create_secret`.
+
+- Sub-block id: `secretValue`
+- Type: `short-input`
+- Placeholder: `value to store`
+
+### API Token
+
+**Required.** The Infisical service token or machine identity token used to authenticate requests. Stored as a password field. Use a workflow secret reference such as `{{INFISICAL_API_TOKEN}}` to avoid exposing the token in plain text.
+
+- Sub-block id: `apiKey`
+- Type: `short-input` (password)
+- Placeholder: `st.xxxx...`
+
+## Inputs & Outputs
+
+### Inputs
+
+- `operation` (string) — Operation to perform; must be one of `infisical_list_secrets`, `infisical_get_secret`, or `infisical_create_secret`.
+- `apiKey` (string) — Infisical API token used for Bearer authentication.
+- `workspaceId` (string) — Infisical project ID.
+- `environment` (string) — Environment slug (e.g., `dev`). Optional; defaults to `dev`.
+- `secretName` (string) — Secret name; required for `infisical_get_secret` and `infisical_create_secret`.
+- `secretValue` (string) — Secret value to store; required for `infisical_create_secret`.
+
+### Outputs
+
+- `data` (json) — Result object or array from Infisical. For list operations this is an array of secret objects; for get/create it is a single secret object.
+- `metadata` (json) — Response metadata. For list: `{ count: number }`. For get/create: `{ secretName: string }`.
+
+## Tools
+
+**Infisical List Secrets** (`infisical_list_secrets`) — Issues a `GET` to `https://app.infisical.com/api/v3/secrets/raw` with `workspaceId` and `environment` query parameters. Returns an array of all raw secret objects in the target environment plus a `count` metadata field.
+
+**Infisical Get Secret** (`infisical_get_secret`) — Issues a `GET` to `https://app.infisical.com/api/v3/secrets/raw/{secretName}` with `workspaceId` and `environment` query parameters. Returns the single matching secret object and its key name in `metadata.secretName`.
+
+**Infisical Create Secret** (`infisical_create_secret`) — Issues a `POST` to `https://app.infisical.com/api/v3/secrets/raw/{secretName}` with a JSON body containing `workspaceId`, `environment`, and `secretValue`. Returns the newly created secret object and its key name in `metadata.secretName`.
+
+## YAML Example
+
+```yaml
+infisical_1:
+  type: infisical
+  name: "List Dev Secrets"
+  inputs:
+    operation: "infisical_list_secrets"
+    apiKey: "{{INFISICAL_API_TOKEN}}"
+    workspaceId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    environment: "dev"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+For the `infisical_get_secret` operation:
+
+```yaml
+infisical_1:
+  type: infisical
+  name: "Fetch DATABASE_URL"
+  inputs:
+    operation: "infisical_get_secret"
+    apiKey: "{{INFISICAL_API_TOKEN}}"
+    workspaceId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    environment: "prod"
+    secretName: "DATABASE_URL"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+For the `infisical_create_secret` operation:
+
+```yaml
+infisical_1:
+  type: infisical
+  name: "Store Generated Token"
+  inputs:
+    operation: "infisical_create_secret"
+    apiKey: "{{INFISICAL_API_TOKEN}}"
+    workspaceId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    environment: "dev"
+    secretName: "GENERATED_TOKEN"
+    secretValue: "{{tokenBlock.data}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

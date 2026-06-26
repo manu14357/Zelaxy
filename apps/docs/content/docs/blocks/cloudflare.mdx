@@ -6,7 +6,7 @@ icon: Box
 
 # Cloudflare Block
 
-The Cloudflare block integrates Cloudflare into your workflows. Use it to list zones, manage DNS records, configure zone settings, and purge caches directly from an automation.
+The Cloudflare block integrates Cloudflare into your workflows. Use it to list zones, manage DNS records, and purge caches — making infrastructure changes and deployments fully automatable without leaving Zelaxy.
 
 ## Overview
 
@@ -18,46 +18,102 @@ The Cloudflare block integrates Cloudflare into your workflows. Use it to list z
 
 ## When to Use
 
-- List the zones available on your Cloudflare account or look up a single zone's details.
+- List all zones on a Cloudflare account or fetch details for a single zone by ID.
 - Programmatically create, update, or delete DNS records (A, CNAME, MX, TXT) when infrastructure changes.
 - Point a new subdomain at a server by creating a DNS record as part of a provisioning workflow.
-- Purge a zone's cache after deploying updated content so visitors see the latest version.
-- Audit or sync DNS records by reading the current records for a zone.
+- Purge a zone's cache after deploying updated content so visitors see the latest version immediately.
+- Audit or sync DNS records by reading all current records for a zone.
+- Automate DNS teardown by deleting records when deprovisioning a service or environment.
 
 ## Configuration
 
-### Operation
+### Operation (required)
 
-Choose the Cloudflare action to perform: List Zones, Get Zone, List DNS Records, Create DNS Record, Update DNS Record, Delete DNS Record, or Purge Cache. This selection drives which other fields are required.
+Selects which Cloudflare action to execute. This dropdown is always required and controls which other fields appear.
 
-### API Token
+| Label | ID |
+|-------|----|
+| List Zones | `cloudflare_list_zones` |
+| Get Zone | `cloudflare_get_zone` |
+| List DNS Records | `cloudflare_list_dns_records` |
+| Create DNS Record | `cloudflare_create_dns_record` |
+| Update DNS Record | `cloudflare_update_dns_record` |
+| Delete DNS Record | `cloudflare_delete_dns_record` |
+| Purge Cache | `cloudflare_purge_cache` |
 
-Your Cloudflare API token (stored as a secret). Required for all operations.
+### API Token (required)
+
+Your Cloudflare API token, stored as a secret. Required for every operation. Use `{{CLOUDFLARE_API_TOKEN}}` to reference an environment variable.
 
 ### Zone/Record Name
 
-The zone or record name (e.g. `example.com`). Used when listing zones or creating a DNS record.
+The zone domain name (e.g. `example.com`) or the DNS record name to create. Shown when the operation is **List Zones** or **Create DNS Record**.
 
 ### Zone ID
 
-The target zone's ID. Used for getting a zone, listing DNS records, creating a DNS record, and purging cache.
+The target zone's unique ID. Shown for **Get Zone**, **List DNS Records**, **Create DNS Record**, and **Purge Cache**.
 
 ### Record ID
 
-The DNS record ID. Used when updating or deleting a DNS record.
+The DNS record's unique ID. Shown for **Update DNS Record** and **Delete DNS Record**.
 
 ### Record Type
 
-The DNS record type (A, CNAME, MX, TXT). Used when creating or updating a DNS record.
+The DNS record type. Shown for **Create DNS Record** and **Update DNS Record**.
+
+| Label | ID |
+|-------|----|
+| A | `A` |
+| CNAME | `CNAME` |
+| MX | `MX` |
+| TXT | `TXT` |
 
 ### Record Content
 
-The record's value (e.g. `1.2.3.4`). Used when creating or updating a DNS record.
+The record's value (e.g. `1.2.3.4` for an A record). Shown for **Create DNS Record** and **Update DNS Record**.
+
+## Operation Field Matrix
+
+| Operation | Required fields | Optional / condition-gated fields |
+|-----------|-----------------|-----------------------------------|
+| List Zones | `apiToken` | `name` |
+| Get Zone | `apiToken`, `zoneId` | — |
+| List DNS Records | `apiToken`, `zoneId` | — |
+| Create DNS Record | `apiToken`, `zoneId`, `name`, `recordType`, `recordContent` | — |
+| Update DNS Record | `apiToken`, `recordId`, `recordType`, `recordContent` | — |
+| Delete DNS Record | `apiToken`, `recordId` | — |
+| Purge Cache | `apiToken`, `zoneId` | — |
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiToken` (string), `name` (string), `zoneId` (string), `recordId` (string), `recordType` (string), `recordContent` (string)
-- **Outputs**: `zones` (json), `dnsRecords` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (one of the operation IDs above)
+  - `apiToken` (string) — API token
+  - `name` (string) — Zone or record name
+  - `zoneId` (string) — Zone ID
+  - `recordId` (string) — Record ID
+  - `recordType` (string) — DNS record type
+  - `recordContent` (string) — Record content
+
+- **Outputs**:
+  - `zones` (json) — Zone list (populated by List Zones)
+  - `dnsRecords` (json) — DNS records (populated by List DNS Records)
+
+## Tools
+
+**Cloudflare List Zones** (`cloudflare_list_zones`) — Lists all zones (domains) in the Cloudflare account. Supports optional filtering by name, status, account ID, and pagination parameters.
+
+**Cloudflare Get Zone** (`cloudflare_get_zone`) — Retrieves full details for a single zone by its ID, including status, name, and configuration.
+
+**Cloudflare List DNS Records** (`cloudflare_list_dns_records`) — Lists DNS records for a specific zone. Supports optional filtering by record type, name, content, and free-text search across record fields.
+
+**Cloudflare Create DNS Record** (`cloudflare_create_dns_record`) — Creates a new DNS record in a zone. Accepts type, name, content, TTL, proxied flag, priority (for MX/SRV), and an optional comment.
+
+**Cloudflare Update DNS Record** (`cloudflare_update_dns_record`) — Updates an existing DNS record using a PATCH request. All fields (type, name, content, TTL, proxied, priority, comment) are optional; only supplied fields are changed.
+
+**Cloudflare Delete DNS Record** (`cloudflare_delete_dns_record`) — Permanently deletes a DNS record from a zone by record ID. Returns the deleted record ID on success.
+
+**Cloudflare Purge Cache** (`cloudflare_purge_cache`) — Purges cached content for a zone. Supports purging everything (`purge_everything: true`), specific URLs, cache tags (Enterprise), hostnames (Enterprise), or URL prefixes (Enterprise).
 
 ## YAML Example
 
@@ -67,7 +123,7 @@ cloudflare_1:
   name: "Cloudflare"
   inputs:
     operation: "cloudflare_create_dns_record"
-    apiToken: "{{secrets.CLOUDFLARE_API_TOKEN}}"
+    apiToken: "{{CLOUDFLARE_API_TOKEN}}"
     zoneId: "{{start.zoneId}}"
     name: "app.example.com"
     recordType: "A"

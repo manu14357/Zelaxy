@@ -28,45 +28,108 @@ The Google Sheets block integrates Google Sheets into your workflow to manage sp
 ## Configuration
 
 ### Operation
-Dropdown selecting the action to perform: Read Data, Write Data, Update Data, or Append Data. Defaults to Read.
+
+Dropdown that selects which action to perform. Defaults to `read`.
+
+| Label | ID |
+|-------|----|
+| Read Data | `read` |
+| Write Data | `write` |
+| Update Data | `update` |
+| Append Data | `append` |
 
 ### Google Account
-Required OAuth credential connecting your Google account (provider `google-sheets`).
+
+Required OAuth credential connecting your Google account (provider `google-sheets`). Resolves to the access token used for all API calls.
 
 ### Select Sheet
-File selector (basic mode) for picking a spreadsheet directly from Google Drive.
+
+File selector (basic mode) for picking a spreadsheet directly from Google Drive. Uses the `google-drive` provider with MIME type `application/vnd.google-apps.spreadsheet`. When a file is selected its Drive ID is used as the spreadsheet ID automatically.
 
 ### Spreadsheet ID
-Short input (advanced mode) to enter a spreadsheet ID manually from the URL when not using the selector.
+
+Short text input (advanced mode) for entering a spreadsheet ID manually — copy it from the spreadsheet URL. Used when the file selector is not available or when the spreadsheet lives outside Google Drive picker scope.
 
 ### Range
-The sheet name and cell range, e.g. `Sheet1!A1:D10`.
+
+The sheet name and cell range, e.g. `Sheet1!A1:D10`. Optional for read (defaults to `Sheet1!A1:Z1000`) and write/update (defaults to `Sheet1!A2`). Used across all four operations.
 
 ### Values
-JSON array of arrays or array of objects holding the cell data. Required for Write, Update, and Append operations.
+
+Long text input — required for Write, Update, and Append operations. Supply either a JSON array of arrays (e.g. `[["A1", "B1"], ["A2", "B2"]]`) or an array of objects (e.g. `[{"name":"John","age":30}]`). When objects are supplied the block automatically promotes object keys to a header row. Hidden for the Read operation.
+
+- Shown when `operation` = `write`
+- Shown when `operation` = `update`
+- Shown when `operation` = `append`
 
 ### Value Input Option
-For write/update/append: whether to parse formulas (User Entered) or treat input literally (Raw).
+
+Dropdown controlling how the Google Sheets API interprets cell values. Available for Write, Update, and Append operations.
+
+| Label | ID |
+|-------|----|
+| User Entered (Parse formulas) | `USER_ENTERED` |
+| Raw (Don't parse formulas) | `RAW` |
+
+- Shown when `operation` = `write`
+- Shown when `operation` = `update`
+- Shown when `operation` = `append`
 
 ### Insert Data Option
-For append: insert new rows or overwrite existing data.
+
+Dropdown controlling how appended data is inserted relative to existing table data. Available for the Append operation only.
+
+| Label | ID |
+|-------|----|
+| Insert Rows (Add new rows) | `INSERT_ROWS` |
+| Overwrite (Add to existing data) | `OVERWRITE` |
+
+- Shown when `operation` = `append`
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `spreadsheetId` (string), `manualSpreadsheetId` (string), `range` (string), `values` (string), `valueInputOption` (string), `insertDataOption` (string)
-- **Outputs**: `data` (json), `metadata` (json), `updatedRange` (string), `updatedRows` (number), `updatedColumns` (number), `updatedCells` (number), `tableRange` (string)
+**Inputs**:
+
+- `operation` (string) — Operation to perform (`read`, `write`, `update`, or `append`)
+- `credential` (string) — Google Sheets access token (OAuth)
+- `spreadsheetId` (string) — Spreadsheet identifier (from file selector)
+- `manualSpreadsheetId` (string) — Manual spreadsheet identifier (from URL, advanced mode)
+- `range` (string) — Cell range in A1 notation, e.g. `Sheet1!A1:D10`
+- `values` (string) — Cell values data as JSON (required for write/update/append)
+- `valueInputOption` (string) — Value input option (`USER_ENTERED` or `RAW`)
+- `insertDataOption` (string) — Data insertion option (`INSERT_ROWS` or `OVERWRITE`, append only)
+
+**Outputs**:
+
+- `data` (json) — Sheet data returned by a read operation (contains `range` and `values`)
+- `metadata` (json) — Operation metadata including `spreadsheetId` and `spreadsheetUrl`
+- `updatedRange` (string) — The A1-notation range that was written/updated/appended
+- `updatedRows` (number) — Number of rows affected
+- `updatedColumns` (number) — Number of columns affected
+- `updatedCells` (number) — Number of cells affected
+- `tableRange` (string) — Range of the existing table where data was appended (append only)
+
+## Tools
+
+- **Read from Google Sheets** (`google_sheets_read`) — Issues a GET request to the Sheets v4 API to fetch values from a specified range. Returns `data` (range + values array) and `metadata` (spreadsheet ID and URL).
+- **Write to Google Sheets** (`google_sheets_write`) — Issues a PUT request to overwrite a range with the supplied values. Handles both arrays-of-arrays and arrays-of-objects (auto-generates header row). Returns `updatedRange`, `updatedRows`, `updatedColumns`, `updatedCells`, and `metadata`.
+- **Update Google Sheets** (`google_sheets_update`) — Issues a PUT request to update an existing range. Behaves identically to the write tool in terms of body construction and response shape; semantically used when cells already contain data. Returns `updatedRange`, `updatedRows`, `updatedColumns`, `updatedCells`, and `metadata`.
+- **Append to Google Sheets** (`google_sheets_append`) — Issues a POST `:append` request to add rows after the last row with data in the table. Supports `insertDataOption` (`INSERT_ROWS` / `OVERWRITE`). Returns `tableRange`, `updatedRange`, `updatedRows`, `updatedColumns`, `updatedCells`, and `metadata`.
 
 ## YAML Example
 
 ```yaml
-sheets_1:
+google_sheets_1:
   type: google_sheets
   name: "Google Sheets"
   inputs:
-    operation: "read"
-    credential: "{{credentials.google_sheets}}"
+    operation: "append"
+    credential: "{{GOOGLE_SHEETS_ACCESS_TOKEN}}"
     spreadsheetId: "1AbC2dEfGhIjKlMnOpQrStUvWxYz"
-    range: "Sheet1!A1:D10"
+    range: "Sheet1!A1"
+    values: "{{extract_block.rows}}"
+    valueInputOption: "USER_ENTERED"
+    insertDataOption: "INSERT_ROWS"
   connections:
     outgoing:
       - target: next-block-id

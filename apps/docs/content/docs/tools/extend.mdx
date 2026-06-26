@@ -1,0 +1,61 @@
+---
+title: Extend
+description: Parse documents into structured content and retrieve processor run results using the Extend AI API
+icon: FileSearch
+---
+
+# Extend
+
+Extend AI converts documents into structured markdown or spatial content and lets you retrieve the status and output of processor runs. Use it to feed parsed document content into downstream agents, databases, or automations.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `extend` |
+| **Category** | Tool — AI & ML |
+| **Auth** | API Key (`Bearer` token via `Authorization` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Parse Document** | `extend_parse` | Submit a document URL to the Extend API and receive a parse run object with structured content |
+| **Get Run** | `extend_get_run` | Retrieve the current status and full result of an existing processor or parse run by its ID |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` (secret) | Yes | Extend API key. Sent as `Authorization: Bearer {{EXTEND_API_KEY}}`. Mark as a secret and reference with `{{EXTEND_API_KEY}}`. |
+| `fileUrl` | `string` | Yes (Parse Document) | Publicly accessible URL of the document to parse (e.g. a PDF or image hosted on S3 or a CDN). |
+| `outputFormat` | `string` | No | Target output format for the parsed content. Accepted values: `markdown` (default) or `spatial`. |
+| `chunking` | `string` | No | Chunking strategy applied to the parsed document. Accepted values: `page`, `document`, or `section`. |
+| `engine` | `string` | No | Parsing engine to use. Accepted values: `parse_performance` (default, higher quality) or `parse_light` (faster). |
+| `runId` | `string` | Yes (Get Run) | The ID of the processor or parse run to retrieve. Returned as `metadata.id` from a previous Parse Document call. |
+
+## Outputs
+
+Both operations return the same output shape:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `json` | The full Extend run or parsed document object returned by the API. For Parse Document this is the parse run; for Get Run this is the processor run object (`processorRun`). |
+| `metadata` | `json` | Shortcut identifiers extracted from the response. |
+| `metadata.id` | `string` | The run ID (use this with Get Run to poll for completion). |
+| `metadata.status` | `string` | Current processing status (e.g. `pending`, `processing`, `completed`, `failed`). |
+
+## Example
+
+```
+[Starter: document URL] → [Extend: Parse Document] → [Extend: Get Run] → [Agent: use the result]
+```
+
+A Starter block passes a contract PDF URL as `{{starter.input}}`. The first Extend block (Parse Document) is configured with `fileUrl: {{starter.input}}`, `outputFormat: markdown`, and `engine: parse_performance`, authenticating with `{{EXTEND_API_KEY}}`. It returns `metadata.id` which is fed into a second Extend block (Get Run) as `runId: {{extend_parse.metadata.id}}` to poll for the completed result. Finally, an Agent block receives `{{extend_get_run.data}}` and extracts key clauses or fields from the structured markdown.
+
+## Tips
+
+- **Parse is async** — the initial Parse Document call returns a run ID and a `pending` status. Wire a Get Run block after it (or loop with a Wait block) to check when `metadata.status` equals `completed` before consuming the output.
+- **Use `parse_light` for speed** — if your documents are simple or you need low-latency pipelines, `parse_light` trades some quality for faster turnaround. Default to `parse_performance` for dense PDFs or scanned documents.
+- **Chunking for RAG** — set `chunking` to `page` or `section` when you plan to store chunks in a vector database (Pinecone, Qdrant, Supabase) so each chunk maps to a logical document unit.
+- **Store `apiKey` as an environment variable** — never hard-code the key in the block; reference it as `{{EXTEND_API_KEY}}` so it stays out of workflow exports and logs.

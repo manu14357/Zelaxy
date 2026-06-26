@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { RootProvider } from 'fumadocs-ui/provider'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import { Announcement } from './components/announcement'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
     default: 'Zelaxy Documentation — Blocks, Tools & API Reference',
   },
   description:
-    'Complete reference for Zelaxy AI agent builder — 78+ workflow blocks, 80+ tool integrations, triggers, SDK guides, and deployment tutorials.',
+    'Complete reference for Zelaxy AI agent builder — 260+ workflow blocks, 240+ tool integrations, triggers, SDK guides, and deployment tutorials.',
   metadataBase: new URL(DOCS_URL),
   applicationName: 'Zelaxy Docs',
   authors: [{ name: 'Zelaxy', url: 'https://zelaxy.in' }],
@@ -63,7 +64,7 @@ export const metadata: Metadata = {
     siteName: 'Zelaxy Documentation',
     title: 'Zelaxy Documentation — Blocks, Tools & API Reference',
     description:
-      'Complete reference for Zelaxy AI agent builder — 78+ workflow blocks, 80+ tool integrations, triggers, SDK guides, and deployment tutorials.',
+      'Complete reference for Zelaxy AI agent builder — 260+ workflow blocks, 240+ tool integrations, triggers, SDK guides, and deployment tutorials.',
     images: [
       {
         url: 'https://zelaxy.in/social/og-preview.png',
@@ -77,7 +78,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Zelaxy Documentation — Blocks, Tools & API Reference',
     description:
-      'Complete reference for Zelaxy AI agent builder — 78+ workflow blocks, 80+ tool integrations, triggers, and SDK guides.',
+      'Complete reference for Zelaxy AI agent builder — 260+ workflow blocks, 240+ tool integrations, triggers, and SDK guides.',
     site: '@zelaxy',
     creator: '@zelaxy',
     images: ['https://zelaxy.in/social/og-preview.png'],
@@ -123,7 +124,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body className='flex min-h-svh flex-col antialiased' suppressHydrationWarning>
-        <RootProvider>{children}</RootProvider>
+        <RootProvider>
+          <Announcement />
+          {children}
+        </RootProvider>
       </body>
     </html>
   )

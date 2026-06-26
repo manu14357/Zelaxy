@@ -1,0 +1,175 @@
+---
+title: Wiza Block
+description: Build prospect lists and reveal contacts
+icon: Box
+---
+
+# Wiza Block
+
+Create prospect lists, fetch list status, retrieve revealed contacts, and reveal an individual from a LinkedIn URL through the Wiza API. Authenticate with a Wiza API key to automate your outbound prospecting pipeline inside a Zelaxy workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `wiza` |
+| **Category** | `tools` |
+| **Color** | `#5B21B6` |
+
+## When to Use
+
+- Automatically build targeted prospect lists from LinkedIn based on job title, company, or other filters
+- Poll the status and stats of an in-progress or completed Wiza list before downloading results
+- Retrieve the fully revealed contact records (email, phone, etc.) for a completed list
+- Enrich a single lead on-the-fly by supplying a LinkedIn profile URL and getting back verified contact details
+- Chain list creation and contact retrieval steps to build a fully automated lead-generation workflow
+- Feed revealed contacts into downstream blocks such as CRM writes, email sends, or Slack notifications
+
+## Configuration
+
+### Operation
+
+Selects which Wiza API action the block performs. All other visible fields depend on this selection.
+
+| Label | id |
+|-------|----|
+| Create list | `wiza_create_list` |
+| Get list | `wiza_get_list` |
+| Get contacts | `wiza_get_contacts` |
+| Reveal individual | `wiza_reveal_individual` |
+
+Default: `wiza_create_list`.
+
+---
+
+### List Name
+
+- **Sub-block id**: `name`
+- **Type**: short-input
+- **Required**: yes
+- **Visible when**: operation = `wiza_create_list`
+
+The human-readable name for the prospect list to create (e.g. `"Q3 SaaS CEOs"`).
+
+---
+
+### Max Profiles
+
+- **Sub-block id**: `max_profiles`
+- **Type**: short-input
+- **Required**: no
+- **Visible when**: operation = `wiza_create_list`
+
+Upper bound on the number of profiles Wiza will add to the list. Leave empty to use the Wiza account default.
+
+---
+
+### Filters
+
+- **Sub-block id**: `filters`
+- **Type**: long-input (JSON)
+- **Required**: no
+- **Visible when**: operation = `wiza_create_list`
+
+A JSON object of Wiza search filters that define which LinkedIn profiles to include. Example:
+
+```json
+{ "job_title": [{ "v": "CEO", "s": "i" }] }
+```
+
+See the Wiza API documentation for the full filter schema.
+
+---
+
+### List ID
+
+- **Sub-block id**: `id`
+- **Type**: short-input
+- **Required**: yes
+- **Visible when**: operation = `wiza_get_list` or `wiza_get_contacts`
+
+The numeric or string ID of an existing Wiza list. Typically sourced from a prior **Create list** block via `{{wiza_1.data.id}}`.
+
+---
+
+### LinkedIn URL
+
+- **Sub-block id**: `linkedin_url`
+- **Type**: short-input
+- **Required**: yes
+- **Visible when**: operation = `wiza_reveal_individual`
+
+Full LinkedIn profile URL of the person to reveal, e.g. `https://www.linkedin.com/in/janedoe`.
+
+---
+
+### Wiza API Key
+
+- **Sub-block id**: `apiKey`
+- **Type**: short-input (password)
+- **Required**: yes (all operations)
+
+Your Wiza API key. Store it as an environment variable and reference it as `{{WIZA_API_KEY}}` rather than pasting it in plain text.
+
+---
+
+## Inputs & Outputs
+
+### Inputs
+
+| id | type | description |
+|----|------|-------------|
+| `operation` | string | Operation to perform (`wiza_create_list`, `wiza_get_list`, `wiza_get_contacts`, or `wiza_reveal_individual`) |
+| `apiKey` | string | Wiza API key |
+| `name` | string | List name (Create list only) |
+| `max_profiles` | number | Maximum profiles for the list (Create list only) |
+| `filters` | json | Prospect search filters (Create list only) |
+| `id` | string | List ID (Get list and Get contacts only) |
+| `linkedin_url` | string | LinkedIn profile URL (Reveal individual only) |
+
+### Outputs
+
+| id | type | description |
+|----|------|-------------|
+| `data` | json | Result object or array from Wiza. For Create list / Get list / Reveal individual this is a single object; for Get contacts it is an array of revealed contact objects. |
+| `metadata` | json | Response metadata. Contains `id` (list or reveal ID) for object operations; contains `count` (number of contacts) for Get contacts. |
+
+## Tools
+
+**Wiza Create List** (`wiza_create_list`) — POSTs to `https://wiza.co/api/lists` to create a new prospect list with an optional profile cap and search filters. Returns the created list object and its `id` in metadata.
+
+**Wiza Get List** (`wiza_get_list`) — GETs `https://wiza.co/api/lists/{id}` to retrieve list metadata, status, and statistics for an existing list. Returns the list object and its `id` in metadata.
+
+**Wiza Get Contacts** (`wiza_get_contacts`) — GETs `https://wiza.co/api/lists/{id}/contacts` to retrieve all revealed contact records for a completed list. Returns an array of contact objects and the total `count` in metadata.
+
+**Wiza Reveal Individual** (`wiza_reveal_individual`) — POSTs to `https://wiza.co/api/individual_reveals` with a LinkedIn profile URL to reveal a single person's contact details. Returns the reveal object and its `id` in metadata.
+
+## YAML Example
+
+```yaml
+# Step 1 — create a prospect list
+wiza_1:
+  type: wiza
+  name: "Create CEO Prospect List"
+  inputs:
+    operation: "wiza_create_list"
+    apiKey: "{{WIZA_API_KEY}}"
+    name: "Q3 SaaS CEOs"
+    max_profiles: 50
+    filters: '{ "job_title": [{ "v": "CEO", "s": "i" }], "industry": [{ "v": "Computer Software", "s": "i" }] }'
+  connections:
+    outgoing:
+      - target: wiza_2
+
+# Step 2 — fetch contacts once the list is ready
+wiza_2:
+  type: wiza
+  name: "Get CEO Contacts"
+  inputs:
+    operation: "wiza_get_contacts"
+    apiKey: "{{WIZA_API_KEY}}"
+    id: "{{wiza_1.data.id}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

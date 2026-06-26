@@ -6,50 +6,162 @@ icon: Box
 
 # Exa Block
 
-The Exa block lets you search the web, retrieve page content, find similar links, and answer questions using Exa's AI-powered search. Reach for it when you need high-quality web results or grounded answers to feed into the rest of your workflow.
+The Exa block lets you search the web, retrieve page content, find similar links, get cited answers, and conduct deep research using Exa's AI-powered search. Reach for it whenever you need high-quality, grounded web results to feed into the rest of your workflow.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `exa` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#D97706` |
 
 ## When to Use
 
-- Run AI-powered web searches and return ranked results for a query.
-- Retrieve and optionally summarize the full content of specific URLs.
-- Discover pages similar to a known reference URL.
-- Get a direct, cited answer to a natural-language question.
-- Conduct deeper, multi-step research on a topic with full-text findings.
+- Run AI-powered web searches and return ranked, scored results for a query.
+- Retrieve and optionally summarize the full text content of specific URLs.
+- Discover pages that are semantically similar to a known reference URL.
+- Get a direct, citation-backed answer to a natural-language question.
+- Conduct multi-step, comprehensive research on a topic and receive structured findings.
+- Pull live web data into an agent pipeline without building a custom search integration.
 
 ## Configuration
 
 ### Operation
 
-Choose what the block does: Search, Get Contents, Find Similar Links, Answer, or Research. The selected operation controls which other inputs are shown.
+Selects what the block does. Every other input is conditional on this choice.
 
-### Search Query / Question / Research Query
+| Label | id |
+|---|---|
+| Search | `exa_search` |
+| Get Contents | `exa_get_contents` |
+| Find Similar Links | `exa_find_similar_links` |
+| Answer | `exa_answer` |
+| Research | `exa_research` |
 
-The `query` field provides the text for the Search, Answer, and Research operations (required for each).
+---
 
-### URLs / URL
+### Search Query — `query`
 
-`urls` is a comma-separated list of pages to retrieve content from (Get Contents). `url` is a single reference page used to find similar links (Find Similar Links).
+*Shown when operation = `exa_search`, `exa_answer`, or `exa_research`. Required for all three.*
 
-### Result Options
+- For **Search**: the web search query to execute.
+- For **Answer**: the natural-language question to answer.
+- For **Research**: the research topic or question to investigate.
 
-`numResults` sets how many results to return, `type` selects the search strategy (Auto, Neural, Keyword, Fast), and `useAutoprompt` lets Exa refine your query. `text` includes page text, `summaryQuery` guides summary generation, and `includeText` returns full text for research.
+---
 
-### API Key
+### Number of Results — `numResults`
 
-`apiKey` is your Exa API key (required, stored as a secret).
+*Shown when operation = `exa_search` or `exa_find_similar_links`. Optional.*
+
+How many results to return (default: `10`, max: `25`). Accepts a plain integer.
+
+---
+
+### Use Autoprompt — `useAutoprompt`
+
+*Shown when operation = `exa_search`. Optional (switch).*
+
+When enabled, Exa rewrites and improves the query before executing the search.
+
+---
+
+### Search Type — `type`
+
+*Shown when operation = `exa_search`. Optional.*
+
+Controls the retrieval strategy used by Exa.
+
+| Label | id |
+|---|---|
+| Auto | `auto` |
+| Neural | `neural` |
+| Keyword | `keyword` |
+| Fast | `fast` |
+
+Default is `auto`.
+
+---
+
+### URLs — `urls`
+
+*Shown when operation = `exa_get_contents`. Required.*
+
+A comma-separated list of URLs whose content you want to retrieve (e.g. `https://example.com, https://other.com`).
+
+---
+
+### Include Text — `text`
+
+*Shown when operation = `exa_get_contents`, `exa_find_similar_links`, or `exa_answer`. Optional (switch).*
+
+- For **Get Contents**: when enabled, returns the full page text alongside the summary.
+- For **Find Similar Links**: when enabled, includes the full text of each similar page in the results.
+- For **Answer**: when enabled, includes the full text of the answer alongside the generated response.
+
+---
+
+### Summary Query — `summaryQuery`
+
+*Shown when operation = `exa_get_contents`. Optional.*
+
+A query string that guides how Exa summarizes each retrieved page. Leave blank to use default summarization.
+
+---
+
+### URL — `url`
+
+*Shown when operation = `exa_find_similar_links`. Required.*
+
+The single reference URL for which Exa should find semantically similar pages.
+
+---
+
+### Include Full Text — `includeText`
+
+*Shown when operation = `exa_research`. Optional (switch).*
+
+When enabled, each research result includes the full source text in addition to the summary.
+
+---
+
+### API Key — `apiKey`
+
+*Required for all operations. Stored as a password (secret).*
+
+Your Exa AI API key. Store it as a workflow secret and reference it with `{{EXA_API_KEY}}`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `query` (string), `numResults` (number), `useAutoprompt` (boolean), `type` (string), `urls` (string), `text` (boolean), `summaryQuery` (string), `url` (string)
-- **Outputs**: `results` (json), `similarLinks` (json), `answer` (string), `citations` (json), `research` (json)
+**Inputs** (all input ids used by the block):
+
+- `operation` (string) — Operation to perform; one of the five operation ids above.
+- `apiKey` (string) — Exa API key, required for every operation.
+- `query` (string) — Search query terms; used by `exa_search`, `exa_answer`, and `exa_research`.
+- `numResults` (number) — Number of results to return; used by `exa_search` and `exa_find_similar_links`.
+- `useAutoprompt` (boolean) — Use autoprompt feature; used by `exa_search`.
+- `type` (string) — Search type (`auto` / `neural` / `keyword` / `fast`); used by `exa_search`.
+- `urls` (string) — Comma-separated URLs to retrieve; used by `exa_get_contents`.
+- `text` (boolean) — Include text content; used by `exa_get_contents`, `exa_find_similar_links`, and `exa_answer`.
+- `summaryQuery` (string) — Summary query guidance; used by `exa_get_contents`.
+- `url` (string) — Source URL to find similar pages for; used by `exa_find_similar_links`.
+
+**Outputs** (what downstream blocks can reference):
+
+- `results` (json) — Array of search results (title, url, publishedDate, author, summary, favicon, image, text, score); produced by `exa_search` and `exa_get_contents`.
+- `similarLinks` (json) — Array of similar pages (title, url, text, score); produced by `exa_find_similar_links`.
+- `answer` (string) — AI-generated answer to the question; produced by `exa_answer`.
+- `citations` (json) — Array of cited sources (title, url, text); produced by `exa_answer`.
+- `research` (json) — Array of structured research findings (title, url, summary, text, publishedDate, author, score); produced by `exa_research`.
+
+## Tools
+
+- **Exa Search** (`exa_search`) — Calls `POST https://api.exa.ai/search`. Accepts a query and optional numResults, useAutoprompt, and type parameters. Returns an array of scored results with titles, URLs, text snippets, and metadata.
+- **Exa Get Contents** (`exa_get_contents`) — Calls `POST https://api.exa.ai/contents`. Accepts comma-separated URLs and optional text/summaryQuery parameters. Returns page title, full text, and AI-generated summary per URL.
+- **Exa Find Similar Links** (`exa_find_similar_links`) — Calls `POST https://api.exa.ai/findSimilar`. Accepts a reference URL and optional numResults and text flags. Returns a scored list of semantically similar pages.
+- **Exa Answer** (`exa_answer`) — Calls `POST https://api.exa.ai/answer`. Accepts a natural-language question and optional text flag. Returns a synthesized answer string and a citations array.
+- **Exa Research** (`exa_research`) — Calls `POST https://api.exa.ai/research/v0/tasks` and polls until complete (up to 5 minutes). Submits a research query and returns a structured array of findings with titles, URLs, summaries, and optional full text.
 
 ## YAML Example
 
@@ -63,7 +175,7 @@ exa_1:
     numResults: 10
     type: "auto"
     useAutoprompt: true
-    apiKey: "{{secrets.EXA_API_KEY}}"
+    apiKey: "{{EXA_API_KEY}}"
   connections:
     outgoing:
       - target: next-block-id

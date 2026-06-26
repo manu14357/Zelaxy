@@ -1,0 +1,139 @@
+---
+title: Google Books Block
+description: Search for books and fetch volume details
+icon: BookOpen
+---
+
+# Google Books Block
+
+Search the Google Books catalog and retrieve detailed information about a specific volume. Authenticate with a Google Books API key. Use this block whenever a workflow needs to look up books by keyword, author, ISBN, or subject, or needs to pull full metadata for a known volume ID.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `google_books` |
+| **Category** | `tools` |
+| **Color** | `#4285F4` |
+
+## When to Use
+
+- Search the Google Books catalog by title, author, publisher, subject, or ISBN keyword syntax.
+- Retrieve the total number of matching results and a paged list of volume objects.
+- Fetch full metadata (title, authors, description, cover images, identifiers) for a specific volume by its ID.
+- Chain search results into a second block that calls **Get volume** to enrich individual entries.
+- Pass volume IDs surfaced by an Agent block into this block to resolve rich book details.
+- Build reading-list, bibliography, or book-recommendation workflows that need authoritative Google Books data.
+
+## Configuration
+
+### Operation
+
+Select which Google Books API action to perform. The value you pick determines which other fields appear.
+
+| Label | ID |
+|-------|----|
+| Search volumes | `google_books_search_volumes` |
+| Get volume | `google_books_get_volume` |
+
+---
+
+### Query (`q`) — Search volumes only
+
+**Type**: short-input | **Required for search**: yes
+
+The search query string sent to the Google Books API. Supports Google Books keyword operators:
+
+- `intitle:` — restrict to words in the title (e.g. `intitle:flowers`)
+- `inauthor:` — restrict to an author name (e.g. `inauthor:keyes`)
+- `inpublisher:` — restrict to a publisher
+- `subject:` — restrict to a subject category
+- `isbn:` — look up by ISBN
+
+You may combine operators (e.g. `intitle:flowers inauthor:keyes`) or use a plain keyword.
+
+Shown when **Operation** is `google_books_search_volumes`.
+
+---
+
+### Max Results (`maxResults`) — Search volumes only
+
+**Type**: short-input | **Required**: no | **Default**: 10
+
+Maximum number of volumes to return. The Google Books API accepts values from 1 to 40. Leave blank to use the default of 10.
+
+Shown when **Operation** is `google_books_search_volumes`.
+
+---
+
+### Volume ID (`volumeId`) — Get volume only
+
+**Type**: short-input | **Required for get**: yes
+
+The unique Google Books volume identifier (e.g. `zyTCAlFPjgYC`). You can obtain this from the `id` field inside a result object returned by the **Search volumes** operation.
+
+Shown when **Operation** is `google_books_get_volume`.
+
+---
+
+### Google Books API Key (`apiKey`)
+
+**Type**: short-input (password) | **Required**: yes
+
+Your Google Books API key. Store it as a workspace secret and reference it with `{{GOOGLE_BOOKS_API_KEY}}` to avoid embedding credentials in the workflow definition.
+
+Shown for **all operations**.
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (`google_books_search_volumes` or `google_books_get_volume`)
+- `apiKey` (string) — Google Books API key
+- `q` (string) — Search query (used by Search volumes)
+- `maxResults` (number) — Maximum number of results (used by Search volumes)
+- `volumeId` (string) — Volume ID to retrieve (used by Get volume)
+
+**Outputs**
+
+- `data` (json) — Result object or array from Google Books. For **Search volumes** this is an array of volume objects; for **Get volume** this is a single volume object.
+- `metadata` (json) — Response metadata. For **Search volumes**: `{ totalItems, count }`. For **Get volume**: `{ id }`.
+
+## Tools
+
+**Google Books Search Volumes** (`google_books_search_volumes`) — Queries the Google Books Volumes list endpoint (`GET https://www.googleapis.com/books/v1/volumes`) with a search string and returns up to `maxResults` matching volume objects plus aggregate totals. Supports all Google Books keyword operators (`intitle:`, `inauthor:`, `isbn:`, etc.).
+
+**Google Books Get Volume** (`google_books_get_volume`) — Fetches a single volume resource from `GET https://www.googleapis.com/books/v1/volumes/{volumeId}` and returns the full volume object along with its `id` in the metadata.
+
+## YAML Example
+
+### Search volumes
+
+```yaml
+google_books_1:
+  type: google_books
+  name: "Search Google Books"
+  inputs:
+    operation: "google_books_search_volumes"
+    apiKey: "{{GOOGLE_BOOKS_API_KEY}}"
+    q: "intitle:deep work inauthor:newport"
+    maxResults: 5
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+### Get volume
+
+```yaml
+google_books_2:
+  type: google_books
+  name: "Get Book Details"
+  inputs:
+    operation: "google_books_get_volume"
+    apiKey: "{{GOOGLE_BOOKS_API_KEY}}"
+    volumeId: "{{google_books_1.data[0].id}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

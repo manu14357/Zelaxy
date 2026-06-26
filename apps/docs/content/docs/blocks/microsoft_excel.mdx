@@ -18,10 +18,10 @@ The Microsoft Excel block integrates with Excel spreadsheets to manage data via 
 
 ## When to Use
 
-- Read data from a specific range of a spreadsheet to feed into downstream blocks.
+- Read data from a specific cell range in a spreadsheet to feed into downstream blocks.
 - Write new rows or a block of values into a sheet at a given range.
 - Update existing cells in place with fresh values.
-- Append rows to a named Excel table (`table_add`).
+- Append rows to a named Excel table using the `table_add` operation.
 - Build reporting or data-sync workflows that move data into or out of Excel.
 - Parse formulas or store raw values using the value input option.
 
@@ -29,36 +29,107 @@ The Microsoft Excel block integrates with Excel spreadsheets to manage data via 
 
 ### Operation
 
-Dropdown selecting the action: Read Data (`read`), Write Data (`write`), Update Data (`update`), or Add to Table (`table_add`). Defaults to `read`.
+Dropdown (`operation`) that selects the action to perform. Defaults to `read`.
+
+| Label | ID |
+|-------|----|
+| Read Data | `read` |
+| Write Data | `write` |
+| Update Data | `update` |
+| Add to Table | `table_add` |
 
 ### Microsoft Account
 
-OAuth credential for the `microsoft-excel` provider. Required, with `Files.ReadWrite.All` and `Sites.ReadWrite.All` scopes.
+OAuth credential sub-block (`credential`) for the `microsoft-excel` provider. Required. Requests the following Microsoft Graph scopes:
+
+- `https://graph.microsoft.com/Files.ReadWrite.All`
+- `https://graph.microsoft.com/Sites.ReadWrite.All`
 
 ### Select Sheet / Spreadsheet ID
 
-Pick a spreadsheet with the file selector (basic mode) or enter a spreadsheet ID manually (advanced mode via `manualSpreadsheetId`). One is required.
+Two mutually exclusive modes for identifying the target spreadsheet:
+
+- **Basic mode** — `spreadsheetId`: a file-selector UI that browses the authenticated user's OneDrive for `.xlsx` files.
+- **Advanced mode** — `manualSpreadsheetId`: a text field for pasting the spreadsheet's Drive item ID directly.
+
+At least one must be provided; `spreadsheetId` takes precedence when both are present.
 
 ### Range
 
-Sheet name and cell range (e.g., `Sheet1!A1:D10`). Shown for read, write, and update operations.
+Short-text field (`range`). Required for **Read Data**, **Write Data**, and **Update Data** operations. Not shown for **Add to Table**. Enter the sheet name and cell address separated by `!` (e.g., `Sheet1!A1:D10`). If omitted for a read, the tool defaults to `Sheet1!A1:Z1000`.
 
 ### Table Name
 
-Name of the Excel table to append to. Required for the `table_add` operation.
+Short-text field (`tableName`). Required only for the **Add to Table** (`table_add`) operation. Enter the exact name of the Excel table to append rows to.
 
-### Values
+### Values (Write)
 
-JSON array of arrays or array of objects to write. The field varies by operation: `values` (write), `updateValues` (update), `tableValues` (table_add).
+Long-text field (`values`). Required for the **Write Data** operation. Enter a JSON array of arrays or an array of objects, for example:
 
-### Value Input Option
+- `[["A1", "B1"], ["A2", "B2"]]`
+- `[{"name":"John","age":30},{"name":"Jane","age":25}]`
 
-Whether to parse formulas (`USER_ENTERED`) or store raw text (`RAW`). Available for write (`valueInputOption`) and update (`updateValueInputOption`).
+When an array of objects is provided, the block automatically extracts headers and converts to row arrays before sending.
+
+### Value Input Option (Write)
+
+Dropdown (`valueInputOption`). Controls how literal strings are interpreted when writing. Only shown for the **Write Data** operation.
+
+| Label | ID |
+|-------|----|
+| User Entered (Parse formulas) | `USER_ENTERED` |
+| Raw (Don't parse formulas) | `RAW` |
+
+### Values (Update)
+
+Long-text field (`updateValues`). Required for the **Update Data** operation. Accepts the same JSON format as the write `values` field.
+
+### Value Input Option (Update)
+
+Dropdown (`updateValueInputOption`). Same options as the write Value Input Option but applies to the **Update Data** operation.
+
+| Label | ID |
+|-------|----|
+| User Entered (Parse formulas) | `USER_ENTERED` |
+| Raw (Don't parse formulas) | `RAW` |
+
+### Values (Add to Table)
+
+Long-text field (`tableValues`). Required for the **Add to Table** operation. Accepts the same JSON format as the other values fields. Each object or inner array becomes one new row in the named Excel table.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `spreadsheetId` (string), `manualSpreadsheetId` (string), `range` (string), `tableName` (string), `values` (string), `updateValues` (string), `tableValues` (string), `valueInputOption` (string), `updateValueInputOption` (string)
-- **Outputs**: `data` (json), `metadata` (json), `updatedRange` (string), `updatedRows` (number), `updatedColumns` (number), `updatedCells` (number), `index` (number), `values` (json)
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`read`, `write`, `update`, or `table_add`)
+- `credential` (string) — Microsoft Excel OAuth access token
+- `spreadsheetId` (string) — Spreadsheet identifier selected via the file picker
+- `manualSpreadsheetId` (string) — Manually entered spreadsheet Drive item ID
+- `range` (string) — Cell range in `SheetName!A1:Z100` format (read, write, update)
+- `tableName` (string) — Name of the Excel table (table_add only)
+- `values` (string) — JSON-encoded cell values for write operations
+- `updateValues` (string) — JSON-encoded cell values for update operations
+- `tableValues` (string) — JSON-encoded cell values for table_add operations
+- `valueInputOption` (string) — Value input option for write operations (`USER_ENTERED` or `RAW`)
+- `updateValueInputOption` (string) — Value input option for update operations (`USER_ENTERED` or `RAW`)
+
+**Outputs:**
+
+- `data` (json) — Excel range data with sheet information and cell values (read operations)
+- `metadata` (json) — Spreadsheet metadata including ID, URL, and sheet details
+- `updatedRange` (string) — The range that was updated (write/update operations)
+- `updatedRows` (number) — Number of rows updated (write/update operations)
+- `updatedColumns` (number) — Number of columns updated (write/update operations)
+- `updatedCells` (number) — Total number of cells updated (write/update operations)
+- `index` (number) — Row index of the first row added (table_add operations)
+- `values` (json) — Cell values array for the rows added (table_add operations)
+
+## Tools
+
+- **Read from Microsoft Excel** (`microsoft_excel_read`) — Fetches cell values and formatted text from a named range (or the default `Sheet1!A1:Z1000`) via the Microsoft Graph API. Returns both raw `values` and display `text` arrays.
+- **Write to Microsoft Excel** (`microsoft_excel_write`) — Writes a 2-D array of values to a specified range using a PATCH request. Accepts arrays of objects and auto-converts them to header+row format.
+- **Update Microsoft Excel** (`microsoft_excel_update`) — Updates existing cells at a specified range using a PATCH request. Behaves identically to the write tool but is semantically distinct for update workflows.
+- **Add to Microsoft Excel Table** (`microsoft_excel_table_add`) — Appends one or more rows to a named Excel table via the Graph API `rows/add` endpoint. Accepts arrays of objects or arrays of arrays.
 
 ## YAML Example
 
@@ -68,7 +139,7 @@ excel_read:
   name: "Microsoft Excel"
   inputs:
     operation: "read"
-    credential: "{{credentials.microsoft-excel}}"
+    credential: "{{MICROSOFT_EXCEL_ACCESS_TOKEN}}"
     spreadsheetId: "{{start.spreadsheetId}}"
     range: "Sheet1!A1:D10"
   connections:

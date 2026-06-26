@@ -18,52 +18,158 @@ The X block connects your workflow to the X (formerly Twitter) platform. Use it 
 
 ## When to Use
 
-- Post a new tweet (optionally as a reply, or with attached media) from a workflow
-- Automatically respond to mentions or events by replying to a specific tweet
-- Read the full details of a tweet, optionally including its replies
-- Search recent tweets by keyword or query using X search operators
+- Post a new tweet (optionally as a reply or with attached media) from a workflow
+- Automatically respond to mentions or events by replying to a specific tweet ID
+- Read the full details of a tweet, including conversation context and parent tweets
+- Search recent tweets by keyword, hashtag, or advanced X search operators
 - Filter tweet searches by time window and sort by recency or relevancy
 - Look up a user's profile by username for enrichment or routing decisions
 
 ## Configuration
 
 ### Operation
-Dropdown that selects what the block does: **Post a New Tweet** (`x_write`), **Get Tweet Details** (`x_read`), **Search Tweets** (`x_search`), or **Get User Profile** (`x_user`). Defaults to posting a new tweet.
 
-### X Account
-OAuth credential (`credential`) for the X account used to perform the operation. Requires the `tweet.read`, `tweet.write`, and `users.read` scopes.
+Dropdown that selects what the block does. Defaults to `x_write`.
 
-### Tweet Text
-The tweet body (`text`) when posting. Required for the post operation.
+| Label | ID |
+|-------|----|
+| Post a New Tweet | `x_write` |
+| Get Tweet Details | `x_read` |
+| Search Tweets | `x_search` |
+| Get User Profile | `x_user` |
 
-### Reply To / Media IDs
-When posting, optionally set `replyTo` (a tweet ID to reply to) and `mediaIds` (comma-separated media IDs to attach).
+### X Account (`credential`)
 
-### Tweet ID
-The `tweetId` to fetch when reading tweet details. Required for the read operation; `includeReplies` controls whether replies are returned.
+OAuth credential for the X account that will perform the operation. Select a connected X account from the dropdown. Requires the `tweet.read`, `tweet.write`, and `users.read` OAuth scopes.
 
-### Search Query
-The `query` for the search operation (supports X search operators). Required. Refine with `maxResults`, `sortOrder` (recency or relevancy), `startTime`, and `endTime`.
+### Tweet Text (`text`)
 
-### Username
-The `username` (without @) to look up for the user profile operation. Required.
+_Shown when operation is `x_write`. Required._
+
+The text body of the tweet to post (up to 280 characters). Supports `{{blockName.field}}` references to use dynamic content from earlier blocks.
+
+### Reply To (`replyTo`)
+
+_Shown when operation is `x_write`. Optional._
+
+ID of an existing tweet to reply to. Leave blank to post as a standalone tweet.
+
+### Media IDs (`mediaIds`)
+
+_Shown when operation is `x_write`. Optional._
+
+Comma-separated list of media IDs to attach to the tweet (e.g. images or videos uploaded via the X media upload API).
+
+### Tweet ID (`tweetId`)
+
+_Shown when operation is `x_read`. Required._
+
+ID of the tweet to fetch details for.
+
+### Include Replies (`includeReplies`)
+
+_Shown when operation is `x_read`. Optional._
+
+Whether to include replies when reading a tweet. Options:
+
+| Label | ID |
+|-------|----|
+| true | `true` |
+| false | `false` |
+
+Defaults to `false`.
+
+### Search Query (`query`)
+
+_Shown when operation is `x_search`. Required._
+
+Search terms for the tweet search. Supports all X search operators (e.g. `from:user`, `#hashtag`, `-filter:retweets`).
+
+### Max Results (`maxResults`)
+
+_Shown when operation is `x_search`. Optional._
+
+Maximum number of tweets to return. Minimum enforced by the X API is 10; maximum is 100. Defaults to 10.
+
+### Sort Order (`sortOrder`)
+
+_Shown when operation is `x_search`. Optional._
+
+How to order search results. Options:
+
+| Label | ID |
+|-------|----|
+| recency | `recency` |
+| relevancy | `relevancy` |
+
+Defaults to `recency`.
+
+### Start Time (`startTime`)
+
+_Shown when operation is `x_search`. Optional._
+
+Earliest creation time for returned tweets, in ISO 8601 format (`YYYY-MM-DDTHH:mm:ssZ`).
+
+### End Time (`endTime`)
+
+_Shown when operation is `x_search`. Optional._
+
+Latest creation time for returned tweets, in ISO 8601 format (`YYYY-MM-DDTHH:mm:ssZ`).
+
+### Username (`username`)
+
+_Shown when operation is `x_user`. Required._
+
+The X username to look up, without the leading `@` symbol.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `credential` (string), `text` (string), `replyTo` (string), `mediaIds` (string), `poll` (json), `tweetId` (string), `includeReplies` (boolean), `query` (string), `maxResults` (number), `startTime` (string), `endTime` (string), `sortOrder` (string), `username` (string), `includeRecentTweets` (boolean)
-- **Outputs**: `tweet` (json), `replies` (json), `context` (json), `tweets` (json), `includes` (json), `meta` (json), `user` (json), `recentTweets` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform
+  - `credential` (string) — X account credential
+  - `text` (string) — Tweet text content
+  - `replyTo` (string) — Reply to tweet ID
+  - `mediaIds` (string) — Media identifiers (comma-separated)
+  - `poll` (json) — Poll configuration
+  - `tweetId` (string) — Tweet identifier
+  - `includeReplies` (boolean) — Include replies
+  - `query` (string) — Search query terms
+  - `maxResults` (number) — Maximum search results
+  - `startTime` (string) — Search start time
+  - `endTime` (string) — Search end time
+  - `sortOrder` (string) — Result sort order
+  - `username` (string) — User profile name
+  - `includeRecentTweets` (boolean) — Include recent tweets
+
+- **Outputs**:
+  - `tweet` (json) — Tweet data (write and read operations)
+  - `replies` (json) — Tweet replies
+  - `context` (json) — Tweet context (parent and root tweets in a thread)
+  - `tweets` (json) — Tweets data (search results array)
+  - `includes` (json) — Additional data (users, media, polls)
+  - `meta` (json) — Response metadata (result count, pagination tokens)
+  - `user` (json) — User profile data
+  - `recentTweets` (json) — Recent tweets data for the looked-up user
+
+## Tools
+
+- **X Write** (`x_write`) — Posts new tweets, replies to existing tweets, or attaches media/polls. Calls `POST https://api.twitter.com/2/tweets`. Returns the created tweet object including its ID, text, creation timestamp, and any attachment details.
+- **X Read** (`x_read`) — Reads the full details of a specific tweet by ID, including conversation context such as parent and root tweets. Calls `GET https://api.twitter.com/2/tweets/{id}` with expansions.
+- **X Search** (`x_search`) — Searches recent tweets using keywords, hashtags, or X search operators. Supports time-range filtering and sort order. Calls `GET https://api.twitter.com/2/tweets/search/recent`. Returns a list of matching tweets, associated user profiles, and pagination metadata.
+- **X User** (`x_user`) — Fetches a user's public profile by username. Returns the user's ID, display name, bio, profile image URL, verification status, and public metrics (followers, following, tweet count). Calls `GET https://api.twitter.com/2/users/by/username/{username}`.
 
 ## YAML Example
 
 ```yaml
 x_1:
   type: x
-  name: "X"
+  name: "Post Tweet"
   inputs:
     operation: "x_write"
-    credential: "{{credentials.x}}"
-    text: "{{previous_block.output}}"
+    credential: "{{X_OAUTH_CREDENTIAL}}"
+    text: "{{generate_block.output}}"
     replyTo: ""
+    mediaIds: ""
   connections:
     outgoing:
       - target: next-block-id

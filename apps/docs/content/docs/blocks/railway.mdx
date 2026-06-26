@@ -1,0 +1,110 @@
+---
+title: Railway Block
+description: Manage Railway projects and deployments
+icon: Box
+---
+
+# Railway Block
+
+The Railway block lets you query the Railway GraphQL API to list your projects, inspect a project's services and environments, and retrieve deployment history for a specific service. Authenticate once with a Railway API token and connect it to any workflow that needs infrastructure awareness.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `railway` |
+| **Category** | `tools` |
+| **Color** | `#0B0D0E` |
+
+## When to Use
+
+- Enumerate all Railway projects visible to a token to populate a dashboard or status report
+- Fetch a specific project's full detail — including its services and environments — before making deployment decisions
+- List recent deployments for a service in a given environment to detect failures or track rollout progress
+- Feed Railway deployment status into a downstream notification or alerting step
+- Drive conditional logic that branches on whether the latest deployment succeeded or failed
+
+## Configuration
+
+### Operation
+
+Dropdown selecting which Railway action to perform. Required; defaults to **List projects**.
+
+| Label | id |
+|-------|----|
+| List projects | `railway_list_projects` |
+| Get project | `railway_get_project` |
+| List deployments | `railway_list_deployments` |
+
+### Project ID
+
+The Railway project UUID to inspect. Required for the **Get project** and **List deployments** operations; hidden for **List projects**.
+
+- Type: short-input
+- Placeholder: `Railway project ID`
+
+### Service ID
+
+The Railway service UUID to filter deployments. Required for **List deployments**; hidden for other operations.
+
+- Type: short-input (half-width)
+- Placeholder: `Railway service ID`
+
+### Environment ID
+
+The Railway environment UUID to filter deployments. Required for **List deployments**; hidden for other operations.
+
+- Type: short-input (half-width)
+- Placeholder: `Railway environment ID`
+
+### Limit
+
+Maximum number of results to return. Applies to **List projects** (default 20) and **List deployments** (default 10); hidden for **Get project**.
+
+- Type: short-input (half-width)
+- Placeholder: `20`
+
+### Railway API Token
+
+Your Railway personal API token used to authenticate all GraphQL requests. Required for every operation. The value is stored as a password (never displayed in plain text).
+
+- Type: short-input (full-width, password)
+- Placeholder: `Your Railway API token`
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`railway_list_projects`, `railway_get_project`, or `railway_list_deployments`)
+  - `apiKey` (string) — Railway API token
+  - `projectId` (string) — Project ID (required for Get project and List deployments)
+  - `serviceId` (string) — Service ID (required for List deployments)
+  - `environmentId` (string) — Environment ID (required for List deployments)
+  - `first` (number) — Result limit (used by List projects and List deployments)
+
+- **Outputs**:
+  - `data` (json) — Result object or array from Railway (project object, array of projects, or array of deployments)
+  - `metadata` (json) — Response metadata (`{ count: number }` for list operations; `{ id: string }` for Get project)
+
+## Tools
+
+- **Railway List Projects** (`railway_list_projects`) — Queries the Railway GraphQL API (`POST https://backboard.railway.app/graphql/v2`) and returns an array of project objects (id, name, description, createdAt) visible to the token, up to the `first` limit.
+- **Railway Get Project** (`railway_get_project`) — Fetches a single project by ID, returning its metadata along with nested `services` and `environments` edge lists (each with id and name).
+- **Railway List Deployments** (`railway_list_deployments`) — Lists deployments for a specific service in a specific environment, returning deployment objects with id, status, createdAt, url, and staticUrl fields.
+
+## YAML Example
+
+```yaml
+railway_1:
+  type: railway
+  name: "Railway"
+  inputs:
+    operation: "railway_list_deployments"
+    projectId: "{{get_project_block.data.id}}"
+    serviceId: "abc123-service-id"
+    environmentId: "def456-environment-id"
+    first: 10
+    apiKey: "{{RAILWAY_API_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

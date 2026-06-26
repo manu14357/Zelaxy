@@ -1,0 +1,72 @@
+---
+title: Vision Tools
+description: Analyze images with vision-capable LLMs to describe content, extract text, and identify objects.
+icon: Eye
+---
+
+# Vision Tools
+
+The Vision provider sends a publicly accessible image to a vision-capable model (OpenAI GPT-4o or Anthropic Claude 3) along with an optional prompt, and returns a detailed text analysis. Use it in a workflow when you need to describe an image, extract text (OCR), identify objects, or answer questions about visual content.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `vision` |
+| **Category** | `tools` |
+| **Auth** | API Key (provider-specific: OpenAI `Authorization: Bearer` or Anthropic `x-api-key`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Analyze Image | `vision_tool` | Process and analyze an image using a vision model. Understands image content, extracts text, identifies objects, and produces a detailed visual description. |
+
+## Configuration
+
+### `vision_tool`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** API key for the selected model provider. Use your OpenAI key for `gpt-4o` or your Anthropic key for `claude-3-*` models. Visibility: `user-only`. |
+| `imageUrl` | string | Yes | Publicly accessible image URL to analyze. Visibility: `user-only`. |
+| `model` | string | No | Vision model to use. Known values: `gpt-4o`, `claude-3-opus-20240229`, `claude-3-sonnet-20240229`. Any value starting with `claude-3` routes to the Anthropic API; otherwise the request goes to OpenAI (which defaults to `gpt-4o`). Visibility: `user-only`. |
+| `prompt` | string | No | Custom prompt for image analysis. If omitted, defaults to `"Please analyze this image and describe what you see in detail."` Visibility: `user-or-llm`. |
+
+> Routing note: The destination API is chosen by the `model` value. `claude-3*` -> `https://api.anthropic.com/v1/messages` (headers `x-api-key`, `anthropic-version: 2023-06-01`). Anything else -> `https://api.openai.com/v1/chat/completions` (header `Authorization: Bearer <apiKey>`), and the OpenAI request body always sends `gpt-4o` regardless of the supplied non-Claude model name.
+
+## Outputs
+
+### `vision_tool`
+
+- `content` (string) — The analyzed content and description of the image.
+- `model` (string, optional) — The vision model that was used for analysis (as reported by the provider).
+- `tokens` (number, optional) — Total tokens used for the analysis.
+- `usage` (object, optional) — Detailed token usage breakdown:
+  - `input_tokens` (number) — Tokens used for input processing.
+  - `output_tokens` (number) — Tokens used for response generation.
+  - `total_tokens` (number) — Total tokens consumed.
+
+## YAML Example
+
+```yaml
+vision_1:
+  type: vision
+  name: "Vision"
+  inputs:
+    operation: "vision_tool"
+    imageUrl: "https://example.com/photo.jpg"
+    model: "gpt-4o"
+    prompt: "Describe this image and extract any visible text."
+    apiKey: "{{VISION_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Pick the API key that matches the model: an OpenAI key for `gpt-4o`, or an Anthropic key for `claude-3-opus-20240229` / `claude-3-sonnet-20240229`. The selected `model` decides which API (and therefore which key/auth header) is used.
+- `imageUrl` must be publicly reachable by the provider's servers — pre-signed/private URLs that require your own auth headers will not work.
+- Reference the analysis downstream with `{{vision_1.content}}`, and the token usage with `{{vision_1.tokens}}` or `{{vision_1.usage.total_tokens}}`.
+- Leaving `prompt` empty falls back to a generic "describe what you see" instruction; supply a specific prompt for OCR, object detection, or structured extraction.

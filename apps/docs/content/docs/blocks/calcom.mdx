@@ -1,7 +1,7 @@
 ---
 title: Cal.com Block
 description: Manage bookings, slots, and events in Cal.com
-icon: Box
+icon: Calendar
 ---
 
 # Cal.com Block
@@ -22,34 +22,74 @@ The Cal.com block integrates Cal.com scheduling into your workflows. Use it to l
 - Look up available slots for an event type before offering times to a user.
 - List or retrieve booking details to drive downstream notifications or CRM updates.
 - Cancel a booking as part of a rescheduling or cleanup flow.
-- Enumerate event types to dynamically select the right meeting kind.
+- Enumerate event types to dynamically select the right meeting kind for a workflow branch.
+- Filter past, upcoming, or cancelled bookings to power reporting or audit pipelines.
 
 ## Configuration
 
 ### Operation
 
-Select which Cal.com action to run: List Bookings, Create Booking, Get Booking, Cancel Booking, Get Available Slots, or List Event Types.
+Select which Cal.com action to run. This field is **required** and controls which other fields are shown.
+
+| Label | ID |
+|-------|----|
+| List Bookings | `calcom_list_bookings` |
+| Create Booking | `calcom_create_booking` |
+| Get Booking | `calcom_get_booking` |
+| Cancel Booking | `calcom_cancel_booking` |
+| Get Available Slots | `calcom_get_slots` |
+| List Event Types | `calcom_list_event_types` |
 
 ### Cal.com Account
 
-OAuth credential used to authenticate with your Cal.com account.
+OAuth credential used to authenticate with your Cal.com account. Connect your Cal.com account via the OAuth flow; the block injects the access token automatically.
 
 ### Event Type ID
 
-The event type to act on. Required for Create Booking and Get Available Slots.
+The numeric ID of the event type to act on. Shown for operations: **Create Booking** and **Get Available Slots**.
 
-### Start Date/Time and End Date/Time
+### Start Date/Time
 
-The time window for the operation. Used by Create Booking, Get Available Slots, and List Bookings.
+The start of the time window (ISO 8601 UTC, e.g. `2024-01-15T10:00:00Z`). Shown for operations: **Create Booking**, **Get Available Slots**, and **List Bookings**.
+
+### End Date/Time
+
+The end of the time window (ISO 8601 UTC, e.g. `2024-01-15T11:00:00Z`). Shown for operations: **Create Booking**, **Get Available Slots**, and **List Bookings**.
 
 ### Booking ID
 
-The identifier of an existing booking. Used by Get Booking and Cancel Booking.
+The UID of an existing booking. Shown for operations: **Get Booking** and **Cancel Booking**.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `oauthCredential` (string), `eventTypeId` (string), `start` (string), `end` (string), `bookingId` (string)
-- **Outputs**: `bookings` (json), `booking` (json), `slots` (json)
+**Inputs:**
+
+- `operation` (string) — Operation to perform (one of the tool IDs listed above)
+- `oauthCredential` (string) — OAuth credential for Cal.com authentication
+- `eventTypeId` (string) — Event type ID; used by Create Booking and Get Available Slots
+- `start` (string) — Start date/time in ISO 8601 UTC format
+- `end` (string) — End date/time in ISO 8601 UTC format
+- `bookingId` (string) — Booking UID; used by Get Booking and Cancel Booking
+
+**Outputs:**
+
+- `bookings` (json) — Booking list returned by List Bookings
+- `booking` (json) — Booking details returned by Get Booking or Create Booking
+- `slots` (json) — Available time slots returned by Get Available Slots
+
+## Tools
+
+**Cal.com List Bookings** (`calcom_list_bookings`) — Lists all bookings via `GET /v2/bookings`. Supports optional `status` filter (`upcoming`, `recurring`, `past`, `cancelled`, `unconfirmed`), `take` (page size), and `skip` (offset) params. Returns `status` (string) and `data` (array of bookings).
+
+**Cal.com Create Booking** (`calcom_create_booking`) — Creates a new booking via `POST /v2/bookings`. Requires `eventTypeId`, `start` (ISO 8601 UTC), and an `attendee` object (name, email, timeZone). Optional params: `guests` (array of emails), `lengthInMinutes`, `metadata`. Returns `status` and `data` (created booking object).
+
+**Cal.com Get Booking** (`calcom_get_booking`) — Retrieves details of a specific booking via `GET /v2/bookings/{uid}`. Requires `bookingUid`. Returns `status` and `data` (booking object).
+
+**Cal.com Cancel Booking** (`calcom_cancel_booking`) — Cancels an existing booking via `POST /v2/bookings/{uid}/cancel`. Requires `bookingUid`. Optional `cancellationReason` string. Returns `status` and `data` (cancelled booking object).
+
+**Cal.com Get Slots** (`calcom_get_slots`) — Retrieves available booking slots via `GET /v2/slots`. Requires `start` and `end` time range. Optional params: `eventTypeId`, `eventTypeSlug`, `username`, `timeZone`, `duration` (minutes). Returns `status` and `data` (slots grouped by date).
+
+**Cal.com List Event Types** (`calcom_list_event_types`) — Retrieves all event types via `GET /v2/event-types`. Optional `sortCreatedAt` param (`asc` or `desc`). Returns `status` and `data` (array of event types).
 
 ## YAML Example
 
@@ -58,10 +98,10 @@ calcom_1:
   type: calcom
   name: "Cal.com"
   inputs:
-    operation: "calcom_create_booking"
+    operation: "calcom_get_slots"
     eventTypeId: "123"
-    start: "2024-01-15T10:00:00Z"
-    end: "2024-01-15T11:00:00Z"
+    start: "2024-01-15T00:00:00Z"
+    end: "2024-01-15T23:59:59Z"
   connections:
     outgoing:
       - target: next-block-id

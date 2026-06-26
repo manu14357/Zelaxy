@@ -6,7 +6,7 @@ icon: Box
 
 # Enrich Block
 
-The Enrich block integrates Enrich.so data enrichment into your workflows. Use it to turn an email into a full profile, find work emails from LinkedIn, verify deliverability, look up phone numbers, and search people or companies.
+The Enrich block integrates Enrich.so data enrichment into your workflows. Use it to turn an email into a full profile, find work emails by name and domain, verify email deliverability, look up phone numbers from LinkedIn, search people by filter criteria, or look up company details.
 
 ## Overview
 
@@ -18,31 +18,87 @@ The Enrich block integrates Enrich.so data enrichment into your workflows. Use i
 
 ## When to Use
 
-- Resolve an email address into a full person or LinkedIn profile
-- Find a person's work email from their LinkedIn URL
-- Verify whether an email address is valid and deliverable
-- Discover a phone number from a LinkedIn profile
-- Look up company details for sales or research workflows
-- Search for people or companies to power lead-generation pipelines
+- Resolve an email address into a structured person profile (name, title, company, LinkedIn URL)
+- Find a person's work email given their full name and company domain
+- Verify whether an email address is valid and deliverable before sending
+- Discover a mobile phone number from a LinkedIn profile URL
+- Look up company details (industry, employee count, domain) by name or domain
+- Search for people using filters like name, job headline, location, or bio keywords
 
 ## Configuration
 
 ### Operation
-Dropdown selecting which Enrich.so action to run. Options: Email to Profile, Email to Person (Lite), LinkedIn Profile, Find Email, LinkedIn to Work Email, Verify Email, Phone Finder, Company Lookup, Search People, and Search Company. Required.
+
+Dropdown selecting which Enrich.so action to run. Required. Every option maps directly to its own registered tool.
+
+| Label | id |
+|-------|----|
+| Email to Profile | `enrich_email_to_profile` |
+| Find Email | `enrich_find_email` |
+| Verify Email | `enrich_verify_email` |
+| Phone Finder | `enrich_phone_finder` |
+| Company Lookup | `enrich_company_lookup` |
+| Search People | `enrich_search_people` |
 
 ### API Key
-Your Enrich.so API key (stored as a password field). Required.
+
+Your Enrich.so API key (stored as a password field, never logged). Required for all operations. Use a `{{ENV_VAR}}` reference so the key is never hard-coded in the workflow: e.g. `{{ENRICH_API_KEY}}`.
 
 ### Email
-The email address to enrich or verify. Shown for the Email to Profile, Email to Person (Lite), and Verify Email operations.
+
+The email address to enrich or verify. Visible only when Operation is **Email to Profile** (`enrich_email_to_profile`) or **Verify Email** (`enrich_verify_email`).
 
 ### LinkedIn URL
-The LinkedIn profile URL to enrich. Shown for the LinkedIn Profile, LinkedIn to Work Email, and Phone Finder operations.
+
+The LinkedIn profile URL (e.g. `https://linkedin.com/in/username`) to use for phone lookup. Visible only when Operation is **Phone Finder** (`enrich_phone_finder`).
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `email` (string), `linkedinUrl` (string)
-- **Outputs**: `profile` (json), `email` (string), `person` (json), `company` (json)
+### Block-level inputs
+
+| id | type | description |
+|----|------|-------------|
+| `operation` | string | Operation id to perform (must match one of the dropdown ids above) |
+| `apiKey` | string | Enrich.so API key |
+| `email` | string | Email address (used by Email to Profile and Verify Email) |
+| `linkedinUrl` | string | LinkedIn profile URL (used by Phone Finder) |
+
+### Block-level outputs
+
+| id | type | description |
+|----|------|-------------|
+| `profile` | json | Profile data |
+| `email` | string | Email address |
+| `person` | json | Person data |
+| `company` | json | Company data |
+
+### Per-operation tool outputs
+
+**Email to Profile** (`enrich_email_to_profile`): `displayName` (string), `firstName` (string), `lastName` (string), `email` (string), `linkedInUrl` (string, optional), `jobTitle` (string, optional), `companyName` (string, optional).
+
+**Find Email** (`enrich_find_email`): `email` (string), `firstName` (string), `lastName` (string), `domain` (string), `found` (boolean), `acceptAll` (boolean).
+
+**Verify Email** (`enrich_verify_email`): `email` (string), `status` (string), `result` (string), `confidenceScore` (number, optional), `isValid` (boolean).
+
+**Phone Finder** (`enrich_phone_finder`): `profileUrl` (string), `mobileNumber` (string, optional), `found` (boolean), `status` (string).
+
+**Company Lookup** (`enrich_company_lookup`): `name` (string), `description` (string, optional), `linkedInUrl` (string, optional), `domain` (string, optional), `industry` (string, optional), `employeeCount` (number, optional).
+
+**Search People** (`enrich_search_people`): `people` (json — array of matching person profiles), `total` (number — total result count). Accepts optional filters: `firstName`, `lastName`, `summary`, `subTitle`, `locationCountry`, `currentPage`.
+
+## Tools
+
+**Enrich Email to Profile** (`enrich_email_to_profile`) — Resolves an email address into a full person profile via the Enrich.so `/v1/api/person` endpoint. Params: `apiKey`, `email`.
+
+**Enrich Find Email** (`enrich_find_email`) — Finds a person's work email given their full name and company domain via `/v1/api/find-email`. Params: `apiKey`, `fullName`, `companyDomain`.
+
+**Enrich Verify Email** (`enrich_verify_email`) — Checks the deliverability and validity of an email address via `/v1/api/verify-email`. Params: `apiKey`, `email`.
+
+**Enrich Phone Finder** (`enrich_phone_finder`) — Finds the mobile phone number associated with a LinkedIn profile URL via `/v1/api/mobile-finder`. Params: `apiKey`, `linkedinProfile`.
+
+**Enrich Company Lookup** (`enrich_company_lookup`) — Looks up company information by name or domain (or both) via `/v1/api/company`. Params: `apiKey`, `name` (optional), `domain` (optional).
+
+**Enrich Search People** (`enrich_search_people`) — Searches for people profiles using one or more optional filters via `/v1/api/search-people` (POST). Params: `apiKey`, `firstName`, `lastName`, `summary`, `subTitle`, `locationCountry`, `currentPage`.
 
 ## YAML Example
 
@@ -53,7 +109,7 @@ enrich_1:
   inputs:
     operation: "enrich_email_to_profile"
     apiKey: "{{ENRICH_API_KEY}}"
-    email: "{{start.input}}"
+    email: "{{start.email}}"
   connections:
     outgoing:
       - target: next-block-id

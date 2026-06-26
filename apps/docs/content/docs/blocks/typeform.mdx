@@ -22,29 +22,78 @@ The Typeform block lets you access and retrieve responses from your Typeform for
 - Sync new Typeform submissions into a database or downstream system
 - Filter responses by date range or completion status
 - Download files that respondents uploaded through a form field
-- Pull form insights (views, completion metrics) for monitoring
+- Pull form insights (views, completion rate, platform breakdown) for monitoring or dashboards
 
 ## Configuration
 
 ### Operation
-Dropdown selecting what to do: **Retrieve Responses** (`typeform_responses`), **Download File** (`typeform_files`), or **Form Insights** (`typeform_insights`). Defaults to Retrieve Responses.
+
+Dropdown selecting what the block does. Required; defaults to **Retrieve Responses**.
+
+| Label | ID |
+|-------|----|
+| Retrieve Responses | `typeform_responses` |
+| Download File | `typeform_files` |
+| Form Insights | `typeform_insights` |
 
 ### Form ID
-Required. The Typeform form identifier to operate on.
+
+Required for all operations. The unique Typeform form identifier (visible in your form's URL).
 
 ### Personal Access Token
-Required. Your Typeform personal access token, used to authenticate the request.
 
-### Response Filters
-Shown for the Retrieve Responses operation: **Page Size**, **Since** and **Until** (ISO date filters), and **Completed** (All / Only Completed / Only Incomplete).
+Required for all operations. Your Typeform personal access token, sent as a Bearer token to authenticate every request. Stored as a password field.
 
-### File Fields
-Shown for the Download File operation: **Response ID** (token), **Field ID** (file upload field), **Filename**, and **Inline Display** toggle.
+### Page Size
+
+Shown for **Retrieve Responses** only. Number of responses to return per page. Defaults to 25 when left blank.
+
+### Since
+
+Shown for **Retrieve Responses** only. Return only responses submitted after this timestamp. Use ISO 8601 format (e.g. `2024-01-01T00:00:00Z`).
+
+### Until
+
+Shown for **Retrieve Responses** only. Return only responses submitted before this timestamp. Use ISO 8601 format.
+
+### Completed
+
+Shown for **Retrieve Responses** only. Filter responses by completion status.
+
+| Label | ID |
+|-------|----|
+| All Responses | `all` |
+| Only Completed | `true` |
+| Only Incomplete | `false` |
+
+### Response ID
+
+Shown for **Download File** only. The response token (ID) that contains the uploaded file.
+
+### Field ID
+
+Shown for **Download File** only. The unique ID of the file-upload field inside the form.
+
+### Filename
+
+Shown for **Download File** only. The exact filename of the uploaded file as stored by Typeform.
+
+### Inline Display
+
+Shown for **Download File** only. Toggle switch. When enabled, requests the file with an `inline` Content-Disposition header so the browser displays it rather than prompting a download.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `formId` (string), `apiKey` (string), `pageSize` (number), `since` (string), `until` (string), `completed` (string), `responseId` (string), `fieldId` (string), `filename` (string), `inline` (boolean)
-- **Outputs**: `total_items` (number), `page_count` (number), `items` (json)
+- **Inputs**: `operation` (string) — operation to perform; `formId` (string) — Typeform form identifier; `apiKey` (string) — personal access token; `pageSize` (number) — responses per page; `since` (string) — start date filter; `until` (string) — end date filter; `completed` (string) — completion status filter; `responseId` (string) — response identifier; `fieldId` (string) — field identifier; `filename` (string) — file name; `inline` (boolean) — inline display option
+- **Outputs** (Retrieve Responses): `total_items` (number) — total response count; `page_count` (number) — total page count; `items` (json) — response items array
+- **Outputs** (Download File): `fileUrl` (string) — direct download URL for the uploaded file; `contentType` (string) — MIME type of the uploaded file; `filename` (string) — original filename of the uploaded file
+- **Outputs** (Form Insights): `fields` (json) — per-field analytics (views, drop-offs, label, type, ref); `form` (json) — form-level analytics including summary (completion rate, average time, response count, visits) and platform breakdown
+
+## Tools
+
+- **Typeform Responses** (`typeform_responses`) — retrieves paginated form responses from the Typeform API, with optional filters for date range, page size, and completion status.
+- **Typeform Files** (`typeform_files`) — downloads a file uploaded by a respondent in a specific file-upload field, returning the file URL, MIME type, and filename.
+- **Typeform Insights** (`typeform_insights`) — fetches aggregate analytics for a form, including overall completion rate, average time, visit counts, and per-field drop-off and view statistics broken down by platform.
 
 ## YAML Example
 
@@ -57,6 +106,7 @@ typeform_1:
     formId: "abc123XY"
     apiKey: "{{TYPEFORM_TOKEN}}"
     pageSize: 25
+    since: "2024-01-01T00:00:00Z"
     completed: "true"
   connections:
     outgoing:

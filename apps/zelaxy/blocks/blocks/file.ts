@@ -82,7 +82,7 @@ export const FileBlock: BlockConfig<FileParserOutput> = {
       title: 'Content',
       type: 'long-input' as SubBlockType,
       layout: 'full' as SubBlockLayout,
-      placeholder: 'Text content to save (reference another block with <block.output>)',
+      placeholder: 'Text content to save (reference another block with {{block.content}})',
       condition: { field: 'operation', value: ['write', 'append'] },
     },
     {

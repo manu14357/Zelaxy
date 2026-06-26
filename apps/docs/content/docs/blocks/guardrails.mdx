@@ -1,7 +1,7 @@
 ---
 title: Guardrails Block
 description: Validate content with guardrails
-icon: Box
+icon: ShieldCheck
 ---
 
 # Guardrails Block
@@ -18,49 +18,159 @@ The Guardrails block validates content against a chosen rule before it moves dow
 
 ## When to Use
 
-- Verify that an upstream block produced syntactically valid JSON before parsing it.
-- Confirm content matches a specific format (email, phone, URL, date, custom pattern) via regex.
-- Fact-check an AI response against a knowledge base and score it for hallucinations.
+- Verify that an upstream block produced syntactically valid JSON before parsing it downstream.
+- Confirm content matches a specific format (email, phone, URL, date, custom pattern) via a regex rule.
+- Fact-check an AI response against a knowledge base and score it for hallucinations using an LLM.
 - Detect personally identifiable information (names, emails, phone numbers, Aadhaar, PAN, credit cards, etc.) for privacy compliance.
 - Mask PII in place so sensitive data is scrubbed before storage or sharing.
-- Block requests that contain disallowed personal information.
+- Block requests that contain disallowed personal information before they reach downstream blocks.
 
 ## Configuration
 
 ### Content to Validate
 
-The `input` field holds the text to validate. Accepts references like `{{blockName.output.fieldName}}`. Required.
+The `input` field holds the text to validate. Accepts `{{blockName.field}}` references to upstream block outputs. Required for all validation types.
 
 ### Validation Type
 
-The `validationType` dropdown selects the rule: `json`, `regex`, `hallucination`, or `pii`. This drives which other fields appear.
+The `validationType` dropdown selects the guardrail rule to apply. Required. Drives which additional fields are shown.
+
+| Option | ID |
+|--------|----|
+| Valid JSON | `json` |
+| Regex Match | `regex` |
+| Hallucination Check | `hallucination` |
+| PII Detection | `pii` |
 
 ### Regex Pattern
 
-When validation type is `regex`, the `regex` field holds the pattern to match against (e.g. `^\{.*\}$`).
+Shown when `validationType` is `regex`. The `regex` field holds the regular expression to match against (e.g. `^\{.*\}$` for any JSON object, or `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$` for email). Required when this validation type is selected.
 
-### Knowledge Base, Model & Threshold
+### Knowledge Base
 
-For `hallucination` checks: `knowledgeBaseId` selects the knowledge base for context, `model` picks the LLM for confidence scoring, `threshold` (0-10 slider) sets the minimum passing score, and `topK` controls how many context chunks are retrieved. `apiKey` (plus optional `azureEndpoint` / `azureApiVersion`) supplies provider credentials.
+Shown when `validationType` is `hallucination`. The `knowledgeBaseId` selector picks a knowledge base that supplies factual context for the hallucination check. Required when this validation type is selected.
 
-### PII Settings
+### AI Model
 
-For `pii` detection: `piiEntityTypes` selects which entity types to detect (leave empty for all), `customPiiPatterns` adds custom JSON-defined patterns, `piiMode` chooses `block` or `mask`, and `piiLanguage` sets the detection language.
+Shown when `validationType` is `hallucination`. The `model` combobox selects the LLM used for confidence scoring (default `gpt-4o-mini`). Required when this validation type is selected.
+
+### Confidence Threshold
+
+Shown when `validationType` is `hallucination`. The `threshold` slider (0–10, default 3) sets the minimum score a response must achieve to pass. Responses scoring below this value are marked as failing.
+
+### Number of Context Chunks
+
+Shown when `validationType` is `hallucination` (advanced mode). The `topK` slider (1–20, default 5) controls how many knowledge base chunks are retrieved to build the fact-checking context.
+
+### API Key
+
+Shown when `validationType` is `hallucination` and the selected model requires a provider key. The `apiKey` field supplies the API key for the LLM provider. Use `{{MY_API_KEY}}` to reference a workspace secret. Required unless a hosted or local model is selected.
+
+### Azure OpenAI Endpoint
+
+Shown when `validationType` is `hallucination` and an Azure OpenAI model is selected. The `azureEndpoint` field holds the endpoint URL (e.g. `https://your-resource.openai.azure.com`).
+
+### Azure API Version
+
+Shown when `validationType` is `hallucination` and an Azure OpenAI model is selected. The `azureApiVersion` field holds the API version string (e.g. `2024-07-01-preview`).
+
+### PII Types to Detect
+
+Shown when `validationType` is `pii`. The `piiEntityTypes` checkbox-list selects which entity types to detect. Leave all unchecked to detect every supported type. Available options:
+
+| Option | ID |
+|--------|----|
+| Person name | `PERSON` |
+| Email address | `EMAIL_ADDRESS` |
+| Phone number | `PHONE_NUMBER` |
+| Location | `LOCATION` |
+| Date or time | `DATE_TIME` |
+| IP address | `IP_ADDRESS` |
+| URL | `URL` |
+| Credit card number | `CREDIT_CARD` |
+| International bank account number (IBAN) | `IBAN_CODE` |
+| Cryptocurrency wallet address | `CRYPTO` |
+| Medical license number | `MEDICAL_LICENSE` |
+| Nationality / religion / political group | `NRP` |
+| Indian Aadhaar | `IN_AADHAAR` |
+| Indian PAN | `IN_PAN` |
+| Indian vehicle registration | `IN_VEHICLE_REGISTRATION` |
+| Indian voter number | `IN_VOTER` |
+| Indian passport | `IN_PASSPORT` |
+| Indian bank account number | `IN_BANK_ACCOUNT` |
+| Indian driving license | `IN_DRIVER_LICENSE` |
+| Indian GST number | `IN_GST` |
+
+### Custom PII Patterns
+
+Shown when `validationType` is `pii` (advanced mode). The `customPiiPatterns` field accepts a JSON object mapping custom type names to regex patterns, e.g. `{"EMPLOYEE_ID": "EMP\\d{6}"}`. Do not use `^` or `$` anchors — patterns match within text, not the entire string.
+
+### PII Action
+
+Shown when `validationType` is `pii`. The `piiMode` dropdown sets what happens when PII is found. Required.
+
+| Option | ID |
+|--------|-----|
+| Block Request | `block` |
+| Mask PII | `mask` |
+
+### Language
+
+Shown when `validationType` is `pii`. The `piiLanguage` dropdown sets the detection language (default `en`).
+
+| Option | ID |
+|--------|-----|
+| English | `en` |
+| Spanish | `es` |
+| Italian | `it` |
+| Polish | `pl` |
+| Finnish | `fi` |
 
 ## Inputs & Outputs
 
-- **Inputs**: `input` (string), `validationType` (string), `regex` (string), `knowledgeBaseId` (string), `threshold` (number), `topK` (number), `model` (string), `apiKey` (string), `azureEndpoint` (string), `azureApiVersion` (string), `piiEntityTypes` (json), `piiMode` (string), `piiLanguage` (string), `customPiiPatterns` (json)
-- **Outputs**: `passed` (boolean), `validationType` (string), `input` (string), `score` (number), `reasoning` (string), `detectedEntities` (json), `maskedText` (string), `error` (string)
+- **Inputs**:
+  - `input` (string) — Content to validate
+  - `validationType` (string) — Type of validation to perform (`json`, `regex`, `hallucination`, or `pii`)
+  - `regex` (string) — Regex pattern for validation (used when `validationType` is `regex`)
+  - `knowledgeBaseId` (string) — Knowledge base ID for hallucination check
+  - `threshold` (number) — Confidence threshold for hallucination check (0–10)
+  - `topK` (number) — Number of context chunks to retrieve from the knowledge base
+  - `model` (string) — LLM model for hallucination scoring
+  - `apiKey` (string) — API key for the model provider
+  - `azureEndpoint` (string) — Azure OpenAI endpoint URL
+  - `azureApiVersion` (string) — Azure API version
+  - `piiEntityTypes` (json) — PII entity types to detect
+  - `piiMode` (string) — PII action mode (`block` or `mask`)
+  - `piiLanguage` (string) — Language for PII detection
+  - `customPiiPatterns` (json) — Custom PII patterns as a JSON object
+
+- **Outputs**:
+  - `passed` (boolean) — Whether validation passed
+  - `validationType` (string) — Type of validation performed
+  - `input` (string) — Original input that was validated
+  - `score` (number) — Confidence score (0–10; only for hallucination check)
+  - `reasoning` (string) — Reasoning for the confidence score (only for hallucination check)
+  - `detectedEntities` (json) — Detected PII entities, each with `type`, `start`, `end`, `score`, and `text` (only for PII detection)
+  - `maskedText` (string) — Text with PII replaced by type placeholders (only for PII detection in mask mode)
+  - `error` (string) — Error message if validation failed
+
+## Tools
+
+**Guardrails Validate** (`guardrails_validate`) — Validates content using one of four strategies: JSON syntax check, regex pattern matching, hallucination scoring via RAG + LLM, or PII detection with optional masking. Calls the internal `/api/tools/guardrails` endpoint and returns a structured result with `passed`, optional `score`/`reasoning` for hallucination checks, and `detectedEntities`/`maskedText` for PII checks.
 
 ## YAML Example
 
 ```yaml
-guardrails-1:
+guardrails_1:
   type: guardrails
   name: "Guardrails"
   inputs:
-    input: "{{agent.output.content}}"
+    input: "{{agent_1.output.content}}"
     validationType: "pii"
+    piiEntityTypes:
+      - "PERSON"
+      - "EMAIL_ADDRESS"
+      - "PHONE_NUMBER"
     piiMode: "mask"
     piiLanguage: "en"
   connections:

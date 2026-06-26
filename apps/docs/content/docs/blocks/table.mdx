@@ -13,7 +13,7 @@ The Table block lets you create and manage custom data tables, storing, querying
 | Property | Value |
 |----------|-------|
 | **Type** | `table` |
-| **Category** | blocks |
+| **Category** | `blocks` |
 | **Color** | `#10B981` |
 
 ## When to Use
@@ -21,39 +21,125 @@ The Table block lets you create and manage custom data tables, storing, querying
 - Persist structured records (users, leads, events) that other steps or future runs can read back.
 - Query rows with filters, sorting, and pagination to drive downstream logic.
 - Insert single rows, batch-insert many rows, or upsert to avoid duplicates.
-- Update or delete rows either by their row ID or by a filter that matches many rows.
-- Fetch a row by ID or inspect a table's schema (name and column definitions) at runtime.
+- Update or delete rows either by their row ID or by a filter that matches many rows at once.
+- Fetch a row by ID to pass its data to a later block in the workflow.
+- Inspect a table's schema (name and column definitions) dynamically at runtime.
 
 ## Configuration
 
 ### Operation
-Dropdown selecting the action to perform: Query Rows, Insert Row, Upsert Row, Batch Insert Rows, Update Rows by Filter, Delete Rows by Filter, Update Row by ID, Delete Row by ID, Get Row by ID, or Get Schema. Defaults to Query Rows.
+
+Dropdown (required). Selects the action to perform. Defaults to `query_rows`.
+
+| Label | ID |
+|-------|----|
+| Query Rows | `query_rows` |
+| Insert Row | `insert_row` |
+| Upsert Row | `upsert_row` |
+| Batch Insert Rows | `batch_insert_rows` |
+| Update Rows by Filter | `update_rows_by_filter` |
+| Delete Rows by Filter | `delete_rows_by_filter` |
+| Update Row by ID | `update_row` |
+| Delete Row by ID | `delete_row` |
+| Get Row by ID | `get_row` |
+| Get Schema | `get_schema` |
 
 ### Table ID
-Required identifier of the target table for every operation.
+
+Required for every operation. The identifier of the target table (e.g. `tbl_customers`).
 
 ### Row ID
-Required for the get_row, update_row, and delete_row operations; identifies a single row.
+
+Required for `get_row`, `update_row`, and `delete_row`. Identifies a single row (e.g. `row_xxxxx`).
 
 ### Row Data (JSON)
-A JSON object of column/value pairs. Required for insert_row, upsert_row, update_row, and update_rows_by_filter.
+
+A JSON object of column/value pairs. Required for `insert_row`, `upsert_row`, `update_row`, and `update_rows_by_filter`. Example: `{"email": "alice@example.com", "age": 30}`.
+
+When using block references in a JSON value, wrap them in double quotes: `{"name": "{{prev_block.name}}"}`.
 
 ### Rows Data (Array of JSON)
-A JSON array of row objects for batch_insert_rows.
+
+An array of row objects for `batch_insert_rows`. Example: `[{"email": "a@x.com"}, {"email": "b@x.com"}]`.
 
 ### Filter (JSON)
-Filter criteria (supports operators like `$eq`, `$gt`, `$in`, `$contains`). Required for update_rows_by_filter and delete_rows_by_filter; optional for query_rows.
+
+A JSON filter object. Behaviour differs by operation:
+
+- **For `query_rows`** — optional; narrows which rows are returned.
+- **For `update_rows_by_filter` and `delete_rows_by_filter`** — required; selects which rows are affected.
+
+Supported operators:
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `$eq` | Equals | `{"status": {"$eq": "active"}}` or `{"status": "active"}` |
+| `$ne` | Not equals | `{"status": {"$ne": "archived"}}` |
+| `$gt` | Greater than | `{"age": {"$gt": 18}}` |
+| `$gte` | Greater than or equal | `{"score": {"$gte": 100}}` |
+| `$lt` | Less than | `{"stock": {"$lt": 10}}` |
+| `$lte` | Less than or equal | `{"rating": {"$lte": 3}}` |
+| `$in` | Value in array | `{"tier": {"$in": ["gold", "platinum"]}}` |
+| `$nin` | Value not in array | `{"tier": {"$nin": ["free"]}}` |
+| `$contains` | String contains | `{"email": {"$contains": "@example.com"}}` |
 
 ### Sort (JSON)
-Sort order such as `{"createdAt": "desc"}`, used by query_rows.
 
-### Limit / Offset
-Pagination controls for query_rows; Limit also caps update/delete by-filter operations.
+Sort order for `query_rows` only. Format: `{"column_name": "asc" | "desc"}`. Example: `{"createdAt": "desc", "name": "asc"}`.
+
+### Limit
+
+Maximum number of rows to return or affect. Applies to `query_rows` (default 100), `update_rows_by_filter`, and `delete_rows_by_filter`.
+
+### Offset
+
+Number of rows to skip before returning results. Applies to `query_rows` only (default 0).
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `tableId` (string), `data` (json), `rows` (json), `rowId` (string), `filter` (json), `sort` (json), `limit` (number), `offset` (number)
-- **Outputs**: `success` (boolean), `row` (json), `operation` (string), `rows` (json), `rowCount` (number), `totalCount` (number), `insertedCount` (number), `updatedCount` (number), `updatedRowIds` (json), `deletedCount` (number), `deletedRowIds` (json), `name` (string), `columns` (json), `message` (string)
+**Inputs** — every field that can be wired into the block:
+
+- `operation` (string) — Table operation to perform
+- `tableId` (string) — Table identifier
+- `data` (json) — Row data for insert/update
+- `rows` (json) — Array of row data for batch insert
+- `rowId` (string) — Row identifier for ID-based operations
+- `filter` (json) — Filter criteria for query/update/delete operations
+- `sort` (json) — Sort order (JSON)
+- `limit` (number) — Query or bulk operation limit
+- `offset` (number) — Query result offset
+
+**Outputs** — fields available on `{{table_1.<field>}}` in downstream blocks:
+
+- `success` (boolean) — Operation success status
+- `row` (json) — Single row data (returned by `get_row`, `insert_row`, `upsert_row`, `update_row`)
+- `operation` (string) — Operation performed (`insert` or `update`) — `upsert_row` only
+- `rows` (json) — Array of rows (returned by `query_rows`, `batch_insert_rows`)
+- `rowCount` (number) — Number of rows returned (`query_rows`)
+- `totalCount` (number) — Total rows matching the filter (`query_rows`)
+- `insertedCount` (number) — Number of rows inserted (`batch_insert_rows`)
+- `updatedCount` (number) — Number of rows updated (`update_rows_by_filter`)
+- `updatedRowIds` (json) — IDs of updated rows (`update_rows_by_filter`)
+- `deletedCount` (number) — Number of rows deleted (`delete_row`, `delete_rows_by_filter`)
+- `deletedRowIds` (json) — IDs of deleted rows (`delete_rows_by_filter`)
+- `name` (string) — Table name (`get_schema`)
+- `columns` (json) — Column definitions (`get_schema`)
+- `message` (string) — Operation status message
+
+## Tools
+
+Each operation maps to a dedicated internal tool. The block selects the correct tool automatically based on the `operation` field.
+
+- **Insert Row** (`table_insert_row`) — Inserts a single new row into the table using the `data` parameter.
+- **Upsert Row** (`table_upsert_row`) — Inserts or updates a row based on unique column constraints. Returns which operation (`insert` or `update`) was performed.
+- **Batch Insert Rows** (`table_batch_insert_rows`) — Inserts multiple rows at once from an array of row objects.
+- **Update Row** (`table_update_row`) — Updates a single row by its row ID. Supports partial updates (only include fields to change).
+- **Update Rows by Filter** (`table_update_rows_by_filter`) — Updates all rows matching the filter criteria. Merged with existing row data.
+- **Delete Row** (`table_delete_row`) — Deletes a single row by its row ID.
+- **Delete Rows by Filter** (`table_delete_rows_by_filter`) — Deletes all rows matching the filter criteria. Supports an optional `limit` for safety.
+- **Query Rows** (`table_query_rows`) — Retrieves rows with optional filter, sort, limit, and offset. Returns `rows`, `rowCount`, and `totalCount`.
+- **Get Row** (`table_get_row`) — Retrieves a single row by its row ID.
+- **Get Schema** (`table_get_schema`) — Returns the table's name and column definitions.
 
 ## YAML Example
 

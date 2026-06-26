@@ -59,10 +59,10 @@ You have access to the following variables you can use to generate the JSON body
 - 'params' (object): Contains input parameters derived from the JSON schema. Access these directly using the parameter name wrapped in double curly braces, e.g., '{{paramName}}'. Do NOT use 'params.paramName'.
 - 'environmentVariables' (object): Contains environment variables. Reference these using the double curly brace syntax: '{{ENV_VAR_NAME}}'. Do NOT use 'environmentVariables.VAR_NAME' or env.
 
-Example:
+Example (reference other blocks with {{blockName.field}} — an agent block outputs .content, a function block's return is under .result):
 {
-  "name": "<block.agent.response.content>",
-  "age": <block.function.output.age>,
+  "name": "{{agent1.content}}",
+  "age": {{compute.result.age}},
   "success": true
 }`,
         placeholder: 'Describe the API response structure you need...',

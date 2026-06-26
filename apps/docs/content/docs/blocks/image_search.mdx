@@ -29,32 +29,147 @@ The Image Search block indexes and searches images and DWG/DXF CAD drawings usin
 
 ### Operation
 
-Dropdown selecting the action: Create Catalog (`image_search_catalog`), Ingest Files (`image_search_ingest`), Search (`image_search_search`), or Status (`image_search_status`). Defaults to Search.
+Dropdown selecting the action to perform. Defaults to Search.
 
-### Create Catalog
+| Label | ID |
+|-------|----|
+| Create Catalog | `image_search_catalog` |
+| Ingest Files | `image_search_ingest` |
+| Search | `image_search_search` |
+| Status | `image_search_status` |
 
-Set the catalog `name` (required) and optional `description`. Choose a `processingMode` (Batch or Real-time) and an `extractionMethod` (Auto Detect, ODA Converter, Autodesk APS, AI Vision GPT-4o, or OCR).
+---
 
-### Ingest Files
+### Create Catalog fields
 
-Provide the target `catalogId` (required) and pick a `dataSource`. Each source reveals its own fields — network folder path, S3 bucket/credentials, Azure connection string/container, Google Drive folder/token, database connection string + query, or URLs. Set `ingestExtractionMethod` to control how text is extracted.
+Shown when **Operation** = `image_search_catalog`.
 
-### Search
+**Catalog Name** (`name`, required) — Human-readable name for the new catalog.
 
-Provide `searchCatalogId` (required) and a `query`, choose a `mode` (Hybrid, Keyword, Visual Similarity, or Spatial), and set `topK` results. Visual mode adds a reference `imageUrl`; spatial mode adds `spatialLayer` and `spatialBlock` filters.
+**Description** (`description`) — Optional description of what the catalog contains.
 
-### Status
+**Processing Mode** (`processingMode`) — How files are processed after ingestion.
 
-Provide `statusCatalogId` (required) to check indexing progress.
+| Label | ID |
+|-------|----|
+| Batch | `batch` |
+| Real-time | `realtime` |
 
-### API Key
+**Extraction Method** (`extractionMethod`) — How text and metadata are extracted from files. Defaults to Auto Detect.
 
-OpenAI API key used for embeddings and AI Vision extraction.
+| Label | ID |
+|-------|----|
+| Auto Detect | `auto` |
+| ODA Converter | `oda` |
+| Autodesk APS (Cloud) | `autodesk_aps` |
+| AI Vision (GPT-4o) | `ai_vision` |
+| OCR | `ocr` |
+
+---
+
+### Ingest Files fields
+
+Shown when **Operation** = `image_search_ingest`.
+
+**Catalog ID** (`catalogId`, required) — ID of the existing catalog to ingest files into.
+
+**Data Source** (`dataSource`) — Where files are sourced from. Defaults to File Upload. Each choice reveals its own connection fields.
+
+| Label | ID | Additional fields shown |
+|-------|----|------------------------|
+| File Upload | `upload` | *(no extra fields; files are uploaded via the platform UI)* |
+| Network / Local Folder | `network` | `networkPath`, `networkRecursive` |
+| AWS S3 | `s3` | `s3Bucket`, `s3Prefix`, `s3Region`, `s3AccessKey`, `s3SecretKey` |
+| Azure Blob Storage | `azure_blob` | `azureConnectionString`, `azureContainer` |
+| Google Drive | `google_drive` | `googleDriveFolderId`, `googleDriveAccessToken` |
+| PostgreSQL Database | `postgresql` | `dbConnectionString`, `dbQuery` |
+| MSSQL Database | `mssql` | `mssqlConnectionString`, `mssqlQuery` |
+| URL | `url` | `urls` |
+
+**Network / Local Folder fields** (visible when `dataSource` = `network`):
+- `networkPath` — Absolute path to the folder to scan (e.g. `/shared/drawings` or `\\server\share\drawings`).
+- `networkRecursive` (switch) — Enable to scan subfolders recursively.
+
+**AWS S3 fields** (visible when `dataSource` = `s3`):
+- `s3Bucket` — S3 bucket name.
+- `s3Prefix` — Key prefix / folder path inside the bucket.
+- `s3Region` — AWS region (e.g. `us-east-1`).
+- `s3AccessKey` — AWS access key ID (stored as a secret).
+- `s3SecretKey` — AWS secret access key (stored as a secret).
+
+**Azure Blob Storage fields** (visible when `dataSource` = `azure_blob`):
+- `azureConnectionString` — Full Azure storage connection string (stored as a secret).
+- `azureContainer` — Container name.
+
+**Google Drive fields** (visible when `dataSource` = `google_drive`):
+- `googleDriveFolderId` — Google Drive folder ID.
+- `googleDriveAccessToken` — OAuth access token (stored as a secret).
+
+**PostgreSQL fields** (visible when `dataSource` = `postgresql`):
+- `dbConnectionString` — PostgreSQL connection string, e.g. `postgresql://user:pass@host:5432/dbname` (stored as a secret).
+- `dbQuery` — SQL query whose result rows contain file paths.
+
+**MSSQL fields** (visible when `dataSource` = `mssql`):
+- `mssqlConnectionString` — MSSQL connection string (stored as a secret).
+- `mssqlQuery` — SQL query whose result rows contain file paths.
+
+**URL fields** (visible when `dataSource` = `url`):
+- `urls` — Comma-separated list of file URLs to ingest.
+
+**Extraction Method** (`ingestExtractionMethod`) — Extraction method for this ingest run (same options as Create Catalog). Defaults to Auto Detect.
+
+---
+
+### Search fields
+
+Shown when **Operation** = `image_search_search`.
+
+**Catalog ID** (`searchCatalogId`, required) — ID of the catalog to search.
+
+**Search Query** (`query`) — Text to search for (text, dimensions, part names, etc.).
+
+**Search Mode** (`mode`) — Algorithm used to find results. Defaults to Hybrid.
+
+| Label | ID | Extra fields shown |
+|-------|----|--------------------|
+| Hybrid (Keyword + Visual) | `hybrid` | — |
+| Keyword (Full-text) | `keyword` | — |
+| Visual Similarity | `visual` | `imageUrl` |
+| Spatial (CAD Layers / Blocks) | `spatial` | `spatialLayer`, `spatialBlock` |
+
+**Reference Image URL** (`imageUrl`) — URL of a reference image used when mode is `visual`.
+
+**Results Count** (`topK`, slider 1–100) — Maximum number of results to return.
+
+**CAD Layer Filter** (`spatialLayer`) — Filter results to drawings that contain a specific CAD layer name. Visible when mode is `spatial`.
+
+**CAD Block Filter** (`spatialBlock`) — Filter results to drawings that contain a specific CAD block name. Visible when mode is `spatial`.
+
+---
+
+### Status fields
+
+Shown when **Operation** = `image_search_status`.
+
+**Catalog ID** (`statusCatalogId`, required) — ID of the catalog to check.
+
+---
+
+### API Key (all operations)
+
+`apiKey` — OpenAI API key used for embedding generation and AI Vision (GPT-4o) extraction. Applies to all operations that need it.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `name` (string), `description` (string), `processingMode` (string), `extractionMethod` (string), `catalogId` (string), `dataSource` (string), `networkPath` (string), `networkRecursive` (boolean), `s3Bucket` (string), `s3Prefix` (string), `s3Region` (string), `s3AccessKey` (string), `s3SecretKey` (string), `azureConnectionString` (string), `azureContainer` (string), `googleDriveFolderId` (string), `googleDriveAccessToken` (string), `dbConnectionString` (string), `dbQuery` (string), `mssqlConnectionString` (string), `mssqlQuery` (string), `urls` (string), `ingestExtractionMethod` (string), `searchCatalogId` (string), `query` (string), `mode` (string), `imageUrl` (string), `topK` (number), `spatialLayer` (string), `spatialBlock` (string), `statusCatalogId` (string)
-- **Outputs**: `results` (json), `totalResults` (number), `catalogId` (string), `message` (string), `processed` (number), `failed` (number), `status` (string), `indexingProgress` (number), `fileCount` (number)
+- **Inputs**: `operation` (string) — Operation to perform; `apiKey` (string) — OpenAI API key; `name` (string) — Catalog name; `description` (string) — Catalog description; `processingMode` (string) — batch or realtime; `extractionMethod` (string) — Extraction method; `catalogId` (string) — Catalog ID; `dataSource` (string) — Data source type; `networkPath` (string) — Network folder path; `networkRecursive` (boolean) — Scan subfolders; `s3Bucket` (string) — S3 bucket name; `s3Prefix` (string) — S3 key prefix; `s3Region` (string) — AWS region; `s3AccessKey` (string) — AWS access key; `s3SecretKey` (string) — AWS secret key; `azureConnectionString` (string) — Azure connection string; `azureContainer` (string) — Azure container name; `googleDriveFolderId` (string) — Google Drive folder ID; `googleDriveAccessToken` (string) — Google Drive access token; `dbConnectionString` (string) — PostgreSQL connection string; `dbQuery` (string) — PostgreSQL SQL query for file paths; `mssqlConnectionString` (string) — MSSQL connection string; `mssqlQuery` (string) — MSSQL SQL query for file paths; `urls` (string) — Comma-separated file URLs; `ingestExtractionMethod` (string) — Extraction method for ingestion; `searchCatalogId` (string) — Search catalog ID; `query` (string) — Search query; `mode` (string) — Search mode; `imageUrl` (string) — Reference image URL; `topK` (number) — Number of results; `spatialLayer` (string) — CAD layer filter; `spatialBlock` (string) — CAD block filter; `statusCatalogId` (string) — Status check catalog ID
+- **Outputs**: `results` (json) — Search results with file paths and extracted text; `totalResults` (number) — Total results count; `catalogId` (string) — Created/queried catalog ID; `message` (string) — Operation result message; `processed` (number) — Number of files processed; `failed` (number) — Number of files failed; `status` (string) — Catalog status; `indexingProgress` (number) — Indexing progress (0-100); `fileCount` (number) — Total indexed files
+
+## Tools
+
+- **Image Search Create Catalog** (`image_search_catalog`) — Creates a new named image catalog with a chosen processing mode and extraction method. Returns the new `catalogId` and a confirmation message.
+- **Image Search Ingest** (`image_search_ingest`) — Discovers and indexes image/CAD files from a specified data source (upload, network, S3, Azure Blob, Google Drive, PostgreSQL, MSSQL, or URL) into an existing catalog. Returns counts of discovered, processed, and failed files.
+- **Image Search** (`image_search_search`) — Searches a catalog using keyword full-text, visual similarity, hybrid, or spatial (CAD layer/block) modes. Accepts a text query and/or a reference image URL. Returns ranked results with file paths, extracted content, and similarity scores.
+- **Image Search Status** (`image_search_status`) — Checks the current status and indexing progress of a catalog (active, indexing, or error) along with file count, document count, and the last indexed timestamp.
 
 ## YAML Example
 
@@ -64,7 +179,7 @@ image_search_1:
   name: "Image Search"
   inputs:
     operation: "image_search_search"
-    searchCatalogId: "{{start.input}}"
+    searchCatalogId: "{{start.catalogId}}"
     query: "title block revision A"
     mode: "hybrid"
     topK: 10

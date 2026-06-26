@@ -29,44 +29,97 @@ The Slack block provides a comprehensive Slack integration with OAuth authentica
 
 ### Operation
 
-Dropdown selecting what the block does: `Send Message` (send), `Create Canvas` (canvas), or `Read Messages` (read). Defaults to `send`.
+Dropdown selecting what the block does. Required. Options:
+
+| Label | id |
+|-------|----|
+| Send Message | `send` |
+| Create Canvas | `canvas` |
+| Read Messages | `read` |
+
+Defaults to `send`. The active operation controls which additional fields are shown.
 
 ### Authentication Method
 
-Dropdown choosing how to authenticate: `Zelaxy Bot` (oauth) or `Custom Bot` (bot_token). Defaults to `oauth`. Required.
+Dropdown choosing how to authenticate. Required. Options:
+
+| Label | id |
+|-------|----|
+| Zelaxy Bot | `oauth` |
+| Custom Bot | `bot_token` |
+
+Defaults to `oauth`.
 
 ### Slack Account
 
-OAuth credential picker for the Slack workspace (shown when authentication method is `oauth`). Requests scopes for reading channels/history, writing messages, reading users, and writing files/canvases.
+OAuth credential picker for the Slack workspace. Shown when **Authentication Method** is `oauth`. Requests the following scopes: `channels:read`, `channels:history`, `groups:read`, `groups:history`, `chat:write`, `chat:write.public`, `users:read`, `files:write`, `canvases:write`.
 
 ### Bot Token
 
-Password field for a Slack bot token (`xoxb-...`), shown when authentication method is `bot_token`.
+Password field for entering a Slack bot token (format: `xoxb-...`). Shown when **Authentication Method** is `bot_token`.
 
-### Channel
+### Channel (basic mode) / Channel ID (advanced mode)
 
-Channel selector (basic mode) for picking the target Slack channel, with a manual `Channel ID` input available in advanced mode (e.g., `C1234567890`).
+Channel selector for picking the target Slack channel (basic mode). In advanced mode, enter the raw Slack channel ID directly (e.g., `C1234567890`). One of these must be provided for every operation.
 
 ### Message
 
-Long input for the message text (supports Slack mrkdwn). Required for the `send` operation.
+Long text input for the message body. Supports Slack mrkdwn formatting. **Required** for the `send` operation.
 
-### Canvas Title / Canvas Content
+### Canvas Title
 
-Title (short input) and content (long input, markdown supported) for the `canvas` operation. Both required.
+Short text input for the title of the canvas. **Required** for the `canvas` operation.
 
-### Message Limit / Oldest Timestamp
+### Canvas Content
 
-For the `read` operation: number of messages to fetch and an ISO 8601 timestamp lower bound.
+Long text input for the canvas body (markdown supported). **Required** for the `canvas` operation.
+
+### Message Limit
+
+Number of messages to retrieve (integer, default `10`, capped at `15`). Applies to the `read` operation only.
+
+### Oldest Timestamp
+
+ISO 8601 timestamp setting the lower time bound for the messages fetched. Optional, applies to the `read` operation only.
 
 ### Trigger Configuration
 
-When the block runs in trigger mode, configures the `slack_webhook` trigger to start workflows from Slack events.
+When the block runs in trigger mode, this field configures the `slack_webhook` trigger to start the workflow from incoming Slack events (e.g., channel mentions, new messages).
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `authMethod` (string), `credential` (string), `botToken` (string), `channel` (string), `manualChannel` (string), `text` (string), `title` (string), `content` (string), `limit` (string), `oldest` (string)
-- **Outputs**: `ts` (string), `channel` (string), `canvas_id` (string), `title` (string), `messages` (json), `event_type` (string), `channel_name` (string), `user_name` (string), `team_id` (string), `event_id` (string)
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`send`, `canvas`, or `read`)
+- `authMethod` (string) — Authentication method (`oauth` or `bot_token`)
+- `credential` (string) — Slack OAuth access token (used with Zelaxy Bot auth)
+- `botToken` (string) — Bot token (used with Custom Bot auth, format `xoxb-...`)
+- `channel` (string) — Channel identifier from the channel selector
+- `manualChannel` (string) — Manual channel ID override (advanced mode)
+- `text` (string) — Message text for the `send` operation (supports mrkdwn)
+- `title` (string) — Canvas title for the `canvas` operation
+- `content` (string) — Canvas content in markdown for the `canvas` operation
+- `limit` (string) — Maximum number of messages to read for the `read` operation
+- `oldest` (string) — Oldest timestamp boundary for the `read` operation
+
+**Outputs:**
+
+- `ts` (string) — Message timestamp returned by the Slack API (send operation)
+- `channel` (string) — Channel identifier where the message was sent (send operation)
+- `canvas_id` (string) — Canvas identifier for the created canvas (canvas operation)
+- `title` (string) — Canvas title (canvas operation)
+- `messages` (json) — Array of message objects retrieved from the channel (read operation)
+- `event_type` (string) — Type of Slack event that triggered the workflow (trigger mode)
+- `channel_name` (string) — Human-readable channel name (trigger mode)
+- `user_name` (string) — Username who triggered the event (trigger mode)
+- `team_id` (string) — Slack workspace/team ID (trigger mode)
+- `event_id` (string) — Unique event identifier for the trigger (trigger mode)
+
+## Tools
+
+- **Slack Message** (`slack_message`) — Sends a message to a Slack channel or user via `chat.postMessage`. Supports Slack mrkdwn formatting. Returns `ts` (message timestamp) and `channel` (channel ID).
+- **Slack Canvas Writer** (`slack_canvas`) — Creates and shares a collaborative Slack canvas in a channel via `canvases.create`. Accepts a `title` and `content` (markdown). Returns `canvas_id`, `channel`, and `title`.
+- **Slack Message Reader** (`slack_message_reader`) — Reads the latest messages from a Slack channel via `conversations.history` with optional `limit` and `oldest` time filtering. Returns a `messages` array where each item has `ts`, `text`, `user`, `type`, and `subtype`.
 
 ## YAML Example
 
@@ -77,7 +130,7 @@ slack_1:
   inputs:
     operation: "send"
     authMethod: "oauth"
-    credential: "{{credentials.slack}}"
+    credential: "{{SLACK_OAUTH_TOKEN}}"
     channel: "C1234567890"
     text: "Deployment finished: {{start.input}}"
   connections:

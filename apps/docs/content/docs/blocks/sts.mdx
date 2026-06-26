@@ -1,0 +1,87 @@
+---
+title: AWS STS Block
+description: Get caller identity and temporary session tokens from AWS STS
+icon: Box
+---
+
+# AWS STS Block
+
+The AWS STS block integrates AWS Security Token Service into your workflows. Use it to verify the identity of the calling AWS credentials or obtain short-lived temporary session tokens — authenticated via SigV4-signed requests using your AWS access key credentials.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `sts` |
+| **Category** | tools |
+| **Color** | `#DD344C` |
+
+## When to Use
+
+- Verify which IAM user or role is behind a set of AWS credentials before performing sensitive operations
+- Retrieve the AWS Account ID, ARN, and UserId for the calling identity at workflow runtime
+- Generate short-lived temporary credentials (AccessKeyId, SecretAccessKey, SessionToken) for downstream AWS calls
+- Scope temporary credentials to a controlled duration (e.g. 900–129600 seconds) to reduce exposure
+- Bootstrap cross-account or delegated access patterns by exchanging long-lived keys for session tokens
+
+## Configuration
+
+### Operation
+
+Dropdown selecting the STS action to perform. Required. Default: `sts_get_caller_identity`.
+
+| Label | ID |
+|-------|----|
+| Get caller identity | `sts_get_caller_identity` |
+| Get session token | `sts_get_session_token` |
+
+### Duration (seconds)
+
+The lifetime of the temporary credentials in seconds (e.g. `3600`). Only shown when the operation is **Get session token** (`sts_get_session_token`). Optional; defaults to 3600 when omitted.
+
+### AWS Region
+
+The AWS region endpoint to send the request to (e.g. `us-east-1`). Required for all operations.
+
+### AWS Access Key ID
+
+The long-lived AWS access key ID used to sign the request (SigV4). Required. Stored as a secret (password field).
+
+### AWS Secret Access Key
+
+The long-lived AWS secret access key used to sign the request (SigV4). Required. Stored as a secret (password field).
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform (`sts_get_caller_identity` or `sts_get_session_token`)
+  - `awsRegion` (string) — AWS region
+  - `awsAccessKeyId` (string) — AWS access key ID
+  - `awsSecretAccessKey` (string) — AWS secret access key
+  - `durationSeconds` (number) — Session token duration in seconds (only used with `sts_get_session_token`)
+
+- **Outputs**:
+  - `data` (json) — STS API response. For **Get caller identity**: contains `Arn`, `UserId`, and `Account`. For **Get session token**: contains `AccessKeyId`, `SecretAccessKey`, `SessionToken`, and `Expiration`.
+
+## Tools
+
+**STS Get Caller Identity** (`sts_get_caller_identity`) — Returns details about the IAM identity whose credentials are used to call the API. Response fields: `Arn`, `UserId`, `Account`.
+
+**STS Get Session Token** (`sts_get_session_token`) — Returns a set of temporary AWS credentials for an account or IAM user. Response fields: `AccessKeyId`, `SecretAccessKey`, `SessionToken`, `Expiration`. Duration defaults to 3600 seconds if not specified.
+
+## YAML Example
+
+```yaml
+sts_1:
+  type: sts
+  name: "AWS STS"
+  inputs:
+    operation: "sts_get_session_token"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "{{AWS_ACCESS_KEY_ID}}"
+    awsSecretAccessKey: "{{AWS_SECRET_ACCESS_KEY}}"
+    durationSeconds: 3600
+  connections:
+    outgoing:
+      - target: next-block-id
+```

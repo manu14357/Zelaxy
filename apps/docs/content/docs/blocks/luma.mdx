@@ -1,7 +1,7 @@
 ---
 title: Luma Block
 description: Manage events and guests on Luma
-icon: Box
+icon: Calendar
 ---
 
 # Luma Block
@@ -18,8 +18,8 @@ The Luma block integrates Luma into your workflow so you can create, update, and
 
 ## When to Use
 
-- Create a new Luma event programmatically with a name, start time, timezone, and description.
-- Update details of an existing event such as its time, visibility, or cover image.
+- Create a new Luma event programmatically with a name, start time, timezone, and optional description.
+- Update details of an existing event such as its time, visibility, meeting URL, or cover image.
 - Fetch full details of a specific event by its event ID.
 - List events from a calendar, optionally filtered by date range and sorted.
 - Retrieve the guest list for an event, filtered by approval status.
@@ -29,40 +29,161 @@ The Luma block integrates Luma into your workflow so you can create, update, and
 
 ### Operation
 
-Dropdown selecting the action to perform: Get Event, Create Event, Update Event, List Events, Get Guests, or Add Guests. Defaults to Get Event.
+Dropdown selecting the action to perform. Defaults to `get_event`.
+
+| Label | ID |
+|-------|----|
+| Get Event | `get_event` |
+| Create Event | `create_event` |
+| Update Event | `update_event` |
+| List Events | `list_events` |
+| Get Guests | `get_guests` |
+| Add Guests | `add_guests` |
 
 ### API Key
 
-Your Luma API key (required, stored as a password field) used to authenticate every operation.
+Your Luma API key (required, password field). Used to authenticate every request via the `x-luma-api-key` header.
 
 ### Event ID
 
-The target event identifier (starts with `evt-`). Required for Get Event, Update Event, Get Guests, and Add Guests.
+The target event identifier — must start with `evt-`. Required for: `get_event`, `update_event`, `get_guests`, `add_guests`.
 
-### Event Name, Start Time, Timezone
+### Event Name
 
-Required when creating or updating an event. Start time is an ISO 8601 timestamp and timezone is an IANA identifier.
+The event title. Required for `create_event`. Optional for `update_event`. Visible when operation is `create_event` or `update_event`.
 
-### End Time / Duration / Description / Meeting URL / Visibility / Cover Image URL
+### Start Time
 
-Optional event details available when creating or updating an event.
+ISO 8601 timestamp for when the event begins (e.g. `2025-03-15T18:00:00Z`). Required for `create_event`. Optional for `update_event`. Visible when operation is `create_event` or `update_event`. Supports wand-assist: describe the time in plain language and it generates the ISO 8601 value.
+
+### Timezone
+
+IANA timezone identifier for the event (e.g. `America/New_York`). Required for `create_event`. Optional for `update_event`. Visible when operation is `create_event` or `update_event`. Supports wand-assist.
+
+### End Time
+
+ISO 8601 timestamp for when the event ends. Optional. Visible when operation is `create_event` or `update_event`. Supports wand-assist.
+
+### Duration
+
+ISO 8601 duration interval (e.g. `PT2H` for 2 hours). Optional, advanced field. Visible when operation is `create_event` or `update_event`. Supports wand-assist.
+
+### Description
+
+Event description in Markdown. Optional. Visible when operation is `create_event` or `update_event`.
+
+### Meeting URL
+
+URL for the virtual meeting (e.g. a Zoom or Google Meet link). Optional, advanced field. Visible when operation is `create_event` or `update_event`.
+
+### Visibility
+
+Controls who can see the event. Optional. Visible when operation is `create_event` or `update_event`.
+
+| Label | ID |
+|-------|----|
+| Public | `public` |
+| Members Only | `members-only` |
+| Private | `private` |
+
+### Cover Image URL
+
+URL for the event cover image (typically a Luma CDN URL). Optional, advanced field. Visible when operation is `create_event` or `update_event`.
 
 ### Status Filter
 
-When getting guests, filters the returned list by approval status (Approved, Session, Pending Approval, Invited, Declined, Waitlist, or All).
+Filters the guest list by approval status. Visible when operation is `get_guests`.
+
+| Label | ID |
+|-------|----|
+| All | `` (empty) |
+| Approved | `approved` |
+| Session | `session` |
+| Pending Approval | `pending_approval` |
+| Invited | `invited` |
+| Declined | `declined` |
+| Waitlist | `waitlist` |
 
 ### Guests
 
-When adding guests, a JSON array of guest objects (each requires an `email`, optionally `name`, `first_name`, `last_name`).
+JSON array of guest objects to add. Each object requires an `email` field and optionally accepts `name`, `first_name`, `last_name`. Required when operation is `add_guests`. Supports wand-assist to generate the array from a plain-language description.
 
-### After / Before / Limit / Pagination Cursor / Sort By / Sort Direction
+Example value:
+```json
+[{"email": "user@example.com", "name": "John Doe"}]
+```
 
-Filtering, pagination, and sorting controls for List Events and Get Guests.
+### After Date
+
+ISO 8601 timestamp — filters list results to events after this date. Optional. Visible when operation is `list_events`.
+
+### Before Date
+
+ISO 8601 timestamp — filters list results to events before this date. Optional. Visible when operation is `list_events`.
+
+### Limit
+
+Maximum number of results to return per page. Optional, advanced field. Visible when operation is `list_events` or `get_guests`.
+
+### Pagination Cursor
+
+Cursor value from the previous response's `nextCursor` output to fetch the next page. Optional, advanced field. Visible when operation is `list_events` or `get_guests`.
+
+### Sort By
+
+Column name to sort results by (e.g. `start_at`, `name`, `registered_at`). Optional, advanced field. Visible when operation is `list_events` or `get_guests`.
+
+### Sort Direction
+
+Direction in which to sort results. Optional, advanced field. Visible when operation is `list_events` or `get_guests`.
+
+| Label | ID |
+|-------|----|
+| Ascending | `asc` |
+| Descending | `desc` |
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `eventId` (string), `name` (string), `startAt` (string), `timezone` (string), `durationInterval` (string), `endAt` (string), `descriptionMd` (string), `meetingUrl` (string), `visibility` (string), `coverUrl` (string), `approvalStatus` (string), `guests` (string), `after` (string), `before` (string), `paginationLimit` (number), `paginationCursor` (string), `sortColumn` (string), `sortDirection` (string)
-- **Outputs**: `event` (json), `hosts` (json), `events` (json), `guests` (json), `hasMore` (boolean), `nextCursor` (string)
+**Inputs** (all sub-block ids map 1:1 to input keys):
+
+- `operation` (string) — Operation to perform
+- `apiKey` (string) — Luma API key
+- `eventId` (string) — Event ID (starts with evt-)
+- `name` (string) — Event name
+- `startAt` (string) — Event start time (ISO 8601)
+- `timezone` (string) — Event timezone (IANA)
+- `durationInterval` (string) — Event duration (ISO 8601 interval)
+- `endAt` (string) — Event end time (ISO 8601)
+- `descriptionMd` (string) — Event description (Markdown)
+- `meetingUrl` (string) — Virtual meeting URL
+- `visibility` (string) — Event visibility
+- `coverUrl` (string) — Cover image URL (Luma CDN)
+- `approvalStatus` (string) — Guest approval status filter
+- `guests` (string) — JSON array of guest objects
+- `after` (string) — Filter events after this date (ISO 8601)
+- `before` (string) — Filter events before this date (ISO 8601)
+- `paginationLimit` (number) — Max results per page
+- `paginationCursor` (string) — Pagination cursor from previous response
+- `sortColumn` (string) — Column to sort by
+- `sortDirection` (string) — Sort direction (asc or desc)
+
+**Outputs**:
+
+- `event` (json) — Event details (id, name, startAt, endAt, timezone, createdAt, description, coverUrl, url, visibility, meetingUrl). Returned by `get_event`, `create_event`, `update_event`.
+- `hosts` (json) — Event hosts (id, name, firstName, lastName, email, avatarUrl). Returned by `get_event`, `create_event`, `update_event`.
+- `events` (json) — List of events with id, name, startAt, endAt, timezone, createdAt, description, coverUrl, url, visibility, meetingUrl. Returned by `list_events`.
+- `guests` (json) — List of guests (id, email, name, firstName, lastName, approvalStatus, registeredAt, invitedAt, joinedAt, checkedInAt). Returned by `get_guests` and `add_guests`.
+- `hasMore` (boolean) — Whether more results are available (pagination). Returned by `list_events` and `get_guests`.
+- `nextCursor` (string) — Pagination cursor for the next page. Returned by `list_events` and `get_guests`.
+
+## Tools
+
+- **Get Event** (`luma_get_event`) — Fetches details of a single Luma event by its event ID. Returns `event` and `hosts`.
+- **Create Event** (`luma_create_event`) — Creates a new Luma event with a name, start time, and timezone (plus optional fields). Returns `event` and `hosts`.
+- **Update Event** (`luma_update_event`) — Updates an existing Luma event identified by event ID. Any combination of name, time, timezone, description, meeting URL, visibility, or cover image can be changed. Returns `event` and `hosts`.
+- **List Events** (`luma_list_events`) — Lists events from the authenticated calendar, with optional date-range filtering, pagination, and sorting. Returns `events`, `hasMore`, and `nextCursor`.
+- **Get Guests** (`luma_get_guests`) — Retrieves the guest list for a specific event, with optional approval-status filtering, pagination, and sorting. Returns `guests`, `hasMore`, and `nextCursor`.
+- **Add Guests** (`luma_add_guests`) — Adds one or more guests (supplied as a JSON array) to a specific event. Returns the added `guests`.
 
 ## YAML Example
 
@@ -77,6 +198,7 @@ luma_1:
     startAt: "2025-03-15T18:00:00Z"
     timezone: "America/New_York"
     descriptionMd: "Join us for our quarterly community meetup."
+    visibility: "public"
   connections:
     outgoing:
       - target: next-block-id

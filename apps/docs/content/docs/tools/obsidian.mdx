@@ -1,0 +1,115 @@
+---
+title: Obsidian Tools
+description: List, read, and search notes in your Obsidian vault via the Local REST API plugin
+icon: Box
+---
+
+# Obsidian Tools
+
+The Obsidian provider connects a workflow to your Obsidian vault through the [Obsidian Local REST API](https://github.com/coddingtonbear/obsidian-local-rest-api) plugin. Use these tools to list vault files, retrieve note content, and search across notes from inside a workflow.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `obsidian` |
+| **Category** | tools |
+| **Auth** | Bearer Token (API key from the Local REST API plugin, sent as `Authorization: Bearer <apiKey>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List files | `obsidian_list_files` | List files and directories in your Obsidian vault |
+| Get file | `obsidian_get_file` | Retrieve the content of a file from your Obsidian vault |
+| Search | `obsidian_search` | Search for text across notes in your Obsidian vault |
+
+## Configuration
+
+### `obsidian_list_files`
+
+Lists files and directories in the vault. Issues `GET {baseUrl}/vault/{path}/` (or `GET {baseUrl}/vault/` when no path is given).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** API key from the Obsidian Local REST API plugin settings. Sent as a Bearer token. |
+| `baseUrl` | string | Yes | Base URL for the Obsidian Local REST API (e.g. `https://127.0.0.1:27124`). A trailing slash is stripped automatically. |
+| `path` | string | No | Directory path relative to vault root. Leave empty to list the root. |
+
+### `obsidian_get_file`
+
+Retrieves the markdown content of a single note. Issues `GET {baseUrl}/vault/{filename}` with `Accept: text/markdown`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** API key from the Obsidian Local REST API plugin settings. Sent as a Bearer token. |
+| `baseUrl` | string | Yes | Base URL for the Obsidian Local REST API (e.g. `https://127.0.0.1:27124`). A trailing slash is stripped automatically. |
+| `filename` | string | Yes | Path to the file relative to vault root (e.g. `folder/note.md`). Each path segment is URL-encoded. |
+
+### `obsidian_search`
+
+Searches for text across vault notes. Issues `POST {baseUrl}/search/simple/?query={query}` with `Accept: application/json`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | **Secret.** API key from the Obsidian Local REST API plugin settings. Sent as a Bearer token. |
+| `baseUrl` | string | Yes | Base URL for the Obsidian Local REST API (e.g. `https://127.0.0.1:27124`). A trailing slash is stripped automatically. |
+| `query` | string | Yes | Text to search for across vault notes. URL-encoded into the request. |
+
+## Outputs
+
+### `obsidian_list_files`
+
+- `data` (json) — List of files and directories in the vault (the `files` array returned by the plugin).
+- `metadata` (json) — List metadata.
+  - `count` (number) — Number of entries returned.
+
+### `obsidian_get_file`
+
+- `data` (json) — Markdown content of the file (returned as text).
+- `metadata` (json) — File metadata.
+  - `filename` (string) — Path to the file that was requested.
+
+### `obsidian_search`
+
+- `data` (json) — Search results with filenames, scores, and contexts.
+- `metadata` (json) — Search metadata.
+  - `count` (number) — Number of matching notes returned.
+
+## YAML Example
+
+```yaml
+obsidian_1:
+  type: obsidian
+  name: "Obsidian"
+  inputs:
+    operation: "obsidian_list_files"
+    path: "Notes"
+    baseUrl: "https://127.0.0.1:27124"
+    apiKey: "{{OBSIDIAN_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+```yaml
+obsidian_get:
+  type: obsidian
+  name: "Obsidian"
+  inputs:
+    operation: "obsidian_get_file"
+    filename: "Notes/daily.md"
+    baseUrl: "https://127.0.0.1:27124"
+    apiKey: "{{OBSIDIAN_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Plugin setup:** Install the Obsidian Local REST API community plugin, then copy the generated API key from its settings into the `apiKey` field. The plugin's HTTPS endpoint defaults to `https://127.0.0.1:27124` — use that as the `baseUrl`.
+- **Reachability:** The REST API runs locally inside Obsidian. The host running the workflow must be able to reach `baseUrl`. For self-hosted Zelaxy that means same machine/LAN or a tunnel; the loopback `127.0.0.1` address only works if Obsidian runs on the same host as the executor.
+- **Path encoding:** `path` and `filename` are split on `/` and each segment is URL-encoded, so pass plain vault-relative paths like `folder/note.md` (no leading slash, no manual encoding).
+- **Chaining outputs:** Feed a result into a downstream block with `{{obsidian_1.data}}` (or `{{obsidian_1.metadata.count}}` for the entry count). For a fetched note, `{{obsidian_get.data}}` is the raw markdown.
+```

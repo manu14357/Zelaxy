@@ -1,0 +1,59 @@
+---
+title: Thinking Tools
+description: Force the model to outline its reasoning before proceeding
+icon: Brain
+---
+
+# Thinking Tools
+
+The Thinking provider adds an explicit reasoning step to a workflow. It takes a thought process or instruction, processes it, and makes the acknowledged thought available to subsequent steps. Use it to encourage step-by-step analysis and improve reasoning quality before downstream blocks run.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `thinking` |
+| **Category** | tools |
+| **Auth** | none (internal endpoint — no API key required) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Thinking Tool | `thinking_tool` | Processes a provided thought/instruction, making it available for subsequent steps. |
+
+## Configuration
+
+### `thinking_tool`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `thought` | string | Yes | The thought process or instruction provided by the user in the Thinking Step block. Visibility is `hidden` — it is populated by the block's "Thought Process / Instruction" field rather than exposed as a free input. |
+
+This tool requires no secrets. It posts to the internal `/api/tools/thinking` endpoint with a JSON `Content-Type` header and no authentication.
+
+## Outputs
+
+### `thinking_tool`
+
+- `acknowledgedThought` (string) — The thought that was processed and acknowledged.
+
+## YAML Example
+
+```yaml
+thinking_1:
+  type: thinking
+  name: "Thinking"
+  inputs:
+    operation: "thinking_tool"
+    thought: "First, list the constraints. Then evaluate each option step by step before answering."
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- No authentication or API key is needed. The tool calls an internal Zelaxy endpoint, so there is nothing to configure under credentials.
+- Use it to make a model "show its work": place a Thinking block before an Agent or decision block so the reasoning is explicit and reusable.
+- Reference the result downstream with `{{thinking_1.acknowledgedThought}}` to feed the outlined reasoning into a later prompt or condition.

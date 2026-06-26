@@ -1,0 +1,137 @@
+---
+title: incident.io Block
+description: Manage incidents in incident.io
+icon: Box
+---
+
+# incident.io Block
+
+List and create incidents and retrieve a single incident through the incident.io v2 API. Authenticate with a Bearer API key. Reach for this block whenever a workflow needs to programmatically open, query, or inspect incidents tracked in incident.io.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `incidentio` |
+| **Category** | `tools` |
+| **Color** | `#F25533` |
+
+## When to Use
+
+- List all active or historical incidents to feed downstream analytics or notification blocks.
+- Create a new incident automatically when a monitor or alert block detects a failure.
+- Retrieve the full details of a specific incident by its ID (for enrichment, status checks, or reporting).
+- Integrate with alerting pipelines so that a critical threshold triggers a new incident.io incident without manual intervention.
+- Pull the latest page of incidents on a schedule and summarize them with an Agent block.
+- Chain with a condition block to branch on whether an incident already exists before creating a duplicate.
+
+## Configuration
+
+### Operation
+
+Selects which incident.io API action to perform. This is a required dropdown; all other fields are conditional on the value chosen here.
+
+| Label | id |
+|-------|----|
+| List incidents | `incidentio_list_incidents` |
+| Create incident | `incidentio_create_incident` |
+| Get incident | `incidentio_get_incident` |
+
+---
+
+### Page Size
+
+- **Sub-block id**: `pageSize`
+- **Type**: short-input (number)
+- **Layout**: half
+- **Shown when**: `operation` = `incidentio_list_incidents`
+- **Required**: No (defaults to 25 if omitted)
+
+The maximum number of incident records to return in a single response. Use a smaller value when you only need a quick summary, or a larger value for batch processing.
+
+---
+
+### Name
+
+- **Sub-block id**: `name`
+- **Type**: short-input (string)
+- **Layout**: full
+- **Shown when**: `operation` = `incidentio_create_incident`
+- **Required**: Yes (for create operation)
+
+The human-readable name of the incident, e.g. `Checkout is failing for some users`. Supports `{{blockName.field}}` references so you can pull the name from a previous block's output.
+
+---
+
+### Idempotency Key
+
+- **Sub-block id**: `idempotencyKey`
+- **Type**: short-input (string)
+- **Layout**: half
+- **Shown when**: `operation` = `incidentio_create_incident`
+- **Required**: No
+
+A unique string that prevents duplicate incidents when the same request is retried. If omitted, the tool generates a random UUID automatically.
+
+---
+
+### Incident ID
+
+- **Sub-block id**: `incidentId`
+- **Type**: short-input (string)
+- **Layout**: half
+- **Shown when**: `operation` = `incidentio_get_incident`
+- **Required**: Yes (for get operation)
+
+The unique incident.io identifier, e.g. `01FCNDV6P870EA6S7TK1DSYDG0`. Pass a literal ID or reference an earlier block's output with `{{blockName.incidentId}}`.
+
+---
+
+### API Key
+
+- **Sub-block id**: `apiKey`
+- **Type**: short-input (string, password)
+- **Layout**: full
+- **Required**: Yes (all operations)
+
+A valid incident.io API key. The key is sent as a `Bearer` token in the `Authorization` header. Use an environment variable reference: `{{INCIDENTIO_API_KEY}}`.
+
+## Inputs & Outputs
+
+**Inputs** (all sub-block ids are wirable as inputs):
+
+- `operation` (string) — Operation to perform (`incidentio_list_incidents` | `incidentio_create_incident` | `incidentio_get_incident`)
+- `apiKey` (string) — incident.io API key
+- `pageSize` (number) — Results per page (list operation only)
+- `name` (string) — Incident name (create operation only)
+- `idempotencyKey` (string) — Idempotency key (create operation only; auto-generated if omitted)
+- `incidentId` (string) — Incident ID (get operation only)
+
+**Outputs**:
+
+- `data` (json) — Result object or array from incident.io. For **list**: an array of incident objects. For **create** and **get**: the full incident object.
+- `metadata` (json) — Response metadata. For **list**: `{ count, after }` where `after` is the pagination cursor. For **create** and **get**: `{ id, reference }` with the incident's unique ID and human-readable reference.
+
+## Tools
+
+**incident.io List Incidents** (`incidentio_list_incidents`) — Issues a `GET` request to `https://api.incident.io/v2/incidents` and returns a page of incident objects. Supports an optional `page_size` query parameter; pagination cursor is returned in `metadata.after`.
+
+**incident.io Create Incident** (`incidentio_create_incident`) — Issues a `POST` request to `https://api.incident.io/v2/incidents` with `name`, `idempotency_key`, and `visibility: "public"` in the body. Returns the newly created incident object and its `id` + `reference` in `metadata`.
+
+**incident.io Get Incident** (`incidentio_get_incident`) — Issues a `GET` request to `https://api.incident.io/v2/incidents/{incidentId}` and returns the full incident object. `metadata` contains the `id` and `reference` for easy downstream referencing.
+
+## YAML Example
+
+```yaml
+incidentio_1:
+  type: incidentio
+  name: "Create Incident"
+  inputs:
+    operation: "incidentio_create_incident"
+    apiKey: "{{INCIDENTIO_API_KEY}}"
+    name: "{{monitor_block.alertTitle}}"
+    idempotencyKey: "{{trigger_block.requestId}}"
+  connections:
+    outgoing:
+      - target: notify_slack_1
+```

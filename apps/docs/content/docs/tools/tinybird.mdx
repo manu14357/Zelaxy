@@ -1,0 +1,94 @@
+---
+title: Tinybird Tools
+description: Run SQL queries and list pipes and data sources in your Tinybird workspace.
+icon: Box
+---
+
+# Tinybird Tools
+
+Tinybird is a real-time analytics platform for building APIs over large-scale data. These tools let a workflow run SQL queries against your Tinybird workspace and enumerate its pipes and data sources, so you can pull live analytics into a run or discover available resources before querying them.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `tinybird` |
+| **Category** | tools |
+| **Auth** | Bearer Token (Tinybird API token) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Query | `tinybird_query` | Run a SQL query against Tinybird and return JSON results |
+| List pipes | `tinybird_list_pipes` | List all pipes in the Tinybird workspace |
+| List data sources | `tinybird_list_datasources` | List all data sources in the Tinybird workspace |
+
+## Configuration
+
+### `tinybird_query`
+
+Run a SQL query against Tinybird and return JSON results.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Tinybird API token. **Secret** — provide via an environment variable, e.g. `{{TINYBIRD_API_KEY}}`. Sent as a Bearer token. (visibility: user-only) |
+| `sql` | string | Yes | The SQL query to execute. (visibility: user-or-llm) |
+
+### `tinybird_list_pipes`
+
+List all pipes in the Tinybird workspace.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Tinybird API token. **Secret** — provide via an environment variable, e.g. `{{TINYBIRD_API_KEY}}`. Sent as a Bearer token. (visibility: user-only) |
+
+### `tinybird_list_datasources`
+
+List all data sources in the Tinybird workspace.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Tinybird API token. **Secret** — provide via an environment variable, e.g. `{{TINYBIRD_API_KEY}}`. Sent as a Bearer token. (visibility: user-only) |
+
+## Outputs
+
+### `tinybird_query`
+
+- `data` (json) — The Tinybird result object (`{ meta, data, rows }`).
+- `metadata` (json) — Query metadata.
+  - `metadata.count` (number) — Number of rows returned.
+
+### `tinybird_list_pipes`
+
+- `data` (json) — The Tinybird response object (`{ pipes }`).
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of pipes returned.
+
+### `tinybird_list_datasources`
+
+- `data` (json) — The Tinybird response object (`{ datasources }`).
+- `metadata` (json) — List metadata.
+  - `metadata.count` (number) — Number of data sources returned.
+
+## YAML Example
+
+```yaml
+tinybird_1:
+  type: tinybird
+  name: "Tinybird"
+  inputs:
+    operation: "tinybird_query"
+    sql: "SELECT * FROM my_pipe LIMIT 10"
+    apiKey: "{{TINYBIRD_API_KEY}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Auth uses a Tinybird API token sent as a Bearer token. Generate a token in your Tinybird workspace (Tokens section) and store it as an environment variable, then reference it as `{{TINYBIRD_API_KEY}}` so the secret never appears inline.
+- The `sql` parameter is `user-or-llm`, so an agent can generate the query at runtime. Use `tinybird_list_pipes` and `tinybird_list_datasources` first to discover queryable resources, then feed their names into a `tinybird_query` call (e.g. `{{tinybird_1.data}}`).
+- All three operations call `https://api.tinybird.co/v0/...`. If your workspace lives in a different region, the host may differ — confirm the API region matches the token before relying on results.
+- For `tinybird_query`, the full Tinybird payload (`meta`, `data`, `rows`) is under `data`, while `metadata.count` is the convenience row count derived from `data.data`.

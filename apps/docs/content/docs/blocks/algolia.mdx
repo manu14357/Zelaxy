@@ -1,7 +1,7 @@
 ---
 title: Algolia Block
 description: Search, index, and manage records in Algolia
-icon: Box
+icon: Search
 ---
 
 # Algolia Block
@@ -18,40 +18,120 @@ The Algolia block integrates Algolia search into your workflows. Use it to run f
 
 ## When to Use
 
-- Run full-text searches over an Algolia index and feed the hits into downstream blocks
-- Add new records to an index as part of an ingestion or sync workflow
-- Update an existing record by its object ID when data changes upstream
+- Run full-text searches over an Algolia index and pass the hits into downstream blocks
+- Add new records to an index as part of an ingestion or data-sync workflow
+- Partially update an existing record by its object ID when data changes upstream
 - Fetch a single record by object ID to enrich or validate workflow data
 - Delete stale or removed records from an index to keep search results clean
-- Apply filters and pagination (e.g. `category:electronics`, results per page) on search queries
+- Apply filters and pagination controls (e.g. `category:electronics AND price < 100`, results per page) on search queries
 
 ## Configuration
 
-### Operation
-Dropdown selecting the action to perform: **Search** (`algolia_search`), **Add Record** (`algolia_index_document`), **Update Record** (`algolia_update_document`), **Delete Record** (`algolia_delete_document`), or **Get Record** (`algolia_get_document`).
+### Operation (required)
 
-### Application ID
-Your Algolia Application ID. Required for all operations.
+Dropdown selecting the action to perform. Choosing an operation shows or hides the relevant fields below.
 
-### API Key
-Your Algolia API key (stored securely). Required for all operations.
+| Label | ID |
+|-------|----|
+| Search | `algolia_search` |
+| Add Record | `algolia_index_document` |
+| Update Record | `algolia_update_document` |
+| Delete Record | `algolia_delete_document` |
+| Get Record | `algolia_get_document` |
 
-### Index Name
-The name of the Algolia index to operate against (e.g. `my_index`). Required.
+### Application ID (required)
+
+Your Algolia Application ID (e.g. `XXXXXXXXXX`). Required for all operations.
+
+### API Key (required)
+
+Your Algolia API key, stored securely (password field). Use an Admin API Key for write operations (Add, Update, Delete). Required for all operations.
+
+### Index Name (required)
+
+The name of the Algolia index to operate on (e.g. `my_index`). Required for all operations.
 
 ### Search Query
-The search term, shown for the Search operation. Pair with **Results Per Page** and **Filters** to control pagination and refine matches.
+
+Shown for: **Search**. The full-text search term to execute against the index.
+
+### Results Per Page
+
+Shown for: **Search**. Number of hits to return per page (default: 20). Maps to `hitsPerPage`.
+
+### Filters
+
+Shown for: **Search**. Algolia filter string to narrow results (e.g. `category:electronics AND price < 100`).
 
 ### Object ID
-The record identifier, shown for Update, Delete, and Get operations.
+
+Shown for: **Update Record**, **Delete Record**, **Get Record**. The `objectID` of the record to act on.
 
 ### Record (JSON)
-The record payload, shown for Add and Update operations (e.g. `{"name": "Product", "price": 29.99}`).
+
+Shown for: **Add Record**, **Update Record**. A JSON object representing the record to add or the attributes to update (e.g. `{"name": "Product", "price": 29.99}`). For Update Record, only the provided attributes are changed — the rest of the record is preserved.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `appId` (string), `apiKey` (string), `indexName` (string), `query` (string), `hitsPerPage` (string), `filters` (string), `objectId` (string), `record` (json)
-- **Outputs**: `hits` (json), `records` (json), `nbHits` (number)
+### Inputs
+
+| ID | Type | Description |
+|----|------|-------------|
+| `operation` | string | Operation to perform (`algolia_search`, `algolia_index_document`, `algolia_update_document`, `algolia_delete_document`, `algolia_get_document`) |
+| `appId` | string | Algolia Application ID |
+| `apiKey` | string | Algolia API key |
+| `indexName` | string | Name of the Algolia index |
+| `query` | string | Search query text (Search only) |
+| `hitsPerPage` | string | Number of results per page (Search only) |
+| `filters` | string | Algolia filter string (Search only) |
+| `objectId` | string | Object ID of the record (Update, Delete, Get) |
+| `record` | json | Record data to add or attributes to update (Add, Update) |
+
+### Outputs
+
+The block exposes a shared output envelope; the fields populated depend on which operation ran.
+
+**Search** (`algolia_search`):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `hits` | json | Array of matching records |
+| `nbHits` | number | Total number of matching hits |
+| `records` | json | Records (alias / additional result set) |
+
+**Add Record** (`algolia_index_document`):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `records` | json | Contains `taskID`, `objectID`, `createdAt`, `updatedAt` |
+
+**Update Record** (`algolia_update_document`):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `records` | json | Contains `taskID`, `objectID`, `updatedAt` |
+
+**Delete Record** (`algolia_delete_document`):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `records` | json | Contains `taskID`, `deletedAt` |
+
+**Get Record** (`algolia_get_document`):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `records` | json | Contains `objectID` and all record attributes |
+
+## Tools
+
+Each operation maps to a dedicated tool registered in the tool registry:
+
+- **Algolia Search** (`algolia_search`) — Executes a full-text search against an index using the Algolia multi-index search API. Returns hits, pagination metadata (`page`, `nbPages`, `hitsPerPage`, `processingTimeMS`), and optional facet data.
+- **Algolia Add Record** (`algolia_index_document`) — Adds or fully replaces a record in an index. If an `objectID` is provided it uses PUT (replace); otherwise POST (auto-ID). Returns `taskID` and the assigned `objectID`.
+- **Algolia Update Record** (`algolia_update_document`) — Partially updates an existing record using Algolia's partial-update API. Only the supplied attributes are changed. Requires `objectID`. Returns `taskID` and `updatedAt`.
+- **Algolia Delete Record** (`algolia_delete_document`) — Deletes a single record by `objectID`. Returns `taskID` and `deletedAt`.
+- **Algolia Get Record** (`algolia_get_document`) — Retrieves a single record by `objectID`. Returns `objectID` and all record attributes as `record`.
 
 ## YAML Example
 
@@ -61,8 +141,8 @@ algolia_1:
   name: "Algolia"
   inputs:
     operation: "algolia_search"
-    appId: "XXXXXXXXXX"
-    apiKey: "{{secrets.ALGOLIA_API_KEY}}"
+    appId: "{{ALGOLIA_APP_ID}}"
+    apiKey: "{{ALGOLIA_API_KEY}}"
     indexName: "my_index"
     query: "{{start.input}}"
     hitsPerPage: "20"

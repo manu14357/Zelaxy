@@ -1,0 +1,149 @@
+---
+title: WordPress Block
+description: Manage posts on a self-hosted WordPress site
+icon: Box
+---
+
+# WordPress Block
+
+Create, list, retrieve, and update posts on a self-hosted WordPress site through the WordPress REST API. Authenticate with your site URL, username, and an application password. Reach for this block whenever a workflow needs to publish AI-generated content, mirror data into WordPress, or read and modify existing posts programmatically.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `wordpress` |
+| **Category** | `tools` |
+| **Color** | `#21759B` |
+
+## When to Use
+
+- Automatically publish AI-generated articles or summaries as WordPress posts
+- Draft posts for human review by setting their status to `draft` or `pending`
+- Retrieve a specific post by ID to inspect its content before updating it
+- Bulk-list published posts to feed downstream analysis or translation blocks
+- Update post titles, content, or status as part of a content-moderation workflow
+- Promote draft posts to `publish` status once an approval step is complete
+
+## Configuration
+
+### Operation
+
+**Required.** Selects the WordPress REST API action to perform. All other visible fields depend on this selection.
+
+| Label | ID |
+|-------|----|
+| Create post | `wordpress_create_post` |
+| List posts | `wordpress_list_posts` |
+| Get post | `wordpress_get_post` |
+| Update post | `wordpress_update_post` |
+
+Default: `wordpress_create_post`.
+
+---
+
+### Post ID
+
+**Shown for:** `Get post` and `Update post`.
+
+The numeric ID of the post to retrieve or modify (e.g. `123`). Map it from a previous block using `{{blockName.data.id}}` or enter it directly.
+
+---
+
+### Title
+
+**Shown for:** `Create post` and `Update post`.
+
+The post title. For `Update post` this field is optional — omit it to leave the existing title unchanged.
+
+---
+
+### Content
+
+**Shown for:** `Create post` and `Update post`.
+
+The body of the post. Accepts HTML (e.g. `<p>My content</p>`) or plain text. Optional for both operations.
+
+---
+
+### Status
+
+**Shown for:** `Create post` and `Update post`.
+
+Controls the WordPress post status. Accepted values: `publish`, `draft`, `pending`, `private`. Optional — WordPress defaults to `draft` when omitted.
+
+---
+
+### Per Page
+
+**Shown for:** `List posts` only.
+
+Number of posts to return per page. Accepts integers from 1 to 100. Defaults to `10` when left blank.
+
+---
+
+### Site URL
+
+**Required for all operations.** The full base URL of your self-hosted WordPress installation, e.g. `https://example.com`. Do not include a trailing slash.
+
+---
+
+### Username
+
+**Required for all operations.** The WordPress user account that owns the application password (e.g. `admin`).
+
+---
+
+### Application Password
+
+**Required for all operations.** A WordPress Application Password generated under **Users → Profile → Application Passwords** in the WordPress admin. Stored securely; displayed as masked input. Example format: `xxxx xxxx xxxx xxxx xxxx xxxx`.
+
+Use `{{WP_APP_PASSWORD}}` to reference a workflow environment variable rather than pasting the credential directly.
+
+## Inputs & Outputs
+
+**Inputs:**
+
+- `operation` (string) — Operation to perform (`wordpress_create_post`, `wordpress_list_posts`, `wordpress_get_post`, or `wordpress_update_post`)
+- `siteUrl` (string) — WordPress site URL
+- `username` (string) — WordPress username
+- `appPassword` (string) — WordPress application password
+- `postId` (string) — Post ID (required for Get post and Update post)
+- `title` (string) — Post title (used by Create post and Update post)
+- `content` (string) — Post content (used by Create post and Update post)
+- `status` (string) — Post status (used by Create post and Update post)
+- `perPage` (number) — Number of posts per page (used by List posts)
+
+**Outputs:**
+
+- `data` (json) — Result object or array from WordPress. For single-post operations this is the WordPress post object; for `List posts` it is an array of post objects.
+- `metadata` (json) — Response metadata. Contains `id` (string) for single-post operations and `count` (number) for list operations.
+
+## Tools
+
+- **WordPress Create Post** (`wordpress_create_post`) — Creates a new post via `POST /wp-json/wp/v2/posts`. Requires `siteUrl`, `username`, `appPassword`, and `title`; `content` and `status` are optional. Returns the created post object and the new post `id` in `metadata`.
+
+- **WordPress List Posts** (`wordpress_list_posts`) — Fetches a paginated list of posts via `GET /wp-json/wp/v2/posts`. Requires `siteUrl`, `username`, and `appPassword`; `perPage` is optional (default 10, max 100). Returns an array of post objects and a `count` in `metadata`.
+
+- **WordPress Get Post** (`wordpress_get_post`) — Retrieves a single post by ID via `GET /wp-json/wp/v2/posts/{postId}`. Requires `siteUrl`, `username`, `appPassword`, and `postId`. Returns the post object and `id` in `metadata`.
+
+- **WordPress Update Post** (`wordpress_update_post`) — Updates an existing post via `POST /wp-json/wp/v2/posts/{postId}`. Requires `siteUrl`, `username`, `appPassword`, and `postId`; `title`, `content`, and `status` are optional (only supplied fields are changed). Returns the updated post object and `id` in `metadata`.
+
+## YAML Example
+
+```yaml
+wordpress_1:
+  type: wordpress
+  name: "WordPress"
+  inputs:
+    operation: "wordpress_create_post"
+    siteUrl: "https://myblog.example.com"
+    username: "admin"
+    appPassword: "{{WP_APP_PASSWORD}}"
+    title: "{{agent_1.output}}"
+    content: "<p>{{agent_1.content}}</p>"
+    status: "publish"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

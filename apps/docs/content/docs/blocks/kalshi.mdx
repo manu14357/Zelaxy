@@ -1,12 +1,12 @@
 ---
 title: Kalshi Block
 description: Trade and query prediction markets on Kalshi
-icon: Box
+icon: TrendingUp
 ---
 
 # Kalshi Block
 
-The Kalshi block connects your workflow to Kalshi prediction markets. Use it to browse markets and events, check your balance, place and manage orders, view positions, retrieve orderbooks, and pull candlestick data.
+The Kalshi block connects your workflow to Kalshi prediction markets. Use it to browse markets and events, check your account balance, place and manage orders, view positions, retrieve orderbooks, get candlestick data, and inspect exchange status — all from within a Zelaxy workflow.
 
 ## Overview
 
@@ -19,33 +19,310 @@ The Kalshi block connects your workflow to Kalshi prediction markets. Use it to 
 ## When to Use
 
 - Browse open, closed, or settled markets and events to feed downstream decision logic.
-- Check account balance and current positions before placing trades.
+- Check account balance and open positions before placing trades.
 - Place limit or market orders (Yes/No, Buy/Sell) programmatically as part of a trading workflow.
 - Cancel or amend resting orders based on market movement or new signals.
-- Retrieve orderbooks, trades, fills, and candlestick history for analysis.
-- Look up series metadata or check the exchange status before acting.
+- Retrieve orderbooks, public trades, fills, and candlestick history for technical analysis.
+- Look up series metadata or poll exchange status before acting on market data.
 
 ## Configuration
 
 ### Operation
-Dropdown selecting the action to perform: Get Markets, Get Market, Get Events, Get Event, Get Balance, Get Positions, Get Orders, Get Order, Get Orderbook, Get Trades, Get Candlesticks, Get Fills, Get Series by Ticker, Get Exchange Status, Create Order, Cancel Order, and Amend Order. Defaults to Get Markets.
 
-### Credentials (Key ID & Private Key)
-For authenticated operations (balance, positions, orders, fills, and order create/cancel/amend) supply your Kalshi API Key ID and RSA Private Key in PEM format.
+Dropdown selecting the action to perform. Defaults to `get_markets`.
 
-### Market & Event Filters
-Filter listings by Status (All/Open/Closed/Settled), Series Ticker, or Event Ticker. Single-record lookups require a Ticker. Orderbook lookups require a Ticker.
+| Label | ID |
+|-------|----|
+| Get Markets | `get_markets` |
+| Get Market | `get_market` |
+| Get Events | `get_events` |
+| Get Event | `get_event` |
+| Get Balance | `get_balance` |
+| Get Positions | `get_positions` |
+| Get Orders | `get_orders` |
+| Get Order | `get_order` |
+| Get Orderbook | `get_orderbook` |
+| Get Trades | `get_trades` |
+| Get Candlesticks | `get_candlesticks` |
+| Get Fills | `get_fills` |
+| Get Series by Ticker | `get_series_by_ticker` |
+| Get Exchange Status | `get_exchange_status` |
+| Create Order | `create_order` |
+| Cancel Order | `cancel_order` |
+| Amend Order | `amend_order` |
 
-### Candlesticks
-Get Candlesticks requires Series Ticker, Market Ticker, Start Timestamp, End Timestamp, and a Period Interval (1 Minute, 1 Hour, or 1 Day).
+### Key ID
 
-### Order Fields
-Create Order takes a Market Ticker, Side (Yes/No), Action (Buy/Sell), Quantity, Order Type (Limit/Market), and prices. Amend Order takes the Order ID, new quantity, prices, and client order IDs. Cancel Order takes the Order ID.
+Short text input. Your Kalshi API Key ID. Required for authenticated operations: `get_balance`, `get_positions`, `get_orders`, `get_order`, `get_fills`, `create_order`, `cancel_order`, and `amend_order`.
+
+### Private Key
+
+Long text input (password-masked). Your RSA Private Key in PEM format (e.g. `-----BEGIN RSA PRIVATE KEY-----`). Required for the same authenticated operations as Key ID.
+
+### Status
+
+Dropdown filter for market or event status. Shown for `get_markets` and `get_events` (advanced).
+
+| Label | ID |
+|-------|----|
+| All | `` (empty) |
+| Open | `open` |
+| Closed | `closed` |
+| Settled | `settled` |
+
+### Series Ticker
+
+Short text input (`seriesTicker`). Filter results by series ticker (e.g. `KXBTC`, `INX`). Shown for `get_markets` and `get_events` (advanced).
+
+### Event Ticker
+
+Short text input (`eventTicker`). Filter by event ticker (e.g. `KXBTC-24DEC31`). Shown for `get_markets`, `get_event`, `get_positions`, and `get_orders`.
+
+### Ticker
+
+Short text input. The market ticker symbol. **Required** for `get_market` and `get_orderbook`.
+
+### Ticker Filter
+
+Short text input (`tickerFilter`). Filter results by ticker. Shown for `get_orders` and `get_positions` (advanced).
+
+### Include Nested Markets
+
+Switch (`withNestedMarkets`). When enabled, the event response includes its nested markets. Shown for `get_events` and `get_event` (advanced).
+
+### Settlement Status
+
+Short text input (`settlementStatus`). Filter positions by settlement status (e.g. `settled`, `unsettled`). Shown for `get_positions` (advanced).
+
+### Order Status
+
+Dropdown (`orderStatus`). Filter orders by status. Shown for `get_orders` (advanced).
+
+| Label | ID |
+|-------|----|
+| All | `` (empty) |
+| Resting | `resting` |
+| Canceled | `canceled` |
+| Executed | `executed` |
+| Pending | `pending` |
+
+### Min Timestamp
+
+Short text input (`minTs`). Unix timestamp (milliseconds) for the earliest fill to return. Shown for `get_fills` (advanced).
+
+### Max Timestamp
+
+Short text input (`maxTs`). Unix timestamp (milliseconds) for the latest fill to return. Shown for `get_fills` (advanced).
+
+### Series Ticker (Candlesticks)
+
+Short text input (`seriesTickerCandlesticks`). The series ticker for candlestick data (e.g. `KXBTC`). **Required** for `get_candlesticks`.
+
+### Market Ticker (Candlesticks)
+
+Short text input (`tickerCandlesticks`). The market ticker for candlestick data. **Required** for `get_candlesticks`.
+
+### Start Timestamp
+
+Short text input (`startTs`). Unix timestamp in seconds for the beginning of the candlestick range. **Required** for `get_candlesticks`. Supports AI-assisted generation via wand.
+
+### End Timestamp
+
+Short text input (`endTs`). Unix timestamp in seconds for the end of the candlestick range. **Required** for `get_candlesticks`. Supports AI-assisted generation via wand.
+
+### Period Interval
+
+Dropdown (`periodInterval`). Candlestick bar size. **Required** for `get_candlesticks`.
+
+| Label | ID |
+|-------|-----|
+| 1 Minute | `1` |
+| 1 Hour | `60` |
+| 1 Day | `1440` |
+
+### Ticker Filter (Fills)
+
+Short text input (`tickerFills`). Filter fills by market ticker. Shown for `get_fills` (advanced).
+
+### Order ID (Fills)
+
+Short text input (`orderId`). Filter fills by order ID. Shown for `get_fills` (advanced).
+
+### Series Ticker (Get Series)
+
+Short text input (`seriesTickerGet`). Series ticker for the Get Series by Ticker operation. **Required** for `get_series_by_ticker`.
+
+### Order ID (Param)
+
+Short text input (`orderIdParam`). The order UUID to act on. **Required** for `get_order`, `cancel_order`, and `amend_order`.
+
+### Market Ticker (Order)
+
+Short text input (`tickerOrder`). Market ticker for the order. **Required** for `create_order` and `amend_order`.
+
+### Side
+
+Dropdown. The side of the order. **Required** for `create_order` and `amend_order`.
+
+| Label | ID |
+|-------|-----|
+| Yes | `yes` |
+| No | `no` |
+
+### Action
+
+Dropdown. The action for the order. **Required** for `create_order` and `amend_order`.
+
+| Label | ID |
+|-------|-----|
+| Buy | `buy` |
+| Sell | `sell` |
+
+### Quantity
+
+Short text input (`count`). Number of contracts for `create_order`.
+
+### Fill Quantity
+
+Short text input (`countFp`). Fill quantity for partial fills. Shown for `create_order` (advanced).
+
+### New Quantity
+
+Short text input (`countAmend`). New contract count for `amend_order`.
+
+### Order Type
+
+Dropdown (`orderType`). Shown for `create_order`.
+
+| Label | ID |
+|-------|-----|
+| Limit | `limit` |
+| Market | `market` |
+
+### Yes Price (cents)
+
+Short text input (`yesPrice`). Yes-side price in cents (1–99). Shown for `create_order` and `amend_order`.
+
+### No Price (cents)
+
+Short text input (`noPrice`). No-side price in cents (1–99). Shown for `create_order` and `amend_order`.
+
+### Client Order ID
+
+Short text input (`clientOrderId`). Optional custom identifier for the order. Shown for `create_order` (advanced).
+
+### Client Order ID (Amend)
+
+Short text input (`clientOrderIdAmend`). The original client order ID to identify the order being amended. **Required** for `amend_order`.
+
+### New Client Order ID
+
+Short text input (`updatedClientOrderId`). New client order ID after amending. **Required** for `amend_order`.
+
+### Time in Force
+
+Dropdown (`timeInForce`). Order duration instruction. Shown for `create_order` (advanced).
+
+| Label | ID |
+|-------|-----|
+| Good Till Canceled | `good_till_canceled` |
+| Fill or Kill | `fill_or_kill` |
+| Immediate or Cancel | `immediate_or_cancel` |
+
+### Expiration
+
+Short text input (`expirationTs`). Unix timestamp (seconds) after which the order expires. Shown for `create_order` (advanced). Supports AI-assisted generation via wand.
+
+### Post Only
+
+Dropdown (`postOnly`). When set to Yes, the order is only accepted if it rests on the book. Shown for `create_order` (advanced).
+
+| Label | ID |
+|-------|-----|
+| No | `` (empty) |
+| Yes | `true` |
+
+### Reduce Only
+
+Dropdown (`reduceOnly`). When set to Yes, the order only reduces an existing position. Shown for `create_order` (advanced).
+
+| Label | ID |
+|-------|-----|
+| No | `` (empty) |
+| Yes | `true` |
+
+### Limit
+
+Short text input (`limit`). Maximum number of results to return (1–1000, default 100). Shown for `get_markets`, `get_events`, `get_positions`, `get_orders`, `get_trades`, and `get_fills` (advanced).
+
+### Cursor
+
+Short text input (`cursor`). Pagination cursor from a previous response. Shown for the same operations as Limit (advanced).
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `keyId` (string), `privateKey` (string), `ticker` (string), `eventTicker` (string), `status` (string)
-- **Outputs**: `markets` (json), `events` (json), `orders` (json), `positions` (json), `fills` (json), `trades` (json), `candlesticks` (json), `market` (json), `event` (json), `order` (json), `series` (json), `balance` (number), `orderbook` (json), `exchangeStatus` (json), `cursor` (string)
+**Inputs** (from the block's `inputs` map):
+
+- `operation` (string) — Operation to perform
+- `keyId` (string) — Kalshi API Key ID
+- `privateKey` (string) — RSA Private Key (PEM format)
+- `ticker` (string) — Market ticker
+- `eventTicker` (string) — Event ticker
+- `status` (string) — Filter by status
+
+**Outputs** (from the block's `outputs` map):
+
+- `markets` (json) — Array of market objects
+- `events` (json) — Array of event objects
+- `orders` (json) — Array of order objects
+- `positions` (json) — Array of position objects
+- `fills` (json) — Array of fill objects
+- `trades` (json) — Array of trade objects
+- `candlesticks` (json) — Array of candlestick data
+- `market` (json) — Single market object
+- `event` (json) — Single event object
+- `order` (json) — Single order object
+- `series` (json) — Series object
+- `balance` (number) — Account balance in cents
+- `orderbook` (json) — Orderbook with bids/asks
+- `exchangeStatus` (json) — Exchange status
+- `cursor` (string) — Pagination cursor
+
+## Tools
+
+**Get Markets from Kalshi** (`kalshi_get_markets`) — Retrieve a paginated list of prediction markets with optional filtering by status, series ticker, event ticker, limit, and cursor.
+
+**Get Market from Kalshi** (`kalshi_get_market`) — Retrieve full details for a single market by its ticker symbol.
+
+**Get Events from Kalshi** (`kalshi_get_events`) — Retrieve a paginated list of Kalshi events with optional filtering by status, series ticker, limit, and cursor.
+
+**Get Event from Kalshi** (`kalshi_get_event`) — Retrieve details for a specific event by event ticker, optionally including nested markets.
+
+**Get Market Orderbook from Kalshi** (`kalshi_get_orderbook`) — Retrieve the current orderbook (yes and no bids/asks) for a specific market by ticker.
+
+**Get Trades from Kalshi** (`kalshi_get_trades`) — Retrieve recent public trades across Kalshi markets, optionally filtered by ticker.
+
+**Get Market Candlesticks from Kalshi** (`kalshi_get_candlesticks`) — Retrieve OHLC candlestick data for a specific market within a time range at 1-minute, 1-hour, or 1-day resolution.
+
+**Get Series by Ticker from Kalshi** (`kalshi_get_series_by_ticker`) — Retrieve series metadata for a given series ticker.
+
+**Get Exchange Status from Kalshi** (`kalshi_get_exchange_status`) — Retrieve the current trading-active and exchange-active status of the Kalshi exchange (no authentication required).
+
+**Get Balance from Kalshi** (`kalshi_get_balance`) — Retrieve your account balance and portfolio value in cents. Requires API key authentication.
+
+**Get Positions from Kalshi** (`kalshi_get_positions`) — Retrieve your open market positions with optional ticker, event ticker, settlement status, limit, and cursor filters. Requires authentication.
+
+**Get Orders from Kalshi** (`kalshi_get_orders`) — Retrieve your orders with optional ticker, event ticker, order status, limit, and cursor filters. Requires authentication.
+
+**Get Order from Kalshi** (`kalshi_get_order`) — Retrieve full details of a single order by its order UUID. Requires authentication.
+
+**Get Fills from Kalshi** (`kalshi_get_fills`) — Retrieve your portfolio fills (executed trades) with optional ticker, order ID, timestamp range, limit, and cursor filters. Requires authentication.
+
+**Create Order on Kalshi** (`kalshi_create_order`) — Create a new limit or market order on a Kalshi prediction market (Yes/No, Buy/Sell). Requires authentication.
+
+**Cancel Order on Kalshi** (`kalshi_cancel_order`) — Cancel an existing resting order by order UUID. Returns the canceled order object and the number of contracts canceled. Requires authentication.
+
+**Amend Order on Kalshi** (`kalshi_amend_order`) — Amend an existing order's quantity, yes/no price, or expiration by order UUID. Requires authentication.
 
 ## YAML Example
 

@@ -1,0 +1,104 @@
+---
+title: Upstash Tools
+description: Read, write, and run commands against Upstash Redis over HTTP
+icon: Database
+---
+
+# Upstash Tools
+
+The Upstash tools talk to a serverless Upstash Redis database through its REST API. Use them in a workflow to cache values, store and read keys, or execute arbitrary Redis commands (counters, lists, expirations, and more) without managing a Redis client connection.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `upstash` |
+| **Category** | tools |
+| **Auth** | Bearer Token (`Authorization: Bearer <restToken>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Redis GET | `upstash_redis_get` | Get the value of a key from Upstash Redis |
+| Redis SET | `upstash_redis_set` | Set the value of a key in Upstash Redis |
+| Run command | `upstash_run_command` | Run an arbitrary Redis command via the Upstash REST API |
+
+## Configuration
+
+All three operations require the connection parameters `restUrl` and `restToken`. The `restToken` is a secret and is sent as a Bearer token in the `Authorization` header. Store it as a secret and reference it with `{{UPSTASH_REST_TOKEN}}`.
+
+### `upstash_redis_get`
+
+Calls `GET ${restUrl}/get/${key}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `restUrl` | `string` | Yes | Upstash Redis REST URL, e.g. `https://xxx.upstash.io` (user-only) |
+| `restToken` | `string` (secret) | Yes | Upstash Redis REST token, sent as `Authorization: Bearer <restToken>` (user-only) |
+| `key` | `string` | Yes | The key to read (user-or-llm) |
+
+### `upstash_redis_set`
+
+Calls `POST ${restUrl}/set/${key}/${value}`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `restUrl` | `string` | Yes | Upstash Redis REST URL, e.g. `https://xxx.upstash.io` (user-only) |
+| `restToken` | `string` (secret) | Yes | Upstash Redis REST token, sent as `Authorization: Bearer <restToken>` (user-only) |
+| `key` | `string` | Yes | The key to write (user-or-llm) |
+| `value` | `string` | Yes | The value to store (user-or-llm) |
+
+### `upstash_run_command`
+
+Calls `POST ${restUrl}` with the command as a JSON-array request body and a `Content-Type: application/json` header.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `restUrl` | `string` | Yes | Upstash Redis REST URL, e.g. `https://xxx.upstash.io` (user-only) |
+| `restToken` | `string` (secret) | Yes | Upstash Redis REST token, sent as `Authorization: Bearer <restToken>` (user-only) |
+| `command` | `json` | Yes | The Redis command as a JSON array, e.g. `["INCR","counter"]` (user-or-llm). A single non-array value is wrapped into a one-element array. |
+
+## Outputs
+
+All three operations return the same output shape.
+
+### `upstash_redis_get`
+
+- `data` (json) — The Upstash response object (`{ result }`).
+- `metadata` (json) — Command metadata.
+- `metadata.result` (json) — The value stored at the key.
+
+### `upstash_redis_set`
+
+- `data` (json) — The Upstash response object (`{ result }`).
+- `metadata` (json) — Command metadata.
+- `metadata.result` (json) — The result of the SET command (usually `"OK"`).
+
+### `upstash_run_command`
+
+- `data` (json) — The Upstash response object (`{ result }`).
+- `metadata` (json) — Command metadata.
+- `metadata.result` (json) — The result of the command.
+
+## YAML Example
+
+```yaml
+upstash_1:
+  type: upstash
+  name: "Upstash"
+  inputs:
+    operation: "upstash_redis_get"
+    key: "session:{{starter.userId}}"
+    restUrl: "https://xxx.upstash.io"
+    restToken: "{{UPSTASH_REST_TOKEN}}"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- **Auth uses two values, not one.** Supply both the `restUrl` and the `restToken` from your Upstash database's REST API section. The token is passed as `Authorization: Bearer <restToken>`; store it as a secret and reference it with `{{UPSTASH_REST_TOKEN}}` rather than pasting it inline.
+- **`run_command` expects a JSON array.** Pass the Redis command as an array of strings/values, e.g. `["INCR","counter"]` or `["SET","key","value","EX","60"]`. This is the most flexible operation — use it for anything beyond a plain GET/SET (counters, TTLs, lists, hashes).
+- **Read results from `metadata.result`.** For GET the stored value, for SET typically `"OK"`, and for `run_command` the command's return value all land in `{{upstash_1.metadata.result}}`. Reference upstream block outputs with `{{blockName.field}}` to build dynamic keys and values.

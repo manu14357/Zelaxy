@@ -1,0 +1,106 @@
+---
+title: LaunchDarkly Block
+description: Manage feature flags and projects in LaunchDarkly
+icon: Flag
+---
+
+# LaunchDarkly Block
+
+List feature flags, retrieve a single flag, and list projects through the LaunchDarkly REST API. Reach for this block whenever a workflow needs to inspect or branch on feature flag state without leaving Zelaxy.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `launchdarkly` |
+| **Category** | `tools` |
+| **Color** | `#405BFF` |
+
+## When to Use
+
+- Enumerate all feature flags in a project to audit or report on flag status.
+- Fetch a single feature flag by key to read its current configuration or targeting rules.
+- List all LaunchDarkly projects in an account to discover project keys for downstream steps.
+- Gate workflow branches on whether a specific flag exists or is enabled.
+- Pull flag metadata into an AI agent context so it can reason about which features are live.
+- Periodically sync LaunchDarkly flag data into a Zelaxy Table for dashboarding.
+
+## Configuration
+
+### Operation
+
+Selects which LaunchDarkly API call to make. **Required.** Defaults to `launchdarkly_list_flags`.
+
+| Label | ID |
+|-------|----|
+| List flags | `launchdarkly_list_flags` |
+| Get flag | `launchdarkly_get_flag` |
+| List projects | `launchdarkly_list_projects` |
+
+- `launchdarkly_list_flags` — requires **Project Key**.
+- `launchdarkly_get_flag` — requires **Project Key** and **Flag Key**.
+- `launchdarkly_list_projects` — requires no additional fields beyond the API token.
+
+### Project Key
+
+Visible when operation is `launchdarkly_list_flags` or `launchdarkly_get_flag`. The key that identifies the LaunchDarkly project to query. Defaults to `default` when left blank.
+
+- **Sub-block id**: `projectKey`
+- **Type**: short-input
+- **Placeholder**: `default`
+- **Required**: No (the tool falls back to the `default` project)
+
+### Flag Key
+
+Visible only when operation is `launchdarkly_get_flag`. The unique string key of the feature flag to retrieve.
+
+- **Sub-block id**: `flagKey`
+- **Type**: short-input
+- **Placeholder**: `my-feature-flag`
+- **Required**: Yes (for `launchdarkly_get_flag`)
+
+### API Access Token
+
+Your LaunchDarkly personal or service API access token. The value is treated as a secret (masked in the UI).
+
+- **Sub-block id**: `apiKey`
+- **Type**: short-input (password)
+- **Placeholder**: `api-...`
+- **Required**: Yes (all operations)
+- **Recommended**: supply via an environment variable reference, e.g. `{{LAUNCHDARKLY_API_KEY}}`
+
+## Inputs & Outputs
+
+**Inputs**
+
+- `operation` (string) — Operation to perform (`launchdarkly_list_flags`, `launchdarkly_get_flag`, or `launchdarkly_list_projects`)
+- `apiKey` (string) — LaunchDarkly API access token
+- `projectKey` (string) — Project key (used by list flags and get flag operations)
+- `flagKey` (string) — Feature flag key (used by get flag operation only)
+
+**Outputs**
+
+- `data` (json) — Result object or array from LaunchDarkly. For list operations this is an array of objects; for get flag this is a single flag object.
+- `metadata` (json) — Response metadata. For list operations contains `count` (number of items returned) and `totalCount` (total available). For get flag contains `key` (flag key) and `name` (flag name).
+
+## Tools
+
+- **LaunchDarkly List Flags** (`launchdarkly_list_flags`) — Calls `GET /api/v2/flags/{projectKey}` to return all feature flags for the given project. Returns an array of flag objects plus `count` and `totalCount` metadata.
+- **LaunchDarkly Get Flag** (`launchdarkly_get_flag`) — Calls `GET /api/v2/flags/{projectKey}/{flagKey}` to return a single feature flag object. Returns the full flag object plus `key` and `name` metadata.
+- **LaunchDarkly List Projects** (`launchdarkly_list_projects`) — Calls `GET /api/v2/projects` to return all projects in the LaunchDarkly account. Returns an array of project objects plus `count` and `totalCount` metadata.
+
+## YAML Example
+
+```yaml
+launchdarkly_1:
+  type: launchdarkly
+  name: "Get Feature Flag"
+  inputs:
+    operation: "launchdarkly_get_flag"
+    apiKey: "{{LAUNCHDARKLY_API_KEY}}"
+    projectKey: "my-project"
+    flagKey: "enable-new-checkout"
+  connections:
+    outgoing:
+      - target: next-block-id
+```

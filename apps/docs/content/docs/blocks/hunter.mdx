@@ -6,59 +6,146 @@ icon: Box
 
 # Hunter io Block
 
-The Hunter io block lets you find and verify professional email addresses using Hunter.io. Reach for it when you need to discover contacts at a company, build a verified email address from a name and domain, check deliverability, or enrich your prospecting data.
+The Hunter io block searches for email addresses, verifies their deliverability, discovers companies, and enriches contact data using Hunter.io's email finding capabilities. Reach for it whenever you need to build a prospect list, confirm an address is deliverable, or retrieve company profile data from a domain.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
 | **Type** | `hunter` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#E0E0E0` |
 
 ## When to Use
 
-- Pull all known email addresses for a company domain (domain search) for lead generation.
-- Build a likely email address for a specific person from their first name, last name, and domain (email finder).
-- Verify whether an email address is deliverable before sending (email verifier).
-- Discover companies that match a free-text search query (e.g. "software companies in San Francisco").
-- Look up details for a single company by its domain (find company).
-- Count how many personal vs. generic emails exist for a domain before committing to a full search (email count).
+- Pull all known email addresses for a company domain for lead-generation pipelines.
+- Build the most likely email address for a named person given their first name, last name, and employer domain.
+- Verify whether a specific email address is deliverable before sending campaigns.
+- Discover companies that match a free-text or filtered search (e.g. "software companies in San Francisco").
+- Look up full company profile data — industry, headcount, social links — from a single domain.
+- Count how many personal vs. generic emails exist for a domain to gauge list size before running a full search.
 
 ## Configuration
 
 ### Operation
 
-A dropdown that selects which Hunter.io action to run: Domain Search, Email Finder, Email Verifier, Discover Companies, Find Company, or Email Count. The remaining fields shown depend on this choice.
+Selects which Hunter.io action to run. All other visible fields depend on this selection.
+
+| Label | id |
+|-------|----|
+| Domain Search | `hunter_domain_search` |
+| Email Finder | `hunter_email_finder` |
+| Email Verifier | `hunter_email_verifier` |
+| Discover Companies | `hunter_discover` |
+| Find Company | `hunter_companies_find` |
+| Email Count | `hunter_email_count` |
 
 ### Domain
 
-The company domain to operate on (e.g. `stripe.com`). Required for domain search, email finder, find company, and email count.
+A short text input for the company domain (e.g. `stripe.com`).
 
-### First Name / Last Name / Company Name
+- Shown for: **Domain Search**, **Email Finder**, **Discover Companies** (as a domain filter), **Find Company**, **Email Count**.
+- Required for: Domain Search, Email Finder, Find Company, Email Count.
 
-Used by Email Finder to construct a person's email address. First and last name are required; company name is optional.
+### Number of Results (`limit`)
 
-### Email Address
+Optional integer — maximum number of email addresses to return. Shown for **Domain Search** only (default: 10).
 
-The email to check for deliverability when using Email Verifier.
+### Email Type (`type`)
 
-### Search Query
+Dropdown — filter the email addresses by type. Shown for **Domain Search** and **Email Count**.
 
-The free-text query used by Discover Companies to find matching organizations.
+| Label | id |
+|-------|----|
+| All | `all` |
+| Personal | `personal` |
+| Generic | `generic` |
 
-### Result Filters
+### Seniority Level (`seniority`)
 
-Optional refinements for domain search and email count: number of results (limit), email type (all / personal / generic), seniority level, and department.
+Dropdown — filter results by the seniority of the contact. Shown for **Domain Search** only.
 
-### API Key
+| Label | id |
+|-------|----|
+| All | `all` |
+| Junior | `junior` |
+| Senior | `senior` |
+| Executive | `executive` |
 
-Your Hunter.io API key. Required and stored as a password field.
+### Department (`department`)
+
+Optional short text — filter by department name (e.g. `sales`, `marketing`, `engineering`). Shown for **Domain Search** only.
+
+### First Name (`first_name`)
+
+Required short text — the person's first name. Shown for **Email Finder** only.
+
+### Last Name (`last_name`)
+
+Required short text — the person's last name. Shown for **Email Finder** only.
+
+### Company Name (`company`)
+
+Optional short text — the company name. Shown for **Email Finder** and **Email Count**.
+
+### Email Address (`email`)
+
+Required short text — the email address to check for deliverability. Shown for **Email Verifier** only.
+
+### Search Query (`query`)
+
+Required long text — a natural-language or keyword query describing the companies to find (e.g. `"software companies in San Francisco"`). Shown for **Discover Companies** only.
+
+### API Key (`apiKey`)
+
+Your Hunter.io API key. Required for every operation; stored as a password field. Use `{{HUNTER_API_KEY}}` to reference an environment variable.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `apiKey` (string), `domain` (string), `limit` (number), `offset` (number), `type` (string), `seniority` (string), `department` (string), `first_name` (string), `last_name` (string), `company` (string), `email` (string), `query` (string), `headcount` (string), `company_type` (string), `technology` (string)
-- **Outputs**: `results` (json), `emails` (json), `email` (string), `score` (number), `result` (string), `status` (string), `total` (number), `personal_emails` (number), `generic_emails` (number)
+**Inputs** (all sub-block ids that map to block inputs):
+
+- `operation` (string) — Operation to perform
+- `apiKey` (string) — Hunter.io API key
+- `domain` (string) — Company domain name
+- `limit` (number) — Result limit
+- `offset` (number) — Result offset
+- `type` (string) — Email type filter
+- `seniority` (string) — Seniority level filter
+- `department` (string) — Department filter
+- `first_name` (string) — First name
+- `last_name` (string) — Last name
+- `company` (string) — Company name
+- `email` (string) — Email address
+- `query` (string) — Search query
+- `headcount` (string) — Company headcount filter
+- `company_type` (string) — Company type filter
+- `technology` (string) — Technology filter
+
+**Outputs** (block-level; actual fields vary by operation — see Tools section for per-operation detail):
+
+- `results` (json) — Search results (Discover Companies)
+- `emails` (json) — Email addresses found (Domain Search)
+- `email` (string) — Found or verified email address (Email Finder / Email Verifier)
+- `score` (number) — Confidence score (Email Finder / Email Verifier)
+- `result` (string) — Verification result: `deliverable`, `undeliverable`, or `risky` (Email Verifier)
+- `status` (string) — Verification status: `valid`, `invalid`, `accept_all`, `webmail`, `disposable`, or `unknown` (Email Verifier)
+- `total` (number) — Total results count (Email Count)
+- `personal_emails` (number) — Personal emails count (Email Count)
+- `generic_emails` (number) — Generic emails count (Email Count)
+
+## Tools
+
+**Hunter Domain Search** (`hunter_domain_search`) — Returns all email addresses found for a given domain, each with confidence score, type, seniority, department, and social links. Also returns organization metadata (industry, location, social profiles, technologies). Key params: `domain` (required), `limit`, `offset`, `type`, `seniority`, `department`, `apiKey`.
+
+**Hunter Email Finder** (`hunter_email_finder`) — Finds the single most likely email address for a person given their first name, last name, and employer domain. Returns `email`, `score`, `sources`, and `verification`. Key params: `domain`, `first_name`, `last_name`, `company` (optional), `apiKey`.
+
+**Hunter Email Verifier** (`hunter_email_verifier`) — Verifies deliverability of a specific email address. Returns detailed checks: `result`, `score`, `regexp`, `gibberish`, `disposable`, `webmail`, `mx_records`, `smtp_server`, `smtp_check`, `accept_all`, `block`, `status`, and `sources`. Key params: `email`, `apiKey`.
+
+**Hunter Discover** (`hunter_discover`) — Returns companies matching a set of criteria using Hunter.io's AI-powered search. At least one filter must be supplied. Returns an array of company objects with `domain`, `name`, `headcount`, `technologies`, and `email_count`. Key params: `query`, `domain`, `headcount`, `company_type`, `technology`, `apiKey`.
+
+**Hunter Companies Find** (`hunter_companies_find`) — Enriches company data from a domain name. Returns a `company` object with `name`, `domain`, `industry`, `size`, `country`, `linkedin`, and `twitter`. Key params: `domain`, `apiKey`.
+
+**Hunter Email Count** (`hunter_email_count`) — Returns the total number of email addresses on record for a domain or company, broken down by type (personal/generic), department, and seniority. Either `domain` or `company` must be provided. Key params: `domain`, `company`, `type`, `apiKey`.
 
 ## YAML Example
 
@@ -71,6 +158,8 @@ hunter_1:
     domain: "stripe.com"
     limit: 10
     type: "all"
+    seniority: "senior"
+    department: "engineering"
     apiKey: "{{HUNTER_API_KEY}}"
   connections:
     outgoing:

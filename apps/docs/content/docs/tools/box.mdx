@@ -1,0 +1,117 @@
+---
+title: Box
+description: Upload, download, and manage files and folders in Box cloud storage
+icon: Box
+---
+
+# Box
+
+Integrate Box cloud storage into your workflows to upload and download files, browse folder contents, create folders, manage sharing links, and retrieve file metadata — all authenticated via OAuth.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `box` |
+| **Category** | Tool — Cloud Storage |
+| **Auth** | OAuth 2.0 (Box) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Upload File** | `box_upload_file` | Upload a file to a specified Box folder |
+| **Download File** | `box_download_file` | Download a file from Box as base64-encoded content |
+| **List Folder** | `box_list_folder` | List files and subfolders inside a Box folder (up to 100 items) |
+| **Create Folder** | `box_create_folder` | Create a new folder inside an existing Box folder |
+| **Delete File** | `box_delete_file` | Permanently delete a file from Box |
+| **Get File Info** | `box_get_file_info` | Retrieve detailed metadata about a file (size, timestamps, parent, shared link) |
+| **Create Shared Link** | `box_create_shared_link` | Generate a publicly accessible shared link for a file |
+
+## Configuration
+
+| Setting | Param Name | Type | Required | Description |
+|---------|-----------|------|----------|-------------|
+| Box Account (OAuth) | `accessToken` | `string` | Yes | OAuth access token injected automatically when a Box account is connected. Hidden from the UI — connect your account via the **Box Account** credential picker. |
+| File ID | `fileId` | `string` | Yes (Download File, Delete File, Get File Info, Create Shared Link) | The unique Box file identifier (numeric string visible in the Box web URL). |
+| Folder ID | `folderId` | `string` | Yes (List Folder, Create Folder, Upload File) | The unique Box folder identifier. Use `"0"` to target the root folder. |
+| File / Folder Name | `fileName` | `string` | No (Upload File); Yes (Create Folder) | Destination filename for an upload, or the name of the new folder to create. |
+| File | `uploadFile` | `file` | No | The file object to upload. Provided via a file-upload sub-block or an upstream block output. |
+
+## Outputs
+
+### Upload File (`box_upload_file`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Box file ID of the newly uploaded file |
+| `name` | `string` | Filename as stored in Box |
+| `size` | `number` | File size in bytes |
+| `parentId` | `string` | ID of the folder the file was uploaded into |
+
+### Download File (`box_download_file`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `file` | `file` | File object with `name`, `mimeType`, `data` (base64), and `size` |
+| `content` | `string` | Raw base64-encoded file content |
+
+### List Folder (`box_list_folder`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `entries` | `array` | Array of items, each containing `type`, `id`, `name`, `size`, `createdAt`, and `modifiedAt` |
+| `totalCount` | `number` | Total number of items in the folder |
+
+### Create Folder (`box_create_folder`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Box ID of the newly created folder |
+| `name` | `string` | Name of the created folder |
+| `createdAt` | `string` | ISO 8601 creation timestamp |
+| `parentId` | `string` | ID of the parent folder |
+
+### Delete File (`box_delete_file`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `deleted` | `boolean` | `true` when the file was successfully deleted |
+| `message` | `string` | Human-readable confirmation message |
+
+### Get File Info (`box_get_file_info`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Box file ID |
+| `name` | `string` | File name |
+| `size` | `number` | File size in bytes |
+| `sha1` | `string` | SHA-1 hash of the file content |
+| `createdAt` | `string` | ISO 8601 creation timestamp |
+| `modifiedAt` | `string` | ISO 8601 last-modified timestamp |
+| `parentId` | `string` | ID of the containing folder |
+| `sharedLink` | `json` | Existing shared link details, or `null` if none |
+
+### Create Shared Link (`box_create_shared_link`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | `string` | Shared link URL (publicly accessible) |
+| `downloadUrl` | `string` | Direct download URL for the file |
+| `access` | `string` | Access level set on the link — always `open` (public) when created via this tool |
+
+## Example
+
+```
+[Starter] → [Box: Upload File] → [Agent: analyze the uploaded file] → [Box: Create Shared Link]
+```
+
+When a workflow is triggered, the Starter block passes a file (e.g. from `{{starter.file}}`) to the **Box: Upload File** block, setting `folderId` to `{{BOX_REPORTS_FOLDER_ID}}` and `fileName` to `{{starter.fileName}}`. The resulting `{{box.id}}` is then handed to **Box: Create Shared Link** so an Agent can include the public `{{box.url}}` in a summary or notification.
+
+## Tips
+
+- **Finding a file or folder ID** — open the item in the Box web app; the numeric ID appears at the end of the URL (e.g. `https://app.box.com/folder/123456789`).
+- **Root folder** — use `"0"` as the `folderId` for any operation that targets the top-level folder of the connected account.
+- **Download readiness** — Box may return HTTP 202 while a file is being processed. If the Download File operation throws a "not yet ready" error, add a short **Wait** block before retrying.
+- **Shared link access** — the Create Shared Link tool always creates an `open` (anyone with the link) shared link. If you need restricted access (company or collaborators only), update the link via the Box web UI or a custom HTTP block after creation.
+- **Upload via proxy** — the Upload File tool routes through the internal `/api/tools/box/upload` endpoint rather than calling Box directly, so the OAuth token is never exposed in the browser for file payloads.

@@ -1,0 +1,107 @@
+---
+title: Granola Tools
+description: Retrieve meeting notes, summaries, attendees, and transcripts from Granola.
+icon: Grape
+---
+
+# Granola Tools
+
+Granola is an AI meeting-notes tool that captures, summarizes, and transcribes your meetings. Use these tools in a workflow to list your Granola meeting notes and fetch a specific note's summary, attendees, calendar details, and full transcript.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Provider** | `granola` |
+| **Category** | `tools` |
+| **Auth** | API Key (sent as a Bearer token in the `Authorization` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| List Notes | `granola_list_notes` | Lists meeting notes with optional date filters and pagination. |
+| Get Note | `granola_get_note` | Retrieves a specific note by ID, including summary, attendees, calendar event details, and optionally the transcript. |
+
+## Configuration
+
+### granola_list_notes
+
+Lists meeting notes from Granola with optional date filters and pagination.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Granola API key. **Secret** — sent as a Bearer token; store it as an environment variable. (visibility: user-only) |
+| `createdBefore` | string | No | Return notes created before this date (ISO 8601). (visibility: user-or-llm) |
+| `createdAfter` | string | No | Return notes created after this date (ISO 8601). (visibility: user-or-llm) |
+| `updatedAfter` | string | No | Return notes updated after this date (ISO 8601). (visibility: user-or-llm) |
+| `cursor` | string | No | Pagination cursor from a previous response. (visibility: user-or-llm) |
+| `pageSize` | number | No | Number of notes per page (1-30, default 10). (visibility: user-or-llm) |
+
+### granola_get_note
+
+Retrieves a specific meeting note from Granola by ID, including summary, attendees, calendar event details, and optionally the transcript.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Granola API key. **Secret** — sent as a Bearer token; store it as an environment variable. (visibility: user-only) |
+| `noteId` | string | Yes | The note ID (e.g., `not_1d3tmYTlCICgjy`). (visibility: user-or-llm) |
+| `includeTranscript` | string | No | Whether to include the meeting transcript. Set to `"true"` to include the transcript; any other value omits it. (visibility: user-or-llm) |
+
+## Outputs
+
+### granola_list_notes
+
+- `notes` (json) — List of meeting notes. Each note includes `id`, `title`, `ownerName`, `ownerEmail`, `createdAt`, and `updatedAt`.
+- `hasMore` (boolean) — Whether more notes are available.
+- `cursor` (string, optional) — Pagination cursor for the next page.
+
+### granola_get_note
+
+- `id` (string) — Note ID.
+- `title` (string, optional) — Note title.
+- `ownerEmail` (string) — Note owner email.
+- `createdAt` (string) — Creation timestamp.
+- `summaryText` (string) — Plain text summary of the meeting.
+- `summaryMarkdown` (string, optional) — Markdown-formatted summary.
+- `attendees` (json) — Meeting attendees (each with `name` and `email`).
+- `transcript` (json, optional) — Meeting transcript entries (each with `speaker`, `text`, `startTime`, and `endTime`); returned only when `includeTranscript` is `"true"`.
+
+## YAML Example
+
+```yaml
+granola_1:
+  type: granola
+  name: "Granola"
+  inputs:
+    operation: "granola_list_notes"
+    apiKey: "{{GRANOLA_API_KEY}}"
+    pageSize: 10
+    createdAfter: "2026-01-01"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+To fetch a single note's details and transcript:
+
+```yaml
+granola_2:
+  type: granola
+  name: "Granola"
+  inputs:
+    operation: "granola_get_note"
+    apiKey: "{{GRANOLA_API_KEY}}"
+    noteId: "{{granola_1.notes[0].id}}"
+    includeTranscript: "true"
+  connections:
+    outgoing:
+      - target: next-block-id
+```
+
+## Tips
+
+- Get an API key from your Granola account and store it as an environment variable (for example `{{GRANOLA_API_KEY}}`). It is sent as a `Bearer` token in the `Authorization` header, so never hardcode it in a workflow.
+- `pageSize` must be between 1 and 30 (default 10). Use the returned `cursor` together with `hasMore` to page through large result sets — feed `cursor` back into the next `granola_list_notes` call.
+- `includeTranscript` is a string flag: only the exact value `"true"` includes the transcript. Leave it off (or set to `"false"`) to keep responses small when you only need the summary and attendees.
+- A common pattern is to run `granola_list_notes` first, then pass a note `id` (e.g. `{{granola_1.notes[0].id}}`) into `granola_get_note` to drill into the full summary and transcript.

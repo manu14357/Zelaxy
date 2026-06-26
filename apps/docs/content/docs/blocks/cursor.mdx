@@ -1,7 +1,7 @@
 ---
 title: Cursor (Legacy) Block
 description: Launch and manage AI coding agents in Cursor
-icon: Box
+icon: Code
 ---
 
 # Cursor (Legacy) Block
@@ -13,42 +13,78 @@ The Cursor (Legacy) block integrates the Cursor AI coding assistant into your wo
 | Property | Value |
 |----------|-------|
 | **Type** | `cursor` |
-| **Category** | tools |
+| **Category** | `tools` |
 | **Color** | `#1E1E1E` |
 
 ## When to Use
 
-- Kick off an AI coding agent on a specific repository and branch
-- Send a follow-up prompt to an already-running agent to refine its work
-- Poll an agent's status to gate downstream steps in a workflow
-- Pull back the full conversation history for an agent
-- List all active agents to find one to act on
-- Stop a running agent that is no longer needed
+- Kick off an AI coding agent on a specific repository and branch with a natural-language task prompt
+- Send a follow-up prompt to an already-running agent to refine or extend its work
+- Poll an agent's status to gate downstream steps in a workflow until the agent finishes
+- Pull back the full conversation history for an agent for logging or summarisation
+- List all active agents across your Cursor workspace to find one to act on
+- Stop a running agent that is no longer needed to save compute
 
 ## Configuration
 
 ### Operation
-Dropdown that selects what the block does. Options: Launch Agent (`cursor_launch_agent`), Add Followup (`cursor_add_followup`), Get Agent (`cursor_get_agent`), Get Conversation (`cursor_get_conversation`), List Agents (`cursor_list_agents`), Stop Agent (`cursor_stop_agent`).
+
+Required dropdown that selects which Cursor API action the block performs. Every other field appears only when its operation is selected.
+
+| Label | ID |
+|-------|----|
+| Launch Agent | `cursor_launch_agent` |
+| Add Followup | `cursor_add_followup` |
+| Get Agent | `cursor_get_agent` |
+| Get Conversation | `cursor_get_conversation` |
+| List Agents | `cursor_list_agents` |
+| Stop Agent | `cursor_stop_agent` |
 
 ### Repository
-The target repository slug (e.g. `org/repo`). Used when launching an agent.
+
+The target repository slug in `org/repo` format. Shown for **Launch Agent** only. Example: `acme/backend`.
 
 ### Branch/Ref
-The branch or ref the agent should work against (e.g. `main`). Used when launching an agent.
+
+The branch or commit ref the agent should work against. Shown for **Launch Agent** only. Defaults to the repository's default branch when omitted. Example: `main`.
 
 ### Prompt
-The task description for the agent. Used when launching an agent or adding a follow-up.
+
+The natural-language task description for the agent. Shown for **Launch Agent** and **Add Followup**. For a launch this is the initial instruction; for a follow-up it extends the existing conversation.
 
 ### Agent ID
-Identifier of an existing agent. Required for follow-up, get agent, get conversation, and stop operations.
+
+The identifier of an existing Cursor agent. Shown for **Add Followup**, **Get Agent**, **Get Conversation**, and **Stop Agent**. Use `{{cursor_1.agentId}}` to pass the ID from a previous Launch Agent step.
 
 ### Model
-The model the agent should use (e.g. `claude-4-5`). Used when launching an agent.
+
+The model the launched agent should use. Shown for **Launch Agent** only. Optional; omit to use the Cursor default. Example: `claude-4-5`.
 
 ## Inputs & Outputs
 
-- **Inputs**: `operation` (string), `repository` (string), `ref` (string), `promptText` (string), `agentId` (string), `model` (string)
-- **Outputs**: `agentId` (string), `status` (string), `conversation` (json)
+- **Inputs**:
+  - `operation` (string) — Operation to perform (one of the tool IDs above)
+  - `repository` (string) — Repository slug (e.g. `org/repo`)
+  - `ref` (string) — Branch or ref
+  - `promptText` (string) — Agent prompt
+  - `agentId` (string) — Agent ID
+  - `model` (string) — Model name
+
+- **Outputs**:
+  - `agentId` (string) — Agent ID (returned by Launch Agent; pass to subsequent steps)
+  - `status` (string) — Agent status (returned by Get Agent)
+  - `conversation` (json) — Conversation history (returned by Get Conversation)
+
+## Tools
+
+- **Cursor Launch Agent** (`cursor_launch_agent`) — POSTs to `https://api.cursor.com/v0/agents` to create a new AI coding agent for a repository, branch/ref, prompt, and optional model. Returns the new agent `id` and a `url` to view the agent in Cursor.
+- **Cursor Add Followup** (`cursor_add_followup`) — POSTs a follow-up prompt to an existing agent's conversation (`/agents/{agentId}/followup`). Returns the follow-up message `id`.
+- **Cursor Get Agent** (`cursor_get_agent`) — GETs the status and metadata of a single agent (`/agents/{agentId}`). Returns `id`, `name`, `status`, `source`, `target`, `summary`, and `createdAt`.
+- **Cursor Get Conversation** (`cursor_get_conversation`) — GETs the full conversation history for an agent (`/agents/{agentId}/conversation`). Returns the conversation `id` and an array of `messages`.
+- **Cursor List Agents** (`cursor_list_agents`) — GETs a paginated list of all agents. Accepts optional `limit` and `cursor` pagination params. Returns an `agents` array and a `nextCursor` for the next page.
+- **Cursor Stop Agent** (`cursor_stop_agent`) — POSTs to `/agents/{agentId}/stop` to halt a running agent. Returns the stopped agent `id`.
+
+All tools authenticate using HTTP Basic auth with your Cursor API key (`{{CURSOR_API_KEY}}`).
 
 ## YAML Example
 
@@ -58,9 +94,9 @@ cursor_1:
   name: "Cursor (Legacy)"
   inputs:
     operation: "cursor_launch_agent"
-    repository: "org/repo"
+    repository: "acme/backend"
     ref: "main"
-    promptText: "{{start.input}}"
+    promptText: "{{trigger.userRequest}}"
     model: "claude-4-5"
   connections:
     outgoing:
