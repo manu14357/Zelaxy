@@ -55,6 +55,14 @@ if (typeof document !== 'undefined') {
       .dark .token.punctuation {
         color: #d4d4d4 !important;
       }
+      /* react-simple-code-editor sets word-break: keep-all inline, which can't wrap a long
+         token with no spaces (e.g. minified JSON), so it overflows the panel. Force breaking
+         anywhere so content wraps to the container width and the field stays responsive. */
+      .code-editor-area,
+      .code-editor-pre {
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+      }
     `
     document.head.appendChild(style)
   }
@@ -496,6 +504,7 @@ export function Code({
             highlight={(codeToHighlight) =>
               highlight(codeToHighlight, languages[language], language)
             }
+            preClassName='code-editor-pre'
             padding={12}
             style={{
               fontFamily: 'inherit',

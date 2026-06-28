@@ -13,6 +13,7 @@ export type ProviderId =
   | 'nvidia'
   | 'bedrock'
   | 'mimo'
+  | 'mimo-token-plan'
   | 'openrouter'
   | 'together'
   | 'fireworks'

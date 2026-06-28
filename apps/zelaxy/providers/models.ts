@@ -1018,10 +1018,13 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
       },
     ],
   },
+  // Xiaomi MiMo — pay-as-you-go API. Pricing is the overseas USD rate per 1M tokens (see
+  // https://mimo.mi.com/docs/en-US/price/pay-as-you-go). The V2 series is auto-routed to (and billed
+  // as) the V2.5 series and is fully deprecated 2026-06-30; the ids remain for back-compat.
   mimo: {
     id: 'mimo',
     name: 'MiMo',
-    description: "Xiaomi's MiMo models (OpenAI-compatible API)",
+    description: "Xiaomi's MiMo models (pay-as-you-go API)",
     defaultModel: 'mimo-v2.5-pro',
     modelPatterns: [/^mimo/],
     icon: MiMoIcon,
@@ -1030,8 +1033,9 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         id: 'mimo-v2.5-pro',
         pricing: {
           input: 0.435,
+          cachedInput: 0.0036,
           output: 0.87,
-          updatedAt: '2026-06-20',
+          updatedAt: '2026-06-28',
         },
         capabilities: {
           temperature: { min: 0, max: 2 },
@@ -1042,8 +1046,36 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         id: 'mimo-v2.5',
         pricing: {
           input: 0.14,
+          cachedInput: 0.0028,
           output: 0.28,
-          updatedAt: '2026-06-20',
+          updatedAt: '2026-06-28',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      // V2 series — routed to V2.5 pricing, deprecated 2026-06-30.
+      {
+        id: 'mimo-v2-pro',
+        pricing: {
+          input: 0.435,
+          cachedInput: 0.0036,
+          output: 0.87,
+          updatedAt: '2026-06-28',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'mimo-v2-omni',
+        pricing: {
+          input: 0.14,
+          cachedInput: 0.0028,
+          output: 0.28,
+          updatedAt: '2026-06-28',
         },
         capabilities: {
           temperature: { min: 0, max: 2 },
@@ -1053,9 +1085,78 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
       {
         id: 'mimo-v2-flash',
         pricing: {
-          input: 0.09,
-          output: 0.29,
-          updatedAt: '2026-06-20',
+          input: 0.14,
+          cachedInput: 0.0028,
+          output: 0.28,
+          updatedAt: '2026-06-28',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+    ],
+  },
+  // Xiaomi MiMo — Token Plan (subscription). Quota is metered in "Credits"; cost here is the
+  // USD-equivalent of those Credits, which is a linear transform of the overseas pay-as-you-go price
+  // (≈ $1.45e-9 per Credit), so the per-1M-token numbers match the pay-as-you-go rate. Models are
+  // namespaced `mimo-token-plan/...` so a model id resolves to this provider rather than `mimo`; the
+  // prefix is stripped before the request hits the upstream API. See
+  // https://mimo.mi.com/docs/en-US/price/token-plan.
+  'mimo-token-plan': {
+    id: 'mimo-token-plan',
+    name: 'MiMo Token Plan',
+    description: "Xiaomi's MiMo models via the Token Plan subscription (Credits-based billing)",
+    defaultModel: 'mimo-token-plan/mimo-v2.5-pro',
+    modelPatterns: [/^mimo-token-plan\//],
+    icon: MiMoIcon,
+    models: [
+      {
+        id: 'mimo-token-plan/mimo-v2.5-pro',
+        pricing: {
+          input: 0.435,
+          cachedInput: 0.0036,
+          output: 0.87,
+          updatedAt: '2026-06-28',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'mimo-token-plan/mimo-v2.5',
+        pricing: {
+          input: 0.14,
+          cachedInput: 0.0028,
+          output: 0.28,
+          updatedAt: '2026-06-28',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'mimo-token-plan/mimo-v2-pro',
+        pricing: {
+          input: 0.435,
+          cachedInput: 0.0036,
+          output: 0.87,
+          updatedAt: '2026-06-28',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'mimo-token-plan/mimo-v2-omni',
+        pricing: {
+          input: 0.14,
+          cachedInput: 0.0028,
+          output: 0.28,
+          updatedAt: '2026-06-28',
         },
         capabilities: {
           temperature: { min: 0, max: 2 },

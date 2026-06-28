@@ -66,6 +66,12 @@ const LLM_PROVIDERS: LLMProvider[] = [
   { id: 'cerebras', name: 'Cerebras', icon: CerebrasIcon, models: getProviderModels('cerebras') },
   { id: 'mimo', name: 'MiMo', icon: MiMoIcon, models: getProviderModels('mimo') },
   {
+    id: 'mimo-token-plan',
+    name: 'MiMo Token Plan',
+    icon: MiMoIcon,
+    models: getProviderModels('mimo-token-plan'),
+  },
+  {
     id: 'openrouter',
     name: 'OpenRouter',
     icon: OpenRouterIcon,

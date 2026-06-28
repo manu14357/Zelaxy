@@ -199,8 +199,14 @@ export function Properties({ panelWidth = 308 }: PropertiesProps) {
   }
 
   return (
-    <ScrollArea className='h-full bg-transparent' hideScrollbar={true}>
-      <div className='space-y-6 px-3 py-4'>
+    // Force the Radix ScrollArea viewport's inner wrapper to block: it defaults to
+    // `display:table; min-width:100%`, which grows to max-content, so a wide field (e.g. a long
+    // single-line code/JSON value) would push the whole column past the panel width and get clipped.
+    <ScrollArea
+      className='[&_[data-radix-scroll-area-viewport]>div]:!block h-full bg-transparent'
+      hideScrollbar={true}
+    >
+      <div className='w-full min-w-0 space-y-6 px-3 py-4'>
         {/* Node Header */}
         <div className='space-y-3'>
           <div className='flex items-center justify-between'>

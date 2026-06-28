@@ -57,7 +57,7 @@ ID: `model` | Type: `combobox` | Layout: half | **Required**
 
 Searchable dropdown listing every available model across all supported providers, including locally-running Ollama models. Each entry shows its provider icon. You can also type a model name directly.
 
-Supported providers include: OpenAI, Anthropic, Google, xAI, DeepSeek, Groq, Cerebras, Azure OpenAI, Mistral, Perplexity, Cohere, OpenRouter, NVIDIA, Fireworks, Together, vLLM, LiteLLM, Baseten, Ollama, and Ollama Cloud.
+Supported providers include: OpenAI, Anthropic, Google, xAI, DeepSeek, Groq, Cerebras, Azure OpenAI, Mistral, Perplexity, Cohere, OpenRouter, NVIDIA, Fireworks, Together, Xiaomi MiMo, Xiaomi MiMo Token Plan, vLLM, LiteLLM, Baseten, Ollama, and Ollama Cloud.
 
 ---
 
@@ -255,7 +255,20 @@ The Agent block is an **LLM block**. Its `tools.access` list contains LLM provid
 | `mistral_chat` | Mistral AI conversational models (Mistral Large, Mistral Medium, etc.) |
 | `perplexity_chat` | Perplexity AI models with real-time web retrieval |
 
-Additional providers available via model selection (Groq, Cerebras, Azure OpenAI, OpenRouter, NVIDIA, Fireworks, Together, vLLM, LiteLLM, Baseten, Ollama, Ollama Cloud) are resolved through the same `getAllModelProviders()` lookup at runtime.
+Additional providers available via model selection (Groq, Cerebras, Azure OpenAI, OpenRouter, NVIDIA, Fireworks, Together, vLLM, LiteLLM, Baseten, Ollama, Ollama Cloud, Xiaomi MiMo, and Xiaomi MiMo Token Plan) are resolved through the same `getAllModelProviders()` lookup at runtime.
+
+### Xiaomi MiMo
+
+MiMo is offered as **two separate providers** that share the same OpenAI-compatible wire format but bill differently:
+
+| Provider | Base URL | API key (env var) | Billing |
+|----------|----------|-------------------|---------|
+| **MiMo** (pay-as-you-go) | `https://api.xiaomimimo.com/v1` | `XIAOMI_MIMO_API_KEY` | Per-token against your account balance ([pay-as-you-go pricing](https://mimo.mi.com/docs/en-US/price/pay-as-you-go)) |
+| **MiMo Token Plan** (subscription) | `https://token-plan-sgp.xiaomimimo.com/v1` | `XIAOMI_MIMO_TOKEN_PLAN_API_KEY` | Prepaid subscription quota metered in **Credits** ([Token Plan pricing](https://mimo.mi.com/docs/en-US/price/token-plan)) |
+
+Both expose the `mimo-v2.5-pro`, `mimo-v2.5`, `mimo-v2-pro`, and `mimo-v2-omni` chat models. So a model id resolves to the right provider, Token Plan models are selected under a `mimo-token-plan/` namespace (e.g. `mimo-token-plan/mimo-v2.5-pro`); the prefix is stripped before the request is sent upstream.
+
+Cost reporting uses the USD value of each request. Because MiMo's Credits are a linear transform of the overseas pay-as-you-go price (≈ $1.45 × 10⁻⁹ per Credit), the Token Plan's per-1M-token cost matches the pay-as-you-go rate.
 
 ## YAML Example
 

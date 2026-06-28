@@ -537,8 +537,15 @@ export function Sidebar({
 
           {/* Content */}
           <div className='flex-1 overflow-hidden'>
-            <ScrollArea className='h-full w-full overflow-y-auto' ref={scrollAreaRef}>
-              <div className='w-full space-y-4 px-4 py-4'>
+            {/* Radix ScrollArea wraps children in a `display:table; min-width:100%` div that grows to
+                max-content, letting wide content (e.g. long single-line code/JSON) escape the panel
+                width and get clipped. Force that wrapper to block so children wrap to the viewport
+                width and the panel stays responsive. */}
+            <ScrollArea
+              className='[&_[data-radix-scroll-area-viewport]>div]:!block h-full w-full overflow-y-auto'
+              ref={scrollAreaRef}
+            >
+              <div className='w-full min-w-0 space-y-4 px-4 py-4'>
                 {/* ── Overview Card ─────────────────────────────────────── */}
                 <div className='rounded-xl border border-border/50 bg-card/50 p-4'>
                   {/* Workflow header inside overview */}

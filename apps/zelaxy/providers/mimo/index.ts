@@ -20,8 +20,27 @@ import { executeTool } from '@/tools'
 
 const logger = createLogger('MiMoProvider')
 
-// Xiaomi MiMo exposes an OpenAI-compatible API.
-const MIMO_BASE_URL = 'https://api.xiaomimimo.com/v1'
+// Xiaomi MiMo exposes an OpenAI-compatible API. Two billing surfaces share the same wire format but
+// use different base URLs + API keys: pay-as-you-go ("mimo") and the subscription "Token Plan"
+// ("mimo-token-plan"). The Token Plan registers its models under a `mimo-token-plan/` namespace so a
+// model id resolves to the right provider; that prefix is stripped before the id is sent upstream.
+const MIMO_PAYG_BASE_URL = 'https://api.xiaomimimo.com/v1'
+const MIMO_TOKEN_PLAN_BASE_URL = 'https://token-plan-sgp.xiaomimimo.com/v1'
+
+interface MiMoProviderOptions {
+  /** Provider id (also the provider key in providers/models.ts). */
+  id: string
+  name: string
+  description: string
+  baseUrl: string
+  /** When set, stripped from `request.model` to recover the upstream model name. */
+  apiModelPrefix?: string
+}
+
+/** Recover the upstream MiMo model name from a (possibly namespaced) registry model id. */
+function toApiModel(model: string, prefix?: string): string {
+  return prefix && model.startsWith(prefix) ? model.slice(prefix.length) : model
+}
 
 /**
  * Decode a PARTIAL JSON string value (the characters AFTER the opening quote) up to the closing
@@ -82,548 +101,554 @@ function createReadableStreamFromMiMoStream(mimoStream: any): ReadableStream {
   })
 }
 
-export const mimoProvider: ProviderConfig = {
-  id: 'mimo',
-  name: 'MiMo',
-  description: "Xiaomi's MiMo models",
-  version: '1.0.0',
-  models: getProviderModels('mimo'),
-  defaultModel: getProviderDefaultModel('mimo'),
+async function executeMiMoRequest(
+  request: ProviderRequest,
+  options: MiMoProviderOptions
+): Promise<ProviderResponse | StreamingExecution> {
+  if (!request.apiKey) {
+    throw new Error(`API key is required for ${options.name}`)
+  }
 
-  executeRequest: async (
-    request: ProviderRequest
-  ): Promise<ProviderResponse | StreamingExecution> => {
-    if (!request.apiKey) {
-      throw new Error('API key is required for MiMo')
+  const providerStartTime = Date.now()
+  const providerStartTimeISO = new Date(providerStartTime).toISOString()
+  const model = request.model || getProviderDefaultModel(options.id)
+  const apiModel = toApiModel(model, options.apiModelPrefix)
+
+  try {
+    const mimo = new OpenAI({ apiKey: request.apiKey, baseURL: options.baseUrl })
+
+    const allMessages = []
+    if (request.systemPrompt) {
+      allMessages.push({ role: 'system', content: request.systemPrompt })
+    }
+    if (request.context) {
+      allMessages.push({ role: 'user', content: request.context })
+    }
+    if (request.messages) {
+      allMessages.push(...request.messages)
     }
 
-    const providerStartTime = Date.now()
-    const providerStartTimeISO = new Date(providerStartTime).toISOString()
-    const model = request.model || getProviderDefaultModel('mimo')
+    const tools = request.tools?.length
+      ? request.tools.map((tool) => ({
+          type: 'function',
+          function: {
+            name: tool.id,
+            description: tool.description,
+            parameters: tool.parameters,
+          },
+        }))
+      : undefined
 
-    try {
-      const mimo = new OpenAI({ apiKey: request.apiKey, baseURL: MIMO_BASE_URL })
+    const payload: any = { model: apiModel, messages: allMessages }
+    if (request.temperature !== undefined) payload.temperature = request.temperature
+    if (request.maxTokens !== undefined && request.maxTokens >= 1)
+      payload.max_tokens = request.maxTokens
+    if (request.topP !== undefined) payload.top_p = request.topP
+    if (request.presencePenalty !== undefined) payload.presence_penalty = request.presencePenalty
+    if (request.frequencyPenalty !== undefined) payload.frequency_penalty = request.frequencyPenalty
 
-      const allMessages = []
-      if (request.systemPrompt) {
-        allMessages.push({ role: 'system', content: request.systemPrompt })
+    let preparedTools: ReturnType<typeof prepareToolsWithUsageControl> | null = null
+    if (tools?.length) {
+      preparedTools = prepareToolsWithUsageControl(tools, request.tools, logger, options.id)
+      const { tools: filteredTools, toolChoice } = preparedTools
+      if (filteredTools?.length && toolChoice) {
+        payload.tools = filteredTools
+        payload.tool_choice = toolChoice
       }
-      if (request.context) {
-        allMessages.push({ role: 'user', content: request.context })
-      }
-      if (request.messages) {
-        allMessages.push(...request.messages)
-      }
+    }
 
-      const tools = request.tools?.length
-        ? request.tools.map((tool) => ({
-            type: 'function',
-            function: {
-              name: tool.id,
-              description: tool.description,
-              parameters: tool.parameters,
-            },
-          }))
-        : undefined
-
-      const payload: any = { model, messages: allMessages }
-      if (request.temperature !== undefined) payload.temperature = request.temperature
-      if (request.maxTokens !== undefined && request.maxTokens >= 1)
-        payload.max_tokens = request.maxTokens
-      if (request.topP !== undefined) payload.top_p = request.topP
-      if (request.presencePenalty !== undefined) payload.presence_penalty = request.presencePenalty
-      if (request.frequencyPenalty !== undefined)
-        payload.frequency_penalty = request.frequencyPenalty
-
-      let preparedTools: ReturnType<typeof prepareToolsWithUsageControl> | null = null
-      if (tools?.length) {
-        preparedTools = prepareToolsWithUsageControl(tools, request.tools, logger, 'mimo')
-        const { tools: filteredTools, toolChoice } = preparedTools
-        if (filteredTools?.length && toolChoice) {
-          payload.tools = filteredTools
-          payload.tool_choice = toolChoice
-        }
-      }
-
-      // Direct streaming when no tools to execute.
-      if (request.stream && (!tools || tools.length === 0)) {
-        const streamResponse = await mimo.chat.completions.create({ ...payload, stream: true })
-        const streamingResult = {
-          stream: createReadableStreamFromMiMoStream(streamResponse),
-          execution: {
-            success: true,
-            output: {
-              content: '',
-              model,
-              tokens: { prompt: 0, completion: 0, total: 0 },
-              toolCalls: undefined,
-              providerTiming: {
-                startTime: providerStartTimeISO,
-                endTime: new Date().toISOString(),
-                duration: Date.now() - providerStartTime,
-                timeSegments: [
-                  {
-                    type: 'model',
-                    name: 'Streaming response',
-                    startTime: providerStartTime,
-                    endTime: Date.now(),
-                    duration: Date.now() - providerStartTime,
-                  },
-                ],
-              },
-              cost: { total: 0.0, input: 0.0, output: 0.0 },
-            },
-            logs: [],
-            metadata: {
+    // Direct streaming when no tools to execute.
+    if (request.stream && (!tools || tools.length === 0)) {
+      const streamResponse = await mimo.chat.completions.create({ ...payload, stream: true })
+      const streamingResult = {
+        stream: createReadableStreamFromMiMoStream(streamResponse),
+        execution: {
+          success: true,
+          output: {
+            content: '',
+            model,
+            tokens: { prompt: 0, completion: 0, total: 0 },
+            toolCalls: undefined,
+            providerTiming: {
               startTime: providerStartTimeISO,
               endTime: new Date().toISOString(),
               duration: Date.now() - providerStartTime,
+              timeSegments: [
+                {
+                  type: 'model',
+                  name: 'Streaming response',
+                  startTime: providerStartTime,
+                  endTime: Date.now(),
+                  duration: Date.now() - providerStartTime,
+                },
+              ],
             },
-            isStreaming: true,
+            cost: { total: 0.0, input: 0.0, output: 0.0 },
           },
-        }
-        return streamingResult as StreamingExecution
+          logs: [],
+          metadata: {
+            startTime: providerStartTimeISO,
+            endTime: new Date().toISOString(),
+            duration: Date.now() - providerStartTime,
+          },
+          isStreaming: true,
+        },
       }
+      return streamingResult as StreamingExecution
+    }
 
-      const initialCallTime = Date.now()
-      const originalToolChoice = payload.tool_choice
-      const forcedTools = preparedTools?.forcedTools || []
-      let usedForcedTools: string[] = []
+    const initialCallTime = Date.now()
+    const originalToolChoice = payload.tool_choice
+    const forcedTools = preparedTools?.forcedTools || []
+    let usedForcedTools: string[] = []
 
-      // MiMo sometimes returns tool calls as literal text in `content` instead of structured
-      // `tool_calls`. When tools are available, synthesize the structured calls so they actually run.
-      const applyTextToolCallFallback = (resp: any) => {
-        const msg = resp?.choices?.[0]?.message
-        if (!msg || !tools?.length) return
-        if ((!msg.tool_calls || msg.tool_calls.length === 0) && typeof msg.content === 'string') {
-          const textCalls = parseTextToolCalls(msg.content)
-          if (textCalls.length > 0) {
-            msg.tool_calls = textCalls
-            msg.content = stripTextToolCallMarkup(msg.content)
-          }
+    // MiMo sometimes returns tool calls as literal text in `content` instead of structured
+    // `tool_calls`. When tools are available, synthesize the structured calls so they actually run.
+    const applyTextToolCallFallback = (resp: any) => {
+      const msg = resp?.choices?.[0]?.message
+      if (!msg || !tools?.length) return
+      if ((!msg.tool_calls || msg.tool_calls.length === 0) && typeof msg.content === 'string') {
+        const textCalls = parseTextToolCalls(msg.content)
+        if (textCalls.length > 0) {
+          msg.tool_calls = textCalls
+          msg.content = stripTextToolCallMarkup(msg.content)
         }
       }
+    }
 
-      // ── LIVE-STREAMING COPILOT TURN ──────────────────────────────────────────────────────────
-      // When the copilot loop passes an `onStreamText` callback, stream the assistant's text deltas
-      // to it as the model generates them while assembling tool calls from the SAME stream. Returns
-      // the tool calls UNEXECUTED (the caller runs them) — so the agent loop shows narration
-      // token-by-token instead of waiting for the whole non-streaming turn.
-      if (request.isCopilotRequest && tools?.length && typeof request.onStreamText === 'function') {
-        let streamedContent = ''
-        try {
-          logger.info('MiMo: live-streaming copilot turn (stream + tools)')
-          const streamResp: any = await mimo.chat.completions.create({ ...payload, stream: true })
-          const toolAcc: Array<{ id: string; name: string; arguments: string }> = []
-          let contentDeltas = 0
-          // MiMo sometimes emits a tool call as literal markup IN the content (`<seed:tool_call>` /
-          // `<function>{json}</function>`). Never stream that markup to the client — stop streaming
-          // text at the first marker (the rest is the tool call, parsed below). `sentLen` tracks
-          // what we've streamed; HOLDBACK keeps back a small tail so a marker forming across deltas
-          // isn't half-streamed before we detect it.
-          const TOOL_MARKER = /<(?:seed:)?tool_call|<function[=>]/i
-          const HOLDBACK = 24
-          let sentLen = 0
-          let markupStarted = false
-          // File streaming: once a doc-writing tool call appears — EITHER as text markup (in
-          // delta.content) OR as a STRUCTURED tool call (args JSON in delta.tool_calls) — stream its
-          // `content` value to onFileStream so the side panel renders the document LIVE as written.
-          let fileDeltas = 0
-          let fileName: string | undefined
-          let fileValueStart = -1
-          let fileSent = 0
-          const emitFileFrom = async (source: string, fromArgs: boolean) => {
-            if (typeof request.onFileStream !== 'function') return
-            if (fileValueStart < 0) {
-              // For text markup the tool name is `"name":"create_file"`; for structured args the
-              // toolAcc carries the name separately, so the source's first `"name"` is the file name.
-              if (
-                !fromArgs &&
-                !/"name"\s*:\s*"(?:create_file|append_file|write_file)"/.test(source)
-              )
-                return
-              const cm = source.match(/"content"\s*:\s*"/)
-              if (!cm || cm.index === undefined) return
-              fileValueStart = cm.index + cm[0].length
-              const nm = fromArgs
-                ? source.match(/"name"\s*:\s*"([^"]*)"/)
-                : source.match(/"arguments"\s*:\s*\{[\s\S]*?"name"\s*:\s*"([^"]*)"/)
-              fileName = nm ? nm[1] : undefined
-            }
-            const { value } = decodeJsonStringPartial(source.slice(fileValueStart))
-            if (value.length > fileSent) {
-              const delta = value.slice(fileSent)
-              fileSent = value.length
-              fileDeltas++
-              await request.onFileStream({ name: fileName, delta })
-            }
+    // ── LIVE-STREAMING COPILOT TURN ──────────────────────────────────────────────────────────
+    // When the copilot loop passes an `onStreamText` callback, stream the assistant's text deltas
+    // to it as the model generates them while assembling tool calls from the SAME stream. Returns
+    // the tool calls UNEXECUTED (the caller runs them) — so the agent loop shows narration
+    // token-by-token instead of waiting for the whole non-streaming turn.
+    if (request.isCopilotRequest && tools?.length && typeof request.onStreamText === 'function') {
+      let streamedContent = ''
+      try {
+        logger.info('MiMo: live-streaming copilot turn (stream + tools)')
+        const streamResp: any = await mimo.chat.completions.create({ ...payload, stream: true })
+        const toolAcc: Array<{ id: string; name: string; arguments: string }> = []
+        let contentDeltas = 0
+        // MiMo sometimes emits a tool call as literal markup IN the content (`<seed:tool_call>` /
+        // `<function>{json}</function>`). Never stream that markup to the client — stop streaming
+        // text at the first marker (the rest is the tool call, parsed below). `sentLen` tracks
+        // what we've streamed; HOLDBACK keeps back a small tail so a marker forming across deltas
+        // isn't half-streamed before we detect it.
+        const TOOL_MARKER = /<(?:seed:)?tool_call|<function[=>]/i
+        const HOLDBACK = 24
+        let sentLen = 0
+        let markupStarted = false
+        // File streaming: once a doc-writing tool call appears — EITHER as text markup (in
+        // delta.content) OR as a STRUCTURED tool call (args JSON in delta.tool_calls) — stream its
+        // `content` value to onFileStream so the side panel renders the document LIVE as written.
+        let fileDeltas = 0
+        let fileName: string | undefined
+        let fileValueStart = -1
+        let fileSent = 0
+        const emitFileFrom = async (source: string, fromArgs: boolean) => {
+          if (typeof request.onFileStream !== 'function') return
+          if (fileValueStart < 0) {
+            // For text markup the tool name is `"name":"create_file"`; for structured args the
+            // toolAcc carries the name separately, so the source's first `"name"` is the file name.
+            if (!fromArgs && !/"name"\s*:\s*"(?:create_file|append_file|write_file)"/.test(source))
+              return
+            const cm = source.match(/"content"\s*:\s*"/)
+            if (!cm || cm.index === undefined) return
+            fileValueStart = cm.index + cm[0].length
+            const nm = fromArgs
+              ? source.match(/"name"\s*:\s*"([^"]*)"/)
+              : source.match(/"arguments"\s*:\s*\{[\s\S]*?"name"\s*:\s*"([^"]*)"/)
+            fileName = nm ? nm[1] : undefined
           }
-          const emitFileContent = () => emitFileFrom(streamedContent, false)
-          const emitStructuredFileContent = async () => {
-            const fi = toolAcc.findIndex(
-              (t) => t && /^(?:create_file|append_file|write_file)$/.test(t.name)
-            )
-            if (fi >= 0) await emitFileFrom(toolAcc[fi].arguments, true)
+          const { value } = decodeJsonStringPartial(source.slice(fileValueStart))
+          if (value.length > fileSent) {
+            const delta = value.slice(fileSent)
+            fileSent = value.length
+            fileDeltas++
+            await request.onFileStream({ name: fileName, delta })
           }
-          for await (const chunk of streamResp) {
-            const delta = chunk.choices?.[0]?.delta
-            if (delta?.content) {
-              streamedContent += delta.content
-              contentDeltas++
-              if (!markupStarted) {
-                const markerIdx = streamedContent.search(TOOL_MARKER)
-                if (markerIdx >= 0) {
-                  if (markerIdx > sentLen) {
-                    await request.onStreamText(streamedContent.slice(sentLen, markerIdx))
-                  }
-                  sentLen = markerIdx
-                  markupStarted = true
-                } else {
-                  // Stream all confirmed-clean text, holding back a possible partial-marker tail.
-                  const safeEnd = Math.max(sentLen, streamedContent.length - HOLDBACK)
-                  if (safeEnd > sentLen) {
-                    await request.onStreamText(streamedContent.slice(sentLen, safeEnd))
-                    sentLen = safeEnd
-                  }
+        }
+        const emitFileContent = () => emitFileFrom(streamedContent, false)
+        const emitStructuredFileContent = async () => {
+          const fi = toolAcc.findIndex(
+            (t) => t && /^(?:create_file|append_file|write_file)$/.test(t.name)
+          )
+          if (fi >= 0) await emitFileFrom(toolAcc[fi].arguments, true)
+        }
+        for await (const chunk of streamResp) {
+          const delta = chunk.choices?.[0]?.delta
+          if (delta?.content) {
+            streamedContent += delta.content
+            contentDeltas++
+            if (!markupStarted) {
+              const markerIdx = streamedContent.search(TOOL_MARKER)
+              if (markerIdx >= 0) {
+                if (markerIdx > sentLen) {
+                  await request.onStreamText(streamedContent.slice(sentLen, markerIdx))
+                }
+                sentLen = markerIdx
+                markupStarted = true
+              } else {
+                // Stream all confirmed-clean text, holding back a possible partial-marker tail.
+                const safeEnd = Math.max(sentLen, streamedContent.length - HOLDBACK)
+                if (safeEnd > sentLen) {
+                  await request.onStreamText(streamedContent.slice(sentLen, safeEnd))
+                  sentLen = safeEnd
                 }
               }
-              // Stream the doc content (if this turn is writing a file) to the side panel, live.
-              if (markupStarted) await emitFileContent()
             }
-            if (Array.isArray(delta?.tool_calls)) {
-              // A STRUCTURED tool call means the narration in `content` is finished and no text-markup
-              // marker is coming — flush the held-back narration tail NOW so it isn't stuck behind
-              // HOLDBACK for the whole (possibly long) tool-args stream.
-              if (!markupStarted && streamedContent.length > sentLen) {
-                await request.onStreamText(streamedContent.slice(sentLen))
-                sentLen = streamedContent.length
-              }
-              for (const tcDelta of delta.tool_calls) {
-                const idx = typeof tcDelta.index === 'number' ? tcDelta.index : toolAcc.length
-                if (!toolAcc[idx]) toolAcc[idx] = { id: '', name: '', arguments: '' }
-                const acc = toolAcc[idx]
-                if (tcDelta.id) acc.id = tcDelta.id
-                if (tcDelta.function?.name) acc.name += tcDelta.function.name
-                if (tcDelta.function?.arguments) acc.arguments += tcDelta.function.arguments
-              }
-              // Structured create_file: stream its content live from the accumulating args JSON.
-              await emitStructuredFileContent()
+            // Stream the doc content (if this turn is writing a file) to the side panel, live.
+            if (markupStarted) await emitFileContent()
+          }
+          if (Array.isArray(delta?.tool_calls)) {
+            // A STRUCTURED tool call means the narration in `content` is finished and no text-markup
+            // marker is coming — flush the held-back narration tail NOW so it isn't stuck behind
+            // HOLDBACK for the whole (possibly long) tool-args stream.
+            if (!markupStarted && streamedContent.length > sentLen) {
+              await request.onStreamText(streamedContent.slice(sentLen))
+              sentLen = streamedContent.length
             }
-          }
-
-          // No tool-call markup appeared — flush the tail we held back so the full text reaches the
-          // client. (If markup DID appear, the tail is part of the tool call and stays hidden.)
-          if (!markupStarted && streamedContent.length > sentLen) {
-            await request.onStreamText(streamedContent.slice(sentLen))
-          }
-
-          let finalContent = streamedContent
-          let assembled = toolAcc.filter((t) => t && (t.name || t.id))
-          // Diagnostic: contentDeltas == 1 means MiMo buffered the text into one chunk (no smooth
-          // streaming); many means it streamed token-by-token.
-          logger.info('MiMo: streamed turn complete', {
-            contentDeltas,
-            contentLength: streamedContent.length,
-            toolCalls: assembled.length,
-            // fileDeltas > 1 means the document streamed live to the side panel; 0 means no file
-            // tool call this turn; 1 means MiMo emitted the whole content in one chunk (can't stream).
-            fileDeltas,
-          })
-          // MiMo may emit tool calls as literal text instead of structured tool_calls — recover them.
-          if (assembled.length === 0 && finalContent) {
-            const textCalls = parseTextToolCalls(finalContent)
-            if (textCalls.length > 0) {
-              assembled = textCalls.map((tc: any) => ({
-                id: tc.id,
-                name: tc.function.name,
-                arguments: tc.function.arguments,
-              }))
-              finalContent = stripTextToolCallMarkup(finalContent)
+            for (const tcDelta of delta.tool_calls) {
+              const idx = typeof tcDelta.index === 'number' ? tcDelta.index : toolAcc.length
+              if (!toolAcc[idx]) toolAcc[idx] = { id: '', name: '', arguments: '' }
+              const acc = toolAcc[idx]
+              if (tcDelta.id) acc.id = tcDelta.id
+              if (tcDelta.function?.name) acc.name += tcDelta.function.name
+              if (tcDelta.function?.arguments) acc.arguments += tcDelta.function.arguments
             }
+            // Structured create_file: stream its content live from the accumulating args JSON.
+            await emitStructuredFileContent()
           }
-          // Safety: if the stream yielded NOTHING (no text and no tool calls — e.g. MiMo's streaming
-          // format for this turn isn't what we expect), bail to the non-streaming path which reads
-          // the response shape reliably, so we never silently drop the model's output.
-          if (!finalContent && assembled.length === 0) {
-            logger.warn(
-              'MiMo stream yielded no content or tool calls; falling back to non-streaming'
-            )
-            throw new Error('empty-mimo-stream')
-          }
-          const cleanContent = finalContent
-            ? finalContent.replace(/```json\n?|\n?```/g, '').trim()
-            : ''
-          return {
-            content: cleanContent,
-            model,
-            tokens: { prompt: 0, completion: 0, total: 0 },
-            toolCalls:
-              assembled.length > 0
-                ? assembled.map((tc) => ({
-                    id: tc.id,
-                    name: tc.name,
-                    arguments: (() => {
-                      try {
-                        return JSON.parse(tc.arguments || '{}')
-                      } catch {
-                        return {}
-                      }
-                    })(),
-                  }))
-                : undefined,
-          }
-        } catch (streamErr) {
-          // If text already streamed to the client we can't cleanly retry — surface the error.
-          // Otherwise (e.g. the endpoint rejected stream+tools upfront) fall through to non-streaming.
-          if (streamedContent) throw streamErr
-          logger.warn('MiMo streaming-with-tools failed; falling back to non-streaming', {
-            error: streamErr instanceof Error ? streamErr.message : String(streamErr),
-          })
         }
-      }
 
-      let currentResponse = await mimo.chat.completions.create(payload)
-      applyTextToolCallFallback(currentResponse)
-      const firstResponseTime = Date.now() - initialCallTime
+        // No tool-call markup appeared — flush the tail we held back so the full text reaches the
+        // client. (If markup DID appear, the tail is part of the tool call and stays hidden.)
+        if (!markupStarted && streamedContent.length > sentLen) {
+          await request.onStreamText(streamedContent.slice(sentLen))
+        }
 
-      let content = currentResponse.choices[0]?.message?.content || ''
-      if (content) {
-        content = content.replace(/```json\n?|\n?```/g, '').trim()
-      }
-
-      const tokens = {
-        prompt: currentResponse.usage?.prompt_tokens || 0,
-        completion: currentResponse.usage?.completion_tokens || 0,
-        total: currentResponse.usage?.total_tokens || 0,
-      }
-      const toolCalls = []
-      const toolResults = []
-      const currentMessages = [...allMessages]
-      let iterationCount = 0
-      const MAX_ITERATIONS = 10
-
-      let hasUsedForcedTool = false
-      let modelTime = firstResponseTime
-      let toolsTime = 0
-      const timeSegments: TimeSegment[] = [
-        {
-          type: 'model',
-          name: 'Initial response',
-          startTime: initialCallTime,
-          endTime: initialCallTime + firstResponseTime,
-          duration: firstResponseTime,
-        },
-      ]
-
-      if (
-        typeof originalToolChoice === 'object' &&
-        currentResponse.choices[0]?.message?.tool_calls
-      ) {
-        const result = trackForcedToolUsage(
-          currentResponse.choices[0].message.tool_calls,
-          originalToolChoice,
-          logger,
-          'mimo',
-          forcedTools,
-          usedForcedTools
-        )
-        hasUsedForcedTool = result.hasUsedForcedTool
-        usedForcedTools = result.usedForcedTools
-      }
-
-      // Copilot requests: return tool calls without auto-executing.
-      if (request.isCopilotRequest) {
-        const toolCallsInResponse = currentResponse.choices[0]?.message?.tool_calls
-        if (toolCallsInResponse && toolCallsInResponse.length > 0) {
-          return {
-            content: content || '',
-            model,
-            tokens,
-            toolCalls: toolCallsInResponse.map((tc: any) => ({
+        let finalContent = streamedContent
+        let assembled = toolAcc.filter((t) => t && (t.name || t.id))
+        // Diagnostic: contentDeltas == 1 means MiMo buffered the text into one chunk (no smooth
+        // streaming); many means it streamed token-by-token.
+        logger.info('MiMo: streamed turn complete', {
+          contentDeltas,
+          contentLength: streamedContent.length,
+          toolCalls: assembled.length,
+          // fileDeltas > 1 means the document streamed live to the side panel; 0 means no file
+          // tool call this turn; 1 means MiMo emitted the whole content in one chunk (can't stream).
+          fileDeltas,
+        })
+        // MiMo may emit tool calls as literal text instead of structured tool_calls — recover them.
+        if (assembled.length === 0 && finalContent) {
+          const textCalls = parseTextToolCalls(finalContent)
+          if (textCalls.length > 0) {
+            assembled = textCalls.map((tc: any) => ({
               id: tc.id,
               name: tc.function.name,
-              arguments: JSON.parse(tc.function.arguments || '{}'),
-            })),
+              arguments: tc.function.arguments,
+            }))
+            finalContent = stripTextToolCallMarkup(finalContent)
           }
         }
+        // Safety: if the stream yielded NOTHING (no text and no tool calls — e.g. MiMo's streaming
+        // format for this turn isn't what we expect), bail to the non-streaming path which reads
+        // the response shape reliably, so we never silently drop the model's output.
+        if (!finalContent && assembled.length === 0) {
+          logger.warn('MiMo stream yielded no content or tool calls; falling back to non-streaming')
+          throw new Error('empty-mimo-stream')
+        }
+        const cleanContent = finalContent
+          ? finalContent.replace(/```json\n?|\n?```/g, '').trim()
+          : ''
+        return {
+          content: cleanContent,
+          model,
+          tokens: { prompt: 0, completion: 0, total: 0 },
+          toolCalls:
+            assembled.length > 0
+              ? assembled.map((tc) => ({
+                  id: tc.id,
+                  name: tc.name,
+                  arguments: (() => {
+                    try {
+                      return JSON.parse(tc.arguments || '{}')
+                    } catch {
+                      return {}
+                    }
+                  })(),
+                }))
+              : undefined,
+        }
+      } catch (streamErr) {
+        // If text already streamed to the client we can't cleanly retry — surface the error.
+        // Otherwise (e.g. the endpoint rejected stream+tools upfront) fall through to non-streaming.
+        if (streamedContent) throw streamErr
+        logger.warn('MiMo streaming-with-tools failed; falling back to non-streaming', {
+          error: streamErr instanceof Error ? streamErr.message : String(streamErr),
+        })
       }
+    }
 
-      try {
-        while (iterationCount < MAX_ITERATIONS) {
-          const toolCallsInResponse = currentResponse.choices[0]?.message?.tool_calls
-          if (!toolCallsInResponse || toolCallsInResponse.length === 0) break
+    let currentResponse = await mimo.chat.completions.create(payload)
+    applyTextToolCallFallback(currentResponse)
+    const firstResponseTime = Date.now() - initialCallTime
 
-          const toolsStartTime = Date.now()
+    let content = currentResponse.choices[0]?.message?.content || ''
+    if (content) {
+      content = content.replace(/```json\n?|\n?```/g, '').trim()
+    }
 
-          // OpenAI message-history contract: ONE assistant message carrying ALL tool_calls, then
-          // one `tool` message per call id. Pushing an assistant message per call (the old shape)
-          // makes stricter backends reject with "tool_call_id did not have a tool response".
-          currentMessages.push({
-            role: 'assistant',
-            content: currentResponse.choices[0]?.message?.content ?? null,
-            tool_calls: toolCallsInResponse.map((tc: any) => ({
-              id: tc.id,
-              type: 'function',
-              function: { name: tc.function.name, arguments: tc.function.arguments },
-            })),
-          })
+    const tokens = {
+      prompt: currentResponse.usage?.prompt_tokens || 0,
+      completion: currentResponse.usage?.completion_tokens || 0,
+      total: currentResponse.usage?.total_tokens || 0,
+    }
+    const toolCalls = []
+    const toolResults = []
+    const currentMessages = [...allMessages]
+    let iterationCount = 0
+    const MAX_ITERATIONS = 10
 
-          for (const toolCall of toolCallsInResponse) {
-            const toolName = toolCall.function.name
-            let resultContent: any
-            try {
-              const toolArgs = JSON.parse(toolCall.function.arguments || '{}')
-              const tool = request.tools?.find((t) => t.id === toolName)
-              if (!tool) {
-                resultContent = {
-                  error: true,
-                  message: `Tool not found: ${toolName}`,
-                  tool: toolName,
-                }
-              } else {
-                const toolCallStartTime = Date.now()
-                const { toolParams, executionParams } = prepareToolExecution(
-                  tool,
-                  toolArgs,
-                  request
-                )
+    let hasUsedForcedTool = false
+    let modelTime = firstResponseTime
+    let toolsTime = 0
+    const timeSegments: TimeSegment[] = [
+      {
+        type: 'model',
+        name: 'Initial response',
+        startTime: initialCallTime,
+        endTime: initialCallTime + firstResponseTime,
+        duration: firstResponseTime,
+      },
+    ]
 
-                const result = await executeTool(toolName, executionParams, true)
-                const toolCallEndTime = Date.now()
-                timeSegments.push({
-                  type: 'tool',
-                  name: toolName,
-                  startTime: toolCallStartTime,
-                  endTime: toolCallEndTime,
-                  duration: toolCallEndTime - toolCallStartTime,
-                })
+    if (typeof originalToolChoice === 'object' && currentResponse.choices[0]?.message?.tool_calls) {
+      const result = trackForcedToolUsage(
+        currentResponse.choices[0].message.tool_calls,
+        originalToolChoice,
+        logger,
+        options.id,
+        forcedTools,
+        usedForcedTools
+      )
+      hasUsedForcedTool = result.hasUsedForcedTool
+      usedForcedTools = result.usedForcedTools
+    }
 
-                if (result.success) {
-                  toolResults.push(result.output)
-                  resultContent = result.output
-                } else {
-                  resultContent = {
-                    error: true,
-                    message: result.error || 'Tool execution failed',
-                    tool: toolName,
-                  }
-                }
+    // Copilot requests: return tool calls without auto-executing.
+    if (request.isCopilotRequest) {
+      const toolCallsInResponse = currentResponse.choices[0]?.message?.tool_calls
+      if (toolCallsInResponse && toolCallsInResponse.length > 0) {
+        return {
+          content: content || '',
+          model,
+          tokens,
+          toolCalls: toolCallsInResponse.map((tc: any) => ({
+            id: tc.id,
+            name: tc.function.name,
+            arguments: JSON.parse(tc.function.arguments || '{}'),
+          })),
+        }
+      }
+    }
 
-                toolCalls.push({
-                  name: toolName,
-                  arguments: toolParams,
-                  startTime: new Date(toolCallStartTime).toISOString(),
-                  endTime: new Date(toolCallEndTime).toISOString(),
-                  duration: toolCallEndTime - toolCallStartTime,
-                  result: resultContent,
-                  success: result.success,
-                })
-              }
-            } catch (error) {
-              logger.error('Error processing tool call:', { error })
+    try {
+      while (iterationCount < MAX_ITERATIONS) {
+        const toolCallsInResponse = currentResponse.choices[0]?.message?.tool_calls
+        if (!toolCallsInResponse || toolCallsInResponse.length === 0) break
+
+        const toolsStartTime = Date.now()
+
+        // OpenAI message-history contract: ONE assistant message carrying ALL tool_calls, then
+        // one `tool` message per call id. Pushing an assistant message per call (the old shape)
+        // makes stricter backends reject with "tool_call_id did not have a tool response".
+        currentMessages.push({
+          role: 'assistant',
+          content: currentResponse.choices[0]?.message?.content ?? null,
+          tool_calls: toolCallsInResponse.map((tc: any) => ({
+            id: tc.id,
+            type: 'function',
+            function: { name: tc.function.name, arguments: tc.function.arguments },
+          })),
+        })
+
+        for (const toolCall of toolCallsInResponse) {
+          const toolName = toolCall.function.name
+          let resultContent: any
+          try {
+            const toolArgs = JSON.parse(toolCall.function.arguments || '{}')
+            const tool = request.tools?.find((t) => t.id === toolName)
+            if (!tool) {
               resultContent = {
                 error: true,
-                message: error instanceof Error ? error.message : 'Tool execution failed',
+                message: `Tool not found: ${toolName}`,
                 tool: toolName,
               }
+            } else {
+              const toolCallStartTime = Date.now()
+              const { toolParams, executionParams } = prepareToolExecution(tool, toolArgs, request)
+
+              const result = await executeTool(toolName, executionParams, true)
+              const toolCallEndTime = Date.now()
+              timeSegments.push({
+                type: 'tool',
+                name: toolName,
+                startTime: toolCallStartTime,
+                endTime: toolCallEndTime,
+                duration: toolCallEndTime - toolCallStartTime,
+              })
+
+              if (result.success) {
+                toolResults.push(result.output)
+                resultContent = result.output
+              } else {
+                resultContent = {
+                  error: true,
+                  message: result.error || 'Tool execution failed',
+                  tool: toolName,
+                }
+              }
+
+              toolCalls.push({
+                name: toolName,
+                arguments: toolParams,
+                startTime: new Date(toolCallStartTime).toISOString(),
+                endTime: new Date(toolCallEndTime).toISOString(),
+                duration: toolCallEndTime - toolCallStartTime,
+                result: resultContent,
+                success: result.success,
+              })
             }
-
-            // Always answer every tool_call id, even skipped/errored ones, to keep the history valid.
-            currentMessages.push({
-              role: 'tool',
-              tool_call_id: toolCall.id,
-              content: toonEncodeForLLM(resultContent),
-            })
+          } catch (error) {
+            logger.error('Error processing tool call:', { error })
+            resultContent = {
+              error: true,
+              message: error instanceof Error ? error.message : 'Tool execution failed',
+              tool: toolName,
+            }
           }
 
-          toolsTime += Date.now() - toolsStartTime
-
-          const nextPayload = { ...payload, messages: currentMessages }
-          if (
-            typeof originalToolChoice === 'object' &&
-            hasUsedForcedTool &&
-            forcedTools.length > 0
-          ) {
-            const remainingTools = forcedTools.filter((tool) => !usedForcedTools.includes(tool))
-            nextPayload.tool_choice =
-              remainingTools.length > 0
-                ? { type: 'function', function: { name: remainingTools[0] } }
-                : 'auto'
-          }
-
-          const nextModelStartTime = Date.now()
-          currentResponse = await mimo.chat.completions.create(nextPayload)
-          applyTextToolCallFallback(currentResponse)
-
-          if (
-            typeof nextPayload.tool_choice === 'object' &&
-            currentResponse.choices[0]?.message?.tool_calls
-          ) {
-            const result = trackForcedToolUsage(
-              currentResponse.choices[0].message.tool_calls,
-              nextPayload.tool_choice,
-              logger,
-              'mimo',
-              forcedTools,
-              usedForcedTools
-            )
-            hasUsedForcedTool = result.hasUsedForcedTool
-            usedForcedTools = result.usedForcedTools
-          }
-
-          const thisModelTime = Date.now() - nextModelStartTime
-          timeSegments.push({
-            type: 'model',
-            name: `Model response (iteration ${iterationCount + 1})`,
-            startTime: nextModelStartTime,
-            endTime: Date.now(),
-            duration: thisModelTime,
+          // Always answer every tool_call id, even skipped/errored ones, to keep the history valid.
+          currentMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: toonEncodeForLLM(resultContent),
           })
-          modelTime += thisModelTime
-
-          if (currentResponse.choices[0]?.message?.content) {
-            content = currentResponse.choices[0].message.content
-              .replace(/```json\n?|\n?```/g, '')
-              .trim()
-          }
-          if (currentResponse.usage) {
-            tokens.prompt += currentResponse.usage.prompt_tokens || 0
-            tokens.completion += currentResponse.usage.completion_tokens || 0
-            tokens.total += currentResponse.usage.total_tokens || 0
-          }
-          iterationCount++
         }
-      } catch (error) {
-        logger.error('Error in MiMo request:', { error })
-      }
 
-      const providerEndTime = Date.now()
-      return {
-        content,
-        model,
-        tokens,
-        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-        toolResults: toolResults.length > 0 ? toolResults : undefined,
-        timing: {
-          startTime: providerStartTimeISO,
-          endTime: new Date(providerEndTime).toISOString(),
-          duration: providerEndTime - providerStartTime,
-          modelTime,
-          toolsTime,
-          firstResponseTime,
-          iterations: iterationCount + 1,
-          timeSegments,
-        },
+        toolsTime += Date.now() - toolsStartTime
+
+        const nextPayload = { ...payload, messages: currentMessages }
+        if (typeof originalToolChoice === 'object' && hasUsedForcedTool && forcedTools.length > 0) {
+          const remainingTools = forcedTools.filter((tool) => !usedForcedTools.includes(tool))
+          nextPayload.tool_choice =
+            remainingTools.length > 0
+              ? { type: 'function', function: { name: remainingTools[0] } }
+              : 'auto'
+        }
+
+        const nextModelStartTime = Date.now()
+        currentResponse = await mimo.chat.completions.create(nextPayload)
+        applyTextToolCallFallback(currentResponse)
+
+        if (
+          typeof nextPayload.tool_choice === 'object' &&
+          currentResponse.choices[0]?.message?.tool_calls
+        ) {
+          const result = trackForcedToolUsage(
+            currentResponse.choices[0].message.tool_calls,
+            nextPayload.tool_choice,
+            logger,
+            'mimo',
+            forcedTools,
+            usedForcedTools
+          )
+          hasUsedForcedTool = result.hasUsedForcedTool
+          usedForcedTools = result.usedForcedTools
+        }
+
+        const thisModelTime = Date.now() - nextModelStartTime
+        timeSegments.push({
+          type: 'model',
+          name: `Model response (iteration ${iterationCount + 1})`,
+          startTime: nextModelStartTime,
+          endTime: Date.now(),
+          duration: thisModelTime,
+        })
+        modelTime += thisModelTime
+
+        if (currentResponse.choices[0]?.message?.content) {
+          content = currentResponse.choices[0].message.content
+            .replace(/```json\n?|\n?```/g, '')
+            .trim()
+        }
+        if (currentResponse.usage) {
+          tokens.prompt += currentResponse.usage.prompt_tokens || 0
+          tokens.completion += currentResponse.usage.completion_tokens || 0
+          tokens.total += currentResponse.usage.total_tokens || 0
+        }
+        iterationCount++
       }
     } catch (error) {
-      const enhancedError = new Error(error instanceof Error ? error.message : String(error))
-      // @ts-ignore - Adding timing property to the error
-      enhancedError.timing = {
-        startTime: providerStartTimeISO,
-        endTime: new Date().toISOString(),
-        duration: Date.now() - providerStartTime,
-      }
-      throw enhancedError
+      logger.error('Error in MiMo request:', { error })
     }
-  },
+
+    const providerEndTime = Date.now()
+    return {
+      content,
+      model,
+      tokens,
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+      toolResults: toolResults.length > 0 ? toolResults : undefined,
+      timing: {
+        startTime: providerStartTimeISO,
+        endTime: new Date(providerEndTime).toISOString(),
+        duration: providerEndTime - providerStartTime,
+        modelTime,
+        toolsTime,
+        firstResponseTime,
+        iterations: iterationCount + 1,
+        timeSegments,
+      },
+    }
+  } catch (error) {
+    const enhancedError = new Error(error instanceof Error ? error.message : String(error))
+    // @ts-ignore - Adding timing property to the error
+    enhancedError.timing = {
+      startTime: providerStartTimeISO,
+      endTime: new Date().toISOString(),
+      duration: Date.now() - providerStartTime,
+    }
+    throw enhancedError
+  }
 }
+
+function createMiMoProvider(options: MiMoProviderOptions): ProviderConfig {
+  return {
+    id: options.id,
+    name: options.name,
+    description: options.description,
+    version: '1.0.0',
+    models: getProviderModels(options.id),
+    defaultModel: getProviderDefaultModel(options.id),
+    executeRequest: (request: ProviderRequest) => executeMiMoRequest(request, options),
+  }
+}
+
+// Pay-as-you-go: ordinary API key billed per-token against the account balance.
+export const mimoProvider: ProviderConfig = createMiMoProvider({
+  id: 'mimo',
+  name: 'MiMo',
+  description: "Xiaomi's MiMo models (pay-as-you-go API)",
+  baseUrl: MIMO_PAYG_BASE_URL,
+})
+
+// Token Plan: subscription quota (Credits) billed via a dedicated base URL + key. Models are
+// namespaced `mimo-token-plan/...` in the registry; the prefix is stripped before the upstream call.
+export const mimoTokenPlanProvider: ProviderConfig = createMiMoProvider({
+  id: 'mimo-token-plan',
+  name: 'MiMo Token Plan',
+  description: "Xiaomi's MiMo models via the Token Plan subscription",
+  baseUrl: MIMO_TOKEN_PLAN_BASE_URL,
+  apiModelPrefix: 'mimo-token-plan/',
+})

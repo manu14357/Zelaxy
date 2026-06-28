@@ -28,6 +28,7 @@ const PROVIDER_ORDER = [
   'openai',
   'google',
   'mimo',
+  'mimo-token-plan',
   'xai',
   'deepseek',
   'groq',

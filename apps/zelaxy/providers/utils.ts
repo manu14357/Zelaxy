@@ -11,7 +11,7 @@ import { fireworksProvider } from '@/providers/fireworks'
 import { googleProvider } from '@/providers/google'
 import { groqProvider } from '@/providers/groq'
 import { litellmProvider } from '@/providers/litellm'
-import { mimoProvider } from '@/providers/mimo'
+import { mimoProvider, mimoTokenPlanProvider } from '@/providers/mimo'
 import { mistralProvider } from '@/providers/mistral'
 import {
   getComputerUseModels,
@@ -118,6 +118,11 @@ export const providers: Record<
     ...mimoProvider,
     models: getProviderModelsFromDefinitions('mimo'),
     modelPatterns: PROVIDER_DEFINITIONS.mimo.modelPatterns,
+  },
+  'mimo-token-plan': {
+    ...mimoTokenPlanProvider,
+    models: getProviderModelsFromDefinitions('mimo-token-plan'),
+    modelPatterns: PROVIDER_DEFINITIONS['mimo-token-plan'].modelPatterns,
   },
   openrouter: {
     ...openRouterProvider,

@@ -22,6 +22,32 @@ describe('MiMo provider', () => {
     expect(getProviderFromModel('mimo-v2.5-pro')).toBe('mimo')
     expect(getProviderFromModel('mimo-anything-new')).toBe('mimo') // via /^mimo/ pattern
   })
+  it('registers the V2 series (routed to V2.5 pricing) with cached-input rates', () => {
+    const models = getProviderModels('mimo')
+    expect(models).toEqual(expect.arrayContaining(['mimo-v2-pro', 'mimo-v2-omni', 'mimo-v2-flash']))
+    expect(getModelPricing('mimo-v2.5-pro')).toEqual(
+      expect.objectContaining({ input: 0.435, cachedInput: 0.0036, output: 0.87 })
+    )
+  })
+})
+
+describe('MiMo Token Plan provider', () => {
+  it('registers namespaced Token Plan models with USD-equivalent pricing', () => {
+    const models = getProviderModels('mimo-token-plan')
+    expect(models).toContain('mimo-token-plan/mimo-v2.5-pro')
+    expect(models).toContain('mimo-token-plan/mimo-v2.5')
+    // Credits are a linear transform of the overseas pay-as-you-go price, so the per-1M-token
+    // numbers match the pay-as-you-go rate.
+    expect(getModelPricing('mimo-token-plan/mimo-v2.5-pro')).toEqual(
+      expect.objectContaining({ input: 0.435, cachedInput: 0.0036, output: 0.87 })
+    )
+  })
+  it('routes namespaced model ids to the Token Plan provider (not the pay-as-you-go one)', () => {
+    expect(getProviderFromModel('mimo-token-plan/mimo-v2.5-pro')).toBe('mimo-token-plan')
+    expect(getProviderFromModel('mimo-token-plan/mimo-v2-omni')).toBe('mimo-token-plan')
+    // Plain ids still resolve to pay-as-you-go.
+    expect(getProviderFromModel('mimo-v2.5-pro')).toBe('mimo')
+  })
 })
 
 describe('custom models', () => {
@@ -58,6 +84,7 @@ describe('provider API-key mapping + availability', () => {
   it('maps providers to env var names', () => {
     expect(getProviderApiKeyEnvVar('openai')).toBe('OPENAI_API_KEY')
     expect(getProviderApiKeyEnvVar('mimo')).toBe('XIAOMI_MIMO_API_KEY')
+    expect(getProviderApiKeyEnvVar('mimo-token-plan')).toBe('XIAOMI_MIMO_TOKEN_PLAN_API_KEY')
     expect(getProviderApiKeyEnvVar('nvidia')).toBe('NVIDIA_API_KEY')
     expect(getProviderApiKeyEnvVar('ollama')).toBeNull()
   })

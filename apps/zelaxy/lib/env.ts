@@ -111,7 +111,8 @@ export const env = createEnv({
     ALLOWED_MCP_DOMAINS:                  z.string().optional(),                  // Comma-separated allowlist of MCP server domains (unset = all allowed)
 
     // Additional LLM providers
-    XIAOMI_MIMO_API_KEY:                  z.string().optional(),                  // Xiaomi MiMo (OpenAI-compatible) API key
+    XIAOMI_MIMO_API_KEY:                  z.string().optional(),                  // Xiaomi MiMo pay-as-you-go (OpenAI-compatible) API key
+    XIAOMI_MIMO_TOKEN_PLAN_API_KEY:       z.string().optional(),                  // Xiaomi MiMo Token Plan (subscription) API key
     OPENROUTER_API_KEY:                   z.string().min(1).optional(),           // OpenRouter API key (unified access to many models)
     TOGETHER_API_KEY:                     z.string().min(1).optional(),           // Together AI API key (hosted open-source models)
     FIREWORKS_API_KEY:                    z.string().min(1).optional(),           // Fireworks AI API key (fast OSS inference)
