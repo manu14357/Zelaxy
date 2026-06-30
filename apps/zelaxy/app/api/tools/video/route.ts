@@ -4,7 +4,7 @@ import { createLogger } from '@/lib/logs/console/logger'
 const logger = createLogger('VideoProxyAPI')
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 600
+export const maxDuration = 300
 
 const POLL_INTERVAL_MS = 5000
 const MAX_POLL_ATTEMPTS = 120
