@@ -46,7 +46,9 @@ export default async function WorkspaceLayout({
     <Providers>
       <div className='flex h-screen w-full overflow-hidden'>
         <AdvancedSidebar />
-        <div className='sidebar-responsive-margin flex min-w-0 flex-1 flex-col overflow-hidden'>{children}</div>
+        <div className='sidebar-responsive-margin flex min-w-0 flex-1 flex-col overflow-hidden'>
+          {children}
+        </div>
       </div>
     </Providers>
   )

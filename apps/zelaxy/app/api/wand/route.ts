@@ -9,7 +9,6 @@ import { db } from '@/db'
 import { workflow } from '@/db/schema'
 
 export const dynamic = 'force-dynamic'
-export const runtime = 'edge'
 export const maxDuration = 60
 
 const logger = createLogger('WandAPI')

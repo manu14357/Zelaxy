@@ -3,123 +3,126 @@
 import { useEffect, useState } from 'react'
 import { Menu, X } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { getDocsUrl } from '@/lib/docs-url'
 import { ThemeToggle } from './theme-toggle'
 
+const NAV = [
+  { href: '#manifesto', label: 'Manifesto', id: '01' },
+  { href: '#canvas', label: 'Canvas', id: '02' },
+  { href: '#capabilities', label: 'Capabilities', id: '04' },
+  { href: '#ecosystem', label: 'Ecosystem', id: '05' },
+  { href: '#developers', label: 'Developers', id: '07' },
+]
+
 export function Navigation() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
+  const [open, setOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    const onScroll = () => setScrolled(window.scrollY > 16)
+    onScroll()
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const navItems = [
-    { href: '#how-it-works', label: 'How It Works' },
-    { href: '#features', label: 'Features' },
-    { href: '#integrations', label: 'Integrations' },
-    { href: getDocsUrl(), label: 'Docs' },
-  ]
-
   return (
-    <nav
-      className={`fixed top-0 right-0 left-0 z-50 transition-all duration-500 ${
-        isScrolled
-          ? 'border-neutral-200 border-b bg-white/80 shadow-sm backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.06] dark:bg-[#060606]/80 dark:shadow-[0_1px_0_rgba(255,255,255,0.03)]'
-          : 'bg-transparent'
-      }`}
-    >
-      <div className='mx-auto max-w-6xl px-6 sm:px-8'>
-        <div className='flex h-14 items-center justify-between'>
-          {/* Logo */}
-          <Link href='/' className='group flex items-center space-x-2'>
-            <img src='/Zelaxy.png' alt='Zelaxy' width={24} height={24} className='h-6 w-6' />
-            <span className='bg-gradient-to-r from-primary via-orange-400 to-amber-300 bg-clip-text font-semibold text-[17px] text-transparent tracking-[-0.01em]'>
-              Zelaxy
-            </span>
+    <nav className={`nav-bar fixed inset-x-0 z-50 ${scrolled ? 'nav-bar--scrolled' : ''}`}>
+      <div className='mx-auto flex h-14 max-w-[1320px] items-center gap-4 px-5 sm:px-8'>
+        {/* Logo */}
+        <Link href='/' className='flex items-center gap-2.5'>
+          <span className='b-strong s-panel grid h-7 w-7 place-items-center rounded-[7px] border'>
+            <img src='/Zelaxy.png' alt='' width={16} height={16} className='h-4 w-4' />
+          </span>
+          <span className='t-ink font-semibold text-[15px] tracking-[-0.01em]'>Zelaxy</span>
+          <span className='t-faint bp-label hidden sm:inline' style={{ fontSize: '9px' }}>
+            OS&nbsp;v1.0
+          </span>
+        </Link>
+
+        {/* Desktop nav */}
+        <div className='ml-6 hidden items-center gap-7 lg:flex'>
+          {NAV.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className='t-dim group flex items-center gap-1.5 text-[13px]'
+            >
+              <span className='t-faint bp-label' style={{ fontSize: '9px' }}>
+                {item.id}
+              </span>
+              <span className='hover-ink'>{item.label}</span>
+            </a>
+          ))}
+        </div>
+
+        {/* Right */}
+        <div className='ml-auto flex items-center gap-2'>
+          <a href={getDocsUrl()} className='t-dim hover-ink hidden text-[13px] sm:inline'>
+            Docs
+          </a>
+          <a
+            href='https://github.com/manu14357/Zelaxy'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='t-dim hover-ink hidden text-[13px] sm:inline'
+          >
+            GitHub
+          </a>
+          <span className='hair hidden h-4 w-px sm:block' />
+          <ThemeToggle />
+          <Link
+            href='/arena'
+            className='btn-accent group ml-1 hidden items-center gap-2 rounded-md px-4 py-1.5 font-medium text-[13px] sm:inline-flex'
+          >
+            Start Building
+            <span className='transition-transform group-hover:translate-x-0.5'>→</span>
           </Link>
 
-          {/* Desktop Nav */}
-          <div className='hidden items-center gap-8 md:flex'>
-            {navItems.map((item) => (
+          <button
+            type='button'
+            onClick={() => setOpen((v) => !v)}
+            className='t-dim b-hair grid h-8 w-8 place-items-center rounded-md border lg:hidden'
+            aria-label='Toggle menu'
+          >
+            {open ? <X className='h-4 w-4' /> : <Menu className='h-4 w-4' />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile */}
+      {open && (
+        <div className='s-bg b-hair border-t lg:hidden'>
+          <div className='space-y-1 px-5 py-4'>
+            {NAV.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
-                className='font-medium text-[13px] text-neutral-500 transition-colors duration-300 hover:text-neutral-900 dark:hover:text-white'
+                onClick={() => setOpen(false)}
+                className='t-dim flex items-center gap-3 py-2.5 text-[15px]'
               >
+                <span className='t-accent bp-label' style={{ fontSize: '10px' }}>
+                  §{item.id}
+                </span>
                 {item.label}
               </a>
             ))}
-          </div>
-
-          {/* Right */}
-          <div className='hidden items-center gap-3 md:flex'>
-            <ThemeToggle />
-            <Link href='/login'>
-              <Button
-                variant='ghost'
-                className='h-8 px-3 font-medium text-[13px] text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
+            <div className='b-hair mt-3 flex gap-2 border-t pt-3'>
+              <a
+                href={getDocsUrl()}
+                className='t-dim b-hair flex-1 rounded-md border py-2.5 text-center text-[14px]'
               >
-                Sign In
-              </Button>
-            </Link>
-            <Link href='/arena'>
-              <Button className='h-8 rounded-full bg-neutral-900 px-5 font-medium text-[13px] text-white transition-all duration-300 hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200'>
-                Get Started
-              </Button>
-            </Link>
-          </div>
-
-          {/* Mobile */}
-          <div className='flex items-center gap-2 md:hidden'>
-            <ThemeToggle />
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className='rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-white'
-            >
-              {isOpen ? <X className='h-5 w-5' /> : <Menu className='h-5 w-5' />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        {isOpen && (
-          <div className='absolute top-14 right-0 left-0 border-neutral-200 border-b bg-white/95 backdrop-blur-xl backdrop-saturate-150 md:hidden dark:border-white/[0.06] dark:bg-[#060606]/95'>
-            <div className='space-y-1 px-6 py-5'>
-              {navItems.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className='block py-2.5 font-medium text-[15px] text-neutral-500 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
-                  onClick={() => setIsOpen(false)}
-                >
-                  {item.label}
-                </a>
-              ))}
-              <div className='flex flex-col gap-2 border-neutral-200 border-t pt-4 dark:border-white/[0.06]'>
-                <Link href='/login'>
-                  <Button
-                    variant='ghost'
-                    className='w-full text-[15px] text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href='/arena'>
-                  <Button className='w-full rounded-full bg-neutral-900 text-[15px] text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200'>
-                    Get Started
-                  </Button>
-                </Link>
-              </div>
+                Docs
+              </a>
+              <Link
+                href='/arena'
+                className='btn-accent flex-1 rounded-md py-2.5 text-center font-medium text-[14px]'
+              >
+                Start Building
+              </Link>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </nav>
   )
 }

@@ -893,4 +893,3 @@ export async function updateTableMetadata(
 
   logger.info(`[${requestId}] Updated metadata for table ${tableId}`)
 }
-

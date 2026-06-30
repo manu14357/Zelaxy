@@ -3,7 +3,7 @@ import Landing from '@/app/(landing)/landing'
 
 export default function Page() {
   return (
-    <ThemeProvider defaultTheme='light' storageKey='zelaxy-theme'>
+    <ThemeProvider defaultTheme='dark' storageKey='zelaxy-theme'>
       <Landing />
     </ThemeProvider>
   )

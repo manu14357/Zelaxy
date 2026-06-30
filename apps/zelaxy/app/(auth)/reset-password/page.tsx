@@ -76,50 +76,42 @@ function ResetPasswordContent() {
   }
 
   return (
-    <div className='flex min-h-screen items-center justify-center px-5 py-10 sm:px-6 sm:py-12'>
-      <div className='w-full max-w-[420px] space-y-7'>
-        {/* Header */}
-        <div className='flex flex-col items-center space-y-3 text-center'>
-          <Link href='/' className='inline-block'>
-            <Image
-              src='/Zelaxy.png'
-              alt='Zelaxy'
-              width={48}
-              height={48}
-              className='h-12 w-12 rounded-xl'
-              priority
-            />
-          </Link>
-          <div>
-            <h1 className='font-bold text-2xl text-neutral-900 tracking-tight dark:text-white'>
-              Reset Password
-            </h1>
-            <p className='mt-1 text-neutral-500 text-sm dark:text-neutral-400'>
-              Create a new secure password for your account
-            </p>
-          </div>
+    <div className='auth-card'>
+      {/* Header */}
+      <div className='mb-7 flex flex-col items-center gap-3 text-center'>
+        <Link href='/'>
+          <Image
+            src='/Zelaxy.png'
+            alt='Zelaxy'
+            width={44}
+            height={44}
+            className='h-11 w-11 rounded-xl'
+            priority
+          />
+        </Link>
+        <div>
+          <h1 className='t-ink font-semibold text-[22px] tracking-[-0.02em]'>Reset Password</h1>
+          <p className='t-faint mt-1 text-[13px]'>Create a new secure password</p>
         </div>
-
-        {/* Reset Password Form */}
-        <SetNewPasswordForm
-          token={token}
-          onSubmit={handleResetPassword}
-          isSubmitting={isSubmitting}
-          statusType={statusMessage.type}
-          statusMessage={statusMessage.text}
-        />
-
-        {/* Back to Login */}
-        <p className='text-center text-neutral-500 text-sm'>
-          <Link
-            href='/login'
-            className='inline-flex items-center gap-1.5 font-medium text-primary transition-colors hover:text-primary/80'
-          >
-            <ArrowLeft className='h-3.5 w-3.5' />
-            Back to login
-          </Link>
-        </p>
       </div>
+
+      <SetNewPasswordForm
+        token={token}
+        onSubmit={handleResetPassword}
+        isSubmitting={isSubmitting}
+        statusType={statusMessage.type}
+        statusMessage={statusMessage.text}
+      />
+
+      <p className='t-faint mt-6 text-center text-[13px]'>
+        <Link
+          href='/login'
+          className='t-accent inline-flex items-center gap-1.5 font-medium transition-opacity hover:opacity-80'
+        >
+          <ArrowLeft className='h-3.5 w-3.5' />
+          Back to login
+        </Link>
+      </p>
     </div>
   )
 }

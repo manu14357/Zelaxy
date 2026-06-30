@@ -1012,8 +1012,7 @@ html {
   position: relative;
   border-radius: calc(var(--fd-radius) + 0.15rem);
   border: 1px solid hsl(var(--fd-border));
-  background:
-    linear-gradient(180deg, hsl(var(--fd-card) / 0.6), hsl(var(--fd-card) / 0.3));
+  background: linear-gradient(180deg, hsl(var(--fd-card) / 0.6), hsl(var(--fd-card) / 0.3));
   transition:
     transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
     border-color 0.22s ease,
@@ -1166,14 +1165,14 @@ body {
 
 /* The announcement message must truncate, never push the bar wider. */
 .fd-ann,
-[id^='nd-banner'] {
+[id^="nd-banner"] {
   max-width: 100vw;
 }
-[id^='nd-banner'] a,
+[id^="nd-banner"] a,
 .fd-ann a {
   min-width: 0;
 }
-[id^='nd-banner'] .truncate,
+[id^="nd-banner"] .truncate,
 .fd-ann .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1191,12 +1190,12 @@ body {
   /* Card grids collapse to a single column on phones. */
   #nd-page .grid,
   .prose .grid,
-  .grid[class*='grid-cols'] {
+  .grid[class*="grid-cols"] {
     grid-template-columns: 1fr !important;
   }
 
   /* Give the announcement room for the dismiss button and keep it centred. */
-  [id^='nd-banner'],
+  [id^="nd-banner"],
   .fd-ann {
     padding-left: 0.75rem;
     padding-right: 2.25rem;

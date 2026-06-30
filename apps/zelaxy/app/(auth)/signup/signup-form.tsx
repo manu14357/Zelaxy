@@ -5,9 +5,6 @@ import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { client } from '@/lib/auth-client'
 import { quickValidateEmail } from '@/lib/email/validation'
 import { createLogger } from '@/lib/logs/console/logger'
@@ -372,192 +369,157 @@ function SignupFormContent({
   }
 
   return (
-    <div className='flex min-h-screen items-center justify-center px-5 py-10 sm:px-6 sm:py-12'>
-      <div className='w-full max-w-[420px] space-y-7'>
-        {/* Header */}
-        <div className='flex flex-col items-center space-y-3 text-center'>
-          <Link href='/' className='inline-block'>
-            <Image
-              src='/Zelaxy.png'
-              alt='Zelaxy'
-              width={48}
-              height={48}
-              className='h-12 w-12 rounded-xl'
-              priority
-            />
-          </Link>
-          <div>
-            <h1 className='font-bold text-2xl text-neutral-900 tracking-tight dark:text-white'>
-              Create your account
-            </h1>
-            <p className='mt-1 text-neutral-500 text-sm dark:text-neutral-400'>
-              Start building intelligent workflows today
-            </p>
-          </div>
+    <div className='auth-card'>
+      {/* Header */}
+      <div className='mb-7 flex flex-col items-center gap-3 text-center'>
+        <Link href='/'>
+          <Image
+            src='/Zelaxy.png'
+            alt='Zelaxy'
+            width={44}
+            height={44}
+            className='h-11 w-11 rounded-xl'
+            priority
+          />
+        </Link>
+        <div>
+          <h1 className='t-ink font-semibold text-[22px] tracking-[-0.02em]'>
+            Create your account
+          </h1>
+          <p className='t-faint mt-1 text-[13px]'>Start building intelligent workflows today</p>
         </div>
-
-        {/* Social Login */}
-        <SocialLoginButtons
-          githubAvailable={githubAvailable}
-          googleAvailable={googleAvailable}
-          callbackURL={redirectUrl || '/arena'}
-          isProduction={isProduction}
-        />
-
-        {/* Divider */}
-        <div className='flex items-center gap-4'>
-          <div className='h-px flex-1 bg-neutral-200 dark:bg-white/10' />
-          <span className='text-neutral-400 text-xs uppercase tracking-wider dark:text-neutral-500'>
-            or
-          </span>
-          <div className='h-px flex-1 bg-neutral-200 dark:bg-white/10' />
-        </div>
-
-        {/* Form */}
-        <form onSubmit={onSubmit} className='space-y-5'>
-          <div className='space-y-4'>
-            {/* Name */}
-            <div className='space-y-2'>
-              <Label
-                htmlFor='name'
-                className='font-medium text-neutral-700 text-sm dark:text-neutral-300'
-              >
-                Full Name
-              </Label>
-              <Input
-                id='name'
-                name='name'
-                placeholder='Your name'
-                type='text'
-                autoCapitalize='words'
-                autoComplete='name'
-                title='Name can only contain letters, spaces, hyphens, and apostrophes'
-                value={name}
-                onChange={handleNameChange}
-                className={cn(
-                  'h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20 dark:placeholder:text-neutral-500',
-                  showNameValidationError &&
-                    nameErrors.length > 0 &&
-                    'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20'
-                )}
-              />
-              {showNameValidationError && nameErrors.length > 0 && (
-                <div className='space-y-1'>
-                  {nameErrors.map((error, index) => (
-                    <p key={index} className='text-red-400 text-sm'>
-                      {error}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Email */}
-            <div className='space-y-2'>
-              <Label
-                htmlFor='email'
-                className='font-medium text-neutral-700 text-sm dark:text-neutral-300'
-              >
-                Email Address
-              </Label>
-              <Input
-                id='email'
-                name='email'
-                placeholder='you@example.com'
-                autoCapitalize='none'
-                autoComplete='email'
-                autoCorrect='off'
-                value={email}
-                onChange={handleEmailChange}
-                className={cn(
-                  'h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20 dark:placeholder:text-neutral-500',
-                  (emailError || (showEmailValidationError && emailErrors.length > 0)) &&
-                    'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20'
-                )}
-              />
-              {showEmailValidationError && emailErrors.length > 0 && (
-                <div className='space-y-1'>
-                  {emailErrors.map((error, index) => (
-                    <p key={index} className='text-red-400 text-sm'>
-                      {error}
-                    </p>
-                  ))}
-                </div>
-              )}
-              {emailError && !showEmailValidationError && (
-                <p className='text-red-400 text-sm'>{emailError}</p>
-              )}
-            </div>
-
-            {/* Password */}
-            <div className='space-y-2'>
-              <Label
-                htmlFor='password'
-                className='font-medium text-neutral-700 text-sm dark:text-neutral-300'
-              >
-                Password
-              </Label>
-              <div className='relative'>
-                <Input
-                  id='password'
-                  name='password'
-                  type={showPassword ? 'text' : 'password'}
-                  autoCapitalize='none'
-                  autoComplete='new-password'
-                  placeholder='Min. 8 characters'
-                  autoCorrect='off'
-                  value={password}
-                  onChange={handlePasswordChange}
-                  className='h-11 rounded-xl border border-neutral-200 bg-neutral-50/50 pr-12 text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary dark:focus:bg-white/[0.07] dark:focus:ring-primary/20 dark:placeholder:text-neutral-500'
-                />
-                <button
-                  type='button'
-                  onClick={() => setShowPassword(!showPassword)}
-                  className='-translate-y-1/2 absolute top-1/2 right-3.5 text-neutral-400 transition-colors hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300'
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {showValidationError && passwordErrors.length > 0 && (
-                <div className='space-y-1'>
-                  {passwordErrors.map((error, index) => (
-                    <p key={index} className='text-red-400 text-sm'>
-                      {error}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <Button
-            type='submit'
-            className='h-11 w-full rounded-xl bg-neutral-900 font-semibold text-sm text-white shadow-sm transition-all duration-200 hover:bg-neutral-800 dark:bg-white dark:text-black dark:shadow-[0_0_20px_rgba(255,255,255,0.1)] dark:hover:bg-neutral-100'
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <span className='flex items-center gap-2'>
-                <div className='h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white dark:border-black/20 dark:border-t-black' />
-                Creating account...
-              </span>
-            ) : (
-              'Create Account'
-            )}
-          </Button>
-        </form>
-
-        {/* Footer */}
-        <p className='text-center text-neutral-500 text-sm'>
-          Already have an account?{' '}
-          <Link
-            href={isInviteFlow ? `/login?invite_flow=true&callbackUrl=${redirectUrl}` : '/login'}
-            className='font-medium text-primary transition-colors hover:text-primary/80'
-          >
-            Sign in
-          </Link>
-        </p>
       </div>
+
+      {/* Social */}
+      <SocialLoginButtons
+        githubAvailable={githubAvailable}
+        googleAvailable={googleAvailable}
+        callbackURL={redirectUrl || '/arena'}
+        isProduction={isProduction}
+      />
+
+      {/* Divider */}
+      <div className='auth-divider my-5'>or</div>
+
+      {/* Form */}
+      <form onSubmit={onSubmit} className='flex flex-col gap-4'>
+        {/* Name */}
+        <div className='flex flex-col gap-1.5'>
+          <label htmlFor='name' className='t-dim font-medium text-[13px]'>
+            Full Name
+          </label>
+          <input
+            id='name'
+            name='name'
+            type='text'
+            placeholder='Your name'
+            autoCapitalize='words'
+            autoComplete='name'
+            value={name}
+            onChange={handleNameChange}
+            className={cn(
+              'auth-input !pl-3',
+              showNameValidationError && nameErrors.length > 0 && 'error'
+            )}
+          />
+          {showNameValidationError &&
+            nameErrors.map((err, i) => (
+              <p key={i} className='text-[12px] text-red-400'>
+                {err}
+              </p>
+            ))}
+        </div>
+
+        {/* Email */}
+        <div className='flex flex-col gap-1.5'>
+          <label htmlFor='email' className='t-dim font-medium text-[13px]'>
+            Email
+          </label>
+          <input
+            id='email'
+            name='email'
+            type='email'
+            placeholder='you@example.com'
+            autoCapitalize='none'
+            autoComplete='email'
+            autoCorrect='off'
+            value={email}
+            onChange={handleEmailChange}
+            className={cn(
+              'auth-input !pl-3',
+              (emailError || (showEmailValidationError && emailErrors.length > 0)) && 'error'
+            )}
+          />
+          {showEmailValidationError &&
+            emailErrors.map((err, i) => (
+              <p key={i} className='text-[12px] text-red-400'>
+                {err}
+              </p>
+            ))}
+          {emailError && !showEmailValidationError && (
+            <p className='text-[12px] text-red-400'>{emailError}</p>
+          )}
+        </div>
+
+        {/* Password */}
+        <div className='flex flex-col gap-1.5'>
+          <label htmlFor='password' className='t-dim font-medium text-[13px]'>
+            Password
+          </label>
+          <div className='relative'>
+            <input
+              id='password'
+              name='password'
+              type={showPassword ? 'text' : 'password'}
+              placeholder='Min. 8 characters'
+              autoCapitalize='none'
+              autoComplete='new-password'
+              value={password}
+              onChange={handlePasswordChange}
+              className={cn(
+                'auth-input !pl-3 pr-11',
+                showValidationError && passwordErrors.length > 0 && 'error'
+              )}
+            />
+            <button
+              type='button'
+              onClick={() => setShowPassword(!showPassword)}
+              className='-translate-y-1/2 t-faint hover:t-dim absolute top-1/2 right-3 transition-colors'
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+          {showValidationError &&
+            passwordErrors.map((err, i) => (
+              <p key={i} className='text-[12px] text-red-400'>
+                {err}
+              </p>
+            ))}
+        </div>
+
+        {/* Submit */}
+        <button type='submit' disabled={isLoading} className='auth-submit-btn mt-1'>
+          {isLoading ? (
+            <>
+              <div className='h-4 w-4 animate-spin rounded-full border-2 border-[#1c0c00]/20 border-t-[#1c0c00]' />
+              Creating account…
+            </>
+          ) : (
+            'Create Account'
+          )}
+        </button>
+      </form>
+
+      {/* Footer */}
+      <p className='t-faint mt-6 text-center text-[13px]'>
+        Already have an account?{' '}
+        <Link
+          href={isInviteFlow ? `/login?invite_flow=true&callbackUrl=${redirectUrl}` : '/login'}
+          className='t-accent font-medium transition-opacity hover:opacity-80'
+        >
+          Sign in
+        </Link>
+      </p>
     </div>
   )
 }
