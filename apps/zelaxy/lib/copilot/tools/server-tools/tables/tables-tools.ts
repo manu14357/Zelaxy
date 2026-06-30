@@ -200,13 +200,13 @@ class ExportTableTool extends BaseCopilotTool<{ workspaceId: string; tableName: 
     if (!table) throw new Error(`Table not found: ${params.tableName}`)
     const cols = (table.schema?.columns ?? []).map((c) => c.name)
     const { rows } = await listRows({ tableId: table.id, limit: 10000 })
-    const escape = (v: unknown) => {
+    const escapeCell = (v: unknown) => {
       const s =
         v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v)
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
     }
     const header = cols.join(',')
-    const lines = rows.map((r) => cols.map((c) => escape((r.data as any)?.[c])).join(','))
+    const lines = rows.map((r) => cols.map((c) => escapeCell((r.data as any)?.[c])).join(','))
     const csv = [header, ...lines].join('\n')
     return { table: table.name, rowCount: rows.length, csv }
   }

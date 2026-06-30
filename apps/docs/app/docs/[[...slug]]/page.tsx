@@ -1,8 +1,8 @@
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getMDXComponents } from '@/mdx-components'
 import { source } from '@/lib/source'
+import { getMDXComponents } from '@/mdx-components'
 import { PageActions } from '../../components/page-actions'
 
 interface PageProps {

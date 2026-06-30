@@ -92,7 +92,7 @@ export function PageActions({ slug, pageUrl, title }: PageActionsProps) {
         </button>
 
         {open && (
-          <div className='absolute right-0 z-50 mt-1.5 w-52 overflow-hidden rounded-xl border border-fd-border bg-fd-popover py-1 shadow-lg shadow-black/5'>
+          <div className='absolute right-0 z-50 mt-1.5 w-52 overflow-hidden rounded-xl border border-fd-border bg-fd-popover py-1 shadow-black/5 shadow-lg'>
             {menuItems.map((item) => (
               <a
                 key={item.label}

@@ -23,7 +23,7 @@ const emptyBlocks = []
 const allHidden = []
 
 for (const f of files) {
-  const src = fs.readFileSync('blocks/blocks/' + f, 'utf8')
+  const src = fs.readFileSync(`blocks/blocks/${f}`, 'utf8')
 
   // Block-level category + type
   const category = (src.match(/\bcategory:\s*'([a-z]+)'/) || [])[1] || ''

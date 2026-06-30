@@ -300,7 +300,7 @@ export default function LoginPage({
         {/* Email */}
         <div className='flex flex-col gap-1.5'>
           <label htmlFor='email' className='t-dim font-medium text-[13px]'>
-            Email
+            Email Address
           </label>
           <div className='relative'>
             <Mail className='-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 text-[color:var(--bp-ink-faint)]' />
@@ -362,6 +362,7 @@ export default function LoginPage({
             <button
               type='button'
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
               className='-translate-y-1/2 t-faint hover:t-dim absolute top-1/2 right-3 transition-colors'
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -380,7 +381,7 @@ export default function LoginPage({
           {isLoading ? (
             <>
               <div className='h-4 w-4 animate-spin rounded-full border-2 border-[#1c0c00]/20 border-t-[#1c0c00]' />
-              Signing in…
+              <span>Signing in...</span>
             </>
           ) : (
             <>
@@ -406,7 +407,7 @@ export default function LoginPage({
         <DialogContent className='s-panel b-strong mx-auto max-w-sm rounded-2xl border'>
           <DialogHeader className='space-y-1.5'>
             <DialogTitle className='t-ink text-center font-semibold text-[18px]'>
-              Reset password
+              Reset Password
             </DialogTitle>
             <DialogDescription className='t-faint text-center text-[13px]'>
               We&apos;ll send a reset link to your email.

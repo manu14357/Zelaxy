@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { DocsLayout } from 'fumadocs-ui/layouts/notebook'
-import { Blocks, BookOpen, Github, Heart, House, Map, Wrench, Zap } from 'lucide-react'
+import { Blocks, BookOpen, Github, Heart, House, Map as MapIcon, Wrench, Zap } from 'lucide-react'
 import { source } from '@/lib/source'
 import { DocsFooter } from '../components/footer'
 import { NavbarCTA } from '../components/navbar-cta'
@@ -86,7 +86,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               url: '/docs',
             },
             {
-              icon: <Map />,
+              icon: <MapIcon />,
               text: 'Core Concepts',
               description: 'Blocks, connections & variables',
               url: '/docs#core-concepts',

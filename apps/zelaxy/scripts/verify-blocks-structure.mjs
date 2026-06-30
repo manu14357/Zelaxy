@@ -10,7 +10,7 @@ const files = fs
 
 const findings = []
 for (const f of files) {
-  const src = fs.readFileSync('blocks/blocks/' + f, 'utf8')
+  const src = fs.readFileSync(`blocks/blocks/${f}`, 'utf8')
 
   // Collect subBlock ids: lines like "id: 'foo'," inside the subBlocks array.
   // Heuristic: ids declared with single/double quotes.

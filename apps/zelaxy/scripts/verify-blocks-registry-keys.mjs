@@ -23,10 +23,10 @@ for (const m of reg.matchAll(entryRe)) {
 
 const mismatches = []
 for (const e of entries) {
-  const src = fs.readFileSync('blocks/blocks/' + e.file + '.ts', 'utf8')
+  const src = fs.readFileSync(`blocks/blocks/${e.file}.ts`, 'utf8')
   // Extract the BLOCK-LEVEL type: the first `type:` AFTER the `export const <Ident>` declaration,
   // not an earlier `type:` inside an interface or a sub-block schema value above it.
-  const declIdx = src.indexOf('export const ' + e.ident)
+  const declIdx = src.indexOf(`export const ${e.ident}`)
   const scope = declIdx === -1 ? src : src.slice(declIdx)
   const tm = scope.match(/\btype:\s*['"]([^'"]+)['"]/)
   if (!tm) {

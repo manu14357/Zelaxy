@@ -23,7 +23,7 @@ const files = fs
 const problems = []
 const noTools = []
 for (const f of files) {
-  const src = fs.readFileSync('blocks/blocks/' + f, 'utf8')
+  const src = fs.readFileSync(`blocks/blocks/${f}`, 'utf8')
   const m = src.match(/access:\s*\[([\s\S]*?)\]/)
   if (!m) {
     noTools.push(f)

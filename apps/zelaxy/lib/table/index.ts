@@ -34,26 +34,26 @@ export type { ColumnType, ColumnValue, JsonValue }
 // Re-export browser-safe CSV utilities and shared types from csv.ts
 export type {
   ColumnDefinition,
-  TableSchema,
-  RowData,
   CsvColumnType,
   CsvHeaderMapping,
   CsvMappingValidationResult,
+  RowData,
+  TableSchema,
 } from './csv'
 export {
-  CsvImportValidationError,
-  parseCsvBuffer,
-  inferColumnType,
-  sanitizeName,
-  inferSchemaFromCsv,
-  coerceValue,
-  coerceRowsForTable,
-  validateMapping,
   buildAutoMapping,
+  CsvImportValidationError,
+  coerceRowsForTable,
+  coerceValue,
+  inferColumnType,
+  inferSchemaFromCsv,
+  parseCsvBuffer,
+  sanitizeName,
+  validateMapping,
 } from './csv'
 
 // Import the shared types for use in this server-only file
-import type { ColumnDefinition, TableSchema, RowData } from './csv'
+import type { ColumnDefinition, RowData, TableSchema } from './csv'
 
 const logger = createLogger('TableService')
 

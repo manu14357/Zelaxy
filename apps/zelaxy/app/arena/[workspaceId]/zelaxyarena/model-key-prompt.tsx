@@ -82,11 +82,12 @@ export function ModelKeyPrompt({ model }: { model: string }) {
       <div className='flex flex-wrap items-end gap-2'>
         {missing.map((c) => (
           <div key={c.name} className='flex flex-col gap-0.5'>
-            <label className='text-[10px] text-muted-foreground'>
+            <label htmlFor={`key-input-${c.name}`} className='text-[10px] text-muted-foreground'>
               {c.label}
               {c.optional ? ' (optional)' : ''}
             </label>
             <Input
+              id={`key-input-${c.name}`}
               type='password'
               value={inputs[c.name] || ''}
               onChange={(e) => setInputs((p) => ({ ...p, [c.name]: e.target.value }))}
