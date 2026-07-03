@@ -608,6 +608,36 @@ export const invitation = pgTable('invitation', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
+/**
+ * Single Sign-On provider records (better-auth `@better-auth/sso` plugin).
+ * `oidcConfig` / `samlConfig` hold JSON-serialized provider configuration; exactly one
+ * is populated per row. `providerType` is derived at read time (`samlConfig ? 'saml' : 'oidc'`).
+ * The model key must remain `ssoProvider` so the better-auth drizzle adapter can resolve it.
+ */
+export const ssoProvider = pgTable(
+  'sso_provider',
+  {
+    id: text('id').primaryKey(),
+    issuer: text('issuer').notNull(),
+    domain: text('domain').notNull(),
+    oidcConfig: text('oidc_config'),
+    samlConfig: text('saml_config'),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    providerId: text('provider_id').notNull().unique(),
+    organizationId: text('organization_id').references(() => organization.id, {
+      onDelete: 'cascade',
+    }),
+  },
+  (table) => ({
+    providerIdIdx: index('sso_provider_provider_id_idx').on(table.providerId),
+    domainIdx: index('sso_provider_domain_idx').on(table.domain),
+    userIdIdx: index('sso_provider_user_id_idx').on(table.userId),
+    organizationIdIdx: index('sso_provider_organization_id_idx').on(table.organizationId),
+  })
+)
+
 export const workspace = pgTable(
   'workspace',
   {

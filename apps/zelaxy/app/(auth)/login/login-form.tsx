@@ -17,6 +17,7 @@ import { quickValidateEmail } from '@/lib/email/validation'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
 import { SocialLoginButtons } from '@/app/(auth)/components/social-login-buttons'
+import { SSOLoginButton } from '@/app/(auth)/components/sso-login-button'
 
 const logger = createLogger('LoginForm')
 
@@ -285,12 +286,15 @@ export default function LoginPage({
       </div>
 
       {/* Social */}
-      <SocialLoginButtons
-        googleAvailable={googleAvailable}
-        githubAvailable={githubAvailable}
-        isProduction={isProduction}
-        callbackURL={callbackUrl}
-      />
+      <div className='grid gap-3'>
+        <SocialLoginButtons
+          googleAvailable={googleAvailable}
+          githubAvailable={githubAvailable}
+          isProduction={isProduction}
+          callbackURL={callbackUrl}
+        />
+        <SSOLoginButton callbackURL={callbackUrl} />
+      </div>
 
       {/* Divider */}
       <div className='auth-divider my-5'>or</div>

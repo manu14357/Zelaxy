@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui'
+import { getEnv, isTruthy } from '@/lib/env'
 import { isBillingEnabled } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
@@ -20,6 +21,7 @@ import {
   Privacy,
   SettingsNavigation,
   Shortcuts,
+  SSO,
   Subscription,
   TeamManagement,
 } from '@/app/arena/[workspaceId]/zelaxy/components/sidebar/components/settings-modal/components'
@@ -47,9 +49,13 @@ type SettingsSection =
   | 'team'
   | 'org-environment'
   | 'audit'
+  | 'sso'
   | 'privacy'
   | 'shortcuts'
   | 'admin'
+
+// Whether the Single Sign-On settings tab is surfaced (feature flag).
+const isSsoUiEnabled = isTruthy(getEnv('NEXT_PUBLIC_SSO_ENABLED'))
 
 // ── Section Registry ─────────────────────────────────────────────────────────
 // Open/Closed principle: add new sections here without modifying the renderer.
@@ -59,6 +65,8 @@ interface SectionEntry {
   component: React.ComponentType<{ onOpenChange?: (open: boolean) => void }>
   /** When true the section is only rendered if billing is enabled. */
   requiresBilling?: boolean
+  /** When true the section is only rendered if SSO is enabled. */
+  requiresSso?: boolean
 }
 
 const SECTIONS: SectionEntry[] = [
@@ -73,6 +81,7 @@ const SECTIONS: SectionEntry[] = [
   { id: 'team', component: TeamManagement },
   { id: 'org-environment', component: OrgEnvironment },
   { id: 'audit', component: AuditLogs },
+  { id: 'sso', component: SSO, requiresSso: true },
   { id: 'privacy', component: Privacy },
   { id: 'shortcuts', component: Shortcuts },
   { id: 'admin', component: AdminSettings },
@@ -139,7 +148,9 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
   // ── Derived ──────────────────────────────────────────────────────────────
 
-  const visibleSections = SECTIONS.filter((s) => !s.requiresBilling || isBillingEnabled)
+  const visibleSections = SECTIONS.filter(
+    (s) => (!s.requiresBilling || isBillingEnabled) && (!s.requiresSso || isSsoUiEnabled)
+  )
 
   // ── Render ───────────────────────────────────────────────────────────────
 

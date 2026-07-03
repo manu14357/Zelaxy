@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getEnv, isTruthy } from '@/lib/env'
 import { isBillingEnabled } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
@@ -43,6 +44,7 @@ import {
   Privacy,
   SettingsNavigation,
   Shortcuts,
+  SSO,
   Subscription,
   TeamManagement,
 } from '@/app/arena/[workspaceId]/zelaxy/components/sidebar/components/settings-modal/components'
@@ -50,6 +52,9 @@ import { useOrganizationStore } from '@/stores/organization'
 import { useGeneralStore } from '@/stores/settings/general/store'
 
 const logger = createLogger('Hub')
+
+// Whether the Single Sign-On settings tab is surfaced (feature flag).
+const isSsoUiEnabled = isTruthy(getEnv('NEXT_PUBLIC_SSO_ENABLED'))
 
 // ── Settings Section Registry ────────────────────────────────────────────────
 
@@ -65,6 +70,7 @@ type SettingsSection =
   | 'team'
   | 'org-environment'
   | 'audit'
+  | 'sso'
   | 'privacy'
   | 'shortcuts'
   | 'admin'
@@ -74,6 +80,7 @@ interface SectionEntry {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   component: React.ComponentType<any>
   requiresBilling?: boolean
+  requiresSso?: boolean
 }
 
 const SETTINGS_SECTIONS: SectionEntry[] = [
@@ -88,6 +95,7 @@ const SETTINGS_SECTIONS: SectionEntry[] = [
   { id: 'team', component: TeamManagement },
   { id: 'org-environment', component: OrgEnvironment },
   { id: 'audit', component: AuditLogs },
+  { id: 'sso', component: SSO, requiresSso: true },
   { id: 'privacy', component: Privacy },
   { id: 'shortcuts', component: Shortcuts },
   { id: 'admin', component: AdminSettings },
@@ -192,7 +200,7 @@ export function Hub({ initialTemplates, currentUserId }: HubProps) {
   }, [])
 
   const visibleSettingsSections = SETTINGS_SECTIONS.filter(
-    (s) => !s.requiresBilling || isBillingEnabled
+    (s) => (!s.requiresBilling || isBillingEnabled) && (!s.requiresSso || isSsoUiEnabled)
   )
 
   return (

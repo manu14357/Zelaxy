@@ -3,6 +3,7 @@ import {
   Bell,
   Building2,
   CreditCard,
+  Fingerprint,
   Keyboard,
   KeyRound,
   KeySquare,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react'
 import { McpIcon } from '@/components/icons'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { getEnv, isTruthy } from '@/lib/env'
 import { isBillingEnabled } from '@/lib/environment'
 import { cn } from '@/lib/utils'
 import { useSubscriptionStore } from '@/stores/subscription/store'
@@ -34,6 +36,7 @@ type SectionId =
   | 'team'
   | 'org-environment'
   | 'audit'
+  | 'sso'
   | 'privacy'
   | 'shortcuts'
   | 'admin'
@@ -50,7 +53,11 @@ interface NavigationItem {
   icon: React.ComponentType<{ className?: string }>
   hideWhenBillingDisabled?: boolean
   requiresTeam?: boolean
+  requiresSso?: boolean
 }
+
+// Whether the Single Sign-On settings tab is surfaced (feature flag).
+const isSsoUiEnabled = isTruthy(getEnv('NEXT_PUBLIC_SSO_ENABLED'))
 
 interface NavigationGroup {
   label: string
@@ -89,6 +96,7 @@ const NAVIGATION_GROUPS: NavigationGroup[] = [
       { id: 'team', label: 'Team', icon: Users },
       { id: 'org-environment', label: 'Org Environment', icon: Building2 },
       { id: 'audit', label: 'Audit Logs', icon: ScrollText },
+      { id: 'sso', label: 'Single Sign-On', icon: Fingerprint, requiresSso: true },
     ],
   },
   {
@@ -118,6 +126,7 @@ export function SettingsNavigation({
       items: group.items.filter((item) => {
         if (item.hideWhenBillingDisabled && !isBillingEnabled) return false
         if (item.requiresTeam && !subscription.isTeam && !subscription.isEnterprise) return false
+        if (item.requiresSso && !isSsoUiEnabled) return false
         return true
       }),
     })).filter((group) => group.items.length > 0)

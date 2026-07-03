@@ -29,6 +29,18 @@ export const isHosted = env.NEXT_PUBLIC_APP_URL === 'https://www.zelaxy.in'
 export const isBillingEnabled = isTruthy(env.BILLING_ENABLED)
 
 /**
+ * Is Single Sign-On (SSO) enabled. On self-hosted deployments this also acts as the
+ * bypass for the Enterprise-plan gate (see lib/sso/access.ts).
+ */
+export const isSsoEnabled = isTruthy(env.SSO_ENABLED)
+
+/**
+ * Are organizations enabled. Billing implies organizations; otherwise honor the flag so
+ * SSO users can be auto-provisioned into an organization on first sign-in.
+ */
+export const isOrganizationsEnabled = isBillingEnabled || isTruthy(env.ORGANIZATIONS_ENABLED)
+
+/**
  * Get cost multiplier based on environment
  */
 export function getCostMultiplier(): number {

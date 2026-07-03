@@ -1,3 +1,4 @@
+import { sso } from '@better-auth/sso'
 import { stripe } from '@better-auth/stripe'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
@@ -23,14 +24,26 @@ import { getBaseURL } from '@/lib/auth-client'
 import { DEFAULT_FREE_CREDITS } from '@/lib/billing/constants'
 import { quickValidateEmail } from '@/lib/email/validation'
 import { env, isTruthy } from '@/lib/env'
-import { isBillingEnabled, isProd } from '@/lib/environment'
+import { isBillingEnabled, isOrganizationsEnabled, isProd, isSsoEnabled } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
 import { getDefaultAvatarUrl } from '@/lib/multiavatar'
+import { SSO_TRUSTED_PROVIDERS } from '@/lib/sso/constants'
 import { getEmailDomain } from '@/lib/urls/utils'
 import { db } from '@/db'
 import * as schema from '@/db/schema'
 
 const logger = createLogger('Auth')
+
+/**
+ * Provider IDs trusted for automatic account linking, sourced from env. Needed when an IdP does
+ * not assert `email_verified` (typically SAML, or OIDC providers that omit the claim). Includes
+ * the app's own SSO_PROVIDER_ID and anything in SSO_TRUSTED_PROVIDER_IDS.
+ */
+const additionalTrustedSsoProviders = isSsoEnabled
+  ? [env.SSO_PROVIDER_ID, ...(env.SSO_TRUSTED_PROVIDER_IDS?.split(',') ?? [])]
+      .map((id) => id?.trim())
+      .filter((id): id is string => Boolean(id))
+  : []
 
 // Only initialize Stripe if the key is provided
 // This allows local development without a Stripe account
@@ -153,6 +166,9 @@ export const auth = betterAuth({
         'microsoft',
         'slack',
         'reddit',
+        // SSO providers — trusted so an SSO sign-in links to an existing same-email account.
+        ...SSO_TRUSTED_PROVIDERS,
+        ...additionalTrustedSsoProviders,
       ],
     },
   },
@@ -1639,6 +1655,27 @@ export const auth = betterAuth({
         },
       },
     }),
+    // Single Sign-On (OIDC + SAML 2.0) — only registered when SSO is enabled.
+    ...(isSsoEnabled
+      ? [
+          sso({
+            /**
+             * Honor the IdP's verified-email claim. Without this the SSO plugin forces
+             * `emailVerified: false`, blocking automatic linking of an SSO login to an existing
+             * same-email account (Better Auth "account not linked").
+             */
+            trustEmailVerified: true,
+            /**
+             * Auto-provision SSO users into the provider's organization on first sign-in.
+             * Disabled unless organizations are enabled (billing or ORGANIZATIONS_ENABLED).
+             */
+            organizationProvisioning: {
+              disabled: !isOrganizationsEnabled,
+              defaultRole: 'member',
+            },
+          }),
+        ]
+      : []),
   ],
   pages: {
     signIn: '/login',

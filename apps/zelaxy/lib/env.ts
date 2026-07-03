@@ -23,6 +23,28 @@ export const env = createEnv({
     ALLOWED_LOGIN_EMAILS:                 z.string().optional(),                  // Comma-separated list of allowed email addresses for login
     ALLOWED_LOGIN_DOMAINS:                z.string().optional(),                  // Comma-separated list of allowed email domains for login
     ADMIN_EMAILS:                         z.string().optional(),                  // Comma-separated list of platform admin email addresses
+
+    // Single Sign-On (SSO) — OIDC & SAML 2.0 via better-auth
+    SSO_ENABLED:                          z.boolean().optional(),                 // Enable SSO functionality (self-hosted bypass for the Enterprise plan gate)
+    ORGANIZATIONS_ENABLED:                z.boolean().optional(),                 // Auto-add SSO users to your organization on first sign-in
+    SSO_TRUSTED_PROVIDER_IDS:             z.string().optional(),                  // Comma-separated SSO provider IDs trusted for automatic account linking
+    // Script-based registration vars (packages consumed by scripts/register-sso-provider.ts)
+    SSO_PROVIDER_TYPE:                    z.enum(['oidc', 'saml']).optional(),    // Provider type for script-based registration
+    SSO_PROVIDER_ID:                      z.string().optional(),                  // Provider ID slug (also trusted for account linking when set)
+    SSO_ISSUER:                           z.string().optional(),                  // IdP issuer URL (OIDC) or SP entity ID (SAML)
+    SSO_DOMAIN:                           z.string().optional(),                  // Organization email domain routed through this provider
+    SSO_USER_EMAIL:                       z.string().optional(),                  // Owning admin user email for script-based registration
+    SSO_ORGANIZATION_ID:                  z.string().optional(),                  // Optional organization ID to scope the provider to
+    SSO_MAPPING_ID:                       z.string().optional(),                  // Attribute mapping override — user id
+    SSO_MAPPING_EMAIL:                    z.string().optional(),                  // Attribute mapping override — email
+    SSO_MAPPING_NAME:                     z.string().optional(),                  // Attribute mapping override — name
+    SSO_MAPPING_IMAGE:                    z.string().optional(),                  // Attribute mapping override — image
+    SSO_OIDC_CLIENT_ID:                   z.string().optional(),                  // OIDC client ID (script registration)
+    SSO_OIDC_CLIENT_SECRET:               z.string().optional(),                  // OIDC client secret (script registration)
+    SSO_OIDC_SCOPES:                      z.string().optional(),                  // Comma-separated OIDC scopes (default: openid,profile,email)
+    SSO_SAML_ENTRY_POINT:                 z.string().optional(),                  // SAML IdP SSO service URL (script registration)
+    SSO_SAML_CERT:                        z.string().optional(),                  // SAML IdP X.509 certificate (PEM, script registration)
+
     ENCRYPTION_KEY:                       z.string().min(32),                     // Key for encrypting sensitive data
     INTERNAL_API_SECRET:                  z.string().min(32),                     // Secret for internal API authentication
     ZELAXY_AGENT_API_KEY:                 z.string().min(1).optional(),           // Secret for internal zelaxy agent API authentication
@@ -215,6 +237,10 @@ export const env = createEnv({
     NEXT_PUBLIC_APP_URL:                  z.string().url(),                       // Base URL of the application (e.g., https://app.zelaxy.in)
     NEXT_PUBLIC_VERCEL_URL:               z.string().optional(),                  // Vercel deployment URL for preview/production
 
+    // Single Sign-On (SSO) feature flags — control the login "Sign in with SSO" button
+    NEXT_PUBLIC_SSO_ENABLED:              z.string().optional(),                  // Show SSO login UI (set to "true")
+    NEXT_PUBLIC_ORGANIZATIONS_ENABLED:    z.string().optional(),                  // Organizations feature flag mirror for the client
+
     // Client-side Services
     NEXT_PUBLIC_SENTRY_DSN:               z.string().url().optional(),             // Sentry DSN for client-side error tracking (opt-in)
     NEXT_PUBLIC_SOCKET_URL:               z.string().url().optional(),            // WebSocket server URL for real-time features
@@ -254,6 +280,8 @@ export const env = createEnv({
   experimental__runtimeEnv: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_VERCEL_URL: process.env.NEXT_PUBLIC_VERCEL_URL,
+    NEXT_PUBLIC_SSO_ENABLED: process.env.NEXT_PUBLIC_SSO_ENABLED,
+    NEXT_PUBLIC_ORGANIZATIONS_ENABLED: process.env.NEXT_PUBLIC_ORGANIZATIONS_ENABLED,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     NEXT_PUBLIC_BLOB_BASE_URL: process.env.NEXT_PUBLIC_BLOB_BASE_URL,
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,

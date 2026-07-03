@@ -13,5 +13,6 @@ export { SettingsNavigation } from './settings-navigation/settings-navigation'
 // Shared primitives for settings sections
 export { SettingPageHeader, SettingRow, SettingSection } from './shared'
 export { Shortcuts } from './shortcuts/shortcuts'
+export { SSO } from './sso/sso'
 export { Subscription } from './subscription/subscription'
 export { TeamManagement } from './team-management/team-management'

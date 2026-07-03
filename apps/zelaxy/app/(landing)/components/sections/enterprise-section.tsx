@@ -8,11 +8,12 @@ const SPECS = [
   ['Isolation', 'Per-workspace multi-tenant'],
   ['Deploy', 'Cloud · Self-host · On-prem'],
   ['Audit', 'Immutable execution history'],
-  ['Auth', 'SSO · OAuth · API keys'],
+  ['Auth', 'SSO · SAML 2.0 · OIDC · OAuth'],
 ]
 
 const PILLARS = [
   'Permissions',
+  'Single Sign-On',
   'Teams',
   'Projects',
   'Audit Trails',

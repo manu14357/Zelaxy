@@ -1,0 +1,314 @@
+---
+title: Single Sign-On
+description: Let your team sign in to Zelaxy through your company's identity provider with OIDC or SAML 2.0.
+icon: KeyRound
+---
+
+Single Sign-On lets your team sign in to Zelaxy through your company's identity provider instead of managing separate passwords. Zelaxy supports both **OIDC** and **SAML 2.0**.
+
+## Setup
+
+### 1. Open SSO settings
+
+Open the **Hub → Settings → Single Sign-On** (under the **Organization** group). On Zelaxy Cloud this requires the **Enterprise** plan and an organization owner/admin. On self-hosted deployments it is unlocked with the `SSO_ENABLED` environment variable.
+
+### 2. Choose a protocol
+
+| Protocol     | Use when                                                                             |
+| ------------ | ------------------------------------------------------------------------------------ |
+| **OIDC**     | Your IdP supports OpenID Connect — Okta, Microsoft Entra ID, Auth0, Google Workspace |
+| **SAML 2.0** | Your IdP is SAML-only — ADFS, Shibboleth, or older enterprise IdPs                   |
+
+### 3. Fill in the form
+
+**Fields required for both protocols:**
+
+| Field           | What to enter                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Provider ID** | A short slug identifying this connection, e.g. `okta` or `azure-ad`. Letters, numbers, and dashes only.             |
+| **Issuer URL**  | The identity provider's issuer URL. Must be HTTPS.                                                                   |
+| **Domain**      | Your organization's email domain, e.g. `company.com`. Users with this domain are routed through SSO at sign-in.     |
+
+**OIDC additional fields:**
+
+| Field             | What to enter                                                 |
+| ----------------- | ------------------------------------------------------------- |
+| **Client ID**     | The application client ID from your IdP.                      |
+| **Client Secret** | The client secret from your IdP.                              |
+| **Scopes**        | Comma-separated OIDC scopes. Default: `openid,profile,email`. |
+
+<Callout type="info">
+  For OIDC, Zelaxy automatically fetches endpoints (`authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `jwks_uri`) from your issuer's `/.well-known/openid-configuration` discovery document. You only need to provide the issuer URL.
+</Callout>
+
+**SAML additional fields:**
+
+| Field                             | What to enter                                                                 |
+| --------------------------------- | ----------------------------------------------------------------------------- |
+| **Entry Point URL**               | The IdP's SSO service URL where Zelaxy sends authentication requests.          |
+| **Identity Provider Certificate** | The Base-64 encoded X.509 certificate from your IdP for verifying assertions.  |
+
+### 4. Copy the Callback URL
+
+The **Callback URL** shown in the form is the endpoint your identity provider must redirect users back to after authentication. Copy it and register it in your IdP before saving.
+
+**OIDC providers** (Okta, Microsoft Entra ID, Google Workspace, Auth0):
+
+```
+https://app.zelaxy.in/api/auth/sso/callback/{provider-id}
+```
+
+**SAML providers** (ADFS, Shibboleth):
+
+```
+https://app.zelaxy.in/api/auth/sso/saml2/callback/{provider-id}
+```
+
+<Callout type="info">
+  On self-hosted deployments, replace `https://app.zelaxy.in` with your own instance URL (the value of `NEXT_PUBLIC_APP_URL`).
+</Callout>
+
+### 5. Save and test
+
+Click **Save**. To test, sign out and use the **Sign in with SSO** button on the login page. Enter an email address at your configured domain — Zelaxy will redirect you to your identity provider.
+
+## Provider Guides
+
+<Tabs items={['Okta', 'Microsoft Entra ID', 'Google Workspace', 'ADFS']}>
+  <Tab value="Okta">
+    ### Okta (OIDC)
+
+    **In Okta** ([official docs](https://help.okta.com/en-us/content/topics/apps/apps_app_integration_wizard_oidc.htm)):
+
+    1. Go to **Applications → Create App Integration**
+    2. Select **OIDC - OpenID Connect**, then **Web Application**
+    3. Set the **Sign-in redirect URI** to your Zelaxy callback URL:
+       ```
+       https://app.zelaxy.in/api/auth/sso/callback/okta
+       ```
+    4. Under **Assignments**, grant access to the relevant users or groups
+    5. Copy the **Client ID** and **Client Secret** from the app's **General** tab
+    6. Your Okta domain is the hostname of your admin console, e.g. `dev-1234567.okta.com`
+
+    **In Zelaxy:**
+
+    | Field         | Value                                         |
+    | ------------- | --------------------------------------------- |
+    | Protocol      | OIDC                                          |
+    | Provider ID   | `okta`                                        |
+    | Issuer URL    | `https://dev-1234567.okta.com/oauth2/default` |
+    | Domain        | `company.com`                                 |
+    | Client ID     | From Okta app                                 |
+    | Client Secret | From Okta app                                 |
+
+    The issuer URL uses Okta's default authorization server, which is pre-configured on every Okta org. If you created a custom authorization server, replace `default` with your server name.
+  </Tab>
+
+  <Tab value="Microsoft Entra ID">
+    ### Microsoft Entra ID (OIDC)
+
+    **In Azure** ([official docs](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app)):
+
+    1. Go to **Microsoft Entra ID → App registrations → New registration**
+    2. Under **Redirect URI**, select **Web** and enter your Zelaxy callback URL:
+       ```
+       https://app.zelaxy.in/api/auth/sso/callback/azure-ad
+       ```
+    3. After registration, go to **Certificates & secrets → New client secret** and copy the value immediately — it won't be shown again
+    4. Go to **Overview** and copy the **Application (client) ID** and **Directory (tenant) ID**
+
+    **In Zelaxy:**
+
+    | Field         | Value                                                |
+    | ------------- | ---------------------------------------------------- |
+    | Protocol      | OIDC                                                 |
+    | Provider ID   | `azure-ad`                                           |
+    | Issuer URL    | `https://login.microsoftonline.com/{tenant-id}/v2.0` |
+    | Domain        | `company.com`                                        |
+    | Client ID     | Application (client) ID                              |
+    | Client Secret | Secret value                                         |
+  </Tab>
+
+  <Tab value="Google Workspace">
+    ### Google Workspace (OIDC)
+
+    **In Google Cloud Console** ([official docs](https://developers.google.com/identity/openid-connect/openid-connect)):
+
+    1. Go to **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
+    2. Set the application type to **Web application**
+    3. Add your Zelaxy callback URL to **Authorized redirect URIs**:
+       ```
+       https://app.zelaxy.in/api/auth/sso/callback/google-workspace
+       ```
+    4. Copy the **Client ID** and **Client Secret**
+
+    **In Zelaxy:**
+
+    | Field         | Value                         |
+    | ------------- | ----------------------------- |
+    | Protocol      | OIDC                          |
+    | Provider ID   | `google-workspace`            |
+    | Issuer URL    | `https://accounts.google.com` |
+    | Domain        | `company.com`                 |
+    | Client ID     | From Google Cloud Console     |
+    | Client Secret | From Google Cloud Console     |
+
+    <Callout type="info">
+      To restrict sign-in to your Google Workspace domain, configure the OAuth consent screen and set the app to **Internal** (Workspace users only) under **User type**. Internal apps limit access to users within your Google Workspace organization.
+    </Callout>
+  </Tab>
+
+  <Tab value="ADFS">
+    ### ADFS (SAML 2.0)
+
+    **In ADFS** ([official docs](https://learn.microsoft.com/en-us/windows-server/identity/ad-fs/operations/create-a-relying-party-trust)):
+
+    1. Open **AD FS Management → Relying Party Trusts → Add Relying Party Trust**
+    2. Choose **Claims aware**, then **Enter data about the relying party manually**
+    3. Set the **Relying party identifier** (Entity ID) to your Zelaxy base URL:
+       ```
+       https://app.zelaxy.in
+       ```
+    4. Add an endpoint: **SAML Assertion Consumer Service** (HTTP POST) with the URL:
+       ```
+       https://app.zelaxy.in/api/auth/sso/saml2/callback/adfs
+       ```
+    5. Export the **Token-signing certificate** from **Certificates**: right-click → **View Certificate → Details → Copy to File**, choose **Base-64 encoded X.509 (.CER)**. The `.cer` file is PEM-encoded — paste its contents into the Certificate field in Zelaxy.
+    6. Note the **ADFS Federation Service endpoint URL** (e.g. `https://adfs.company.com/adfs/ls`)
+
+    **In Zelaxy:**
+
+    | Field           | Value                              |
+    | --------------- | ---------------------------------- |
+    | Protocol        | SAML                               |
+    | Provider ID     | `adfs`                             |
+    | Issuer URL      | `https://app.zelaxy.in`            |
+    | Domain          | `company.com`                      |
+    | Entry Point URL | `https://adfs.company.com/adfs/ls` |
+    | Certificate     | Contents of the `.cer` / `.pem`    |
+
+    <Callout type="info">
+      For ADFS, the **Issuer URL** field is the SP entity ID — the identifier ADFS uses to identify Zelaxy as a relying party. It must match the **Relying party identifier** you registered in ADFS.
+    </Callout>
+  </Tab>
+</Tabs>
+
+## How sign-in works after setup
+
+Once SSO is configured, users with your domain (`company.com`) can sign in through your identity provider:
+
+1. User goes to the login page and clicks **Sign in with SSO**
+2. They enter their work email (e.g. `alice@company.com`)
+3. Zelaxy resolves the SSO provider from the email domain and redirects them to your identity provider
+4. After authenticating, they are returned to Zelaxy and added to your organization automatically
+5. They land in the workspace
+
+Users who sign in via SSO for the first time are automatically provisioned and added to your organization — no manual invite required (requires organizations to be enabled).
+
+<Callout type="info">
+  Password-based login remains available. Forcing all organization members to use SSO exclusively is not yet supported.
+</Callout>
+
+## FAQ
+
+<Accordions type="single">
+  <Accordion title="Which SSO providers are supported?">
+    Any identity provider that supports OIDC or SAML 2.0. This includes Okta, Microsoft Entra ID (Azure AD), Google Workspace, Auth0, OneLogin, JumpCloud, Ping Identity, Keycloak, Authentik, ADFS, Shibboleth, and more.
+  </Accordion>
+  <Accordion title="What is the Domain field used for?">
+    The domain (e.g. `company.com`) is how Zelaxy routes users to the right identity provider. When a user enters their email on the SSO sign-in page, Zelaxy matches their email domain to a registered SSO provider and redirects them there.
+  </Accordion>
+  <Accordion title="Do I need to provide OIDC endpoints manually?">
+    No. For OIDC providers, Zelaxy automatically fetches the authorization, token, and JWKS endpoints from the discovery document at `{issuer}/.well-known/openid-configuration`. You only need to provide the issuer URL.
+  </Accordion>
+  <Accordion title="What happens when a user signs in with SSO for the first time?">
+    Zelaxy creates an account for them automatically and, when organizations are enabled, adds them to your organization with the member role. No manual invite is needed.
+  </Accordion>
+  <Accordion title="Can I still use email/password login after enabling SSO?">
+    Yes. Enabling SSO does not disable password-based login. Users can still sign in with their email and password if they have one. Forced SSO (requiring all users on the domain to use SSO) is not yet supported.
+  </Accordion>
+  <Accordion title="A user already has an account with the same email — what happens?">
+    Zelaxy links the SSO identity to the existing account automatically, as long as your identity provider reports the email as verified (`email_verified`) or the provider is trusted. Most OIDC providers (Okta, Google Workspace, Auth0) assert `email_verified`, so linking just works. If sign-in fails with "account not linked" — common with SAML providers that omit the claim — add the provider's ID to `SSO_TRUSTED_PROVIDER_IDS` on self-hosted and restart.
+  </Accordion>
+  <Accordion title="Who can configure SSO on Zelaxy Cloud?">
+    Organization owners and admins can configure SSO. You must be on the Enterprise plan.
+  </Accordion>
+  <Accordion title="What is the Callback URL?">
+    The Callback URL (also called Redirect URI or ACS URL) is the endpoint in Zelaxy that receives the authentication response from your identity provider. For OIDC providers it is `https://app.zelaxy.in/api/auth/sso/callback/{provider-id}`. For SAML providers it is `https://app.zelaxy.in/api/auth/sso/saml2/callback/{provider-id}`. You must register this URL in your identity provider before SSO will work.
+  </Accordion>
+  <Accordion title="How do I update or replace an existing SSO configuration?">
+    Open Hub → Settings → Single Sign-On, click **Edit** on the provider, update the fields, and save. The existing provider configuration is replaced.
+  </Accordion>
+</Accordions>
+
+## Self-hosted setup
+
+Self-hosted deployments use environment variables instead of the billing/plan check.
+
+### Environment variables
+
+```bash
+# Required
+SSO_ENABLED=true
+NEXT_PUBLIC_SSO_ENABLED=true
+
+# Required if you want users auto-added to your organization on first SSO sign-in
+ORGANIZATIONS_ENABLED=true
+NEXT_PUBLIC_ORGANIZATIONS_ENABLED=true
+
+# Optional: comma-separated SSO provider IDs to trust for automatic account linking
+# (links an SSO sign-in to an existing account with the same email). Needed when your
+# IdP does not assert email_verified — typically SAML providers, or OIDC providers that
+# omit the claim. Set it to the Provider ID you registered, then restart.
+SSO_TRUSTED_PROVIDER_IDS=custom-oidc,partner-saml
+```
+
+You can register providers through the **Settings UI** (same as cloud) or by running the registration script directly against your database.
+
+### Script-based registration
+
+Use this when you need to register an SSO provider without going through the UI — for example, during initial deployment or CI/CD automation.
+
+```bash
+# OIDC example (Okta)
+SSO_ENABLED=true \
+NEXT_PUBLIC_APP_URL=https://your-instance.com \
+SSO_PROVIDER_TYPE=oidc \
+SSO_PROVIDER_ID=okta \
+SSO_ISSUER=https://dev-1234567.okta.com/oauth2/default \
+SSO_DOMAIN=company.com \
+SSO_USER_EMAIL=admin@company.com \
+SSO_OIDC_CLIENT_ID=your-client-id \
+SSO_OIDC_CLIENT_SECRET=your-client-secret \
+bun run apps/zelaxy/scripts/register-sso-provider.ts
+```
+
+```bash
+# SAML example (ADFS)
+SSO_ENABLED=true \
+NEXT_PUBLIC_APP_URL=https://your-instance.com \
+SSO_PROVIDER_TYPE=saml \
+SSO_PROVIDER_ID=adfs \
+SSO_ISSUER=https://your-instance.com \
+SSO_DOMAIN=company.com \
+SSO_USER_EMAIL=admin@company.com \
+SSO_SAML_ENTRY_POINT=https://adfs.company.com/adfs/ls \
+SSO_SAML_CERT="-----BEGIN CERTIFICATE-----
+...
+-----END CERTIFICATE-----" \
+bun run apps/zelaxy/scripts/register-sso-provider.ts
+```
+
+The script prints the callback URL to configure in your IdP once it completes. The `SSO_USER_EMAIL` account must already exist.
+
+To remove a provider:
+
+```bash
+SSO_USER_EMAIL=admin@company.com \
+SSO_PROVIDER_ID=okta \
+bun run apps/zelaxy/scripts/deregister-sso-provider.ts
+```
+
+<Callout type="info">
+  Run `bun run db:push` (or apply the `0009_sso_provider` migration) before registering providers so the `sso_provider` table exists.
+</Callout>

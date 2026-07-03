@@ -1,3 +1,4 @@
+import { ssoClient } from '@better-auth/sso/client'
 import { stripeClient } from '@better-auth/stripe/client'
 import { emailOTPClient, genericOAuthClient, organizationClient } from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
@@ -25,6 +26,7 @@ export const client = createAuthClient({
   plugins: [
     emailOTPClient(),
     genericOAuthClient(),
+    ssoClient(),
     // Only include Stripe client in production
     ...(isProd
       ? [
