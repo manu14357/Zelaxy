@@ -297,7 +297,7 @@
   }
 }
 .bp-signal {
-  stroke-dasharray: 6 8;          /* wider dashes, shorter gaps → denser signal */
+  stroke-dasharray: 6 8; /* wider dashes, shorter gaps → denser signal */
   animation: bp-signal 1.1s linear infinite;
   filter: drop-shadow(0 0 4px var(--bp-accent)); /* orange glow for brightness */
 }

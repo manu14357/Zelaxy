@@ -87,47 +87,47 @@ export function EcosystemSection() {
             <div className='pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[color:var(--bp-bg)] to-transparent sm:hidden' />
             <div className='pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[color:var(--bp-bg)] to-transparent sm:hidden' />
             <div className='overflow-x-auto'>
-            <div className='min-w-[760px]'>
-              {/* top taps */}
-              <div className='flex items-end justify-between gap-2 px-2'>
-                {MODELS.map((m) => (
-                  <Chip key={m} name={m} up />
-                ))}
-              </div>
+              <div className='min-w-[760px]'>
+                {/* top taps */}
+                <div className='flex items-end justify-between gap-2 px-2'>
+                  {MODELS.map((m) => (
+                    <Chip key={m} name={m} up />
+                  ))}
+                </div>
 
-              {/* the bus */}
-              <div className='relative my-1 h-12'>
-                <div className='hair-strong absolute inset-x-0 top-1/2 h-px' />
-                <svg
-                  className='absolute inset-x-0 top-1/2 h-px w-full overflow-visible'
-                  preserveAspectRatio='none'
-                  aria-hidden='true'
-                >
-                  <line
-                    x1='0'
-                    y1='0'
-                    x2='100%'
-                    y2='0'
-                    className='bp-signal'
-                    stroke='var(--bp-accent)'
-                    strokeWidth='1.5'
-                  />
-                </svg>
-                <div className='-translate-x-1/2 -translate-y-1/2 b-accent s-panel absolute top-1/2 left-1/2 flex items-center gap-2.5 rounded-lg border px-5 py-2.5'>
-                  <span className='bp-pulse s-accent h-2 w-2 rounded-full' />
-                  <span className='t-ink font-semibold text-[14px]'>Zelaxy Runtime</span>
-                  <span className='hair h-3.5 w-px' />
-                  <span className='bp-label t-faint'>v1.0</span>
+                {/* the bus */}
+                <div className='relative my-1 h-12'>
+                  <div className='hair-strong absolute inset-x-0 top-1/2 h-px' />
+                  <svg
+                    className='absolute inset-x-0 top-1/2 h-px w-full overflow-visible'
+                    preserveAspectRatio='none'
+                    aria-hidden='true'
+                  >
+                    <line
+                      x1='0'
+                      y1='0'
+                      x2='100%'
+                      y2='0'
+                      className='bp-signal'
+                      stroke='var(--bp-accent)'
+                      strokeWidth='1.5'
+                    />
+                  </svg>
+                  <div className='-translate-x-1/2 -translate-y-1/2 b-accent s-panel absolute top-1/2 left-1/2 flex items-center gap-2.5 rounded-lg border px-5 py-2.5'>
+                    <span className='bp-pulse s-accent h-2 w-2 rounded-full' />
+                    <span className='t-ink font-semibold text-[14px]'>Zelaxy Runtime</span>
+                    <span className='hair h-3.5 w-px' />
+                    <span className='bp-label t-faint'>v1.0</span>
+                  </div>
+                </div>
+
+                {/* bottom taps */}
+                <div className='flex items-start justify-between gap-2 px-2'>
+                  {INFRA.map((m) => (
+                    <Chip key={m} name={m} />
+                  ))}
                 </div>
               </div>
-
-              {/* bottom taps */}
-              <div className='flex items-start justify-between gap-2 px-2'>
-                {INFRA.map((m) => (
-                  <Chip key={m} name={m} />
-                ))}
-              </div>
-            </div>
             </div>
           </div>
         </Reveal>
