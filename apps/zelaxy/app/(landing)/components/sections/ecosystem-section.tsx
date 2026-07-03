@@ -80,9 +80,13 @@ export function EcosystemSection() {
           </Reveal>
         </div>
 
-        {/* the bus diagram */}
+        {/* the bus diagram — min-w keeps chips readable on mobile via horizontal scroll */}
         <Reveal delay={0.06}>
-          <div className='mt-16 overflow-x-auto'>
+          <div className='relative mt-16'>
+            {/* fade edges to hint that content scrolls on narrow viewports */}
+            <div className='pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[color:var(--bp-bg)] to-transparent sm:hidden' />
+            <div className='pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[color:var(--bp-bg)] to-transparent sm:hidden' />
+            <div className='overflow-x-auto'>
             <div className='min-w-[760px]'>
               {/* top taps */}
               <div className='flex items-end justify-between gap-2 px-2'>
@@ -124,14 +128,15 @@ export function EcosystemSection() {
                 ))}
               </div>
             </div>
+            </div>
           </div>
         </Reveal>
 
         {/* registry marquee */}
         <Reveal delay={0.1}>
           <div className='b-hair relative mt-16 overflow-hidden border-y py-5'>
-            <div className='pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[color:var(--bp-bg)] to-transparent' />
-            <div className='pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[color:var(--bp-bg)] to-transparent' />
+            <div className='pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-[color:var(--bp-bg)] to-transparent sm:w-24' />
+            <div className='pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-[color:var(--bp-bg)] to-transparent sm:w-24' />
             <div className='bp-marquee flex w-max gap-3'>
               {[...REGISTRY, ...REGISTRY].map((name, i) => (
                 <span

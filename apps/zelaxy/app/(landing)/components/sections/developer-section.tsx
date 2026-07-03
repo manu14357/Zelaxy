@@ -75,14 +75,18 @@ export function DeveloperSection() {
         </div>
 
         <div className='mt-12 grid grid-cols-1 gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12'>
-          {/* code viewport */}
+          {/* code viewport — no label prop: the inner tab-bar IS the header.
+               Passing label would create a second absolute overlay that collides
+               with the traffic-light bar and produces merged text. */}
           <Reveal>
-            <Viewport label='terminal · zelaxy serialize' className='overflow-hidden rounded-xl'>
+            <Viewport className='overflow-hidden rounded-xl'>
               <div className='b-hair flex items-center gap-1.5 border-b px-4 py-3'>
-                <span className='b-strong h-2.5 w-2.5 rounded-full border' />
-                <span className='b-strong h-2.5 w-2.5 rounded-full border' />
-                <span className='b-strong h-2.5 w-2.5 rounded-full border' />
-                <span className='t-faint bp-label ml-3'>workflow.zelaxy.json</span>
+                <span className='s-accent h-2.5 w-2.5 rounded-full' />
+                <span className='s-accent-strong h-2.5 w-2.5 rounded-full' />
+                <span className='s-line-strong h-2.5 w-2.5 rounded-full' />
+                <span className='t-accent bp-label ml-3'>terminal</span>
+                <span className='hair mx-2 h-3 w-px' />
+                <span className='t-faint bp-label'>workflow.zelaxy.json</span>
               </div>
               <CodeBody />
             </Viewport>

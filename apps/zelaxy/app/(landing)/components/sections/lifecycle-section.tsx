@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+import { useReducedMotion } from 'framer-motion'
 import { Reveal, SectionTag } from '@/app/(landing)/components/blueprint/primitives'
 
 const STEPS = [
@@ -15,11 +17,61 @@ const STEPS = [
 ]
 
 export function LifecycleSection() {
+  const reduce = useReducedMotion()
+  const stepsRef = useRef<HTMLDivElement>(null)
+  const fillRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    let raf = 0
+
+    function update() {
+      const fill = fillRef.current
+      const col = stepsRef.current
+      if (!fill || !col) return
+
+      const rect = col.getBoundingClientRect()
+      // The rail visually spans `top-4 bottom-4` → 16px inset top & bottom.
+      const railLen = Math.max(0, rect.height - 32)
+
+      if (reduce) {
+        fill.style.height = `${railLen}px`
+        return
+      }
+
+      const vh = window.innerHeight
+      // "Read line" sits at 50% of the viewport; the signal fills down to
+      // wherever that line currently intersects the steps column.
+      const readLine = vh * 0.5
+      // Distance from the rail's start (rect.top + 16) down to the read line.
+      const filledPx = readLine - (rect.top + 16)
+      const h = Math.max(0, Math.min(railLen, filledPx))
+      fill.style.height = `${h}px`
+    }
+
+    // Coalesce scroll events into a single rAF write
+    function onScroll() {
+      if (raf) return
+      raf = requestAnimationFrame(() => {
+        raf = 0
+        update()
+      })
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    update() // initial position
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [reduce])
+
   return (
     <section id='lifecycle' className='s-bg relative py-28 sm:py-36'>
       <div className='hair absolute inset-x-0 top-0 h-px' />
       <div className='mx-auto grid max-w-[1320px] grid-cols-1 gap-12 px-5 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16'>
-        {/* heading */}
+        {/* sticky heading */}
         <div className='lg:sticky lg:top-28 lg:self-start'>
           <Reveal>
             <SectionTag id='03' name='Lifecycle' />
@@ -43,25 +95,18 @@ export function LifecycleSection() {
 
         {/* steps with rail */}
         <Reveal delay={0.06}>
-          <div className='relative'>
-            {/* base rail */}
+          <div ref={stepsRef} className='relative'>
+            {/* base rail — faint gray, always full height */}
             <div className='hair absolute top-4 bottom-4 left-[19px] w-px' />
-            {/* signal flowing down the rail */}
-            <svg
-              className='pointer-events-none absolute top-4 bottom-4 left-[19px] w-px overflow-visible'
-              preserveAspectRatio='none'
+
+            {/* animated orange signal — a height-controlled div (no SVG).
+                JS grows its height in px as you scroll; the CSS gradient +
+                bp-rail-flow animation makes the dashes travel downward. */}
+            <div
+              ref={fillRef}
+              className='bp-rail-signal pointer-events-none absolute top-4 left-[19px] w-[2px]'
               aria-hidden='true'
-            >
-              <line
-                x1='0'
-                y1='0'
-                x2='0'
-                y2='100%'
-                className='bp-signal'
-                stroke='var(--bp-accent)'
-                strokeWidth='1.5'
-              />
-            </svg>
+            />
 
             <ol className='space-y-9'>
               {STEPS.map(([n, title, desc], i) => (

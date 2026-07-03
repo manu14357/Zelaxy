@@ -122,43 +122,49 @@ export function CanvasSection() {
         {/* The viewport */}
         <Reveal delay={0.05}>
           <div className='mt-12'>
-            <Viewport label='workflow.zelaxy · main' className='overflow-hidden rounded-2xl'>
-              {/* faux toolbar */}
-              <div className='bp-label absolute top-0 right-0 z-20 flex items-center gap-3 px-3 py-2'>
-                <span className='t-faint'>x:1180 y:500</span>
-                <span className='hair h-3 w-px' />
-                <span className='t-dim'>15 nodes</span>
-              </div>
+            {/* On mobile, the wide canvas (1205px coordinate space) scrolls horizontally
+                so nodes remain readable instead of being squeezed into a 160px-tall strip */}
+            <div className='overflow-x-auto rounded-2xl'>
+              <div className='min-w-[600px]'>
+                <Viewport label='workflow.zelaxy · main' className='overflow-hidden rounded-2xl'>
+                  {/* faux toolbar */}
+                  <div className='bp-label absolute top-0 right-0 z-20 flex items-center gap-3 px-3 py-2'>
+                    <span className='t-faint'>x:1180 y:500</span>
+                    <span className='hair h-3 w-px' />
+                    <span className='t-dim'>15 nodes</span>
+                  </div>
 
-              {/* zoom controls */}
-              <div className='b-hair s-panel absolute bottom-3 left-3 z-20 flex flex-col overflow-hidden rounded-md border'>
-                {['+', '−', '⊡'].map((c) => (
-                  <span
-                    key={c}
-                    className='t-dim b-hair grid h-7 w-7 place-items-center border-b text-sm last:border-b-0'
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
+                  {/* zoom controls */}
+                  <div className='b-hair s-panel absolute bottom-3 left-3 z-20 flex flex-col overflow-hidden rounded-md border'>
+                    {['+', '−', '⊡'].map((c) => (
+                      <span
+                        key={c}
+                        className='t-dim b-hair grid h-7 w-7 place-items-center border-b text-sm last:border-b-0'
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
 
-              {/* minimap */}
-              <div className='b-hair s-panel absolute right-3 bottom-3 z-20 hidden h-14 w-24 rounded border sm:block'>
-                <div className='bp-dot-field h-full w-full opacity-60' />
-                <div className='b-accent absolute top-2 left-2 h-6 w-9 rounded-[2px] border' />
-              </div>
+                  {/* minimap */}
+                  <div className='b-hair s-panel absolute right-3 bottom-3 z-20 hidden h-14 w-24 rounded border sm:block'>
+                    <div className='bp-dot-field h-full w-full opacity-60' />
+                    <div className='b-accent absolute top-2 left-2 h-6 w-9 rounded-[2px] border' />
+                  </div>
 
-              <div className='bp-canvas-dots relative aspect-[1205/512] w-full overflow-hidden'>
-                <div className='bp-breathe absolute inset-0 flex items-center justify-center p-5'>
-                  <WorkflowCanvas
-                    nodes={NODES}
-                    edges={EDGES}
-                    viewBox='-10 22 1205 512'
-                    className='h-full w-full'
-                  />
-                </div>
+                  <div className='bp-canvas-dots relative aspect-[1205/512] w-full overflow-hidden'>
+                    <div className='bp-breathe absolute inset-0 flex items-center justify-center p-5'>
+                      <WorkflowCanvas
+                        nodes={NODES}
+                        edges={EDGES}
+                        viewBox='-10 22 1205 512'
+                        className='h-full w-full'
+                      />
+                    </div>
+                  </div>
+                </Viewport>
               </div>
-            </Viewport>
+            </div>
           </div>
         </Reveal>
 

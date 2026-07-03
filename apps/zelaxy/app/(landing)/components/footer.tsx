@@ -65,7 +65,7 @@ export function Footer() {
         {/* index grid */}
         <div className='grid grid-cols-2 gap-x-8 gap-y-12 py-16 md:grid-cols-3 lg:grid-cols-5'>
           {/* brand */}
-          <div className='col-span-2 lg:col-span-1'>
+          <div className='col-span-2 md:col-span-1'>
             <Link href='/' className='flex items-center gap-2.5'>
               <span className='b-strong s-panel grid h-8 w-8 place-items-center rounded-[7px] border'>
                 <img
@@ -86,10 +86,10 @@ export function Footer() {
               href='https://github.com/manu14357/Zelaxy'
               target='_blank'
               rel='noopener noreferrer'
-              className='t-dim hover-ink mt-6 inline-flex items-center gap-2 text-[13px]'
+              className='t-dim hover-ink mt-6 inline-flex max-w-full items-center gap-2 text-[13px]'
             >
-              <GitHubIcon className='h-4 w-4' />
-              github.com/manu14357/Zelaxy
+              <GitHubIcon className='h-4 w-4 shrink-0' />
+              <span className='truncate'>github.com/manu14357/Zelaxy</span>
             </a>
           </div>
 

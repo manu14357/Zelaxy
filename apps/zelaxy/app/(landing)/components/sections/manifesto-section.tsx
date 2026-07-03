@@ -59,10 +59,10 @@ export function ManifestoSection() {
           <Reveal>
             <p className='bp-label t-faint'>Why existing tools fail</p>
           </Reveal>
-          <div className='b-hair mt-8 grid grid-cols-1 gap-px overflow-hidden rounded-xl border md:grid-cols-3'>
+          <div className='b-hair mt-8 grid grid-cols-1 gap-px overflow-hidden rounded-xl border sm:grid-cols-2 md:grid-cols-3'>
             {FAILURES.map((f, i) => (
               <Reveal key={f.id} delay={i * 0.08}>
-                <div className='s-panel relative h-full p-7'>
+                <div className='s-panel relative h-full p-5 sm:p-6 md:p-7'>
                   <div className='bp-label mb-5 flex items-center gap-3'>
                     <span className='b-hair t-faint grid h-6 w-6 place-items-center rounded border'>
                       {f.id}

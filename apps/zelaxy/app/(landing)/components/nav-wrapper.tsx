@@ -17,7 +17,7 @@ export default function NavWrapper({ onOpenTypeformLink }: NavWrapperProps) {
           {/* Logo */}
           <Link href='/' className='group flex items-center space-x-2'>
             <img src='/Zelaxy.png' alt='Zelaxy' width={28} height={28} className='h-7 w-7' />
-            <span className='bg-gradient-to-r from-primary to-orange-600 bg-clip-text font-bold text-transparent text-xl transition-all duration-300 dark:bg-none dark:text-white'>
+            <span className='bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text font-bold text-transparent text-xl transition-all duration-300 dark:bg-none dark:text-white'>
               Zelaxy
             </span>
           </Link>
@@ -29,21 +29,21 @@ export default function NavWrapper({ onOpenTypeformLink }: NavWrapperProps) {
               className='group relative font-medium text-gray-600 transition-colors duration-200 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
             >
               Features
-              <span className='-bottom-1 absolute left-0 h-0.5 w-0 bg-gradient-to-r from-primary to-orange-600 transition-all duration-300 group-hover:w-full' />
+              <span className='-bottom-1 absolute left-0 h-0.5 w-0 bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-300 group-hover:w-full' />
             </Link>
             <Link
               href='#workflows'
               className='group relative font-medium text-gray-600 transition-colors duration-200 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
             >
               Workflows
-              <span className='-bottom-1 absolute left-0 h-0.5 w-0 bg-gradient-to-r from-primary to-orange-600 transition-all duration-300 group-hover:w-full' />
+              <span className='-bottom-1 absolute left-0 h-0.5 w-0 bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-300 group-hover:w-full' />
             </Link>
             <Link
               href='#integrations'
               className='group relative font-medium text-gray-600 transition-colors duration-200 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
             >
               Integrations
-              <span className='-bottom-1 absolute left-0 h-0.5 w-0 bg-gradient-to-r from-primary to-orange-600 transition-all duration-300 group-hover:w-full' />
+              <span className='-bottom-1 absolute left-0 h-0.5 w-0 bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-300 group-hover:w-full' />
             </Link>
           </div>
 
@@ -61,14 +61,14 @@ export default function NavWrapper({ onOpenTypeformLink }: NavWrapperProps) {
             {onOpenTypeformLink ? (
               <Button
                 onClick={onOpenTypeformLink}
-                className='rounded-full bg-gradient-to-r from-primary to-orange-600 px-6 text-white shadow-lg transition-all duration-300 hover:from-orange-700 hover:to-orange-700 hover:shadow-xl'
+                className='rounded-full bg-gradient-to-r from-orange-500 to-orange-600 px-6 text-white shadow-lg transition-all duration-300 hover:from-orange-700 hover:to-orange-700 hover:shadow-xl'
               >
                 Get Started
                 <ArrowRight className='ml-2 h-4 w-4' />
               </Button>
             ) : (
               <Link href='/arena'>
-                <Button className='rounded-full bg-gradient-to-r from-primary to-orange-600 px-6 text-white shadow-lg transition-all duration-300 hover:from-orange-700 hover:to-orange-700 hover:shadow-xl'>
+                <Button className='rounded-full bg-gradient-to-r from-orange-500 to-orange-600 px-6 text-white shadow-lg transition-all duration-300 hover:from-orange-700 hover:to-orange-700 hover:shadow-xl'>
                   Get Started
                   <ArrowRight className='ml-2 h-4 w-4' />
                 </Button>

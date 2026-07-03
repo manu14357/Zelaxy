@@ -1,7 +1,6 @@
 export { Footer } from './footer'
 export { GitHubStarsBanner } from './github-stars-banner'
 export { GridPattern } from './grid-pattern'
-export { default as NavWrapper } from './nav-wrapper'
 export { Navigation } from './navigation'
 export { CanvasSection } from './sections/canvas-section'
 export { CapabilitiesSection } from './sections/capabilities-section'

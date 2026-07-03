@@ -15,10 +15,10 @@ export function ThemeToggle() {
       type='button'
       onClick={toggle}
       aria-label='Toggle theme'
-      className='relative inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+      className='btn-icon relative inline-flex h-9 w-9 items-center justify-center transition-all duration-300'
     >
-      <Sun className='h-[1.2rem] w-[1.2rem] rotate-0 scale-100 text-orange-500 transition-all duration-500 dark:rotate-90 dark:scale-0' />
-      <Moon className='absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 text-primary transition-all duration-500 dark:rotate-0 dark:scale-100' />
+      <Sun className='t-accent h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all duration-500 dark:rotate-90 dark:scale-0' />
+      <Moon className='t-dim absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all duration-500 dark:rotate-0 dark:scale-100' />
     </button>
   )
 }

@@ -57,10 +57,17 @@ export function HeroSection() {
   const [stars, setStars] = useState<number | null>(null)
 
   useEffect(() => {
-    fetch(`https://api.github.com/repos/${GITHUB_REPO}`)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 5000)
+    fetch(`https://api.github.com/repos/${GITHUB_REPO}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((d) => typeof d.stargazers_count === 'number' && setStars(d.stargazers_count))
       .catch(() => {})
+      .finally(() => clearTimeout(timer))
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
   }, [])
 
   const ease = [0.16, 1, 0.3, 1] as const
