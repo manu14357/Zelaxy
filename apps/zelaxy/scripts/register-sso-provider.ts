@@ -57,15 +57,7 @@ function getBaseUrl(): string {
 
 const escapeXml = (str: string) =>
   str.replace(/[<>&"']/g, (c) =>
-    c === '<'
-      ? '&lt;'
-      : c === '>'
-        ? '&gt;'
-        : c === '&'
-          ? '&amp;'
-          : c === '"'
-            ? '&quot;'
-            : '&apos;'
+    c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '&' ? '&amp;' : c === '"' ? '&quot;' : '&apos;'
   )
 
 async function main() {
@@ -111,7 +103,9 @@ async function main() {
     const clientId = requireEnv('SSO_OIDC_CLIENT_ID')
     const clientSecret = requireEnv('SSO_OIDC_CLIENT_SECRET')
     const scopes = process.env.SSO_OIDC_SCOPES
-      ? process.env.SSO_OIDC_SCOPES.split(',').map((s) => s.trim()).filter(Boolean)
+      ? process.env.SSO_OIDC_SCOPES.split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
       : DEFAULT_OIDC_SCOPES
 
     oidcConfig = JSON.stringify({
