@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { LoadingAgent } from '@/components/ui/loading-agent'
+import { getLastOpened } from '@/lib/arena/last-opened'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 
 export default function WorkflowsPage() {
@@ -43,9 +44,13 @@ export default function WorkflowsPage() {
       return workflow.workspaceId === workspaceId
     })
 
-    // If we have valid workspace workflows, redirect to the first one
+    // Resume the last-opened workflow if it still exists in this workspace; otherwise fall back to
+    // the first one. This is what makes returning to the Workflows section reopen where you left off.
     if (workspaceWorkflows.length > 0) {
-      router.replace(`/arena/${workspaceId}/zelaxy/${workspaceWorkflows[0]}`)
+      const lastOpened = getLastOpened(workspaceId, 'workflow')
+      const target =
+        lastOpened && workspaceWorkflows.includes(lastOpened) ? lastOpened : workspaceWorkflows[0]
+      router.replace(`/arena/${workspaceId}/zelaxy/${target}`)
     }
   }, [hasInitialized, isLoading, workflows, workspaceId, router])
 

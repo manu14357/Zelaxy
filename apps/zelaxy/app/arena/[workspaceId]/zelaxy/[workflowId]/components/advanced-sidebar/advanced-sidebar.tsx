@@ -179,6 +179,7 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { getLastOpened } from '@/lib/arena/last-opened'
 import { getBlockDocsUrl, getDocsUrl } from '@/lib/docs-url'
 import { createLogger } from '@/lib/logs/console/logger'
 import { SearchModal } from '@/app/arena/[workspaceId]/zelaxy/components/search-modal/search-modal'
@@ -1375,7 +1376,13 @@ export function AdvancedSidebar({ className }: AdvancedSidebarProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => router.push(`/arena/${workspaceId}/tables`)}
+                  onClick={() => {
+                    // Resume the last-opened table if there is one; otherwise land on the list.
+                    const last = getLastOpened(workspaceId, 'table')
+                    router.push(
+                      last ? `/arena/${workspaceId}/tables/${last}` : `/arena/${workspaceId}/tables`
+                    )
+                  }}
                   className={cn(
                     'relative flex w-full items-center rounded-lg transition-all duration-150',
                     'text-muted-foreground hover:bg-accent/60 hover:text-foreground',

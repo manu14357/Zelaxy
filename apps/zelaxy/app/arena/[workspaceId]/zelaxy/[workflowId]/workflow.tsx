@@ -37,6 +37,7 @@ import {
   updateNodeParent as updateNodeParentUtil,
 } from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/utils'
 import { getBlock } from '@/blocks'
+import { rememberLastOpened } from '@/lib/arena/last-opened'
 import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
 import { useStreamCleanup } from '@/hooks/use-stream-cleanup'
 import { useCopilotStore } from '@/stores/copilot/store'
@@ -130,6 +131,12 @@ const WorkflowContent = React.memo(() => {
 
   // Get workspace ID from the params
   const workspaceId = params.workspaceId as string
+
+  // Remember this as the workspace's last-opened workflow so returning to the Workflows section
+  // resumes here instead of always redirecting to the first workflow.
+  useEffect(() => {
+    rememberLastOpened(workspaceId, 'workflow', params.workflowId as string)
+  }, [workspaceId, params.workflowId])
 
   const { workflows, activeWorkflowId, isLoading, setActiveWorkflow, createWorkflow } =
     useWorkflowRegistry()

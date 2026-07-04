@@ -361,6 +361,11 @@ const CAPABILITIES: { icon: typeof Network; label: string; description: string }
   },
 ]
 
+// Per-workspace key under which the active ZelaxyArena chat id is remembered. Navigating to a
+// table/workflow/file and back remounts this component with empty state; persisting the active chat
+// id lets us restore the exact session instead of opening a blank "new chat" panel.
+const lastChatKey = (workspaceId: string) => `zelaxyarena:last-chat:${workspaceId}`
+
 export function ZelaxyArena() {
   const params = useParams()
   const workspaceId = params.workspaceId as string
@@ -572,18 +577,53 @@ export function ZelaxyArena() {
     }
   }, [])
 
-  const deleteChat = useCallback(async (id: string) => {
-    try {
-      await fetch(`/api/zelaxy-arena/chats/${id}`, { method: 'DELETE' })
-    } finally {
-      setChatList((prev) => prev.filter((c) => c.id !== id))
-      if (chatIdRef.current === id) {
-        chatIdRef.current = null
-        setChatId(null)
-        setMessages([])
+  const deleteChat = useCallback(
+    async (id: string) => {
+      try {
+        await fetch(`/api/zelaxy-arena/chats/${id}`, { method: 'DELETE' })
+      } finally {
+        setChatList((prev) => prev.filter((c) => c.id !== id))
+        if (chatIdRef.current === id) {
+          chatIdRef.current = null
+          setChatId(null)
+          setMessages([])
+          try {
+            window.localStorage.removeItem(lastChatKey(workspaceId))
+          } catch {
+            /* ignore */
+          }
+        }
       }
+    },
+    [workspaceId]
+  )
+
+  // Restore the last active chat when returning to ZelaxyArena (e.g. after opening a table/workflow
+  // and navigating back). The component remounts with empty state on route changes, so without this
+  // the session is lost and a blank panel appears. Read localStorage inside an effect (not during
+  // render) to stay hydration-safe, and guard so it runs only once per mount.
+  const restoredRef = useRef(false)
+  useEffect(() => {
+    if (restoredRef.current) return
+    restoredRef.current = true
+    try {
+      const last = window.localStorage.getItem(lastChatKey(workspaceId))
+      if (last) void loadChat(last)
+    } catch {
+      /* ignore */
     }
-  }, [])
+  }, [workspaceId, loadChat])
+
+  // Remember which chat is active so the restore above can bring it back on return. Only writes a
+  // real chat id; New chat / delete explicitly clear the key.
+  useEffect(() => {
+    if (!chatId) return
+    try {
+      window.localStorage.setItem(lastChatKey(workspaceId), chatId)
+    } catch {
+      /* ignore */
+    }
+  }, [chatId, workspaceId])
 
   // When the selected model changes, check (in the background) whether credentials are available.
   useEffect(() => {
@@ -1059,6 +1099,12 @@ export function ZelaxyArena() {
     setConsoleEntries([])
     setChatId(null)
     chatIdRef.current = null
+    // Forget the remembered session so returning to ZelaxyArena keeps this fresh chat, not the old one.
+    try {
+      window.localStorage.removeItem(lastChatKey(workspaceId))
+    } catch {
+      /* ignore */
+    }
   }
 
   return (

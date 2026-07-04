@@ -37,6 +37,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { clearLastOpened, getLastOpened } from '@/lib/arena/last-opened'
 import { createLogger } from '@/lib/logs/console/logger'
 import type { TableDefinition } from '@/lib/table'
 import { useUserPermissionsContext } from '@/app/arena/[workspaceId]/providers/workspace-permissions-provider'
@@ -141,7 +142,10 @@ export function Tables() {
   const handleDelete = async () => {
     if (!activeTable) return
     try {
-      await deleteTable.mutateAsync(activeTable.id)
+      const deletedId = activeTable.id
+      await deleteTable.mutateAsync(deletedId)
+      // Don't let the Tables nav resume a table that no longer exists.
+      if (getLastOpened(workspaceId, 'table') === deletedId) clearLastOpened(workspaceId, 'table')
       setIsDeleteDialogOpen(false)
       setActiveTable(null)
     } catch (err) {

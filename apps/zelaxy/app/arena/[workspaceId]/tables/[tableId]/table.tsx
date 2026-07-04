@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
-import { Download, Filter, Upload } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ArrowLeft, Download, Filter, Upload } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { clearLastOpened, getLastOpened, rememberLastOpened } from '@/lib/arena/last-opened'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -62,6 +63,15 @@ export function Table({
   // ids explicitly; otherwise fall back to the route params.
   const workspaceId = workspaceIdProp ?? (params.workspaceId as string)
   const tableId = tableIdProp ?? (params.tableId as string)
+
+  // True only on the real /tables/[tableId] route — not when embedded (e.g. the ZelaxyArena live
+  // panel passes ids as props). Resume tracking + the back-to-list control apply to the route only.
+  const isRouteView = tableIdProp === undefined && workspaceIdProp === undefined
+
+  // Remember this as the workspace's last-opened table so the Tables nav resumes here.
+  useEffect(() => {
+    if (isRouteView) rememberLastOpened(workspaceId, 'table', tableId)
+  }, [isRouteView, workspaceId, tableId])
 
   const userPermissions = useUserPermissionsContext()
 
@@ -164,6 +174,8 @@ export function Table({
   const handleDeleteTable = useCallback(async () => {
     try {
       await deleteTableMutation.mutateAsync(tableId)
+      // Don't let the Tables nav resume a table that no longer exists.
+      if (getLastOpened(workspaceId, 'table') === tableId) clearLastOpened(workspaceId, 'table')
       router.push(`/arena/${workspaceId}/tables`)
     } catch (err) {
       toast.error('Failed to delete table')
@@ -199,6 +211,19 @@ export function Table({
     <div className='relative flex h-full w-full flex-col overflow-hidden'>
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className='flex shrink-0 items-center gap-2 border-border border-b px-4 py-2'>
+        {/* Back to the tables list. Only on the real route — resuming the last table via the nav
+            would otherwise leave no way back to the grid (the header has no other list link). */}
+        {isRouteView && (
+          <Button
+            variant='ghost'
+            size='icon'
+            className='h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground'
+            onClick={() => router.push(`/arena/${workspaceId}/tables`)}
+            title='All tables'
+          >
+            <ArrowLeft className='h-4 w-4' />
+          </Button>
+        )}
         {/* Table name (inline rename) */}
         <div className='min-w-0 flex-1'>
           {isRenamingTable ? (
