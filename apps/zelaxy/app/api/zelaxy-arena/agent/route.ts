@@ -87,9 +87,45 @@ async function resolveMentionedContexts(
 // the client presses Stop, or the platform request budget (maxDuration) is hit. A fixed cap used to
 // cut long multi-step tasks (deep research + many table inserts) off mid-work. Runaway identical
 // loops are still prevented by the exact-args dedup cache (executedToolCalls) below.
-// Tool results fed back to the model. Kept very large so batched metadata / big scrape results are
-// never truncated mid-result (which made the model re-fetch and burn extra tool calls).
-const MAX_TOOL_RESULT_CHARS = 2_000_000
+//
+// Per-tool-result cap. Generous enough that batched metadata / a full page scrape is never
+// truncated mid-result (which made the model re-fetch and burn extra tool calls), but NOT so large
+// that one result can blow the model's context window. Total accumulated tool output across the
+// (uncapped) loop is bounded separately by compactHistory() below.
+const MAX_TOOL_RESULT_CHARS = 100_000
+// Because the tool loop is uncapped, tool results would otherwise pile up in `messages` every
+// iteration until they overflow the model's context window — which surfaces as the agent "stopping
+// mid-response" (the provider throws a context-length error). compactHistory() keeps the total live
+// tool output under this budget by shrinking the OLDEST tool results to a short placeholder, so a
+// long task can run for as many steps as it needs. ~75k tokens of tool output stays live at once.
+const MAX_HISTORY_TOOL_CHARS = 300_000
+// Never shrink the most recent N tool results — those are the ones the model needs for its next step.
+const KEEP_RECENT_TOOL_RESULTS = 6
+const TRIMMED_MARKER = '[older tool result trimmed to fit context]'
+
+// Bound the running context so an uncapped, many-step run never overflows the model window. Only the
+// CONTENT of the oldest `tool` messages is shortened; message order and assistant↔tool pairing are
+// preserved (required by every provider), and user/assistant/system turns are never touched.
+function compactHistory(messages: any[]): void {
+  const toolIdxs: number[] = []
+  for (let i = 0; i < messages.length; i++) {
+    if (messages[i]?.role === 'tool' && typeof messages[i].content === 'string') toolIdxs.push(i)
+  }
+  let total = 0
+  for (const i of toolIdxs) total += messages[i].content.length
+  if (total <= MAX_HISTORY_TOOL_CHARS) return
+  const trimmable = toolIdxs.slice(0, Math.max(0, toolIdxs.length - KEEP_RECENT_TOOL_RESULTS))
+  for (const i of trimmable) {
+    if (total <= MAX_HISTORY_TOOL_CHARS) break
+    const original = messages[i].content as string
+    if (original.startsWith(TRIMMED_MARKER)) continue
+    messages[i] = {
+      ...messages[i],
+      content: `${TRIMMED_MARKER} (${original.length} chars omitted; re-run the tool if you still need this data)`,
+    }
+    total = total - original.length + messages[i].content.length
+  }
+}
 
 const sse = (event: Record<string, unknown>): Uint8Array =>
   new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`)
@@ -559,6 +595,9 @@ export async function POST(req: NextRequest) {
             logger.info('ZelaxyArena request aborted — stopping tool loop')
             break
           }
+          // Keep the accumulated context under the model window so a long, many-step run never
+          // overflows and stops mid-response — trims the oldest tool results in place.
+          compactHistory(messages)
           // Start this turn's text as a fresh segment, then stream the model's narration token-by-
           // token via `onStreamText` (supporting providers emit text deltas live while still
           // returning tool calls unexecuted). `streamedText` tracks whether anything streamed so we
