@@ -83,11 +83,13 @@ async function resolveMentionedContexts(
     : ''
 }
 
-const MAX_TOOL_ITERATIONS = 10
-// Tool results fed back to the model. The old 4000 cap cut off block metadata mid-result, so the
-// model kept re-fetching per block (and searching docs) to fill the gaps — slow + many tool calls.
-// A generous cap lets one batched get_blocks_metadata call carry full metadata for all needed blocks.
-const MAX_TOOL_RESULT_CHARS = 60000
+// No iteration cap: the tool-execution loop runs until the model stops calling tools (task done),
+// the client presses Stop, or the platform request budget (maxDuration) is hit. A fixed cap used to
+// cut long multi-step tasks (deep research + many table inserts) off mid-work. Runaway identical
+// loops are still prevented by the exact-args dedup cache (executedToolCalls) below.
+// Tool results fed back to the model. Kept very large so batched metadata / big scrape results are
+// never truncated mid-result (which made the model re-fetch and burn extra tool calls).
+const MAX_TOOL_RESULT_CHARS = 2_000_000
 
 const sse = (event: Record<string, unknown>): Uint8Array =>
   new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`)
@@ -451,7 +453,7 @@ export async function POST(req: NextRequest) {
           systemPrompt: systemPromptForMode,
           messages: msgs as any,
           temperature: 0.4,
-          maxTokens: 8000,
+          maxTokens: 16000,
           apiKey,
           stream: true,
           thinking: useThinking,
@@ -535,7 +537,6 @@ export async function POST(req: NextRequest) {
           return
         }
 
-        let iteration = 0
         // Remember exact (tool + args) calls so a model that re-requests identical data (some
         // smaller models loop on this) gets the cached result + a nudge instead of a wasted turn.
         const executedToolCalls = new Map<string, string>()
@@ -553,7 +554,6 @@ export async function POST(req: NextRequest) {
         // turn already contains the final answer — we emit THAT directly (no extra model call).
         // eslint-disable-next-line no-constant-condition
         while (true) {
-          iteration++
           // Server-authoritative abort: if the client stopped, don't run another LLM/tool round.
           if (req.signal.aborted) {
             logger.info('ZelaxyArena request aborted — stopping tool loop')
@@ -587,7 +587,7 @@ export async function POST(req: NextRequest) {
             systemPrompt: systemPromptForMode,
             // Generous output budget so a large document (create_file with a long .md body) isn't
             // truncated mid-content. It's a ceiling, not a fixed cost — short turns spend far less.
-            maxTokens: 16000,
+            maxTokens: 32000,
             messages: messages as any,
             temperature: 0.4,
             apiKey,
@@ -605,7 +605,7 @@ export async function POST(req: NextRequest) {
 
           const toolCalls = Array.isArray(response?.toolCalls) ? response.toolCalls : []
 
-          if (toolCalls.length === 0 || iteration > MAX_TOOL_ITERATIONS) {
+          if (toolCalls.length === 0) {
             // Final answer. If it already streamed live via onStreamText, it's on screen. Otherwise
             // the provider returned it whole (no live streaming this turn) — re-stream it token-by-
             // token via the reliable no-tools streaming path so the user always sees it type in.
