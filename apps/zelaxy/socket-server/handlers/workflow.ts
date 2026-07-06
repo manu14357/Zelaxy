@@ -46,6 +46,9 @@ export function setupWorkflowHandlers(
 
       logger.info(`Join workflow request from ${userId} (${userName}) for workflow ${workflowId}`)
 
+      // The role (admin | write | read) is cached in the session below so write handlers
+      // (subblock/variable) can authorize without re-querying the database on every event.
+      let role: string | undefined
       try {
         const accessInfo = await verifyWorkflowAccess(userId, workflowId)
         if (!accessInfo.hasAccess) {
@@ -53,6 +56,7 @@ export function setupWorkflowHandlers(
           socket.emit('join-workflow-error', { error: 'Access denied to workflow' })
           return
         }
+        role = accessInfo.role
       } catch (error) {
         logger.warn(`Error verifying workflow access for ${userId}:`, error)
         socket.emit('join-workflow-error', { error: 'Failed to verify workflow access' })
@@ -89,7 +93,7 @@ export function setupWorkflowHandlers(
 
       room.users.set(socket.id, userPresence)
       roomManager.setWorkflowForSocket(socket.id, workflowId)
-      roomManager.setUserSession(socket.id, { userId, userName })
+      roomManager.setUserSession(socket.id, { userId, userName, role })
 
       const workflowState = await getWorkflowState(workflowId)
       socket.emit('workflow-state', workflowState)

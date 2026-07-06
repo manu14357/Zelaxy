@@ -41,6 +41,26 @@ export function setupVariablesHandlers(
       return
     }
 
+    // Authorize the write. This handler bypasses the workflow-operation permission gate, so read-only
+    // collaborators could otherwise edit variable values. Role is cached in the session at join.
+    if (session.role === 'read') {
+      logger.warn(`Read-only user ${session.userId} blocked from variable update in ${workflowId}`)
+      if (operationId) {
+        socket.emit('operation-failed', {
+          operationId,
+          error: 'Read-only users cannot edit variables',
+          retryable: false,
+        })
+      }
+      socket.emit('operation-forbidden', {
+        type: 'INSUFFICIENT_PERMISSIONS',
+        message: 'Read-only users cannot edit variables',
+        operation: 'variable-update',
+        target: 'variable',
+      })
+      return
+    }
+
     try {
       const userPresence = room.users.get(socket.id)
       if (userPresence) {
@@ -65,11 +85,15 @@ export function setupVariablesHandlers(
 
       let updateSuccessful = false
       await db.transaction(async (tx) => {
+        // Lock the workflow row for the transaction. All variables live in one JSON blob updated
+        // read-modify-write, so without FOR UPDATE concurrent edits to different variables would race
+        // and the second write would clobber the first (lost update under READ COMMITTED).
         const [workflowRecord] = await tx
           .select({ variables: workflow.variables })
           .from(workflow)
           .where(eq(workflow.id, workflowId))
           .limit(1)
+          .for('update')
 
         if (!workflowRecord) {
           logger.debug(

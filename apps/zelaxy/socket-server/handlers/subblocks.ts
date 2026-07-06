@@ -40,6 +40,26 @@ export function setupSubblocksHandlers(
       return
     }
 
+    // Authorize the write. This handler bypasses the workflow-operation permission gate, so read-only
+    // collaborators could otherwise edit block field values. Role is cached in the session at join.
+    if (session.role === 'read') {
+      logger.warn(`Read-only user ${session.userId} blocked from subblock update in ${workflowId}`)
+      if (operationId) {
+        socket.emit('operation-failed', {
+          operationId,
+          error: 'Read-only users cannot edit block values',
+          retryable: false,
+        })
+      }
+      socket.emit('operation-forbidden', {
+        type: 'INSUFFICIENT_PERMISSIONS',
+        message: 'Read-only users cannot edit block values',
+        operation: 'subblock-update',
+        target: 'subblock',
+      })
+      return
+    }
+
     try {
       const userPresence = room.users.get(socket.id)
       if (userPresence) {
@@ -65,11 +85,16 @@ export function setupSubblocksHandlers(
 
       let updateSuccessful = false
       await db.transaction(async (tx) => {
+        // Lock the block row for the duration of the transaction. subBlocks is a single JSON blob
+        // updated read-modify-write, so without FOR UPDATE two concurrent edits to different
+        // subblocks of the same block would both read the old blob and the second write would clobber
+        // the first (lost update under READ COMMITTED). The lock serializes them.
         const [block] = await tx
           .select({ subBlocks: workflowBlocks.subBlocks })
           .from(workflowBlocks)
           .where(and(eq(workflowBlocks.id, blockId), eq(workflowBlocks.workflowId, workflowId)))
           .limit(1)
+          .for('update')
 
         if (!block) {
           // Block was deleted - this is a normal race condition in collaborative editing

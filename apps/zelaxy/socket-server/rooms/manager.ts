@@ -43,7 +43,9 @@ export interface WorkflowRoom {
 export class RoomManager {
   private workflowRooms = new Map<string, WorkflowRoom>()
   private socketToWorkflow = new Map<string, string>()
-  private userSessions = new Map<string, { userId: string; userName: string }>()
+  // role is the caller's access level in the joined workflow (admin | write | read), cached at join
+  // time so per-operation handlers can authorize writes without re-querying the database each event.
+  private userSessions = new Map<string, { userId: string; userName: string; role?: string }>()
   private io: Server
 
   constructor(io: Server) {
@@ -213,7 +215,7 @@ export class RoomManager {
     return this.socketToWorkflow
   }
 
-  getUserSessions(): ReadonlyMap<string, { userId: string; userName: string }> {
+  getUserSessions(): ReadonlyMap<string, { userId: string; userName: string; role?: string }> {
     return this.userSessions
   }
 
@@ -237,11 +239,16 @@ export class RoomManager {
     this.socketToWorkflow.set(socketId, workflowId)
   }
 
-  getUserSession(socketId: string): { userId: string; userName: string } | undefined {
+  getUserSession(
+    socketId: string
+  ): { userId: string; userName: string; role?: string } | undefined {
     return this.userSessions.get(socketId)
   }
 
-  setUserSession(socketId: string, session: { userId: string; userName: string }): void {
+  setUserSession(
+    socketId: string,
+    session: { userId: string; userName: string; role?: string }
+  ): void {
     this.userSessions.set(socketId, session)
   }
 
