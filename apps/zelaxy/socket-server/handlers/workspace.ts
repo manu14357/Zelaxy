@@ -1,5 +1,6 @@
 import { createLogger } from '@/lib/logs/console/logger'
 import type { AuthenticatedSocket } from '@/socket-server/middleware/auth'
+import { verifyWorkspaceMembership } from '@/socket-server/middleware/permissions'
 
 const logger = createLogger('WorkspaceHandlers')
 
@@ -9,7 +10,7 @@ const logger = createLogger('WorkspaceHandlers')
  * real-time execution events for all workflows in a workspace.
  */
 export function setupWorkspaceHandlers(socket: AuthenticatedSocket) {
-  socket.on('join-workspace', ({ workspaceId }: { workspaceId: string }) => {
+  socket.on('join-workspace', async ({ workspaceId }: { workspaceId: string }) => {
     if (!socket.userId) {
       logger.warn(`Join workspace rejected: Socket ${socket.id} not authenticated`)
       socket.emit('join-workspace-error', { error: 'Authentication required' })
@@ -19,6 +20,24 @@ export function setupWorkspaceHandlers(socket: AuthenticatedSocket) {
     if (!workspaceId) {
       logger.warn(`Join workspace rejected: No workspaceId provided`)
       socket.emit('join-workspace-error', { error: 'workspaceId is required' })
+      return
+    }
+
+    // Enforce workspace membership before joining. Without this, any authenticated user could
+    // subscribe to another workspace's room and receive its real-time execution events (which carry
+    // block outputs) — a cross-tenant data leak. Mirrors the access check in join-workflow.
+    try {
+      const role = await verifyWorkspaceMembership(socket.userId, workspaceId)
+      if (!role) {
+        logger.warn(
+          `Join workspace rejected: user ${socket.userId} is not a member of workspace ${workspaceId}`
+        )
+        socket.emit('join-workspace-error', { error: 'Access denied to workspace' })
+        return
+      }
+    } catch (error) {
+      logger.error(`Error verifying workspace membership for ${socket.userId}:`, error)
+      socket.emit('join-workspace-error', { error: 'Failed to verify workspace access' })
       return
     }
 
