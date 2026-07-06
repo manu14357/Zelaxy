@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'http'
 import type { Server } from 'socket.io'
+import { env } from '@/lib/env'
 import type { RoomManager } from '@/socket-server/rooms/manager'
 
 interface Logger {
@@ -7,6 +8,18 @@ interface Logger {
   error: (message: string, ...args: any[]) => void
   debug: (message: string, ...args: any[]) => void
   warn: (message: string, ...args: any[]) => void
+}
+
+/**
+ * These POST endpoints are a server-to-server bridge: the main Next.js app / background workers call
+ * them to broadcast lifecycle + execution events into socket rooms. They are NOT meant to be
+ * client-reachable — without auth, anyone who can reach the port could force-disconnect users from a
+ * workflow, spoof execution logs into a workspace room, or trigger rehydration storms. Require the
+ * shared INTERNAL_API_SECRET (the same secret used for the app's other internal endpoints).
+ */
+function isInternalRequestAuthorized(req: IncomingMessage): boolean {
+  const provided = req.headers['x-internal-secret']
+  return typeof provided === 'string' && provided === env.INTERNAL_API_SECRET
 }
 
 /**
@@ -33,6 +46,21 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?:
     // Add CORS headers to all responses
     if (req.headers.origin) {
       res.setHeader('Access-Control-Allow-Origin', req.headers.origin)
+    }
+
+    // All POST /api/* routes are the internal server-to-server bridge — require the shared secret.
+    // (GET / and /health stay public for load-balancer/Railway health checks.)
+    if (
+      req.method === 'POST' &&
+      req.url?.startsWith('/api/') &&
+      !isInternalRequestAuthorized(req)
+    ) {
+      logger.warn(`Rejected unauthenticated internal request to ${req.url}`, {
+        origin: req.headers.origin,
+      })
+      res.writeHead(401, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Unauthorized' }))
+      return
     }
 
     // Handle root and health check for Railway

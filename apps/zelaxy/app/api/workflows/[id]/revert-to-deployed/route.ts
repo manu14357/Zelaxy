@@ -93,6 +93,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-internal-secret': env.INTERNAL_API_SECRET,
         },
         body: JSON.stringify({
           workflowId: id,

@@ -642,7 +642,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const socketUrl = process.env.SOCKET_URL || 'http://localhost:3002'
         await fetch(`${socketUrl}/api/copilot-workflow-edit`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-secret': process.env.INTERNAL_API_SECRET || '',
+          },
           body: JSON.stringify({
             workflowId,
             description: description || `${source} edited workflow`,

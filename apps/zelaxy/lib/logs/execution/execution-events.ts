@@ -49,7 +49,11 @@ async function emitToSocketServer(endpoint: string, payload: Record<string, any>
     const socketUrl = getSocketServerUrl()
     const response = await fetch(`${socketUrl}${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        // Authenticate to the socket server's internal bridge (shared secret).
+        'x-internal-secret': process.env.INTERNAL_API_SECRET || '',
+      },
       body: JSON.stringify(payload),
     })
 
