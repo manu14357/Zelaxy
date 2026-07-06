@@ -15,6 +15,7 @@ import {
 import { AlertTriangle, X } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import '@xyflow/react/dist/style.css'
+import { rememberLastOpened } from '@/lib/arena/last-opened'
 import { createLogger } from '@/lib/logs/console/logger'
 import { useWorkspacePermissionsContext } from '@/app/arena/[workspaceId]/providers/workspace-permissions-provider'
 import { ControlBar } from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/control-bar/control-bar'
@@ -37,7 +38,6 @@ import {
   updateNodeParent as updateNodeParentUtil,
 } from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/utils'
 import { getBlock } from '@/blocks'
-import { rememberLastOpened } from '@/lib/arena/last-opened'
 import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
 import { useStreamCleanup } from '@/hooks/use-stream-cleanup'
 import { useCopilotStore } from '@/stores/copilot/store'

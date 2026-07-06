@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Download, Filter, Upload } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { clearLastOpened, getLastOpened, rememberLastOpened } from '@/lib/arena/last-opened'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { clearLastOpened, getLastOpened, rememberLastOpened } from '@/lib/arena/last-opened'
 import type { Filter as FilterType, TableRow } from '@/lib/table'
 import { cn } from '@/lib/utils'
 import { useUserPermissionsContext } from '@/app/arena/[workspaceId]/providers/workspace-permissions-provider'
