@@ -57,7 +57,15 @@ export class WaitBlockHandler implements BlockHandler {
         )
       }
       await sleep(waitMs)
-      return { waitDuration: waitMs, status: 'completed' }
+      // waitedMs/resumedAt/mode match the block's declared outputs so `<wait.waitedMs>` etc.
+      // resolve for downstream blocks; waitDuration/status are kept for backward compatibility.
+      return {
+        waitDuration: waitMs,
+        status: 'completed',
+        waitedMs: waitMs,
+        resumedAt: new Date().toISOString(),
+        mode: 'sync',
+      }
     }
 
     // Async mode: suspend execution
@@ -81,6 +89,9 @@ export class WaitBlockHandler implements BlockHandler {
       waitDuration: waitMs,
       status: 'waiting',
       resumeAt,
+      waitedMs: waitMs,
+      resumedAt: resumeAt,
+      mode: 'async',
       _pauseMetadata: pauseMetadata,
     }
   }
