@@ -1327,4 +1327,133 @@ describe('AgentBlockHandler', () => {
       expect(requestBody.apiKey).toBe('test-azure-api-key')
     })
   })
+
+  // Behavioural coverage for the Agent's rich input fields — asserts each one is actually wired into
+  // the provider request the handler builds (not just present in the block definition).
+  describe('field wiring (skills, structured output, params, MCP, memories, OCR)', () => {
+    const getRequestBody = () => {
+      const call = (mockFetch.mock.calls as any[]).find((c) => c[1]?.body)
+      if (!call) throw new Error('provider request was never sent')
+      return JSON.parse(call[1].body)
+    }
+
+    it('passes structured output (responseFormat) through to the provider request', async () => {
+      const schema = {
+        name: 'result',
+        schema: {
+          type: 'object',
+          properties: { answer: { type: 'string' } },
+          required: ['answer'],
+        },
+      }
+      await handler.execute(
+        mockBlock,
+        {
+          model: 'gpt-4o',
+          apiKey: 'k',
+          systemPrompt: 'sys',
+          userPrompt: 'hi',
+          responseFormat: JSON.stringify(schema),
+        },
+        mockContext
+      )
+      expect(getRequestBody().responseFormat).toBeDefined()
+    })
+
+    it('wires temperature, topP, topK (rounded to int) and maxTokens', async () => {
+      await handler.execute(
+        mockBlock,
+        {
+          model: 'gpt-4o',
+          apiKey: 'k',
+          userPrompt: 'hi',
+          temperature: 0.3,
+          topP: 0.9,
+          topK: 12.7,
+          maxTokens: 256,
+        },
+        mockContext
+      )
+      const body = getRequestBody()
+      expect(body.temperature).toBe(0.3)
+      expect(body.topP).toBe(0.9)
+      expect(body.topK).toBe(13)
+      expect(body.maxTokens).toBe(256)
+    })
+
+    it('injects <available_skills> and adds a load_skill tool when skills are attached', async () => {
+      await handler.execute(
+        mockBlock,
+        {
+          model: 'gpt-4o',
+          apiKey: 'k',
+          systemPrompt: 'sys',
+          userPrompt: 'hi',
+          skills: [{ name: 'MySkill', description: 'does a thing' }],
+        } as any,
+        mockContext
+      )
+      const body = getRequestBody()
+      expect(JSON.stringify(body)).toContain('<available_skills>')
+      expect(JSON.stringify(body)).toContain('MySkill')
+      const toolNames = (body.tools || []).map((t: any) => t.name || t.id)
+      expect(toolNames).toContain('load_skill')
+    })
+
+    it('passes MCP tools through to the provider for server-side expansion', async () => {
+      await handler.execute(
+        mockBlock,
+        {
+          model: 'gpt-4o',
+          apiKey: 'k',
+          userPrompt: 'hi',
+          tools: [
+            {
+              type: 'mcp',
+              title: 'My MCP',
+              params: { useExistingServer: true },
+              usageControl: 'auto',
+            },
+          ],
+        } as any,
+        mockContext
+      )
+      const body = getRequestBody()
+      const mcpTool = (body.tools || []).find((t: any) => t.type === 'mcp')
+      expect(mcpTool).toBeDefined()
+      expect(mcpTool.title).toBe('My MCP')
+    })
+
+    it('injects prior memories as messages', async () => {
+      await handler.execute(
+        mockBlock,
+        {
+          model: 'gpt-4o',
+          apiKey: 'k',
+          systemPrompt: 'sys',
+          userPrompt: 'hi',
+          memories: [{ role: 'user', content: 'REMEMBERED_FACT' }],
+        } as any,
+        mockContext
+      )
+      expect(JSON.stringify(getRequestBody().messages)).toContain('REMEMBERED_FACT')
+    })
+
+    it('never calls an OCR endpoint (the OCR option was removed)', async () => {
+      await handler.execute(
+        mockBlock,
+        {
+          model: 'gpt-4o',
+          apiKey: 'k',
+          userPrompt: 'hi',
+          files: [{ name: 'scan.png', url: 'https://example.com/scan.png', type: 'image/png' }],
+        } as any,
+        mockContext
+      )
+      const ocrCalls = (mockFetch.mock.calls as any[]).filter((c) =>
+        String(c[0]).includes('/api/ocr')
+      )
+      expect(ocrCalls.length).toBe(0)
+    })
+  })
 })
