@@ -22,9 +22,6 @@ export interface AgentInputs {
   /** Base URL override for self-hosted OpenAI-compatible providers (vLLM, LiteLLM, Baseten). */
   baseUrl?: string
   files?: import('@/executor/types').UserFile[]
-  /** When true, images and PDFs are processed through OCR to extract text
-   *  instead of being sent as base64/vision to the LLM. */
-  enableOcr?: boolean
 }
 
 export interface ToolInput {

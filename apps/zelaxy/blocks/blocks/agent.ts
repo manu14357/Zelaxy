@@ -290,14 +290,6 @@ Create a system prompt that defines the agent's role, behavior, and constraints.
         'Reusable instruction packages. The agent sees each skill name + description and loads the full instructions on demand.',
     },
     {
-      id: 'enableOcr',
-      title: 'Enable OCR (Extract Text)',
-      type: 'switch',
-      layout: 'full',
-      description:
-        'Extract text from images and PDFs using OCR instead of sending files directly to the LLM. Supports PNG, JPG, WEBP, TIFF, BMP, GIF, and PDF files.',
-    },
-    {
       id: 'enableStreaming',
       title: 'Enable Streaming',
       type: 'switch',
@@ -461,7 +453,6 @@ Example 3 (Array Input):
           'presencePenalty',
           'frequencyPenalty',
           'timeout',
-          'enableOcr',
           'enableStreaming',
           'tools',
           'skills',
@@ -537,7 +528,6 @@ Example 3 (Array Input):
     presencePenalty: { type: 'number', description: 'Penalizes repeated topics (-2.0 to 2.0)' },
     frequencyPenalty: { type: 'number', description: 'Penalizes repeated tokens (-2.0 to 2.0)' },
     timeout: { type: 'number', description: 'Request timeout in seconds' },
-    enableOcr: { type: 'boolean', description: 'Extract text from images/PDFs via OCR' },
     enableStreaming: { type: 'boolean', description: 'Enable real-time streaming' },
     tools: { type: 'json', description: 'Tools available to the agent' },
     skills: { type: 'json', description: 'Agent skills attached to this agent' },

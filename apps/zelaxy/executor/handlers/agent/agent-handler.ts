@@ -1,8 +1,6 @@
 import { createLogger } from '@/lib/logs/console/logger'
 import { getMCPService, registerMCPToolId } from '@/lib/mcp-service-registry'
 import { toonEncodeForLLM, tryParseThenEncode } from '@/lib/toon/encoder'
-// ── OCR helpers (pure JS — no Node-only deps) ────────────────────────────────
-import { getBaseUrl } from '@/lib/urls/utils'
 import { getAllBlocks } from '@/blocks'
 import type { BlockOutput } from '@/blocks/types'
 import { BlockType } from '@/executor/consts'
@@ -23,69 +21,6 @@ import {
 import type { SerializedBlock } from '@/serializer/types'
 import { executeTool } from '@/tools'
 import { getTool, getToolAsync } from '@/tools/utils'
-
-const OCR_IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp', 'tiff', 'tif', 'bmp', 'gif'])
-
-/** Check if a file is eligible for OCR based on extension (no Node deps). */
-function isOCREligible(fileName: string): boolean {
-  const dotIdx = fileName.lastIndexOf('.')
-  if (dotIdx === -1) return false
-  const ext = fileName.slice(dotIdx + 1).toLowerCase()
-  return OCR_IMAGE_EXTENSIONS.has(ext) || ext === 'pdf'
-}
-
-/**
- * Call the server-side OCR API endpoint.
- *
- * The actual OCR processing (mupdf, tesseract.js, sharp, pdf-parse) runs
- * exclusively on the server inside /api/ocr/process. This function just
- * sends a fetch request so the agent handler works identically whether the
- * executor is running client-side (manual / chat) or server-side (trigger /
- * schedule / API).
- */
-interface OCRApiResponse {
-  success: boolean
-  text?: string
-  formattedText?: string
-  confidence?: number
-  processingTimeMs?: number
-  pages?: number
-  error?: string
-}
-
-async function callOCRApi(
-  fileUrl: string,
-  fileName: string
-): Promise<{
-  formattedText: string
-  totalText: string
-  avgConfidence: number
-  processingTimeMs: number
-} | null> {
-  const baseUrl = getBaseUrl()
-  const url = `${baseUrl}/api/ocr/process`
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fileUrl, fileName }),
-  })
-
-  if (!res.ok) {
-    const errorBody = await res.text().catch(() => 'unknown error')
-    throw new Error(`OCR API returned ${res.status}: ${errorBody}`)
-  }
-
-  const data: OCRApiResponse = await res.json()
-  if (!data.success || !data.text) return null
-
-  return {
-    formattedText: data.formattedText || data.text,
-    totalText: data.text,
-    avgConfidence: data.confidence ?? 0,
-    processingTimeMs: data.processingTimeMs ?? 0,
-  }
-}
 
 const logger = createLogger('AgentBlockHandler')
 
@@ -287,62 +222,6 @@ export class AgentBlockHandler implements BlockHandler {
       const trimmedParsed = (file.parsedContent ?? '').trim()
       const hasMeaningfulContent =
         trimmedParsed.length >= MIN_PARSED_CONTENT_LENGTH && !looksLikePdfStructure(trimmedParsed)
-
-      // ────────────────────────────────────────────────────────────────────
-      // OCR PATH: When enableOcr is on and the file is an image or PDF,
-      // extract text via Tesseract OCR and send ONLY the text to the LLM.
-      // No base64, no vision — just clean extracted text.
-      // ────────────────────────────────────────────────────────────────────
-      const ocrEnabled = inputs.enableOcr ?? (inputs as any).enableOCR
-      if (ocrEnabled && isOCREligible(fileName) && file.url) {
-        try {
-          logger.info(`[OCR] Processing file via server-side OCR API: ${fileName}`)
-          const ocrResult = await callOCRApi(file.url, fileName)
-
-          if (ocrResult && ocrResult.totalText.length > 0) {
-            parsedContents.push(`\n${ocrResult.formattedText}`)
-            // Update file metadata so _filesProcessed shows OCR content instead of
-            // the original failed parse (visible in trace/logs "Attached Files")
-            file.parsedContent = `[OCR Extracted — ${ocrResult.totalText.length} chars, ${ocrResult.avgConfidence}% confidence, ${ocrResult.processingTimeMs}ms]\n${ocrResult.totalText}`
-            logger.info(
-              `[OCR] Successfully extracted ${ocrResult.totalText.length} chars from ${fileName} ` +
-                `(confidence: ${ocrResult.avgConfidence}%, ${ocrResult.processingTimeMs}ms)`
-            )
-          } else {
-            // OCR returned nothing — if there was pre-parsed content, use that;
-            // otherwise fall back to vision/base64 below
-            if (hasMeaningfulContent) {
-              const encodedContent = tryParseThenEncode(file.parsedContent!)
-              parsedContents.push(
-                `\n--- Attached File: ${fileName} ---\n${encodedContent}\n--- End of File ---`
-              )
-              logger.info(`[OCR] OCR yielded no text, using pre-parsed content for: ${fileName}`)
-            } else {
-              logger.warn(
-                `[OCR] OCR extracted no text from ${fileName} and no pre-parsed content available`
-              )
-              parsedContents.push(
-                `\n--- Attached File: ${fileName} ---\n[OCR processing completed but no text could be extracted from this file]\n--- End of File ---`
-              )
-            }
-          }
-        } catch (ocrError) {
-          logger.error(`[OCR] OCR processing failed for ${fileName}`, { error: ocrError })
-          // Graceful fallback: if OCR fails, use pre-parsed content or notify
-          if (hasMeaningfulContent) {
-            const encodedContent = tryParseThenEncode(file.parsedContent!)
-            parsedContents.push(
-              `\n--- Attached File: ${fileName} ---\n${encodedContent}\n--- End of File ---`
-            )
-            logger.info(`[OCR] Falling back to pre-parsed content for: ${fileName}`)
-          } else {
-            parsedContents.push(
-              `\n--- Attached File: ${fileName} ---\n[File processing failed — OCR error occurred]\n--- End of File ---`
-            )
-          }
-        }
-        continue
-      }
 
       // ── Image files: always send via vision ────────────────────────────
       if (IMAGE_EXTENSIONS.includes(extension)) {
