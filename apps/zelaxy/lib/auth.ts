@@ -1257,6 +1257,211 @@ export const auth = betterAuth({
             }
           },
         },
+        {
+          providerId: 'asana',
+          clientId: env.ASANA_CLIENT_ID as string,
+          clientSecret: env.ASANA_CLIENT_SECRET as string,
+          authorizationUrl: 'https://app.asana.com/-/oauth_authorize',
+          tokenUrl: 'https://app.asana.com/-/oauth_token',
+          scopes: ['default'],
+          responseType: 'code',
+          redirectURI: `${env.NEXT_PUBLIC_APP_URL}/api/auth/oauth2/callback/asana`,
+          pkce: true,
+          prompt: 'consent',
+          accessType: 'offline',
+          getUserInfo: async (tokens) => {
+            try {
+              const response = await fetch('https://app.asana.com/api/1.0/users/me', {
+                headers: { Authorization: `Bearer ${tokens.accessToken}` },
+              })
+              if (!response.ok) return null
+              const { data } = await response.json()
+              const now = new Date()
+              return {
+                id: data.gid,
+                name: data.name || 'Asana User',
+                email: data.email || `${data.gid}@asana.user`,
+                image: data.photo?.image_128x128 || null,
+                emailVerified: true,
+                createdAt: now,
+                updatedAt: now,
+              }
+            } catch (error) {
+              logger.error('Error in Asana getUserInfo:', { error })
+              return null
+            }
+          },
+        },
+        {
+          providerId: 'box',
+          clientId: env.BOX_CLIENT_ID as string,
+          clientSecret: env.BOX_CLIENT_SECRET as string,
+          authorizationUrl: 'https://account.box.com/api/oauth2/authorize',
+          tokenUrl: 'https://api.box.com/oauth2/token',
+          // Box scopes are primarily configured on the OAuth app itself; root_readwrite requests
+          // full read/write access to the account's content.
+          scopes: ['root_readwrite'],
+          responseType: 'code',
+          redirectURI: `${env.NEXT_PUBLIC_APP_URL}/api/auth/oauth2/callback/box`,
+          pkce: false,
+          prompt: 'consent',
+          getUserInfo: async (tokens) => {
+            try {
+              const response = await fetch('https://api.box.com/2.0/users/me', {
+                headers: { Authorization: `Bearer ${tokens.accessToken}` },
+              })
+              if (!response.ok) return null
+              const data = await response.json()
+              const now = new Date()
+              return {
+                id: String(data.id),
+                name: data.name || 'Box User',
+                email: data.login || `${data.id}@box.user`,
+                image: data.avatar_url || null,
+                emailVerified: true,
+                createdAt: now,
+                updatedAt: now,
+              }
+            } catch (error) {
+              logger.error('Error in Box getUserInfo:', { error })
+              return null
+            }
+          },
+        },
+        {
+          providerId: 'dropbox',
+          clientId: env.DROPBOX_CLIENT_ID as string,
+          clientSecret: env.DROPBOX_CLIENT_SECRET as string,
+          authorizationUrl: 'https://www.dropbox.com/oauth2/authorize',
+          tokenUrl: 'https://api.dropboxapi.com/oauth2/token',
+          scopes: [
+            'account_info.read',
+            'files.metadata.read',
+            'files.content.read',
+            'files.content.write',
+          ],
+          responseType: 'code',
+          redirectURI: `${env.NEXT_PUBLIC_APP_URL}/api/auth/oauth2/callback/dropbox`,
+          pkce: true,
+          prompt: 'consent',
+          // Dropbox issues refresh tokens only when token_access_type=offline is sent on the
+          // authorize request; if refresh stops working, that query param must be added.
+          accessType: 'offline',
+          getUserInfo: async (tokens) => {
+            try {
+              const response = await fetch(
+                'https://api.dropboxapi.com/2/users/get_current_account',
+                { method: 'POST', headers: { Authorization: `Bearer ${tokens.accessToken}` } }
+              )
+              if (!response.ok) return null
+              const data = await response.json()
+              const now = new Date()
+              return {
+                id: data.account_id,
+                name: data.name?.display_name || 'Dropbox User',
+                email: data.email || `${data.account_id}@dropbox.user`,
+                image: data.profile_photo_url || null,
+                emailVerified: data.email_verified ?? true,
+                createdAt: now,
+                updatedAt: now,
+              }
+            } catch (error) {
+              logger.error('Error in Dropbox getUserInfo:', { error })
+              return null
+            }
+          },
+        },
+        {
+          providerId: 'calcom',
+          clientId: env.CALCOM_CLIENT_ID as string,
+          clientSecret: env.CALCOM_CLIENT_SECRET as string,
+          // NOTE: Cal.com OAuth endpoints differ between cloud and self-hosted instances; verify
+          // these against your Cal.com deployment (self-hosted uses your own domain).
+          authorizationUrl: 'https://app.cal.com/auth/oauth2/authorize',
+          tokenUrl: 'https://app.cal.com/api/auth/oauth/token',
+          scopes: ['READ_BOOKING', 'READ_PROFILE'],
+          responseType: 'code',
+          redirectURI: `${env.NEXT_PUBLIC_APP_URL}/api/auth/oauth2/callback/calcom`,
+          pkce: true,
+          prompt: 'consent',
+          getUserInfo: async (tokens) => {
+            try {
+              const response = await fetch('https://api.cal.com/v2/me', {
+                headers: { Authorization: `Bearer ${tokens.accessToken}` },
+              })
+              if (!response.ok) return null
+              const json = await response.json()
+              const data = json.data ?? json
+              const now = new Date()
+              return {
+                id: String(data.id ?? data.username ?? 'calcom-user'),
+                name: data.name || data.username || 'Cal.com User',
+                email: data.email || `${data.username ?? 'user'}@calcom.user`,
+                image: data.avatarUrl || null,
+                emailVerified: true,
+                createdAt: now,
+                updatedAt: now,
+              }
+            } catch (error) {
+              logger.error('Error in Cal.com getUserInfo:', { error })
+              return null
+            }
+          },
+        },
+        {
+          providerId: 'attio',
+          clientId: env.ATTIO_CLIENT_ID as string,
+          clientSecret: env.ATTIO_CLIENT_SECRET as string,
+          authorizationUrl: 'https://app.attio.com/authorize',
+          tokenUrl: 'https://app.attio.com/oauth/token',
+          scopes: [
+            'record_permission:read-write',
+            'object_configuration:read',
+            'list_configuration:read',
+            'list_entry:read-write',
+            'user_management:read',
+          ],
+          responseType: 'code',
+          redirectURI: `${env.NEXT_PUBLIC_APP_URL}/api/auth/oauth2/callback/attio`,
+          pkce: false,
+          prompt: 'consent',
+          // Attio's token-introspection endpoint returns workspace context (no user email), so we
+          // synthesize a stable profile from the workspace id.
+          getUserInfo: async (tokens) => {
+            try {
+              const response = await fetch('https://api.attio.com/v2/self', {
+                headers: { Authorization: `Bearer ${tokens.accessToken}` },
+              })
+              const now = new Date()
+              if (!response.ok) {
+                return {
+                  id: `attio-${Date.now()}`,
+                  name: 'Attio Workspace',
+                  email: `attio-${Date.now()}@attio.user`,
+                  image: null,
+                  emailVerified: true,
+                  createdAt: now,
+                  updatedAt: now,
+                }
+              }
+              const json = await response.json()
+              const data = json.data ?? json
+              const wsId = data.workspace_id ?? `attio-${Date.now()}`
+              return {
+                id: String(wsId),
+                name: data.workspace_name || 'Attio Workspace',
+                email: `${String(wsId).replace(/[^a-zA-Z0-9]/g, '')}@attio.user`,
+                image: data.workspace_logo_url || null,
+                emailVerified: true,
+                createdAt: now,
+                updatedAt: now,
+              }
+            } catch (error) {
+              logger.error('Error in Attio getUserInfo:', { error })
+              return null
+            }
+          },
+        },
       ],
     }),
     // Only include the Stripe plugin when billing is enabled

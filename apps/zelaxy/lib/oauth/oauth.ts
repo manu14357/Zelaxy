@@ -1,8 +1,11 @@
 import type { ReactNode } from 'react'
 import {
   AirtableIcon,
+  CalendarIcon,
   ConfluenceIcon,
   DiscordIcon,
+  DocumentIcon,
+  DollarIcon,
   GithubIcon,
   GmailIcon,
   GoogleCalendarIcon,
@@ -25,6 +28,7 @@ import {
   SlackIcon,
   SupabaseIcon,
   WealthboxIcon,
+  WorkIcon,
   xIcon,
 } from '@/components/icons'
 import { env } from '@/lib/env'
@@ -497,6 +501,102 @@ export const OAUTH_PROVIDERS: Record<string, OAuthProviderConfig> = {
       },
     },
     defaultService: 'wealthbox',
+  },
+  asana: {
+    id: 'asana',
+    name: 'Asana',
+    icon: (props) => WorkIcon(props),
+    services: {
+      asana: {
+        id: 'asana',
+        name: 'Asana',
+        description: 'Manage Asana projects, tasks, and comments.',
+        providerId: 'asana',
+        icon: (props) => WorkIcon(props),
+        baseProviderIcon: (props) => WorkIcon(props),
+        scopes: ['default'],
+      },
+    },
+    defaultService: 'asana',
+  },
+  box: {
+    id: 'box',
+    name: 'Box',
+    icon: (props) => DocumentIcon(props),
+    services: {
+      box: {
+        id: 'box',
+        name: 'Box',
+        description: 'Upload, download, and manage files in Box.',
+        providerId: 'box',
+        icon: (props) => DocumentIcon(props),
+        baseProviderIcon: (props) => DocumentIcon(props),
+        scopes: ['root_readwrite'],
+      },
+    },
+    defaultService: 'box',
+  },
+  dropbox: {
+    id: 'dropbox',
+    name: 'Dropbox',
+    icon: (props) => DocumentIcon(props),
+    services: {
+      dropbox: {
+        id: 'dropbox',
+        name: 'Dropbox',
+        description: 'Upload, download, search, and manage files in Dropbox.',
+        providerId: 'dropbox',
+        icon: (props) => DocumentIcon(props),
+        baseProviderIcon: (props) => DocumentIcon(props),
+        scopes: [
+          'account_info.read',
+          'files.metadata.read',
+          'files.content.read',
+          'files.content.write',
+        ],
+      },
+    },
+    defaultService: 'dropbox',
+  },
+  calcom: {
+    id: 'calcom',
+    name: 'Cal.com',
+    icon: (props) => CalendarIcon(props),
+    services: {
+      calcom: {
+        id: 'calcom',
+        name: 'Cal.com',
+        description: 'Create bookings and read availability in Cal.com.',
+        providerId: 'calcom',
+        icon: (props) => CalendarIcon(props),
+        baseProviderIcon: (props) => CalendarIcon(props),
+        scopes: ['READ_BOOKING', 'READ_PROFILE'],
+      },
+    },
+    defaultService: 'calcom',
+  },
+  attio: {
+    id: 'attio',
+    name: 'Attio',
+    icon: (props) => DollarIcon(props),
+    services: {
+      attio: {
+        id: 'attio',
+        name: 'Attio',
+        description: 'Read and write records, objects, and lists in your Attio CRM.',
+        providerId: 'attio',
+        icon: (props) => DollarIcon(props),
+        baseProviderIcon: (props) => DollarIcon(props),
+        scopes: [
+          'record_permission:read-write',
+          'object_configuration:read',
+          'list_configuration:read',
+          'list_entry:read-write',
+          'user_management:read',
+        ],
+      },
+    },
+    defaultService: 'attio',
   },
 }
 

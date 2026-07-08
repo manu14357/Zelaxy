@@ -226,6 +226,16 @@ export const env = createEnv({
     WEALTHBOX_CLIENT_SECRET:              z.string().optional(),                  // WealthBox OAuth client secret
     LINEAR_CLIENT_ID:                     z.string().optional(),                  // Linear OAuth client ID
     LINEAR_CLIENT_SECRET:                 z.string().optional(),                  // Linear OAuth client secret
+    ASANA_CLIENT_ID:                      z.string().optional(),                  // Asana OAuth client ID
+    ASANA_CLIENT_SECRET:                  z.string().optional(),                  // Asana OAuth client secret
+    BOX_CLIENT_ID:                        z.string().optional(),                  // Box OAuth client ID
+    BOX_CLIENT_SECRET:                    z.string().optional(),                  // Box OAuth client secret
+    DROPBOX_CLIENT_ID:                    z.string().optional(),                  // Dropbox OAuth client ID
+    DROPBOX_CLIENT_SECRET:                z.string().optional(),                  // Dropbox OAuth client secret
+    CALCOM_CLIENT_ID:                     z.string().optional(),                  // Cal.com OAuth client ID
+    CALCOM_CLIENT_SECRET:                 z.string().optional(),                  // Cal.com OAuth client secret
+    ATTIO_CLIENT_ID:                      z.string().optional(),                  // Attio OAuth client ID
+    ATTIO_CLIENT_SECRET:                  z.string().optional(),                  // Attio OAuth client secret
     SLACK_CLIENT_ID:                      z.string().optional(),                  // Slack OAuth client ID
     SLACK_CLIENT_SECRET:                  z.string().optional(),                  // Slack OAuth client secret
     REDDIT_CLIENT_ID:                     z.string().optional(),                  // Reddit OAuth client ID
