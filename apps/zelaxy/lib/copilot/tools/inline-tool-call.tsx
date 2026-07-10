@@ -2,15 +2,30 @@
 
 /**
  * Inline Tool Call Component
- * Displays a tool call with its current state and optional confirmation UI
+ * Renders a single copilot tool call as a polished, expandable row: a contextual status title
+ * (e.g. "Searching online for …", "Built workflow"), a clear state icon (spinner → check → error →
+ * skipped), an optional duration, and — on click — the tool's arguments and result in a structured
+ * JSON view. Preserves Agie's interrupt flow (Run / Skip / Move-to-Background) for tools that require
+ * user confirmation. Matches the ZelaxyArena agent surface's visual language.
  */
 
-import { useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { type ReactNode, useState } from 'react'
+import {
+  CheckCircle2,
+  ChevronRight,
+  CircleDashed,
+  Eye,
+  Loader2,
+  Minus,
+  XCircle,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { notifyServerTool } from '@/lib/copilot/tools/notification-utils'
 import { toolRegistry } from '@/lib/copilot/tools/registry'
-import { renderToolStateIcon, toolRequiresInterrupt } from '@/lib/copilot/tools/utils'
+import { toolRequiresInterrupt } from '@/lib/copilot/tools/utils'
+import { cn } from '@/lib/utils'
+import { JsonTree } from '@/app/arena/[workspaceId]/zelaxyarena/json-tree'
+import { resolveToolStatusTitle } from '@/app/arena/[workspaceId]/zelaxyarena/tool-status'
 import { useCopilotStore } from '@/stores/copilot/store'
 import type { CopilotToolCall } from '@/stores/copilot/types'
 
@@ -18,6 +33,30 @@ interface InlineToolCallProps {
   toolCall: CopilotToolCall
   onStateChange?: (state: any) => void
   context?: Record<string, any>
+}
+
+/** Coarse visual status derived from the (many) fine-grained tool states. */
+export type ToolVisualStatus = 'pending' | 'running' | 'done' | 'error' | 'skipped'
+
+export function toolVisualStatus(state: string): ToolVisualStatus {
+  switch (state) {
+    case 'executing':
+    case 'accepted':
+    case 'background':
+      return 'running'
+    case 'success':
+    case 'completed':
+    case 'applied':
+    case 'ready_for_review':
+      return 'done'
+    case 'errored':
+    case 'aborted':
+      return 'error'
+    case 'rejected':
+      return 'skipped'
+    default:
+      return 'pending'
+  }
 }
 
 // Simple function to check if tool call should show run/skip buttons
@@ -134,6 +173,82 @@ function getToolDisplayNameByState(toolCall: CopilotToolCall): string {
   return toolName
 }
 
+/**
+ * Resolve the human-readable title for a tool call. Prefers the tool registry's curated per-state
+ * display name (which may be dynamic, using the call's arguments); falls back to the shared
+ * contextual resolver ("Searching online for …", "Built workflow") so unregistered tools still read
+ * cleanly instead of showing a raw snake_case id.
+ */
+function getToolTitle(toolCall: CopilotToolCall): string {
+  const registryName = getToolDisplayNameByState(toolCall)
+  if (registryName && registryName !== toolCall.name) return registryName
+
+  const visual = toolVisualStatus(toolCall.state)
+  const status =
+    visual === 'done' || visual === 'error' || visual === 'skipped' ? 'done' : 'running'
+  return resolveToolStatusTitle(toolCall.name, status, toolCall.input || toolCall.parameters)
+}
+
+/** Small state glyph, matching the ZelaxyArena agent surface. */
+function ToolStatusIcon({ status, className }: { status: ToolVisualStatus; className?: string }) {
+  const base = className ?? 'size-[15px]'
+  switch (status) {
+    case 'running':
+      return <Loader2 className={cn(base, 'animate-spin text-muted-foreground')} />
+    case 'done':
+      return <CheckCircle2 className={cn(base, 'text-muted-foreground')} />
+    case 'error':
+      return <XCircle className={cn(base, 'text-destructive')} />
+    case 'skipped':
+      return (
+        <span
+          className={cn(
+            'flex items-center justify-center rounded-full border border-muted-foreground/40',
+            base
+          )}
+        >
+          <Minus className='h-2.5 w-2.5 text-muted-foreground' />
+        </span>
+      )
+    default:
+      return <CircleDashed className={cn(base, 'text-muted-foreground/60')} />
+  }
+}
+
+/** Format a run duration (ms) compactly: "820ms", "1.4s". */
+function formatDuration(ms?: number): string | null {
+  if (!ms || ms <= 0) return null
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  return `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)}s`
+}
+
+function errorText(err: CopilotToolCall['error']): string | null {
+  if (!err) return null
+  return typeof err === 'string' ? err : err.message || null
+}
+
+function hasContent(value: unknown): boolean {
+  if (value == null) return false
+  if (typeof value === 'string') return value.trim().length > 0
+  if (Array.isArray(value)) return value.length > 0
+  if (typeof value === 'object') return Object.keys(value as object).length > 0
+  return true
+}
+
+/** A titled section inside the expanded detail panel. */
+function DetailSection({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className='space-y-1'>
+      <div className='font-medium text-[10px] text-muted-foreground/70 uppercase tracking-wide'>
+        {label}
+      </div>
+      <div className='max-h-56 overflow-auto rounded-md border border-border/50 bg-background/60 px-2 py-1.5'>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 // Simple run/skip buttons component
 function RunSkipButtons({
   toolCall,
@@ -197,12 +312,12 @@ function RunSkipButtons({
 
   // Default run/skip buttons
   return (
-    <div className='flex items-center gap-1.5'>
+    <div className='flex flex-shrink-0 items-center gap-1.5'>
       <Button
         onClick={handleRun}
         disabled={isProcessing}
         size='sm'
-        className='h-6 bg-gray-900 px-2 font-medium text-white text-xs hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200'
+        className='h-6 bg-foreground px-2.5 font-medium text-background text-xs hover:bg-foreground/90 disabled:opacity-50'
       >
         {isProcessing ? <Loader2 className='mr-1 h-3 w-3 animate-spin' /> : null}
         Run
@@ -211,7 +326,8 @@ function RunSkipButtons({
         onClick={handleSkip}
         disabled={isProcessing}
         size='sm'
-        className='h-6 bg-gray-200 px-2 font-medium text-gray-700 text-xs hover:bg-gray-300 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+        variant='outline'
+        className='h-6 px-2.5 font-medium text-xs disabled:opacity-50'
       >
         Skip
       </Button>
@@ -221,6 +337,7 @@ function RunSkipButtons({
 
 export function InlineToolCall({ toolCall, onStateChange, context }: InlineToolCallProps) {
   const [, forceUpdate] = useState({})
+  const [expanded, setExpanded] = useState(false)
   const { setToolCallState } = useCopilotStore()
 
   if (!toolCall) {
@@ -241,50 +358,126 @@ export function InlineToolCall({ toolCall, onStateChange, context }: InlineToolC
     onStateChange?.(state)
   }
 
-  const displayName = getToolDisplayNameByState(toolCall)
+  const status = toolVisualStatus(toolCall.state)
+  const title = getToolTitle(toolCall)
+  const duration =
+    status === 'done' || status === 'error' ? formatDuration(toolCall.duration) : null
+  const err = errorText(toolCall.error)
+  const input = toolCall.input || toolCall.parameters
+  const showInput = hasContent(input)
+  const showResult = hasContent(toolCall.result)
+  const canExpand = showInput || showResult || Boolean(err)
 
   return (
-    <div className='flex items-center justify-between gap-2 py-1'>
-      <div className='flex items-center gap-2 text-muted-foreground'>
-        <div className='flex-shrink-0'>{renderToolStateIcon(toolCall, 'h-3 w-3')}</div>
-        <span className='text-base'>{displayName}</span>
+    <div className='group/tool flex flex-col gap-1 py-0.5'>
+      <div className='flex items-center justify-between gap-2'>
+        <button
+          type='button'
+          onClick={() => canExpand && setExpanded((e) => !e)}
+          className={cn(
+            'flex min-w-0 flex-1 items-center gap-2 text-left',
+            canExpand ? 'cursor-pointer' : 'cursor-default'
+          )}
+        >
+          <span className='flex size-4 flex-shrink-0 items-center justify-center'>
+            <ToolStatusIcon status={status} />
+          </span>
+          <span
+            className={cn(
+              'min-w-0 truncate text-[13px]',
+              status === 'error' ? 'text-destructive' : 'text-muted-foreground'
+            )}
+            title={err && status === 'error' ? err : undefined}
+          >
+            {title}
+          </span>
+          {duration && (
+            <span className='flex-shrink-0 text-[10px] text-muted-foreground/50 tabular-nums'>
+              {duration}
+            </span>
+          )}
+          {canExpand && (
+            <ChevronRight
+              className={cn(
+                'h-3 w-3 flex-shrink-0 text-muted-foreground/50 transition-transform',
+                'opacity-0 group-hover/tool:opacity-100',
+                expanded && 'rotate-90 opacity-100'
+              )}
+            />
+          )}
+        </button>
+
+        {showButtons && (
+          <RunSkipButtons toolCall={toolCall} onStateChange={handleStateChange} context={context} />
+        )}
+
+        {showBackgroundButton && (
+          <div className='flex flex-shrink-0 items-center gap-1.5'>
+            <Button
+              onClick={async () => {
+                try {
+                  // Set tool state to background
+                  setToolCallState(toolCall, 'background')
+
+                  // Notify the backend about background state with execution start time if available
+                  const executionStartTime = context?.executionStartTime
+                  await notifyServerTool(
+                    toolCall.id,
+                    toolCall.name,
+                    'background',
+                    executionStartTime
+                  )
+
+                  // Track that this tool was moved to background
+                  if (context) {
+                    if (!context.movedToBackgroundToolIds) {
+                      context.movedToBackgroundToolIds = new Set()
+                    }
+                    context.movedToBackgroundToolIds.add(toolCall.id)
+                  }
+
+                  // Trigger re-render
+                  onStateChange?.(toolCall.state)
+                } catch (error) {
+                  console.error('Error moving to background:', error)
+                }
+              }}
+              size='sm'
+              variant='outline'
+              className='h-6 gap-1 px-2 font-medium text-xs'
+            >
+              <Eye className='h-3 w-3' />
+              Background
+            </Button>
+          </div>
+        )}
       </div>
 
-      {showButtons && (
-        <RunSkipButtons toolCall={toolCall} onStateChange={handleStateChange} context={context} />
-      )}
-
-      {showBackgroundButton && (
-        <div className='flex items-center gap-1.5'>
-          <Button
-            onClick={async () => {
-              try {
-                // Set tool state to background
-                setToolCallState(toolCall, 'background')
-
-                // Notify the backend about background state with execution start time if available
-                const executionStartTime = context?.executionStartTime
-                await notifyServerTool(toolCall.id, toolCall.name, 'background', executionStartTime)
-
-                // Track that this tool was moved to background
-                if (context) {
-                  if (!context.movedToBackgroundToolIds) {
-                    context.movedToBackgroundToolIds = new Set()
-                  }
-                  context.movedToBackgroundToolIds.add(toolCall.id)
-                }
-
-                // Trigger re-render
-                onStateChange?.(toolCall.state)
-              } catch (error) {
-                console.error('Error moving to background:', error)
-              }
-            }}
-            size='sm'
-            className='h-6 bg-primary px-2 font-medium text-white text-xs hover:bg-primary'
-          >
-            Move to Background
-          </Button>
+      {expanded && canExpand && (
+        <div className='ml-6 flex flex-col gap-2 pb-1'>
+          {showInput && (
+            <DetailSection label='Arguments'>
+              <JsonTree data={input} />
+            </DetailSection>
+          )}
+          {showResult && (
+            <DetailSection label='Result'>
+              {typeof toolCall.result === 'string' ? (
+                <pre className='whitespace-pre-wrap break-words font-mono text-[11px] text-muted-foreground'>
+                  {toolCall.result}
+                </pre>
+              ) : (
+                <JsonTree data={toolCall.result} />
+              )}
+            </DetailSection>
+          )}
+          {err && (
+            <DetailSection label='Error'>
+              <pre className='whitespace-pre-wrap break-words font-mono text-[11px] text-destructive'>
+                {err}
+              </pre>
+            </DetailSection>
+          )}
         </div>
       )}
     </div>

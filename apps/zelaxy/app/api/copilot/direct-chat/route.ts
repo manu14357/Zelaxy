@@ -90,6 +90,30 @@ async function pumpProviderStream(
   return acc
 }
 
+/**
+ * Replay an already-generated answer to the SSE client in small, evenly paced chunks so it reveals
+ * like a live token stream — WITHOUT paying for a second (streaming) model round-trip. After the
+ * tool loop the model has already produced the final text; regenerating it just to stream doubled
+ * latency (and could drift from the saved answer). The copilot's smooth-reveal animation smooths
+ * this further. Delay scales down for long answers so the whole reveal stays snappy (~0.6–1.2s).
+ */
+async function streamBufferedAnswer(
+  text: string,
+  controller: ReadableStreamDefaultController,
+  encoder: TextEncoder,
+  signal: AbortSignal
+): Promise<void> {
+  const send = (obj: unknown) =>
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`))
+  const CHUNK = 20
+  const delayMs = text.length > 2400 ? 3 : text.length > 1000 ? 7 : 12
+  for (let i = 0; i < text.length; i += CHUNK) {
+    if (signal.aborted) return
+    send({ type: 'content', data: text.slice(i, i + CHUNK) })
+    await new Promise((resolve) => setTimeout(resolve, delayMs))
+  }
+}
+
 // Schema for file attachments
 const FileAttachmentSchema = z.object({
   id: z.string(),
@@ -495,16 +519,9 @@ export async function POST(req: NextRequest) {
 
     // Handle non-streaming response with potential tool calls (convert to SSE format for client compatibility)
     if (typeof providerResponse === 'object' && 'content' in providerResponse) {
-      const userMessage = {
-        id: userMessageId || crypto.randomUUID(),
-        role: 'user',
-        content: message,
-        timestamp: new Date().toISOString(),
-        ...(fileAttachments && fileAttachments.length > 0 && { fileAttachments }),
-      }
-
       // Stream EVERYTHING live (tool calls + results + final answer) so the copilot shows real-time
       // progress like the reference. The tool loop runs INSIDE the stream and emits as it executes.
+      // The assistant + user messages are persisted by the client once the stream completes.
       const liveStream = new ReadableStream({
         async start(controller) {
           const encoder = new TextEncoder()
@@ -519,6 +536,21 @@ export async function POST(req: NextRequest) {
           let currentResponse: any = providerResponse
           const conversationMessages = [...messages] // Clone messages for the loop
           let iteration = 0
+
+          // Stream the model's answer LIVE while the tool loop runs. `onStreamText` receives text
+          // deltas as the model generates them, and the SAME turn still returns tool calls reliably
+          // (mimo & co. emit text deltas while assembling tool calls) — so the final answer types in
+          // during the very call that produces it, with NO wasteful second "streaming" generation
+          // (this is exactly how ZelaxyArena streams). `streamedText` tracks whether anything streamed
+          // so we don't re-emit the whole answer afterwards; each delta is flushed to the socket
+          // immediately so it paints token-by-token instead of buffering into one write.
+          let streamedText = false
+          const onStreamText = async (delta: string) => {
+            if (!delta || req.signal.aborted) return
+            streamedText = true
+            send({ type: 'content', data: delta })
+            await new Promise<void>((resolve) => setImmediate(resolve))
+          }
 
           try {
             while (
@@ -734,6 +766,10 @@ export async function POST(req: NextRequest) {
               )
 
               try {
+                // Reset per call so `streamedText` reflects ONLY this (potentially final) turn —
+                // narration streamed by an earlier iteration must not make us skip re-emitting a
+                // final answer that this turn happened to return whole.
+                streamedText = false
                 const nextResponse = await executeProviderRequest(provider as any, {
                   model,
                   messages: conversationMessages as any,
@@ -741,11 +777,14 @@ export async function POST(req: NextRequest) {
                   temperature: 0.7,
                   maxTokens: dynamicMaxTokens,
                   apiKey: apiKey,
-                  stream: false, // Use non-streaming for tool loop
+                  // Non-streaming RETURN value (so tool calls are parsed reliably), but text deltas
+                  // stream live via onStreamText — the final answer types in during this same call.
+                  stream: false,
                   ...(tools && tools.length > 0 && { tools }),
                   workflowId,
                   userId: authenticatedUserId,
                   isCopilotRequest: true,
+                  onStreamText,
                 })
 
                 if (typeof nextResponse === 'object' && 'content' in nextResponse) {
@@ -833,42 +872,50 @@ export async function POST(req: NextRequest) {
 
             // Tool calls + results were already streamed LIVE above as they executed — no re-emit.
 
-            // Final answer — ALWAYS stream it token-by-token (real streaming for EVERY provider, not
-            // just thinking-capable ones). Thinking providers also emit reasoning deltas. Falls back
-            // to the buffered content only if the streaming call fails or yields nothing.
-            // Skip entirely if the user aborted — don't spend another LLM round-trip post-Stop.
+            // Final answer. Skip entirely if the user aborted — don't spend another LLM round-trip
+            // post-Stop.
             try {
               if (req.signal.aborted) throw new Error('aborted')
-              const finalResp: any = await executeProviderRequest(provider as any, {
-                model,
-                messages: conversationMessages as any,
-                systemPrompt,
-                temperature: 0.7,
-                maxTokens: 4000,
-                apiKey,
-                stream: true,
-                ...(useThinking ? { thinking: true } : {}),
-                workflowId,
-                userId: authenticatedUserId,
-                isCopilotRequest: true,
-              })
-              const finalReadable: ReadableStream | null =
-                finalResp instanceof ReadableStream ? finalResp : (finalResp?.stream ?? null)
-              if (finalReadable) {
-                const streamed = await pumpProviderStream(
-                  finalReadable,
-                  useThinking,
-                  controller,
-                  encoder
-                )
-                if (streamed.trim()) finalContent = streamed
-              } else if (finalContent) {
-                send({ type: 'content', data: finalContent })
+
+              if (streamedText) {
+                // Best case: the answer already streamed in token-by-token via onStreamText during
+                // the loop's final call — it's already on screen, so there's nothing to re-emit.
+              } else if (finalContent.trim() && !useThinking) {
+                // The provider returned the answer whole this turn (no live text deltas) — replay it
+                // in paced chunks so it still reveals like a stream, without a second generation.
+                await streamBufferedAnswer(finalContent, controller, encoder, req.signal)
+              } else {
+                const finalResp: any = await executeProviderRequest(provider as any, {
+                  model,
+                  messages: conversationMessages as any,
+                  systemPrompt,
+                  temperature: 0.7,
+                  maxTokens: 4000,
+                  apiKey,
+                  stream: true,
+                  ...(useThinking ? { thinking: true } : {}),
+                  workflowId,
+                  userId: authenticatedUserId,
+                  isCopilotRequest: true,
+                })
+                const finalReadable: ReadableStream | null =
+                  finalResp instanceof ReadableStream ? finalResp : (finalResp?.stream ?? null)
+                if (finalReadable) {
+                  const streamed = await pumpProviderStream(
+                    finalReadable,
+                    useThinking,
+                    controller,
+                    encoder
+                  )
+                  if (streamed.trim()) finalContent = streamed
+                } else if (finalContent) {
+                  send({ type: 'content', data: finalContent })
+                }
               }
             } catch (finalErr) {
               if (!req.signal.aborted) {
                 logger.warn(
-                  `[${tracker.requestId}] Final streaming answer failed, falling back to buffered content`,
+                  `[${tracker.requestId}] Final answer streaming failed, falling back to buffered content`,
                   { finalErr }
                 )
                 if (finalContent) send({ type: 'content', data: finalContent })
@@ -879,38 +926,14 @@ export async function POST(req: NextRequest) {
             controller.enqueue(encoder.encode('data: {"type": "done"}\n\n'))
             controller.close()
 
-            // Save messages to database after streaming completes
-            if (actualChatId) {
-              const assistantContent =
-                finalContent +
-                allToolResults
-                  .map((r) =>
-                    r.result.success
-                      ? `\n\n✅ **${r.toolId}**: ${r.result.data?.message || 'Success'}`
-                      : `\n\n❌ **${r.toolId}** failed: ${r.result.error}`
-                  )
-                  .join('')
-
-              const updatedMessages = [
-                ...conversationHistory,
-                userMessage,
-                {
-                  id: crypto.randomUUID(),
-                  role: 'assistant',
-                  content: assistantContent,
-                  timestamp: new Date().toISOString(),
-                  ...(allToolResults.length > 0 && { toolCalls: allToolResults }),
-                },
-              ]
-
-              await db
-                .update(copilotChats)
-                .set({
-                  messages: updatedMessages,
-                  updatedAt: new Date(),
-                })
-                .where(eq(copilotChats.id, actualChatId))
-            }
+            // NOTE: the assistant message is persisted by the CLIENT (via /api/copilot/chat/
+            // update-messages) once the stream finishes — that save carries the rich render state
+            // (ordered contentBlocks + typed tool calls) the chat panel needs to replay the agent
+            // groups on reload. The server used to ALSO write here, but it ran a beat later and
+            // clobbered the client's rich save with a degraded one (flat content + "✅ tool:
+            // Success" lines appended + server-shaped toolCalls, no contentBlocks) — which is why
+            // reopened chats lost their grouped tool UI. Leaving persistence to the client keeps a
+            // single source of truth. (The empty chat row itself was already created up front.)
           } catch (error) {
             logger.error(`[${tracker.requestId}] Error in SSE stream:`, error)
             const errorEvent = `data: ${JSON.stringify({

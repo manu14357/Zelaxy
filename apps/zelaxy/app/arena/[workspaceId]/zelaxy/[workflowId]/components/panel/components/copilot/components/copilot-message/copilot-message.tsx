@@ -1,6 +1,6 @@
 'use client'
 
-import { type FC, memo, useEffect, useMemo, useRef, useState } from 'react'
+import { type FC, memo, useEffect, useMemo, useState } from 'react'
 import {
   Check,
   Clipboard,
@@ -12,13 +12,13 @@ import {
   ThumbsUp,
   X,
 } from 'lucide-react'
-import { InlineToolCall } from '@/lib/copilot/tools/inline-tool-call'
 import { createLogger } from '@/lib/logs/console/logger'
 import { ThinkingBlock } from '@/app/arena/[workspaceId]/zelaxyarena/thinking-block'
 import { usePreviewStore } from '@/stores/copilot/preview-store'
 import { useCopilotStore } from '@/stores/copilot/store'
-import type { CopilotMessage as CopilotMessageType } from '@/stores/copilot/types'
+import type { CopilotMessage as CopilotMessageType, CopilotToolCall } from '@/stores/copilot/types'
 import CopilotMarkdownRenderer from './components/markdown-renderer'
+import { type AgentInfo, AgentToolGroup, agentForCopilotTool } from './components/tool-call-group'
 
 const logger = createLogger('CopilotMessage')
 
@@ -48,6 +48,18 @@ const StreamingIndicator = memo(() => (
 ))
 
 StreamingIndicator.displayName = 'StreamingIndicator'
+
+// Persistent activity line for the gap between a tool finishing and the answer starting (the model
+// is generating but hasn't emitted text yet). Mirrors the ZelaxyArena "Working…" indicator so the
+// silent stretch reads as active rather than stalled.
+const WorkingIndicator = memo(() => (
+  <div className='flex items-center gap-2 py-0.5 text-[13px] text-muted-foreground'>
+    <Loader2 className='h-3.5 w-3.5 animate-spin' />
+    <span>Working…</span>
+  </div>
+))
+
+WorkingIndicator.displayName = 'WorkingIndicator'
 
 // File attachment display component
 interface FileAttachmentDisplayProps {
@@ -149,89 +161,6 @@ const FileAttachmentDisplay = memo(({ fileAttachments }: FileAttachmentDisplayPr
 })
 
 FileAttachmentDisplay.displayName = 'FileAttachmentDisplay'
-
-// Smooth streaming text component with typewriter effect
-interface SmoothStreamingTextProps {
-  content: string
-  isStreaming: boolean
-}
-
-const SmoothStreamingText = memo(
-  ({ content, isStreaming }: SmoothStreamingTextProps) => {
-    const [displayedContent, setDisplayedContent] = useState('')
-    const contentRef = useRef(content)
-    const rafRef = useRef<number | null>(null)
-    const indexRef = useRef(0)
-    const isAnimatingRef = useRef(false)
-
-    // Cancel any in-flight animation frame on unmount only.
-    useEffect(
-      () => () => {
-        if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
-      },
-      []
-    )
-
-    useEffect(() => {
-      contentRef.current = content
-
-      if (content.length === 0) {
-        setDisplayedContent('')
-        indexRef.current = 0
-        return
-      }
-
-      // Streaming finished — snap to the full content and stop the loop.
-      if (!isStreaming) {
-        if (rafRef.current != null) {
-          cancelAnimationFrame(rafRef.current)
-          rafRef.current = null
-        }
-        isAnimatingRef.current = false
-        setDisplayedContent(content)
-        indexRef.current = content.length
-        return
-      }
-
-      // Streaming: reveal via requestAnimationFrame (≤60fps) instead of a 3ms setTimeout per char,
-      // which re-parsed the entire markdown AST hundreds of times a second. Each frame reveals a
-      // chunk proportional to how far behind we are. The loop reads contentRef so it always sees the
-      // latest streamed text without restarting per token.
-      if (!isAnimatingRef.current && indexRef.current < content.length) {
-        isAnimatingRef.current = true
-        const tick = () => {
-          const full = contentRef.current
-          if (indexRef.current >= full.length) {
-            isAnimatingRef.current = false
-            rafRef.current = null
-            return
-          }
-          const remaining = full.length - indexRef.current
-          const step = Math.max(2, Math.ceil(remaining / 8))
-          indexRef.current = Math.min(full.length, indexRef.current + step)
-          setDisplayedContent(full.slice(0, indexRef.current))
-          rafRef.current = requestAnimationFrame(tick)
-        }
-        rafRef.current = requestAnimationFrame(tick)
-      }
-    }, [content, isStreaming])
-
-    return (
-      <div className='relative max-w-full overflow-hidden' style={{ minHeight: '1.25rem' }}>
-        <CopilotMarkdownRenderer content={displayedContent} />
-      </div>
-    )
-  },
-  (prevProps, nextProps) => {
-    // Prevent re-renders during streaming unless content actually changed
-    return (
-      prevProps.content === nextProps.content && prevProps.isStreaming === nextProps.isStreaming
-      // markdownComponents is now memoized so no need to compare
-    )
-  }
-)
-
-SmoothStreamingText.displayName = 'SmoothStreamingText'
 
 // Maximum character length for a word before it's broken up
 const MAX_WORD_LENGTH = 25
@@ -520,54 +449,71 @@ const CopilotMessage: FC<CopilotMessageProps> = memo(
       return message.content.replace(/\n{3,}/g, '\n\n')
     }, [message.content])
 
-    // Memoize content blocks to avoid re-rendering unchanged blocks
+    // Build render segments from the chronological content blocks: consecutive tool-call blocks
+    // owned by the same agent collapse into one named group (Workflow / Research / Files / …),
+    // interleaved with narration text — the same "text → group → text → group" flow ZelaxyArena uses.
     const memoizedContentBlocks = useMemo(() => {
-      if (!message.contentBlocks || message.contentBlocks.length === 0) {
+      const blocks = message.contentBlocks
+      if (!blocks || blocks.length === 0) {
         return null
       }
 
-      return message.contentBlocks.map((block, index) => {
-        if (block.type === 'text') {
-          const isLastTextBlock =
-            index === message.contentBlocks!.length - 1 && block.type === 'text'
-          // Clean content for this text block
-          const cleanBlockContent = block.content.replace(/\n{3,}/g, '\n\n')
+      type Segment =
+        | { kind: 'text'; content: string; index: number; timestamp?: number; isLast: boolean }
+        | { kind: 'group'; agent: AgentInfo; tools: CopilotToolCall[]; key: string }
+      const segments: Segment[] = []
 
-          // Use smooth streaming for the last text block if we're streaming
-          const shouldUseSmoothing = isStreaming && isLastTextBlock
-
-          return (
-            <div
-              key={`text-${index}-${block.timestamp || index}`}
-              className='w-full max-w-full overflow-hidden transition-opacity duration-200 ease-in-out'
-              style={{
-                opacity: cleanBlockContent.length > 0 ? 1 : 0.7,
-                transform: shouldUseSmoothing ? 'translateY(0)' : undefined,
-                transition: shouldUseSmoothing
-                  ? 'transform 0.1s ease-out, opacity 0.2s ease-in-out'
-                  : 'opacity 0.2s ease-in-out',
-              }}
-            >
-              {shouldUseSmoothing ? (
-                <SmoothStreamingText content={cleanBlockContent} isStreaming={isStreaming} />
-              ) : (
-                <CopilotMarkdownRenderer content={cleanBlockContent} />
-              )}
-            </div>
-          )
-        }
+      blocks.forEach((block, index) => {
         if (block.type === 'tool_call') {
+          const agent = agentForCopilotTool(block.toolCall.name)
+          const last = segments[segments.length - 1]
+          if (last && last.kind === 'group' && last.agent.id === agent.id) {
+            last.tools.push(block.toolCall)
+          } else {
+            segments.push({
+              kind: 'group',
+              agent,
+              tools: [block.toolCall],
+              // Keyed by the first tool id so the group's expand/collapse state survives streaming
+              // recomputes as later tools append to it.
+              key: `group-${block.toolCall.id}`,
+            })
+          }
+          return
+        }
+        segments.push({
+          kind: 'text',
+          content: block.content.replace(/\n{3,}/g, '\n\n'),
+          index,
+          timestamp: block.timestamp,
+          isLast: index === blocks.length - 1,
+        })
+      })
+
+      return segments.map((seg) => {
+        if (seg.kind === 'group') {
           return (
-            <div
-              key={`tool-${block.toolCall.id}`}
-              className='transition-opacity duration-300 ease-in-out'
-              style={{ opacity: 1 }}
-            >
-              <InlineToolCall toolCall={block.toolCall} />
-            </div>
+            <AgentToolGroup
+              key={seg.key}
+              agent={seg.agent}
+              toolCalls={seg.tools}
+              active={Boolean(isStreaming)}
+            />
           )
         }
-        return null
+        // Render the markdown DIRECTLY — as streamed deltas grow the text it re-renders and paints
+        // live, so the answer types in token-by-token (this is how ZelaxyArena streams). The old
+        // requestAnimationFrame "smooth reveal" (SmoothStreamingText) buffered mid-stream and only
+        // painted the whole answer once the turn stopped — which read as "no streaming".
+        return (
+          <div
+            key={`text-${seg.index}-${seg.timestamp || seg.index}`}
+            className='w-full max-w-full overflow-hidden transition-opacity duration-200 ease-in-out'
+            style={{ opacity: seg.content.length > 0 ? 1 : 0.7 }}
+          >
+            <CopilotMarkdownRenderer content={seg.content} />
+          </div>
+        )
       })
     }, [message.contentBlocks, isStreaming])
 
@@ -662,11 +608,14 @@ const CopilotMessage: FC<CopilotMessageProps> = memo(
             {/* Content blocks in chronological order */}
             {memoizedContentBlocks}
 
-            {/* Show streaming indicator if streaming but no text content yet after tool calls */}
+            {/* Tools have run but the answer hasn't started streaming yet — keep a visible "Working…"
+                line so the model's generation gap doesn't look stalled. */}
             {isStreaming &&
               !message.content &&
-              message.contentBlocks?.every((block) => block.type === 'tool_call') && (
-                <StreamingIndicator />
+              message.contentBlocks &&
+              message.contentBlocks.length > 0 &&
+              message.contentBlocks.every((block) => block.type === 'tool_call') && (
+                <WorkingIndicator />
               )}
 
             {/* Streaming indicator when no content yet */}
