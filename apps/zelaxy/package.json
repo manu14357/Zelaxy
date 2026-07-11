@@ -65,6 +65,7 @@
     "@radix-ui/react-tooltip": "^1.1.6",
     "@react-email/components": "^0.0.34",
     "@sentry/nextjs": "^9.15.0",
+    "@socket.io/redis-adapter": "^8.3.0",
     "@tanstack/react-query": "5.100.14",
     "@tanstack/react-virtual": "3.13.26",
     "@toon-format/toon": "2.1.0",

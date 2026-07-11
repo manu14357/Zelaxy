@@ -6,6 +6,51 @@ import { workflow } from '@/db/schema'
 
 const logger = createLogger('SocketPermissions')
 
+/**
+ * Live per-operation role re-validation with a short TTL cache.
+ *
+ * The role cached on the socket session at join time goes stale for the life of the connection —
+ * if a collaborator is downgraded or removed mid-session, they keep whatever access they had when
+ * they joined. This resolves the CURRENT workspace role (owner of a socket, not per event) but
+ * caches it briefly so we don't hit the DB on every keystroke. Used by the subblock/variable write
+ * handlers, which bypass the per-event `verifyOperationPermission` gate.
+ */
+const ROLE_REVALIDATION_TTL_MS = 30_000
+const roleCache = new Map<string, { role: string | null; expiresAt: number }>()
+
+export async function resolveCurrentWorkflowRole(
+  userId: string,
+  workflowId: string,
+  fallbackRole?: string
+): Promise<string | null> {
+  const key = `${userId}:${workflowId}`
+  const now = Date.now()
+
+  const cached = roleCache.get(key)
+  if (cached && cached.expiresAt > now) return cached.role
+
+  try {
+    const access = await verifyWorkflowAccess(userId, workflowId)
+    const role = access.hasAccess ? (access.role ?? null) : null
+    roleCache.set(key, { role, expiresAt: now + ROLE_REVALIDATION_TTL_MS })
+    return role
+  } catch (error) {
+    logger.error(`Live role revalidation failed for ${userId} in ${workflowId}:`, error)
+    // On a transient DB failure prefer the last-known role, else the join-time fallback — never
+    // silently escalate, and don't hard-block a legitimate editor over a blip.
+    if (cached) return cached.role
+    return fallbackRole ?? null
+  }
+}
+
+/** Drop stale entries from the role cache (called periodically by the presence reaper). */
+export function pruneRoleCache(): void {
+  const now = Date.now()
+  for (const [key, entry] of roleCache) {
+    if (entry.expiresAt <= now) roleCache.delete(key)
+  }
+}
+
 export async function verifyWorkspaceMembership(
   userId: string,
   workspaceId: string

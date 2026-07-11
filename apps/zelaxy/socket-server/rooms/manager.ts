@@ -259,11 +259,69 @@ export class RoomManager {
     )
   }
 
+  /**
+   * Broadcast the authoritative presence roster to a workflow room.
+   *
+   * The roster is aggregated from `io.in(workflowId).fetchSockets()` reading each socket's
+   * `data.presence`. `fetchSockets()` traverses every instance when the Redis adapter is attached,
+   * so collaborators on other pods are included; with the in-memory adapter it returns local
+   * sockets, which is equivalent to the old Map-based behavior. Falls back to the in-memory Map if
+   * the cross-instance fetch fails. Kept sync-returning (fires the async work internally) so callers
+   * don't need to change and never leave a floating promise.
+   */
   broadcastPresenceUpdate(workflowId: string): void {
+    void this.emitPresenceRoster(workflowId)
+  }
+
+  private emitFromLocalMap(workflowId: string): void {
     const room = this.workflowRooms.get(workflowId)
-    if (room) {
-      const roomPresence = Array.from(room.users.values())
-      this.io.to(workflowId).emit('presence-update', roomPresence)
+    if (room) this.io.to(workflowId).emit('presence-update', Array.from(room.users.values()))
+  }
+
+  private async emitPresenceRoster(workflowId: string): Promise<void> {
+    try {
+      const sockets = await this.io.in(workflowId).fetchSockets()
+      const roster = sockets
+        .map((s) => (s.data as { presence?: UserPresence } | undefined)?.presence)
+        .filter((p): p is UserPresence => Boolean(p))
+
+      if (roster.length > 0) {
+        this.io.to(workflowId).emit('presence-update', roster)
+        return
+      }
+      // No presence data resolved (e.g. sockets mid-join) — fall back to the local map.
+      this.emitFromLocalMap(workflowId)
+    } catch (error) {
+      logger.error('Failed to broadcast presence roster, falling back to local map:', error)
+      this.emitFromLocalMap(workflowId)
+    }
+  }
+
+  /**
+   * Reconcile the in-memory presence map against sockets actually connected to THIS instance,
+   * dropping "ghost" entries whose socket has gone away without a clean disconnect (which would
+   * otherwise linger forever and inflate presence + the /health connection count). Each presence
+   * entry is owned by the pod its socket connected to, so a local `io.sockets` check is authoritative
+   * for this pod's entries. Runs periodically from the bootstrap reaper.
+   */
+  reapGhostPresence(): void {
+    for (const [workflowId, room] of this.workflowRooms) {
+      let changed = false
+      for (const socketId of [...room.users.keys()]) {
+        if (!this.io.sockets.sockets.has(socketId)) {
+          room.users.delete(socketId)
+          room.activeConnections = Math.max(0, room.activeConnections - 1)
+          this.socketToWorkflow.delete(socketId)
+          this.userSessions.delete(socketId)
+          changed = true
+          logger.debug(`Reaped ghost presence ${socketId} from workflow ${workflowId}`)
+        }
+      }
+      if (room.users.size === 0) {
+        this.workflowRooms.delete(workflowId)
+        continue
+      }
+      if (changed) this.broadcastPresenceUpdate(workflowId)
     }
   }
 

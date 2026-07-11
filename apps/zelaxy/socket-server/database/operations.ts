@@ -104,6 +104,12 @@ export async function updateSubflowNodeList(dbOrTx: any, workflowId: string, par
     }
   } catch (error) {
     logger.error(`Error updating subflow node list for ${parentId}:`, error)
+    // This runs inside the persistWorkflowOperation transaction. The expected "subflow row not
+    // created yet" case is already handled by the length check above, so anything reaching here is a
+    // real DB failure — rethrow so the enclosing transaction rolls back and we never commit a block
+    // change whose parent subflow keeps a stale `nodes` array (which would mis-scope loop/parallel
+    // execution).
+    throw error
   }
 }
 
@@ -867,12 +873,16 @@ async function handleVariableOperationTx(
   payload: any,
   userId: string
 ) {
-  // Get current workflow variables
+  // Get current workflow variables. Lock the workflow row (FOR UPDATE) for the duration of the
+  // transaction: variables is a single JSON blob updated read-modify-write, so without the lock two
+  // concurrent add/remove/duplicate ops both read the old blob and the second write clobbers the
+  // first (lost update under READ COMMITTED). Mirrors the hardened variable-update handler.
   const workflowData = await tx
     .select({ variables: workflow.variables })
     .from(workflow)
     .where(eq(workflow.id, workflowId))
     .limit(1)
+    .for('update')
 
   if (workflowData.length === 0) {
     throw new Error(`Workflow ${workflowId} not found`)

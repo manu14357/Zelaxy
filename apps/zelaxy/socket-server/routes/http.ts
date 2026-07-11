@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
 import type { Server } from 'socket.io'
 import { env } from '@/lib/env'
@@ -10,6 +11,17 @@ interface Logger {
   warn: (message: string, ...args: any[]) => void
 }
 
+/** Max internal-bridge request body. These payloads are tiny (ids + timestamps); cap to stop abuse. */
+const MAX_BODY_BYTES = 256 * 1024
+
+/** Constant-time string comparison to avoid leaking the internal secret via response timing. */
+function safeCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  if (bufA.length !== bufB.length) return false
+  return timingSafeEqual(bufA, bufB)
+}
+
 /**
  * These POST endpoints are a server-to-server bridge: the main Next.js app / background workers call
  * them to broadcast lifecycle + execution events into socket rooms. They are NOT meant to be
@@ -19,7 +31,67 @@ interface Logger {
  */
 function isInternalRequestAuthorized(req: IncomingMessage): boolean {
   const provided = req.headers['x-internal-secret']
-  return typeof provided === 'string' && provided === env.INTERNAL_API_SECRET
+  const secret = env.INTERNAL_API_SECRET
+  if (typeof provided !== 'string' || !secret) return false
+  return safeCompare(provided, secret)
+}
+
+/**
+ * Read and JSON-parse a request body with a hard size cap. Aborts the request if the body exceeds
+ * MAX_BODY_BYTES. On success calls `onParsed(data)`; on any error responds 400/413 and does not call it.
+ */
+function readJsonBody(
+  req: IncomingMessage,
+  res: ServerResponse,
+  logger: Logger,
+  onParsed: (data: any) => void
+): void {
+  let size = 0
+  const chunks: Buffer[] = []
+  let aborted = false
+
+  req.on('data', (chunk: Buffer) => {
+    if (aborted) return
+    size += chunk.length
+    if (size > MAX_BODY_BYTES) {
+      aborted = true
+      res.writeHead(413, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Payload too large' }))
+      req.destroy()
+      return
+    }
+    chunks.push(chunk)
+  })
+
+  req.on('end', () => {
+    if (aborted) return
+    try {
+      const raw = Buffer.concat(chunks).toString('utf8')
+      onParsed(raw ? JSON.parse(raw) : {})
+    } catch (error) {
+      logger.error('Failed to parse internal bridge body:', error)
+      res.writeHead(400, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Invalid JSON body' }))
+    }
+  })
+
+  req.on('error', (error) => {
+    if (aborted) return
+    aborted = true
+    logger.error('Internal bridge request stream error:', error)
+    res.writeHead(400, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ error: 'Request error' }))
+  })
+}
+
+function ok(res: ServerResponse): void {
+  res.writeHead(200, { 'Content-Type': 'application/json' })
+  res.end(JSON.stringify({ success: true }))
+}
+
+function fail(res: ServerResponse, message: string): void {
+  res.writeHead(500, { 'Content-Type': 'application/json' })
+  res.end(JSON.stringify({ error: message }))
 }
 
 /**
@@ -50,14 +122,12 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?:
 
     // All POST /api/* routes are the internal server-to-server bridge — require the shared secret.
     // (GET / and /health stay public for load-balancer/Railway health checks.)
-    if (
-      req.method === 'POST' &&
-      req.url?.startsWith('/api/') &&
-      !isInternalRequestAuthorized(req)
-    ) {
+    if (req.method === 'POST' && req.url?.startsWith('/api/') && !isInternalRequestAuthorized(req)) {
       logger.warn(`Rejected unauthenticated internal request to ${req.url}`, {
         origin: req.headers.origin,
       })
+      // Drain the unread request body so keep-alive connection reuse isn't wedged.
+      req.resume()
       res.writeHead(401, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: 'Unauthorized' }))
       return
@@ -79,20 +149,13 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?:
 
     // Handle workflow deletion notifications from the main API
     if (req.method === 'POST' && req.url === '/api/workflow-deleted') {
-      let body = ''
-      req.on('data', (chunk) => {
-        body += chunk.toString()
-      })
-      req.on('end', () => {
+      readJsonBody(req, res, logger, ({ workflowId }) => {
         try {
-          const { workflowId } = JSON.parse(body)
           roomManager.handleWorkflowDeletion(workflowId)
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ success: true }))
+          ok(res)
         } catch (error) {
           logger.error('Error handling workflow deletion notification:', error)
-          res.writeHead(500, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ error: 'Failed to process deletion notification' }))
+          fail(res, 'Failed to process deletion notification')
         }
       })
       return
@@ -100,20 +163,13 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?:
 
     // Handle workflow update notifications from the main API
     if (req.method === 'POST' && req.url === '/api/workflow-updated') {
-      let body = ''
-      req.on('data', (chunk) => {
-        body += chunk.toString()
-      })
-      req.on('end', () => {
+      readJsonBody(req, res, logger, ({ workflowId }) => {
         try {
-          const { workflowId } = JSON.parse(body)
           roomManager.handleWorkflowUpdate(workflowId)
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ success: true }))
+          ok(res)
         } catch (error) {
           logger.error('Error handling workflow update notification:', error)
-          res.writeHead(500, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ error: 'Failed to process update notification' }))
+          fail(res, 'Failed to process update notification')
         }
       })
       return
@@ -121,20 +177,13 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?:
 
     // Handle copilot workflow edit notifications from the main API
     if (req.method === 'POST' && req.url === '/api/copilot-workflow-edit') {
-      let body = ''
-      req.on('data', (chunk) => {
-        body += chunk.toString()
-      })
-      req.on('end', () => {
+      readJsonBody(req, res, logger, ({ workflowId, description }) => {
         try {
-          const { workflowId, description } = JSON.parse(body)
           roomManager.handleCopilotWorkflowEdit(workflowId, description)
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ success: true }))
+          ok(res)
         } catch (error) {
           logger.error('Error handling copilot workflow edit notification:', error)
-          res.writeHead(500, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ error: 'Failed to process copilot edit notification' }))
+          fail(res, 'Failed to process copilot edit notification')
         }
       })
       return
@@ -142,20 +191,13 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?:
 
     // Handle workflow revert notifications from the main API
     if (req.method === 'POST' && req.url === '/api/workflow-reverted') {
-      let body = ''
-      req.on('data', (chunk) => {
-        body += chunk.toString()
-      })
-      req.on('end', () => {
+      readJsonBody(req, res, logger, ({ workflowId, timestamp }) => {
         try {
-          const { workflowId, timestamp } = JSON.parse(body)
           roomManager.handleWorkflowRevert(workflowId, timestamp)
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ success: true }))
+          ok(res)
         } catch (error) {
           logger.error('Error handling workflow revert notification:', error)
-          res.writeHead(500, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ error: 'Failed to process revert notification' }))
+          fail(res, 'Failed to process revert notification')
         }
       })
       return
@@ -167,31 +209,17 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?:
 
     // Notify clients that a workflow execution has started
     if (req.method === 'POST' && req.url === '/api/execution-started') {
-      let body = ''
-      req.on('data', (chunk) => {
-        body += chunk.toString()
-      })
-      req.on('end', () => {
+      readJsonBody(req, res, logger, (data) => {
         try {
-          const data = JSON.parse(body)
           const { workflowId, workspaceId } = data
-
-          // Broadcast to workflow room (canvas viewers)
           if (io) {
             io.to(workflowId).emit('execution:started', data)
-
-            // Broadcast to workspace room (logs page viewers)
-            if (workspaceId) {
-              io.to(`workspace:${workspaceId}`).emit('execution:started', data)
-            }
+            if (workspaceId) io.to(`workspace:${workspaceId}`).emit('execution:started', data)
           }
-
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ success: true }))
+          ok(res)
         } catch (error) {
           logger.error('Error handling execution-started notification:', error)
-          res.writeHead(500, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ error: 'Failed to process execution-started notification' }))
+          fail(res, 'Failed to process execution-started notification')
         }
       })
       return
@@ -199,31 +227,17 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?:
 
     // Notify clients that a single block has completed
     if (req.method === 'POST' && req.url === '/api/execution-block-complete') {
-      let body = ''
-      req.on('data', (chunk) => {
-        body += chunk.toString()
-      })
-      req.on('end', () => {
+      readJsonBody(req, res, logger, (data) => {
         try {
-          const data = JSON.parse(body)
           const { workflowId, workspaceId } = data
-
           if (io) {
             io.to(workflowId).emit('execution:block-complete', data)
-
-            if (workspaceId) {
-              io.to(`workspace:${workspaceId}`).emit('execution:block-complete', data)
-            }
+            if (workspaceId) io.to(`workspace:${workspaceId}`).emit('execution:block-complete', data)
           }
-
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ success: true }))
+          ok(res)
         } catch (error) {
           logger.error('Error handling execution-block-complete notification:', error)
-          res.writeHead(500, { 'Content-Type': 'application/json' })
-          res.end(
-            JSON.stringify({ error: 'Failed to process execution-block-complete notification' })
-          )
+          fail(res, 'Failed to process execution-block-complete notification')
         }
       })
       return
@@ -231,29 +245,17 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?:
 
     // Notify clients that a workflow execution has completed
     if (req.method === 'POST' && req.url === '/api/execution-complete') {
-      let body = ''
-      req.on('data', (chunk) => {
-        body += chunk.toString()
-      })
-      req.on('end', () => {
+      readJsonBody(req, res, logger, (data) => {
         try {
-          const data = JSON.parse(body)
           const { workflowId, workspaceId } = data
-
           if (io) {
             io.to(workflowId).emit('execution:complete', data)
-
-            if (workspaceId) {
-              io.to(`workspace:${workspaceId}`).emit('execution:complete', data)
-            }
+            if (workspaceId) io.to(`workspace:${workspaceId}`).emit('execution:complete', data)
           }
-
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ success: true }))
+          ok(res)
         } catch (error) {
           logger.error('Error handling execution-complete notification:', error)
-          res.writeHead(500, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ error: 'Failed to process execution-complete notification' }))
+          fail(res, 'Failed to process execution-complete notification')
         }
       })
       return

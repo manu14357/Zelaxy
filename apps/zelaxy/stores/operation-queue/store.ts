@@ -207,19 +207,30 @@ export const useOperationQueueStore = create<OperationQueueState>((set, get) => 
       return
     }
 
+    // Net-cancel toggle ops (payload is just { id }; the server flips the CURRENT value) must never
+    // be content-deduped. Two rapid clicks are two intentional flips — the block-id-only dedup below
+    // would drop the second, leaving the client flipped twice while the server flipped once, i.e. a
+    // permanent client/server divergence. Letting both queue keeps both sides net-cancelled.
+    const isNetCancelToggle =
+      operation.operation.target === 'block' &&
+      (operation.operation.operation === 'toggle-enabled' ||
+        operation.operation.operation === 'toggle-handles')
+
     // Enhanced duplicate content check - especially important for block operations
-    const duplicateContent = state.operations.find(
-      (op) =>
-        op.operation.operation === operation.operation.operation &&
-        op.operation.target === operation.operation.target &&
-        op.workflowId === operation.workflowId &&
-        // For block operations, check the block ID specifically
-        ((operation.operation.target === 'block' &&
-          op.operation.payload?.id === operation.operation.payload?.id) ||
-          // For other operations, fall back to full payload comparison
-          (operation.operation.target !== 'block' &&
-            JSON.stringify(op.operation.payload) === JSON.stringify(operation.operation.payload)))
-    )
+    const duplicateContent = isNetCancelToggle
+      ? undefined
+      : state.operations.find(
+          (op) =>
+            op.operation.operation === operation.operation.operation &&
+            op.operation.target === operation.operation.target &&
+            op.workflowId === operation.workflowId &&
+            // For block operations, check the block ID specifically
+            ((operation.operation.target === 'block' &&
+              op.operation.payload?.id === operation.operation.payload?.id) ||
+              // For other operations, fall back to full payload comparison
+              (operation.operation.target !== 'block' &&
+                JSON.stringify(op.operation.payload) === JSON.stringify(operation.operation.payload)))
+        )
 
     if (duplicateContent) {
       logger.debug('Skipping duplicate operation content', {

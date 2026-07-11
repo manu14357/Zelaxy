@@ -3,6 +3,7 @@ import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
 import { workflow } from '@/db/schema'
 import type { HandlerDependencies } from '@/socket-server/handlers/workflow'
+import { resolveCurrentWorkflowRole } from '@/socket-server/middleware/permissions'
 import type { AuthenticatedSocket } from '@/socket-server/middleware/auth'
 import type { RoomManager } from '@/socket-server/rooms/manager'
 
@@ -42,8 +43,10 @@ export function setupVariablesHandlers(
     }
 
     // Authorize the write. This handler bypasses the workflow-operation permission gate, so read-only
-    // collaborators could otherwise edit variable values. Role is cached in the session at join.
-    if (session.role === 'read') {
+    // collaborators could otherwise edit variable values. Re-validate the CURRENT role (TTL-cached)
+    // rather than trusting the role cached at join, so a mid-session downgrade/removal takes effect.
+    const currentRole = await resolveCurrentWorkflowRole(session.userId, workflowId, session.role)
+    if (!currentRole || currentRole === 'read') {
       logger.warn(`Read-only user ${session.userId} blocked from variable update in ${workflowId}`)
       if (operationId) {
         socket.emit('operation-failed', {

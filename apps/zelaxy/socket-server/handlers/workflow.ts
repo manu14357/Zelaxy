@@ -92,6 +92,10 @@ export function setupWorkflowHandlers(
       }
 
       room.users.set(socket.id, userPresence)
+      // Store the same presence object on socket.data so the cross-instance presence roster
+      // (RoomManager.broadcastPresenceUpdate via fetchSockets) can resolve it on any pod.
+      // presence.ts mutates the room.users entry (same reference), so cursor/selection stay in sync.
+      socket.data.presence = userPresence
       roomManager.setWorkflowForSocket(socket.id, workflowId)
       roomManager.setUserSession(socket.id, { userId, userName, role })
 

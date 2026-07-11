@@ -355,8 +355,10 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
         // Workflow update events (external changes like LLM edits)
         socketInstance.on('workflow-updated', (data) => {
           logger.info(`Workflow ${data.workflowId} has been updated externally - requesting sync`)
-          // Request fresh workflow state to sync with external changes
-          if (data.workflowId === urlWorkflowId) {
+          // Request fresh workflow state to sync with external changes.
+          // Use the ref (not the captured closure) — this handler is registered once per session,
+          // so a raw `urlWorkflowId` would stay pinned to whatever workflow was open at connect time.
+          if (data.workflowId === urlWorkflowIdRef.current) {
             socketInstance.emit('request-sync', { workflowId: data.workflowId })
           }
         })
@@ -367,7 +369,7 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
             `Copilot edited workflow ${data.workflowId} - rehydrating stores from database`
           )
 
-          if (data.workflowId === urlWorkflowId) {
+          if (data.workflowId === urlWorkflowIdRef.current) {
             try {
               // Fetch fresh workflow state directly from API
               const response = await fetch(`/api/workflows/${data.workflowId}`)
@@ -509,8 +511,9 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
         socketInstance.on('workflow-state', (workflowData) => {
           logger.info('Received workflow state from server')
 
-          // Update local stores with the fresh workflow state (same logic as YAML editor)
-          if (workflowData?.state && workflowData.id === urlWorkflowId) {
+          // Update local stores with the fresh workflow state (same logic as YAML editor).
+          // Compare against the ref so a mid-session navigation to another workflow still applies its state.
+          if (workflowData?.state && workflowData.id === urlWorkflowIdRef.current) {
             logger.info('Updating local stores with fresh workflow state from server')
 
             try {
