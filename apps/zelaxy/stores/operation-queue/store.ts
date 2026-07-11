@@ -229,7 +229,8 @@ export const useOperationQueueStore = create<OperationQueueState>((set, get) => 
               op.operation.payload?.id === operation.operation.payload?.id) ||
               // For other operations, fall back to full payload comparison
               (operation.operation.target !== 'block' &&
-                JSON.stringify(op.operation.payload) === JSON.stringify(operation.operation.payload)))
+                JSON.stringify(op.operation.payload) ===
+                  JSON.stringify(operation.operation.payload)))
         )
 
     if (duplicateContent) {

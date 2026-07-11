@@ -3,8 +3,8 @@ import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
 import { workflow, workflowBlocks } from '@/db/schema'
 import type { HandlerDependencies } from '@/socket-server/handlers/workflow'
-import { resolveCurrentWorkflowRole } from '@/socket-server/middleware/permissions'
 import type { AuthenticatedSocket } from '@/socket-server/middleware/auth'
+import { resolveCurrentWorkflowRole } from '@/socket-server/middleware/permissions'
 import type { RoomManager } from '@/socket-server/rooms/manager'
 
 const logger = createLogger('SubblocksHandlers')

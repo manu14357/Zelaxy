@@ -122,7 +122,11 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?:
 
     // All POST /api/* routes are the internal server-to-server bridge — require the shared secret.
     // (GET / and /health stay public for load-balancer/Railway health checks.)
-    if (req.method === 'POST' && req.url?.startsWith('/api/') && !isInternalRequestAuthorized(req)) {
+    if (
+      req.method === 'POST' &&
+      req.url?.startsWith('/api/') &&
+      !isInternalRequestAuthorized(req)
+    ) {
       logger.warn(`Rejected unauthenticated internal request to ${req.url}`, {
         origin: req.headers.origin,
       })
@@ -232,7 +236,8 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger, io?:
           const { workflowId, workspaceId } = data
           if (io) {
             io.to(workflowId).emit('execution:block-complete', data)
-            if (workspaceId) io.to(`workspace:${workspaceId}`).emit('execution:block-complete', data)
+            if (workspaceId)
+              io.to(`workspace:${workspaceId}`).emit('execution:block-complete', data)
           }
           ok(res)
         } catch (error) {

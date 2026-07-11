@@ -133,10 +133,7 @@ async function main() {
     io.close(async () => {
       try {
         if (redisClients) {
-          await Promise.allSettled([
-            redisClients.pubClient.quit(),
-            redisClients.subClient.quit(),
-          ])
+          await Promise.allSettled([redisClients.pubClient.quit(), redisClients.subClient.quit()])
         }
       } catch (error) {
         logger.error('Error tearing down Redis adapter clients:', error)

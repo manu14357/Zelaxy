@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { KeyRoundIcon, SendIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import { ModelPicker } from '@/app/arena/[workspaceId]/zelaxyarena/model-picker'
 import { Button } from '@/components/ui/button'
 import { checkEnvVarTrigger, EnvVarDropdown } from '@/components/ui/env-var-dropdown'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ZelaxyLogo } from '@/components/ui/zelaxy-logo'
 import { cn } from '@/lib/utils'
+import { ModelPicker } from '@/app/arena/[workspaceId]/zelaxyarena/model-picker'
 import { DEFAULT_CHAT_MODEL } from '@/providers/models'
 import { useEnvironmentStore } from '@/stores/settings/environment/store'
 
@@ -293,8 +293,8 @@ export function WandPromptBar({
                 <p className='text-muted-foreground text-sm'>
                   Pick any provider&rsquo;s model and add its API key to use Agie AI. Paste a key or
                   reference an existing Environment Variable with{' '}
-                  <code className='rounded bg-muted px-1 py-0.5 text-xs'>{'{{VAR}}'}</code>. Your key
-                  is stored securely in your Environment Variables.
+                  <code className='rounded bg-muted px-1 py-0.5 text-xs'>{'{{VAR}}'}</code>. Your
+                  key is stored securely in your Environment Variables.
                 </p>
               </div>
 
