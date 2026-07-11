@@ -1,34 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { KeyRoundIcon, SendIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { createPortal } from 'react-dom'
+import { ModelPicker } from '@/app/arena/[workspaceId]/zelaxyarena/model-picker'
 import { Button } from '@/components/ui/button'
+import { checkEnvVarTrigger, EnvVarDropdown } from '@/components/ui/env-var-dropdown'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ZelaxyLogo } from '@/components/ui/zelaxy-logo'
 import { cn } from '@/lib/utils'
+import { DEFAULT_CHAT_MODEL } from '@/providers/models'
 import { useEnvironmentStore } from '@/stores/settings/environment/store'
 
 const AGIE_API_KEY = 'AGIE_API_KEY'
 const AGIE_MODEL = 'AGIE_MODEL'
-
-const AVAILABLE_MODELS = [
-  { value: 'gpt-5.4', label: 'GPT-5.4' },
-  { value: 'gpt-5.4-mini', label: 'GPT-5.4 Mini' },
-  { value: 'gpt-5.4-nano', label: 'GPT-5.4 Nano' },
-  { value: 'gpt-4o', label: 'GPT-4o' },
-  { value: 'gpt-4.1', label: 'GPT-4.1' },
-  { value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
-  { value: 'gpt-4.1-nano', label: 'GPT-4.1 Nano' },
-  { value: 'o4-mini', label: 'o4 Mini' },
-  { value: 'o3', label: 'o3' },
-] as const
 
 interface WandPromptBarProps {
   isVisible: boolean
@@ -60,9 +44,14 @@ export function WandPromptBar({
   // Setup screen state
   const [showSetup, setShowSetup] = useState(false)
   const [setupApiKey, setSetupApiKey] = useState('')
-  const [setupModel, setSetupModel] = useState('gpt-4o')
+  const [setupModel, setSetupModel] = useState<string>(DEFAULT_CHAT_MODEL)
   const [setupSaving, setSetupSaving] = useState(false)
   const [setupChecked, setSetupChecked] = useState(false)
+
+  // Environment-variable autocomplete for the API key field (triggered by typing `{{`)
+  const [showEnvVars, setShowEnvVars] = useState(false)
+  const [envSearchTerm, setEnvSearchTerm] = useState('')
+  const [keyCursorPosition, setKeyCursorPosition] = useState(0)
 
   const { getVariable, loadEnvironmentVariables, variables } = useEnvironmentStore()
 
@@ -92,8 +81,10 @@ export function WandPromptBar({
     if (!isVisible) {
       setSetupChecked(false)
       setSetupApiKey('')
-      setSetupModel('gpt-4o')
+      setSetupModel(DEFAULT_CHAT_MODEL)
       setSetupSaving(false)
+      setShowEnvVars(false)
+      setEnvSearchTerm('')
     }
   }, [isVisible])
 
@@ -118,6 +109,40 @@ export function WandPromptBar({
       setSetupSaving(false)
     }
   }, [setupApiKey, setupModel, loadEnvironmentVariables])
+
+  // Re-evaluate the `{{` env-var trigger for the current input value + caret position.
+  const evaluateEnvVarTrigger = useCallback((value: string, cursor: number) => {
+    const trigger = checkEnvVarTrigger(value, cursor)
+    setShowEnvVars(trigger.show)
+    setEnvSearchTerm(trigger.show ? trigger.searchTerm : '')
+  }, [])
+
+  const handleApiKeyChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value
+      const cursor = e.target.selectionStart ?? newValue.length
+      setSetupApiKey(newValue)
+      setKeyCursorPosition(cursor)
+      evaluateEnvVarTrigger(newValue, cursor)
+    },
+    [evaluateEnvVarTrigger]
+  )
+
+  // Keep the caret position current when moving with keys/clicks so the dropdown inserts correctly.
+  const handleApiKeyCaret = useCallback(
+    (e: React.SyntheticEvent<HTMLInputElement>) => {
+      const target = e.currentTarget
+      const cursor = target.selectionStart ?? target.value.length
+      setKeyCursorPosition(cursor)
+      evaluateEnvVarTrigger(target.value, cursor)
+    },
+    [evaluateEnvVarTrigger]
+  )
+
+  const handleEnvVarSelect = useCallback((newValue: string) => {
+    setSetupApiKey(newValue)
+    setShowEnvVars(false)
+  }, [])
 
   // Handle the fade-out animation
   const handleCancel = () => {
@@ -266,8 +291,10 @@ export function WandPromptBar({
               <div className='mb-4 flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 p-3'>
                 <KeyRoundIcon className='h-5 w-5 flex-shrink-0 text-primary' />
                 <p className='text-muted-foreground text-sm'>
-                  Enter your OpenAI API key and select a model to use Agie AI. Your key will be
-                  securely stored in your Environment Variables.
+                  Pick any provider&rsquo;s model and add its API key to use Agie AI. Paste a key or
+                  reference an existing Environment Variable with{' '}
+                  <code className='rounded bg-muted px-1 py-0.5 text-xs'>{'{{VAR}}'}</code>. Your key
+                  is stored securely in your Environment Variables.
                 </p>
               </div>
 
@@ -279,41 +306,51 @@ export function WandPromptBar({
                   >
                     API Key <span className='text-destructive'>*</span>
                   </label>
-                  <Input
-                    id='agie-api-key'
-                    type='password'
-                    value={setupApiKey}
-                    onChange={(e) => setSetupApiKey(e.target.value)}
-                    placeholder='sk-...'
-                    className='h-10 border-2 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-primary/20'
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && setupApiKey.trim()) {
-                        handleSaveSetup()
-                      }
-                    }}
-                    autoFocus
-                  />
+                  <div className='relative'>
+                    <Input
+                      id='agie-api-key'
+                      type={setupApiKey.startsWith('{{') ? 'text' : 'password'}
+                      value={setupApiKey}
+                      onChange={handleApiKeyChange}
+                      onKeyUp={handleApiKeyCaret}
+                      onClick={handleApiKeyCaret}
+                      placeholder='sk-ant-... or {{ANTHROPIC_API_KEY}}'
+                      className='h-10 border-2 font-mono text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-primary/20'
+                      onKeyDown={(e) => {
+                        // While the env-var dropdown is open, let it own Enter/Arrow/Escape.
+                        if (showEnvVars) return
+                        if (e.key === 'Enter' && setupApiKey.trim()) {
+                          handleSaveSetup()
+                        }
+                      }}
+                      autoFocus
+                    />
+                    <EnvVarDropdown
+                      visible={showEnvVars}
+                      onSelect={handleEnvVarSelect}
+                      searchTerm={envSearchTerm}
+                      inputValue={setupApiKey}
+                      cursorPosition={keyCursorPosition}
+                      onClose={() => setShowEnvVars(false)}
+                    />
+                  </div>
+                  <p className='mt-1.5 text-muted-foreground text-xs'>
+                    Type <code className='rounded bg-muted px-1 py-0.5'>{'{{'}</code> to search{' '}
+                    <code className='rounded bg-muted px-1 py-0.5'>{'{{VARIABLE_NAME}}'}</code> and
+                    reuse a key already saved in your Environment Variables.
+                  </p>
                 </div>
 
                 <div>
-                  <label
-                    htmlFor='agie-model'
-                    className='mb-1.5 block font-medium text-foreground text-sm'
-                  >
-                    Model
-                  </label>
-                  <Select value={setupModel} onValueChange={setSetupModel}>
-                    <SelectTrigger id='agie-model' className='h-10 border-2'>
-                      <SelectValue placeholder='Select a model' />
-                    </SelectTrigger>
-                    <SelectContent className='z-[100000]'>
-                      {AVAILABLE_MODELS.map((model) => (
-                        <SelectItem key={model.value} value={model.value}>
-                          {model.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className='mb-1.5 block font-medium text-foreground text-sm'>Model</div>
+                  {/* Same provider/model catalog as ZelaxyArena — all providers, searchable, with
+                      custom-model support. contentClassName lifts the popover above this z-[99999] modal. */}
+                  <ModelPicker
+                    value={setupModel}
+                    onChange={setSetupModel}
+                    triggerClassName='h-10 w-full border-2'
+                    contentClassName='z-[100000]'
+                  />
                 </div>
               </div>
 

@@ -49,9 +49,19 @@ interface ModelPickerProps {
   value: string
   onChange: (model: string) => void
   disabled?: boolean
+  /** Extra classes for the trigger button (e.g. full-width in a form). */
+  triggerClassName?: string
+  /** Extra classes for the popover content (e.g. a higher z-index inside a high-z modal). */
+  contentClassName?: string
 }
 
-export function ModelPicker({ value, onChange, disabled }: ModelPickerProps) {
+export function ModelPicker({
+  value,
+  onChange,
+  disabled,
+  triggerClassName,
+  contentClassName,
+}: ModelPickerProps) {
   const customModelsMap = useCustomModelsStore((s) => s.models)
   const addCustomModel = useCustomModelsStore((s) => s.addModel)
 
@@ -87,14 +97,14 @@ export function ModelPicker({ value, onChange, disabled }: ModelPickerProps) {
         <Button
           variant='outline'
           size='sm'
-          className='h-8 w-[200px] justify-between font-normal'
+          className={cn('h-8 w-[200px] justify-between font-normal', triggerClassName)}
           disabled={disabled}
         >
           <span className='truncate text-xs'>{value || 'Select model'}</span>
           <ChevronDown className='h-3.5 w-3.5 flex-shrink-0 opacity-50' />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className='w-[320px] p-0' align='end'>
+      <PopoverContent className={cn('w-[320px] p-0', contentClassName)} align='end'>
         <Command>
           <CommandInput placeholder='Search models…' className='text-xs' />
           <CommandList className='max-h-[300px]'>
