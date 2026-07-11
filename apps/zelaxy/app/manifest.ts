@@ -8,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: `${brand.name} — Visual AI Agent Builder`,
     short_name: brand.name,
     description:
-      'Build, test, and deploy AI agents on a visual drag-and-drop canvas. 78+ blocks, 80+ tools, real-time collaboration, and one-click deployment — no code required.',
+      'Zelaxy is the visual operating system for AI work. Compose agents, workflows, automation, reasoning and knowledge on one canvas — then deploy to production, together, in real time. No code required.',
     start_url: '/',
     id: '/',
     display: 'standalone',

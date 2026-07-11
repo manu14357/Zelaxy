@@ -8,7 +8,6 @@ import {
   generateWebsiteData,
 } from '@/lib/branding/metadata'
 import { createLogger } from '@/lib/logs/console/logger'
-import { getAssetUrl } from '@/lib/utils'
 
 import '@/app/globals.css'
 
@@ -85,25 +84,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel='dns-prefetch' href='//fonts.googleapis.com' />
         <link rel='preconnect' href='https://fonts.googleapis.com' crossOrigin='anonymous' />
 
-        {/* Additional Open Graph tags */}
-        <meta property='og:image:width' content='1200' />
-        <meta property='og:image:height' content='630' />
-        <meta
-          property='og:image:alt'
-          content='Zelaxy — Visual AI Agent Builder & Workflow Automation'
-        />
+        {/* og/twitter images (og:image + width/height/alt) are emitted automatically by the
+            generated app/opengraph-image.tsx and app/twitter-image.tsx — do not hardcode them here. */}
         <meta property='og:site_name' content='Zelaxy' />
         <meta property='og:locale' content='en_US' />
-
-        {/* Twitter Card tags */}
-        <meta name='twitter:image:width' content='1200' />
-        <meta name='twitter:image:height' content='675' />
-        <meta name='twitter:image:alt' content='Zelaxy — Visual AI Agent Builder' />
         <meta name='twitter:url' content='https://zelaxy.in' />
         <meta name='twitter:domain' content='zelaxy.in' />
-
-        {/* Additional image sources */}
-        <link rel='image_src' href={getAssetUrl('social/og-preview.png')} />
 
         <PublicEnvScript />
       </head>
