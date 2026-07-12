@@ -1,0 +1,62 @@
+name: 🐛 Bug report
+description: Something isn't working as expected.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to file a bug! Please search existing issues first.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, and what you expected instead.
+      placeholder: When I run a workflow with block X, …
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Add a … block
+        2. Connect it to …
+        3. Run
+        4. See error
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Canvas / editor
+        - Block or tool
+        - Executor / runtime
+        - Triggers (webhook / schedule)
+        - Auth / permissions
+        - Real-time collaboration
+        - Self-hosting / deployment
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      placeholder: e.g. main @ 7a4ba1a, or hosted zelaxy.in
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Hosted (zelaxy.in)
+        - Self-hosted
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Paste any relevant logs or drop screenshots. Redact secrets & API keys.
+      render: shell

@@ -1,0 +1,38 @@
+name: 💡 Feature request
+description: Suggest a new block, integration, or capability.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: What are you trying to do that's hard or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should Zelaxy do? If it's an integration, link the service's API docs.
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - New block
+        - New integration / tool
+        - New trigger
+        - Executor / engine capability
+        - Editor / UX
+        - SDK / CLI / API
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds you're using today?

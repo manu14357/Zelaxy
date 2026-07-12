@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://docs.zelaxy.in
+    about: Check the docs first — most "how do I…" questions are answered there.
+  - name: 💬 Discussions & questions
+    url: https://github.com/manu14357/Zelaxy/discussions
+    about: Ask questions, share workflows, and suggest ideas.
+  - name: 🌐 Website
+    url: https://zelaxy.in
+    about: Try the hosted version.

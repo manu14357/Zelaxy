@@ -1,100 +1,166 @@
 <p align="center">
-  <img src="apps/zelaxy/public/Zelaxy.png" alt="Zelaxy Logo" width="80" />
+  <img src="apps/zelaxy/public/Zelaxy.png" alt="Zelaxy Logo" width="84" />
 </p>
-<h1 align="center">✦ Z E L A X Y ✦</h1>
+<h1 align="center">Zelaxy</h1>
 <p align="center">
-  <sub>AI Workflow Automation — Visual · Extensible · Real-time</sub>
-</p>
-
-<p align="center">
-  <img src="apps/zelaxy/app/(landing)/assets/Readme.png" alt="Zelaxy" width="100%" />
+  <b>The open-source visual platform for building, running & shipping AI agents and workflows.</b><br/>
+  <sub>Drag blocks onto a canvas → wire agents, tools & logic → run with live streaming. No code required — fully extensible when you need it.</sub>
 </p>
 
 <p align="center">
-  <a href="https://zelaxy.in">zelaxy.in</a> · <a href="https://docs.zelaxy.in">Docs</a> · <a href="#quickstart">Quickstart</a> · <a href="https://github.com/manu14357/Zelaxy/issues">Issues</a> · <a href="#contributing">Contributing</a>
+  <img src="apps/zelaxy/app/(landing)/assets/Readme.png" alt="Zelaxy — visual AI workflow builder" width="100%" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/manu14357/Zelaxy/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="https://github.com/manu14357/Zelaxy/stargazers"><img src="https://img.shields.io/github/stars/manu14357/Zelaxy?style=social" alt="GitHub Stars" /></a>
-  <a href="https://github.com/sponsors/manu14357"><img src="https://img.shields.io/badge/sponsor-❤-ea4aaa.svg" alt="Sponsor Zelaxy" /></a>
+  <a href="https://zelaxy.in"><b>Website</b></a> ·
+  <a href="https://docs.zelaxy.in"><b>Docs</b></a> ·
+  <a href="#-quickstart"><b>Quickstart</b></a> ·
+  <a href="#-why-zelaxy"><b>Why Zelaxy</b></a> ·
+  <a href="https://github.com/manu14357/Zelaxy/issues"><b>Issues</b></a> ·
+  <a href="#-contributing"><b>Contributing</b></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/manu14357/Zelaxy/actions/workflows/ci.yml"><img src="https://github.com/manu14357/Zelaxy/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/manu14357/Zelaxy/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="https://github.com/manu14357/Zelaxy/stargazers"><img src="https://img.shields.io/github/stars/manu14357/Zelaxy?style=flat&logo=github&color=EA580C" alt="GitHub Stars" /></a>
+  <a href="https://github.com/manu14357/Zelaxy/commits/main"><img src="https://img.shields.io/github/last-commit/manu14357/Zelaxy?color=EA580C" alt="Last commit" /></a>
+  <a href="https://github.com/manu14357/Zelaxy/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome" /></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white" alt="Next.js 15" />
+  <img src="https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Bun-1.2-000000?logo=bun&logoColor=white" alt="Bun" />
+  <img src="https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL + pgvector" />
+</p>
+
+<p align="center">
+  <b>⭐ If Zelaxy is useful to you, star the repo — it genuinely helps the project reach more builders.</b>
 </p>
 
 ---
 
-# Open-source AI workflow automation — visual, extensible, real-time
+## What is Zelaxy?
 
-Zelaxy is a visual platform for building AI-powered automation workflows. Drag blocks onto a canvas, connect them, and watch them execute with real-time LLM streaming. No code required — but fully extensible when you need it.
+**Zelaxy** is a visual operating system for AI work. You compose workflows on a canvas out of
+**blocks** — AI agents, integrations, logic, loops, sub-workflows — connect them, and a real
+execution engine runs the graph with **token-by-token LLM streaming**.
 
-It looks like a flow builder — but under the hood it has a topological execution engine, parallel branches, loops, sub-workflows, vector search, and multi-provider AI orchestration.
+It looks like a flow builder. Under the hood it's a **topological execution engine** with parallel
+branches, loops, conditional routing, sub-workflows, built-in vector search (RAG), and
+multi-provider AI orchestration — the kind of thing you'd otherwise stitch together from a dozen
+scripts and services.
 
-**Build workflows, not glue code.**
+<div align="center">
 
-|   |   |   |
+| 🧩 **264** blocks | 🔌 **240+** integrations | 🤖 **21** AI providers | ⚡ **30+** triggers | 🧠 **RAG** built-in |
+|:---:|:---:|:---:|:---:|:---:|
+
+</div>
+
+> **Build workflows, not glue code.** Drag three blocks onto the canvas, connect them, hit run.
+
+---
+
+## Table of Contents
+
+- [Why Zelaxy](#-why-zelaxy)
+- [Features](#-features)
+- [How it works](#-how-it-works)
+- [Blocks & integrations](#-blocks--integrations)
+- [Quickstart](#-quickstart)
+- [Configuration](#-configuration)
+- [Development](#-development)
+- [Deployment](#-deployment)
+- [Tech stack](#-tech-stack)
+- [Project structure](#-project-structure)
+- [Contributing](#-contributing)
+- [Sponsors](#-sponsors)
+- [License](#-license)
+
+---
+
+## ✨ Why Zelaxy
+
+Most automation tools make you choose: **great integrations _or_ real AI _or_ open-source & self-host.**
+Zelaxy is built to give you all three on one canvas.
+
+|  | **Zelaxy** | n8n | Zapier | Flowise / Langflow |
+|---|:---:|:---:|:---:|:---:|
+| Open source & self-hostable | ✅ MIT | ⚠️ fair-code | ❌ SaaS only | ✅ |
+| Visual canvas builder | ✅ | ✅ | ⚠️ linear | ✅ |
+| AI-native (multi-provider LLMs) | ✅ **21 providers** | ⚠️ add-on | ⚠️ limited | ✅ |
+| Built-in RAG / vector search | ✅ pgvector | ⚠️ via nodes | ❌ | ✅ |
+| Real-time multi-user collaboration | ✅ | ❌ | ❌ | ❌ |
+| Live token streaming while running | ✅ | ❌ | ❌ | ⚠️ |
+| Guardrails (PII, hallucination, schema) | ✅ | ❌ | ❌ | ⚠️ |
+| Code when you need it (JS / HTTP / MCP) | ✅ | ✅ | ⚠️ | ⚠️ |
+| SDKs (TypeScript + Python) & CLI | ✅ | ⚠️ | ❌ | ⚠️ |
+
+**Zelaxy is right for you if you want to:**
+
+- ⚡ Automate complex AI processes **without writing a custom backend**
+- 🔀 Chain **multiple LLM providers** (OpenAI, Claude, Gemini, Groq, DeepSeek, Grok, Mistral, Ollama…) in one pipeline
+- 🔍 **Visually debug** — see exactly which block produced which output, and how long it took
+- 📚 Build **RAG pipelines** with vector search built in — upload, embed, and query from any block
+- 🪝 Trigger from **Slack, GitHub, Gmail, Stripe, Telegram**, webhooks, or cron
+- 🏠 **Self-host** an open-source platform you can extend with your own blocks and tools
+
+---
+
+## 🚀 Features
+
+| 🧩 **264 blocks** | 🔌 **240+ integrations** | ⚡ **Live streaming** |
 |---|---|---|
-| 01 | **Design the workflow** | Drag blocks onto the canvas. Connect AI agents, APIs, databases, and services. |
-| 02 | **Configure triggers** | Webhooks, cron schedules, or event-driven from Slack, GitHub, Gmail, Stripe, and more. |
-| 03 | **Execute and stream** | Hit run. Watch blocks execute in order with real-time token streaming. |
+| Agents, logic, routing, loops, parallel, sub-workflows, functions, guardrails & more. | Slack, Gmail, Jira, Notion, S3, Pinecone, Snowflake, Firecrawl, ElevenLabs… **880+ actions**. | Token-by-token LLM streaming. Watch the AI think in real time. |
+| 🤖 **21 AI providers** | 🧠 **Knowledge base (RAG)** | 🪝 **30+ triggers** |
+| OpenAI, Claude, Gemini, Groq, DeepSeek, Grok, Cerebras, Mistral, NVIDIA, Bedrock, OpenRouter, Ollama, vLLM, LM Studio… | Vector search via pgvector. Upload docs, embed, and query from any block. | Webhooks, cron, Slack, GitHub, Gmail, Stripe, Telegram, Teams, Outlook, WhatsApp & more. |
+| 🛡️ **Guardrails** | 🤝 **AI copilot + Wand** | 🔄 **Real execution engine** |
+| PII detection, hallucination checks, JSON-schema validation. Safety built in. | RAG-powered assistant that generates code, schemas & prompts. Natural-language "Wand" edits. | Topological sort, parallel branches, `forEach`/`while` loops, conditional routing, sub-workflows. |
+| 👥 **Real-time collaboration** | 🔐 **Self-hosted & secure** | 🧰 **SDKs + CLI** |
+| Multi-user live editing over WebSockets, with live permission checks. | Bring your own keys, your own database, your own infra. MIT licensed. | TypeScript SDK, Python SDK, and a CLI for programmatic workflows. |
 
 ---
 
-## Zelaxy is right for you if
+## 🛠 How it works
 
-- ✅ You want to automate complex processes with AI — without writing a custom backend
-- ✅ You need to chain multiple LLM providers (OpenAI, Claude, Gemini, Groq, DeepSeek, Grok, Ollama) in one pipeline
-- ✅ You want visual debugging — see exactly which block produced what output
-- ✅ You need event-driven triggers from Slack, GitHub, Gmail, Stripe, Telegram, and others
-- ✅ You need RAG pipelines with vector search built-in (pgvector)
-- ✅ You want AI-assisted workflow building with a copilot that generates code, schemas, and prompts
-- ✅ You want an open-source platform you can self-host and extend
-
----
-
-## Features
-
-| 🧩 78 Blocks | 🔗 67+ Integrations | ⚡ Real-time Streaming |
+|  |  |  |
 |---|---|---|
-| AI agents, logic, routing, loops, parallel, sub-workflows, functions, and more. | Slack, Gmail, Jira, Notion, S3, Pinecone, Snowflake, Firecrawl, ElevenLabs, and more. | Token-by-token LLM streaming. Watch AI think in real-time. |
-| 🤖 Multi-Provider AI | 🧠 Knowledge Base (RAG) | 🎯 10 Trigger Types |
-| OpenAI, Claude, Gemini, Groq, DeepSeek, Grok, Cerebras, Mistral, Ollama, LM Studio. | Vector search via pgvector. Upload docs, embed, and query from any block. | Webhooks, cron, Slack, GitHub, Gmail, Stripe, Telegram, Teams, Outlook, WhatsApp. |
-| 🛡️ Guardrails | 🤝 AI Copilot (Agie) | 🔄 Workflow Engine |
-| PII detection, hallucination checks, JSON schema validation. Safety built-in. | RAG-powered assistant. Generates code, schemas, system prompts. AI Wand for natural language. | Topological sorting, parallel branches, forEach/for loops, conditional routing, sub-workflows. |
+| **01 · Design** | Drag blocks onto the canvas. Connect AI agents, APIs, databases, and services. | 🎨 |
+| **02 · Trigger** | Webhooks, cron schedules, or event-driven from Slack, GitHub, Gmail, Stripe & more. | 🪝 |
+| **03 · Run & stream** | Hit run. Watch blocks execute in order with real-time token streaming and per-block I/O. | ⚡ |
 
 ---
 
-## Problems Zelaxy solves
+## 🧩 Blocks & integrations
 
-|   |   |
-|---|---|
-| ❌ You write custom glue code every time you need to chain an LLM with an API call and a database query. | ✅ Drag three blocks onto the canvas, connect them, done. |
-| ❌ You switch between OpenAI, Claude, and Gemini dashboards to compare outputs. | ✅ One workflow, multiple AI providers. Compare side-by-side in the same pipeline. |
-| ❌ You manually set up webhooks, cron jobs, and event listeners for each integration. | ✅ 10 trigger types built-in. Click to configure. |
-| ❌ Your RAG pipeline is scattered across scripts, notebooks, and services. | ✅ Knowledge base with pgvector built into the platform. Upload, embed, query — all from the canvas. |
-| ❌ You can't see why a workflow failed or which step produced bad output. | ✅ Every block shows its input, output, and execution time. Visual debugging. |
-| ❌ You need to build separate admin UIs for non-technical team members. | ✅ Visual interface. Anyone can build and monitor workflows. |
-
----
-
-## Blocks
+<details>
+<summary><b>Browse the block categories</b> (264 blocks across these families)</summary>
 
 | Category | Examples |
-|----------|---------|
+|----------|----------|
 | **AI Agents** | OpenAI, Claude, Gemini, Groq, DeepSeek, Grok, Cerebras, HuggingFace, Perplexity, Mistral, Thinking, Vision |
-| **Core Logic** | Condition, Router, Evaluator, Function, API, Loop, Parallel, Response |
+| **Core Logic** | Condition, Router, Switch, Evaluator, Function, API, Loop, Parallel, Wait, Response, Human-in-the-loop |
 | **Messaging** | Slack, Discord, Telegram, WhatsApp, Gmail, Outlook, Microsoft Teams, SMTP |
-| **Productivity** | Jira, Linear, Notion, Google Docs, Google Calendar, Google Sheets, Excel, Planner, Confluence, Airtable |
+| **Productivity** | Jira, Linear, Notion, Google Docs, Google Calendar, Google Sheets, Excel, Planner, Confluence, Airtable, Asana |
 | **Data & Search** | Pinecone, Qdrant, Supabase, Wikipedia, ArXiv, Reddit, Serper, Tavily, Exa, Linkup |
-| **Storage** | S3, Google Drive, OneDrive, SharePoint |
-| **Databases** | Snowflake, MSSQL, Google Sheets, Excel |
+| **Storage** | S3, Google Drive, OneDrive, SharePoint, Dropbox, Box |
+| **Databases** | Snowflake, MSSQL, Postgres, Google Sheets, Excel |
 | **Web & Browser** | Firecrawl, Jina, Stagehand (browser automation), HTTP |
 | **Voice & Media** | ElevenLabs, Twilio SMS, Translate, Image Generator, YouTube, Vision |
 | **Knowledge & Memory** | Knowledge base (RAG), Memory (key-value), Mem0 |
-| **Safety** | Guardrails (PII detection, hallucination checks, JSON schema validation) |
+| **Safety** | Guardrails — PII detection, hallucination checks, JSON-schema validation |
 | **Custom** | MCP servers, Function (JavaScript), API (HTTP), Webhooks, Workflow (sub-flows) |
+
+</details>
+
+Full, searchable reference at **[docs.zelaxy.in](https://docs.zelaxy.in)**.
 
 ---
 
-## Quickstart
+## ⚡ Quickstart
 
 Open source. Self-hosted. No account required.
 
@@ -108,41 +174,42 @@ cd apps/zelaxy && bunx drizzle-kit migrate && cd ../..
 bun run dev:full
 ```
 
-This starts the app at `http://localhost:3000` and docs at `http://localhost:3001`.
+App runs at **http://localhost:3000**, docs at **http://localhost:3001**.
 
-Hosted: **[zelaxy.in](https://zelaxy.in)** · Docs: **[docs.zelaxy.in](https://docs.zelaxy.in)**
+Prefer hosted? Try **[zelaxy.in](https://zelaxy.in)** · Docs: **[docs.zelaxy.in](https://docs.zelaxy.in)**
 
-> **Requirements:** [Bun](https://bun.sh) >= 1.2, [PostgreSQL 17](https://www.postgresql.org/) with [pgvector](https://github.com/pgvector/pgvector), at least one LLM API key.
+> **Requirements:** [Bun](https://bun.sh) ≥ 1.2 · [PostgreSQL 17](https://www.postgresql.org/) with [pgvector](https://github.com/pgvector/pgvector) · at least one LLM API key.
 
-### Environment Variables
+---
+
+## 🔧 Configuration
 
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
-| `REDIS_URL` | Redis connection string (e.g. `rediss://...` from Upstash) |
+| `REDIS_URL` | Redis connection string (e.g. `rediss://…` from Upstash) |
 | `BETTER_AUTH_URL` | App URL (e.g. `http://localhost:3000`) |
 | `BETTER_AUTH_SECRET` | Auth secret (min 32 chars) |
 | `ENCRYPTION_KEY` | 64-char hex string for AES-256 |
 | `INTERNAL_API_SECRET` | Internal API secret (min 32 chars) |
 | `NEXT_PUBLIC_APP_URL` | Public app URL |
 
-**LLM providers** (add any): `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY`, `CEREBRAS_API_KEY`, `NVIDIA_API_KEY`, `MISTRAL_API_KEY`
+**LLM providers** (add any): `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY`, `CEREBRAS_API_KEY`, `NVIDIA_API_KEY`, `MISTRAL_API_KEY`, `OPENROUTER_API_KEY`
 
 **Local models:** `OLLAMA_URL` (default `http://localhost:11434`), `LM_STUDIO_URL` (default `http://localhost:1234`)
 
 ---
 
-## Development
+## 💻 Development
 
 ```bash
 bun run dev:full          # Full dev (app + websocket + docs)
 bun run dev               # App only
 bun run dev:sockets       # WebSocket server only
 bun run build             # Build all
-bun run test              # Run tests
-bun run lint              # Lint and auto-fix
-bun run format            # Format code
-bun run type-check        # Type check
+bun run test              # Run tests (~900 unit tests)
+bun run lint              # Lint and auto-fix (Biome)
+bun run type-check        # Type check (0 errors)
 ```
 
 ```bash
@@ -153,93 +220,102 @@ bun run start:worker                          # Background job worker (requires 
 
 ---
 
-## Deployment
+## 🌐 Deployment
 
-The Next.js app deploys to **Vercel**. Two services run on **Railway**:
+The Next.js app deploys to **Vercel**. Two long-running services run on **Railway**:
 
 | Service | Config file | Start command |
 |---------|-------------|---------------|
 | Socket server | `railway.json` | `bun run start:sockets` |
 | Background worker | `railway-worker.json` | `bun run start:worker` |
 
-Set `NEXT_PUBLIC_SOCKET_URL` and `SOCKET_SERVER_URL` on Vercel to your Railway socket URL.
-
-Background jobs use **BullMQ** backed by **Redis** (Upstash recommended). Set `REDIS_URL` on both Vercel and the Railway worker service.
+Set `NEXT_PUBLIC_SOCKET_URL` and `SOCKET_SERVER_URL` on Vercel to your Railway socket URL. Background
+jobs use **BullMQ** backed by **Redis** (Upstash recommended) — set `REDIS_URL` on both Vercel and the
+Railway worker.
 
 ---
 
-## Tech Stack
+## 🧰 Tech stack
 
 | Layer | Technology |
 |-------|-----------|
-| **Framework** | Next.js 15 (App Router, React 19) |
+| **Framework** | Next.js 15 (App Router, Turbopack) · React 19 |
 | **Language** | TypeScript |
 | **Runtime** | Bun |
 | **Database** | PostgreSQL 17 + pgvector (Drizzle ORM) |
 | **Auth** | better-auth (OAuth 2.0) |
-| **UI** | Tailwind CSS + shadcn/ui (Radix) |
-| **State** | Zustand |
-| **Real-time** | Socket.io |
-| **Background Jobs** | BullMQ + ioredis (Redis) |
+| **UI** | Tailwind CSS + shadcn/ui (Radix) · @xyflow/react |
+| **State** | Zustand · TanStack Query |
+| **Real-time** | Socket.IO |
+| **Background jobs** | BullMQ + ioredis (Redis) |
 | **Monorepo** | Turborepo + Bun workspaces |
 | **Testing** | Vitest |
-| **Linter** | Biome |
+| **Linter / formatter** | Biome |
 | **Docs** | Fumadocs (MDX) |
 
 ---
 
-## Project Structure
+## 📁 Project structure
 
 ```
 Zelaxy/
 ├── apps/
-│   ├── zelaxy/           # Main Next.js 15 application
-│   │   ├── app/          # App Router — pages, API routes, layouts
-│   │   ├── blocks/       # 78 block definitions
-│   │   ├── tools/        # 67+ tool implementations
-│   │   ├── executor/     # Workflow execution engine
-│   │   ├── triggers/     # Webhook and schedule triggers
-│   │   ├── lib/          # Utilities, copilot, auth
-│   │   ├── db/           # Drizzle ORM schema and migrations
-│   │   ├── components/   # UI components (shadcn/ui)
-│   │   ├── stores/       # Zustand state management
-│   │   ├── services/     # MCP server, queue management
-│   │   └── socket-server/# WebSocket server (Socket.io)
+│   ├── zelaxy/           # Main Next.js 15 application (the product)
+│   │   ├── app/          # App Router — pages (/arena/**), API routes (/api/**)
+│   │   ├── blocks/       # 264 block definitions + registry
+│   │   ├── tools/        # 240+ integrations (880+ actions) + registry
+│   │   ├── executor/     # Workflow execution engine (dag, resolver, handlers)
+│   │   ├── providers/    # 21 LLM providers
+│   │   ├── triggers/     # Webhook / schedule / event triggers
+│   │   ├── serializer/   # Editor graph → executable workflow
+│   │   ├── db/           # Drizzle ORM schema + queries
+│   │   ├── stores/       # Zustand state
+│   │   ├── socket-server/# Socket.IO realtime collaboration server
+│   │   └── worker/       # Background jobs
 │   ├── docs/             # Documentation site (Fumadocs)
-│   └── core/             # Shared environment config
-├── packages/             # CLI, TypeScript SDK, Python SDK
-├── LICENSE               # MIT License
+│   └── core/             # Shared core
+├── packages/             # CLI · TypeScript SDK · Python SDK
+├── LICENSE               # MIT
 └── package.json          # Monorepo root
 ```
 
+Working in the codebase? Start with [CLAUDE.md](CLAUDE.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ---
 
-## Sponsors
+## 🤝 Contributing
 
-Zelaxy is free and open source. Sponsors help sustain development and keep the project growing.
+Contributions are welcome — blocks, integrations, bug fixes, docs, all of it.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feat/your-feature`)
+3. Make your changes
+4. Run `bun run test`, `bun run lint`, and `bun run type-check`
+5. Open a pull request
+
+New here? Look for [`good first issue`](https://github.com/manu14357/Zelaxy/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) and read [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## 💖 Sponsors
+
+Zelaxy is free and open source. Sponsors keep it that way.
 
 <p align="center">
   <a href="https://github.com/sponsors/manu14357"><img src="https://img.shields.io/badge/Sponsor%20Zelaxy-%E2%9D%A4-ea4aaa?style=for-the-badge&logo=github-sponsors" alt="Sponsor Zelaxy" /></a>
 </p>
 
-### Sponsorship Tiers
-
 | Tier | $/mo | Perks |
 |------|------|-------|
-| 💎 **Diamond** | $1,000 | Co-branding + 1:1 monthly call + all perks below |
-| 🏆 **Platinum** | $500 | Custom block icon in arena + all perks below |
-| 🥇 **Gold** | $250 | Large logo everywhere + priority issue support |
-| 🥈 **Silver** | $100 | Logo on README, website, docs + early feature access |
+| 💎 **Diamond** | $1,000 | Co-branding + monthly 1:1 + all below |
+| 🏆 **Platinum** | $500 | Custom block icon in arena + all below |
+| 🥇 **Gold** | $250 | Large logo everywhere + priority support |
+| 🥈 **Silver** | $100 | Logo on README, website, docs + early access |
 | 🥉 **Bronze** | $50 | Logo on README, website, and docs |
 | 🙌 **Supporter** | $15 | Name + link on README, website, and docs |
 | 💜 **Backer** | $5 | Name on README + website |
 
-### 🎯 Goal: $5,000/mo
-
-Help us reach full-time open source — I'll be able to quit my job and work on Zelaxy and other projects full time!
-
 <!-- SPONSORS:START -->
-<!-- Add your sponsors here — they'll appear automatically when you have sponsors -->
 <p align="center">
   <em>Your logo here — <a href="https://github.com/sponsors/manu14357">become a sponsor</a></em>
 </p>
@@ -247,42 +323,26 @@ Help us reach full-time open source — I'll be able to quit my job and work on 
 
 ---
 
-## Contributing
+## 📄 License
 
-We welcome contributions. See how to get started:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Make your changes
-4. Run `bun run test` and `bun run lint`
-5. Open a pull request
+MIT © 2025 Zelaxy — see [LICENSE](LICENSE).
 
 ---
-
-## License
-
-MIT © 2025 Zelaxy
-
----
-
-## 💖 Support the Project
-
-If Zelaxy helps you build better workflows, consider [sponsoring the project](https://github.com/sponsors/manu14357). Every contribution — from $5/mo backers to enterprise sponsors — helps sustain open-source development.
 
 <p align="center">
-  <a href="https://github.com/sponsors/manu14357"><img src="https://img.shields.io/badge/Sponsor%20on%20GitHub-%E2%9D%A4-ea4aaa?style=for-the-badge&logo=github-sponsors" alt="Sponsor" /></a>
+  <b>⭐ Star Zelaxy to follow along</b> — new blocks, integrations, and features ship constantly.
 </p>
 
----
-
-<a href="https://star-history.com/#manu14357/Zelaxy&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" />
-    <img src="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" alt="Star History Chart" width="600" />
-  </picture>
-</a>
+<p align="center">
+  <a href="https://star-history.com/#manu14357/Zelaxy&Date">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date&theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" />
+      <img src="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" alt="Star History Chart" width="620" />
+    </picture>
+  </a>
+</p>
 
 <p align="center">
-  Open source under MIT. Built for people who want to automate with AI, not write glue code.
+  <sub>Built for people who want to automate with AI — not write glue code.</sub>
 </p>
