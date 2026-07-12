@@ -118,20 +118,16 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       url: pageUrl,
       type: 'article',
       siteName: 'Zelaxy Documentation',
-      images: [
-        {
-          url: 'https://zelaxy.in/social/og-preview.png',
-          width: 1200,
-          height: 630,
-          alt: `${page.data.title} — Zelaxy Docs`,
-        },
-      ],
+      // No `images` here on purpose: the generated app/opengraph-image.tsx card is inherited from
+      // the root segment. Setting images here (previously a broken zelaxy.in/social/og-preview.png)
+      // overrode it and left shares imageless.
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title: `${title} — Zelaxy Docs`,
       description,
       site: '@zelaxy',
+      // Image inherited from app/twitter-image.tsx (see openGraph note above).
     },
   }
 }
