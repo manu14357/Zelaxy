@@ -105,6 +105,10 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     `Learn about ${page.data.title} in the Zelaxy documentation — AI agent builder reference.`
   const docsUrl = 'https://docs.zelaxy.in'
   const pageUrl = `${docsUrl}${page.url}`
+  // The generated hero card from app/opengraph-image.tsx. It must be referenced explicitly here:
+  // when a page exports generateMetadata with an openGraph object, Next.js does NOT auto-inject the
+  // ancestor file-convention image, so without this the share falls back to the favicon (logo).
+  const ogImage = `${docsUrl}/opengraph-image`
 
   return {
     title,
@@ -118,16 +122,14 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       url: pageUrl,
       type: 'article',
       siteName: 'Zelaxy Documentation',
-      // No `images` here on purpose: the generated app/opengraph-image.tsx card is inherited from
-      // the root segment. Setting images here (previously a broken zelaxy.in/social/og-preview.png)
-      // overrode it and left shares imageless.
+      images: [{ url: ogImage, width: 1200, height: 630, alt: 'Zelaxy Documentation' }],
     },
     twitter: {
       card: 'summary_large_image',
       title: `${title} — Zelaxy Docs`,
       description,
       site: '@zelaxy',
-      // Image inherited from app/twitter-image.tsx (see openGraph note above).
+      images: [ogImage],
     },
   }
 }
