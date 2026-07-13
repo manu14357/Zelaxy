@@ -335,7 +335,11 @@ MIT © 2025 Zelaxy — see [LICENSE](LICENSE).
 
 <p align="center">
   <a href="https://star-history.com/#manu14357/Zelaxy&Date">
-    <img src="apps/zelaxy/public/social/star-history.png" alt="Zelaxy Star History Chart" width="640" />
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date&theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" />
+      <img src="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" alt="Star History Chart" width="620" />
+    </picture>
   </a>
 </p>
 
