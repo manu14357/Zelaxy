@@ -334,11 +334,11 @@ MIT © 2025 Zelaxy — see [LICENSE](LICENSE).
 </p>
 
 <p align="center">
-  <a href="https://star-history.com/#manu14357/Zelaxy&Date">
+  <a href="https://www.star-history.com/?repos=manu14357%2FZelaxy&type=timeline&logscale=&legend=top-left">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date&theme=dark" />
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" />
-      <img src="https://api.star-history.com/svg?repos=manu14357/Zelaxy&type=Date" alt="Star History Chart" width="620" />
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=manu14357/Zelaxy&type=timeline&theme=dark&logscale&legend=top-left&sealed_token=ea4xZVBp_KyEaL8xDdI1524tyHq_T869Tl7hSdZSpQA1X6fUuACMVkmtpT7xPXp1ncn53V8FOcShB6Ak2tqhZkTuFtmgJDau2SoFqNpYhFVKqc3HInSNVeXeVZj8YvyElrMma8ZQV3etHQgPPLuWjvNOowgUg4oUH0wbi07BPU4QG6n4bQDZJCjyh3n0" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=manu14357/Zelaxy&type=timeline&logscale&legend=top-left&sealed_token=ea4xZVBp_KyEaL8xDdI1524tyHq_T869Tl7hSdZSpQA1X6fUuACMVkmtpT7xPXp1ncn53V8FOcShB6Ak2tqhZkTuFtmgJDau2SoFqNpYhFVKqc3HInSNVeXeVZj8YvyElrMma8ZQV3etHQgPPLuWjvNOowgUg4oUH0wbi07BPU4QG6n4bQDZJCjyh3n0" />
+      <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=manu14357/Zelaxy&type=timeline&logscale&legend=top-left&sealed_token=ea4xZVBp_KyEaL8xDdI1524tyHq_T869Tl7hSdZSpQA1X6fUuACMVkmtpT7xPXp1ncn53V8FOcShB6Ak2tqhZkTuFtmgJDau2SoFqNpYhFVKqc3HInSNVeXeVZj8YvyElrMma8ZQV3etHQgPPLuWjvNOowgUg4oUH0wbi07BPU4QG6n4bQDZJCjyh3n0" width="620" />
     </picture>
   </a>
 </p>
