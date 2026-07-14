@@ -43,7 +43,7 @@ A required dropdown (`model`) that selects which AI model evaluates the routing 
 
 - **Type**: `dropdown`
 - **Required**: yes
-- **Options**: dynamically populated from all registered base model providers plus any locally running Ollama models. Examples include `gpt-4o`, `gpt-4o-mini`, `claude-3-5-sonnet-20241022`, `gemini-1.5-pro`, `deepseek-chat`, `deepseek-reasoner`, `grok-2-1212`, and any Ollama model the user has pulled.
+- **Options**: dynamically populated from all registered base model providers plus any locally running Ollama models. Examples include `gpt-5.6-terra`, `gpt-5.4-mini`, `claude-sonnet-5`, `gemini-3.5-flash`, `deepseek-v4-flash`, `grok-4.3`, and any Ollama model the user has pulled.
 
 ### API Key
 
@@ -79,10 +79,10 @@ An internal code field (`systemPrompt`) that is auto-generated from the `prompt`
 
 The Router block executes through dedicated LLM provider handlers, not the generic tool registry. The provider used at runtime is determined by the selected `model`. The tool ids listed in `tools.access` map to these LLM providers:
 
-- **OpenAI Chat** (`openai_chat`) — Routes via an OpenAI model (e.g. `gpt-4o`, `gpt-4o-mini`)
-- **Anthropic Chat** (`anthropic_chat`) — Routes via an Anthropic model (e.g. `claude-3-5-sonnet-20241022`)
-- **Google Chat** (`google_chat`) — Routes via a Google model (e.g. `gemini-1.5-pro`)
-- **xAI Chat** (`xai_chat`) — Routes via an xAI model (e.g. `grok-2-1212`)
+- **OpenAI Chat** (`openai_chat`) — Routes via an OpenAI model (e.g. `gpt-5.6-terra`, `gpt-5.4-mini`)
+- **Anthropic Chat** (`anthropic_chat`) — Routes via an Anthropic model (e.g. `claude-sonnet-5`)
+- **Google Chat** (`google_chat`) — Routes via a Google model (e.g. `gemini-3.5-flash`)
+- **xAI Chat** (`xai_chat`) — Routes via an xAI model (e.g. `grok-4.3`)
 - **DeepSeek Chat** (`deepseek_chat`) — Routes via DeepSeek's standard chat model
 - **DeepSeek Reasoner** (`deepseek_reasoner`) — Routes via DeepSeek's reasoning model
 
@@ -96,7 +96,7 @@ router_1:
   name: "Router"
   inputs:
     prompt: "Route this customer message to the correct department: {{starter.input}}"
-    model: "gpt-4o-mini"
+    model: "gpt-5.4-mini"
     apiKey: "{{OPENAI_API_KEY}}"
   connections:
     outgoing:

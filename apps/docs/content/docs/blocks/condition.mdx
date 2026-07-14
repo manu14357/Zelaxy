@@ -78,7 +78,7 @@ Example: `{{agent1.content}}`
 **Type:** combobox — **required** when using LLM mode  
 **Visible when:** `evaluationMode` = `llm`
 
-Select or type the model name to use for judging. Options are populated dynamically from all configured base model providers plus any locally running Ollama models. Examples include `gpt-4o-mini`, `claude-3-5-haiku-20241022`, `gemini-2.0-flash`, and any Ollama model name.
+Select or type the model name to use for judging. Options are populated dynamically from all configured base model providers plus any locally running Ollama models. Examples include `gpt-5.4-mini`, `claude-haiku-4-5`, `gemini-3.5-flash`, and any Ollama model name.
 
 ---
 
@@ -163,7 +163,7 @@ condition_2:
     evaluationMode: llm
     llmPrompt: "Is this content professional, factual, and free of harmful language?"
     llmContext: "{{agent1.content}}"
-    llmModel: gpt-4o-mini
+    llmModel: gpt-5.4-mini
     apiKey: "{{OPENAI_API_KEY}}"
     requireConfidence: true
   connections:

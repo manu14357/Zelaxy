@@ -14,12 +14,19 @@ import { calculateCost } from '@/providers/utils'
 
 describe('latest models are registered with pricing (cost calc works)', () => {
   const expected: Record<string, { input: number; output: number }> = {
+    'claude-fable-5': { input: 10, output: 50 },
+    'claude-sonnet-5': { input: 3, output: 15 },
     'claude-opus-4-8': { input: 5, output: 25 },
     'claude-opus-4-5': { input: 5, output: 25 },
     'claude-opus-4-1': { input: 15, output: 75 },
     'claude-sonnet-4-5': { input: 3, output: 15 },
+    'gpt-5.6-terra': { input: 2.5, output: 15 },
+    'gpt-5.5': { input: 5, output: 30 },
     'gpt-5.1': { input: 1.25, output: 10 },
-    'gemini-3-pro-preview': { input: 2, output: 12 },
+    'gemini-3.1-pro-preview': { input: 2, output: 12 },
+    'gemini-3.5-flash': { input: 1.5, output: 9 },
+    'deepseek-v4-flash': { input: 0.14, output: 0.28 },
+    'grok-4.3': { input: 1.25, output: 2.5 },
   }
 
   for (const [model, price] of Object.entries(expected)) {

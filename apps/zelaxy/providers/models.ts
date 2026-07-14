@@ -70,7 +70,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     id: 'openai',
     name: 'OpenAI',
     description: "OpenAI's models",
-    defaultModel: 'gpt-5.4',
+    defaultModel: 'gpt-5.6-terra',
     modelPatterns: [/^gpt/, /^o1/, /^o3/, /^o4/],
     icon: OpenAIIcon,
     models: [
@@ -261,6 +261,58 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
           toolUsageControl: true,
         },
       },
+      {
+        id: 'gpt-5.6-sol',
+        pricing: {
+          input: 5.0,
+          cachedInput: 0.5,
+          output: 30.0,
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'gpt-5.6-terra',
+        pricing: {
+          input: 2.5,
+          cachedInput: 0.25,
+          output: 15.0,
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'gpt-5.6-luna',
+        pricing: {
+          input: 1.0,
+          cachedInput: 0.1,
+          output: 6.0,
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'gpt-5.5',
+        pricing: {
+          input: 5.0,
+          cachedInput: 0.5,
+          output: 30.0,
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
     ],
   },
   'azure-openai': {
@@ -412,10 +464,36 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     id: 'anthropic',
     name: 'Anthropic',
     description: "Anthropic's Claude models",
-    defaultModel: 'claude-sonnet-4-6',
+    defaultModel: 'claude-sonnet-5',
     modelPatterns: [/^claude/],
     icon: AnthropicIcon,
     models: [
+      {
+        id: 'claude-fable-5',
+        pricing: {
+          input: 10.0,
+          cachedInput: 5.0,
+          output: 50.0,
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'claude-sonnet-5',
+        pricing: {
+          input: 3.0,
+          cachedInput: 1.5,
+          output: 15.0,
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
       {
         id: 'claude-opus-4-8',
         pricing: {
@@ -580,17 +658,43 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     id: 'google',
     name: 'Google',
     description: "Google's Gemini models",
-    defaultModel: 'gemini-2.5-pro',
+    defaultModel: 'gemini-3.5-flash',
     modelPatterns: [/^gemini/],
     icon: GeminiIcon,
     models: [
       {
-        id: 'gemini-3-pro-preview',
+        id: 'gemini-3.1-pro-preview',
         pricing: {
           input: 2.0,
           cachedInput: 0.2,
           output: 12.0,
-          updatedAt: '2025-11-18',
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'gemini-3.5-flash',
+        pricing: {
+          input: 1.5,
+          cachedInput: 0.15,
+          output: 9.0,
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'gemini-3.1-flash-lite',
+        pricing: {
+          input: 0.25,
+          cachedInput: 0.025,
+          output: 1.5,
+          updatedAt: '2026-07-14',
         },
         capabilities: {
           temperature: { min: 0, max: 2 },
@@ -655,10 +759,36 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     id: 'deepseek',
     name: 'Deepseek',
     description: "Deepseek's chat models",
-    defaultModel: 'deepseek-chat',
+    defaultModel: 'deepseek-v4-flash',
     modelPatterns: [],
     icon: DeepseekIcon,
     models: [
+      {
+        id: 'deepseek-v4-pro',
+        pricing: {
+          input: 0.435,
+          cachedInput: 0.003625,
+          output: 0.87,
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'deepseek-v4-flash',
+        pricing: {
+          input: 0.14,
+          cachedInput: 0.0028,
+          output: 0.28,
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
       {
         id: 'deepseek-chat',
         pricing: {
@@ -714,10 +844,23 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     id: 'xai',
     name: 'xAI',
     description: "xAI's Grok models",
-    defaultModel: 'grok-4-latest',
+    defaultModel: 'grok-4.3',
     modelPatterns: [/^grok/],
     icon: xAIIcon,
     models: [
+      {
+        id: 'grok-4.3',
+        pricing: {
+          input: 1.25,
+          cachedInput: 0.2,
+          output: 2.5,
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
       {
         id: 'grok-4.20-latest',
         pricing: {
@@ -1613,11 +1756,6 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         pricing: { input: 1.25, output: 1.25, updatedAt: '2026-06-20' },
         capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
       },
-      {
-        id: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
-        pricing: { input: 0.6, output: 0.6, updatedAt: '2026-06-20' },
-        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
-      },
     ],
   },
   fireworks: {
@@ -1653,11 +1791,6 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         pricing: { input: 0.9, output: 0.9, updatedAt: '2026-06-20' },
         capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
       },
-      {
-        id: 'accounts/fireworks/models/mixtral-8x7b-instruct',
-        pricing: { input: 0.5, output: 0.5, updatedAt: '2026-06-20' },
-        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
-      },
     ],
   },
   mistral: {
@@ -1671,6 +1804,16 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
       {
         id: 'mistral-large-latest',
         pricing: { input: 2, output: 6, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+      {
+        id: 'magistral-medium-latest',
+        pricing: { input: 2, output: 5, updatedAt: '2026-07-14' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+      {
+        id: 'mistral-medium-latest',
+        pricing: { input: 0.4, output: 2, updatedAt: '2026-07-14' },
         capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
       },
       {
@@ -1883,7 +2026,7 @@ export function getProviderDefaultModel(providerId: string): string {
  * - DEFAULT_FAST_MODEL: cheap/fast tasks (title generation, routing, classification).
  * - DEFAULT_VISION_MODEL: image/PDF understanding.
  */
-export const DEFAULT_CHAT_MODEL = 'claude-sonnet-4-6'
+export const DEFAULT_CHAT_MODEL = 'claude-sonnet-5'
 export const DEFAULT_FAST_MODEL = 'claude-haiku-4-5'
 export const DEFAULT_VISION_MODEL = 'gpt-4o'
 
