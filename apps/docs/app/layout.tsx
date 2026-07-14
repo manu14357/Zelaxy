@@ -124,7 +124,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body className='flex min-h-svh flex-col antialiased' suppressHydrationWarning>
-        <RootProvider>
+        {/* First-time visitors default to light; users can still switch to dark/system. */}
+        <RootProvider theme={{ defaultTheme: 'light', enableSystem: true }}>
           <Announcement />
           {children}
         </RootProvider>

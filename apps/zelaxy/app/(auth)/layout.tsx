@@ -5,7 +5,7 @@ import '@/app/(landing)/components/blueprint.css'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider defaultTheme='dark' storageKey='zelaxy-theme'>
+    <ThemeProvider defaultTheme='light' storageKey='zelaxy-theme'>
       <main className='s-bg relative flex min-h-screen flex-col'>
         {/* dot grid */}
         <div className='bp-canvas-dots pointer-events-none absolute inset-0 opacity-70' />
