@@ -9,15 +9,19 @@ export const revalidate = false
 
 export const { staticGET: GET } = createFromSource(source, {
   buildIndex: async (page) => {
-    const rawText = await page.data.getText('raw')
-    const structuredData = structure(rawText)
+    const structured = structure(await page.data.getText('raw'))
 
     return {
       id: page.url,
       title: page.data.title,
       description: page.data.description,
       url: page.url,
-      structuredData,
+      // Index titles, descriptions and section HEADINGS only — deliberately dropping full page
+      // body text. Indexing every paragraph of 500+ block/tool pages produced a ~45MB static
+      // index that hung the browser. Headings + titles cover the way people actually search a
+      // reference ("workday", "slack send", "access token") while keeping the index small enough
+      // to ship and search instantly client-side.
+      structuredData: { headings: structured.headings, contents: [] },
     }
   },
 })
