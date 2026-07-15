@@ -1,6 +1,7 @@
 {
   "title": "Tool Integrations",
   "icon": "Wrench",
+  "root": true,
   "pages": [
     "---AI & Reasoning---",
     "dspy",

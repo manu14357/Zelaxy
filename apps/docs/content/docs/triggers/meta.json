@@ -1,5 +1,6 @@
 {
   "title": "Triggers",
   "icon": "Zap",
+  "root": true,
   "pages": ["generic-webhook", "schedule", "webhook"]
 }
