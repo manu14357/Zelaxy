@@ -9,6 +9,7 @@ import { evernoteWebhookTrigger } from './evernote'
 import { firefliesWebhookTrigger } from './fireflies'
 import { genericWebhookTrigger } from './generic'
 import { githubWebhookTrigger } from './github'
+import { gitlabWebhookTrigger } from './gitlab'
 import { gmailPollingTrigger } from './gmail'
 import { googleCalendarPollingTrigger } from './google-calendar'
 import { googleDocsPollingTrigger } from './google-docs'
@@ -48,6 +49,7 @@ export const TRIGGER_REGISTRY: TriggerRegistry = {
   fireflies_webhook: firefliesWebhookTrigger,
   generic_webhook: genericWebhookTrigger,
   github_webhook: githubWebhookTrigger,
+  gitlab_webhook: gitlabWebhookTrigger,
   gmail_poller: gmailPollingTrigger,
   google_calendar_poller: googleCalendarPollingTrigger,
   google_docs_poller: googleDocsPollingTrigger,

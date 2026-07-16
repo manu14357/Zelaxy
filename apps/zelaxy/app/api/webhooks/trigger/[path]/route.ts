@@ -5,6 +5,7 @@ import { createLogger } from '@/lib/logs/console/logger'
 import {
   handleSlackChallenge,
   handleWhatsAppVerification,
+  validateGitLabToken,
   validateMicrosoftTeamsSignature,
 } from '@/lib/webhooks/utils'
 import { db } from '@/db'
@@ -192,6 +193,25 @@ export async function POST(
       }
 
       logger.debug(`[${requestId}] Microsoft Teams HMAC signature verified successfully`)
+    }
+  }
+
+  // Handle GitLab secret token verification if needed
+  if (foundWebhook.provider === 'gitlab') {
+    const providerConfig = (foundWebhook.providerConfig as Record<string, any>) || {}
+
+    if (providerConfig.secretToken) {
+      const isValidToken = validateGitLabToken(
+        providerConfig.secretToken,
+        request.headers.get('x-gitlab-token')
+      )
+
+      if (!isValidToken) {
+        logger.warn(`[${requestId}] GitLab webhook token verification failed`)
+        return new NextResponse('Unauthorized - Invalid secret token', { status: 401 })
+      }
+
+      logger.debug(`[${requestId}] GitLab secret token verified successfully`)
     }
   }
 

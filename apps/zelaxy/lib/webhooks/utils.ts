@@ -646,6 +646,111 @@ export function formatWebhookInput(
     }
   }
 
+  if (foundWebhook.provider === 'gitlab') {
+    // GitLab webhook input formatting logic.
+    // Fields are flattened to the top level so the trigger handler lifts them to the block's
+    // root output (it only auto-copies objects for non-GitHub providers, so scalars must be here).
+    const eventType = request.headers.get('x-gitlab-event') || 'unknown'
+    const objectAttributes = body?.object_attributes || {}
+    const project = body?.project || {}
+
+    const gitlabData = {
+      // Event metadata
+      event_type: eventType,
+      object_kind: body?.object_kind || '',
+      event_name: body?.event_name || '',
+      action: objectAttributes.action || '',
+
+      // Project information (avoid 'project' to prevent conflict with the object)
+      project_id: body?.project_id || project.id || '',
+      project_name: project.name || '',
+      project_path: project.path_with_namespace || '',
+      project_url: project.web_url || '',
+
+      // User information (GitLab sends these flat on push, nested on other events)
+      user_id: body?.user_id || body?.user?.id || '',
+      user_name: body?.user_name || body?.user?.name || '',
+      user_username: body?.user_username || body?.user?.username || '',
+      user_email: body?.user_email || '',
+      user_avatar: body?.user_avatar || body?.user?.avatar_url || '',
+
+      // Event-specific data
+      ...(body?.ref && {
+        ref: body.ref,
+        branch: body.ref?.replace('refs/heads/', '') || '',
+      }),
+      ...(body?.before && { before: body.before }),
+      ...(body?.after && { after: body.after }),
+      ...(body?.checkout_sha && { checkout_sha: body.checkout_sha }),
+      ...(body?.total_commits_count !== undefined && {
+        total_commits_count: body.total_commits_count,
+      }),
+      ...(body?.commits && {
+        commits: body.commits,
+        commit_message: body.commits[0]?.message || '',
+        commit_author: body.commits[0]?.author?.name || '',
+        commit_url: body.commits[0]?.url || '',
+      }),
+      ...(body?.object_attributes && {
+        object_attributes: objectAttributes,
+        title: objectAttributes.title || '',
+        state: objectAttributes.state || '',
+        url: objectAttributes.url || '',
+      }),
+      ...(body?.project && { project }),
+      ...(body?.repository && { repository: body.repository }),
+      ...(body?.user && { user: body.user }),
+    }
+
+    // Human-readable summary used as the primary workflow input
+    let input: string
+    switch (body?.object_kind) {
+      case 'push':
+        input = `Push to ${gitlabData.branch || gitlabData.ref}: ${gitlabData.commit_message || 'No commit message'}`
+        break
+      case 'merge_request':
+        input = `${objectAttributes.action || 'updated'} merge request: ${objectAttributes.title || 'No title'}`
+        break
+      case 'issue':
+        input = `${objectAttributes.action || 'updated'} issue: ${objectAttributes.title || 'No title'}`
+        break
+      case 'pipeline':
+        input = `Pipeline ${objectAttributes.status || 'updated'} for ${gitlabData.project_path || 'project'}`
+        break
+      case 'note':
+        input = `Comment: ${objectAttributes.note?.slice(0, 100) || 'No comment body'}`
+        break
+      default:
+        input = `GitLab ${eventType} event`
+    }
+
+    return {
+      input,
+
+      // Top-level properties for direct access
+      ...gitlabData,
+
+      // GitLab data structured for the trigger handler to extract
+      gitlab: {
+        ...gitlabData,
+        // Raw GitLab webhook payload for direct field access
+        ...body,
+      },
+
+      webhook: {
+        data: {
+          provider: 'gitlab',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
   // Generic format for other providers
   return {
     webhook: {
@@ -708,6 +813,43 @@ export function validateMicrosoftTeamsSignature(
     console.error('Error validating Microsoft Teams signature:', error)
     return false
   }
+}
+
+/**
+ * Validates a GitLab webhook request's secret token.
+ *
+ * GitLab does not sign the body; it echoes the configured secret verbatim in the
+ * X-Gitlab-Token header, so this is a constant-time equality check rather than an HMAC.
+ *
+ * @param secretToken - Secret token configured on the trigger
+ * @param tokenHeader - X-Gitlab-Token header value from the request
+ * @returns Whether the token is valid
+ */
+export function validateGitLabToken(
+  secretToken: string,
+  tokenHeader: string | null | undefined
+): boolean {
+  if (!secretToken || !tokenHeader) {
+    return false
+  }
+
+  return timingSafeEquals(tokenHeader, secretToken)
+}
+
+/**
+ * Constant-time comparison of two strings. Returns false on length mismatch.
+ */
+function timingSafeEquals(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false
+  }
+
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+
+  return result === 0
 }
 
 /**

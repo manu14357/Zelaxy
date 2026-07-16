@@ -5,9 +5,10 @@ import type { GitlabResponse } from '@/tools/gitlab/types'
 export const GitlabBlock: BlockConfig<GitlabResponse> = {
   type: 'gitlab',
   name: 'GitLab',
-  description: 'Manage projects, issues, and files in GitLab',
+  description:
+    'Manage projects, issues, and files in GitLab, or trigger workflows from GitLab events',
   longDescription:
-    'List and inspect projects, list and create issues, and read repository files through the GitLab API. Authenticate with a GitLab Personal Access Token.',
+    'List and inspect projects, list and create issues, and read repository files through the GitLab API. Authenticate with a GitLab Personal Access Token. Trigger workflows from GitLab events like pushes, merge requests, issues, pipelines, and comments.',
   docsLink: '#',
   category: 'tools',
   bgColor: '#FC6D26',
@@ -116,6 +117,15 @@ export const GitlabBlock: BlockConfig<GitlabResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'gitlab',
+      availableTriggers: ['gitlab_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -145,5 +155,21 @@ export const GitlabBlock: BlockConfig<GitlabResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from GitLab' },
     metadata: { type: 'json', description: 'Response metadata' },
+    object_kind: {
+      type: 'string',
+      description: 'Event kind for trigger events (push, merge_request, issue, pipeline, note)',
+    },
+    object_attributes: {
+      type: 'json',
+      description: 'Changed object for merge request, issue, pipeline, and note events',
+    },
+    project: { type: 'json', description: 'Project the trigger event originated from' },
+    commits: { type: 'json', description: 'Commits included in a push event' },
+    branch: { type: 'string', description: 'Branch name extracted from ref' },
+    action: { type: 'string', description: 'Action performed (e.g., open, merge, close)' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['gitlab_webhook'],
   },
 }
