@@ -118,6 +118,15 @@ export const ZoomBlock: BlockConfig<ZoomResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'zoom',
+      availableTriggers: ['zoom_webhook'],
+    },
   ],
   tools: {
     access: ['zoom_list_meetings', 'zoom_create_meeting', 'zoom_get_meeting', 'zoom_list_users'],
@@ -142,5 +151,13 @@ export const ZoomBlock: BlockConfig<ZoomResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from Zoom' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'Zoom event type (trigger events)' },
+    topic: { type: 'string', description: 'Meeting topic' },
+    meeting_id: { type: 'string', description: 'Meeting ID' },
+    participant_name: { type: 'string', description: 'Participant name' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['zoom_webhook'],
   },
 }

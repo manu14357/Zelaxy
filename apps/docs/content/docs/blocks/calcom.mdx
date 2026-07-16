@@ -24,6 +24,7 @@ The Cal.com block integrates Cal.com scheduling into your workflows. Use it to l
 - Cancel a booking as part of a rescheduling or cleanup flow.
 - Enumerate event types to dynamically select the right meeting kind for a workflow branch.
 - Filter past, upcoming, or cancelled bookings to power reporting or audit pipelines.
+- Trigger a workflow automatically when a booking is created, rescheduled, or cancelled
 
 ## Configuration
 
@@ -60,6 +61,16 @@ The end of the time window (ISO 8601 UTC, e.g. `2024-01-15T11:00:00Z`). Shown fo
 
 The UID of an existing booking. Shown for operations: **Get Booking** and **Cancel Booking**.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `calcom_webhook`
+
+When the block runs in trigger mode, this configures the `calcom_webhook` trigger so Cal.com events start the workflow. Deliveries are verified against the `x-cal-signature-256` header.
+See the [Cal.com webhook trigger](/docs/triggers/webhook#calcom) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 **Inputs:**
@@ -76,6 +87,10 @@ The UID of an existing booking. Shown for operations: **Get Booking** and **Canc
 - `bookings` (json) — Booking list returned by List Bookings
 - `booking` (json) — Booking details returned by Get Booking or Create Booking
 - `slots` (json) — Available time slots returned by Get Available Slots
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event instead: `event_type` (string), `booking_id` (string), `title` (string), `start_time` (string), `end_time` (string), `attendee_name` (string), `attendee_email` (string), `organizer_email` (string), `meeting_url` (string), `answers` (json). See the [Cal.com webhook trigger](/docs/triggers/webhook#calcom) for the full schema.
 
 ## Tools
 

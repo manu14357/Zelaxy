@@ -25,6 +25,14 @@ const processWebhookMock = vi
 const validateMicrosoftTeamsSignatureMock = vi.fn().mockReturnValue(true)
 const validateGitLabTokenMock = vi.fn().mockReturnValue(true)
 const validateTypeformSignatureMock = vi.fn().mockReturnValue(true)
+const validateCalendlySignatureMock = vi.fn().mockReturnValue(true)
+const validateSentrySignatureMock = vi.fn().mockReturnValue(true)
+const validatePagerDutySignatureMock = vi.fn().mockReturnValue(true)
+const validateVercelSignatureMock = vi.fn().mockReturnValue(true)
+const validateZoomSignatureMock = vi.fn().mockReturnValue(true)
+const validateSvixSignatureMock = vi.fn().mockReturnValue(true)
+const validateCalcomSignatureMock = vi.fn().mockReturnValue(true)
+const handleZoomUrlValidationMock = vi.fn().mockReturnValue(null)
 // Returns null when the request passes provider auth, or a NextResponse to short-circuit
 const verifyProviderWebhookMock = vi.fn().mockReturnValue(null)
 const executeMock = vi.fn().mockResolvedValue({
@@ -69,6 +77,14 @@ vi.mock('@/lib/webhooks/utils', () => ({
   validateMicrosoftTeamsSignature: validateMicrosoftTeamsSignatureMock,
   validateGitLabToken: validateGitLabTokenMock,
   validateTypeformSignature: validateTypeformSignatureMock,
+  validateCalendlySignature: validateCalendlySignatureMock,
+  validateSentrySignature: validateSentrySignatureMock,
+  validatePagerDutySignature: validatePagerDutySignatureMock,
+  validateVercelSignature: validateVercelSignatureMock,
+  validateZoomSignature: validateZoomSignatureMock,
+  validateSvixSignature: validateSvixSignatureMock,
+  validateCalcomSignature: validateCalcomSignatureMock,
+  handleZoomUrlValidation: handleZoomUrlValidationMock,
   verifyProviderWebhook: verifyProviderWebhookMock,
 }))
 

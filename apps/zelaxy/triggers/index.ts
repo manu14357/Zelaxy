@@ -2,7 +2,9 @@
 
 import { airtableWebhookTrigger } from './airtable'
 import { asanaWebhookTrigger } from './asana'
+import { calcomWebhookTrigger } from './calcom'
 import { calendlyWebhookTrigger } from './calendly'
+import { clerkWebhookTrigger } from './clerk'
 import { confluenceWebhookTrigger } from './confluence'
 import { discordWebhookTrigger } from './discord'
 import { dropboxWebhookTrigger } from './dropbox'
@@ -28,6 +30,7 @@ import { oneDrivePollingTrigger } from './onedrive'
 import { outlookPollingTrigger } from './outlook'
 import { pagerdutyWebhookTrigger } from './pagerduty'
 import { redditWebhookTrigger } from './reddit'
+import { resendWebhookTrigger } from './resend'
 import { salesforceWebhookTrigger } from './salesforce'
 import { sentryWebhookTrigger } from './sentry'
 import { servicenowWebhookTrigger } from './servicenow'
@@ -41,13 +44,16 @@ import { webflowWebhookTrigger } from './webflow'
 import { whatsappWebhookTrigger } from './whatsapp'
 import { wordpressWebhookTrigger } from './wordpress'
 import { zendeskWebhookTrigger } from './zendesk'
+import { zoomWebhookTrigger } from './zoom'
 
 // Central registry of all available triggers
 export const TRIGGER_REGISTRY: TriggerRegistry = {
   slack_webhook: slackWebhookTrigger,
   airtable_webhook: airtableWebhookTrigger,
   asana_webhook: asanaWebhookTrigger,
+  calcom_webhook: calcomWebhookTrigger,
   calendly_webhook: calendlyWebhookTrigger,
+  clerk_webhook: clerkWebhookTrigger,
   confluence_webhook: confluenceWebhookTrigger,
   discord_webhook: discordWebhookTrigger,
   dropbox_webhook: dropboxWebhookTrigger,
@@ -73,6 +79,7 @@ export const TRIGGER_REGISTRY: TriggerRegistry = {
   outlook_poller: outlookPollingTrigger,
   pagerduty_webhook: pagerdutyWebhookTrigger,
   reddit_webhook: redditWebhookTrigger,
+  resend_webhook: resendWebhookTrigger,
   salesforce_webhook: salesforceWebhookTrigger,
   sentry_webhook: sentryWebhookTrigger,
   servicenow_webhook: servicenowWebhookTrigger,
@@ -83,6 +90,7 @@ export const TRIGGER_REGISTRY: TriggerRegistry = {
   webflow_webhook: webflowWebhookTrigger,
   whatsapp_webhook: whatsappWebhookTrigger,
   wordpress_webhook: wordpressWebhookTrigger,
+  zoom_webhook: zoomWebhookTrigger,
   zendesk_webhook: zendeskWebhookTrigger,
 }
 

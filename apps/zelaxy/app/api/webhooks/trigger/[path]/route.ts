@@ -5,13 +5,17 @@ import { createLogger } from '@/lib/logs/console/logger'
 import {
   handleSlackChallenge,
   handleWhatsAppVerification,
+  handleZoomUrlValidation,
+  validateCalcomSignature,
   validateCalendlySignature,
   validateGitLabToken,
   validateMicrosoftTeamsSignature,
   validatePagerDutySignature,
   validateSentrySignature,
+  validateSvixSignature,
   validateTypeformSignature,
   validateVercelSignature,
+  validateZoomSignature,
   verifyProviderWebhook,
 } from '@/lib/webhooks/utils'
 import { db } from '@/db'
@@ -241,6 +245,18 @@ export async function POST(
     }
   }
 
+  // Zoom validates the endpoint by POSTing a challenge before it will enable the webhook, so this
+  // must answer before any signature check (the challenge is not signed the same way).
+  if (foundWebhook.provider === 'zoom') {
+    const providerConfig = (foundWebhook.providerConfig as Record<string, any>) || {}
+    const zoomValidation = handleZoomUrlValidation(body, providerConfig.secretToken)
+
+    if (zoomValidation) {
+      logger.info(`[${requestId}] Answered Zoom endpoint URL validation challenge`)
+      return zoomValidation
+    }
+  }
+
   // Signature verification for providers that sign the raw body. Each entry maps the configured
   // secret to the header the provider signs with; a configured secret that fails to match is a 401.
   const signatureChecks: Record<
@@ -266,6 +282,47 @@ export async function POST(
       secretKey: 'webhookSecret',
       header: 'x-vercel-signature',
       validate: (s, sig) => validateVercelSignature(s, sig, rawBody as string),
+    },
+    calcom: {
+      secretKey: 'webhookSecret',
+      header: 'x-cal-signature-256',
+      validate: (s, sig) => validateCalcomSignature(s, sig, rawBody as string),
+    },
+    zoom: {
+      secretKey: 'secretToken',
+      header: 'x-zm-signature',
+      validate: (s, sig) =>
+        validateZoomSignature(
+          s,
+          sig,
+          request.headers.get('x-zm-request-timestamp'),
+          rawBody as string
+        ),
+    },
+    // Clerk and Resend are both Svix-signed, so they share one validator
+    clerk: {
+      secretKey: 'signingSecret',
+      header: 'svix-signature',
+      validate: (s, sig) =>
+        validateSvixSignature(
+          s,
+          request.headers.get('svix-id'),
+          request.headers.get('svix-timestamp'),
+          sig,
+          rawBody as string
+        ),
+    },
+    resend: {
+      secretKey: 'signingSecret',
+      header: 'svix-signature',
+      validate: (s, sig) =>
+        validateSvixSignature(
+          s,
+          request.headers.get('svix-id'),
+          request.headers.get('svix-timestamp'),
+          sig,
+          rawBody as string
+        ),
     },
   }
 

@@ -72,6 +72,15 @@ export const CalcomBlock: BlockConfig = {
       placeholder: 'booking-id',
       condition: { field: 'operation', value: ['calcom_get_booking', 'calcom_cancel_booking'] },
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'calcom',
+      availableTriggers: ['calcom_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -98,5 +107,13 @@ export const CalcomBlock: BlockConfig = {
     bookings: { type: 'json', description: 'Booking list' },
     booking: { type: 'json', description: 'Booking details' },
     slots: { type: 'json', description: 'Available slots' },
+    event_type: { type: 'string', description: 'Cal.com trigger event (trigger events)' },
+    title: { type: 'string', description: 'Booking title' },
+    attendee_email: { type: 'string', description: 'Primary attendee email' },
+    start_time: { type: 'string', description: 'Booking start time' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['calcom_webhook'],
   },
 }

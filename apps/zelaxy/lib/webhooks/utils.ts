@@ -1044,6 +1044,204 @@ export function formatWebhookInput(
     }
   }
 
+  if (foundWebhook.provider === 'zoom') {
+    // Zoom webhook input formatting. Meeting/recording details live under payload.object.
+    const payload = body?.payload || {}
+    const object = payload.object || {}
+    const participant = object.participant || {}
+
+    const zoomData = {
+      event_type: body?.event || '',
+      event_ts: body?.event_ts ?? 0,
+      account_id: payload.account_id || '',
+      meeting_id: object.id || '',
+      meeting_uuid: object.uuid || '',
+      topic: object.topic || '',
+      host_id: object.host_id || '',
+      start_time: object.start_time || '',
+      end_time: object.end_time || '',
+      duration: object.duration ?? 0,
+      join_url: object.join_url || '',
+      ...(object.participant && {
+        participant_name: participant.user_name || '',
+        participant_email: participant.email || '',
+        participant_id: participant.user_id || '',
+        join_time: participant.join_time || '',
+        leave_time: participant.leave_time || '',
+      }),
+      ...(object.recording_files && {
+        recording_files: object.recording_files,
+        share_url: object.share_url || '',
+      }),
+      object,
+      raw: body,
+    }
+
+    return {
+      input: `Zoom ${body?.event || 'event'}: ${object.topic || 'meeting'}`,
+      ...zoomData,
+      zoom: { ...zoomData, ...body },
+      webhook: {
+        data: {
+          provider: 'zoom',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'clerk') {
+    // Clerk webhook input formatting. Clerk wraps the record in `data` and names the event `type`.
+    const data = body?.data || {}
+    const primaryEmail = Array.isArray(data.email_addresses)
+      ? data.email_addresses.find((e: any) => e?.id === data.primary_email_address_id) ||
+        data.email_addresses[0]
+      : undefined
+
+    const clerkData = {
+      event_type: body?.type || '',
+      object_id: data.id || '',
+      ...(data.email_addresses && {
+        email: primaryEmail?.email_address || '',
+      }),
+      ...(data.first_name !== undefined && {
+        first_name: data.first_name || '',
+        last_name: data.last_name || '',
+        full_name: [data.first_name, data.last_name].filter(Boolean).join(' '),
+      }),
+      ...(data.username !== undefined && { username: data.username || '' }),
+      ...(data.image_url !== undefined && { image_url: data.image_url || '' }),
+      ...(data.user_id !== undefined && { user_id: data.user_id || '' }),
+      ...(data.organization !== undefined && { organization: data.organization }),
+      ...(data.name !== undefined && { name: data.name || '' }),
+      ...(data.slug !== undefined && { slug: data.slug || '' }),
+      created_at: data.created_at ?? 0,
+      updated_at: data.updated_at ?? 0,
+      data,
+      raw: body,
+    }
+
+    return {
+      input: `Clerk ${body?.type || 'event'}: ${clerkData.email || clerkData.name || data.id || ''}`,
+      ...clerkData,
+      clerk: { ...clerkData, ...body },
+      webhook: {
+        data: {
+          provider: 'clerk',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'calcom') {
+    // Cal.com webhook input formatting. Booking details live under payload.
+    const payload = body?.payload || {}
+    const attendee = Array.isArray(payload.attendees) ? payload.attendees[0] || {} : {}
+    const responses = payload.responses || {}
+
+    // Cal.com wraps each booking-question response as { label, value }; unwrap to plain values
+    const answers: Record<string, any> = {}
+    for (const [key, entry] of Object.entries<any>(responses)) {
+      answers[key] = entry && typeof entry === 'object' && 'value' in entry ? entry.value : entry
+    }
+
+    const calcomData = {
+      event_type: body?.triggerEvent || '',
+      booking_id: payload.bookingId ?? payload.uid ?? '',
+      uid: payload.uid || '',
+      title: payload.title || '',
+      event_type_name: payload.eventType?.title || payload.type || '',
+      start_time: payload.startTime || '',
+      end_time: payload.endTime || '',
+      organizer_name: payload.organizer?.name || '',
+      organizer_email: payload.organizer?.email || '',
+      attendee_name: attendee.name || '',
+      attendee_email: attendee.email || '',
+      attendee_timezone: attendee.timeZone || '',
+      attendees: payload.attendees || [],
+      location: payload.location || '',
+      status: payload.status || '',
+      cancellation_reason: payload.cancellationReason || '',
+      meeting_url: payload.videoCallData?.url || payload.metadata?.videoCallUrl || '',
+      answers,
+      responses,
+      payload,
+      raw: body,
+    }
+
+    return {
+      input: `Cal.com ${body?.triggerEvent || 'event'}: ${payload.title || 'booking'}`,
+      ...calcomData,
+      calcom: { ...calcomData, ...body },
+      webhook: {
+        data: {
+          provider: 'calcom',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'resend') {
+    // Resend webhook input formatting. Email details live under data.
+    const data = body?.data || {}
+    const toList = Array.isArray(data.to) ? data.to : data.to ? [data.to] : []
+
+    const resendData = {
+      event_type: body?.type || '',
+      created_at: body?.created_at || '',
+      email_id: data.email_id || '',
+      from: data.from || '',
+      to: toList,
+      to_email: toList[0] || '',
+      subject: data.subject || '',
+      ...(data.click && {
+        click_link: data.click.link || '',
+        click_timestamp: data.click.timestamp || '',
+      }),
+      ...(data.bounce && {
+        bounce_type: data.bounce.type || '',
+        bounce_message: data.bounce.message || '',
+      }),
+      ...(data.failed && { failure_reason: data.failed.reason || '' }),
+      data,
+      raw: body,
+    }
+
+    return {
+      input: `Resend ${body?.type || 'event'}: ${data.subject || resendData.to_email || 'email'}`,
+      ...resendData,
+      resend: { ...resendData, ...body },
+      webhook: {
+        data: {
+          provider: 'resend',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
   // Generic format for other providers
   return {
     webhook: {
@@ -1309,6 +1507,148 @@ export function validateVercelSignature(
     return timingSafeEquals(computed, signature)
   } catch (error) {
     logger.error('Error validating Vercel signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates a Zoom webhook request signature.
+ *
+ * Zoom signs `v0:<x-zm-request-timestamp>:<raw body>` with HMAC SHA-256 and sends it hex-encoded
+ * in x-zm-signature, prefixed with `v0=`.
+ *
+ * @param secretToken - Zoom app's Secret Token
+ * @param signature - x-zm-signature header value
+ * @param timestamp - x-zm-request-timestamp header value
+ * @param body - Raw request body string
+ */
+export function validateZoomSignature(
+  secretToken: string,
+  signature: string | null | undefined,
+  timestamp: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secretToken || !signature || !timestamp || !body) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = `v0=${crypto
+      .createHmac('sha256', secretToken)
+      .update(`v0:${timestamp}:${body}`, 'utf8')
+      .digest('hex')}`
+
+    return timingSafeEquals(computed, signature)
+  } catch (error) {
+    logger.error('Error validating Zoom signature:', error)
+    return false
+  }
+}
+
+/**
+ * Handles Zoom's endpoint URL validation handshake.
+ *
+ * When a webhook endpoint is added or re-validated, Zoom POSTs an `endpoint.url_validation` event
+ * containing a plainToken, and expects the HMAC SHA-256 of that token echoed back. Without this the
+ * endpoint cannot be enabled in Zoom at all, so it runs before any signature check.
+ *
+ * @returns A NextResponse to reply with, or null when this is not a validation request
+ */
+export function handleZoomUrlValidation(
+  body: any,
+  secretToken: string | undefined
+): NextResponse | null {
+  if (body?.event !== 'endpoint.url_validation') {
+    return null
+  }
+
+  const plainToken = body?.payload?.plainToken
+
+  if (!plainToken || !secretToken) {
+    return new NextResponse('Cannot validate endpoint - missing plainToken or Secret Token', {
+      status: 400,
+    })
+  }
+
+  const crypto = require('crypto')
+  const encryptedToken = crypto
+    .createHmac('sha256', secretToken)
+    .update(plainToken, 'utf8')
+    .digest('hex')
+
+  return NextResponse.json({ plainToken, encryptedToken })
+}
+
+/**
+ * Validates a Svix-signed webhook request (used by Clerk and Resend, among others).
+ *
+ * Svix signs `<svix-id>.<svix-timestamp>.<raw body>` with HMAC SHA-256 and sends the result
+ * base64-encoded in svix-signature as a space-separated list of `v1,<sig>` entries — more than one
+ * appears while a secret is being rotated, and any match is valid. The signing secret is
+ * `whsec_<base64>`, and the bytes after the prefix are base64-decoded before use.
+ *
+ * @param signingSecret - Svix signing secret (with or without the `whsec_` prefix)
+ * @param svixId - svix-id header value
+ * @param svixTimestamp - svix-timestamp header value
+ * @param svixSignature - svix-signature header value
+ * @param body - Raw request body string
+ */
+export function validateSvixSignature(
+  signingSecret: string,
+  svixId: string | null | undefined,
+  svixTimestamp: string | null | undefined,
+  svixSignature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!signingSecret || !svixId || !svixTimestamp || !svixSignature || !body) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const secretBytes = Buffer.from(signingSecret.replace(/^whsec_/, ''), 'base64')
+    const computed = crypto
+      .createHmac('sha256', secretBytes)
+      .update(`${svixId}.${svixTimestamp}.${body}`, 'utf8')
+      .digest('base64')
+
+    return svixSignature
+      .split(' ')
+      .map((part) => part.trim())
+      .filter((part) => part.startsWith('v1,'))
+      .some((part) => timingSafeEquals(computed, part.slice(3)))
+  } catch (error) {
+    logger.error('Error validating Svix signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates a Cal.com webhook request signature.
+ *
+ * Cal.com signs the raw body with HMAC SHA-256 and sends it hex-encoded in x-cal-signature-256.
+ *
+ * @param secret - Cal.com webhook secret
+ * @param signature - x-cal-signature-256 header value
+ * @param body - Raw request body string
+ */
+export function validateCalcomSignature(
+  secret: string,
+  signature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secret || !signature || !body) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    return timingSafeEquals(computed, signature)
+  } catch (error) {
+    logger.error('Error validating Cal.com signature:', error)
     return false
   }
 }

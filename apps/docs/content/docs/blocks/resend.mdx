@@ -24,6 +24,7 @@ The Resend block sends transactional and marketing emails through the Resend API
 - Send personalized emails in bulk with a single batch request
 - Look up the status and details of a previously sent email
 - Cancel a scheduled email before it goes out
+- Trigger a workflow automatically when an email is delivered, opened, clicked, or bounces
 
 ## Configuration
 
@@ -42,10 +43,24 @@ For the `batch` action: **Emails (Batch)**, a JSON array of email objects (each 
 ### Get / Cancel Fields
 For the `get` and `cancel` actions: **Email ID**, the id returned from a previous send.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `resend_webhook`
+
+When the block runs in trigger mode, this configures the `resend_webhook` trigger so Resend events start the workflow. Deliveries are verified against the `svix-signature` header.
+See the [Resend webhook trigger](/docs/triggers/webhook#resend) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 - **Inputs**: `apiKey` (string), `action` (string), `from` (string), `to` (string), `subject` (string), `html` (string), `text` (string), `cc` (string), `bcc` (string), `replyTo` (string), `scheduledAt` (string), `headers` (string, JSON), `tags` (string, JSON), `attachments` (string, JSON), `emails` (string, JSON), `emailId` (string)
 - **Outputs**: `id` (string), `ids` (json), `email` (json), `status` (string), `error` (string)
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event instead: `event_type` (string), `email_id` (string), `to_email` (string), `to` (json), `from` (string), `subject` (string), `click_link` (string), `bounce_type` (string), `bounce_message` (string). See the [Resend webhook trigger](/docs/triggers/webhook#resend) for the full schema.
 
 ## Tools
 

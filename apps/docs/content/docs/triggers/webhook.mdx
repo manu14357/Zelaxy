@@ -36,6 +36,10 @@ Zelaxy supports webhook triggers from the following services. Each provider has 
 | [Calendly](#calendly) | `calendly_webhook` | Signing Key | Triggers on bookings and cancellations |
 | [PagerDuty](#pagerduty) | `pagerduty_webhook` | Webhook Secret | Triggers on incident lifecycle events |
 | [Vercel](#vercel) | `vercel_webhook` | Webhook Secret | Triggers on deployments and project changes |
+| [Zoom](#zoom) | `zoom_webhook` | Secret Token | Triggers on meetings, participants, recordings |
+| [Clerk](#clerk) | `clerk_webhook` | Svix Signing Secret | Triggers on users, sessions, organizations |
+| [Cal.com](#calcom) | `calcom_webhook` | Webhook Secret | Triggers on bookings |
+| [Resend](#resend) | `resend_webhook` | Svix Signing Secret | Triggers on email delivery events |
 | [Generic](#generic-webhook) | `generic_webhook` | — | Universal HTTP endpoint |
 
 ## How It Works
@@ -1019,6 +1023,242 @@ Triggers on deployment and project events. The webhook secret is verified on eve
 ### Usage Example
 
 Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.deployment_url}}`, `{{Webhook 1.git_branch}}`
+
+---
+
+## Zoom
+
+Triggers on Zoom meeting, participant, and recording events. The Secret Token is required — Zoom validates the endpoint by calling it before the webhook can be enabled.
+
+<Callout type="warn">
+  Enter the Secret Token **before** clicking Validate in Zoom. Zoom's validation handshake calls
+  your endpoint and expects a token-derived response; without the token configured, validation
+  fails and the webhook cannot be turned on. Zelaxy answers this handshake automatically.
+</Callout>
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Secret Token | Password | From your Zoom app credentials; required for endpoint validation and delivery verification |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | e.g. `meeting.started`, `meeting.ended`, `recording.completed` |
+| `event_ts` | number | Event timestamp (epoch ms) |
+| `account_id` | string | Zoom account ID |
+| `meeting_id` | string | Meeting ID |
+| `meeting_uuid` | string | Meeting UUID (unique per occurrence) |
+| `topic` | string | Meeting topic |
+| `host_id` | string | Meeting host ID |
+| `start_time` | string | Meeting start time |
+| `end_time` | string | Meeting end time |
+| `duration` | number | Duration in minutes |
+| `join_url` | string | Meeting join URL |
+| `participant_name` | string | Participant name (participant events) |
+| `participant_email` | string | Participant email |
+| `participant_id` | string | Participant user ID |
+| `join_time` | string | When the participant joined |
+| `leave_time` | string | When the participant left |
+| `recording_files` | array | Recording files (`recording.completed`) |
+| `share_url` | string | Recording share URL |
+| `object` | object | Full object as sent by Zoom |
+| `raw` | object | Complete original payload |
+
+### Sample Payload (Meeting Started)
+
+```json
+{
+  "event": "meeting.started",
+  "event_ts": 1705324455000,
+  "payload": {
+    "account_id": "abc123",
+    "object": {
+      "id": "81234567890", "uuid": "aBcDeFgHiJk==",
+      "topic": "Weekly Standup", "host_id": "xyz789",
+      "start_time": "2024-01-15T13:00:00Z", "duration": 30
+    }
+  }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.topic}}`, `{{Webhook 1.participant_name}}`
+
+---
+
+## Clerk
+
+Triggers on Clerk user, session, and organization events. Clerk signs deliveries with Svix.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Signing Secret | Password | From the Clerk webhook endpoint; starts with `whsec_` (recommended) |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | e.g. `user.created`, `user.updated`, `session.created` |
+| `object_id` | string | ID of the user, session, or organization |
+| `email` | string | Primary email address (user events) |
+| `first_name` | string | User first name |
+| `last_name` | string | User last name |
+| `full_name` | string | First and last name joined |
+| `username` | string | Username, when set |
+| `image_url` | string | User avatar URL |
+| `user_id` | string | Related user ID (session and membership events) |
+| `organization` | object | Organization (membership events) |
+| `name` | string | Organization name (organization events) |
+| `slug` | string | Organization slug |
+| `created_at` | number | Record creation timestamp |
+| `updated_at` | number | Record update timestamp |
+| `data` | object | Full data object as sent by Clerk |
+| `raw` | object | Complete original payload |
+
+<Callout type="info">
+  `email` resolves the account's **primary** address via `primary_email_address_id`, not simply the
+  first entry in `email_addresses` — those differ once a user adds a second address.
+</Callout>
+
+### Sample Payload (User Created)
+
+```json
+{
+  "type": "user.created",
+  "object": "event",
+  "data": {
+    "id": "user_2abc123",
+    "first_name": "Ada", "last_name": "Lovelace", "username": "ada",
+    "primary_email_address_id": "idn_2abc",
+    "email_addresses": [{ "id": "idn_2abc", "email_address": "ada@example.com" }],
+    "created_at": 1705324455000
+  }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.email}}`, `{{Webhook 1.full_name}}`
+
+---
+
+## Cal.com
+
+Triggers on Cal.com booking events — created, rescheduled, cancelled, and meeting ended.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Webhook Secret | Password | Set the same value in Cal.com; validates `x-cal-signature-256` (recommended) |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | e.g. `BOOKING_CREATED`, `BOOKING_CANCELLED`, `BOOKING_RESCHEDULED` |
+| `booking_id` | string | Booking ID |
+| `uid` | string | Booking UID |
+| `title` | string | Booking title |
+| `event_type_name` | string | Name of the booked event type |
+| `start_time` | string | Booking start time |
+| `end_time` | string | Booking end time |
+| `organizer_name` | string | Organizer name |
+| `organizer_email` | string | Organizer email |
+| `attendee_name` | string | Primary attendee name |
+| `attendee_email` | string | Primary attendee email |
+| `attendee_timezone` | string | Primary attendee timezone |
+| `attendees` | array | All attendees |
+| `location` | string | Booking location |
+| `status` | string | Booking status |
+| `cancellation_reason` | string | Reason given when cancelled |
+| `meeting_url` | string | Video meeting URL, when available |
+| `answers` | object | Booking answers, unwrapped to plain values |
+| `responses` | object | Raw responses object as sent by Cal.com |
+| `raw` | object | Complete original payload |
+
+<Callout type="info">
+  Cal.com wraps each booking answer as `{ label, value }`. `answers` unwraps that for you, so
+  `{{Webhook 1.answers.name}}` gives the value directly; `responses` keeps the raw shape.
+</Callout>
+
+### Sample Payload (Booking Created)
+
+```json
+{
+  "triggerEvent": "BOOKING_CREATED",
+  "createdAt": "2024-01-15T13:14:15.000Z",
+  "payload": {
+    "bookingId": 123456, "uid": "abc123xyz",
+    "title": "30 Min Meeting between Ada and Alan",
+    "startTime": "2024-01-20T15:00:00Z", "endTime": "2024-01-20T15:30:00Z",
+    "status": "ACCEPTED",
+    "organizer": { "name": "Ada Lovelace", "email": "ada@example.com" },
+    "attendees": [{ "name": "Alan Turing", "email": "alan@example.com" }],
+    "responses": { "name": { "label": "your_name", "value": "Alan Turing" } }
+  }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.title}}`, `{{Webhook 1.attendee_email}}`, `{{Webhook 1.answers.name}}`
+
+---
+
+## Resend
+
+Triggers on Resend email delivery events. Resend signs deliveries with Svix.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Signing Secret | Password | From the Resend webhook; starts with `whsec_` (recommended) |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | `email.sent`, `email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, `email.complained` |
+| `created_at` | string | When the event occurred |
+| `email_id` | string | ID of the email |
+| `from` | string | Sender address |
+| `to` | array | Recipient addresses |
+| `to_email` | string | First recipient, for convenience |
+| `subject` | string | Email subject |
+| `click_link` | string | Clicked URL (`email.clicked`) |
+| `click_timestamp` | string | When the link was clicked |
+| `bounce_type` | string | Bounce type (`email.bounced`) |
+| `bounce_message` | string | Bounce message |
+| `failure_reason` | string | Failure reason |
+| `data` | object | Full data object as sent by Resend |
+| `raw` | object | Complete original payload |
+
+### Sample Payload (Email Delivered)
+
+```json
+{
+  "type": "email.delivered",
+  "created_at": "2024-01-15T13:14:15.000Z",
+  "data": {
+    "email_id": "4ef9a417-02e9-4d39-ad75-9611e0fcc33c",
+    "from": "noreply@zelaxy.in",
+    "to": ["ada@example.com"],
+    "subject": "Welcome to Zelaxy"
+  }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.to_email}}`, `{{Webhook 1.subject}}`
 
 ---
 

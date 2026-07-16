@@ -1,0 +1,1 @@
+export { zoomWebhookTrigger } from './webhook'

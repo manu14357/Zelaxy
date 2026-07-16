@@ -24,6 +24,7 @@ The Clerk block integrates Clerk authentication into your workflows, letting you
 - Update or delete an existing user as part of an account-lifecycle flow.
 - List or fetch organizations, or create a new organization on demand.
 - Audit active sessions or revoke a specific session for security and sign-out scenarios.
+- Trigger a workflow automatically when a user signs up, updates their profile, or an organization membership changes
 
 ## Configuration
 
@@ -75,6 +76,16 @@ The primary email address for the new account (e.g. `user@example.com`). Shown f
 
 A free-text search term to filter results across email, phone, username, and name fields. Shown for **List Users**.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `clerk_webhook`
+
+When the block runs in trigger mode, this configures the `clerk_webhook` trigger so Clerk events start the workflow. Deliveries are verified against the `svix-signature` header.
+See the [Clerk webhook trigger](/docs/triggers/webhook#clerk) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 - **Inputs**:
@@ -88,6 +99,10 @@ A free-text search term to filter results across email, phone, username, and nam
   - `users` (json) — User list returned by List Users
   - `user` (json) — User details returned by Get User, Create User, Update User
   - `organizations` (json) — Organization list returned by List Organizations
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event instead: `event_type` (string), `object_id` (string), `email` (string), `full_name` (string), `username` (string), `image_url` (string), `user_id` (string), `organization` (json), `created_at` (number). See the [Clerk webhook trigger](/docs/triggers/webhook#clerk) for the full schema.
 
 ## Tools
 

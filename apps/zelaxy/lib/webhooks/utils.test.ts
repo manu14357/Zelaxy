@@ -23,12 +23,16 @@ vi.mock('@/lib/logs/console/logger', () => ({
 
 import {
   formatWebhookInput,
+  handleZoomUrlValidation,
+  validateCalcomSignature,
   validateCalendlySignature,
   validateGitLabToken,
   validatePagerDutySignature,
   validateSentrySignature,
+  validateSvixSignature,
   validateTypeformSignature,
   validateVercelSignature,
+  validateZoomSignature,
   verifyProviderWebhook,
 } from '@/lib/webhooks/utils'
 
@@ -211,6 +215,193 @@ describe('batch-1 signature validators', () => {
     expect(validateVercelSignature(secret, sha1, body)).toBe(true)
     expect(validateVercelSignature(secret, sha256, body)).toBe(false)
     expect(validateVercelSignature(secret, sha1, `${body} tampered`)).toBe(false)
+  })
+})
+
+describe('batch-2 signature validators', () => {
+  const crypto = require('crypto')
+  const body = '{"hello":"world"}'
+
+  it('validateZoomSignature signs `v0:<timestamp>:<body>` and is bound to the timestamp', () => {
+    const secret = 'zoom-secret'
+    const ts = '1705324455'
+    const sig = `v0=${crypto.createHmac('sha256', secret).update(`v0:${ts}:${body}`, 'utf8').digest('hex')}`
+
+    expect(validateZoomSignature(secret, sig, ts, body)).toBe(true)
+    // Replaying against a different timestamp must fail
+    expect(validateZoomSignature(secret, sig, '9999999999', body)).toBe(false)
+    // A signature over the bare body (no v0: prefix) must fail
+    const bare = `v0=${crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')}`
+    expect(validateZoomSignature(secret, bare, ts, body)).toBe(false)
+    expect(validateZoomSignature(secret, sig, null, body)).toBe(false)
+  })
+
+  it('validateSvixSignature verifies `<id>.<ts>.<body>` with a base64-decoded whsec_ secret', () => {
+    const rawKey = crypto.randomBytes(24).toString('base64')
+    const secret = `whsec_${rawKey}`
+    const id = 'msg_abc'
+    const ts = '1705324455'
+    const expected = crypto
+      .createHmac('sha256', Buffer.from(rawKey, 'base64'))
+      .update(`${id}.${ts}.${body}`, 'utf8')
+      .digest('base64')
+
+    expect(validateSvixSignature(secret, id, ts, `v1,${expected}`, body)).toBe(true)
+    // The whsec_ prefix is optional — the raw key must work too
+    expect(validateSvixSignature(rawKey, id, ts, `v1,${expected}`, body)).toBe(true)
+    // Svix sends several space-separated signatures during rotation; any match is valid
+    expect(validateSvixSignature(secret, id, ts, `v1,AAAA v1,${expected}`, body)).toBe(true)
+    // Bound to id and timestamp
+    expect(validateSvixSignature(secret, 'msg_other', ts, `v1,${expected}`, body)).toBe(false)
+    expect(validateSvixSignature(secret, id, '1', `v1,${expected}`, body)).toBe(false)
+    expect(validateSvixSignature(secret, id, ts, `v1,${expected}`, `${body} tampered`)).toBe(false)
+  })
+
+  it('validateCalcomSignature accepts a correct hex HMAC-SHA256', () => {
+    const secret = 'cal-secret'
+    const sig = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    expect(validateCalcomSignature(secret, sig, body)).toBe(true)
+    expect(validateCalcomSignature(secret, sig, `${body} tampered`)).toBe(false)
+    expect(validateCalcomSignature('wrong', sig, body)).toBe(false)
+  })
+})
+
+describe('handleZoomUrlValidation', () => {
+  it('answers the challenge with the HMAC of plainToken', () => {
+    const secret = 'zoom-secret'
+    const res = handleZoomUrlValidation(
+      { event: 'endpoint.url_validation', payload: { plainToken: 'abc123' } },
+      secret
+    )
+
+    expect(res).not.toBeNull()
+    expect(res?.status).toBe(200)
+  })
+
+  it('returns null for a normal event so processing continues', () => {
+    expect(handleZoomUrlValidation({ event: 'meeting.started' }, 'zoom-secret')).toBeNull()
+  })
+
+  it('fails the challenge when no secret token is configured', () => {
+    const res = handleZoomUrlValidation(
+      { event: 'endpoint.url_validation', payload: { plainToken: 'abc123' } },
+      undefined
+    )
+
+    expect(res?.status).toBe(400)
+  })
+})
+
+describe('formatWebhookInput (batch-2 providers)', () => {
+  const req = (headers: Record<string, string> = {}) =>
+    ({ headers: new Headers(headers), method: 'POST' }) as any
+
+  it('flattens a Zoom participant event', () => {
+    const result = formatWebhookInput(
+      { provider: 'zoom', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      {
+        event: 'meeting.participant_joined',
+        event_ts: 1705324455000,
+        payload: {
+          account_id: 'acc1',
+          object: {
+            id: '81234567890',
+            topic: 'Weekly Standup',
+            participant: {
+              user_name: 'Ada Lovelace',
+              email: 'ada@example.com',
+              join_time: '2024-01-15T13:00:00Z',
+            },
+          },
+        },
+      },
+      req()
+    )
+
+    expect(result.event_type).toBe('meeting.participant_joined')
+    expect(result.topic).toBe('Weekly Standup')
+    expect(result.participant_name).toBe('Ada Lovelace')
+    expect(result.participant_email).toBe('ada@example.com')
+  })
+
+  it('resolves the Clerk primary email rather than just the first', () => {
+    const result = formatWebhookInput(
+      { provider: 'clerk', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      {
+        type: 'user.created',
+        data: {
+          id: 'user_1',
+          first_name: 'Ada',
+          last_name: 'Lovelace',
+          primary_email_address_id: 'idn_2',
+          email_addresses: [
+            { id: 'idn_1', email_address: 'old@example.com' },
+            { id: 'idn_2', email_address: 'primary@example.com' },
+          ],
+        },
+      },
+      req()
+    )
+
+    expect(result.event_type).toBe('user.created')
+    expect(result.object_id).toBe('user_1')
+    expect(result.email).toBe('primary@example.com')
+    expect(result.full_name).toBe('Ada Lovelace')
+  })
+
+  it('unwraps Cal.com {label,value} responses into plain answers', () => {
+    const result = formatWebhookInput(
+      { provider: 'calcom', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      {
+        triggerEvent: 'BOOKING_CREATED',
+        payload: {
+          bookingId: 123,
+          uid: 'abc',
+          title: '30 Min Meeting',
+          startTime: '2024-01-20T15:00:00Z',
+          status: 'ACCEPTED',
+          organizer: { name: 'Ada', email: 'ada@example.com' },
+          attendees: [{ name: 'Alan', email: 'alan@example.com', timeZone: 'Europe/London' }],
+          responses: { name: { label: 'your_name', value: 'Alan Turing' }, plain: 'raw-value' },
+        },
+      },
+      req()
+    )
+
+    expect(result.event_type).toBe('BOOKING_CREATED')
+    expect(result.attendee_email).toBe('alan@example.com')
+    expect(result.organizer_email).toBe('ada@example.com')
+    expect(result.answers.name).toBe('Alan Turing')
+    // A response that is already a plain value passes through unchanged
+    expect(result.answers.plain).toBe('raw-value')
+  })
+
+  it('flattens a Resend click event and normalises `to` to an array', () => {
+    const result = formatWebhookInput(
+      { provider: 'resend', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      {
+        type: 'email.clicked',
+        created_at: '2024-01-15T13:14:15.000Z',
+        data: {
+          email_id: 'em_1',
+          from: 'noreply@zelaxy.in',
+          to: 'ada@example.com',
+          subject: 'Welcome',
+          click: { link: 'https://zelaxy.in/start', timestamp: '2024-01-15T13:20:00.000Z' },
+        },
+      },
+      req()
+    )
+
+    expect(result.event_type).toBe('email.clicked')
+    expect(result.to).toEqual(['ada@example.com'])
+    expect(result.to_email).toBe('ada@example.com')
+    expect(result.click_link).toBe('https://zelaxy.in/start')
   })
 })
 

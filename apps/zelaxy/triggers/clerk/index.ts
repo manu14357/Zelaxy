@@ -1,0 +1,1 @@
+export { clerkWebhookTrigger } from './webhook'

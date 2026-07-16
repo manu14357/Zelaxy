@@ -67,6 +67,15 @@ export const ClerkBlock: BlockConfig = {
       placeholder: 'John',
       condition: { field: 'operation', value: ['clerk_list_users'] },
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'clerk',
+      availableTriggers: ['clerk_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -96,5 +105,13 @@ export const ClerkBlock: BlockConfig = {
     users: { type: 'json', description: 'User list' },
     user: { type: 'json', description: 'User details' },
     organizations: { type: 'json', description: 'Organization list' },
+    event_type: { type: 'string', description: 'Clerk event type (trigger events)' },
+    object_id: { type: 'string', description: 'ID of the user, session, or organization' },
+    email: { type: 'string', description: 'Primary email address' },
+    full_name: { type: 'string', description: 'User full name' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['clerk_webhook'],
   },
 }

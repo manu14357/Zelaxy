@@ -1,0 +1,1 @@
+export { calcomWebhookTrigger } from './webhook'
