@@ -751,6 +751,92 @@ export function formatWebhookInput(
     }
   }
 
+  if (foundWebhook.provider === 'typeform') {
+    // Typeform webhook input formatting logic.
+    // Typeform nests everything under `form_response`; flatten it to the top level so the
+    // declared trigger outputs resolve (see the GitLab case above for why this is required).
+    const formResponse = body?.form_response || {}
+    const definition = formResponse.definition || {}
+    const answers = Array.isArray(formResponse.answers) ? formResponse.answers : []
+
+    // Map field id -> question title so answers can be keyed by the question people recognise
+    const fieldTitles: Record<string, string> = {}
+    if (Array.isArray(definition.fields)) {
+      for (const field of definition.fields) {
+        if (field?.id) {
+          fieldTitles[field.id] = field.title || field.ref || field.id
+        }
+      }
+    }
+
+    // Unwrap each answer to a plain value (Typeform keys the value by the answer's type)
+    const fields: Record<string, any> = {}
+    for (const answer of answers) {
+      const fieldId = answer?.field?.id
+      const key = (fieldId && fieldTitles[fieldId]) || answer?.field?.ref || fieldId
+      if (!key) continue
+
+      switch (answer?.type) {
+        case 'choice':
+          fields[key] = answer.choice?.label ?? answer.choice?.other ?? ''
+          break
+        case 'choices':
+          fields[key] = answer.choices?.labels ?? []
+          break
+        case 'payment':
+          fields[key] = answer.payment ?? null
+          break
+        default:
+          // text, email, number, boolean, date, url, file_url, phone_number, ...
+          fields[key] = answer?.[answer?.type] ?? null
+      }
+    }
+
+    const typeformData = {
+      event_id: body?.event_id || '',
+      event_type: body?.event_type || '',
+      form_id: formResponse.form_id || '',
+      form_title: definition.title || '',
+      token: formResponse.token || '',
+      submitted_at: formResponse.submitted_at || '',
+      landed_at: formResponse.landed_at || '',
+      answers,
+      fields,
+      answer_count: answers.length,
+      hidden: formResponse.hidden || {},
+      definition,
+      ...(formResponse.variables && { variables: formResponse.variables }),
+      ...(formResponse.calculated && { calculated: formResponse.calculated }),
+      ...(formResponse.ending && { ending: formResponse.ending }),
+      raw: body,
+    }
+
+    return {
+      input: `Typeform submission: ${definition.title || formResponse.form_id || 'form'}`,
+
+      // Top-level properties for direct access
+      ...typeformData,
+
+      // Typeform data structured for the trigger handler to extract
+      typeform: {
+        ...typeformData,
+        ...body,
+      },
+
+      webhook: {
+        data: {
+          provider: 'typeform',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
   // Generic format for other providers
   return {
     webhook: {
@@ -850,6 +936,37 @@ function timingSafeEquals(a: string, b: string): boolean {
   }
 
   return result === 0
+}
+
+/**
+ * Validates a Typeform webhook request signature.
+ *
+ * Typeform signs the raw body with HMAC SHA-256 and sends it base64-encoded in the
+ * Typeform-Signature header, prefixed with `sha256=`.
+ *
+ * @param secret - Webhook secret configured on the Typeform webhook
+ * @param signature - Typeform-Signature header value (e.g. `sha256=...`)
+ * @param body - Raw request body string
+ * @returns Whether the signature is valid
+ */
+export function validateTypeformSignature(
+  secret: string,
+  signature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secret || !signature || !body || !signature.startsWith('sha256=')) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = `sha256=${crypto.createHmac('sha256', secret).update(body, 'utf8').digest('base64')}`
+
+    return timingSafeEquals(computed, signature)
+  } catch (error) {
+    logger.error('Error validating Typeform signature:', error)
+    return false
+  }
 }
 
 /**

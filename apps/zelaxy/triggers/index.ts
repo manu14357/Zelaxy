@@ -31,6 +31,7 @@ import { servicenowWebhookTrigger } from './servicenow'
 import { slackWebhookTrigger } from './slack'
 import { stripeWebhookTrigger } from './stripe/webhook'
 import { telegramWebhookTrigger } from './telegram'
+import { typeformWebhookTrigger } from './typeform'
 import type { TriggerConfig, TriggerRegistry } from './types'
 import { webflowWebhookTrigger } from './webflow'
 import { whatsappWebhookTrigger } from './whatsapp'
@@ -70,6 +71,7 @@ export const TRIGGER_REGISTRY: TriggerRegistry = {
   servicenow_webhook: servicenowWebhookTrigger,
   stripe_webhook: stripeWebhookTrigger,
   telegram_webhook: telegramWebhookTrigger,
+  typeform_webhook: typeformWebhookTrigger,
   webflow_webhook: webflowWebhookTrigger,
   whatsapp_webhook: whatsappWebhookTrigger,
   wordpress_webhook: wordpressWebhookTrigger,

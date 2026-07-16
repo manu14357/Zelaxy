@@ -24,6 +24,7 @@ const processWebhookMock = vi
   .mockResolvedValue(new Response('Webhook processed', { status: 200 }))
 const validateMicrosoftTeamsSignatureMock = vi.fn().mockReturnValue(true)
 const validateGitLabTokenMock = vi.fn().mockReturnValue(true)
+const validateTypeformSignatureMock = vi.fn().mockReturnValue(true)
 // Returns null when the request passes provider auth, or a NextResponse to short-circuit
 const verifyProviderWebhookMock = vi.fn().mockReturnValue(null)
 const executeMock = vi.fn().mockResolvedValue({
@@ -67,6 +68,7 @@ vi.mock('@/lib/webhooks/utils', () => ({
   processWebhook: processWebhookMock,
   validateMicrosoftTeamsSignature: validateMicrosoftTeamsSignatureMock,
   validateGitLabToken: validateGitLabTokenMock,
+  validateTypeformSignature: validateTypeformSignatureMock,
   verifyProviderWebhook: verifyProviderWebhookMock,
 }))
 

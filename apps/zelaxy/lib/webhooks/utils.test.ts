@@ -24,6 +24,7 @@ vi.mock('@/lib/logs/console/logger', () => ({
 import {
   formatWebhookInput,
   validateGitLabToken,
+  validateTypeformSignature,
   verifyProviderWebhook,
 } from '@/lib/webhooks/utils'
 
@@ -126,6 +127,107 @@ describe('validateGitLabToken', () => {
 
   it('rejects when no secret is configured', () => {
     expect(validateGitLabToken('', 'anything')).toBe(false)
+  })
+})
+
+describe('validateTypeformSignature', () => {
+  const secret = 'typeform-secret'
+  const body = '{"event_id":"abc","event_type":"form_response"}'
+  // Precomputed at test time so the expectation tracks the real HMAC, not a copied constant
+  const validSignature = `sha256=${require('crypto').createHmac('sha256', secret).update(body, 'utf8').digest('base64')}`
+
+  it('accepts a correctly signed body', () => {
+    expect(validateTypeformSignature(secret, validSignature, body)).toBe(true)
+  })
+
+  it('rejects a body that was tampered with after signing', () => {
+    expect(validateTypeformSignature(secret, validSignature, `${body} tampered`)).toBe(false)
+  })
+
+  it('rejects a signature made with the wrong secret', () => {
+    expect(validateTypeformSignature('other-secret', validSignature, body)).toBe(false)
+  })
+
+  it('rejects a signature missing the sha256= prefix', () => {
+    expect(validateTypeformSignature(secret, validSignature.replace('sha256=', ''), body)).toBe(
+      false
+    )
+  })
+
+  it('rejects a missing signature header', () => {
+    expect(validateTypeformSignature(secret, null, body)).toBe(false)
+  })
+})
+
+describe('formatWebhookInput (typeform)', () => {
+  it('flattens the form_response envelope and keys answers by question title', () => {
+    const payload = {
+      event_id: 'evt_123',
+      event_type: 'form_response',
+      form_response: {
+        form_id: 'lT4Z3j',
+        token: 'resp_abc',
+        landed_at: '2024-01-15T13:10:00Z',
+        submitted_at: '2024-01-15T13:14:15Z',
+        definition: {
+          id: 'lT4Z3j',
+          title: 'Customer Feedback',
+          fields: [
+            { id: 'f_email', ref: 'ref_email', type: 'email', title: 'What is your email?' },
+            { id: 'f_rating', ref: 'ref_rating', type: 'number', title: 'Rate us' },
+            { id: 'f_plan', ref: 'ref_plan', type: 'choice', title: 'Which plan?' },
+          ],
+        },
+        answers: [
+          { type: 'email', email: 'ada@example.com', field: { id: 'f_email', type: 'email' } },
+          { type: 'number', number: 9, field: { id: 'f_rating', type: 'number' } },
+          {
+            type: 'choice',
+            choice: { label: 'Enterprise' },
+            field: { id: 'f_plan', type: 'choice' },
+          },
+        ],
+        hidden: { utm_source: 'newsletter' },
+      },
+    }
+
+    const result = formatWebhookInput(
+      { provider: 'typeform', path: 'tf-hook', providerConfig: {} },
+      { id: 'workflow-123' },
+      payload,
+      { headers: new Headers({ 'content-type': 'application/json' }), method: 'POST' } as any
+    )
+
+    // Flattened to top level so the declared trigger outputs resolve
+    expect(result.event_id).toBe('evt_123')
+    expect(result.form_id).toBe('lT4Z3j')
+    expect(result.form_title).toBe('Customer Feedback')
+    expect(result.token).toBe('resp_abc')
+    expect(result.submitted_at).toBe('2024-01-15T13:14:15Z')
+    expect(result.answer_count).toBe(3)
+    expect(result.hidden.utm_source).toBe('newsletter')
+
+    // Answers unwrapped and keyed by question title
+    expect(result.fields['What is your email?']).toBe('ada@example.com')
+    expect(result.fields['Rate us']).toBe(9)
+    expect(result.fields['Which plan?']).toBe('Enterprise')
+
+    // Raw payload preserved
+    expect(result.raw).toEqual(payload)
+    expect(result.webhook.data.provider).toBe('typeform')
+  })
+
+  it('handles a submission with no answers without throwing', () => {
+    const result = formatWebhookInput(
+      { provider: 'typeform', path: 'tf-hook', providerConfig: {} },
+      { id: 'workflow-123' },
+      { event_id: 'evt_empty', event_type: 'form_response', form_response: { form_id: 'x' } },
+      { headers: new Headers(), method: 'POST' } as any
+    )
+
+    expect(result.answer_count).toBe(0)
+    expect(result.fields).toEqual({})
+    expect(result.form_id).toBe('x')
   })
 })
 

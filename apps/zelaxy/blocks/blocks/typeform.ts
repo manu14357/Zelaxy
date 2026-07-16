@@ -111,6 +111,15 @@ export const TypeformBlock: BlockConfig<TypeformResponse> = {
       layout: 'half',
       condition: { field: 'operation', value: 'typeform_files' },
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'typeform',
+      availableTriggers: ['typeform_webhook'],
+    },
   ],
   tools: {
     access: ['typeform_responses', 'typeform_files', 'typeform_insights'],
@@ -148,5 +157,19 @@ export const TypeformBlock: BlockConfig<TypeformResponse> = {
     total_items: { type: 'number', description: 'Total response count' },
     page_count: { type: 'number', description: 'Total page count' },
     items: { type: 'json', description: 'Response items' },
+    form_id: { type: 'string', description: 'ID of the submitted form (trigger events)' },
+    form_title: { type: 'string', description: 'Title of the submitted form (trigger events)' },
+    token: { type: 'string', description: 'Unique token identifying the response' },
+    submitted_at: { type: 'string', description: 'When the form was submitted' },
+    fields: {
+      type: 'json',
+      description: 'Answers keyed by question title, with values unwrapped to plain values',
+    },
+    answers: { type: 'json', description: 'Raw answers array as sent by Typeform' },
+    hidden: { type: 'json', description: 'Hidden field values passed into the form' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['typeform_webhook'],
   },
 }

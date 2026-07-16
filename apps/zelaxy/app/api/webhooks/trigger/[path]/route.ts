@@ -7,6 +7,7 @@ import {
   handleWhatsAppVerification,
   validateGitLabToken,
   validateMicrosoftTeamsSignature,
+  validateTypeformSignature,
   verifyProviderWebhook,
 } from '@/lib/webhooks/utils'
 import { db } from '@/db'
@@ -213,6 +214,26 @@ export async function POST(
       }
 
       logger.debug(`[${requestId}] GitLab secret token verified successfully`)
+    }
+  }
+
+  // Handle Typeform signature verification if needed
+  if (foundWebhook.provider === 'typeform') {
+    const providerConfig = (foundWebhook.providerConfig as Record<string, any>) || {}
+
+    if (providerConfig.webhookSecret) {
+      const isValidSignature = validateTypeformSignature(
+        providerConfig.webhookSecret,
+        request.headers.get('typeform-signature'),
+        rawBody
+      )
+
+      if (!isValidSignature) {
+        logger.warn(`[${requestId}] Typeform signature verification failed`)
+        return new NextResponse('Unauthorized - Invalid signature', { status: 401 })
+      }
+
+      logger.debug(`[${requestId}] Typeform signature verified successfully`)
     }
   }
 
