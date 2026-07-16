@@ -22,6 +22,10 @@ const fetchAndProcessAirtablePayloadsMock = vi.fn().mockResolvedValue(undefined)
 const processWebhookMock = vi
   .fn()
   .mockResolvedValue(new Response('Webhook processed', { status: 200 }))
+const validateMicrosoftTeamsSignatureMock = vi.fn().mockReturnValue(true)
+const validateGitLabTokenMock = vi.fn().mockReturnValue(true)
+// Returns null when the request passes provider auth, or a NextResponse to short-circuit
+const verifyProviderWebhookMock = vi.fn().mockReturnValue(null)
 const executeMock = vi.fn().mockResolvedValue({
   success: true,
   output: { response: 'Webhook execution success' },
@@ -61,6 +65,9 @@ vi.mock('@/lib/webhooks/utils', () => ({
   processGenericDeduplication: processGenericDeduplicationMock,
   fetchAndProcessAirtablePayloads: fetchAndProcessAirtablePayloadsMock,
   processWebhook: processWebhookMock,
+  validateMicrosoftTeamsSignature: validateMicrosoftTeamsSignatureMock,
+  validateGitLabToken: validateGitLabTokenMock,
+  verifyProviderWebhook: verifyProviderWebhookMock,
 }))
 
 vi.mock('@/app/api/webhooks/utils', () => ({

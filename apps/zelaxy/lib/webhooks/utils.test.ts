@@ -21,7 +21,113 @@ vi.mock('@/lib/logs/console/logger', () => ({
   }),
 }))
 
-import { formatWebhookInput } from '@/lib/webhooks/utils'
+import {
+  formatWebhookInput,
+  validateGitLabToken,
+  verifyProviderWebhook,
+} from '@/lib/webhooks/utils'
+
+function requestWith(headers: Record<string, string>) {
+  return { headers: new Headers(headers), method: 'POST' } as any
+}
+
+describe('verifyProviderWebhook', () => {
+  it('rejects a generic webhook that requires auth when no token is supplied', () => {
+    const result = verifyProviderWebhook(
+      { provider: 'generic', providerConfig: { requireAuth: true, token: 'super-secret' } },
+      requestWith({}),
+      'req-1'
+    )
+
+    expect(result).not.toBeNull()
+    expect(result?.status).toBe(401)
+  })
+
+  it('rejects a generic webhook when the bearer token is wrong', () => {
+    const result = verifyProviderWebhook(
+      { provider: 'generic', providerConfig: { requireAuth: true, token: 'super-secret' } },
+      requestWith({ authorization: 'Bearer wrong-token' }),
+      'req-2'
+    )
+
+    expect(result?.status).toBe(401)
+  })
+
+  it('allows a generic webhook with the correct bearer token', () => {
+    const result = verifyProviderWebhook(
+      { provider: 'generic', providerConfig: { requireAuth: true, token: 'super-secret' } },
+      requestWith({ authorization: 'Bearer super-secret' }),
+      'req-3'
+    )
+
+    expect(result).toBeNull()
+  })
+
+  it('allows a generic webhook when the token arrives in the configured custom header', () => {
+    const result = verifyProviderWebhook(
+      {
+        provider: 'generic',
+        providerConfig: {
+          requireAuth: true,
+          token: 'super-secret',
+          secretHeaderName: 'x-zelaxy-secret',
+        },
+      },
+      requestWith({ 'x-zelaxy-secret': 'super-secret' }),
+      'req-4'
+    )
+
+    expect(result).toBeNull()
+  })
+
+  it('forbids a generic webhook from an IP outside the allowlist', () => {
+    const result = verifyProviderWebhook(
+      { provider: 'generic', providerConfig: { allowedIps: ['10.0.0.1'] } },
+      requestWith({ 'x-forwarded-for': '203.0.113.9' }),
+      'req-5'
+    )
+
+    expect(result?.status).toBe(403)
+  })
+
+  it('allows a generic webhook from an allowlisted IP', () => {
+    const result = verifyProviderWebhook(
+      { provider: 'generic', providerConfig: { allowedIps: ['10.0.0.1'] } },
+      requestWith({ 'x-forwarded-for': '10.0.0.1' }),
+      'req-6'
+    )
+
+    expect(result).toBeNull()
+  })
+
+  it('does not gate providers that have no auth configured', () => {
+    const result = verifyProviderWebhook(
+      { provider: 'github', providerConfig: {} },
+      requestWith({}),
+      'req-7'
+    )
+
+    expect(result).toBeNull()
+  })
+})
+
+describe('validateGitLabToken', () => {
+  it('accepts a matching token', () => {
+    expect(validateGitLabToken('secret-token', 'secret-token')).toBe(true)
+  })
+
+  it('rejects a mismatched token', () => {
+    expect(validateGitLabToken('secret-token', 'other-token')).toBe(false)
+  })
+
+  it('rejects a missing token header', () => {
+    expect(validateGitLabToken('secret-token', null)).toBe(false)
+  })
+
+  it('rejects when no secret is configured', () => {
+    expect(validateGitLabToken('', 'anything')).toBe(false)
+  })
+})
 
 describe('formatWebhookInput', () => {
   it('should preserve the full Telegram chat id across preferred and legacy paths', () => {

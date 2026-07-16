@@ -7,6 +7,7 @@ import {
   handleWhatsAppVerification,
   validateGitLabToken,
   validateMicrosoftTeamsSignature,
+  verifyProviderWebhook,
 } from '@/lib/webhooks/utils'
 import { db } from '@/db'
 import { subscription, webhook, workflow } from '@/db/schema'
@@ -213,6 +214,14 @@ export async function POST(
 
       logger.debug(`[${requestId}] GitLab secret token verified successfully`)
     }
+  }
+
+  // Provider-specific authentication (generic bearer token / custom header / IP allowlist,
+  // Gmail secret header). This must run before the payload is queued for execution — without
+  // it, a caller who knows the webhook path can trigger the workflow unauthenticated.
+  const providerAuthError = verifyProviderWebhook(foundWebhook, request, requestId)
+  if (providerAuthError) {
+    return providerAuthError
   }
 
   // --- PHASE 3: Rate limiting for webhook execution ---
