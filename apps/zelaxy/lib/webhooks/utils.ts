@@ -837,6 +837,213 @@ export function formatWebhookInput(
     }
   }
 
+  if (foundWebhook.provider === 'sentry') {
+    // Sentry webhook input formatting. Sentry nests the interesting fields under data.issue /
+    // data.error; flatten them so the declared trigger outputs resolve.
+    const resource = request.headers.get('sentry-hook-resource') || ''
+    const data = body?.data || {}
+    const issue = data.issue || {}
+    const error = data.error || data.event || {}
+
+    const sentryData = {
+      action: body?.action || '',
+      resource,
+      actor_name: body?.actor?.name || '',
+      data,
+      ...(data.issue && {
+        issue_id: issue.id || '',
+        issue_title: issue.title || '',
+        issue_url: issue.permalink || issue.web_url || '',
+        short_id: issue.shortId || '',
+        culprit: issue.culprit || '',
+        level: issue.level || '',
+        status: issue.status || '',
+        event_count: issue.count || '',
+        user_count: issue.userCount ?? 0,
+        first_seen: issue.firstSeen || '',
+        last_seen: issue.lastSeen || '',
+        project_slug: issue.project?.slug || '',
+      }),
+      ...((data.error || data.event) && {
+        error_id: error.event_id || error.id || '',
+        error_message: error.message || error.title || '',
+        environment: error.environment || '',
+        ...(!data.issue && { issue_url: error.web_url || '' }),
+      }),
+      raw: body,
+    }
+
+    return {
+      input: `Sentry ${body?.action || 'event'}: ${issue.title || error.message || resource || 'event'}`,
+      ...sentryData,
+      sentry: { ...sentryData, ...body },
+      webhook: {
+        data: {
+          provider: 'sentry',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'calendly') {
+    // Calendly webhook input formatting. Everything useful is under payload / payload.scheduled_event.
+    const payload = body?.payload || {}
+    const scheduledEvent = payload.scheduled_event || {}
+    const qAndA = Array.isArray(payload.questions_and_answers) ? payload.questions_and_answers : []
+
+    // Key booking answers by their question text for direct access
+    const answers: Record<string, any> = {}
+    for (const entry of qAndA) {
+      if (entry?.question) {
+        answers[entry.question] = entry.answer ?? ''
+      }
+    }
+
+    const calendlyData = {
+      event: body?.event || '',
+      invitee_name: payload.name || '',
+      invitee_email: payload.email || '',
+      invitee_timezone: payload.timezone || '',
+      invitee_status: payload.status || '',
+      invitee_uri: payload.uri || '',
+      reschedule_url: payload.reschedule_url || '',
+      cancel_url: payload.cancel_url || '',
+      rescheduled: payload.rescheduled ?? false,
+      event_name: scheduledEvent.name || '',
+      event_uri: scheduledEvent.uri || '',
+      event_status: scheduledEvent.status || '',
+      start_time: scheduledEvent.start_time || '',
+      end_time: scheduledEvent.end_time || '',
+      location: scheduledEvent.location || {},
+      join_url: scheduledEvent.location?.join_url || '',
+      questions_and_answers: qAndA,
+      answers,
+      ...(payload.cancellation && {
+        cancellation: payload.cancellation,
+        cancel_reason: payload.cancellation.reason || '',
+      }),
+      ...(payload.tracking && { tracking: payload.tracking }),
+      payload,
+      raw: body,
+    }
+
+    return {
+      input: `Calendly ${body?.event || 'event'}: ${payload.name || payload.email || 'invitee'} — ${scheduledEvent.name || 'meeting'}`,
+      ...calendlyData,
+      calendly: { ...calendlyData, ...body },
+      webhook: {
+        data: {
+          provider: 'calendly',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'pagerduty') {
+    // PagerDuty v3 webhook input formatting. The incident lives at event.data.
+    const event = body?.event || {}
+    const incident = event.data || {}
+    const assignees = Array.isArray(incident.assignees) ? incident.assignees : []
+
+    const pagerdutyData = {
+      event_type: event.event_type || '',
+      event_id: event.id || '',
+      occurred_at: event.occurred_at || '',
+      agent_name: event.agent?.summary || '',
+      incident_id: incident.id || '',
+      incident_number: incident.number ?? 0,
+      title: incident.title || '',
+      status: incident.status || '',
+      urgency: incident.urgency || '',
+      priority: incident.priority?.summary || '',
+      html_url: incident.html_url || '',
+      created_at: incident.created_at || '',
+      service_id: incident.service?.id || '',
+      service_name: incident.service?.summary || '',
+      escalation_policy: incident.escalation_policy?.summary || '',
+      assignees,
+      assignee_names: assignees.map((a: any) => a?.summary || '').filter(Boolean),
+      incident,
+      raw: body,
+    }
+
+    return {
+      input: `PagerDuty ${event.event_type || 'event'}: ${incident.title || 'incident'}`,
+      ...pagerdutyData,
+      pagerduty: { ...pagerdutyData, ...body },
+      webhook: {
+        data: {
+          provider: 'pagerduty',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'vercel') {
+    // Vercel webhook input formatting. Deployment/project details live under payload.
+    const payload = body?.payload || {}
+    const deployment = payload.deployment || {}
+    const meta = deployment.meta || {}
+
+    const vercelData = {
+      event_type: body?.type || '',
+      event_id: body?.id || '',
+      created_at: body?.createdAt ?? 0,
+      region: body?.region || '',
+      deployment_id: deployment.id || '',
+      deployment_url: deployment.url || '',
+      deployment_name: deployment.name || '',
+      target: deployment.target || '',
+      inspector_url: deployment.inspectorUrl || '',
+      project_id: payload.project?.id || '',
+      project_name: payload.project?.name || deployment.name || '',
+      team_id: payload.team?.id || '',
+      user_id: payload.user?.id || '',
+      // Vercel keys git metadata by provider (github/gitlab/bitbucket); fall back across them
+      git_branch: meta.githubCommitRef || meta.gitlabCommitRef || meta.bitbucketCommitRef || '',
+      git_sha: meta.githubCommitSha || meta.gitlabCommitSha || meta.bitbucketCommitSha || '',
+      git_message:
+        meta.githubCommitMessage || meta.gitlabCommitMessage || meta.bitbucketCommitMessage || '',
+      payload,
+      raw: body,
+    }
+
+    return {
+      input: `Vercel ${body?.type || 'event'}: ${vercelData.project_name || 'project'}${vercelData.git_branch ? ` (${vercelData.git_branch})` : ''}`,
+      ...vercelData,
+      vercel: { ...vercelData, ...body },
+      webhook: {
+        data: {
+          provider: 'vercel',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
   // Generic format for other providers
   return {
     webhook: {
@@ -965,6 +1172,143 @@ export function validateTypeformSignature(
     return timingSafeEquals(computed, signature)
   } catch (error) {
     logger.error('Error validating Typeform signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates a Sentry webhook request signature.
+ *
+ * Sentry signs the raw body with HMAC SHA-256, hex-encoded, in Sentry-Hook-Signature.
+ *
+ * @param clientSecret - Sentry internal integration client secret
+ * @param signature - Sentry-Hook-Signature header value
+ * @param body - Raw request body string
+ */
+export function validateSentrySignature(
+  clientSecret: string,
+  signature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!clientSecret || !signature || !body) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = crypto.createHmac('sha256', clientSecret).update(body, 'utf8').digest('hex')
+
+    return timingSafeEquals(computed, signature)
+  } catch (error) {
+    logger.error('Error validating Sentry signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates a Calendly webhook request signature.
+ *
+ * Calendly sends `Calendly-Webhook-Signature: t=<timestamp>,v1=<signature>` where the signature
+ * is HMAC SHA-256 (hex) over `<timestamp>.<raw body>`.
+ *
+ * @param signingKey - Signing key returned when the subscription was created
+ * @param signatureHeader - Calendly-Webhook-Signature header value
+ * @param body - Raw request body string
+ */
+export function validateCalendlySignature(
+  signingKey: string,
+  signatureHeader: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!signingKey || !signatureHeader || !body) {
+      return false
+    }
+
+    const parts = signatureHeader.split(',').reduce<Record<string, string>>((acc, part) => {
+      const [key, value] = part.split('=')
+      if (key && value) {
+        acc[key.trim()] = value.trim()
+      }
+      return acc
+    }, {})
+
+    if (!parts.t || !parts.v1) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = crypto
+      .createHmac('sha256', signingKey)
+      .update(`${parts.t}.${body}`, 'utf8')
+      .digest('hex')
+
+    return timingSafeEquals(computed, parts.v1)
+  } catch (error) {
+    logger.error('Error validating Calendly signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates a PagerDuty v3 webhook request signature.
+ *
+ * PagerDuty sends `X-PagerDuty-Signature: v1=<sig>[,v1=<sig>...]` — during a secret rotation more
+ * than one signature is sent, and the request is valid if ANY of them matches.
+ *
+ * @param secret - PagerDuty webhook subscription secret
+ * @param signatureHeader - X-PagerDuty-Signature header value
+ * @param body - Raw request body string
+ */
+export function validatePagerDutySignature(
+  secret: string,
+  signatureHeader: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secret || !signatureHeader || !body) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    return signatureHeader
+      .split(',')
+      .map((part) => part.trim())
+      .filter((part) => part.startsWith('v1='))
+      .some((part) => timingSafeEquals(computed, part.slice(3)))
+  } catch (error) {
+    logger.error('Error validating PagerDuty signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates a Vercel webhook request signature.
+ *
+ * Vercel signs the raw body with HMAC SHA-1, hex-encoded, in x-vercel-signature.
+ *
+ * @param secret - Vercel webhook secret
+ * @param signature - x-vercel-signature header value
+ * @param body - Raw request body string
+ */
+export function validateVercelSignature(
+  secret: string,
+  signature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secret || !signature || !body) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = crypto.createHmac('sha1', secret).update(body, 'utf8').digest('hex')
+
+    return timingSafeEquals(computed, signature)
+  } catch (error) {
+    logger.error('Error validating Vercel signature:', error)
     return false
   }
 }

@@ -124,6 +124,15 @@ export const VercelBlock: BlockConfig<VercelResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'vercel',
+      availableTriggers: ['vercel_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -153,5 +162,13 @@ export const VercelBlock: BlockConfig<VercelResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from Vercel' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'Vercel event type (trigger events)' },
+    deployment_url: { type: 'string', description: 'Deployment URL' },
+    target: { type: 'string', description: 'Deployment target' },
+    git_branch: { type: 'string', description: 'Git branch deployed' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['vercel_webhook'],
   },
 }

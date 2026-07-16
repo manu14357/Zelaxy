@@ -83,6 +83,15 @@ export const SentryBlock: BlockConfig<SentryResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'sentry',
+      availableTriggers: ['sentry_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -108,5 +117,13 @@ export const SentryBlock: BlockConfig<SentryResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from Sentry' },
     metadata: { type: 'json', description: 'Response metadata' },
+    issue_title: { type: 'string', description: 'Issue title (trigger events)' },
+    issue_url: { type: 'string', description: 'Permalink to the issue' },
+    level: { type: 'string', description: 'Severity level' },
+    action: { type: 'string', description: 'Action that occurred' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['sentry_webhook'],
   },
 }

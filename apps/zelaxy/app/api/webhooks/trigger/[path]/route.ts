@@ -5,9 +5,13 @@ import { createLogger } from '@/lib/logs/console/logger'
 import {
   handleSlackChallenge,
   handleWhatsAppVerification,
+  validateCalendlySignature,
   validateGitLabToken,
   validateMicrosoftTeamsSignature,
+  validatePagerDutySignature,
+  validateSentrySignature,
   validateTypeformSignature,
+  validateVercelSignature,
   verifyProviderWebhook,
 } from '@/lib/webhooks/utils'
 import { db } from '@/db'
@@ -234,6 +238,49 @@ export async function POST(
       }
 
       logger.debug(`[${requestId}] Typeform signature verified successfully`)
+    }
+  }
+
+  // Signature verification for providers that sign the raw body. Each entry maps the configured
+  // secret to the header the provider signs with; a configured secret that fails to match is a 401.
+  const signatureChecks: Record<
+    string,
+    { secretKey: string; header: string; validate: (s: string, sig: string | null) => boolean }
+  > = {
+    sentry: {
+      secretKey: 'clientSecret',
+      header: 'sentry-hook-signature',
+      validate: (s, sig) => validateSentrySignature(s, sig, rawBody as string),
+    },
+    calendly: {
+      secretKey: 'signingKey',
+      header: 'calendly-webhook-signature',
+      validate: (s, sig) => validateCalendlySignature(s, sig, rawBody as string),
+    },
+    pagerduty: {
+      secretKey: 'webhookSecret',
+      header: 'x-pagerduty-signature',
+      validate: (s, sig) => validatePagerDutySignature(s, sig, rawBody as string),
+    },
+    vercel: {
+      secretKey: 'webhookSecret',
+      header: 'x-vercel-signature',
+      validate: (s, sig) => validateVercelSignature(s, sig, rawBody as string),
+    },
+  }
+
+  const signatureCheck = signatureChecks[foundWebhook.provider as string]
+  if (signatureCheck) {
+    const providerConfig = (foundWebhook.providerConfig as Record<string, any>) || {}
+    const secret = providerConfig[signatureCheck.secretKey]
+
+    if (secret) {
+      if (!signatureCheck.validate(secret, request.headers.get(signatureCheck.header))) {
+        logger.warn(`[${requestId}] ${foundWebhook.provider} signature verification failed`)
+        return new NextResponse('Unauthorized - Invalid signature', { status: 401 })
+      }
+
+      logger.debug(`[${requestId}] ${foundWebhook.provider} signature verified successfully`)
     }
   }
 

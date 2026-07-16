@@ -90,6 +90,15 @@ export const PagerDutyBlock: BlockConfig<PagerDutyResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'pagerduty',
+      availableTriggers: ['pagerduty_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -115,5 +124,13 @@ export const PagerDutyBlock: BlockConfig<PagerDutyResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from PagerDuty' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'PagerDuty event type (trigger events)' },
+    incident_id: { type: 'string', description: 'Incident ID' },
+    title: { type: 'string', description: 'Incident title' },
+    status: { type: 'string', description: 'Incident status' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['pagerduty_webhook'],
   },
 }

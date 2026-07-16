@@ -23,8 +23,12 @@ vi.mock('@/lib/logs/console/logger', () => ({
 
 import {
   formatWebhookInput,
+  validateCalendlySignature,
   validateGitLabToken,
+  validatePagerDutySignature,
+  validateSentrySignature,
   validateTypeformSignature,
+  validateVercelSignature,
   verifyProviderWebhook,
 } from '@/lib/webhooks/utils'
 
@@ -156,6 +160,241 @@ describe('validateTypeformSignature', () => {
 
   it('rejects a missing signature header', () => {
     expect(validateTypeformSignature(secret, null, body)).toBe(false)
+  })
+})
+
+describe('batch-1 signature validators', () => {
+  const crypto = require('crypto')
+  const body = '{"hello":"world"}'
+
+  it('validateSentrySignature accepts a correct hex HMAC-SHA256 and rejects tampering', () => {
+    const secret = 'sentry-secret'
+    const sig = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    expect(validateSentrySignature(secret, sig, body)).toBe(true)
+    expect(validateSentrySignature(secret, sig, `${body} tampered`)).toBe(false)
+    expect(validateSentrySignature('wrong-secret', sig, body)).toBe(false)
+    expect(validateSentrySignature(secret, null, body)).toBe(false)
+  })
+
+  it('validateCalendlySignature verifies the t=<ts>,v1=<sig> scheme over `ts.body`', () => {
+    const key = 'calendly-key'
+    const ts = '1705324455'
+    const sig = crypto.createHmac('sha256', key).update(`${ts}.${body}`, 'utf8').digest('hex')
+
+    expect(validateCalendlySignature(key, `t=${ts},v1=${sig}`, body)).toBe(true)
+    // A signature computed without the timestamp prefix must not pass
+    const noTs = crypto.createHmac('sha256', key).update(body, 'utf8').digest('hex')
+    expect(validateCalendlySignature(key, `t=${ts},v1=${noTs}`, body)).toBe(false)
+    // Replaying a valid signature against a different timestamp must not pass
+    expect(validateCalendlySignature(key, `t=9999999999,v1=${sig}`, body)).toBe(false)
+    expect(validateCalendlySignature(key, 'malformed-header', body)).toBe(false)
+  })
+
+  it('validatePagerDutySignature accepts any of the comma-separated v1 signatures', () => {
+    const secret = 'pd-secret'
+    const sig = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    expect(validatePagerDutySignature(secret, `v1=${sig}`, body)).toBe(true)
+    // During secret rotation PagerDuty sends several; matching any one is valid
+    expect(validatePagerDutySignature(secret, `v1=deadbeef,v1=${sig}`, body)).toBe(true)
+    expect(validatePagerDutySignature(secret, 'v1=deadbeef', body)).toBe(false)
+    // A correct hash under the wrong version prefix must not pass
+    expect(validatePagerDutySignature(secret, `v2=${sig}`, body)).toBe(false)
+  })
+
+  it('validateVercelSignature uses SHA-1, not SHA-256', () => {
+    const secret = 'vercel-secret'
+    const sha1 = crypto.createHmac('sha1', secret).update(body, 'utf8').digest('hex')
+    const sha256 = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    expect(validateVercelSignature(secret, sha1, body)).toBe(true)
+    expect(validateVercelSignature(secret, sha256, body)).toBe(false)
+    expect(validateVercelSignature(secret, sha1, `${body} tampered`)).toBe(false)
+  })
+})
+
+describe('formatWebhookInput (batch-1 providers)', () => {
+  const req = (headers: Record<string, string> = {}) =>
+    ({ headers: new Headers(headers), method: 'POST' }) as any
+
+  it('flattens a Sentry issue event', () => {
+    const payload = {
+      action: 'created',
+      data: {
+        issue: {
+          id: '123',
+          shortId: 'PROJ-1',
+          title: 'TypeError: undefined',
+          culprit: 'app/checkout',
+          status: 'unresolved',
+          level: 'error',
+          count: '3',
+          userCount: 2,
+          permalink: 'https://sentry.io/issues/123/',
+          project: { slug: 'my-project' },
+        },
+      },
+      actor: { name: 'Sentry' },
+    }
+
+    const result = formatWebhookInput(
+      { provider: 'sentry', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      payload,
+      req({ 'sentry-hook-resource': 'issue' })
+    )
+
+    expect(result.action).toBe('created')
+    expect(result.resource).toBe('issue')
+    expect(result.issue_id).toBe('123')
+    expect(result.issue_title).toBe('TypeError: undefined')
+    expect(result.issue_url).toBe('https://sentry.io/issues/123/')
+    expect(result.short_id).toBe('PROJ-1')
+    expect(result.user_count).toBe(2)
+    expect(result.project_slug).toBe('my-project')
+    expect(result.raw).toEqual(payload)
+  })
+
+  it('flattens a Calendly invitee.created event and keys answers by question', () => {
+    const payload = {
+      event: 'invitee.created',
+      payload: {
+        email: 'ada@example.com',
+        name: 'Ada Lovelace',
+        status: 'active',
+        timezone: 'America/New_York',
+        rescheduled: false,
+        questions_and_answers: [{ question: 'Topic?', answer: 'Pricing', position: 0 }],
+        scheduled_event: {
+          name: '30 Minute Meeting',
+          status: 'active',
+          start_time: '2024-01-20T15:00:00Z',
+          end_time: '2024-01-20T15:30:00Z',
+          location: { type: 'google_conference', join_url: 'https://meet.google.com/x' },
+        },
+      },
+    }
+
+    const result = formatWebhookInput(
+      { provider: 'calendly', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      payload,
+      req()
+    )
+
+    expect(result.event).toBe('invitee.created')
+    expect(result.invitee_email).toBe('ada@example.com')
+    expect(result.event_name).toBe('30 Minute Meeting')
+    expect(result.start_time).toBe('2024-01-20T15:00:00Z')
+    expect(result.join_url).toBe('https://meet.google.com/x')
+    expect(result.answers.Topic).toBeUndefined()
+    expect(result.answers['Topic?']).toBe('Pricing')
+  })
+
+  it('surfaces the cancellation reason on a Calendly invitee.canceled event', () => {
+    const result = formatWebhookInput(
+      { provider: 'calendly', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      {
+        event: 'invitee.canceled',
+        payload: {
+          email: 'ada@example.com',
+          status: 'canceled',
+          cancellation: { reason: 'Conflict', canceled_by: 'Ada', canceler_type: 'invitee' },
+        },
+      },
+      req()
+    )
+
+    expect(result.invitee_status).toBe('canceled')
+    expect(result.cancel_reason).toBe('Conflict')
+    expect(result.cancellation.canceler_type).toBe('invitee')
+  })
+
+  it('flattens a PagerDuty v3 incident event including assignee names', () => {
+    const result = formatWebhookInput(
+      { provider: 'pagerduty', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      {
+        event: {
+          id: 'evt1',
+          event_type: 'incident.triggered',
+          occurred_at: '2024-01-15T13:14:15Z',
+          agent: { summary: 'Ada' },
+          data: {
+            id: 'PABC',
+            number: 1234,
+            title: 'Checkout 500s',
+            status: 'triggered',
+            urgency: 'high',
+            html_url: 'https://acme.pagerduty.com/incidents/PABC',
+            service: { id: 'PSVC', summary: 'Checkout API' },
+            assignees: [
+              { id: 'U1', summary: 'Ada Lovelace' },
+              { id: 'U2', summary: 'Alan' },
+            ],
+            escalation_policy: { summary: 'Primary On-Call' },
+          },
+        },
+      },
+      req()
+    )
+
+    expect(result.event_type).toBe('incident.triggered')
+    expect(result.incident_id).toBe('PABC')
+    expect(result.incident_number).toBe(1234)
+    expect(result.urgency).toBe('high')
+    expect(result.service_name).toBe('Checkout API')
+    expect(result.escalation_policy).toBe('Primary On-Call')
+    expect(result.assignee_names).toEqual(['Ada Lovelace', 'Alan'])
+    expect(result.agent_name).toBe('Ada')
+  })
+
+  it('flattens a Vercel deployment event and reads git metadata', () => {
+    const result = formatWebhookInput(
+      { provider: 'vercel', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      {
+        id: 'uev_1',
+        type: 'deployment.ready',
+        createdAt: 1705324455000,
+        payload: {
+          team: { id: 'team_1' },
+          user: { id: 'user_1' },
+          project: { id: 'prj_1', name: 'zelaxy-web' },
+          deployment: {
+            id: 'dpl_1',
+            name: 'zelaxy-web',
+            url: 'zelaxy-web.vercel.app',
+            target: 'production',
+            meta: { githubCommitRef: 'main', githubCommitSha: 'abc123' },
+          },
+        },
+      },
+      req()
+    )
+
+    expect(result.event_type).toBe('deployment.ready')
+    expect(result.deployment_url).toBe('zelaxy-web.vercel.app')
+    expect(result.target).toBe('production')
+    expect(result.project_name).toBe('zelaxy-web')
+    expect(result.git_branch).toBe('main')
+    expect(result.git_sha).toBe('abc123')
+  })
+
+  it('falls back across git providers for Vercel git metadata', () => {
+    const result = formatWebhookInput(
+      { provider: 'vercel', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      {
+        type: 'deployment.created',
+        payload: { deployment: { meta: { gitlabCommitRef: 'develop' } } },
+      },
+      req()
+    )
+
+    expect(result.git_branch).toBe('develop')
   })
 })
 

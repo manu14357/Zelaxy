@@ -1,0 +1,1 @@
+export { pagerdutyWebhookTrigger } from './webhook'

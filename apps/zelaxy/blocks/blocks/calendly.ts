@@ -67,6 +67,15 @@ export const CalendlyBlock: BlockConfig = {
       placeholder: 'https://api.calendly.com/organizations/xxx',
       condition: { field: 'operation', value: ['calendly_list_scheduled_events'] },
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'calendly',
+      availableTriggers: ['calendly_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -93,5 +102,13 @@ export const CalendlyBlock: BlockConfig = {
     eventTypes: { type: 'json', description: 'Event types' },
     events: { type: 'json', description: 'Scheduled events' },
     invitees: { type: 'json', description: 'Event invitees' },
+    event: { type: 'string', description: 'Calendly event that occurred (trigger events)' },
+    invitee_email: { type: 'string', description: 'Invitee email address' },
+    invitee_name: { type: 'string', description: 'Invitee full name' },
+    start_time: { type: 'string', description: 'Scheduled event start time' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['calendly_webhook'],
   },
 }

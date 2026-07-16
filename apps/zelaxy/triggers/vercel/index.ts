@@ -1,0 +1,1 @@
+export { vercelWebhookTrigger } from './webhook'

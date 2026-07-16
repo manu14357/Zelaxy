@@ -1,0 +1,1 @@
+export { sentryWebhookTrigger } from './webhook'

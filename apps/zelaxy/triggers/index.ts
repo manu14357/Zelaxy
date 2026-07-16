@@ -2,6 +2,7 @@
 
 import { airtableWebhookTrigger } from './airtable'
 import { asanaWebhookTrigger } from './asana'
+import { calendlyWebhookTrigger } from './calendly'
 import { confluenceWebhookTrigger } from './confluence'
 import { discordWebhookTrigger } from './discord'
 import { dropboxWebhookTrigger } from './dropbox'
@@ -25,14 +26,17 @@ import { notionWebhookTrigger } from './notion'
 import { obsidianWebhookTrigger } from './obsidian'
 import { oneDrivePollingTrigger } from './onedrive'
 import { outlookPollingTrigger } from './outlook'
+import { pagerdutyWebhookTrigger } from './pagerduty'
 import { redditWebhookTrigger } from './reddit'
 import { salesforceWebhookTrigger } from './salesforce'
+import { sentryWebhookTrigger } from './sentry'
 import { servicenowWebhookTrigger } from './servicenow'
 import { slackWebhookTrigger } from './slack'
 import { stripeWebhookTrigger } from './stripe/webhook'
 import { telegramWebhookTrigger } from './telegram'
 import { typeformWebhookTrigger } from './typeform'
 import type { TriggerConfig, TriggerRegistry } from './types'
+import { vercelWebhookTrigger } from './vercel'
 import { webflowWebhookTrigger } from './webflow'
 import { whatsappWebhookTrigger } from './whatsapp'
 import { wordpressWebhookTrigger } from './wordpress'
@@ -43,6 +47,7 @@ export const TRIGGER_REGISTRY: TriggerRegistry = {
   slack_webhook: slackWebhookTrigger,
   airtable_webhook: airtableWebhookTrigger,
   asana_webhook: asanaWebhookTrigger,
+  calendly_webhook: calendlyWebhookTrigger,
   confluence_webhook: confluenceWebhookTrigger,
   discord_webhook: discordWebhookTrigger,
   dropbox_webhook: dropboxWebhookTrigger,
@@ -66,12 +71,15 @@ export const TRIGGER_REGISTRY: TriggerRegistry = {
   obsidian_webhook: obsidianWebhookTrigger,
   onedrive_poller: oneDrivePollingTrigger,
   outlook_poller: outlookPollingTrigger,
+  pagerduty_webhook: pagerdutyWebhookTrigger,
   reddit_webhook: redditWebhookTrigger,
   salesforce_webhook: salesforceWebhookTrigger,
+  sentry_webhook: sentryWebhookTrigger,
   servicenow_webhook: servicenowWebhookTrigger,
   stripe_webhook: stripeWebhookTrigger,
   telegram_webhook: telegramWebhookTrigger,
   typeform_webhook: typeformWebhookTrigger,
+  vercel_webhook: vercelWebhookTrigger,
   webflow_webhook: webflowWebhookTrigger,
   whatsapp_webhook: whatsappWebhookTrigger,
   wordpress_webhook: wordpressWebhookTrigger,
