@@ -59,6 +59,7 @@ Zelaxy supports webhook triggers from the following services. Each provider has 
 | [Circleback](#circleback) | `circleback_webhook` | Authorization value | Triggers when a meeting completes and notes or action items are ready |
 | [EmailBison](#emailbison) | `emailbison_webhook` | Authorization value | Triggers on replies received and sending accounts disconnecting |
 | [Sendblue](#sendblue) | `sendblue_webhook` | — | Triggers on iMessage/SMS messages received or status changing |
+| [RSS](#rss) | `rss_poller` | — (polled) | Triggers on new feed items |
 | [Generic](#generic-webhook) | `generic_webhook` | — | Universal HTTP endpoint |
 
 ## How It Works
@@ -1938,6 +1939,71 @@ This provider does not sign or authenticate its webhooks. **Treat the webhook UR
 ### Usage Example
 
 Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.message_handle}}`, `{{Webhook 1.from_number}}`
+
+---
+
+## RSS
+
+Triggers once per new item published to an RSS or Atom feed.
+
+<Callout type="warn">
+  RSS is **polled, not pushed** — it is the only trigger here with no webhook URL to register.
+  You give Zelaxy a feed URL and it checks the feed for you.
+</Callout>
+
+<Callout type="info">
+  **Connecting a feed does not replay its history.** The first poll records what is already
+  published and triggers nothing; only items appearing afterwards start a run. Without that, adding
+  a feed would immediately fire your workflow once for every post ever published.
+</Callout>
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Feed URL | Text | The RSS or Atom feed to watch (required) |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `title` | string | Item title (also the workflow input) |
+| `link` | string | Item link |
+| `description` | string | Item description or summary |
+| `pub_date` | string | Publication date as given by the feed |
+| `item_id` | string | Stable item identifier (guid, id, or link) |
+| `feed_url` | string | The feed the item came from |
+| `item` | object | The parsed item object |
+| `raw` | object | Complete payload as delivered by the poller |
+
+### How it behaves
+
+- Runs **once per new item**, oldest first, so a burst of posts arrives in publication order.
+- Items are identified by their `guid` (falling back to `id`, then link, then title), so **editing a
+  title or link in place does not re-trigger**.
+- At most **10 items** fire per poll of a feed, so a feed that publishes a large backlog cannot
+  flood your workflow.
+- Recent item ids are remembered, so an item that briefly drops out of the feed window and comes
+  back is not treated as new.
+
+### Sample Payload
+
+```json
+{
+  "feedUrl": "https://example.com/feed.xml",
+  "item": {
+    "id": "https://example.com/posts/hello-world",
+    "title": "Hello world",
+    "link": "https://example.com/posts/hello-world",
+    "pubDate": "Mon, 15 Jan 2024 13:14:15 GMT",
+    "description": "Our first post."
+  }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{RSS 1.title}}`, `{{RSS 1.link}}`, `{{RSS 1.description}}`
 
 ---
 

@@ -1872,6 +1872,40 @@ export function formatWebhookInput(
     }
   }
 
+  if (foundWebhook.provider === 'rss') {
+    // RSS is polled rather than pushed: the polling service posts { feedUrl, item } back to this
+    // route so feed runs go through the same pipeline as real webhooks.
+    const item = body?.item || {}
+
+    const rssData = {
+      title: item.title || '',
+      link: item.link || '',
+      description: item.description || '',
+      pub_date: item.pubDate || '',
+      item_id: item.id || '',
+      feed_url: body?.feedUrl || '',
+      item,
+      raw: body,
+    }
+
+    return {
+      input: item.title || item.link || 'New RSS item',
+      ...rssData,
+      rss: { ...rssData, ...body },
+      webhook: {
+        data: {
+          provider: 'rss',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
   // Generic format for other providers
   return {
     webhook: {

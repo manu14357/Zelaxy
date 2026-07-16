@@ -41,6 +41,15 @@ export const RssBlock: BlockConfig<RssResponse> = {
       placeholder: '10',
       condition: { field: 'operation', value: 'rss_fetch_feed' },
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'rss',
+      availableTriggers: ['rss_poller'],
+    },
   ],
   tools: {
     access: ['rss_fetch_feed', 'rss_get_feed_info'],
@@ -56,5 +65,14 @@ export const RssBlock: BlockConfig<RssResponse> = {
   outputs: {
     data: { type: 'json', description: 'Parsed feed items or feed info' },
     metadata: { type: 'json', description: 'Response metadata' },
+    title: { type: 'string', description: 'Item title (trigger events)' },
+    link: { type: 'string', description: 'Item link' },
+    pub_date: { type: 'string', description: 'Item publication date' },
+    item_id: { type: 'string', description: 'Stable item identifier' },
+    feed_url: { type: 'string', description: 'The feed the item came from' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['rss_poller'],
   },
 }

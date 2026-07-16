@@ -494,6 +494,50 @@ describe('formatWebhookInput (batch-4 providers)', () => {
   })
 })
 
+describe('formatWebhookInput (rss poller)', () => {
+  const req = () => ({ headers: new Headers(), method: 'POST' }) as any
+
+  it('flattens the { feedUrl, item } payload the poller posts back', () => {
+    const payload = {
+      feedUrl: 'https://example.com/feed.xml',
+      item: {
+        id: 'post-1',
+        title: 'Hello world',
+        link: 'https://example.com/1',
+        pubDate: 'Mon, 15 Jan 2024 13:14:15 GMT',
+        description: 'Our first post.',
+      },
+    }
+
+    const r = formatWebhookInput(
+      { provider: 'rss', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      payload,
+      req()
+    )
+
+    expect(r.title).toBe('Hello world')
+    expect(r.link).toBe('https://example.com/1')
+    expect(r.item_id).toBe('post-1')
+    expect(r.pub_date).toBe('Mon, 15 Jan 2024 13:14:15 GMT')
+    expect(r.feed_url).toBe('https://example.com/feed.xml')
+    // The item title becomes the workflow input
+    expect(r.input).toBe('Hello world')
+    expect(r.raw).toEqual(payload)
+  })
+
+  it('falls back to the link for input when an item has no title', () => {
+    const r = formatWebhookInput(
+      { provider: 'rss', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      { feedUrl: 'https://example.com/feed.xml', item: { id: '1', link: 'https://example.com/1' } },
+      req()
+    )
+
+    expect(r.input).toBe('https://example.com/1')
+  })
+})
+
 describe('validateTwilioSignature', () => {
   const crypto = require('crypto')
   const token = 'twilio-auth-token'

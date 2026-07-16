@@ -24,6 +24,7 @@ Fetch an RSS or Atom feed by URL and parse it into a list of items (title, link,
 - Limit the number of items returned to keep downstream processing manageable (e.g. only the 5 most recent posts).
 - Chain into an Agent block to summarize or classify feed items automatically.
 - Use in a scheduled workflow to periodically poll a feed and detect new content.
+- Trigger a workflow automatically when a new item is published to a feed
 
 ## Configuration
 
@@ -57,6 +58,16 @@ The full URL of the RSS 2.0 or Atom feed to retrieve. Both `http` and `https` UR
 - **Visible for:** `rss_fetch_feed` only
 
 Maximum number of feed items to return. When omitted, all items found in the feed are returned. Must be a positive integer. Has no effect when the operation is `rss_get_feed_info`.
+
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `rss_poller`
+
+When the block runs in trigger mode, this configures the `rss_poller` trigger. Unlike every other trigger, RSS is **polled** — there is no webhook URL to register, you just give it a feed URL.
+See the [RSS trigger](/docs/triggers/webhook#rss) for behaviour details and the full output schema.
 
 ## Inputs & Outputs
 
@@ -102,6 +113,10 @@ Maximum number of feed items to return. When omitted, all items found in the fee
 | Field | Type | Description |
 |-------|------|-------------|
 | `itemCount` | number | Total number of items in the feed |
+
+**Trigger outputs**
+
+When running in trigger mode the block emits one new feed item per run: `title` (string), `link` (string), `description` (string), `pub_date` (string), `item_id` (string), `feed_url` (string), `item` (json). See the [RSS trigger](/docs/triggers/webhook#rss) for the full schema.
 
 ## Tools
 

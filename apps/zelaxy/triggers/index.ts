@@ -47,6 +47,7 @@ import { redditWebhookTrigger } from './reddit'
 import { resendWebhookTrigger } from './resend'
 import { revenuecatWebhookTrigger } from './revenuecat'
 import { rootlyWebhookTrigger } from './rootly'
+import { rssPollingTrigger } from './rss'
 import { salesforceWebhookTrigger } from './salesforce'
 import { sendblueWebhookTrigger } from './sendblue'
 import { sentryWebhookTrigger } from './sentry'
@@ -116,6 +117,7 @@ export const TRIGGER_REGISTRY: TriggerRegistry = {
   outlook_poller: outlookPollingTrigger,
   pagerduty_webhook: pagerdutyWebhookTrigger,
   reddit_webhook: redditWebhookTrigger,
+  rss_poller: rssPollingTrigger,
   resend_webhook: resendWebhookTrigger,
   salesforce_webhook: salesforceWebhookTrigger,
   sentry_webhook: sentryWebhookTrigger,
