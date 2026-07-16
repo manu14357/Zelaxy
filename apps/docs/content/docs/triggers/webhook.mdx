@@ -30,6 +30,12 @@ Zelaxy supports webhook triggers from the following services. Each provider has 
 | [Stripe](#stripe) | `stripe_webhook` | — | Triggers on payments, subscriptions |
 | [Airtable](#airtable) | `airtable_webhook` | OAuth | Triggers on record changes |
 | [Microsoft Teams](#microsoft-teams) | `microsoftteams_webhook` | HMAC Secret | Triggers on messages and mentions |
+| [GitLab](#gitlab) | `gitlab_webhook` | Secret Token | Triggers on pushes, merge requests, issues, pipelines |
+| [Typeform](#typeform) | `typeform_webhook` | Webhook Secret | Triggers on form submissions |
+| [Sentry](#sentry) | `sentry_webhook` | Client Secret | Triggers on issues, errors, alerts |
+| [Calendly](#calendly) | `calendly_webhook` | Signing Key | Triggers on bookings and cancellations |
+| [PagerDuty](#pagerduty) | `pagerduty_webhook` | Webhook Secret | Triggers on incident lifecycle events |
+| [Vercel](#vercel) | `vercel_webhook` | Webhook Secret | Triggers on deployments and project changes |
 | [Generic](#generic-webhook) | `generic_webhook` | — | Universal HTTP endpoint |
 
 ## How It Works
@@ -612,6 +618,407 @@ Reference in downstream blocks:
 - `{{Webhook 1.webhook.data.payload.data.content}}` — `"Hello world"`
 - `{{Webhook 1.webhook.data.headers}}` — request headers
 - `{{Webhook 1.webhook.data.method}}` — `"POST"`
+
+---
+
+## GitLab
+
+Triggers on GitLab events like pushes, merge requests, issues, pipelines, and comments. The secret token is verified on every delivery.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Secret Token | Password | Sent by GitLab in `X-Gitlab-Token`; mismatches are rejected (recommended) |
+| SSL Verification | Select | `enabled` or `disabled` |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `object_kind` | string | Event kind (`push`, `merge_request`, `issue`, `pipeline`, `note`) |
+| `event_type` | string | Value of the `X-Gitlab-Event` header (e.g. `Push Hook`) |
+| `event_name` | string | Event name, generally matching `object_kind` |
+| `action` | string | Action performed (e.g. `open`, `merge`, `close`) |
+| `branch` | string | Branch name extracted from ref |
+| `ref` | string | Git reference (e.g. `refs/heads/main`) |
+| `before` | string | SHA before the push |
+| `after` | string | SHA after the push |
+| `checkout_sha` | string | SHA of the most recent commit on ref |
+| `commit_message` | string | Message of the first commit in the push |
+| `commit_author` | string | Author of the first commit in the push |
+| `total_commits_count` | number | Number of commits in the push |
+| `commits` | array | Commits included in the push |
+| `title` | string | Title of the merge request or issue |
+| `state` | string | State of the merge request or issue |
+| `url` | string | URL of the changed object |
+| `object_attributes` | object | Changed object for merge request, issue, pipeline, note events |
+| `project_id` | number | Project ID |
+| `project_name` | string | Project name |
+| `project_path` | string | Full project path (`namespace/project`) |
+| `project_url` | string | Project web URL |
+| `user_id` | number | ID of the user who triggered the event |
+| `user_name` | string | Display name of the user |
+| `user_username` | string | Username of the user |
+| `user_email` | string | Email of the user |
+| `project` | object | Full project object |
+| `repository` | object | Repository information |
+
+### Sample Payload (Push)
+
+```json
+{
+  "object_kind": "push",
+  "event_name": "push",
+  "ref": "refs/heads/main",
+  "checkout_sha": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+  "user_name": "John Smith",
+  "user_username": "jsmith",
+  "project_id": 15,
+  "project": {
+    "name": "Diaspora", "path_with_namespace": "mike/diaspora",
+    "web_url": "http://example.com/mike/diaspora", "default_branch": "main"
+  },
+  "commits": [
+    { "id": "da15608", "message": "fix: typos in readme", "author": { "name": "John Smith" } }
+  ],
+  "total_commits_count": 1
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.object_kind}}`, `{{Webhook 1.branch}}`, `{{Webhook 1.commit_message}}`
+
+---
+
+## Typeform
+
+Triggers when a form receives a new submission. Requires a Typeform PRO or PRO+ account. The webhook secret is verified on every delivery.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Webhook Secret | Password | Validates the `Typeform-Signature` header (recommended) |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_id` | string | Unique ID of the webhook event |
+| `event_type` | string | Always `form_response` for submissions |
+| `form_id` | string | ID of the submitted form |
+| `form_title` | string | Title of the submitted form |
+| `token` | string | Unique token identifying this response |
+| `submitted_at` | string | When the form was submitted |
+| `landed_at` | string | When the respondent landed on the form |
+| `fields` | object | Answers keyed by question title, with values unwrapped to plain values |
+| `answers` | array | Raw answers array as sent by Typeform |
+| `answer_count` | number | Number of questions answered |
+| `hidden` | object | Hidden field values (e.g. UTM parameters) |
+| `definition` | object | Form definition, including the questions asked |
+| `variables` | array | Typeform variables (score, price, custom) |
+| `calculated` | object | Calculated values (e.g. score) |
+| `ending` | object | Ending screen the respondent reached |
+| `raw` | object | Complete original webhook payload |
+
+<Callout type="info">
+  `fields` is the convenient one: Typeform's raw `answers` array keys each value by its answer
+  type and references questions by opaque field id. Zelaxy unwraps that for you, so
+  `{{Webhook 1.fields.What is your email?}}` just works.
+</Callout>
+
+### Sample Payload
+
+```json
+{
+  "event_id": "01HZ8X2Q9Y3M4N5P6R7S8T9V0W",
+  "event_type": "form_response",
+  "form_response": {
+    "form_id": "lT4Z3j",
+    "token": "a3a12ec67a1365927098a606107fac15",
+    "submitted_at": "2024-01-15T13:14:15Z",
+    "definition": {
+      "id": "lT4Z3j", "title": "Customer Feedback",
+      "fields": [{ "id": "DlXFaesGBpoF", "type": "email", "title": "What is your email?" }]
+    },
+    "answers": [
+      { "type": "email", "email": "ada@example.com", "field": { "id": "DlXFaesGBpoF", "type": "email" } }
+    ],
+    "hidden": {}
+  }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.form_title}}`, `{{Webhook 1.fields.What is your email?}}`, `{{Webhook 1.answer_count}}`
+
+---
+
+## Sentry
+
+Triggers on Sentry issues, error events, and alert rules. The client secret is verified on every delivery.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Client Secret | Password | From your Sentry internal integration; validates `Sentry-Hook-Signature` (recommended) |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `action` | string | Action that occurred (`created`, `resolved`, `assigned`, `ignored`) |
+| `resource` | string | Value of the `Sentry-Hook-Resource` header (`issue`, `error`, `event_alert`) |
+| `issue_id` | string | Issue ID |
+| `issue_title` | string | Issue title |
+| `issue_url` | string | Permalink to the issue in Sentry |
+| `short_id` | string | Short identifier (e.g. `MY-PROJECT-1`) |
+| `culprit` | string | Where the issue occurred |
+| `level` | string | Severity (`error`, `warning`, `info`, `fatal`) |
+| `status` | string | Issue status (`unresolved`, `resolved`, `ignored`) |
+| `event_count` | string | Number of times the issue occurred |
+| `user_count` | number | Number of users affected |
+| `first_seen` | string | When the issue was first seen |
+| `last_seen` | string | When the issue was last seen |
+| `project_slug` | string | Slug of the owning project |
+| `error_id` | string | Event ID (error events) |
+| `error_message` | string | Error message (error events) |
+| `environment` | string | Environment the event came from |
+| `actor_name` | string | Who or what triggered the event |
+| `data` | object | Full event payload as sent by Sentry |
+| `raw` | object | Complete original webhook payload |
+
+### Sample Payload (Issue Created)
+
+```json
+{
+  "action": "created",
+  "data": {
+    "issue": {
+      "id": "1234567890", "shortId": "MY-PROJECT-1",
+      "title": "TypeError: Cannot read property 'id' of undefined",
+      "culprit": "app/routes/checkout in handler",
+      "status": "unresolved", "level": "error", "count": "3", "userCount": 2,
+      "permalink": "https://sentry.io/organizations/my-org/issues/1234567890/",
+      "project": { "slug": "my-project" }
+    }
+  },
+  "actor": { "type": "application", "id": "sentry", "name": "Sentry" }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.issue_title}}`, `{{Webhook 1.level}}`, `{{Webhook 1.issue_url}}`
+
+---
+
+## Calendly
+
+Triggers when an invitee books or cancels a meeting, or submits a routing form. The signing key is verified on every delivery.
+
+<Callout type="warn">
+  Calendly webhooks are created through its API, not the dashboard. You need a Personal Access
+  Token and a `POST` to `https://api.calendly.com/webhook_subscriptions` — the `signing_key` in
+  the response is what goes in the config field below.
+</Callout>
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Webhook Signing Key | Password | Returned when the subscription is created; validates `Calendly-Webhook-Signature` (recommended) |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event` | string | `invitee.created`, `invitee.canceled`, or `routing_form_submission.created` |
+| `invitee_name` | string | Invitee full name |
+| `invitee_email` | string | Invitee email address |
+| `invitee_timezone` | string | Invitee timezone |
+| `invitee_status` | string | Invitee status (`active`, `canceled`) |
+| `invitee_uri` | string | Calendly URI for the invitee |
+| `reschedule_url` | string | URL the invitee can use to reschedule |
+| `cancel_url` | string | URL the invitee can use to cancel |
+| `rescheduled` | boolean | Whether the booking was rescheduled |
+| `event_name` | string | Name of the scheduled event |
+| `event_uri` | string | Calendly URI for the scheduled event |
+| `event_status` | string | Scheduled event status |
+| `start_time` | string | Event start time |
+| `end_time` | string | Event end time |
+| `location` | object | Where the meeting takes place |
+| `join_url` | string | Conferencing join URL, when available |
+| `cancellation` | object | Cancellation details (`invitee.canceled`) |
+| `cancel_reason` | string | Reason given for the cancellation |
+| `answers` | object | Booking answers keyed by question text |
+| `questions_and_answers` | array | Raw booking questions and answers |
+| `tracking` | object | UTM and Salesforce tracking parameters |
+| `payload` | object | Full payload object as sent by Calendly |
+| `raw` | object | Complete original webhook payload |
+
+### Sample Payload (Invitee Created)
+
+```json
+{
+  "event": "invitee.created",
+  "created_at": "2024-01-15T13:14:15.000000Z",
+  "payload": {
+    "email": "ada@example.com", "name": "Ada Lovelace",
+    "status": "active", "timezone": "America/New_York", "rescheduled": false,
+    "questions_and_answers": [
+      { "question": "What would you like to discuss?", "answer": "Pricing", "position": 0 }
+    ],
+    "scheduled_event": {
+      "name": "30 Minute Meeting", "status": "active",
+      "start_time": "2024-01-20T15:00:00.000000Z",
+      "end_time": "2024-01-20T15:30:00.000000Z",
+      "location": { "type": "google_conference", "join_url": "https://meet.google.com/abc-defg-hij" }
+    }
+  }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.invitee_email}}`, `{{Webhook 1.start_time}}`, `{{Webhook 1.join_url}}`
+
+---
+
+## PagerDuty
+
+Triggers on incident lifecycle events — triggered, acknowledged, escalated, reassigned, resolved. The webhook secret is verified on every delivery.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Webhook Secret | Password | Shown once when the subscription is created; validates `X-PagerDuty-Signature` (recommended) |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | e.g. `incident.triggered`, `incident.resolved` |
+| `event_id` | string | Unique ID of the webhook event |
+| `occurred_at` | string | When the event occurred |
+| `incident_id` | string | Incident ID |
+| `incident_number` | number | Human-facing incident number |
+| `title` | string | Incident title |
+| `status` | string | Incident status (`triggered`, `acknowledged`, `resolved`) |
+| `urgency` | string | Incident urgency (`high`, `low`) |
+| `priority` | string | Incident priority, when set |
+| `html_url` | string | Link to the incident in PagerDuty |
+| `created_at` | string | When the incident was created |
+| `service_id` | string | ID of the affected service |
+| `service_name` | string | Name of the affected service |
+| `escalation_policy` | string | Escalation policy name, when present |
+| `assignees` | array | Users currently assigned |
+| `assignee_names` | array | Names of the assigned users |
+| `agent_name` | string | Who performed the action, when present |
+| `incident` | object | Full incident object as sent by PagerDuty |
+| `raw` | object | Complete original webhook payload |
+
+<Callout type="info">
+  PagerDuty sends more than one signature during a secret rotation. Zelaxy accepts the delivery
+  if any of them matches, so rotating a secret does not drop events.
+</Callout>
+
+### Sample Payload (Incident Triggered)
+
+```json
+{
+  "event": {
+    "id": "01DPXQZG4Z3ZBQ0N2T0Q9W8XYZ",
+    "event_type": "incident.triggered",
+    "occurred_at": "2024-01-15T13:14:15.000Z",
+    "agent": { "summary": "Ada Lovelace" },
+    "data": {
+      "id": "PABCDEF", "number": 1234, "title": "Checkout API returning 500s",
+      "status": "triggered", "urgency": "high",
+      "html_url": "https://acme.pagerduty.com/incidents/PABCDEF",
+      "service": { "id": "PSVC123", "summary": "Checkout API" },
+      "assignees": [{ "id": "PXXXXXX", "summary": "Ada Lovelace" }]
+    }
+  }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.title}}`, `{{Webhook 1.urgency}}`, `{{Webhook 1.assignee_names}}`
+
+---
+
+## Vercel
+
+Triggers on deployment and project events. The webhook secret is verified on every delivery.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Webhook Secret | Password | Shown when the webhook is created; validates `x-vercel-signature` (recommended) |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | e.g. `deployment.created`, `deployment.ready`, `deployment.error` |
+| `event_id` | string | Unique ID of the webhook event |
+| `created_at` | number | Event creation timestamp (epoch ms) |
+| `region` | string | Region the event came from |
+| `deployment_id` | string | Deployment ID |
+| `deployment_url` | string | Deployment URL |
+| `deployment_name` | string | Deployment name |
+| `target` | string | Deployment target (`production`, `preview`) |
+| `inspector_url` | string | Link to the deployment in Vercel |
+| `project_id` | string | Project ID |
+| `project_name` | string | Project name |
+| `team_id` | string | Team ID, when the project belongs to a team |
+| `user_id` | string | ID of the user who triggered the event |
+| `git_branch` | string | Branch the deployment was built from |
+| `git_sha` | string | Commit SHA the deployment was built from |
+| `git_message` | string | Commit message the deployment was built from |
+| `payload` | object | Full payload object as sent by Vercel |
+| `raw` | object | Complete original webhook payload |
+
+<Callout type="info">
+  `git_branch`, `git_sha`, and `git_message` resolve across GitHub, GitLab, and Bitbucket —
+  Vercel keys this metadata differently per git provider.
+</Callout>
+
+### Sample Payload (Deployment Ready)
+
+```json
+{
+  "id": "uev_1234567890abcdef",
+  "type": "deployment.ready",
+  "createdAt": 1705324455000,
+  "region": "iad1",
+  "payload": {
+    "team": { "id": "team_abc123" },
+    "project": { "id": "prj_abc123", "name": "zelaxy-web" },
+    "deployment": {
+      "id": "dpl_abc123", "name": "zelaxy-web",
+      "url": "zelaxy-web-abc123.vercel.app", "target": "production",
+      "meta": {
+        "githubCommitRef": "main",
+        "githubCommitSha": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+        "githubCommitMessage": "fix: correct minor typos in readme"
+      }
+    }
+  }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.deployment_url}}`, `{{Webhook 1.git_branch}}`
 
 ---
 

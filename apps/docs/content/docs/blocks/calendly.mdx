@@ -24,6 +24,7 @@ The Calendly block integrates Calendly scheduling into your workflows. Use it to
 - Get full details of a single scheduled event.
 - List the invitees attached to a scheduled event, with optional email and status filters.
 - Cancel an existing appointment programmatically.
+- Trigger a workflow automatically when an invitee books or cancels a meeting
 
 ## Configuration
 
@@ -57,6 +58,16 @@ The Calendly user URI (e.g. `https://api.calendly.com/users/xxx`). Shown only fo
 
 The Calendly organization URI (e.g. `https://api.calendly.com/organizations/xxx`). Shown only for the **List Scheduled Events** operation.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `calendly_webhook`
+
+When the block runs in trigger mode, this configures the `calendly_webhook` trigger so booking events start the workflow. The signing key is verified against the `Calendly-Webhook-Signature` header on every delivery.
+See the [Calendly webhook trigger](/docs/triggers/webhook#calendly) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 **Inputs:**
@@ -72,6 +83,10 @@ The Calendly organization URI (e.g. `https://api.calendly.com/organizations/xxx`
 - `eventTypes` (json) — Event types
 - `events` (json) — Scheduled events
 - `invitees` (json) — Event invitees
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event instead: `event` (string), `invitee_name` (string), `invitee_email` (string), `invitee_status` (string), `start_time` (string), `end_time` (string), `event_name` (string), `join_url` (string), `reschedule_url` (string), `cancel_url` (string), `cancel_reason` (string), `answers` (json — keyed by question text). See the [calendly webhook trigger](/docs/triggers/webhook#calendly) for the full schema.
 
 ## Tools
 

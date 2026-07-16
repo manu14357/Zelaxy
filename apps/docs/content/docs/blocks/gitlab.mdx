@@ -1,12 +1,12 @@
 ---
 title: GitLab Block
-description: Manage projects, issues, and files in GitLab
+description: Manage projects, issues, and files in GitLab, or trigger workflows from GitLab events
 icon: Box
 ---
 
 # GitLab Block
 
-List and inspect projects, list and create issues, and read repository files through the GitLab API. Authenticate with a GitLab Personal Access Token.
+List and inspect projects, list and create issues, and read repository files through the GitLab API. Authenticate with a GitLab Personal Access Token. It can also run as a trigger, starting a workflow from GitLab webhook events like pushes, merge requests, issues, pipelines, and comments.
 
 ## Overview
 
@@ -23,6 +23,7 @@ List and inspect projects, list and create issues, and read repository files thr
 - List issues in a project, optionally filtered by state or labels
 - Programmatically create new issues with titles, descriptions, and labels
 - Read any file from a project repository at a specific branch, tag, or commit
+- Trigger a workflow automatically when a push, merge request, issue, pipeline, or comment event fires
 
 ## Configuration
 
@@ -142,6 +143,16 @@ The branch name, tag, or commit SHA to retrieve the file from (e.g. `main`).
 
 A GitLab Personal Access Token (PAT) with at least `read_api` scope. Use `{{GITLAB_API_KEY}}` to pull the value from an environment variable.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `gitlab_webhook`
+
+When the block runs in trigger mode, this configures the `gitlab_webhook` trigger so GitLab events start the workflow. The secret token you set is verified against the `X-Gitlab-Token` header on every delivery.
+See the [GitLab webhook trigger](/docs/triggers/webhook#gitlab) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 **Inputs**
@@ -162,6 +173,8 @@ A GitLab Personal Access Token (PAT) with at least `read_api` scope. Use `{{GITL
 
 - `data` (json) — Result object or array from GitLab (project object, project array, issue object, issue array, or file object depending on the operation)
 - `metadata` (json) — Response metadata (e.g. `count` for list operations, `id` for single-object operations)
+
+When running in trigger mode the block emits trigger outputs instead: `object_kind` (string), `event_type` (string), `action` (string), `branch` (string), `ref` (string), `commit_message` (string), `commit_author` (string), `commits` (json), `object_attributes` (json), `project` (json), `project_path` (string), `user_name` (string), `title` (string), `state` (string), `url` (string).
 
 ## Tools
 

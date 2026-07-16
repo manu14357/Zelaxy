@@ -24,6 +24,7 @@ List projects and deployments, fetch deployment details, and create new deployme
 - Trigger a new deployment from a GitHub (or other Git) source programmatically
 - Drive CI/CD workflows that need to react to or initiate Vercel deployments
 - Monitor deployment pipelines by polling state until a deployment reaches READY or ERROR
+- Trigger a workflow automatically when a deployment is created, becomes ready, errors, or is canceled
 
 ## Configuration
 
@@ -82,6 +83,16 @@ Available for all operations. Scopes the Vercel API request to a specific team (
 
 Your Vercel personal access token used to authenticate all API calls. Required. Stored as a password field — use `{{VERCEL_ACCESS_TOKEN}}` to reference a workspace secret.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `vercel_webhook`
+
+When the block runs in trigger mode, this configures the `vercel_webhook` trigger so Vercel events start the workflow. The webhook secret is verified against the `x-vercel-signature` header on every delivery.
+See the [Vercel webhook trigger](/docs/triggers/webhook#vercel) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 - **Inputs**:
@@ -101,6 +112,10 @@ Your Vercel personal access token used to authenticate all API calls. Required. 
 - **Outputs**:
   - `data` (json) — Result object or array from Vercel (project list, deployment list, or single deployment object depending on operation)
   - `metadata` (json) — Response metadata. For list operations: `{ count: number, hasMore: boolean }`. For single-object operations: `{ id: string, name: string }`
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event instead: `event_type` (string), `deployment_id` (string), `deployment_url` (string), `deployment_name` (string), `target` (string), `inspector_url` (string), `project_name` (string), `git_branch` (string), `git_sha` (string), `git_message` (string), `team_id` (string). See the [vercel webhook trigger](/docs/triggers/webhook#vercel) for the full schema.
 
 ## Tools
 
