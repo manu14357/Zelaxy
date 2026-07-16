@@ -24,6 +24,7 @@ The Fathom block integrates the Fathom AI meeting recorder into your workflows. 
 - Fetch summaries and transcripts inline while listing meetings (single operation)
 - List team members for routing, filtering, or reporting logic
 - List teams to drive dynamic filtering or assignment in downstream blocks
+- Trigger a workflow when a Fathom meeting summary or transcript is ready
 
 ## Configuration
 
@@ -51,6 +52,16 @@ Switch (shown when operation is **List Meetings**). When enabled, each meeting o
 
 Switch (shown when operation is **List Meetings**). When enabled, each meeting object in the response includes a `transcript` array of speaker-attributed entries.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `fathom_webhook`
+
+When the block runs in trigger mode, this configures the `fathom_webhook` trigger so Fathom events start the workflow.
+See the [Fathom webhook trigger](/docs/triggers/webhook#fathom) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 ### Inputs
@@ -69,6 +80,10 @@ Switch (shown when operation is **List Meetings**). When enabled, each meeting o
 | `meetings` | json | Array of meeting objects returned by **List Meetings** (each contains title, recording_id, url, share_url, created_at, recorded_by, calendar_invitees, and optionally default_summary/transcript/action_items/crm_matches) |
 | `summary` | string | Meeting summary text returned by **Get Summary** (markdown-formatted) |
 | `transcript` | string | Transcript returned by **Get Transcript** — an array of entries each with speaker display_name, text, and timestamp |
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event: `event_type` (string), `meeting_id` (string), `meeting_title` (string), `summary` (string), `transcript` (string). See the [Fathom webhook trigger](/docs/triggers/webhook#fathom) for the full schema.
 
 ## Tools
 

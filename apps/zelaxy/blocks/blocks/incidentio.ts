@@ -69,6 +69,15 @@ export const IncidentioBlock: BlockConfig<IncidentioResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'incidentio',
+      availableTriggers: ['incidentio_webhook'],
+    },
   ],
   tools: {
     access: ['incidentio_list_incidents', 'incidentio_create_incident', 'incidentio_get_incident'],
@@ -87,5 +96,13 @@ export const IncidentioBlock: BlockConfig<IncidentioResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from incident.io' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'incident.io event type (trigger events)' },
+    incident_id: { type: 'string', description: 'Incident ID' },
+    incident_name: { type: 'string', description: 'Incident name' },
+    severity: { type: 'string', description: 'Incident severity' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['incidentio_webhook'],
   },
 }

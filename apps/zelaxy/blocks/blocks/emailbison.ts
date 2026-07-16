@@ -69,6 +69,15 @@ export const EmailBisonBlock: BlockConfig = {
       placeholder: 'john@example.com',
       condition: { field: 'operation', value: ['emailbison_verify_email'] },
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'emailbison',
+      availableTriggers: ['emailbison_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -93,5 +102,13 @@ export const EmailBisonBlock: BlockConfig = {
     email: { type: 'string', description: 'Found email address' },
     verified: { type: 'boolean', description: 'Email verification result' },
     confidence: { type: 'number', description: 'Confidence score' },
+    event_type: { type: 'string', description: 'EmailBison event type (trigger events)' },
+    lead_email: { type: 'string', description: 'Lead email' },
+    campaign_name: { type: 'string', description: 'Campaign name' },
+    reply_text: { type: 'string', description: 'Reply body' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['emailbison_webhook'],
   },
 }

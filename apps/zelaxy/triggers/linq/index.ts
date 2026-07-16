@@ -1,0 +1,1 @@
+export { linqWebhookTrigger } from './webhook'

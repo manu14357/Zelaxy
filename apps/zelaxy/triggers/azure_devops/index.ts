@@ -1,0 +1,1 @@
+export { azureDevOpsWebhookTrigger } from './webhook'

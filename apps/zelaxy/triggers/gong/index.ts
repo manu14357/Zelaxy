@@ -1,0 +1,1 @@
+export { gongWebhookTrigger } from './webhook'

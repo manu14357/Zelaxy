@@ -108,6 +108,15 @@ export const GreenhouseBlock: BlockConfig<GreenhouseResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'greenhouse',
+      availableTriggers: ['greenhouse_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -133,5 +142,13 @@ export const GreenhouseBlock: BlockConfig<GreenhouseResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from Greenhouse' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'Greenhouse event type (trigger events)' },
+    candidate_name: { type: 'string', description: 'Candidate full name' },
+    candidate_email: { type: 'string', description: 'Candidate email' },
+    stage: { type: 'string', description: 'Current stage' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['greenhouse_webhook'],
   },
 }

@@ -1,0 +1,1 @@
+export { lemlistWebhookTrigger } from './webhook'

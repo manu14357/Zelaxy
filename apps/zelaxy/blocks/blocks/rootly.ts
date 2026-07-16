@@ -69,6 +69,15 @@ export const RootlyBlock: BlockConfig<RootlyResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'rootly',
+      availableTriggers: ['rootly_webhook'],
+    },
   ],
   tools: {
     access: ['rootly_list_incidents', 'rootly_create_incident', 'rootly_get_incident'],
@@ -87,5 +96,13 @@ export const RootlyBlock: BlockConfig<RootlyResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from Rootly' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'Rootly event type (trigger events)' },
+    incident_id: { type: 'string', description: 'Incident ID' },
+    incident_title: { type: 'string', description: 'Incident title' },
+    severity: { type: 'string', description: 'Incident severity' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['rootly_webhook'],
   },
 }

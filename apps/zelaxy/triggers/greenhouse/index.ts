@@ -1,0 +1,1 @@
+export { greenhouseWebhookTrigger } from './webhook'

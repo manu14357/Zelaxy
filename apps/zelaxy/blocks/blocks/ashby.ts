@@ -66,6 +66,15 @@ export const AshbyBlock: BlockConfig = {
         value: ['ashby_create_candidate', 'ashby_update_candidate'],
       },
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'ashby',
+      availableTriggers: ['ashby_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -91,5 +100,13 @@ export const AshbyBlock: BlockConfig = {
     candidates: { type: 'json', description: 'Candidate list' },
     candidate: { type: 'json', description: 'Candidate details' },
     applications: { type: 'json', description: 'Application list' },
+    event_type: { type: 'string', description: 'Ashby event type (trigger events)' },
+    candidate_name: { type: 'string', description: 'Candidate name' },
+    candidate_email: { type: 'string', description: 'Candidate email' },
+    stage: { type: 'string', description: 'Current interview stage' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['ashby_webhook'],
   },
 }

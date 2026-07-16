@@ -1,0 +1,1 @@
+export { fathomWebhookTrigger } from './webhook'

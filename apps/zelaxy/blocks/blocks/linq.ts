@@ -102,6 +102,15 @@ export const LinqBlock: BlockConfig<LinqResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'linq',
+      availableTriggers: ['linq_webhook'],
+    },
   ],
   tools: {
     access: ['linq_send_message', 'linq_list_chats', 'linq_list_messages'],
@@ -124,5 +133,13 @@ export const LinqBlock: BlockConfig<LinqResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from Linq' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'Linq event type (trigger events)' },
+    message_id: { type: 'string', description: 'Message ID' },
+    status: { type: 'string', description: 'Message status' },
+    body: { type: 'string', description: 'Message body' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['linq_webhook'],
   },
 }

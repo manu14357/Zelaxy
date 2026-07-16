@@ -1,0 +1,1 @@
+export { incidentioWebhookTrigger } from './webhook'

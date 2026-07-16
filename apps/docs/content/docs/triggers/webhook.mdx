@@ -42,6 +42,23 @@ Zelaxy supports webhook triggers from the following services. Each provider has 
 | [Resend](#resend) | `resend_webhook` | Svix Signing Secret | Triggers on email delivery events |
 | [Twilio SMS](#twilio-sms) | `twilio_webhook` | Auth Token | Triggers on incoming SMS/MMS |
 | [Twilio Voice](#twilio-voice) | `twilio_voice_webhook` | Auth Token | Triggers on incoming calls and call status |
+| [Attio](#attio) | `attio_webhook` | — | Triggers on records, notes, tasks, and lists changing |
+| [Azure DevOps](#azure-devops) | `azure_devops_webhook` | — | Triggers on builds, work items, and pull requests |
+| [Gong](#gong) | `gong_webhook` | Authorization token | Triggers on calls being processed and transcripts becoming ready |
+| [Greenhouse](#greenhouse) | `greenhouse_webhook` | Secret key | Triggers on candidates being hired, rejected, or changing stage |
+| [Ashby](#ashby) | `ashby_webhook` | Secret token | Triggers on applications submitted and candidates changing stage |
+| [incident.io](#incident-io) | `incidentio_webhook` | Svix signing secret | Triggers on incidents being created, updated, or resolved |
+| [Rootly](#rootly) | `rootly_webhook` | Signing secret | Triggers on incidents being created, mitigated, or resolved |
+| [RevenueCat](#revenuecat) | `revenuecat_webhook` | Authorization header value | Triggers on purchases, renewals, cancellations, and expirations |
+| [Loops](#loops) | `loops_webhook` | — | Triggers on email sent, delivered, opened, clicked, and bounced |
+| [Fathom](#fathom) | `fathom_webhook` | — | Triggers when a meeting recording, summary, or transcript is ready |
+| [Grain](#grain) | `grain_webhook` | — | Triggers on recordings completing and highlights being created |
+| [Instantly](#instantly) | `instantly_webhook` | — | Triggers on campaign replies, opens, clicks, and bounces |
+| [lemlist](#lemlist) | `lemlist_webhook` | — | Triggers on campaign replies, opens, clicks, and bounces |
+| [Linq](#linq) | `linq_webhook` | — | Triggers on messages being delivered, failing, or replied to |
+| [Circleback](#circleback) | `circleback_webhook` | Authorization value | Triggers when a meeting completes and notes or action items are ready |
+| [EmailBison](#emailbison) | `emailbison_webhook` | Authorization value | Triggers on replies received and sending accounts disconnecting |
+| [Sendblue](#sendblue) | `sendblue_webhook` | — | Triggers on iMessage/SMS messages received or status changing |
 | [Generic](#generic-webhook) | `generic_webhook` | — | Universal HTTP endpoint |
 
 ## How It Works
@@ -1374,6 +1391,553 @@ Triggers when your Twilio number receives a call, or when a call status or recor
 ### Usage Example
 
 Reference in downstream blocks: `{{Webhook 1.from}}`, `{{Webhook 1.call_status}}`, `{{Webhook 1.recording_url}}`
+
+---
+
+## Attio
+
+Triggers on records, notes, tasks, and lists changing.
+
+<Callout type="info">
+  Attio batches events into one delivery. The top-level fields describe the **first** event; read `events` to handle them all.
+</Callout>
+
+### Configuration
+
+This provider does not sign or authenticate its webhooks. **Treat the webhook URL as the secret** — it is unguessable, but anyone who has it can start your workflow. Use the provider's IP allowlist if it offers one.
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | Event type (record.created, record.updated, note.created) |
+| `webhook_id` | string | Webhook subscription ID |
+| `record_id` | string | ID of the affected record |
+| `object_id` | string | Attio object ID |
+| `actor_type` | string | Who performed the change |
+| `actor_id` | string | Actor ID |
+| `events` | array | All events in the delivery |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.webhook_id}}`, `{{Webhook 1.record_id}}`
+
+---
+
+## Azure DevOps
+
+Triggers on builds, work items, and pull requests.
+
+<Callout type="info">
+  Azure DevOps returns work item fields under dotted keys like `System.Title`. Zelaxy lifts those into `work_item_title` / `work_item_state` so you do not have to quote them.
+</Callout>
+
+### Configuration
+
+This provider does not sign or authenticate its webhooks. **Treat the webhook URL as the secret** — it is unguessable, but anyone who has it can start your workflow. Use the provider's IP allowlist if it offers one.
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | e.g. build.complete, workitem.created |
+| `message` | string | Event summary (also the workflow input) |
+| `build_number` | string | Build number |
+| `build_result` | string | succeeded, failed, canceled |
+| `work_item_id` | number | Work item ID |
+| `work_item_title` | string | Work item title |
+| `work_item_state` | string | Work item state |
+| `pull_request_id` | number | Pull request ID |
+| `project` | string | Project name |
+| `resource` | object | Full resource object |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.message}}`, `{{Webhook 1.build_number}}`
+
+---
+
+## Gong
+
+Triggers on calls being processed and transcripts becoming ready.
+
+<Callout type="info">
+  Gong does not sign the body — it sends whatever Authorization header you configure on the automation rule, and Zelaxy compares it in constant time.
+</Callout>
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Secret | Password | Authorization token — validated on every delivery |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | Event type sent by the Gong rule |
+| `call_id` | string | Gong call ID |
+| `call_title` | string | Call title |
+| `call_url` | string | Link to the call |
+| `started` | string | When the call started |
+| `duration` | number | Duration in seconds |
+| `participants` | array | Call participants |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.call_id}}`, `{{Webhook 1.call_title}}`
+
+---
+
+## Greenhouse
+
+Triggers on candidates being hired, rejected, or changing stage.
+
+<Callout type="info">
+  Greenhouse signs with the `Signature: sha256 <hex>` form — note the space, not an `=`.
+</Callout>
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Secret | Password | Secret key — validated on every delivery |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | e.g. candidate_hired, candidate_stage_change |
+| `candidate_id` | number | Candidate ID |
+| `candidate_name` | string | Candidate full name |
+| `candidate_email` | string | Candidate primary email |
+| `application_id` | number | Application ID |
+| `job_id` | number | Job ID |
+| `job_name` | string | Job name |
+| `stage` | string | Current stage |
+| `status` | string | Application status |
+| `payload` | object | Full payload object |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.candidate_id}}`, `{{Webhook 1.candidate_name}}`
+
+---
+
+## Ashby
+
+Triggers on applications submitted and candidates changing stage.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Secret | Password | Secret token — validated on every delivery |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | e.g. applicationSubmit, candidateStageChange |
+| `candidate_id` | string | Candidate ID |
+| `candidate_name` | string | Candidate name |
+| `candidate_email` | string | Candidate primary email |
+| `application_id` | string | Application ID |
+| `job_title` | string | Job title |
+| `stage` | string | Current interview stage |
+| `status` | string | Application status |
+| `data` | object | Full data object |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.candidate_id}}`, `{{Webhook 1.candidate_name}}`
+
+---
+
+## incident.io
+
+Triggers on incidents being created, updated, or resolved.
+
+<Callout type="info">
+  incident.io signs with Svix, the same scheme as Clerk and Resend. Zelaxy reads `public_data`, `private_data`, or `data`, whichever the event carries.
+</Callout>
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Secret | Password | Svix signing secret — validated on every delivery |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | e.g. public_incident.incident_created_v2 |
+| `incident_id` | string | Incident ID |
+| `incident_name` | string | Incident name |
+| `incident_status` | string | Incident status |
+| `severity` | string | Incident severity |
+| `summary` | string | Incident summary |
+| `permalink` | string | Link to the incident |
+| `reference` | string | Reference (e.g. INC-123) |
+| `created_at` | string | When it was created |
+| `data` | object | Full event data |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.incident_id}}`, `{{Webhook 1.incident_name}}`
+
+---
+
+## Rootly
+
+Triggers on incidents being created, mitigated, or resolved.
+
+<Callout type="info">
+  Rootly uses a JSON:API shape (`data.attributes.*`). Zelaxy flattens it so you reference `incident_title` rather than walking the envelope.
+</Callout>
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Secret | Password | Signing secret — validated on every delivery |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | e.g. incident.created, incident.resolved |
+| `incident_id` | string | Incident ID |
+| `incident_title` | string | Incident title |
+| `incident_status` | string | Incident status |
+| `severity` | string | Incident severity |
+| `summary` | string | Incident summary |
+| `url` | string | Link to the incident |
+| `created_at` | string | When it was created |
+| `data` | object | Full data object |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.incident_id}}`, `{{Webhook 1.incident_title}}`
+
+---
+
+## RevenueCat
+
+Triggers on purchases, renewals, cancellations, and expirations.
+
+<Callout type="info">
+  RevenueCat does not sign the body — it sends the exact Authorization header value you configure. Check `environment` before acting: sandbox events look identical to production ones.
+</Callout>
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Secret | Password | Authorization header value — validated on every delivery |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION |
+| `event_id` | string | Unique event ID |
+| `app_user_id` | string | Your app user ID |
+| `product_id` | string | Product identifier |
+| `entitlement_ids` | array | Entitlements affected |
+| `store` | string | APP_STORE, PLAY_STORE, STRIPE |
+| `environment` | string | SANDBOX or PRODUCTION |
+| `period_type` | string | TRIAL, INTRO, NORMAL |
+| `price` | number | Price paid |
+| `currency` | string | Currency code |
+| `expiration_at_ms` | number | Expiry (epoch ms) |
+| `purchased_at_ms` | number | Purchase time (epoch ms) |
+| `cancel_reason` | string | Cancellation reason |
+| `event` | object | Full event object |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.event_id}}`, `{{Webhook 1.app_user_id}}`
+
+---
+
+## Loops
+
+Triggers on email sent, delivered, opened, clicked, and bounced.
+
+### Configuration
+
+This provider does not sign or authenticate its webhooks. **Treat the webhook URL as the secret** — it is unguessable, but anyone who has it can start your workflow. Use the provider's IP allowlist if it offers one.
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | e.g. email.opened, email.clicked |
+| `email` | string | Recipient email |
+| `contact_id` | string | Loops contact ID |
+| `campaign_id` | string | Campaign ID |
+| `campaign_name` | string | Campaign name |
+| `email_message_id` | string | Message ID |
+| `link_url` | string | Clicked link |
+| `timestamp` | string | When it occurred |
+| `data` | object | Full data object |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.email}}`, `{{Webhook 1.contact_id}}`
+
+---
+
+## Fathom
+
+Triggers when a meeting recording, summary, or transcript is ready.
+
+### Configuration
+
+This provider does not sign or authenticate its webhooks. **Treat the webhook URL as the secret** — it is unguessable, but anyone who has it can start your workflow. Use the provider's IP allowlist if it offers one.
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | Event type reported by Fathom |
+| `meeting_id` | string | Meeting ID |
+| `meeting_title` | string | Meeting title |
+| `recording_url` | string | Link to the recording |
+| `share_url` | string | Shareable link |
+| `scheduled_start_time` | string | Scheduled start |
+| `summary` | string | AI summary |
+| `transcript` | string | Transcript |
+| `invitees` | array | Meeting invitees |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.meeting_id}}`, `{{Webhook 1.meeting_title}}`
+
+---
+
+## Grain
+
+Triggers on recordings completing and highlights being created.
+
+### Configuration
+
+This provider does not sign or authenticate its webhooks. **Treat the webhook URL as the secret** — it is unguessable, but anyone who has it can start your workflow. Use the provider's IP allowlist if it offers one.
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | recording.completed, highlight.created |
+| `recording_id` | string | Recording ID |
+| `recording_title` | string | Recording title |
+| `recording_url` | string | Link to the recording |
+| `highlight_id` | string | Highlight ID |
+| `highlight_text` | string | Highlight text |
+| `start_datetime` | string | Recording start |
+| `end_datetime` | string | Recording end |
+| `participants` | array | Participants |
+| `data` | object | Full data object |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.recording_id}}`, `{{Webhook 1.recording_title}}`
+
+---
+
+## Instantly
+
+Triggers on campaign replies, opens, clicks, and bounces.
+
+### Configuration
+
+This provider does not sign or authenticate its webhooks. **Treat the webhook URL as the secret** — it is unguessable, but anyone who has it can start your workflow. Use the provider's IP allowlist if it offers one.
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | reply_received, email_opened, link_clicked |
+| `campaign_id` | string | Campaign ID |
+| `campaign_name` | string | Campaign name |
+| `lead_email` | string | Lead email |
+| `lead_first_name` | string | Lead first name |
+| `lead_last_name` | string | Lead last name |
+| `lead_company` | string | Lead company |
+| `email_account` | string | Sending account |
+| `reply_text` | string | Reply body |
+| `reply_subject` | string | Reply subject |
+| `timestamp` | string | When it occurred |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.campaign_id}}`, `{{Webhook 1.campaign_name}}`
+
+---
+
+## lemlist
+
+Triggers on campaign replies, opens, clicks, and bounces.
+
+### Configuration
+
+This provider does not sign or authenticate its webhooks. **Treat the webhook URL as the secret** — it is unguessable, but anyone who has it can start your workflow. Use the provider's IP allowlist if it offers one.
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | emailsReplied, emailsOpened, emailsClicked |
+| `campaign_id` | string | Campaign ID |
+| `campaign_name` | string | Campaign name |
+| `lead_email` | string | Lead email |
+| `lead_first_name` | string | Lead first name |
+| `lead_company` | string | Lead company |
+| `sequence_step` | number | Sequence step |
+| `text` | string | Reply text |
+| `created_at` | string | When it occurred |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.campaign_id}}`, `{{Webhook 1.campaign_name}}`
+
+---
+
+## Linq
+
+Triggers on messages being delivered, failing, or replied to.
+
+### Configuration
+
+This provider does not sign or authenticate its webhooks. **Treat the webhook URL as the secret** — it is unguessable, but anyone who has it can start your workflow. Use the provider's IP allowlist if it offers one.
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | message.delivered, message.failed, message.received |
+| `message_id` | string | Message ID |
+| `status` | string | Message status |
+| `from` | string | Sender |
+| `to` | string | Recipient |
+| `body` | string | Message body (also the workflow input) |
+| `error_message` | string | Error message |
+| `timestamp` | string | When it occurred |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.message_id}}`, `{{Webhook 1.status}}`
+
+---
+
+## Circleback
+
+Triggers when a meeting completes and notes or action items are ready.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Secret | Password | Authorization value — validated on every delivery |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | meeting.completed, meeting.notes.ready |
+| `meeting_id` | string | Meeting ID |
+| `meeting_name` | string | Meeting name |
+| `meeting_url` | string | Link to the meeting |
+| `start_time` | string | Meeting start |
+| `end_time` | string | Meeting end |
+| `notes` | string | Meeting notes |
+| `action_items` | array | Extracted action items |
+| `attendees` | array | Meeting attendees |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.meeting_id}}`, `{{Webhook 1.meeting_name}}`
+
+---
+
+## EmailBison
+
+Triggers on replies received and sending accounts disconnecting.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Secret | Password | Authorization value — validated on every delivery |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | reply_received, email_account_disconnected |
+| `campaign_id` | string | Campaign ID |
+| `campaign_name` | string | Campaign name |
+| `lead_email` | string | Lead email |
+| `email_account` | string | Sending account |
+| `subject` | string | Email subject |
+| `reply_text` | string | Reply body |
+| `timestamp` | string | When it occurred |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.campaign_id}}`, `{{Webhook 1.campaign_name}}`
+
+---
+
+## Sendblue
+
+Triggers on iMessage/SMS messages received or status changing.
+
+<Callout type="info">
+  Sendblue does not send an explicit event name. Zelaxy derives `event_type` from `is_outbound`: inbound messages become `message.received`, outbound status callbacks become `message.status_updated`.
+</Callout>
+
+### Configuration
+
+This provider does not sign or authenticate its webhooks. **Treat the webhook URL as the secret** — it is unguessable, but anyone who has it can start your workflow. Use the provider's IP allowlist if it offers one.
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | message.received or message.status_updated |
+| `message_handle` | string | Message handle |
+| `from_number` | string | Sender number |
+| `to_number` | string | Recipient number |
+| `content` | string | Message content (also the workflow input) |
+| `status` | string | Message status |
+| `error_message` | string | Error message |
+| `is_outbound` | boolean | Whether outbound |
+| `media_url` | string | Media URL |
+| `date_sent` | string | When sent |
+| `raw` | object | Complete original payload |
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.message_handle}}`, `{{Webhook 1.from_number}}`
 
 ---
 

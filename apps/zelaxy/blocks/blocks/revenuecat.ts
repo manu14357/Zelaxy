@@ -72,6 +72,15 @@ export const RevenueCatBlock: BlockConfig<RevenueCatResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'revenuecat',
+      availableTriggers: ['revenuecat_webhook'],
+    },
   ],
   tools: {
     access: ['revenuecat_get_customer', 'revenuecat_list_customers', 'revenuecat_get_subscription'],
@@ -90,5 +99,13 @@ export const RevenueCatBlock: BlockConfig<RevenueCatResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from RevenueCat' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'RevenueCat event type (trigger events)' },
+    app_user_id: { type: 'string', description: 'App user ID' },
+    product_id: { type: 'string', description: 'Product identifier' },
+    store: { type: 'string', description: 'Store' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['revenuecat_webhook'],
   },
 }

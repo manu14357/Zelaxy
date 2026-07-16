@@ -7,12 +7,16 @@ import {
   handleSlackChallenge,
   handleWhatsAppVerification,
   handleZoomUrlValidation,
+  validateAshbySignature,
   validateCalcomSignature,
   validateCalendlySignature,
   validateGitLabToken,
+  validateGreenhouseSignature,
   validateMicrosoftTeamsSignature,
   validatePagerDutySignature,
+  validateRootlySignature,
   validateSentrySignature,
+  validateSharedSecretHeader,
   validateSvixSignature,
   validateTwilioSignature,
   validateTypeformSignature,
@@ -308,6 +312,55 @@ export async function POST(
           getExternalRequestUrl(request),
           body as Record<string, string>
         ),
+    },
+    greenhouse: {
+      secretKey: 'secretKey',
+      header: 'signature',
+      validate: (s, sig) => validateGreenhouseSignature(s, sig, rawBody as string),
+    },
+    ashby: {
+      secretKey: 'secretToken',
+      header: 'ashby-signature',
+      validate: (s, sig) => validateAshbySignature(s, sig, rawBody as string),
+    },
+    rootly: {
+      secretKey: 'signingSecret',
+      header: 'x-rootly-signature',
+      validate: (s, sig) => validateRootlySignature(s, sig, rawBody as string),
+    },
+    // incident.io signs with Svix, same as Clerk and Resend
+    incidentio: {
+      secretKey: 'signingSecret',
+      header: 'svix-signature',
+      validate: (s, sig) =>
+        validateSvixSignature(
+          s,
+          request.headers.get('svix-id'),
+          request.headers.get('svix-timestamp'),
+          sig,
+          rawBody as string
+        ),
+    },
+    // These providers do not sign the body — they echo back a value configured on their side
+    gong: {
+      secretKey: 'authToken',
+      header: 'authorization',
+      validate: (s, sig) => validateSharedSecretHeader(s, sig),
+    },
+    revenuecat: {
+      secretKey: 'authHeader',
+      header: 'authorization',
+      validate: (s, sig) => validateSharedSecretHeader(s, sig),
+    },
+    circleback: {
+      secretKey: 'webhookSecret',
+      header: 'authorization',
+      validate: (s, sig) => validateSharedSecretHeader(s, sig),
+    },
+    emailbison: {
+      secretKey: 'webhookToken',
+      header: 'authorization',
+      validate: (s, sig) => validateSharedSecretHeader(s, sig),
     },
     calcom: {
       secretKey: 'webhookSecret',

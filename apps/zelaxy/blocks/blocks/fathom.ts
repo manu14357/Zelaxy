@@ -48,6 +48,15 @@ export const FathomBlock: BlockConfig = {
       layout: 'half',
       condition: { field: 'operation', value: ['fathom_list_meetings'] },
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'fathom',
+      availableTriggers: ['fathom_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -71,5 +80,12 @@ export const FathomBlock: BlockConfig = {
     meetings: { type: 'json', description: 'Meeting list' },
     summary: { type: 'string', description: 'Meeting summary' },
     transcript: { type: 'string', description: 'Meeting transcript' },
+    event_type: { type: 'string', description: 'Fathom event type (trigger events)' },
+    meeting_id: { type: 'string', description: 'Meeting ID' },
+    meeting_title: { type: 'string', description: 'Meeting title' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['fathom_webhook'],
   },
 }

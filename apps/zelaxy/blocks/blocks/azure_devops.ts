@@ -92,6 +92,15 @@ export const AzureDevOpsBlock: BlockConfig = {
         'SELECT [System.Id], [System.Title] FROM WorkItems WHERE [System.TeamProject] = @project',
       condition: { field: 'operation', value: ['azure_devops_query_work_items'] },
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'azure_devops',
+      availableTriggers: ['azure_devops_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -121,5 +130,13 @@ export const AzureDevOpsBlock: BlockConfig = {
     pipelines: { type: 'json', description: 'Pipeline list' },
     workItems: { type: 'json', description: 'Work item list' },
     run: { type: 'json', description: 'Pipeline run details' },
+    event_type: { type: 'string', description: 'Azure DevOps event type (trigger events)' },
+    message: { type: 'string', description: 'Event summary' },
+    build_result: { type: 'string', description: 'Build result' },
+    work_item_id: { type: 'number', description: 'Work item ID' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['azure_devops_webhook'],
   },
 }

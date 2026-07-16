@@ -24,6 +24,7 @@ The Ashby block integrates the Ashby applicant tracking system into your workflo
 - Update an existing candidate's name, email, phone, or social links
 - Pull paginated lists of applications filtered by status, job, or candidate to track pipeline stages
 - Fetch a job posting's details (title, description, location, employment type, apply link) for routing or notifications
+- Trigger a workflow when an application is submitted or a candidate changes stage
 
 ## Configuration
 
@@ -56,6 +57,16 @@ The candidate's full name. Shown only for the **Create Candidate** and **Update 
 
 The candidate's primary email address. Shown only for the **Create Candidate** and **Update Candidate** operations.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `ashby_webhook`
+
+When the block runs in trigger mode, this configures the `ashby_webhook` trigger so Ashby events start the workflow.
+See the [Ashby webhook trigger](/docs/triggers/webhook#ashby) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 ### Block-level inputs
@@ -71,6 +82,10 @@ The candidate's primary email address. Shown only for the **Create Candidate** a
 - `candidates` (json) — Candidate list returned by List Candidates
 - `candidate` (json) — Candidate details returned by Get Candidate, Create Candidate, or Update Candidate
 - `applications` (json) — Application list returned by List Applications
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event: `event_type` (string), `candidate_name` (string), `candidate_email` (string), `job_title` (string), `stage` (string). See the [Ashby webhook trigger](/docs/triggers/webhook#ashby) for the full schema.
 
 ## Tools
 

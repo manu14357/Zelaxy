@@ -2,26 +2,40 @@
 
 import { airtableWebhookTrigger } from './airtable'
 import { asanaWebhookTrigger } from './asana'
+import { ashbyWebhookTrigger } from './ashby'
+import { attioWebhookTrigger } from './attio'
+import { azureDevOpsWebhookTrigger } from './azure_devops'
 import { calcomWebhookTrigger } from './calcom'
 import { calendlyWebhookTrigger } from './calendly'
+import { circlebackWebhookTrigger } from './circleback'
 import { clerkWebhookTrigger } from './clerk'
 import { confluenceWebhookTrigger } from './confluence'
 import { discordWebhookTrigger } from './discord'
 import { dropboxWebhookTrigger } from './dropbox'
+import { emailbisonWebhookTrigger } from './emailbison'
 import { evernoteWebhookTrigger } from './evernote'
+import { fathomWebhookTrigger } from './fathom'
 import { firefliesWebhookTrigger } from './fireflies'
 import { genericWebhookTrigger } from './generic'
 import { githubWebhookTrigger } from './github'
 import { gitlabWebhookTrigger } from './gitlab'
 import { gmailPollingTrigger } from './gmail'
+import { gongWebhookTrigger } from './gong'
 import { googleCalendarPollingTrigger } from './google-calendar'
 import { googleDocsPollingTrigger } from './google-docs'
 import { googleDrivePollingTrigger } from './google-drive'
 import { googleSheetsPollingTrigger } from './google-sheets'
+import { grainWebhookTrigger } from './grain'
+import { greenhouseWebhookTrigger } from './greenhouse'
 import { hubspotPollingTrigger } from './hubspot'
+import { incidentioWebhookTrigger } from './incidentio'
+import { instantlyWebhookTrigger } from './instantly'
 import { intercomWebhookTrigger } from './intercom'
 import { jiraWebhookTrigger } from './jira'
+import { lemlistWebhookTrigger } from './lemlist'
 import { linearWebhookTrigger } from './linear'
+import { linqWebhookTrigger } from './linq'
+import { loopsWebhookTrigger } from './loops'
 import { microsoftTeamsWebhookTrigger } from './microsoftteams'
 import { mondayWebhookTrigger } from './monday'
 import { notionWebhookTrigger } from './notion'
@@ -31,7 +45,10 @@ import { outlookPollingTrigger } from './outlook'
 import { pagerdutyWebhookTrigger } from './pagerduty'
 import { redditWebhookTrigger } from './reddit'
 import { resendWebhookTrigger } from './resend'
+import { revenuecatWebhookTrigger } from './revenuecat'
+import { rootlyWebhookTrigger } from './rootly'
 import { salesforceWebhookTrigger } from './salesforce'
+import { sendblueWebhookTrigger } from './sendblue'
 import { sentryWebhookTrigger } from './sentry'
 import { servicenowWebhookTrigger } from './servicenow'
 import { slackWebhookTrigger } from './slack'
@@ -51,6 +68,24 @@ import { zoomWebhookTrigger } from './zoom'
 // Central registry of all available triggers
 export const TRIGGER_REGISTRY: TriggerRegistry = {
   slack_webhook: slackWebhookTrigger,
+  ashby_webhook: ashbyWebhookTrigger,
+  attio_webhook: attioWebhookTrigger,
+  azure_devops_webhook: azureDevOpsWebhookTrigger,
+  circleback_webhook: circlebackWebhookTrigger,
+  emailbison_webhook: emailbisonWebhookTrigger,
+  fathom_webhook: fathomWebhookTrigger,
+  gong_webhook: gongWebhookTrigger,
+  grain_webhook: grainWebhookTrigger,
+  greenhouse_webhook: greenhouseWebhookTrigger,
+  incidentio_webhook: incidentioWebhookTrigger,
+  instantly_webhook: instantlyWebhookTrigger,
+  lemlist_webhook: lemlistWebhookTrigger,
+  linq_webhook: linqWebhookTrigger,
+  loops_webhook: loopsWebhookTrigger,
+  revenuecat_webhook: revenuecatWebhookTrigger,
+  rootly_webhook: rootlyWebhookTrigger,
+  sendblue_webhook: sendblueWebhookTrigger,
+
   airtable_webhook: airtableWebhookTrigger,
   asana_webhook: asanaWebhookTrigger,
   calcom_webhook: calcomWebhookTrigger,

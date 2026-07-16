@@ -59,6 +59,15 @@ export const SendblueBlock: BlockConfig<SendblueResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'sendblue',
+      availableTriggers: ['sendblue_webhook'],
+    },
   ],
   tools: {
     access: ['sendblue_send_message', 'sendblue_get_messages'],
@@ -76,5 +85,13 @@ export const SendblueBlock: BlockConfig<SendblueResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from Sendblue' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'Sendblue event type (trigger events)' },
+    from_number: { type: 'string', description: 'Sender number' },
+    content: { type: 'string', description: 'Message content' },
+    status: { type: 'string', description: 'Message status' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['sendblue_webhook'],
   },
 }

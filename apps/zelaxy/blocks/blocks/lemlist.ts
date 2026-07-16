@@ -72,6 +72,15 @@ export const LemlistBlock: BlockConfig<LemlistResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'lemlist',
+      availableTriggers: ['lemlist_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -95,5 +104,13 @@ export const LemlistBlock: BlockConfig<LemlistResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from Lemlist' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'lemlist event type (trigger events)' },
+    lead_email: { type: 'string', description: 'Lead email' },
+    campaign_name: { type: 'string', description: 'Campaign name' },
+    text: { type: 'string', description: 'Reply text' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['lemlist_webhook'],
   },
 }

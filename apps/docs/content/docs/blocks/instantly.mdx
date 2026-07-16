@@ -24,6 +24,7 @@ List campaigns, create leads, and list leads through the Instantly V2 API. Use t
 - Combine with a Condition or Router block to branch a workflow based on whether a lead already exists.
 - Feed campaign IDs from a List Campaigns result directly into a Create Lead step using `{{instantly_1.data}}`.
 - Audit outreach pipelines by listing leads and passing results to a table or notification block.
+- Trigger a workflow when a lead replies or a campaign email is opened
 
 ## Configuration
 
@@ -72,6 +73,16 @@ Your Instantly V2 API key. This value is treated as a secret (password field) an
 - Required: yes (all operations)
 - Best practice: pass as an environment variable reference — `{{INSTANTLY_API_KEY}}`
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `instantly_webhook`
+
+When the block runs in trigger mode, this configures the `instantly_webhook` trigger so Instantly events start the workflow.
+See the [Instantly webhook trigger](/docs/triggers/webhook#instantly) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 **Inputs:**
@@ -85,6 +96,10 @@ Your Instantly V2 API key. This value is treated as a secret (password field) an
 
 - `data` (json) — Result object or array from Instantly. For list operations this is an array of campaign or lead objects; for `instantly_create_lead` this is the created lead object including its `id`.
 - `metadata` (json) — Response metadata. For list operations: `{ count: number }`. For create lead: `{ id: string }`.
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event: `event_type` (string), `lead_email` (string), `campaign_name` (string), `reply_text` (string). See the [Instantly webhook trigger](/docs/triggers/webhook#instantly) for the full schema.
 
 ## Tools
 

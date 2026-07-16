@@ -1,0 +1,1 @@
+export { attioWebhookTrigger } from './webhook'

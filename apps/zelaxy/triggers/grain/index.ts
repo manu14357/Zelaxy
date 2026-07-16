@@ -1,0 +1,1 @@
+export { grainWebhookTrigger } from './webhook'

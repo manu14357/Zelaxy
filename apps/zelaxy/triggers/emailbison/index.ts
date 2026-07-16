@@ -1,0 +1,1 @@
+export { emailbisonWebhookTrigger } from './webhook'

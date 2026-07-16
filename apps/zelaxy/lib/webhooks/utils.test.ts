@@ -25,11 +25,15 @@ import {
   formatWebhookInput,
   getExternalRequestUrl,
   handleZoomUrlValidation,
+  validateAshbySignature,
   validateCalcomSignature,
   validateCalendlySignature,
   validateGitLabToken,
+  validateGreenhouseSignature,
   validatePagerDutySignature,
+  validateRootlySignature,
   validateSentrySignature,
+  validateSharedSecretHeader,
   validateSvixSignature,
   validateTwilioSignature,
   validateTypeformSignature,
@@ -292,6 +296,201 @@ describe('handleZoomUrlValidation', () => {
     )
 
     expect(res?.status).toBe(400)
+  })
+})
+
+describe('batch-4 signature validators', () => {
+  const crypto = require('crypto')
+  const body = '{"hello":"world"}'
+
+  it('validateGreenhouseSignature expects the `sha256 <hex>` form', () => {
+    const secret = 'gh-secret'
+    const hex = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    expect(validateGreenhouseSignature(secret, `sha256 ${hex}`, body)).toBe(true)
+    // The bare hex without Greenhouse's prefix must not pass
+    expect(validateGreenhouseSignature(secret, hex, body)).toBe(false)
+    expect(validateGreenhouseSignature(secret, `sha256 ${hex}`, `${body} tampered`)).toBe(false)
+  })
+
+  it('validateAshbySignature accepts both bare hex and the sha256= prefixed form', () => {
+    const secret = 'ashby-secret'
+    const hex = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    expect(validateAshbySignature(secret, hex, body)).toBe(true)
+    expect(validateAshbySignature(secret, `sha256=${hex}`, body)).toBe(true)
+    expect(validateAshbySignature('wrong', hex, body)).toBe(false)
+  })
+
+  it('validateRootlySignature accepts a correct hex HMAC-SHA256', () => {
+    const secret = 'rootly-secret'
+    const hex = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    expect(validateRootlySignature(secret, hex, body)).toBe(true)
+    expect(validateRootlySignature(secret, hex, `${body} tampered`)).toBe(false)
+  })
+
+  it('validateSharedSecretHeader compares exactly, tolerating a Bearer prefix', () => {
+    expect(validateSharedSecretHeader('s3cret', 's3cret')).toBe(true)
+    expect(validateSharedSecretHeader('s3cret', 'Bearer s3cret')).toBe(true)
+    expect(validateSharedSecretHeader('s3cret', 'wrong')).toBe(false)
+    expect(validateSharedSecretHeader('s3cret', null)).toBe(false)
+    // An empty configured secret must never authorise a request
+    expect(validateSharedSecretHeader('', '')).toBe(false)
+  })
+})
+
+describe('formatWebhookInput (batch-4 providers)', () => {
+  const req = () => ({ headers: new Headers(), method: 'POST' }) as any
+  const run = (provider: string, body: any) =>
+    formatWebhookInput({ provider, path: 'p', providerConfig: {} }, { id: 'wf' }, body, req())
+
+  it('reads Attio events out of the batched events array', () => {
+    const r = run('attio', {
+      webhook_id: 'wh_1',
+      events: [
+        {
+          event_type: 'record.created',
+          id: { object_id: 'obj_people', record_id: 'rec_123' },
+          actor: { type: 'workspace-member', id: 'mem_1' },
+        },
+      ],
+    })
+
+    expect(r.event_type).toBe('record.created')
+    expect(r.record_id).toBe('rec_123')
+    expect(r.actor_type).toBe('workspace-member')
+    expect(r.events).toHaveLength(1)
+  })
+
+  it('reads Azure DevOps work item fields from their dotted System.* keys', () => {
+    const r = run('azure_devops', {
+      eventType: 'workitem.created',
+      message: { text: 'Work item created' },
+      resource: {
+        id: 42,
+        fields: { 'System.Title': 'Fix checkout', 'System.State': 'New' },
+        project: { name: 'Zelaxy' },
+      },
+    })
+
+    expect(r.event_type).toBe('workitem.created')
+    expect(r.work_item_id).toBe(42)
+    expect(r.work_item_title).toBe('Fix checkout')
+    expect(r.work_item_state).toBe('New')
+    expect(r.input).toBe('Work item created')
+  })
+
+  it('flattens a Greenhouse candidate_hired event', () => {
+    const r = run('greenhouse', {
+      action: 'candidate_hired',
+      payload: {
+        application: {
+          id: 123,
+          status: 'hired',
+          candidate: {
+            id: 456,
+            first_name: 'Ada',
+            last_name: 'Lovelace',
+            email_addresses: [{ value: 'ada@example.com' }],
+          },
+          jobs: [{ id: 789, name: 'Staff Engineer' }],
+          current_stage: { name: 'Offer' },
+        },
+      },
+    })
+
+    expect(r.event_type).toBe('candidate_hired')
+    expect(r.candidate_name).toBe('Ada Lovelace')
+    expect(r.candidate_email).toBe('ada@example.com')
+    expect(r.job_name).toBe('Staff Engineer')
+    expect(r.stage).toBe('Offer')
+  })
+
+  it('flattens an incident.io event from public_data', () => {
+    const r = run('incidentio', {
+      event_type: 'public_incident.incident_created_v2',
+      created_at: '2024-01-15T13:14:15Z',
+      public_data: {
+        id: '01ABC',
+        name: 'Checkout degraded',
+        reference: 'INC-123',
+        incident_status: { name: 'Investigating' },
+        severity: { name: 'Major' },
+      },
+    })
+
+    expect(r.incident_id).toBe('01ABC')
+    expect(r.incident_name).toBe('Checkout degraded')
+    expect(r.incident_status).toBe('Investigating')
+    expect(r.severity).toBe('Major')
+    expect(r.reference).toBe('INC-123')
+  })
+
+  it('flattens a Rootly event from JSON:API attributes', () => {
+    const r = run('rootly', {
+      event: 'incident.created',
+      data: { id: 'inc_1', attributes: { title: 'Checkout degraded', status: 'started' } },
+    })
+
+    expect(r.event_type).toBe('incident.created')
+    expect(r.incident_id).toBe('inc_1')
+    expect(r.incident_title).toBe('Checkout degraded')
+  })
+
+  it('flattens a RevenueCat purchase', () => {
+    const r = run('revenuecat', {
+      event: {
+        id: 'evt_1',
+        type: 'INITIAL_PURCHASE',
+        app_user_id: 'user_123',
+        product_id: 'premium_monthly',
+        entitlement_ids: ['premium'],
+        store: 'APP_STORE',
+        price: 9.99,
+        currency: 'USD',
+      },
+    })
+
+    expect(r.event_type).toBe('INITIAL_PURCHASE')
+    expect(r.app_user_id).toBe('user_123')
+    expect(r.entitlement_ids).toEqual(['premium'])
+    expect(r.price).toBe(9.99)
+  })
+
+  it('derives the Sendblue event type from direction', () => {
+    expect(
+      run('sendblue', { content: 'hi', is_outbound: false, status: 'RECEIVED' }).event_type
+    ).toBe('message.received')
+    expect(
+      run('sendblue', { content: 'hi', is_outbound: true, status: 'DELIVERED' }).event_type
+    ).toBe('message.status_updated')
+  })
+
+  it('does not throw on an empty body for any batch-4 provider', () => {
+    for (const p of [
+      'attio',
+      'azure_devops',
+      'gong',
+      'greenhouse',
+      'ashby',
+      'incidentio',
+      'rootly',
+      'revenuecat',
+      'loops',
+      'fathom',
+      'grain',
+      'instantly',
+      'lemlist',
+      'linq',
+      'circleback',
+      'emailbison',
+      'sendblue',
+    ]) {
+      const r = run(p, {})
+      expect(r.webhook.data.provider).toBe(p)
+      expect(r.raw).toEqual({})
+    }
   })
 })
 

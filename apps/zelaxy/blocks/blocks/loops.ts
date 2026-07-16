@@ -93,6 +93,15 @@ export const LoopsBlock: BlockConfig<LoopsResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'loops',
+      availableTriggers: ['loops_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -117,5 +126,13 @@ export const LoopsBlock: BlockConfig<LoopsResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object from Loops' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'Loops event type (trigger events)' },
+    email: { type: 'string', description: 'Recipient email' },
+    campaign_name: { type: 'string', description: 'Campaign name' },
+    link_url: { type: 'string', description: 'Clicked link' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['loops_webhook'],
   },
 }

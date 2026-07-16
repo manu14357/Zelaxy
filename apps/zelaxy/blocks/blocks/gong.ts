@@ -67,6 +67,15 @@ export const GongBlock: BlockConfig<GongResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'gong',
+      availableTriggers: ['gong_webhook'],
+    },
   ],
   tools: {
     access: ['gong_list_calls', 'gong_get_call', 'gong_list_users'],
@@ -85,5 +94,13 @@ export const GongBlock: BlockConfig<GongResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from Gong' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'Gong event type (trigger events)' },
+    call_id: { type: 'string', description: 'Gong call ID' },
+    call_title: { type: 'string', description: 'Call title' },
+    call_url: { type: 'string', description: 'Link to the call' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['gong_webhook'],
   },
 }

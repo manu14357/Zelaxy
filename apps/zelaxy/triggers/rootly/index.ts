@@ -1,0 +1,1 @@
+export { rootlyWebhookTrigger } from './webhook'

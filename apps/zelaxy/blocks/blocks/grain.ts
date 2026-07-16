@@ -205,6 +205,15 @@ export const GrainBlock: BlockConfig = {
         value: ['grain_delete_hook'],
       },
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'grain',
+      availableTriggers: ['grain_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -302,5 +311,13 @@ export const GrainBlock: BlockConfig = {
     meetingTypes: { type: 'json', description: 'List of meeting types' },
     hooks: { type: 'json', description: 'List of webhooks' },
     hook: { type: 'json', description: 'Created webhook details' },
+    event_type: { type: 'string', description: 'Grain event type (trigger events)' },
+    recording_id: { type: 'string', description: 'Recording ID' },
+    recording_title: { type: 'string', description: 'Recording title' },
+    recording_url: { type: 'string', description: 'Link to the recording' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['grain_webhook'],
   },
 }

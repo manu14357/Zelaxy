@@ -1302,6 +1302,576 @@ export function formatWebhookInput(
     }
   }
 
+  if (foundWebhook.provider === 'attio') {
+    const events = Array.isArray(body?.events) ? body.events : []
+    const first = events[0] || {}
+    const data = {
+      event_type: first?.event_type || '',
+      webhook_id: body?.webhook_id || '',
+      record_id: first?.id?.record_id || '',
+      object_id: first?.id?.object_id || '',
+      actor_type: first?.actor?.type || '',
+      actor_id: first?.actor?.id || '',
+      events: events,
+      raw: body,
+    }
+
+    return {
+      input: `Attio ${data.event_type || 'event'}`,
+      ...data,
+      attio: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'attio',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'azure_devops') {
+    const resource = body?.resource || {}
+    const data = {
+      event_type: body?.eventType || '',
+      subscription_id: body?.subscriptionId || '',
+      message: body?.message?.text || '',
+      detailed_message: body?.detailedMessage?.text || '',
+      build_number: resource.buildNumber || '',
+      build_status: resource.status || '',
+      build_result: resource.result || '',
+      work_item_id: resource.id ?? resource.workItemId ?? 0,
+      work_item_title: resource.fields?.['System.Title'] || '',
+      work_item_state: resource.fields?.['System.State'] || '',
+      pull_request_id: resource.pullRequestId ?? 0,
+      pull_request_title: resource.title || '',
+      project: resource.project?.name || resource.definition?.project?.name || '',
+      resource: resource,
+      raw: body,
+    }
+
+    return {
+      input: data.message || `Azure DevOps ${data.event_type || 'event'}`,
+      ...data,
+      azure_devops: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'azure_devops',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'gong') {
+    const data = {
+      event_type: body?.eventType || '',
+      call_id: body?.callId || body?.call?.id || '',
+      call_title: body?.title || body?.call?.title || '',
+      call_url: body?.url || body?.call?.url || '',
+      started: body?.started || '',
+      duration: body?.duration ?? 0,
+      participants: Array.isArray(body?.participants) ? body.participants : [],
+      raw: body,
+    }
+
+    return {
+      input: `Gong ${data.event_type || 'event'}: ${data.call_title || 'call'}`,
+      ...data,
+      gong: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'gong',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'greenhouse') {
+    const application = body?.payload?.application || {}
+    const candidate = application.candidate || {}
+    const data = {
+      event_type: body?.action || '',
+      candidate_id: candidate.id ?? 0,
+      candidate_name: [candidate.first_name, candidate.last_name].filter(Boolean).join(' '),
+      candidate_email: candidate.email_addresses?.[0]?.value || '',
+      application_id: application.id ?? 0,
+      job_id: application.jobs?.[0]?.id ?? 0,
+      job_name: application.jobs?.[0]?.name || '',
+      stage: application.current_stage?.name || '',
+      status: application.status || '',
+      payload: body?.payload || {},
+      raw: body,
+    }
+
+    return {
+      input: `Greenhouse ${data.event_type || 'event'}: ${data.candidate_name || 'candidate'}`,
+      ...data,
+      greenhouse: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'greenhouse',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'ashby') {
+    const application = body?.data?.application || {}
+    const candidate = application.candidate || {}
+    const data = {
+      event_type: body?.action || '',
+      candidate_id: candidate.id || '',
+      candidate_name: candidate.name || '',
+      candidate_email: candidate.primaryEmailAddress?.value || '',
+      application_id: application.id || '',
+      job_id: application.job?.id || '',
+      job_title: application.job?.title || '',
+      stage: application.currentInterviewStage?.title || '',
+      status: application.status || '',
+      data: body?.data || {},
+      raw: body,
+    }
+
+    return {
+      input: `Ashby ${data.event_type || 'event'}: ${data.candidate_name || 'candidate'}`,
+      ...data,
+      ashby: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'ashby',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'incidentio') {
+    const d = body?.public_data || body?.private_data || body?.data || {}
+    const data = {
+      event_type: body?.event_type || '',
+      incident_id: d.id || '',
+      incident_name: d.name || '',
+      incident_status: d.incident_status?.name || '',
+      severity: d.severity?.name || '',
+      summary: d.summary || '',
+      permalink: d.permalink || '',
+      reference: d.reference || '',
+      created_at: body?.created_at || '',
+      data: d,
+      raw: body,
+    }
+
+    return {
+      input: `incident.io ${data.event_type || 'event'}: ${data.incident_name || 'incident'}`,
+      ...data,
+      incidentio: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'incidentio',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'rootly') {
+    const a = body?.data?.attributes || {}
+    const data = {
+      event_type: body?.event || '',
+      incident_id: body?.data?.id || '',
+      incident_title: a.title || '',
+      incident_status: a.status || '',
+      severity: a.severity?.name || '',
+      summary: a.summary || '',
+      url: a.url || '',
+      created_at: a.created_at || '',
+      data: body?.data || {},
+      raw: body,
+    }
+
+    return {
+      input: `Rootly ${data.event_type || 'event'}: ${data.incident_title || 'incident'}`,
+      ...data,
+      rootly: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'rootly',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'revenuecat') {
+    const ev = body?.event || {}
+    const data = {
+      event_type: ev.type || '',
+      event_id: ev.id || '',
+      app_user_id: ev.app_user_id || '',
+      product_id: ev.product_id || '',
+      entitlement_ids: Array.isArray(ev.entitlement_ids) ? ev.entitlement_ids : [],
+      store: ev.store || '',
+      environment: ev.environment || '',
+      period_type: ev.period_type || '',
+      price: ev.price ?? 0,
+      currency: ev.currency || '',
+      country_code: ev.country_code || '',
+      expiration_at_ms: ev.expiration_at_ms ?? 0,
+      purchased_at_ms: ev.purchased_at_ms ?? 0,
+      cancel_reason: ev.cancel_reason || '',
+      event: ev,
+      raw: body,
+    }
+
+    return {
+      input: `RevenueCat ${data.event_type || 'event'}: ${data.product_id || 'product'}`,
+      ...data,
+      revenuecat: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'revenuecat',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'loops') {
+    const d = body?.data || {}
+    const data = {
+      event_type: body?.type || '',
+      email: d.email || '',
+      contact_id: d.contactId || '',
+      campaign_id: d.campaignId || '',
+      campaign_name: d.campaignName || '',
+      email_message_id: d.emailMessageId || '',
+      link_url: d.linkUrl || d.url || '',
+      timestamp: body?.timestamp || '',
+      data: d,
+      raw: body,
+    }
+
+    return {
+      input: `Loops ${data.event_type || 'event'}: ${data.email || 'contact'}`,
+      ...data,
+      loops: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'loops',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'fathom') {
+    const data = {
+      event_type: body?.type || body?.event || '',
+      meeting_id: body?.id || body?.meeting?.id || '',
+      meeting_title: body?.title || body?.meeting?.title || '',
+      recording_url: body?.recording_url || '',
+      share_url: body?.share_url || '',
+      scheduled_start_time: body?.scheduled_start_time || '',
+      summary: body?.summary || '',
+      transcript: body?.transcript || '',
+      invitees: Array.isArray(body?.invitees) ? body.invitees : [],
+      raw: body,
+    }
+
+    return {
+      input: `Fathom meeting: ${data.meeting_title || 'meeting'}`,
+      ...data,
+      fathom: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'fathom',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'grain') {
+    const d = body?.data || {}
+    const data = {
+      event_type: body?.type || '',
+      recording_id: d.id || '',
+      recording_title: d.title || '',
+      recording_url: d.url || '',
+      highlight_id: d.highlight_id || '',
+      highlight_text: d.text || '',
+      start_datetime: d.start_datetime || '',
+      end_datetime: d.end_datetime || '',
+      participants: Array.isArray(d.participants) ? d.participants : [],
+      data: d,
+      raw: body,
+    }
+
+    return {
+      input: `Grain ${data.event_type || 'event'}: ${data.recording_title || 'recording'}`,
+      ...data,
+      grain: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'grain',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'instantly') {
+    const data = {
+      event_type: body?.event_type || '',
+      campaign_id: body?.campaign_id || '',
+      campaign_name: body?.campaign_name || '',
+      lead_email: body?.lead_email || '',
+      lead_first_name: body?.firstName || '',
+      lead_last_name: body?.lastName || '',
+      lead_company: body?.companyName || '',
+      email_account: body?.email_account || '',
+      reply_text: body?.reply_text || body?.reply_text_snippet || '',
+      reply_subject: body?.reply_subject || '',
+      timestamp: body?.timestamp || '',
+      raw: body,
+    }
+
+    return {
+      input: `Instantly ${data.event_type || 'event'}: ${data.lead_email || 'lead'}`,
+      ...data,
+      instantly: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'instantly',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'lemlist') {
+    const data = {
+      event_type: body?.type || '',
+      campaign_id: body?.campaignId || '',
+      campaign_name: body?.campaignName || '',
+      lead_email: body?.leadEmail || '',
+      lead_first_name: body?.leadFirstName || '',
+      lead_last_name: body?.leadLastName || '',
+      lead_company: body?.companyName || '',
+      sequence_step: body?.sequenceStep ?? 0,
+      text: body?.text || '',
+      created_at: body?.createdAt || '',
+      raw: body,
+    }
+
+    return {
+      input: `lemlist ${data.event_type || 'event'}: ${data.lead_email || 'lead'}`,
+      ...data,
+      lemlist: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'lemlist',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'linq') {
+    const data = {
+      event_type: body?.type || body?.event || '',
+      message_id: body?.messageId || body?.id || '',
+      status: body?.status || '',
+      from: body?.from || '',
+      to: body?.to || '',
+      body: body?.body || body?.text || '',
+      error_message: body?.errorMessage || '',
+      timestamp: body?.timestamp || '',
+      raw: body,
+    }
+
+    return {
+      input: data.body || `Linq ${data.event_type || 'event'}`,
+      ...data,
+      linq: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'linq',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'circleback') {
+    const m = body?.meeting || {}
+    const data = {
+      event_type: body?.type || '',
+      meeting_id: m.id || '',
+      meeting_name: m.name || '',
+      meeting_url: m.url || '',
+      start_time: m.startTime || '',
+      end_time: m.endTime || '',
+      notes: m.notes || '',
+      action_items: Array.isArray(m.actionItems) ? m.actionItems : [],
+      attendees: Array.isArray(m.attendees) ? m.attendees : [],
+      raw: body,
+    }
+
+    return {
+      input: `Circleback ${data.event_type || 'event'}: ${data.meeting_name || 'meeting'}`,
+      ...data,
+      circleback: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'circleback',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'emailbison') {
+    const data = {
+      event_type: body?.event || body?.event_type || '',
+      campaign_id: body?.campaign_id || '',
+      campaign_name: body?.campaign_name || '',
+      lead_email: body?.lead_email || '',
+      email_account: body?.email_account || '',
+      subject: body?.subject || '',
+      reply_text: body?.reply_text || '',
+      timestamp: body?.timestamp || '',
+      raw: body,
+    }
+
+    return {
+      input: `EmailBison ${data.event_type || 'event'}: ${data.lead_email || 'lead'}`,
+      ...data,
+      emailbison: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'emailbison',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'sendblue') {
+    const data = {
+      event_type: body?.is_outbound ? 'message.status_updated' : 'message.received',
+      message_handle: body?.message_handle || '',
+      from_number: body?.from_number || body?.number || '',
+      to_number: body?.to_number || '',
+      content: body?.content || '',
+      status: body?.status || '',
+      error_message: body?.error_message || '',
+      is_outbound: body?.is_outbound ?? false,
+      media_url: body?.media_url || '',
+      date_sent: body?.date_sent || '',
+      raw: body,
+    }
+
+    return {
+      input: data.content || `Sendblue ${data.event_type || 'event'}`,
+      ...data,
+      sendblue: { ...data, ...body },
+      webhook: {
+        data: {
+          provider: 'sendblue',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
   // Generic format for other providers
   return {
     webhook: {
@@ -1781,6 +2351,103 @@ export function validateTwilioSignature(
     logger.error('Error validating Twilio signature:', error)
     return false
   }
+}
+
+/**
+ * Validates a Greenhouse webhook request signature.
+ *
+ * Greenhouse signs the raw body with HMAC SHA-256 and sends `Signature: sha256 <hex>`.
+ */
+export function validateGreenhouseSignature(
+  secretKey: string,
+  signature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secretKey || !signature || !body) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = `sha256 ${crypto.createHmac('sha256', secretKey).update(body, 'utf8').digest('hex')}`
+
+    return timingSafeEquals(computed, signature)
+  } catch (error) {
+    logger.error('Error validating Greenhouse signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates an Ashby webhook request signature.
+ *
+ * Ashby signs the raw body with HMAC SHA-256 and sends it hex-encoded in Ashby-Signature.
+ */
+export function validateAshbySignature(
+  secretToken: string,
+  signature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secretToken || !signature || !body) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = crypto.createHmac('sha256', secretToken).update(body, 'utf8').digest('hex')
+    // Ashby has historically prefixed the value; accept either form
+    const provided = signature.startsWith('sha256=') ? signature.slice(7) : signature
+
+    return timingSafeEquals(computed, provided)
+  } catch (error) {
+    logger.error('Error validating Ashby signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates a Rootly webhook request signature.
+ *
+ * Rootly signs the raw body with HMAC SHA-256 and sends it hex-encoded in X-Rootly-Signature.
+ */
+export function validateRootlySignature(
+  signingSecret: string,
+  signature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!signingSecret || !signature || !body) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = crypto.createHmac('sha256', signingSecret).update(body, 'utf8').digest('hex')
+
+    return timingSafeEquals(computed, signature)
+  } catch (error) {
+    logger.error('Error validating Rootly signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates a shared-secret header.
+ *
+ * Several providers (Gong, RevenueCat, Circleback, EmailBison) do not sign the body at all — they
+ * simply echo back a value you configure on their side, usually in the Authorization header. This
+ * is a constant-time equality check, tolerating an optional `Bearer ` prefix.
+ */
+export function validateSharedSecretHeader(
+  expected: string,
+  provided: string | null | undefined
+): boolean {
+  if (!expected || !provided) {
+    return false
+  }
+
+  const value = provided.startsWith('Bearer ') ? provided.slice(7) : provided
+
+  return timingSafeEquals(value, expected)
 }
 
 /**

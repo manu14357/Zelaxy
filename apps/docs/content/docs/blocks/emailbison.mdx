@@ -24,6 +24,7 @@ The Email Bison block integrates the Email Bison email finder into your workflow
 - Discover all email addresses associated with a company domain
 - Add confidence scoring to contact data feeding a downstream CRM or email block
 - Gate outreach campaigns on verified deliverability results
+- Trigger a workflow when a lead replies or a sending account disconnects
 
 ## Configuration
 
@@ -52,6 +53,16 @@ Shown for **Find Email** (`emailbison_find_email`) and **Domain Search** (`email
 ### Email
 Shown only for **Verify Email** (`emailbison_verify_email`). The email address to check for deliverability.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `emailbison_webhook`
+
+When the block runs in trigger mode, this configures the `emailbison_webhook` trigger so EmailBison events start the workflow.
+See the [EmailBison webhook trigger](/docs/triggers/webhook#emailbison) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 - **Inputs**:
@@ -66,6 +77,10 @@ Shown only for **Verify Email** (`emailbison_verify_email`). The email address t
   - `email` (string) — Found or verified email address
   - `verified` (boolean) — Email verification result
   - `confidence` (number) — Confidence score
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event: `event_type` (string), `lead_email` (string), `campaign_name` (string), `reply_text` (string). See the [EmailBison webhook trigger](/docs/triggers/webhook#emailbison) for the full schema.
 
 ## Tools
 

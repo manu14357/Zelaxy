@@ -11,7 +11,17 @@ export const CirclebackBlock: BlockConfig = {
   category: 'triggers',
   bgColor: '#0097A7',
   icon: ConnectIcon,
-  subBlocks: [],
+  subBlocks: [
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'circleback',
+      availableTriggers: ['circleback_webhook'],
+    },
+  ],
   tools: {
     access: [],
   },
@@ -31,6 +41,8 @@ export const CirclebackBlock: BlockConfig = {
   },
   triggers: {
     enabled: true,
-    available: ['circleback_meeting_completed', 'circleback_meeting_notes', 'circleback_webhook'],
+    // Previously also advertised circleback_meeting_completed and circleback_meeting_notes, neither
+    // of which was ever registered — the block offered triggers that could not resolve.
+    available: ['circleback_webhook'],
   },
 }

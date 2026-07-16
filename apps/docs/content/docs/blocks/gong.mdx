@@ -23,6 +23,7 @@ List calls by date range, retrieve a specific call, and list users through the G
 - List all users in your Gong account to map call ownership or audit team members
 - Feed Gong call data into downstream blocks (agents, conditions, functions) as part of a revenue intelligence workflow
 - Automate periodic exports of call records by chaining this block with a scheduler trigger and storage blocks
+- Trigger a workflow when a Gong call is processed or a transcript is ready
 
 ## Configuration
 
@@ -84,6 +85,16 @@ Selects which Gong API action to execute. The operation controls which additiona
 - **Required:** Yes
 - Your Gong API Access Key Secret, paired with the Access Key for Basic authentication. Reference it with `{{GONG_ACCESS_KEY_SECRET}}`.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `gong_webhook`
+
+When the block runs in trigger mode, this configures the `gong_webhook` trigger so Gong events start the workflow.
+See the [Gong webhook trigger](/docs/triggers/webhook#gong) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 ### Inputs
@@ -103,6 +114,10 @@ Selects which Gong API action to execute. The operation controls which additiona
 |----|------|-------------|
 | `data` | json | Result object or array from Gong. For `gong_list_calls` and `gong_list_users` this is an array; for `gong_get_call` this is a single call object. |
 | `metadata` | json | Response metadata. For list operations: `{ count: number }`. For get-call: `{ id: string }`. |
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event: `event_type` (string), `call_id` (string), `call_title` (string), `call_url` (string), `participants` (json). See the [Gong webhook trigger](/docs/triggers/webhook#gong) for the full schema.
 
 ## Tools
 

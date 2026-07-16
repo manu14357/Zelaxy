@@ -51,6 +51,15 @@ export const InstantlyBlock: BlockConfig<InstantlyResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'instantly',
+      availableTriggers: ['instantly_webhook'],
+    },
   ],
   tools: {
     access: ['instantly_list_campaigns', 'instantly_create_lead', 'instantly_list_leads'],
@@ -67,5 +76,13 @@ export const InstantlyBlock: BlockConfig<InstantlyResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from Instantly' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'Instantly event type (trigger events)' },
+    lead_email: { type: 'string', description: 'Lead email' },
+    campaign_name: { type: 'string', description: 'Campaign name' },
+    reply_text: { type: 'string', description: 'Reply body' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['instantly_webhook'],
   },
 }

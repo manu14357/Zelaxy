@@ -1,0 +1,1 @@
+export { revenuecatWebhookTrigger } from './webhook'

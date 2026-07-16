@@ -1,0 +1,1 @@
+export { instantlyWebhookTrigger } from './webhook'

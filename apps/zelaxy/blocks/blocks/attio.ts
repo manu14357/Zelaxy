@@ -70,6 +70,15 @@ export const AttioBlock: BlockConfig = {
       placeholder: '{"email_addresses": {"email_address": "john@example.com"}}',
       condition: { field: 'operation', value: ['attio_list_records'] },
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'attio',
+      availableTriggers: ['attio_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -97,5 +106,13 @@ export const AttioBlock: BlockConfig = {
     records: { type: 'json', description: 'Record list' },
     record: { type: 'json', description: 'Record details' },
     notes: { type: 'json', description: 'Notes list' },
+    event_type: { type: 'string', description: 'Attio event type (trigger events)' },
+    record_id: { type: 'string', description: 'ID of the affected record' },
+    object_id: { type: 'string', description: 'Attio object ID' },
+    events: { type: 'json', description: 'All batched events' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['attio_webhook'],
   },
 }

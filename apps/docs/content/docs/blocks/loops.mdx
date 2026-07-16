@@ -24,6 +24,7 @@ Create and update contacts, send events to trigger automated sequences, and send
 - Send a one-off transactional email (password reset, invoice, welcome) using a pre-built Loops template
 - Sync CRM or form data into Loops contact records as part of a larger workflow
 - Combine with other blocks to conditionally enrol contacts into different sequences based on workflow logic
+- Trigger a workflow when an email is delivered, opened, clicked, or bounces
 
 ## Configuration
 
@@ -106,6 +107,16 @@ The ID of the transactional email template to send. Find this in the Loops dashb
 
 Your Loops API key. Pass as a secret reference: `{{LOOPS_API_KEY}}`.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `loops_webhook`
+
+When the block runs in trigger mode, this configures the `loops_webhook` trigger so Loops events start the workflow.
+See the [Loops webhook trigger](/docs/triggers/webhook#loops) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 **Inputs:**
@@ -122,6 +133,10 @@ Your Loops API key. Pass as a secret reference: `{{LOOPS_API_KEY}}`.
 
 - `data` (json) — Result object from Loops (the raw API response body)
 - `metadata` (json) — Response metadata including `success` (boolean) and `id` (string, for contact operations)
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event: `event_type` (string), `email` (string), `campaign_name` (string), `link_url` (string). See the [Loops webhook trigger](/docs/triggers/webhook#loops) for the full schema.
 
 ## Tools
 

@@ -24,6 +24,7 @@ The RevenueCat block lets you retrieve customers, list customers, and fetch cust
 - Gate downstream workflow steps on a customer's subscription state
 - Sync RevenueCat customer or subscription data into another system (CRM, database, notification service)
 - Audit or report on subscription activity across your project
+- Trigger a workflow when a purchase, renewal, cancellation, or expiration happens
 
 ## Configuration
 
@@ -57,6 +58,16 @@ Your RevenueCat project identifier (e.g., `projXXXXXXXX`). Required for all oper
 
 Your RevenueCat v2 secret API key (begins with `sk_...`). Stored as a password field. Required for all operations. Pass this as a secret reference: `{{REVENUECAT_SECRET_KEY}}`.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `revenuecat_webhook`
+
+When the block runs in trigger mode, this configures the `revenuecat_webhook` trigger so RevenueCat events start the workflow.
+See the [RevenueCat webhook trigger](/docs/triggers/webhook#revenuecat) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 - **Inputs**:
@@ -70,6 +81,10 @@ Your RevenueCat v2 secret API key (begins with `sk_...`). Stored as a password f
 - **Outputs**:
   - `data` (json) — Result object (Get customer) or array (List customers, Get subscription) from RevenueCat
   - `metadata` (json) — Response metadata. For **Get customer**: `{ id, object }`. For **List customers** and **Get subscription**: `{ count, next_page }`
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event: `event_type` (string), `app_user_id` (string), `product_id` (string), `store` (string), `environment` (string). See the [RevenueCat webhook trigger](/docs/triggers/webhook#revenuecat) for the full schema.
 
 ## Tools
 

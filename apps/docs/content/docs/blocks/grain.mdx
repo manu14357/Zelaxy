@@ -24,6 +24,7 @@ The Grain block integrates Grain into your workflow so you can access meeting re
 - Enumerate available Grain views, teams, or meeting types for filtering and routing.
 - Create webhooks to subscribe to recording events in real time from a specific Grain view.
 - List or delete existing webhooks to manage event subscriptions programmatically.
+- Trigger a workflow when a Grain recording completes or a highlight is created
 
 ## Configuration
 
@@ -117,10 +118,24 @@ The endpoint URL that Grain will POST events to. Required for **Create Webhook**
 
 The UUID of an existing webhook. Required for **Delete Webhook**. Sub-block id: `hookId`.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `grain_webhook`
+
+When the block runs in trigger mode, this configures the `grain_webhook` trigger so Grain events start the workflow.
+See the [Grain webhook trigger](/docs/triggers/webhook#grain) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 - **Inputs**: `operation` (string) — Operation to perform; `apiKey` (string) — Grain API key (Personal Access Token); `recordingId` (string) — Recording UUID; `cursor` (string) — Pagination cursor; `viewId` (string) — Grain view UUID for webhook subscriptions; `beforeDatetime` (string) — Filter recordings before this ISO8601 timestamp; `afterDatetime` (string) — Filter recordings after this ISO8601 timestamp; `participantScope` (string) — Filter by participant scope (internal/external); `titleSearch` (string) — Search recordings by title; `teamId` (string) — Filter by team UUID; `meetingTypeId` (string) — Filter by meeting type UUID; `includeHighlights` (boolean) — Include highlights in response; `includeParticipants` (boolean) — Include participants in response; `includeAiSummary` (boolean) — Include AI summary in response; `includeCalendarEvent` (boolean) — Include calendar event in response; `includeHubspot` (boolean) — Include HubSpot data in response; `hookUrl` (string) — Webhook endpoint URL; `hookId` (string) — Webhook UUID to delete
 - **Outputs**: `recordings` (json) — List of recordings; `recording` (json) — Single recording details; `transcript` (json) — Recording transcript; `views` (json) — List of views; `teams` (json) — List of teams; `meetingTypes` (json) — List of meeting types; `hooks` (json) — List of webhooks; `hook` (json) — Created webhook details
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event: `event_type` (string), `recording_id` (string), `recording_title` (string), `recording_url` (string). See the [Grain webhook trigger](/docs/triggers/webhook#grain) for the full schema.
 
 ## Tools
 

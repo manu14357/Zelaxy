@@ -1,0 +1,1 @@
+export { ashbyWebhookTrigger } from './webhook'
