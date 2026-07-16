@@ -33,6 +33,10 @@ const validateZoomSignatureMock = vi.fn().mockReturnValue(true)
 const validateSvixSignatureMock = vi.fn().mockReturnValue(true)
 const validateCalcomSignatureMock = vi.fn().mockReturnValue(true)
 const handleZoomUrlValidationMock = vi.fn().mockReturnValue(null)
+const validateTwilioSignatureMock = vi.fn().mockReturnValue(true)
+const getExternalRequestUrlMock = vi
+  .fn()
+  .mockReturnValue('https://zelaxy.in/api/webhooks/trigger/x')
 // Returns null when the request passes provider auth, or a NextResponse to short-circuit
 const verifyProviderWebhookMock = vi.fn().mockReturnValue(null)
 const executeMock = vi.fn().mockResolvedValue({
@@ -85,6 +89,8 @@ vi.mock('@/lib/webhooks/utils', () => ({
   validateSvixSignature: validateSvixSignatureMock,
   validateCalcomSignature: validateCalcomSignatureMock,
   handleZoomUrlValidation: handleZoomUrlValidationMock,
+  validateTwilioSignature: validateTwilioSignatureMock,
+  getExternalRequestUrl: getExternalRequestUrlMock,
   verifyProviderWebhook: verifyProviderWebhookMock,
 }))
 

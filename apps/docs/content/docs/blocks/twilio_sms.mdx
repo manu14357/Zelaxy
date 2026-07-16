@@ -24,6 +24,7 @@ The Twilio SMS block sends text messages to single or multiple recipients using 
 - Send appointment reminders or confirmations triggered by a schedule or form submission.
 - Broadcast a message to multiple recipients by listing several phone numbers, one per line.
 - Integrate SMS into multi-channel notification pipelines alongside email or Slack.
+- Trigger a workflow automatically when your Twilio number receives an SMS or MMS
 
 ## Configuration
 
@@ -49,6 +50,16 @@ Your Twilio Auth Token, available in the Twilio Console. Stored and handled as a
 
 The Twilio phone number to send the message from, in E.164 format (e.g. `+1987654321`). This must be a number purchased and configured in your Twilio account. Required.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `twilio_webhook`
+
+When the block runs in trigger mode, this configures the `twilio_webhook` trigger so incoming SMS/MMS start the workflow. Deliveries are verified against the `X-Twilio-Signature` header.
+See the [Twilio SMS webhook trigger](/docs/triggers/webhook#twilio-sms) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 - **Inputs**:
@@ -63,6 +74,10 @@ The Twilio phone number to send the message from, in E.164 format (e.g. `+198765
   - `messageId` (string) — Unique Twilio message SID returned after a successful send
   - `status` (string) — SMS delivery status from Twilio (e.g. `queued`, `sent`, `delivered`, `failed`)
   - `error` (string) — Error information if sending fails
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event instead: `from` (string), `to` (string), `body` (string), `message_sid` (string), `message_status` (string), `num_media` (number), `media` (json), `from_city` (string), `raw` (json). See the [Twilio SMS webhook trigger](/docs/triggers/webhook#twilio-sms) for the full schema.
 
 ## Tools
 

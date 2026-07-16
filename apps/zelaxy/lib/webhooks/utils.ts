@@ -1242,6 +1242,66 @@ export function formatWebhookInput(
     }
   }
 
+  if (foundWebhook.provider === 'twilio' || foundWebhook.provider === 'twilio_voice') {
+    // Twilio posts flat form fields (already decoded into `body` by the route), using PascalCase
+    // keys. Expose snake_case aliases so references match the rest of the trigger surface, and
+    // collect the numbered Media* fields MMS spreads across separate keys.
+    const numMedia = Number.parseInt(body?.NumMedia ?? '0', 10) || 0
+    const media = Array.from({ length: numMedia }, (_, i) => ({
+      url: body?.[`MediaUrl${i}`] || '',
+      content_type: body?.[`MediaContentType${i}`] || '',
+    })).filter((m) => m.url)
+
+    const twilioData = {
+      message_sid: body?.MessageSid || body?.SmsSid || '',
+      call_sid: body?.CallSid || '',
+      account_sid: body?.AccountSid || '',
+      from: body?.From || '',
+      to: body?.To || '',
+      body: body?.Body || '',
+      message_status: body?.MessageStatus || body?.SmsStatus || '',
+      call_status: body?.CallStatus || '',
+      direction: body?.Direction || '',
+      from_city: body?.FromCity || '',
+      from_state: body?.FromState || '',
+      from_country: body?.FromCountry || '',
+      num_media: numMedia,
+      ...(media.length > 0 && { media }),
+      ...(body?.ErrorCode && {
+        error_code: body.ErrorCode,
+        error_message: body?.ErrorMessage || '',
+      }),
+      ...(body?.RecordingUrl && {
+        recording_url: body.RecordingUrl,
+        recording_sid: body?.RecordingSid || '',
+        recording_duration: body?.RecordingDuration || '',
+      }),
+      ...(body?.CallDuration && { call_duration: body.CallDuration }),
+      raw: body,
+    }
+
+    const isVoice = foundWebhook.provider === 'twilio_voice'
+
+    return {
+      input: isVoice
+        ? `Twilio call ${twilioData.call_status || 'event'} from ${twilioData.from}`
+        : twilioData.body || `Twilio message from ${twilioData.from}`,
+      ...twilioData,
+      [foundWebhook.provider]: { ...twilioData, ...body },
+      webhook: {
+        data: {
+          provider: foundWebhook.provider,
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
   // Generic format for other providers
   return {
     webhook: {
@@ -1649,6 +1709,76 @@ export function validateCalcomSignature(
     return timingSafeEquals(computed, signature)
   } catch (error) {
     logger.error('Error validating Cal.com signature:', error)
+    return false
+  }
+}
+
+/**
+ * Reconstructs the externally-visible URL of a request.
+ *
+ * Behind a proxy (Vercel, a load balancer) request.url carries the internal origin, so signature
+ * schemes that sign the URL — Twilio's does — must use the forwarded host/proto the provider
+ * actually called instead.
+ */
+export function getExternalRequestUrl(request: NextRequest): string {
+  const url = new URL(request.url)
+  const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host')
+  const forwardedProto = request.headers.get('x-forwarded-proto')
+
+  if (forwardedHost) {
+    // Assign hostname and port separately: the URL `host` setter leaves the existing port in place
+    // when the value has none, which would leave the internal port on the reconstructed URL and
+    // break any signature computed over it.
+    const [hostname, port] = forwardedHost.split(':')
+    url.hostname = hostname
+    url.port = port || ''
+  }
+  if (forwardedProto) {
+    url.protocol = `${forwardedProto.split(',')[0].trim()}:`
+  }
+
+  return url.toString()
+}
+
+/**
+ * Validates a Twilio webhook request signature.
+ *
+ * Twilio does not sign the body. It builds a string from the full request URL followed by every
+ * POST parameter — sorted by key, appended as key+value with no separators — then signs it with
+ * HMAC SHA-1 (not SHA-256) and base64-encodes it into X-Twilio-Signature.
+ *
+ * Because the URL is part of the signed string, it must be the URL Twilio actually called; see
+ * getExternalRequestUrl.
+ *
+ * @param authToken - Twilio account auth token
+ * @param signature - X-Twilio-Signature header value
+ * @param url - The full URL Twilio requested
+ * @param params - The POST parameters as sent
+ */
+export function validateTwilioSignature(
+  authToken: string,
+  signature: string | null | undefined,
+  url: string,
+  params: Record<string, string>
+): boolean {
+  try {
+    if (!authToken || !signature || !url) {
+      return false
+    }
+
+    const signedString = Object.keys(params)
+      .sort()
+      .reduce((acc, key) => acc + key + params[key], url)
+
+    const crypto = require('crypto')
+    const computed = crypto
+      .createHmac('sha1', authToken)
+      .update(Buffer.from(signedString, 'utf8'))
+      .digest('base64')
+
+    return timingSafeEquals(computed, signature)
+  } catch (error) {
+    logger.error('Error validating Twilio signature:', error)
     return false
   }
 }

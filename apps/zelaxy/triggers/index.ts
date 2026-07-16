@@ -37,6 +37,8 @@ import { servicenowWebhookTrigger } from './servicenow'
 import { slackWebhookTrigger } from './slack'
 import { stripeWebhookTrigger } from './stripe/webhook'
 import { telegramWebhookTrigger } from './telegram'
+import { twilioWebhookTrigger } from './twilio'
+import { twilioVoiceWebhookTrigger } from './twilio_voice'
 import { typeformWebhookTrigger } from './typeform'
 import type { TriggerConfig, TriggerRegistry } from './types'
 import { vercelWebhookTrigger } from './vercel'
@@ -85,6 +87,8 @@ export const TRIGGER_REGISTRY: TriggerRegistry = {
   servicenow_webhook: servicenowWebhookTrigger,
   stripe_webhook: stripeWebhookTrigger,
   telegram_webhook: telegramWebhookTrigger,
+  twilio_voice_webhook: twilioVoiceWebhookTrigger,
+  twilio_webhook: twilioWebhookTrigger,
   typeform_webhook: typeformWebhookTrigger,
   vercel_webhook: vercelWebhookTrigger,
   webflow_webhook: webflowWebhookTrigger,

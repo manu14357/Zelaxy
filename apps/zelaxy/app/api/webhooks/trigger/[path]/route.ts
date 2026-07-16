@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { addWebhookJob } from '@/lib/bullmq/producer'
 import { createLogger } from '@/lib/logs/console/logger'
 import {
+  getExternalRequestUrl,
   handleSlackChallenge,
   handleWhatsAppVerification,
   handleZoomUrlValidation,
@@ -13,6 +14,7 @@ import {
   validatePagerDutySignature,
   validateSentrySignature,
   validateSvixSignature,
+  validateTwilioSignature,
   validateTypeformSignature,
   validateVercelSignature,
   validateZoomSignature,
@@ -118,17 +120,19 @@ export async function POST(
     const contentType = request.headers.get('content-type') || ''
 
     if (contentType.includes('application/x-www-form-urlencoded')) {
-      // GitHub sends form-encoded data with JSON in the 'payload' field
       const formData = new URLSearchParams(rawBody)
       const payloadString = formData.get('payload')
 
-      if (!payloadString) {
-        logger.warn(`[${requestId}] No payload field found in form-encoded data`)
-        return new NextResponse('Missing payload field', { status: 400 })
+      if (payloadString) {
+        // GitHub nests JSON inside a 'payload' field
+        body = JSON.parse(payloadString)
+        logger.debug(`[${requestId}] Parsed form-encoded GitHub webhook payload`)
+      } else {
+        // Twilio and others send the fields directly rather than nesting JSON. Treating a missing
+        // 'payload' field as an error would reject those webhooks outright.
+        body = Object.fromEntries(formData.entries())
+        logger.debug(`[${requestId}] Parsed form-encoded webhook fields`)
       }
-
-      body = JSON.parse(payloadString)
-      logger.debug(`[${requestId}] Parsed form-encoded GitHub webhook payload`)
     } else {
       // Default to JSON parsing
       body = JSON.parse(rawBody)
@@ -282,6 +286,28 @@ export async function POST(
       secretKey: 'webhookSecret',
       header: 'x-vercel-signature',
       validate: (s, sig) => validateVercelSignature(s, sig, rawBody as string),
+    },
+    twilio: {
+      secretKey: 'authToken',
+      header: 'x-twilio-signature',
+      validate: (s, sig) =>
+        validateTwilioSignature(
+          s,
+          sig,
+          getExternalRequestUrl(request),
+          body as Record<string, string>
+        ),
+    },
+    twilio_voice: {
+      secretKey: 'authToken',
+      header: 'x-twilio-signature',
+      validate: (s, sig) =>
+        validateTwilioSignature(
+          s,
+          sig,
+          getExternalRequestUrl(request),
+          body as Record<string, string>
+        ),
     },
     calcom: {
       secretKey: 'webhookSecret',

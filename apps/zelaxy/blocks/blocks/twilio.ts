@@ -52,6 +52,15 @@ export const TwilioSMSBlock: BlockConfig<TwilioSMSBlockOutput> = {
       placeholder: 'e.g. +1234567890',
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'twilio',
+      availableTriggers: ['twilio_webhook'],
+    },
   ],
   tools: {
     access: ['twilio_send_sms'],
@@ -71,5 +80,13 @@ export const TwilioSMSBlock: BlockConfig<TwilioSMSBlockOutput> = {
     messageId: { type: 'string', description: 'Twilio message SID' },
     status: { type: 'string', description: 'SMS delivery status (queued, sent, delivered, etc.)' },
     error: { type: 'string', description: 'Error information if sending fails' },
+    from: { type: 'string', description: 'Sender phone number (trigger events)' },
+    body: { type: 'string', description: 'Message text' },
+    message_sid: { type: 'string', description: 'Unique message identifier' },
+    num_media: { type: 'number', description: 'Number of media attachments' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['twilio_webhook'],
   },
 }

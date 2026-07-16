@@ -23,6 +23,7 @@ vi.mock('@/lib/logs/console/logger', () => ({
 
 import {
   formatWebhookInput,
+  getExternalRequestUrl,
   handleZoomUrlValidation,
   validateCalcomSignature,
   validateCalendlySignature,
@@ -30,6 +31,7 @@ import {
   validatePagerDutySignature,
   validateSentrySignature,
   validateSvixSignature,
+  validateTwilioSignature,
   validateTypeformSignature,
   validateVercelSignature,
   validateZoomSignature,
@@ -290,6 +292,154 @@ describe('handleZoomUrlValidation', () => {
     )
 
     expect(res?.status).toBe(400)
+  })
+})
+
+describe('validateTwilioSignature', () => {
+  const crypto = require('crypto')
+  const token = 'twilio-auth-token'
+  const url = 'https://zelaxy.in/api/webhooks/trigger/abc'
+  const params = { To: '+15559876543', From: '+15551234567', Body: 'Hello' }
+
+  // Twilio signs url + params sorted by key, appended as key+value with no separators
+  const sign = (u: string, p: Record<string, string>) =>
+    crypto
+      .createHmac('sha1', token)
+      .update(
+        Buffer.from(
+          Object.keys(p)
+            .sort()
+            .reduce((a, k) => a + k + p[k], u),
+          'utf8'
+        )
+      )
+      .digest('base64')
+
+  it('accepts a correctly signed request', () => {
+    expect(validateTwilioSignature(token, sign(url, params), url, params)).toBe(true)
+  })
+
+  it('is bound to the URL — the same params at a different URL must fail', () => {
+    const sig = sign(url, params)
+    expect(validateTwilioSignature(token, sig, 'https://evil.example/api', params)).toBe(false)
+  })
+
+  it('rejects tampered params', () => {
+    const sig = sign(url, params)
+    expect(validateTwilioSignature(token, sig, url, { ...params, Body: 'Changed' })).toBe(false)
+  })
+
+  it('depends on sorted key order, not insertion order', () => {
+    const sig = sign(url, params)
+    // Same pairs, different insertion order — must still validate
+    const reordered = { Body: 'Hello', From: '+15551234567', To: '+15559876543' }
+    expect(validateTwilioSignature(token, sig, url, reordered)).toBe(true)
+  })
+
+  it('rejects a wrong auth token and a missing signature', () => {
+    expect(validateTwilioSignature('wrong', sign(url, params), url, params)).toBe(false)
+    expect(validateTwilioSignature(token, null, url, params)).toBe(false)
+  })
+})
+
+describe('getExternalRequestUrl', () => {
+  it('prefers the forwarded host and proto a provider actually called', () => {
+    const req = {
+      url: 'http://internal-host:3000/api/webhooks/trigger/abc',
+      headers: new Headers({ 'x-forwarded-host': 'zelaxy.in', 'x-forwarded-proto': 'https' }),
+    } as any
+
+    expect(getExternalRequestUrl(req)).toBe('https://zelaxy.in/api/webhooks/trigger/abc')
+  })
+
+  it('takes the first proto when the header carries a chain', () => {
+    const req = {
+      url: 'http://internal/api/x',
+      headers: new Headers({ 'x-forwarded-host': 'zelaxy.in', 'x-forwarded-proto': 'https,http' }),
+    } as any
+
+    expect(getExternalRequestUrl(req)).toBe('https://zelaxy.in/api/x')
+  })
+
+  it('falls back to the request URL when nothing is forwarded', () => {
+    const req = { url: 'https://zelaxy.in/api/x', headers: new Headers() } as any
+    expect(getExternalRequestUrl(req)).toBe('https://zelaxy.in/api/x')
+  })
+})
+
+describe('formatWebhookInput (twilio)', () => {
+  const req = () => ({ headers: new Headers(), method: 'POST' }) as any
+
+  it('exposes Twilio PascalCase form fields under snake_case names', () => {
+    const result = formatWebhookInput(
+      { provider: 'twilio', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      {
+        MessageSid: 'SM123',
+        AccountSid: 'AC123',
+        From: '+15551234567',
+        To: '+15559876543',
+        Body: 'Hello from Twilio',
+        NumMedia: '0',
+        FromCity: 'SAN FRANCISCO',
+        SmsStatus: 'received',
+      },
+      req()
+    )
+
+    expect(result.message_sid).toBe('SM123')
+    expect(result.from).toBe('+15551234567')
+    expect(result.body).toBe('Hello from Twilio')
+    expect(result.message_status).toBe('received')
+    expect(result.from_city).toBe('SAN FRANCISCO')
+    expect(result.num_media).toBe(0)
+    // The message text becomes the workflow input
+    expect(result.input).toBe('Hello from Twilio')
+  })
+
+  it('collects the numbered MMS Media* fields into an array', () => {
+    const result = formatWebhookInput(
+      { provider: 'twilio', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      {
+        MessageSid: 'SM123',
+        From: '+1555',
+        To: '+1666',
+        Body: 'pics',
+        NumMedia: '2',
+        MediaUrl0: 'https://api.twilio.com/m0',
+        MediaContentType0: 'image/jpeg',
+        MediaUrl1: 'https://api.twilio.com/m1',
+        MediaContentType1: 'image/png',
+      },
+      req()
+    )
+
+    expect(result.num_media).toBe(2)
+    expect(result.media).toEqual([
+      { url: 'https://api.twilio.com/m0', content_type: 'image/jpeg' },
+      { url: 'https://api.twilio.com/m1', content_type: 'image/png' },
+    ])
+  })
+
+  it('flattens a twilio_voice call event', () => {
+    const result = formatWebhookInput(
+      { provider: 'twilio_voice', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      {
+        CallSid: 'CA123',
+        From: '+15551234567',
+        To: '+15559876543',
+        CallStatus: 'ringing',
+        Direction: 'inbound',
+      },
+      req()
+    )
+
+    expect(result.call_sid).toBe('CA123')
+    expect(result.call_status).toBe('ringing')
+    expect(result.direction).toBe('inbound')
+    expect(result.input).toContain('ringing')
   })
 })
 

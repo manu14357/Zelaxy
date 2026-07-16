@@ -24,6 +24,7 @@ The Twilio Voice block lets you initiate outbound calls, list call history, and 
 - Fetch the full record for a specific call (by Call SID) to check status, duration, or direction.
 - Chain call initiation with other workflow blocks — for example, first look up a phone number in a CRM block, then pass it to this block to make a call.
 - Integrate voice calls into on-call incident response flows where a human-in-the-loop block precedes the call.
+- Trigger a workflow automatically when your Twilio number receives a call or a call status changes
 
 ## Configuration
 
@@ -65,6 +66,16 @@ Your Twilio Account SID (starts with `AC`). Required for every operation. Stored
 
 Your Twilio Auth Token. Required for every operation. Stored as a password field — pass this via an environment variable reference such as `{{TWILIO_AUTH_TOKEN}}`.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `twilio_voice_webhook`
+
+When the block runs in trigger mode, this configures the `twilio_voice_webhook` trigger so Twilio Voice events start the workflow. Deliveries are verified against the `X-Twilio-Signature` header.
+See the [Twilio Voice webhook trigger](/docs/triggers/webhook#twilio-voice) for the full output schema and setup steps.
+
 ## Inputs & Outputs
 
 - **Inputs**:
@@ -80,6 +91,10 @@ Your Twilio Auth Token. Required for every operation. Stored as a password field
 - **Outputs**:
   - `data` (json) — Result object (Make call / Get call) or array of call objects (List calls) returned by Twilio
   - `metadata` (json) — Response metadata; contains `sid` (string) for Make call and Get call, or `count` (number) for List calls
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the webhook event instead: `from` (string), `to` (string), `call_sid` (string), `call_status` (string), `direction` (string), `call_duration` (string), `recording_url` (string), `raw` (json). See the [Twilio Voice webhook trigger](/docs/triggers/webhook#twilio-voice) for the full schema.
 
 ## Tools
 

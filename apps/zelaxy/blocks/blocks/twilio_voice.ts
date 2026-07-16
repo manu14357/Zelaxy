@@ -86,6 +86,15 @@ export const TwilioVoiceBlock: BlockConfig<TwilioVoiceResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'twilio_voice',
+      availableTriggers: ['twilio_voice_webhook'],
+    },
   ],
   tools: {
     access: ['twilio_voice_make_call', 'twilio_voice_list_calls', 'twilio_voice_get_call'],
@@ -106,5 +115,13 @@ export const TwilioVoiceBlock: BlockConfig<TwilioVoiceResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from Twilio' },
     metadata: { type: 'json', description: 'Response metadata' },
+    from: { type: 'string', description: 'Caller phone number (trigger events)' },
+    call_sid: { type: 'string', description: 'Unique call identifier' },
+    call_status: { type: 'string', description: 'Call status' },
+    recording_url: { type: 'string', description: 'Recording URL, for recording callbacks' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['twilio_voice_webhook'],
   },
 }

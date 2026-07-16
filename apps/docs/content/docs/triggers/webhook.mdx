@@ -40,6 +40,8 @@ Zelaxy supports webhook triggers from the following services. Each provider has 
 | [Clerk](#clerk) | `clerk_webhook` | Svix Signing Secret | Triggers on users, sessions, organizations |
 | [Cal.com](#calcom) | `calcom_webhook` | Webhook Secret | Triggers on bookings |
 | [Resend](#resend) | `resend_webhook` | Svix Signing Secret | Triggers on email delivery events |
+| [Twilio SMS](#twilio-sms) | `twilio_webhook` | Auth Token | Triggers on incoming SMS/MMS |
+| [Twilio Voice](#twilio-voice) | `twilio_voice_webhook` | Auth Token | Triggers on incoming calls and call status |
 | [Generic](#generic-webhook) | `generic_webhook` | — | Universal HTTP endpoint |
 
 ## How It Works
@@ -1259,6 +1261,119 @@ Triggers on Resend email delivery events. Resend signs deliveries with Svix.
 ### Usage Example
 
 Reference in downstream blocks: `{{Webhook 1.event_type}}`, `{{Webhook 1.to_email}}`, `{{Webhook 1.subject}}`
+
+---
+
+## Twilio SMS
+
+Triggers when your Twilio number receives an SMS or MMS.
+
+<Callout type="info">
+  Twilio is the one provider here that posts `application/x-www-form-urlencoded` fields rather than
+  JSON, and it does not sign the body — it signs the **request URL plus the sorted parameters**,
+  with HMAC **SHA-1**. Zelaxy handles both, including reconstructing the public URL when running
+  behind a proxy.
+</Callout>
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Auth Token | Password | Your Twilio account Auth Token; validates `X-Twilio-Signature` (recommended) |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `from` | string | Sender phone number (E.164) |
+| `to` | string | Your Twilio number that received the message |
+| `body` | string | Message text (also used as the workflow input) |
+| `message_sid` | string | Unique message identifier |
+| `account_sid` | string | Twilio account identifier |
+| `message_status` | string | Message status (e.g. `received`) |
+| `num_media` | number | Number of media attachments |
+| `media` | array | Attachments, each with `url` and `content_type` |
+| `from_city` | string | Sender city, when resolvable |
+| `from_state` | string | Sender state |
+| `from_country` | string | Sender country |
+| `error_code` | string | Error code, when Twilio reports one |
+| `raw` | object | All form fields exactly as Twilio sent them |
+
+<Callout type="info">
+  Twilio spreads MMS attachments across numbered fields (`MediaUrl0`, `MediaContentType0`,
+  `MediaUrl1`, …). Zelaxy collects them into the `media` array so you can loop over them.
+</Callout>
+
+### Sample Payload
+
+```json
+{
+  "MessageSid": "SMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "AccountSid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "From": "+15551234567",
+  "To": "+15559876543",
+  "Body": "Hello from Twilio",
+  "NumMedia": "0",
+  "FromCity": "SAN FRANCISCO",
+  "SmsStatus": "received"
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.from}}`, `{{Webhook 1.body}}`, `{{Webhook 1.media}}`
+
+---
+
+## Twilio Voice
+
+Triggers when your Twilio number receives a call, or when a call status or recording changes.
+
+<Callout type="warn">
+  Twilio expects TwiML in response to script a call. Zelaxy acknowledges the webhook and starts your
+  workflow, so use this to **react** to calls — log, notify, enrich — rather than to drive the call
+  flow itself.
+</Callout>
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Auth Token | Password | Your Twilio account Auth Token; validates `X-Twilio-Signature` (recommended) |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `from` | string | Caller phone number (E.164) |
+| `to` | string | Your Twilio number that received the call |
+| `call_sid` | string | Unique call identifier |
+| `account_sid` | string | Twilio account identifier |
+| `call_status` | string | `ringing`, `in-progress`, `completed`, `busy`, `failed`, `no-answer` |
+| `direction` | string | Call direction (`inbound`, `outbound-api`) |
+| `call_duration` | string | Duration in seconds, when completed |
+| `recording_url` | string | Recording URL, for recording callbacks |
+| `recording_sid` | string | Recording identifier |
+| `recording_duration` | string | Recording duration in seconds |
+| `from_city` | string | Caller city, when resolvable |
+| `raw` | object | All form fields exactly as Twilio sent them |
+
+### Sample Payload
+
+```json
+{
+  "CallSid": "CAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "AccountSid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "From": "+15551234567",
+  "To": "+15559876543",
+  "CallStatus": "ringing",
+  "Direction": "inbound"
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.from}}`, `{{Webhook 1.call_status}}`, `{{Webhook 1.recording_url}}`
 
 ---
 
