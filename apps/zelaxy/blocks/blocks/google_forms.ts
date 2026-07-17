@@ -80,6 +80,15 @@ export const GoogleFormsBlock: BlockConfig<GoogleFormsResponse> = {
       password: true,
       required: true,
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'google_forms',
+      availableTriggers: ['google_forms_webhook'],
+    },
   ],
   tools: {
     access: ['google_forms_get_form', 'google_forms_list_responses', 'google_forms_get_response'],
@@ -99,5 +108,13 @@ export const GoogleFormsBlock: BlockConfig<GoogleFormsResponse> = {
   outputs: {
     data: { type: 'json', description: 'Result object or array from Google Forms' },
     metadata: { type: 'json', description: 'Response metadata' },
+    form_id: { type: 'string', description: 'Google Form ID (trigger events)' },
+    response_id: { type: 'string', description: 'Unique response identifier' },
+    answers: { type: 'json', description: 'Answers keyed by question title' },
+    create_time: { type: 'string', description: 'When the response was created' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['google_forms_webhook'],
   },
 }

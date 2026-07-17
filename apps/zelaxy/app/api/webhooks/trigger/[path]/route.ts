@@ -362,6 +362,12 @@ export async function POST(
       header: 'authorization',
       validate: (s, sig) => validateSharedSecretHeader(s, sig),
     },
+    // The Google Forms Apps Script sends the configured secret as a Bearer token
+    google_forms: {
+      secretKey: 'token',
+      header: 'authorization',
+      validate: (s, sig) => validateSharedSecretHeader(s, sig),
+    },
     calcom: {
       secretKey: 'webhookSecret',
       header: 'x-cal-signature-256',

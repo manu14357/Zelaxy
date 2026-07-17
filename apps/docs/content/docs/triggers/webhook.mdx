@@ -60,6 +60,8 @@ Zelaxy supports webhook triggers from the following services. Each provider has 
 | [EmailBison](#emailbison) | `emailbison_webhook` | Authorization value | Triggers on replies received and sending accounts disconnecting |
 | [Sendblue](#sendblue) | `sendblue_webhook` | — | Triggers on iMessage/SMS messages received or status changing |
 | [RSS](#rss) | `rss_poller` | — (polled) | Triggers on new feed items |
+| [Google Forms](#google-forms) | `google_forms_webhook` | Shared secret | Triggers on new form responses |
+| [IMAP](#imap) | `imap_poller` | — (polled) | Triggers on new email, any provider |
 | [Generic](#generic-webhook) | `generic_webhook` | — | Universal HTTP endpoint |
 
 ## How It Works
@@ -2004,6 +2006,159 @@ Triggers once per new item published to an RSS or Atom feed.
 ### Usage Example
 
 Reference in downstream blocks: `{{RSS 1.title}}`, `{{RSS 1.link}}`, `{{RSS 1.description}}`
+
+---
+
+## Google Forms
+
+Triggers when a form receives a new response.
+
+<Callout type="warn">
+  Google Forms has **no native webhooks**. You connect it with a short Apps Script that runs on
+  submit and posts to Zelaxy. The script is below — this is the one trigger that needs code on your
+  side.
+</Callout>
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Shared Secret | Password | The script sends this as a Bearer token; mismatches are rejected (recommended) |
+
+### Setup
+
+1. Open your form, click the three-dot menu > **Apps Script**.
+2. Paste the script below, replacing `WEBHOOK_URL` and `SHARED_SECRET` with the values from the trigger.
+3. In the Apps Script editor open **Triggers** (clock icon) > **Add Trigger**: function `onFormSubmit`, event source **From form**, event type **On form submit**.
+4. Authorise the script when prompted, then submit a test response.
+
+```javascript
+function onFormSubmit(e) {
+  const WEBHOOK_URL = "<your webhook URL>";
+  const SHARED_SECRET = "<your shared secret>";
+
+  const formResponse = e.response;
+  const itemResponses = formResponse.getItemResponses();
+
+  const answers = {};
+  for (var i = 0; i < itemResponses.length; i++) {
+    answers[itemResponses[i].getItem().getTitle()] = itemResponses[i].getResponse();
+  }
+
+  const payload = {
+    provider: "google_forms",
+    formId: e.source.getId(),
+    responseId: formResponse.getId(),
+    createTime: formResponse.getTimestamp().toISOString(),
+    lastSubmittedTime: formResponse.getTimestamp().toISOString(),
+    answers: answers
+  };
+
+  UrlFetchApp.fetch(WEBHOOK_URL, {
+    method: "post",
+    contentType: "application/json",
+    headers: { "Authorization": "Bearer " + SHARED_SECRET },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+}
+```
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `form_id` | string | Google Form ID |
+| `response_id` | string | Unique response identifier |
+| `create_time` | string | When the response was created |
+| `last_submitted_time` | string | When it was last submitted |
+| `answers` | object | Answers keyed by question title |
+| `answer_count` | number | Number of questions answered |
+| `raw` | object | Complete original payload |
+
+<Callout type="info">
+  `answers` is keyed by the **question title**, so a question titled "What is your email?" is
+  `{{Webhook 1.answers.What is your email?}}`. Renaming a question in the form changes the key.
+</Callout>
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.form_id}}`, `{{Webhook 1.answers.What is your email?}}`, `{{Webhook 1.answer_count}}`
+
+---
+
+## IMAP
+
+Triggers when a new email arrives in a mailbox. Works with any IMAP provider — Gmail, Outlook, Yahoo, Fastmail, or a self-hosted server.
+
+<Callout type="warn">
+  **Use an app password, not your account password.** Gmail and Outlook refuse account passwords
+  over IMAP once 2FA is enabled. Gmail: enable IMAP in Settings > Forwarding and POP/IMAP, then
+  create one at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+</Callout>
+
+<Callout type="info">
+  IMAP is **polled** — there is no webhook URL. Zelaxy connects to your mailbox on a schedule.
+  Connecting a mailbox does not replay existing mail: the first poll records where the mailbox is
+  and triggers nothing.
+</Callout>
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| IMAP Host | Text | e.g. `imap.gmail.com`, `outlook.office365.com` (required) |
+| Port | Number | 993 for SSL/TLS, 143 for STARTTLS (required) |
+| Use SSL/TLS | Switch | Leave on for 993 |
+| Username | Text | Usually your full email address (required) |
+| Password | Password | An app password (required) |
+| Mailbox | Text | Folder to watch, defaults to `INBOX` |
+| Mark as read | Switch | Mark each email read once it has started a run |
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `subject` | string | Email subject (also the workflow input) |
+| `from` | string | Sender email address |
+| `from_name` | string | Sender display name |
+| `to` | array | Recipient addresses |
+| `cc` | array | CC addresses |
+| `date` | string | Email date in ISO format |
+| `message_id` | string | RFC Message-ID header |
+| `uid` | number | IMAP UID within the mailbox |
+| `body_text` | string | Plain text body, when available |
+| `mailbox` | string | Mailbox the email arrived in |
+| `has_attachments` | boolean | Whether the email has attachments |
+| `raw` | object | Complete payload as delivered by the poller |
+
+### How it behaves
+
+- Runs **once per new email**, oldest first, capped at **25 per poll** so a backlog cannot flood a workflow.
+- Tracks position by IMAP **UID**. If the server changes `UIDVALIDITY` — which invalidates every UID it ever issued — Zelaxy detects it, resyncs to the current end of the mailbox, and **does not replay** the mailbox.
+- If a workflow run fails to dispatch, the cursor is not advanced past it, so it is retried on the next poll rather than lost.
+- Dropped connections and throttling are treated as normal and retried on the next poll.
+
+### Sample Payload
+
+```json
+{
+  "mailbox": "INBOX",
+  "email": {
+    "uid": 1042,
+    "messageId": "<CAF=abc123@mail.example.com>",
+    "subject": "Invoice #4102",
+    "from": { "address": "billing@vendor.com", "name": "Vendor Billing" },
+    "to": ["ada@example.com"],
+    "date": "2024-01-15T13:14:15.000Z",
+    "hasAttachments": true
+  }
+}
+```
+
+### Usage Example
+
+Reference in downstream blocks: `{{IMAP 1.subject}}`, `{{IMAP 1.from}}`, `{{IMAP 1.body_text}}`
 
 ---
 

@@ -122,6 +122,7 @@ import { IcypeasBlock } from '@/blocks/blocks/icypeas'
 import { IdentityCenterBlock } from '@/blocks/blocks/identity_center'
 import { ImageGeneratorBlock } from '@/blocks/blocks/image_generator'
 import { ImageSearchBlock } from '@/blocks/blocks/image_search'
+import { ImapBlock } from '@/blocks/blocks/imap'
 import { IncidentioBlock } from '@/blocks/blocks/incidentio'
 import { InfisicalBlock } from '@/blocks/blocks/infisical'
 import { InputTriggerBlock } from '@/blocks/blocks/input_trigger'
@@ -426,6 +427,7 @@ export const registry: Record<string, BlockConfig> = {
   context_dev: ContextDevBlock,
   // Phase 2 — Tiers D, G & H
   google_forms: GoogleFormsBlock,
+  imap: ImapBlock,
   google_tasks: GoogleTasksBlock,
   google_contacts: GoogleContactsBlock,
   google_slides: GoogleSlidesBlock,

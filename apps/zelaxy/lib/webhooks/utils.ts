@@ -1906,6 +1906,76 @@ export function formatWebhookInput(
     }
   }
 
+  if (foundWebhook.provider === 'google_forms') {
+    // Posted by the Apps Script the user installs on their form.
+    const answers = body?.answers || {}
+
+    const formsData = {
+      form_id: body?.formId || '',
+      response_id: body?.responseId || '',
+      create_time: body?.createTime || '',
+      last_submitted_time: body?.lastSubmittedTime || '',
+      answers,
+      answer_count: Object.keys(answers).length,
+      raw: body,
+    }
+
+    return {
+      input: `Google Forms response: ${body?.formId || 'form'}`,
+      ...formsData,
+      google_forms: { ...formsData, ...body },
+      webhook: {
+        data: {
+          provider: 'google_forms',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
+  if (foundWebhook.provider === 'imap') {
+    // IMAP is polled: the polling service posts { mailbox, email } back to this route so mail runs
+    // go through the same pipeline as real webhooks.
+    const email = body?.email || {}
+
+    const imapData = {
+      message_id: email.messageId || '',
+      uid: email.uid ?? 0,
+      subject: email.subject || '',
+      from: email.from?.address || '',
+      from_name: email.from?.name || '',
+      to: Array.isArray(email.to) ? email.to : [],
+      cc: Array.isArray(email.cc) ? email.cc : [],
+      date: email.date || '',
+      body_text: email.bodyText || '',
+      mailbox: body?.mailbox || '',
+      has_attachments: email.hasAttachments ?? false,
+      raw: body,
+    }
+
+    return {
+      input: email.subject || `Email from ${imapData.from || 'unknown sender'}`,
+      ...imapData,
+      imap: { ...imapData, ...body },
+      webhook: {
+        data: {
+          provider: 'imap',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
   // Generic format for other providers
   return {
     webhook: {

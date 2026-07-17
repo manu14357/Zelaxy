@@ -494,6 +494,100 @@ describe('formatWebhookInput (batch-4 providers)', () => {
   })
 })
 
+describe('formatWebhookInput (google forms)', () => {
+  const req = () => ({ headers: new Headers(), method: 'POST' }) as any
+
+  it('flattens the Apps Script payload and keeps answers keyed by question', () => {
+    const payload = {
+      provider: 'google_forms',
+      formId: '1FAIpQLSc-EXAMPLE',
+      responseId: '2_ABaOnuc',
+      createTime: '2024-01-15T13:14:15.000Z',
+      lastSubmittedTime: '2024-01-15T13:14:15.000Z',
+      answers: {
+        'What is your email?': 'ada@example.com',
+        'How did you hear about us?': 'A friend',
+      },
+    }
+
+    const r = formatWebhookInput(
+      { provider: 'google_forms', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      payload,
+      req()
+    )
+
+    expect(r.form_id).toBe('1FAIpQLSc-EXAMPLE')
+    expect(r.response_id).toBe('2_ABaOnuc')
+    expect(r.answers['What is your email?']).toBe('ada@example.com')
+    expect(r.answer_count).toBe(2)
+    expect(r.raw).toEqual(payload)
+  })
+
+  it('reports zero answers for an empty submission rather than throwing', () => {
+    const r = formatWebhookInput(
+      { provider: 'google_forms', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      { formId: 'f1' },
+      req()
+    )
+
+    expect(r.answer_count).toBe(0)
+    expect(r.answers).toEqual({})
+  })
+})
+
+describe('formatWebhookInput (imap poller)', () => {
+  const req = () => ({ headers: new Headers(), method: 'POST' }) as any
+
+  it('flattens the { mailbox, email } payload the poller posts back', () => {
+    const payload = {
+      mailbox: 'INBOX',
+      email: {
+        uid: 1042,
+        messageId: '<CAF=abc123@mail.example.com>',
+        subject: 'Invoice #4102',
+        from: { address: 'billing@vendor.com', name: 'Vendor Billing' },
+        to: ['ada@example.com'],
+        cc: ['ops@example.com'],
+        date: '2024-01-15T13:14:15.000Z',
+        hasAttachments: true,
+      },
+    }
+
+    const r = formatWebhookInput(
+      { provider: 'imap', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      payload,
+      req()
+    )
+
+    expect(r.uid).toBe(1042)
+    expect(r.subject).toBe('Invoice #4102')
+    expect(r.from).toBe('billing@vendor.com')
+    expect(r.from_name).toBe('Vendor Billing')
+    expect(r.to).toEqual(['ada@example.com'])
+    expect(r.cc).toEqual(['ops@example.com'])
+    expect(r.mailbox).toBe('INBOX')
+    expect(r.has_attachments).toBe(true)
+    // The subject becomes the workflow input
+    expect(r.input).toBe('Invoice #4102')
+  })
+
+  it('falls back to the sender for input when an email has no subject', () => {
+    const r = formatWebhookInput(
+      { provider: 'imap', path: 'p', providerConfig: {} },
+      { id: 'wf' },
+      { mailbox: 'INBOX', email: { uid: 1, from: { address: 'a@b.com' } } },
+      req()
+    )
+
+    expect(r.input).toBe('Email from a@b.com')
+    expect(r.to).toEqual([])
+    expect(r.has_attachments).toBe(false)
+  })
+})
+
 describe('formatWebhookInput (rss poller)', () => {
   const req = () => ({ headers: new Headers(), method: 'POST' }) as any
 

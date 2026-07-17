@@ -24,6 +24,7 @@ Retrieve a form structure, list responses, and fetch individual responses from t
 - Page through large response sets using `pageSize` and `pageToken` parameters.
 - Feed form response data into an agent block for summarization, classification, or triage workflows.
 - Trigger downstream notifications or database writes whenever new form responses arrive.
+- Trigger a workflow automatically when someone submits your form
 
 ## Configuration
 
@@ -100,6 +101,15 @@ Example: `ya29....`
 
 Use `{{GOOGLE_ACCESS_TOKEN}}` to reference a secret stored in your environment.
 
+---
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `google_forms_webhook`
+
+When the block runs in trigger mode, this configures the `google_forms_webhook` trigger so form submissions start the workflow. Google Forms has no native webhooks, so this needs a short Apps Script on your form — the script and setup steps are in the [Google Forms trigger docs](/docs/triggers/webhook#google-forms). Deliveries are verified against the shared secret.
+
 ## Inputs & Outputs
 
 ### Inputs
@@ -120,6 +130,10 @@ Use `{{GOOGLE_ACCESS_TOKEN}}` to reference a secret stored in your environment.
 |--------|------|-------------|
 | `data` | json | Result object or array from Google Forms. For `google_forms_get_form` and `google_forms_get_response` this is a single object; for `google_forms_list_responses` this is an array of response objects. |
 | `metadata` | json | Response metadata. For `get_form` and `get_response`: `{ id: string }`. For `list_responses`: `{ count: number, nextPageToken: string \| null }`. |
+
+**Trigger outputs**
+
+When running in trigger mode the block emits the form response instead: `form_id` (string), `response_id` (string), `answers` (json — keyed by question title), `answer_count` (number), `create_time` (string). See the [Google Forms trigger](/docs/triggers/webhook#google-forms) for the full schema.
 
 ## Tools
 

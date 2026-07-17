@@ -21,6 +21,7 @@ import { githubWebhookTrigger } from './github'
 import { gitlabWebhookTrigger } from './gitlab'
 import { gmailPollingTrigger } from './gmail'
 import { gongWebhookTrigger } from './gong'
+import { googleFormsWebhookTrigger } from './google_forms'
 import { googleCalendarPollingTrigger } from './google-calendar'
 import { googleDocsPollingTrigger } from './google-docs'
 import { googleDrivePollingTrigger } from './google-drive'
@@ -28,6 +29,7 @@ import { googleSheetsPollingTrigger } from './google-sheets'
 import { grainWebhookTrigger } from './grain'
 import { greenhouseWebhookTrigger } from './greenhouse'
 import { hubspotPollingTrigger } from './hubspot'
+import { imapPollingTrigger } from './imap'
 import { incidentioWebhookTrigger } from './incidentio'
 import { instantlyWebhookTrigger } from './instantly'
 import { intercomWebhookTrigger } from './intercom'
@@ -104,7 +106,9 @@ export const TRIGGER_REGISTRY: TriggerRegistry = {
   google_calendar_poller: googleCalendarPollingTrigger,
   google_docs_poller: googleDocsPollingTrigger,
   google_drive_poller: googleDrivePollingTrigger,
+  google_forms_webhook: googleFormsWebhookTrigger,
   google_sheets_poller: googleSheetsPollingTrigger,
+  imap_poller: imapPollingTrigger,
   hubspot_poller: hubspotPollingTrigger,
   intercom_webhook: intercomWebhookTrigger,
   jira_webhook: jiraWebhookTrigger,

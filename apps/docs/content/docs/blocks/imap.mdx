@@ -1,0 +1,84 @@
+---
+title: IMAP Email Block
+description: Trigger workflows when new emails arrive via IMAP (works with any email provider)
+icon: Box
+---
+
+# IMAP Email Block
+
+The IMAP Email block is a trigger that starts a workflow when new mail arrives in a mailbox. Because it speaks IMAP directly rather than a vendor API, it works with Gmail, Outlook, Yahoo, Fastmail, or a self-hosted server — anything that supports IMAP.
+
+Unlike the other integrations, there is no webhook to register and no OAuth app to create: Zelaxy connects to the mailbox with your credentials and polls it.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `imap` |
+| **Category** | triggers |
+| **Color** | `#6366F1` |
+
+## When to Use
+
+- Start a workflow the moment an email lands, from a provider with no webhook support
+- Triage a shared support or sales inbox — classify, summarise, and route each message
+- Extract structured data (invoices, orders, applications) from inbound mail
+- Watch a mailbox on an email host that offers no API at all
+
+<Callout type="warn">
+  **Use an app password, not your account password.** Gmail and Outlook refuse account passwords
+  over IMAP once 2FA is enabled. For Gmail, enable IMAP in Settings > Forwarding and POP/IMAP, then
+  create an app password at
+  [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+</Callout>
+
+## Configuration
+
+This is a trigger-only block — it starts workflows and exposes no operations to call.
+
+### Trigger Configuration
+
+- **Type**: trigger-config
+- **Available triggers**: `imap_poller`
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| IMAP Host | Text | e.g. `imap.gmail.com`, `outlook.office365.com` (required) |
+| Port | Number | 993 for SSL/TLS, 143 for STARTTLS (required) |
+| Use SSL/TLS | Switch | Leave on for port 993 |
+| Username | Text | Usually your full email address (required) |
+| Password | Password | An app password (required) |
+| Mailbox | Text | Folder to watch, defaults to `INBOX` |
+| Mark as read | Switch | Mark each email read once it has started a run |
+
+See the [IMAP trigger](/docs/triggers/webhook#imap) for the full setup steps.
+
+## Inputs & Outputs
+
+**Inputs**
+
+None — the block is configured entirely through its trigger configuration above.
+
+**Outputs**
+
+The block emits one email per run:
+
+- `subject` (string) — email subject, also used as the workflow input
+- `from` (string) — sender email address
+- `from_name` (string) — sender display name
+- `to` (json) — recipient addresses
+- `cc` (json) — CC addresses
+- `date` (string) — email date in ISO format
+- `message_id` (string) — RFC Message-ID header
+- `uid` (number) — IMAP UID within the mailbox
+- `body_text` (string) — plain text body, when available
+- `mailbox` (string) — mailbox the email arrived in
+- `has_attachments` (boolean) — whether the email has attachments
+
+## How it behaves
+
+- Runs **once per new email**, oldest first, capped at **25 per poll** so a backlog cannot flood a workflow.
+- Connecting a mailbox **does not replay existing mail** — the first poll records where the mailbox is and triggers nothing.
+- Position is tracked by IMAP **UID**. If the server changes `UIDVALIDITY`, every UID it previously issued becomes meaningless; Zelaxy detects this, resyncs to the current end of the mailbox, and still does not replay it.
+- If a run fails to dispatch, the cursor is not advanced past that email, so it is retried on the next poll rather than dropped.
+- Dropped connections and server throttling are expected with IMAP and are simply retried on the next poll.
