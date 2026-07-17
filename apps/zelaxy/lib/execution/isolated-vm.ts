@@ -47,10 +47,12 @@ export class IsolatedExecutionError extends Error {
     message: string,
     public readonly stdout: string,
     public readonly isTimeout = false,
-    public readonly isMemoryLimit = false
+    public readonly isMemoryLimit = false,
+    /** The original error name from inside the isolate (ReferenceError, TypeError, …) when known. */
+    public readonly originalName?: string
   ) {
     super(message)
-    this.name = 'IsolatedExecutionError'
+    this.name = originalName || 'IsolatedExecutionError'
   }
 }
 
@@ -156,7 +158,13 @@ export async function executeInIsolate(
       logger.warn('User code hit the isolate memory limit')
     }
 
-    throw new IsolatedExecutionError(message, stdout, isTimeout, isMemoryLimit)
+    // isolated-vm copies the thrown error across the boundary; its name (ReferenceError, TypeError,
+    // SyntaxError, …) survives on the copy. Preserve it so the route can classify the error for the
+    // user instead of labelling everything 'IsolatedExecutionError'.
+    const originalName =
+      error instanceof Error && error.name && error.name !== 'Error' ? error.name : undefined
+
+    throw new IsolatedExecutionError(message, stdout, isTimeout, isMemoryLimit, originalName)
   } finally {
     if (!isolate.isDisposed) {
       isolate.dispose()

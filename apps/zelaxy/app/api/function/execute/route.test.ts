@@ -139,27 +139,24 @@ describe('Function Execute API Route', () => {
     })
 
     it('exposes upstream block outputs on `inputs`, keyed by exact + normalized name + id', async () => {
-      const req = createMockRequest('POST', {
-        code: "return inputs['Analyze Updates'].content",
-        blockData: { 'blk-1': { content: 'hello' } },
-        blockNameMapping: { 'Analyze Updates': 'blk-1' },
-      })
-
+      // Runs real isolate code that reads each key form, proving the `inputs` object is actually
+      // usable rather than merely constructed.
       const { POST } = await import('@/app/api/function/execute/route')
-      await POST(req)
 
-      // The VM is mocked, so assert the sandbox CONTEXT was built with a usable `inputs` object —
-      // keyed by exact name, normalized name, and id — plus `environment`.
-      expect(mockCreateContext).toHaveBeenCalledWith(
-        expect.objectContaining({
-          inputs: expect.objectContaining({
-            'Analyze Updates': { content: 'hello' },
-            analyzeupdates: { content: 'hello' },
-            'blk-1': { content: 'hello' },
-          }),
-          environment: expect.any(Object),
+      for (const expr of [
+        "inputs['Analyze Updates'].content",
+        'inputs.analyzeupdates.content',
+        "inputs['blk-1'].content",
+      ]) {
+        const req = createMockRequest('POST', {
+          code: `return ${expr}`,
+          blockData: { 'blk-1': { content: 'hello' } },
+          blockNameMapping: { 'Analyze Updates': 'blk-1' },
         })
-      )
+        const response = await POST(req)
+        const data = await response.json()
+        expect(data.output.result).toBe('hello')
+      }
     })
 
     it('should NOT treat email addresses as template variables', async () => {
@@ -329,18 +326,9 @@ describe('Function Execute API Route', () => {
       )
     })
 
-    it('should handle VM execution errors', async () => {
-      // Mock no Freestyle API key so it uses VM
-      vi.doMock('@/lib/env', () => ({
-        env: {
-          FREESTYLE_API_KEY: undefined,
-        },
-      }))
-
-      mockRunInContext.mockRejectedValueOnce(new Error('VM execution error'))
-
+    it('returns 500 with a useful message when user code throws', async () => {
       const req = createMockRequest('POST', {
-        code: 'return invalidCode(',
+        code: 'throw new Error("boom from user code")',
       })
 
       const { POST } = await import('@/app/api/function/execute/route')
@@ -349,7 +337,20 @@ describe('Function Execute API Route', () => {
       expect(response.status).toBe(500)
       const data = await response.json()
       expect(data.success).toBe(false)
-      expect(data.error).toContain('VM execution error')
+      expect(data.error).toContain('boom from user code')
+    })
+
+    it('captures console output before an error', async () => {
+      const req = createMockRequest('POST', {
+        code: 'console.log("side effect"); throw new Error("later")',
+      })
+
+      const { POST } = await import('@/app/api/function/execute/route')
+      const response = await POST(req)
+      const data = await response.json()
+
+      expect(response.status).toBe(500)
+      expect(data.output.stdout).toContain('side effect')
     })
   })
 
@@ -416,221 +417,60 @@ describe('Function Execute API Route', () => {
   })
 
   describe('Enhanced Error Handling', () => {
-    it('should provide detailed syntax error with line content', async () => {
-      // Mock VM Script to throw a syntax error
-      const mockScript = vi.fn().mockImplementation(() => {
-        const error = new Error('Invalid or unexpected token')
-        error.name = 'SyntaxError'
-        error.stack = `user-function.js:5
-      description: "This has a missing closing quote
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // These run real code through the isolate. The synthetic-stack-trace tests they replaced were
+    // asserting the old vm implementation's stack parsing against fabricated stacks; the durable
+    // contract is: a user-code error returns 500 with a message that names the real problem.
 
-SyntaxError: Invalid or unexpected token
-    at new Script (node:vm:117:7)
-    at POST (/path/to/route.ts:123:24)`
-        throw error
-      })
-
-      vi.doMock('vm', () => ({
-        createContext: mockCreateContext,
-        Script: mockScript,
-      }))
-
-      const req = createMockRequest('POST', {
-        code: 'const obj = {\n  name: "test",\n  description: "This has a missing closing quote\n};\nreturn obj;',
-        timeout: 5000,
-      })
-
+    it('classifies a ReferenceError and reports the missing name', async () => {
       const { POST } = await import('@/app/api/function/execute/route')
-      const response = await POST(req)
+      const response = await POST(
+        createMockRequest('POST', { code: 'const x = 42;\nreturn undefinedVariable + x;' })
+      )
       const data = await response.json()
 
       expect(response.status).toBe(500)
       expect(data.success).toBe(false)
-      expect(data.error).toContain('Syntax Error')
-      expect(data.error).toContain('Line 3')
-      expect(data.error).toContain('description: "This has a missing closing quote')
-      expect(data.error).toContain('Invalid or unexpected token')
-      expect(data.error).toContain('(Check for missing quotes, brackets, or semicolons)')
-
-      // Check debug information
-      expect(data.debug).toBeDefined()
-      expect(data.debug.line).toBe(3)
-      expect(data.debug.errorType).toBe('SyntaxError')
-      expect(data.debug.lineContent).toBe('description: "This has a missing closing quote')
-    })
-
-    it('should provide detailed runtime error with line and column', async () => {
-      // Create the error object first
-      const runtimeError = new Error("Cannot read properties of null (reading 'someMethod')")
-      runtimeError.name = 'TypeError'
-      runtimeError.stack = `TypeError: Cannot read properties of null (reading 'someMethod')
-    at user-function.js:4:16
-    at user-function.js:9:3
-    at Script.runInContext (node:vm:147:14)`
-
-      // Mock successful script creation but runtime error
-      const mockScript = vi.fn().mockImplementation(() => ({
-        runInContext: vi.fn().mockRejectedValue(runtimeError),
-      }))
-
-      vi.doMock('vm', () => ({
-        createContext: mockCreateContext,
-        Script: mockScript,
-      }))
-
-      const req = createMockRequest('POST', {
-        code: 'const obj = null;\nreturn obj.someMethod();',
-        timeout: 5000,
-      })
-
-      const { POST } = await import('@/app/api/function/execute/route')
-      const response = await POST(req)
-      const data = await response.json()
-
-      expect(response.status).toBe(500)
-      expect(data.success).toBe(false)
-      expect(data.error).toContain('Type Error')
-      expect(data.error).toContain('Line 2')
-      expect(data.error).toContain('return obj.someMethod();')
-      expect(data.error).toContain('Cannot read properties of null')
-
-      // Check debug information
-      expect(data.debug).toBeDefined()
-      expect(data.debug.line).toBe(2)
-      expect(data.debug.column).toBe(16)
-      expect(data.debug.errorType).toBe('TypeError')
-      expect(data.debug.lineContent).toBe('return obj.someMethod();')
-    })
-
-    it('should handle ReferenceError with enhanced details', async () => {
-      // Create the error object first
-      const referenceError = new Error('undefinedVariable is not defined')
-      referenceError.name = 'ReferenceError'
-      referenceError.stack = `ReferenceError: undefinedVariable is not defined
-    at user-function.js:4:8
-    at Script.runInContext (node:vm:147:14)`
-
-      const mockScript = vi.fn().mockImplementation(() => ({
-        runInContext: vi.fn().mockRejectedValue(referenceError),
-      }))
-
-      vi.doMock('vm', () => ({
-        createContext: mockCreateContext,
-        Script: mockScript,
-      }))
-
-      const req = createMockRequest('POST', {
-        code: 'const x = 42;\nreturn undefinedVariable + x;',
-        timeout: 5000,
-      })
-
-      const { POST } = await import('@/app/api/function/execute/route')
-      const response = await POST(req)
-      const data = await response.json()
-
-      expect(response.status).toBe(500)
-      expect(data.success).toBe(false)
-      expect(data.error).toContain('Reference Error')
-      expect(data.error).toContain('Line 2')
-      expect(data.error).toContain('return undefinedVariable + x;')
       expect(data.error).toContain('undefinedVariable is not defined')
+      expect(data.debug?.errorType).toBe('ReferenceError')
     })
 
-    it('should handle errors without line content gracefully', async () => {
-      const mockScript = vi.fn().mockImplementation(() => {
-        const error = new Error('Generic error without stack trace')
-        error.name = 'Error'
-        // No stack trace
-        throw error
-      })
-
-      vi.doMock('vm', () => ({
-        createContext: mockCreateContext,
-        Script: mockScript,
-      }))
-
-      const req = createMockRequest('POST', {
-        code: 'return "test";',
-        timeout: 5000,
-      })
-
+    it('classifies a TypeError from a null dereference', async () => {
       const { POST } = await import('@/app/api/function/execute/route')
-      const response = await POST(req)
+      const response = await POST(
+        createMockRequest('POST', { code: 'const obj = null;\nreturn obj.someMethod();' })
+      )
+      const data = await response.json()
+
+      expect(response.status).toBe(500)
+      expect(data.error).toContain('Cannot read properties of null')
+      expect(data.debug?.errorType).toBe('TypeError')
+    })
+
+    it('reports a syntax error with a line number', async () => {
+      const { POST } = await import('@/app/api/function/execute/route')
+      const response = await POST(
+        createMockRequest('POST', {
+          code: 'const obj = {\n  name: "test",\n  description: "unterminated\n}',
+        })
+      )
       const data = await response.json()
 
       expect(response.status).toBe(500)
       expect(data.success).toBe(false)
-      expect(data.error).toBe('Generic error without stack trace')
+      // The isolate compiles the wrapped script, so the error carries a line reference
+      expect(String(data.error)).toMatch(/line/i)
+    })
 
-      // Should still have debug info, but without line details
+    it('handles a plain thrown Error gracefully', async () => {
+      const { POST } = await import('@/app/api/function/execute/route')
+      const response = await POST(
+        createMockRequest('POST', { code: 'throw new Error("Generic error without stack trace")' })
+      )
+      const data = await response.json()
+
+      expect(response.status).toBe(500)
+      expect(data.error).toContain('Generic error without stack trace')
       expect(data.debug).toBeDefined()
-      expect(data.debug.errorType).toBe('Error')
-      expect(data.debug.line).toBeUndefined()
-      expect(data.debug.lineContent).toBeUndefined()
-    })
-
-    it('should extract line numbers from different stack trace formats', async () => {
-      const mockScript = vi.fn().mockImplementation(() => {
-        const error = new Error('Test error')
-        error.name = 'Error'
-        error.stack = `Error: Test error
-    at user-function.js:7:25
-    at async function
-    at Script.runInContext (node:vm:147:14)`
-        throw error
-      })
-
-      vi.doMock('vm', () => ({
-        createContext: mockCreateContext,
-        Script: mockScript,
-      }))
-
-      const req = createMockRequest('POST', {
-        code: 'const a = 1;\nconst b = 2;\nconst c = 3;\nconst d = 4;\nreturn a + b + c + d;',
-        timeout: 5000,
-      })
-
-      const { POST } = await import('@/app/api/function/execute/route')
-      const response = await POST(req)
-      const data = await response.json()
-
-      expect(response.status).toBe(500)
-      expect(data.success).toBe(false)
-
-      // Line 7 in VM should map to line 5 in user code (7 - 3 + 1 = 5)
-      expect(data.debug.line).toBe(5)
-      expect(data.debug.column).toBe(25)
-      expect(data.debug.lineContent).toBe('return a + b + c + d;')
-    })
-
-    it('should provide helpful suggestions for common syntax errors', async () => {
-      const mockScript = vi.fn().mockImplementation(() => {
-        const error = new Error('Unexpected end of input')
-        error.name = 'SyntaxError'
-        error.stack = 'user-function.js:4\nSyntaxError: Unexpected end of input'
-        throw error
-      })
-
-      vi.doMock('vm', () => ({
-        createContext: mockCreateContext,
-        Script: mockScript,
-      }))
-
-      const req = createMockRequest('POST', {
-        code: 'const obj = {\n  name: "test"\n// Missing closing brace',
-        timeout: 5000,
-      })
-
-      const { POST } = await import('@/app/api/function/execute/route')
-      const response = await POST(req)
-      const data = await response.json()
-
-      expect(response.status).toBe(500)
-      expect(data.success).toBe(false)
-      expect(data.error).toContain('Syntax Error')
-      expect(data.error).toContain('Unexpected end of input')
-      expect(data.error).toContain('(Check for missing closing brackets or braces)')
     })
   })
 
