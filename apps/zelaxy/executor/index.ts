@@ -1,4 +1,5 @@
 import { BlockPathCalculator } from '@/lib/block-path-calculator'
+import { serializeContext, unsupportedPauseReason } from '@/lib/execution/context-serializer'
 import { createLogger } from '@/lib/logs/console/logger'
 import type { BlockOutput } from '@/blocks/types'
 import { BlockType } from '@/executor/consts'
@@ -13,6 +14,7 @@ import type {
   ExecutionContext,
   ExecutionResult,
   NormalizedBlockOutput,
+  PauseMetadata,
   StreamingExecution,
 } from '@/executor/types'
 import { streamingResponseFormatProcessor } from '@/executor/utils'
@@ -202,6 +204,68 @@ export class Executor {
   }
 
   /**
+   * Detects a human-in-the-loop / async-wait pause in a just-executed layer's outputs.
+   *
+   * Returns a paused ExecutionResult carrying the serialized context (for the caller to persist and
+   * later resume), or null if nothing paused. A pause inside an active loop or parallel, or more
+   * than one pause in a layer, is not yet resumable, so it is returned as an error result — failing
+   * safe rather than resuming wrong state.
+   */
+  private detectPause(outputs: any[], context: ExecutionContext): ExecutionResult | null {
+    const paused = outputs.filter(
+      (o) => o && typeof o === 'object' && o._pauseMetadata && o.status === 'waiting'
+    )
+    if (paused.length === 0) {
+      return null
+    }
+
+    const startTime = context.metadata.startTime ?? new Date().toISOString()
+    const baseMeta = {
+      duration: Date.now() - new Date(startTime).getTime(),
+      startTime,
+      endTime: new Date().toISOString(),
+    }
+
+    if (paused.length > 1) {
+      return {
+        success: false,
+        output: {},
+        error: 'More than one block paused in the same step, which cannot be resumed yet',
+        logs: context.blockLogs,
+        metadata: baseMeta,
+      }
+    }
+
+    const meta = paused[0]._pauseMetadata as PauseMetadata
+    const unsupported = unsupportedPauseReason(context)
+    if (unsupported) {
+      return {
+        success: false,
+        output: {},
+        error: unsupported,
+        logs: context.blockLogs,
+        metadata: baseMeta,
+      }
+    }
+
+    logger.info('Execution paused', { blockId: meta.blockId, pauseKind: meta.pauseKind })
+
+    return {
+      success: false,
+      output: {},
+      logs: context.blockLogs,
+      metadata: { ...baseMeta, paused: true } as any,
+      paused: {
+        contextId: meta.contextId ?? '',
+        blockId: meta.blockId ?? paused[0].blockId ?? '',
+        pauseKind: meta.pauseKind === 'time' ? 'time' : 'human-in-the-loop',
+        resumeAt: (paused[0] as any).resumeAt ?? meta.resumeAt,
+        snapshot: serializeContext(context),
+      },
+    }
+  }
+
+  /**
    * Consults the injected cross-instance cancellation probe, if one was supplied.
    *
    * Returns false (do not cancel) when no probe is set or the probe throws — a manual browser run
@@ -311,6 +375,14 @@ export class Executor {
             hasMoreLayers = false
           } else {
             const outputs = await this.executeLayer(nextLayer, context)
+
+            // A human-in-the-loop or async-wait block halts the run rather than flowing through.
+            // Previously the executor ignored this and ran straight to the next block, silently
+            // bypassing approval gates. Detect it, carry the state out, and stop.
+            const paused = this.detectPause(outputs, context)
+            if (paused) {
+              return paused
+            }
 
             for (const output of outputs) {
               if (
@@ -663,6 +735,92 @@ export class Executor {
         error: this.extractErrorMessage(error),
         logs: context.blockLogs,
       }
+    }
+  }
+
+  /**
+   * Resumes a run that halted at a human-in-the-loop or async-wait block.
+   *
+   * The paused block's stored output was `{ status: 'waiting' }`; here it is overwritten with the
+   * resolution (the human decision, or a completed wait) so downstream blocks read the real value.
+   * Then the run continues to completion — or to the next pause, which is detected and returned the
+   * same way, so a workflow with two approval gates pauses at each rather than blowing through the
+   * second.
+   */
+  async resumeFromPause(
+    context: ExecutionContext,
+    blockId: string,
+    resolution: Record<string, any>
+  ): Promise<ExecutionResult> {
+    const resumedOutput = { status: 'completed', ...resolution }
+
+    const blockState = context.blockStates.get(blockId)
+    if (blockState) {
+      blockState.output = resumedOutput as any
+    } else {
+      context.blockStates.set(blockId, { output: resumedOutput, executed: true } as any)
+    }
+    const blockLog = context.blockLogs.find((log) => log.blockId === blockId)
+    if (blockLog) {
+      blockLog.output = resumedOutput as any
+    }
+
+    logger.info('Resuming paused execution', { blockId })
+
+    let finalOutput: NormalizedBlockOutput = resumedOutput as any
+    let iteration = 0
+    const maxIterations = 100
+
+    while (iteration < maxIterations) {
+      iteration++
+
+      if (await this.checkDistributedCancellation()) {
+        this.isCancelled = true
+      }
+      if (this.isCancelled) {
+        return {
+          success: false,
+          output: finalOutput,
+          error: 'Workflow execution was cancelled',
+          logs: context.blockLogs,
+        }
+      }
+
+      const nextLayer = this.getNextExecutionLayer(context)
+      if (nextLayer.length === 0) {
+        break
+      }
+
+      const outputs = await this.executeLayer(nextLayer, context)
+
+      const paused = this.detectPause(outputs, context)
+      if (paused) {
+        return paused
+      }
+
+      const normalized = outputs.filter(
+        (o) => !(o && typeof o === 'object' && 'stream' in o)
+      ) as NormalizedBlockOutput[]
+      if (normalized.length > 0) {
+        finalOutput = normalized[normalized.length - 1]
+      }
+
+      await this.loopManager.processLoopIterations(context)
+      await this.parallelManager.processParallelIterations(context)
+    }
+
+    const startTime = context.metadata.startTime ?? new Date().toISOString()
+    context.metadata.endTime = new Date().toISOString()
+
+    return {
+      success: true,
+      output: finalOutput,
+      logs: context.blockLogs,
+      metadata: {
+        duration: Date.now() - new Date(startTime).getTime(),
+        startTime,
+        endTime: context.metadata.endTime,
+      },
     }
   }
 

@@ -11,6 +11,7 @@ import type {
   WorkflowExecutionResult,
 } from '@/lib/bullmq/types'
 import { clearExecutionCancellation, isExecutionCancelled } from '@/lib/execution/cancellation'
+import { persistPause } from '@/lib/execution/pause-manager'
 import { createLogger } from '@/lib/logs/console/logger'
 import { LoggingSession } from '@/lib/logs/execution/logging-session'
 import { buildTraceSpans } from '@/lib/logs/execution/trace-spans/trace-spans'
@@ -170,6 +171,19 @@ export async function processWorkflowExecution(
     // Clear any cancel flag so a later run reusing this id (retry, requeue) does not inherit it.
     await clearExecutionCancellation(executionId)
     const executionResult = 'stream' in result && 'execution' in result ? result.execution : result
+
+    // The run halted at a human-in-the-loop or async-wait block. Persist the snapshot so it can be
+    // resumed later — by a human clicking approve, or by the time-pause poller.
+    if ('paused' in result && result.paused) {
+      await persistPause({ executionId, workflowId, paused: result.paused })
+      workflowLogger.info(`[${requestId}] Workflow paused, awaiting resume`, {
+        workflowId,
+        executionId,
+        blockId: result.paused.blockId,
+        pauseKind: result.paused.pauseKind,
+      })
+      return { success: true, workflowId, executionId, output: {}, paused: true } as any
+    }
 
     workflowLogger.info(`[${requestId}] Workflow execution completed: ${workflowId}`, {
       success: executionResult.success,

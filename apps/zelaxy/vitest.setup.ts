@@ -37,6 +37,9 @@ vi.mock('@/stores/execution/store', () => ({
       reset: vi.fn(),
       setActiveBlocks: vi.fn(),
     }),
+    // The executor also calls setState directly when a block starts/finishes; without this the
+    // mock is incomplete and any test that runs a block to completion throws.
+    setState: vi.fn(),
   },
 }))
 

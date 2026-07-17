@@ -2026,3 +2026,47 @@ export const arenaChat = pgTable(
     updatedIdx: index('arena_chat_updated_idx').on(table.updatedAt),
   })
 )
+
+/**
+ * A workflow run that has paused and is waiting to be resumed.
+ *
+ * Two kinds of pause use this: a human-in-the-loop block waiting for an approve/reject decision,
+ * and an async Wait block deferring until a future time. The serialized execution context is the
+ * executor's own carried state (the same object debug-mode stepping passes back into
+ * continueExecution), so a resume rehydrates exactly where the run left off — even on a different
+ * instance or after a restart, which an in-memory pause could not survive.
+ */
+export const workflowExecutionPause = pgTable(
+  'workflow_execution_pause',
+  {
+    id: text('id').primaryKey(),
+    executionId: text('execution_id').notNull(),
+    workflowId: text('workflow_id')
+      .notNull()
+      .references(() => workflow.id, { onDelete: 'cascade' }),
+    // The paused block and the opaque id its resume link carries, so a stale or duplicate resume
+    // request can be matched to (or rejected against) the exact pause it belongs to.
+    blockId: text('block_id').notNull(),
+    contextId: text('context_id').notNull(),
+    // 'human-in-the-loop' | 'time'
+    pauseKind: text('pause_kind').notNull(),
+    // 'waiting' | 'resumed' | 'cancelled'
+    status: text('status').notNull().default('waiting'),
+    // The serialized ExecutionContext plus the block ids to resume, written with a Map/Set-aware
+    // replacer. Never contains callbacks — those are re-attached on resume, not persisted.
+    snapshot: jsonb('snapshot').notNull(),
+    // For time pauses: when the poller should resume it. Null for human-in-the-loop.
+    resumeAt: timestamp('resume_at'),
+    // The decision/input supplied when the pause was resolved.
+    resumeInput: jsonb('resume_input'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    resumedAt: timestamp('resumed_at'),
+  },
+  (table) => ({
+    executionIdx: index('wf_exec_pause_execution_idx').on(table.executionId),
+    contextIdx: uniqueIndex('wf_exec_pause_context_idx').on(table.contextId),
+    // The poller scans for time pauses whose resumeAt has elapsed
+    dueIdx: index('wf_exec_pause_due_idx').on(table.status, table.resumeAt),
+  })
+)

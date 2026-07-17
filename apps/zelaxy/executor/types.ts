@@ -245,6 +245,20 @@ export interface ExecutionResult {
   error?: string // Error message if execution failed
   logs?: BlockLog[] // Execution logs for all blocks
   metadata?: ExecutionMetadata
+  // Present when the run halted at a human-in-the-loop or async-wait block instead of finishing.
+  // The caller persists this so the run can be resumed later, possibly on another instance.
+  paused?: PausedExecution
+}
+
+/** Everything needed to resume a halted run. Carried out of the executor; persisted by the caller. */
+export interface PausedExecution {
+  contextId: string
+  blockId: string
+  pauseKind: 'human-in-the-loop' | 'time'
+  /** For async waits: when the run should resume. */
+  resumeAt?: string
+  /** Serialized ExecutionContext (Map/Set-aware). Fed back through resume. */
+  snapshot: string
 }
 
 /**
