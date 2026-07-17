@@ -25,15 +25,19 @@ import {
   formatWebhookInput,
   getExternalRequestUrl,
   handleZoomUrlValidation,
+  validateAsanaSignature,
   validateAshbySignature,
   validateCalcomSignature,
   validateCalendlySignature,
+  validateGitHubSignature,
   validateGitLabToken,
   validateGreenhouseSignature,
+  validateLinearSignature,
   validatePagerDutySignature,
   validateRootlySignature,
   validateSentrySignature,
   validateSharedSecretHeader,
+  validateSlackSignature,
   validateSvixSignature,
   validateTwilioSignature,
   validateTypeformSignature,
@@ -170,6 +174,57 @@ describe('validateTypeformSignature', () => {
 
   it('rejects a missing signature header', () => {
     expect(validateTypeformSignature(secret, null, body)).toBe(false)
+  })
+})
+
+describe('previously-unverified webhook signatures', () => {
+  const crypto = require('crypto')
+  const body = '{"hello":"world"}'
+
+  it('validateGitHubSignature accepts a correct sha256= HMAC', () => {
+    const secret = 'gh-secret'
+    const sig = `sha256=${crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')}`
+
+    expect(validateGitHubSignature(secret, sig, body)).toBe(true)
+    expect(validateGitHubSignature(secret, sig, `${body} tampered`)).toBe(false)
+    expect(validateGitHubSignature('wrong', sig, body)).toBe(false)
+    expect(validateGitHubSignature(secret, null, body)).toBe(false)
+  })
+
+  it('validateGitHubSignature refuses the legacy SHA-1 header, so a caller cannot downgrade', () => {
+    const secret = 'gh-secret'
+    const sha1 = `sha1=${crypto.createHmac('sha1', secret).update(body, 'utf8').digest('hex')}`
+
+    expect(validateGitHubSignature(secret, sha1, body)).toBe(false)
+  })
+
+  it('validateLinearSignature accepts a correct hex HMAC-SHA256', () => {
+    const secret = 'linear-secret'
+    const sig = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    expect(validateLinearSignature(secret, sig, body)).toBe(true)
+    expect(validateLinearSignature(secret, sig, `${body} tampered`)).toBe(false)
+  })
+
+  it('validateAsanaSignature accepts a correct hex HMAC-SHA256', () => {
+    const secret = 'asana-secret'
+    const sig = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    expect(validateAsanaSignature(secret, sig, body)).toBe(true)
+    expect(validateAsanaSignature('wrong', sig, body)).toBe(false)
+  })
+
+  it('validateSlackSignature binds the signature to its timestamp and rejects stale ones', async () => {
+    const secret = 'slack-secret'
+    const now = Math.floor(Date.now() / 1000).toString()
+    const sign = (ts: string) =>
+      `v0=${crypto.createHmac('sha256', secret).update(`v0:${ts}:${body}`, 'utf8').digest('hex')}`
+
+    expect(await validateSlackSignature(secret, sign(now), now, body)).toBe(true)
+    // Slack replay protection: a correctly signed but old request must be refused
+    const old = (Math.floor(Date.now() / 1000) - 60 * 10).toString()
+    expect(await validateSlackSignature(secret, sign(old), old, body)).toBe(false)
+    expect(await validateSlackSignature(secret, sign(now), now, `${body} tampered`)).toBe(false)
   })
 })
 

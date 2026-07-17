@@ -38,6 +38,9 @@ const validateGreenhouseSignatureMock = vi.fn().mockReturnValue(true)
 const validateAshbySignatureMock = vi.fn().mockReturnValue(true)
 const validateRootlySignatureMock = vi.fn().mockReturnValue(true)
 const validateSharedSecretHeaderMock = vi.fn().mockReturnValue(true)
+const validateGitHubSignatureMock = vi.fn().mockReturnValue(true)
+const validateLinearSignatureMock = vi.fn().mockReturnValue(true)
+const validateAsanaSignatureMock = vi.fn().mockReturnValue(true)
 const getExternalRequestUrlMock = vi
   .fn()
   .mockReturnValue('https://zelaxy.in/api/webhooks/trigger/x')
@@ -98,6 +101,9 @@ vi.mock('@/lib/webhooks/utils', () => ({
   validateAshbySignature: validateAshbySignatureMock,
   validateRootlySignature: validateRootlySignatureMock,
   validateSharedSecretHeader: validateSharedSecretHeaderMock,
+  validateGitHubSignature: validateGitHubSignatureMock,
+  validateLinearSignature: validateLinearSignatureMock,
+  validateAsanaSignature: validateAsanaSignatureMock,
   getExternalRequestUrl: getExternalRequestUrlMock,
   verifyProviderWebhook: verifyProviderWebhookMock,
 }))

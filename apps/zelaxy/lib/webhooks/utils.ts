@@ -2607,6 +2607,80 @@ export function validateSharedSecretHeader(
 }
 
 /**
+ * Validates a GitHub webhook request signature.
+ *
+ * GitHub signs the raw body with HMAC SHA-256 and sends `X-Hub-Signature-256: sha256=<hex>`.
+ * The older X-Hub-Signature (SHA-1) header is deliberately not accepted: GitHub still sends it for
+ * compatibility, and honouring it would let a caller downgrade to the weaker algorithm.
+ */
+export function validateGitHubSignature(
+  secret: string,
+  signature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secret || !signature || !body || !signature.startsWith('sha256=')) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = `sha256=${crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')}`
+
+    return timingSafeEquals(computed, signature)
+  } catch (error) {
+    logger.error('Error validating GitHub signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates a Linear webhook request signature: HMAC SHA-256 hex over the raw body.
+ */
+export function validateLinearSignature(
+  secret: string,
+  signature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secret || !signature || !body) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    return timingSafeEquals(computed, signature)
+  } catch (error) {
+    logger.error('Error validating Linear signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates an Asana webhook request signature: HMAC SHA-256 hex over the raw body,
+ * sent in X-Hook-Signature.
+ */
+export function validateAsanaSignature(
+  secret: string,
+  signature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secret || !signature || !body) {
+      return false
+    }
+
+    const crypto = require('crypto')
+    const computed = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+
+    return timingSafeEquals(computed, signature)
+  } catch (error) {
+    logger.error('Error validating Asana signature:', error)
+    return false
+  }
+}
+
+/**
  * Process webhook provider-specific verification
  */
 export function verifyProviderWebhook(

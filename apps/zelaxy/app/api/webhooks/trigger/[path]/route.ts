@@ -7,16 +7,20 @@ import {
   handleSlackChallenge,
   handleWhatsAppVerification,
   handleZoomUrlValidation,
+  validateAsanaSignature,
   validateAshbySignature,
   validateCalcomSignature,
   validateCalendlySignature,
+  validateGitHubSignature,
   validateGitLabToken,
   validateGreenhouseSignature,
+  validateLinearSignature,
   validateMicrosoftTeamsSignature,
   validatePagerDutySignature,
   validateRootlySignature,
   validateSentrySignature,
   validateSharedSecretHeader,
+  validateSlackSignature,
   validateSvixSignature,
   validateTwilioSignature,
   validateTypeformSignature,
@@ -269,7 +273,11 @@ export async function POST(
   // secret to the header the provider signs with; a configured secret that fails to match is a 401.
   const signatureChecks: Record<
     string,
-    { secretKey: string; header: string; validate: (s: string, sig: string | null) => boolean }
+    {
+      secretKey: string
+      header: string
+      validate: (s: string, sig: string | null) => boolean | Promise<boolean>
+    }
   > = {
     sentry: {
       secretKey: 'clientSecret',
@@ -373,6 +381,33 @@ export async function POST(
       header: 'authorization',
       validate: (s, sig) => validateSharedSecretHeader(s, sig),
     },
+    github: {
+      secretKey: 'webhookSecret',
+      header: 'x-hub-signature-256',
+      validate: (s, sig) => validateGitHubSignature(s, sig, rawBody as string),
+    },
+    // Slack signs `v0:<timestamp>:<body>` and rejects stale timestamps, so it needs the header too
+    slack: {
+      secretKey: 'signingSecret',
+      header: 'x-slack-signature',
+      validate: (s, sig) =>
+        validateSlackSignature(
+          s,
+          sig || '',
+          request.headers.get('x-slack-request-timestamp') || '',
+          rawBody as string
+        ),
+    },
+    linear: {
+      secretKey: 'webhookSecret',
+      header: 'linear-signature',
+      validate: (s, sig) => validateLinearSignature(s, sig, rawBody as string),
+    },
+    asana: {
+      secretKey: 'webhookSecret',
+      header: 'x-hook-signature',
+      validate: (s, sig) => validateAsanaSignature(s, sig, rawBody as string),
+    },
     calcom: {
       secretKey: 'webhookSecret',
       header: 'x-cal-signature-256',
@@ -422,7 +457,12 @@ export async function POST(
     const secret = providerConfig[signatureCheck.secretKey]
 
     if (secret) {
-      if (!signatureCheck.validate(secret, request.headers.get(signatureCheck.header))) {
+      const valid = await signatureCheck.validate(
+        secret,
+        request.headers.get(signatureCheck.header)
+      )
+
+      if (!valid) {
         logger.warn(`[${requestId}] ${foundWebhook.provider} signature verification failed`)
         return new NextResponse('Unauthorized - Invalid signature', { status: 401 })
       }
