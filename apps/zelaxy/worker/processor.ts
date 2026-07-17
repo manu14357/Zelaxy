@@ -12,6 +12,7 @@ import type {
 } from '@/lib/bullmq/types'
 import { clearExecutionCancellation, isExecutionCancelled } from '@/lib/execution/cancellation'
 import { persistPause } from '@/lib/execution/pause-manager'
+import { shadowCompare } from '@/lib/execution/shadow-executor'
 import { createLogger } from '@/lib/logs/console/logger'
 import { LoggingSession } from '@/lib/logs/execution/logging-session'
 import { buildTraceSpans } from '@/lib/logs/execution/trace-spans/trace-spans'
@@ -184,6 +185,17 @@ export async function processWorkflowExecution(
       })
       return { success: true, workflowId, executionId, output: {}, paused: true } as any
     }
+
+    // Optionally re-run the workflow through a comparison executor and log any result differences.
+    // No-op unless EXECUTOR_SHADOW_COMPARE is set and a comparison executor is configured below.
+    await shadowCompare(
+      executionResult,
+      () => {
+        // Return an alternate executor here to compare it against the one that ran above.
+        return null
+      },
+      { workflowId, executionId }
+    )
 
     workflowLogger.info(`[${requestId}] Workflow execution completed: ${workflowId}`, {
       success: executionResult.success,

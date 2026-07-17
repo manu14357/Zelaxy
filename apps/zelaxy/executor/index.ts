@@ -376,9 +376,8 @@ export class Executor {
           } else {
             const outputs = await this.executeLayer(nextLayer, context)
 
-            // A human-in-the-loop or async-wait block halts the run rather than flowing through.
-            // Previously the executor ignored this and ran straight to the next block, silently
-            // bypassing approval gates. Detect it, carry the state out, and stop.
+            // A human-in-the-loop or async-wait block halts the run: carry the state out and stop
+            // rather than executing downstream blocks.
             const paused = this.detectPause(outputs, context)
             if (paused) {
               return paused

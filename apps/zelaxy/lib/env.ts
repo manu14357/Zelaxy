@@ -24,6 +24,9 @@ export const env = createEnv({
     ALLOWED_LOGIN_DOMAINS:                z.string().optional(),                  // Comma-separated list of allowed email domains for login
     ADMIN_EMAILS:                         z.string().optional(),                  // Comma-separated list of platform admin email addresses
 
+    EXECUTOR_SHADOW_COMPARE:              z.boolean().optional(),                 // Run a second executor alongside each run and log result differences
+    EXECUTOR_SHADOW_SAMPLE_RATE:          z.string().optional(),                  // Fraction of runs to shadow-compare (0..1), defaults to 1
+
     // Single Sign-On (SSO) — OIDC & SAML 2.0 via better-auth
     SSO_ENABLED:                          z.boolean().optional(),                 // Enable SSO functionality (self-hosted bypass for the Enterprise plan gate)
     ORGANIZATIONS_ENABLED:                z.boolean().optional(),                 // Auto-add SSO users to your organization on first sign-in
