@@ -4,7 +4,8 @@
 import { describe, expect, it } from 'vitest'
 import { executeInIsolate, IsolatedExecutionError } from './isolated-vm'
 
-const wrap = (body: string) => `(async () => { try { ${body} } catch (e) { console.error(e); throw e } })()`
+const wrap = (body: string) =>
+  `(async () => { try { ${body} } catch (e) { console.error(e); throw e } })()`
 
 describe('executeInIsolate', () => {
   it('evaluates normal code and returns its value', async () => {
@@ -26,7 +27,9 @@ describe('executeInIsolate', () => {
 
   it('cannot reach process through the constructor escape', async () => {
     await expect(
-      executeInIsolate({ code: wrap('return this.constructor.constructor("return process")().env') })
+      executeInIsolate({
+        code: wrap('return this.constructor.constructor("return process")().env'),
+      })
     ).rejects.toThrow(/process is not defined/i)
   })
 
@@ -91,7 +94,9 @@ describe('executeInIsolate', () => {
 
   it('leaves fetch undefined when no bridge is supplied', async () => {
     await expect(
-      executeInIsolate({ code: wrap('return typeof fetch === "function" ? await fetch("x") : "no-fetch"') })
+      executeInIsolate({
+        code: wrap('return typeof fetch === "function" ? await fetch("x") : "no-fetch"'),
+      })
     ).resolves.toMatchObject({ result: 'no-fetch' })
   })
 })
