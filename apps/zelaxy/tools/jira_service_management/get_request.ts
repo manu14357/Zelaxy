@@ -2,32 +2,42 @@ import type {
   JiraSmGetRequestParams,
   JiraSmObjectResponse,
 } from '@/tools/jira_service_management/types'
+import {
+  buildJsmQuery,
+  getJsmApiBaseUrl,
+  getJsmHeaders,
+} from '@/tools/jira_service_management/utils'
 import type { ToolConfig } from '@/tools/types'
 
 export const getRequestTool: ToolConfig<JiraSmGetRequestParams, JiraSmObjectResponse> = {
   id: 'jira_service_management_get_request',
   name: 'Jira Service Management Get Request',
   description: 'Retrieve a single customer request by issue ID or key',
-  version: '1.0.0',
+  version: '2.0.0',
+
+  oauth: {
+    required: true,
+    provider: 'jira',
+  },
 
   params: {
-    siteUrl: {
+    accessToken: {
       type: 'string',
       required: true,
-      visibility: 'user-only',
-      description: 'Atlassian site URL (e.g. https://your-domain.atlassian.net)',
+      visibility: 'hidden',
+      description: 'OAuth access token for Jira Service Management',
     },
-    email: {
+    cloudId: {
       type: 'string',
       required: true,
       visibility: 'user-only',
-      description: 'Atlassian account email',
+      description: 'Jira Cloud ID',
     },
-    apiToken: {
+    expand: {
       type: 'string',
-      required: true,
-      visibility: 'user-only',
-      description: 'Atlassian API token',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated fields to expand (e.g. serviceDesk,requestType,status)',
     },
     issueIdOrKey: {
       type: 'string',
@@ -38,15 +48,10 @@ export const getRequestTool: ToolConfig<JiraSmGetRequestParams, JiraSmObjectResp
   },
 
   request: {
-    url: (params) => {
-      const baseUrl = params.siteUrl.trim().replace(/\/$/, '')
-      return `${baseUrl}/rest/servicedeskapi/request/${encodeURIComponent(params.issueIdOrKey.trim())}`
-    },
+    url: (params) =>
+      `${getJsmApiBaseUrl(params.cloudId)}/request/${encodeURIComponent(params.issueIdOrKey.trim())}${buildJsmQuery({ expand: params.expand })}`,
     method: 'GET',
-    headers: (params) => ({
-      Authorization: `Basic ${Buffer.from(`${params.email}:${params.apiToken}`).toString('base64')}`,
-      Accept: 'application/json',
-    }),
+    headers: (params) => getJsmHeaders(params.accessToken),
   },
 
   transformResponse: async (response) => {

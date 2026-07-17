@@ -2,32 +2,42 @@ import type {
   JiraSmListResponse,
   JiraSmListServiceDesksParams,
 } from '@/tools/jira_service_management/types'
+import {
+  buildJsmQuery,
+  getJsmApiBaseUrl,
+  getJsmHeaders,
+} from '@/tools/jira_service_management/utils'
 import type { ToolConfig } from '@/tools/types'
 
 export const listServiceDesksTool: ToolConfig<JiraSmListServiceDesksParams, JiraSmListResponse> = {
   id: 'jira_service_management_list_servicedesks',
-  name: 'Jira Service Management List Service Desks',
+  name: 'JSM List Service Desks',
   description: 'List the service desks available in Jira Service Management',
-  version: '1.0.0',
+  version: '2.0.0',
+
+  oauth: {
+    required: true,
+    provider: 'jira',
+  },
 
   params: {
-    siteUrl: {
+    accessToken: {
       type: 'string',
       required: true,
-      visibility: 'user-only',
-      description: 'Atlassian site URL (e.g. https://your-domain.atlassian.net)',
+      visibility: 'hidden',
+      description: 'OAuth access token for Jira Service Management',
     },
-    email: {
+    cloudId: {
       type: 'string',
       required: true,
-      visibility: 'user-only',
-      description: 'Atlassian account email',
+      visibility: 'hidden',
+      description: 'Jira Cloud ID, resolved from the domain',
     },
-    apiToken: {
-      type: 'string',
-      required: true,
-      visibility: 'user-only',
-      description: 'Atlassian API token',
+    start: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Index of the first item to return, for paging',
     },
     limit: {
       type: 'number',
@@ -38,40 +48,28 @@ export const listServiceDesksTool: ToolConfig<JiraSmListServiceDesksParams, Jira
   },
 
   request: {
-    url: (params) => {
-      const baseUrl = params.siteUrl.trim().replace(/\/$/, '')
-      const url = new URL(`${baseUrl}/rest/servicedeskapi/servicedesk`)
-      if (params.limit) url.searchParams.append('limit', String(params.limit))
-      return url.toString()
-    },
+    url: (params) =>
+      `${getJsmApiBaseUrl(params.cloudId)}/servicedesk${buildJsmQuery({
+        start: params.start,
+        limit: params.limit,
+      })}`,
     method: 'GET',
-    headers: (params) => ({
-      Authorization: `Basic ${Buffer.from(`${params.email}:${params.apiToken}`).toString('base64')}`,
-      Accept: 'application/json',
-    }),
+    headers: (params) => getJsmHeaders(params.accessToken),
   },
 
-  transformResponse: async (response) => {
+  transformResponse: async (response: Response) => {
     const data = await response.json()
-    const values = Array.isArray(data.values) ? data.values : []
     return {
       success: true,
       output: {
-        data: values,
-        metadata: { count: values.length, isLastPage: data.isLastPage ?? true },
+        data: data.values || [],
+        metadata: { count: (data.values || []).length, isLastPage: data.isLastPage ?? true },
       },
     }
   },
 
   outputs: {
-    data: { type: 'json', description: 'Array of service desk objects' },
-    metadata: {
-      type: 'json',
-      description: 'List metadata',
-      properties: {
-        count: { type: 'number', description: 'Number of service desks returned' },
-        isLastPage: { type: 'boolean', description: 'Whether this is the last page' },
-      },
-    },
+    data: { type: 'json', description: 'Service desks' },
+    metadata: { type: 'json', description: 'Paging metadata' },
   },
 }

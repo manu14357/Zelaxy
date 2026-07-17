@@ -1,12 +1,12 @@
 ---
 title: Jira Service Management Block
-description: Manage service desks and customer requests in Jira Service Management
+description: Manage service desks, requests, forms, and assets in Jira Service Management
 icon: Box
 ---
 
 # Jira Service Management Block
 
-List service desks, create customer requests, retrieve a request by issue ID or key, and list requests through the Jira Service Management REST API. Authenticate with your Atlassian site URL, email, and API token.
+The Jira Service Management block covers all three JSM surfaces from one block: the **service desk** itself (requests, queues, request types, transitions, SLAs, comments, participants, customers, organizations, approvals), **JSM Forms**, and **Assets/CMDB**.
 
 ## Overview
 
@@ -14,153 +14,106 @@ List service desks, create customer requests, retrieve a request by issue ID or 
 |----------|-------|
 | **Type** | `jira_service_management` |
 | **Category** | `tools` |
-| **Color** | `#2684FF` |
+| **Color** | `#0052CC` |
+| **Auth** | Jira OAuth |
+| **Operations** | 43 |
+
+<Callout type="warn">
+  **Breaking change.** JSM previously used Basic auth (site URL + email + API token). It now uses
+  **Jira OAuth**, matching the Jira block and the rest of the Atlassian surface. Existing JSM
+  workflows keep their tool ids and structure, but you must **reconnect with a Jira account once** —
+  stored site URL / email / API token values no longer apply.
+</Callout>
 
 ## When to Use
 
-- Discover all service desks available in your Atlassian organization
-- Create new customer requests (IT incidents, HR tickets, facilities requests, etc.) programmatically from a workflow
-- Look up the current status and details of an existing request by its issue ID or key (e.g. `SD-123`)
-- List and filter customer requests across a service desk for reporting or triage workflows
-- Route incoming data (form submissions, webhook payloads, agent outputs) directly into Jira Service Management tickets
-- Automate follow-up steps based on request details returned from the API
+- Create, fetch, search, and transition customer requests on a service desk
+- Triage a queue — read requests, add public or internal comments, manage participants
+- Automate approvals and watch SLA state
+- Manage customers and organizations on a service desk
+- Fill, submit, and read JSM **Forms** attached to issues
+- Query and maintain **Assets/CMDB** objects, including AQL search
 
 ## Configuration
 
+### Jira Account
+
+- **Type**: oauth-input (provider `jira`)
+- **Required**: always
+
+Connect the Jira account that has access to your service desk.
+
+<Callout type="info">
+  The Jira OAuth provider requests JSM scopes (`read:servicedesk-request`,
+  `write:servicedesk-request`, the granular `*:jira-service-management` set) and the CMDB scopes for
+  Assets. If you connected a Jira account **before** JSM support was added, reconnect it — the older
+  grant does not carry these scopes and every JSM call returns 403.
+</Callout>
+
+### Jira Cloud ID
+
+- **Type**: short-input
+- **Required**: always
+- **Placeholder**: `1324a887-45db-1bf4-1e99-ef0ff456d421`
+
+Your site's cloud ID. Find it at `https://your-site.atlassian.net/_edge/tenant_info`.
+
 ### Operation
 
-Selects which Jira Service Management API action the block performs. This field is always required and drives which additional fields are shown.
+Select the JSM action to perform. Every other field depends on this choice. Operations are grouped:
 
-| Label | ID |
-|-------|----|
-| List service desks | `jira_service_management_list_servicedesks` |
-| Create request | `jira_service_management_create_request` |
-| Get request | `jira_service_management_get_request` |
-| List requests | `jira_service_management_list_requests` |
+| Group | Operations |
+|-------|-----------|
+| **Service desk** | List service desks, Get queues, Get request types, Get request type fields, Create request, Get request, List requests, Get transitions, Transition request, Get SLA |
+| **Comments & people** | Add comment, Get comments, Add participants, Get participants |
+| **Customers & orgs** | Add customer, Get customers, Create organization, Add organization, Get organizations |
+| **Approvals** | Get approvals, Answer approval |
+| **Forms** | Get form templates, Get issue forms, Attach form, Get form, Get form structure, Get form answers, Save form answers, Submit form, Reopen form, Copy forms, Delete form, Externalise form, Internalise form |
+| **Assets (CMDB)** | List object schemas, Get object schema, List object types, Get object type attributes, Search objects (AQL), Create object, Get object, Update object, Delete object |
 
-**Fields required per operation:**
-
-| Operation | Required fields | Optional fields |
-|-----------|----------------|-----------------|
-| `jira_service_management_list_servicedesks` | `siteUrl`, `email`, `apiToken` | `limit` |
-| `jira_service_management_create_request` | `siteUrl`, `email`, `apiToken`, `serviceDeskId`, `requestTypeId`, `requestFieldValues` | — |
-| `jira_service_management_get_request` | `siteUrl`, `email`, `apiToken`, `issueIdOrKey` | — |
-| `jira_service_management_list_requests` | `siteUrl`, `email`, `apiToken` | `serviceDeskId`, `limit` |
-
----
-
-### Service Desk ID
-
-Shown for **Create request** and **List requests** operations.
-
-The numeric ID of the service desk to target. Use the **List service desks** operation first to discover available IDs. Placeholder: `1`.
-
----
-
-### Request Type ID
-
-Shown for **Create request** only.
-
-The numeric ID of the request type within the target service desk (e.g. `25`). Request type IDs are project-specific and can be found in the Jira Service Management project settings or via the Atlassian REST API.
-
----
-
-### Request Field Values
-
-Shown for **Create request** only.
-
-A JSON object containing the field values for the new request. At minimum, provide `summary`. Include `description` and any other fields required by the chosen request type.
-
-Example:
-```json
-{"summary": "Need help", "description": "Details here"}
-```
-
----
-
-### Issue ID or Key
-
-Shown for **Get request** only.
-
-The issue ID (numeric) or issue key (e.g. `SD-123`) of the customer request to retrieve. Placeholder: `SD-123`.
-
----
-
-### Limit
-
-Shown for **List service desks** and **List requests** operations.
-
-Maximum number of records to return per call. Leave blank to use the Atlassian API default. Placeholder: `50`.
-
----
-
-### Site URL
-
-**Required** for all operations.
-
-Your Atlassian cloud base URL, without a trailing slash. Example: `https://your-domain.atlassian.net`.
-
----
-
-### Email
-
-**Required** for all operations.
-
-The email address associated with your Atlassian account. Used together with the API token for Basic authentication.
-
----
-
-### API Token
-
-**Required** for all operations.
-
-Your Atlassian API token (treated as a password field). Generate one at [https://id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens). Store it as a workflow secret and reference it with `{{JIRA_API_TOKEN}}`.
-
----
+<Callout type="info">
+  **Forms** requires the Forms (ProForma) product on your site, and **Assets** requires Jira
+  **Premium or above**. Both are separate Atlassian products — the operations are present regardless,
+  but they return errors if the product is not enabled.
+</Callout>
 
 ## Inputs & Outputs
 
-**Inputs:**
+**Inputs**
 
-- `operation` (string) — Operation to perform; must be one of the four tool IDs listed above
-- `siteUrl` (string) — Atlassian site URL
-- `email` (string) — Atlassian account email
-- `apiToken` (string) — Atlassian API token
-- `serviceDeskId` (string) — Service desk ID (required for Create request; optional filter for List requests)
-- `requestTypeId` (string) — Request type ID (required for Create request)
-- `requestFieldValues` (json) — Request field values as a JSON object (required for Create request)
-- `issueIdOrKey` (string) — Issue ID or key (required for Get request)
-- `limit` (number) — Result limit (optional for List service desks and List requests)
+- `operation` (string) — the JSM operation to perform
+- `cloudId` (string) — your Jira Cloud ID
+- Operation-specific fields, e.g. `serviceDeskId`, `issueIdOrKey`, `requestTypeId`, `requestFieldValues`, `formId`, `objectId`, `qlQuery`
 
-**Outputs:**
+**Outputs**
 
-- `data` (json) — Result object or array from Jira Service Management. For list operations this is an array of objects; for single-object operations (Create request, Get request) this is the request object itself.
-- `metadata` (json) — Response metadata. For list operations: `{ count: number, isLastPage: boolean }`. For single-object operations: `{ id: string, issueKey: string }`.
+- `data` (json) — the result payload from Jira Service Management
+- `metadata` (json) — response metadata such as paging counts
 
-## Tools
+## API surfaces
 
-**Jira Service Management List Service Desks** (`jira_service_management_list_servicedesks`) — Issues a `GET` to `/rest/servicedeskapi/servicedesk` and returns an array of all service desks available to the authenticated user. Accepts an optional `limit` query parameter.
+The three groups talk to different Atlassian APIs. All calls go direct to Atlassian — Zelaxy does not proxy them.
 
-**Jira Service Management Create Request** (`jira_service_management_create_request`) — Issues a `POST` to `/rest/servicedeskapi/request` to create a new customer request. Requires `serviceDeskId`, `requestTypeId`, and a `requestFieldValues` JSON object.
+| Group | Base URL |
+|-------|----------|
+| Service desk | `https://api.atlassian.com/ex/jira/{cloudId}/rest/servicedeskapi` |
+| Forms | `https://api.atlassian.com/ex/jira/{cloudId}/forms` |
+| Assets | `https://api.atlassian.com/ex/jira/{cloudId}/jsm/assets/workspace/{workspaceId}/v1` |
 
-**Jira Service Management Get Request** (`jira_service_management_get_request`) — Issues a `GET` to `/rest/servicedeskapi/request/{issueIdOrKey}` to retrieve a single customer request by its issue ID or key.
-
-**Jira Service Management List Requests** (`jira_service_management_list_requests`) — Issues a `GET` to `/rest/servicedeskapi/request` and returns an array of customer requests. Accepts an optional `serviceDeskId` filter and an optional `limit`.
+Assets additionally resolves your workspace id automatically — one Assets workspace is provisioned per site.
 
 ## YAML Example
 
 ```yaml
-jira_service_management_1:
+jsm_1:
   type: jira_service_management
-  name: "Create Support Ticket"
+  name: "Create support request"
   inputs:
     operation: "jira_service_management_create_request"
-    siteUrl: "{{JIRA_SITE_URL}}"
-    email: "{{JIRA_EMAIL}}"
-    apiToken: "{{JIRA_API_TOKEN}}"
+    cloudId: "{{JIRA_CLOUD_ID}}"
     serviceDeskId: "1"
-    requestTypeId: "25"
-    requestFieldValues: "{{trigger.requestFields}}"
+    requestTypeId: "10"
+    requestFieldValues: '{"summary":"Laptop will not boot","description":"Dead on arrival"}'
   connections:
     outgoing:
       - target: next-block-id

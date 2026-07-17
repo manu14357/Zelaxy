@@ -2,32 +2,32 @@ import type {
   JiraSmCreateRequestParams,
   JiraSmObjectResponse,
 } from '@/tools/jira_service_management/types'
+import { getJsmApiBaseUrl, getJsmHeaders } from '@/tools/jira_service_management/utils'
 import type { ToolConfig } from '@/tools/types'
 
 export const createRequestTool: ToolConfig<JiraSmCreateRequestParams, JiraSmObjectResponse> = {
   id: 'jira_service_management_create_request',
   name: 'Jira Service Management Create Request',
   description: 'Create a new customer request in a Jira Service Management service desk',
-  version: '1.0.0',
+  version: '2.0.0',
+
+  oauth: {
+    required: true,
+    provider: 'jira',
+  },
 
   params: {
-    siteUrl: {
+    accessToken: {
       type: 'string',
       required: true,
-      visibility: 'user-only',
-      description: 'Atlassian site URL (e.g. https://your-domain.atlassian.net)',
+      visibility: 'hidden',
+      description: 'OAuth access token for Jira Service Management',
     },
-    email: {
+    cloudId: {
       type: 'string',
       required: true,
       visibility: 'user-only',
-      description: 'Atlassian account email',
-    },
-    apiToken: {
-      type: 'string',
-      required: true,
-      visibility: 'user-only',
-      description: 'Atlassian API token',
+      description: 'Jira Cloud ID',
     },
     serviceDeskId: {
       type: 'string',
@@ -51,20 +51,16 @@ export const createRequestTool: ToolConfig<JiraSmCreateRequestParams, JiraSmObje
   },
 
   request: {
-    url: (params) => {
-      const baseUrl = params.siteUrl.trim().replace(/\/$/, '')
-      return `${baseUrl}/rest/servicedeskapi/request`
-    },
+    url: (params) => `${getJsmApiBaseUrl(params.cloudId)}/request`,
     method: 'POST',
-    headers: (params) => ({
-      Authorization: `Basic ${Buffer.from(`${params.email}:${params.apiToken}`).toString('base64')}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    }),
+    headers: (params) => getJsmHeaders(params.accessToken),
     body: (params) => ({
       serviceDeskId: params.serviceDeskId,
       requestTypeId: params.requestTypeId,
-      requestFieldValues: params.requestFieldValues,
+      requestFieldValues:
+        typeof params.requestFieldValues === 'string'
+          ? JSON.parse(params.requestFieldValues)
+          : params.requestFieldValues,
     }),
   },
 
