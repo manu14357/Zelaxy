@@ -62,6 +62,7 @@ Zelaxy supports webhook triggers from the following services. Each provider has 
 | [RSS](#rss) | `rss_poller` | — (polled) | Triggers on new feed items |
 | [Google Forms](#google-forms) | `google_forms_webhook` | Shared secret | Triggers on new form responses |
 | [IMAP](#imap) | `imap_poller` | — (polled) | Triggers on new email, any provider |
+| [Jira Service Management](#jira-service-management) | `jira_service_management_webhook` | Webhook secret | Triggers on request created/updated/commented |
 | [Generic](#generic-webhook) | `generic_webhook` | — | Universal HTTP endpoint |
 
 ## How It Works
@@ -2159,6 +2160,58 @@ Triggers when a new email arrives in a mailbox. Works with any IMAP provider —
 ### Usage Example
 
 Reference in downstream blocks: `{{IMAP 1.subject}}`, `{{IMAP 1.from}}`, `{{IMAP 1.body_text}}`
+
+---
+
+## Jira Service Management
+
+Triggers when a service desk request is created, updated, commented on, or resolved.
+
+### Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Webhook Secret | Password | Jira sends it as a Bearer token; mismatches are rejected (recommended) |
+
+### Setup
+
+1. In Jira, go to **Settings > System > WebHooks** and click **Create a WebHook**.
+2. Paste the **Webhook URL** into the URL field and the **Webhook Secret** into the Secret field.
+3. Tick the Issue events you want (created, updated, deleted) and Comment > created for comment events.
+4. Optionally add a JQL filter such as `project = SUP` so only your service desk fires the workflow.
+
+### Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `event_type` | string | `jira:issue_created`, `jira:issue_updated`, `comment_created` |
+| `issue_event_type` | string | More specific name, e.g. `issue_commented` |
+| `issue_key` | string | Issue key, e.g. `SUP-123` |
+| `summary` | string | Request summary (also the workflow input) |
+| `description` | string | Request description |
+| `status` | string | Current status name |
+| `priority` | string | Priority name |
+| `request_type` | string | Customer request type, when present |
+| `reporter_name` / `reporter_email` | string | Reporter |
+| `assignee_name` | string | Assignee |
+| `project_key` | string | Project key |
+| `user_name` | string | Who caused the event |
+| `comment_body` | string | Comment text (comment events) |
+| `comment_author` | string | Comment author |
+| `comment_public` | boolean | Whether the customer can see the comment |
+| `changelog` | object | What changed (update events) |
+| `issue` | object | Full issue object |
+| `raw` | object | Complete original payload |
+
+<Callout type="info">
+  `comment_public` reflects JSM's `jsdPublic` flag. Internal comments look identical to customer
+  replies in the payload apart from this field — check it before echoing a comment anywhere
+  customer-facing.
+</Callout>
+
+### Usage Example
+
+Reference in downstream blocks: `{{Webhook 1.issue_key}}`, `{{Webhook 1.summary}}`, `{{Webhook 1.comment_body}}`
 
 ---
 

@@ -34,6 +34,7 @@ import { incidentioWebhookTrigger } from './incidentio'
 import { instantlyWebhookTrigger } from './instantly'
 import { intercomWebhookTrigger } from './intercom'
 import { jiraWebhookTrigger } from './jira'
+import { jiraServiceManagementWebhookTrigger } from './jira_service_management'
 import { lemlistWebhookTrigger } from './lemlist'
 import { linearWebhookTrigger } from './linear'
 import { linqWebhookTrigger } from './linq'
@@ -111,6 +112,7 @@ export const TRIGGER_REGISTRY: TriggerRegistry = {
   imap_poller: imapPollingTrigger,
   hubspot_poller: hubspotPollingTrigger,
   intercom_webhook: intercomWebhookTrigger,
+  jira_service_management_webhook: jiraServiceManagementWebhookTrigger,
   jira_webhook: jiraWebhookTrigger,
   linear_webhook: linearWebhookTrigger,
   microsoftteams_webhook: microsoftTeamsWebhookTrigger,

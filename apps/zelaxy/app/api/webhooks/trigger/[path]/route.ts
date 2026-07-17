@@ -368,6 +368,11 @@ export async function POST(
       header: 'authorization',
       validate: (s, sig) => validateSharedSecretHeader(s, sig),
     },
+    jira_service_management: {
+      secretKey: 'webhookSecret',
+      header: 'authorization',
+      validate: (s, sig) => validateSharedSecretHeader(s, sig),
+    },
     calcom: {
       secretKey: 'webhookSecret',
       header: 'x-cal-signature-256',

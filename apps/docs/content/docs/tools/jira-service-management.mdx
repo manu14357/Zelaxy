@@ -1,132 +1,139 @@
 ---
 title: Jira Service Management Tools
-description: List service desks and create, retrieve, and list customer requests in Jira Service Management
+description: Work with service desk requests, forms, and assets in Jira Service Management
 icon: Headphones
 ---
 
 # Jira Service Management Tools
 
-Manage IT service desks and customer requests through the Jira Service Management REST API. Use these tools in a workflow to discover service desks, raise new customer requests, fetch a single request, and list existing requests — for example, to triage support tickets or open requests automatically from another system.
+Cover all three Jira Service Management surfaces from one integration: the **service desk** (requests, queues, request types, transitions, SLAs, comments, participants, customers, organizations, approvals), **JSM Forms**, and **Assets/CMDB**.
+
+All 43 tools call Atlassian directly and authenticate with **Jira OAuth**.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
-| **Provider** | `jira-service-management` |
-| **Category** | tools |
-| **Auth** | Basic Auth (Atlassian email + API token, sent as a base64-encoded `Authorization: Basic` header) |
+| **Block** | `jira_service_management` |
+| **Auth** | Jira OAuth (`provider: jira`) |
+| **Tools** | 43 |
 
-## Operations
+<Callout type="warn">
+  **Breaking change.** These tools previously used Basic auth (site URL + email + API token) and now
+  use Jira OAuth. Tool ids are unchanged, so saved workflows keep their structure — but you must
+  **reconnect the Jira credential once**.
+</Callout>
 
-| Operation | Tool ID | Description |
-|-----------|---------|-------------|
-| List Service Desks | `jira_service_management_list_servicedesks` | List the service desks available in Jira Service Management |
-| Create Request | `jira_service_management_create_request` | Create a new customer request in a Jira Service Management service desk |
-| Get Request | `jira_service_management_get_request` | Retrieve a single customer request by issue ID or key |
-| List Requests | `jira_service_management_list_requests` | List customer requests, optionally scoped to a service desk |
+<Callout type="info">
+  **If you connected Jira before JSM support landed, reconnect it.** The Jira OAuth provider now
+  requests service desk scopes (`read:servicedesk-request`, `write:servicedesk-request`, the
+  granular `*:jira-service-management` set) plus CMDB scopes for Assets. An older grant does not
+  carry them, and every JSM call returns **403** until you re-authorise.
+</Callout>
 
-## Configuration
+## Common parameters
 
-### `jira_service_management_list_servicedesks`
+Every tool takes:
 
-List the service desks available in Jira Service Management.
+| Parameter | Description |
+|-----------|-------------|
+| `accessToken` | Supplied automatically from your connected Jira credential |
+| `cloudId` | Your Jira Cloud ID — find it at `https://your-site.atlassian.net/_edge/tenant_info` |
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `siteUrl` | string | Yes | Atlassian site URL (e.g. `https://your-domain.atlassian.net`) |
-| `email` | string | Yes | Atlassian account email |
-| `apiToken` | string | Yes | Atlassian API token. **Secret** — treat as a credential and supply via an environment variable. |
-| `limit` | number | No | Maximum number of service desks to return |
+## Service desk
 
-### `jira_service_management_create_request`
+`https://api.atlassian.com/ex/jira/{cloudId}/rest/servicedeskapi`
 
-Create a new customer request in a Jira Service Management service desk.
+| Tool | Description |
+|------|-------------|
+| `jira_service_management_list_servicedesks` | List the service desks on your site |
+| `jira_service_management_get_queues` | List a service desk's queues |
+| `jira_service_management_get_request_types` | List request types for a service desk |
+| `jira_service_management_get_request_type_fields` | Fields required to raise a given request type |
+| `jira_service_management_create_request` | Raise a customer request |
+| `jira_service_management_get_request` | Fetch a single request by issue id or key |
+| `jira_service_management_list_requests` | Search requests by service desk, status, ownership, or text |
+| `jira_service_management_get_transitions` | List transitions available on a request |
+| `jira_service_management_transition_request` | Move a request to another status |
+| `jira_service_management_get_sla` | Read SLA state for a request |
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `siteUrl` | string | Yes | Atlassian site URL (e.g. `https://your-domain.atlassian.net`) |
-| `email` | string | Yes | Atlassian account email |
-| `apiToken` | string | Yes | Atlassian API token. **Secret** — treat as a credential and supply via an environment variable. |
-| `serviceDeskId` | string | Yes | ID of the service desk to create the request in |
-| `requestTypeId` | string | Yes | ID of the request type |
-| `requestFieldValues` | json | Yes | Field values for the request as a JSON object (e.g. `{"summary":"...","description":"..."}`) |
+## Comments & people
 
-### `jira_service_management_get_request`
+| Tool | Description |
+|------|-------------|
+| `jira_service_management_add_comment` | Add a comment, public or internal |
+| `jira_service_management_get_comments` | List a request's comments |
+| `jira_service_management_add_participants` | Add participants to a request |
+| `jira_service_management_get_participants` | List a request's participants |
 
-Retrieve a single customer request by issue ID or key.
+<Callout type="info">
+  Comments are **internal by default** in JSM. Set the public flag when adding a comment if the
+  customer should see it — this is the most common surprise when automating replies.
+</Callout>
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `siteUrl` | string | Yes | Atlassian site URL (e.g. `https://your-domain.atlassian.net`) |
-| `email` | string | Yes | Atlassian account email |
-| `apiToken` | string | Yes | Atlassian API token. **Secret** — treat as a credential and supply via an environment variable. |
-| `issueIdOrKey` | string | Yes | Issue ID or key of the request (e.g. `SD-123`) |
+## Customers & organizations
 
-### `jira_service_management_list_requests`
+| Tool | Description |
+|------|-------------|
+| `jira_service_management_add_customer` | Add customers to a service desk |
+| `jira_service_management_get_customers` | List or search a service desk's customers |
+| `jira_service_management_create_organization` | Create an organization |
+| `jira_service_management_add_organization` | Attach an organization to a service desk |
+| `jira_service_management_get_organizations` | List a service desk's organizations |
 
-List customer requests, optionally scoped to a service desk.
+## Approvals
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `siteUrl` | string | Yes | Atlassian site URL (e.g. `https://your-domain.atlassian.net`) |
-| `email` | string | Yes | Atlassian account email |
-| `apiToken` | string | Yes | Atlassian API token. **Secret** — treat as a credential and supply via an environment variable. |
-| `serviceDeskId` | string | No | Filter requests by service desk ID |
-| `limit` | number | No | Maximum number of requests to return |
+| Tool | Description |
+|------|-------------|
+| `jira_service_management_get_approvals` | List a request's approvals |
+| `jira_service_management_answer_approval` | Approve or decline an approval |
+
+## Forms
+
+`https://api.atlassian.com/ex/jira/{cloudId}/forms` — requires the Forms (ProForma) product.
+
+| Tool | Description |
+|------|-------------|
+| `jira_service_management_get_form_templates` | List a project's form templates |
+| `jira_service_management_get_issue_forms` | List forms attached to an issue |
+| `jira_service_management_attach_form` | Attach a form template to an issue |
+| `jira_service_management_get_form` | Fetch a form on an issue |
+| `jira_service_management_get_form_structure` | Fetch a form template's structure |
+| `jira_service_management_get_form_answers` | Read a form's answers |
+| `jira_service_management_save_form_answers` | Save answers to a form |
+| `jira_service_management_submit_form` | Submit a form |
+| `jira_service_management_reopen_form` | Reopen a submitted form |
+| `jira_service_management_copy_forms` | Copy forms between issues |
+| `jira_service_management_delete_form` | Delete a form from an issue |
+| `jira_service_management_externalise_form` | Make a form visible to the customer |
+| `jira_service_management_internalise_form` | Make a form internal-only |
+
+## Assets (CMDB)
+
+`https://api.atlassian.com/ex/jira/{cloudId}/jsm/assets/workspace/{workspaceId}/v1` — requires Jira **Premium or above**.
+
+| Tool | Description |
+|------|-------------|
+| `jira_service_management_list_object_schemas` | List Assets object schemas |
+| `jira_service_management_get_object_schema` | Fetch a schema |
+| `jira_service_management_list_object_types` | List a schema's object types |
+| `jira_service_management_get_object_type_attributes` | List an object type's attributes |
+| `jira_service_management_search_objects_aql` | Search objects with AQL |
+| `jira_service_management_create_object` | Create an object |
+| `jira_service_management_get_object` | Fetch an object |
+| `jira_service_management_update_object` | Update an object's attributes |
+| `jira_service_management_delete_object` | Delete an object |
+
+<Callout type="info">
+  Assets resolves your workspace id automatically — Atlassian provisions one Assets workspace per
+  site, so you only supply the cloud ID.
+</Callout>
+
+## Trigger mode
+
+The block can also run as a **trigger**, starting a workflow when a request is created, updated, commented on, or resolved. See the [Jira Service Management webhook trigger](/docs/triggers/webhook#jira-service-management).
 
 ## Outputs
 
-### `jira_service_management_list_servicedesks`
-
-- `data` (json) — Array of service desk objects
-- `metadata` (json) — List metadata, with properties:
-  - `count` (number) — Number of service desks returned
-  - `isLastPage` (boolean) — Whether this is the last page
-
-### `jira_service_management_create_request`
-
-- `data` (json) — The created customer request object
-- `metadata` (json) — Request identifiers, with properties:
-  - `id` (string) — Issue ID
-  - `issueKey` (string) — Issue key
-
-### `jira_service_management_get_request`
-
-- `data` (json) — The requested customer request object
-- `metadata` (json) — Request identifiers, with properties:
-  - `id` (string) — Issue ID
-  - `issueKey` (string) — Issue key
-
-### `jira_service_management_list_requests`
-
-- `data` (json) — Array of customer request objects
-- `metadata` (json) — List metadata, with properties:
-  - `count` (number) — Number of requests returned
-  - `isLastPage` (boolean) — Whether this is the last page
-
-## YAML Example
-
-```yaml
-jira_service_management_1:
-  type: jira_service_management
-  name: "Jira Service Management"
-  inputs:
-    operation: "jira_service_management_create_request"
-    siteUrl: "https://your-domain.atlassian.net"
-    email: "you@example.com"
-    apiToken: "{{JIRA_SERVICE_MANAGEMENT_API_TOKEN}}"
-    serviceDeskId: "1"
-    requestTypeId: "25"
-    requestFieldValues: '{"summary": "Need help", "description": "Details here"}'
-  connections:
-    outgoing:
-      - target: next-block-id
-```
-
-## Tips
-
-- Authentication is Basic Auth: provide your Atlassian account `email` and an `apiToken` you generate at id.atlassian.com (Security → API tokens). The tool combines `email:apiToken` and base64-encodes it into the `Authorization: Basic` header — never the password to your Atlassian login. Keep the token in an environment variable like `{{JIRA_SERVICE_MANAGEMENT_API_TOKEN}}`.
-- Run `jira_service_management_list_servicedesks` first to discover a `serviceDeskId`, then use that ID (plus a `requestTypeId`) when calling `jira_service_management_create_request`. You can reference the discovered value downstream with `{{jira_service_management_1.data}}`.
-- `requestFieldValues` must be a JSON object — at minimum it usually needs `summary` and `description`. The exact fields depend on the request type configured in your service desk.
-- `siteUrl` is trimmed and any trailing slash is removed automatically, so both `https://your-domain.atlassian.net` and `https://your-domain.atlassian.net/` work.
-```
+- `data` (json) — the result payload from Jira Service Management
+- `metadata` (json) — response metadata such as paging counts

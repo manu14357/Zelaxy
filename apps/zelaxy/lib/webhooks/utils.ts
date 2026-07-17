@@ -1976,6 +1976,58 @@ export function formatWebhookInput(
     }
   }
 
+  if (foundWebhook.provider === 'jira_service_management') {
+    // Jira posts the issue under `issue.fields`; flatten the fields a service desk workflow
+    // actually reaches for so callers do not walk the envelope.
+    const issue = body?.issue || {}
+    const f = issue.fields || {}
+    const comment = body?.comment || f.comment
+
+    const jsmData = {
+      event_type: body?.webhookEvent || '',
+      issue_event_type: body?.issue_event_type_name || '',
+      issue_key: issue.key || '',
+      issue_id: issue.id || '',
+      summary: f.summary || '',
+      description: typeof f.description === 'string' ? f.description : '',
+      status: f.status?.name || '',
+      priority: f.priority?.name || '',
+      request_type: f.customfield_10010?.requestType?.name || f.requestType?.name || '',
+      reporter_name: f.reporter?.displayName || '',
+      reporter_email: f.reporter?.emailAddress || '',
+      assignee_name: f.assignee?.displayName || '',
+      project_key: f.project?.key || '',
+      user_name: body?.user?.displayName || '',
+      timestamp: body?.timestamp ?? 0,
+      ...(comment && {
+        comment_body: comment.body || '',
+        comment_author: comment.author?.displayName || '',
+        // JSM marks customer-visible comments with this property; absent means internal
+        comment_public: comment.jsdPublic ?? true,
+      }),
+      ...(body?.changelog && { changelog: body.changelog }),
+      issue,
+      raw: body,
+    }
+
+    return {
+      input: f.summary || `Jira Service Management ${body?.webhookEvent || 'event'}`,
+      ...jsmData,
+      jira_service_management: { ...jsmData, ...body },
+      webhook: {
+        data: {
+          provider: 'jira_service_management',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
   // Generic format for other providers
   return {
     webhook: {

@@ -568,6 +568,15 @@ export const JiraServiceManagementBlock: BlockConfig = {
       layout: 'half',
       condition: { field: 'operation', value: 'jira_service_management_transition_request' },
     },
+    // TRIGGER MODE: Trigger configuration (only shown when trigger mode is active)
+    {
+      id: 'triggerConfig',
+      title: 'Trigger Configuration',
+      type: 'trigger-config',
+      layout: 'full',
+      triggerProvider: 'jira_service_management',
+      availableTriggers: ['jira_service_management_webhook'],
+    },
   ],
   tools: {
     access: [
@@ -719,5 +728,15 @@ export const JiraServiceManagementBlock: BlockConfig = {
   outputs: {
     data: { type: 'json', description: 'Result payload from Jira Service Management' },
     metadata: { type: 'json', description: 'Response metadata' },
+    event_type: { type: 'string', description: 'Jira event (trigger mode)' },
+    issue_key: { type: 'string', description: 'Issue key, e.g. SUP-123' },
+    summary: { type: 'string', description: 'Request summary' },
+    status: { type: 'string', description: 'Current status name' },
+    reporter_email: { type: 'string', description: 'Reporter email address' },
+    comment_body: { type: 'string', description: 'Comment text (comment events)' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['jira_service_management_webhook'],
   },
 }
