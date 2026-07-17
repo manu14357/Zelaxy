@@ -50,6 +50,8 @@ export class Executor {
   private actualWorkflow: SerializedWorkflow
   private isCancelled = false
   private isChildExecution = false
+  /** Server-side cross-instance cancellation probe; undefined for browser-side manual runs. */
+  private checkCancelled?: () => Promise<boolean>
 
   // Real-time execution event callbacks
   private onBlockComplete?: (blockLog: BlockLog) => void | Promise<void>
@@ -77,6 +79,16 @@ export class Executor {
             workspaceId?: string
             userId?: string
             isChildExecution?: boolean
+            /**
+             * Lets a server-side caller stop a run started elsewhere.
+             *
+             * Injected rather than imported: this Executor also runs in the browser for manual
+             * runs, and reaching for Redis here would pull ioredis into the client bundle. The
+             * worker supplies a Redis-backed check; the browser supplies nothing and keeps using
+             * the in-process flag, which is correct there since the executor being cancelled is
+             * the one the user is looking at.
+             */
+            checkCancelled?: () => Promise<boolean>
           }
           startBlockId?: string
         },
@@ -103,6 +115,7 @@ export class Executor {
         this.onBlockComplete = options.contextExtensions.onBlockComplete
         this.onExecutionStart = options.contextExtensions.onExecutionStart
         this.onExecutionComplete = options.contextExtensions.onExecutionComplete
+        this.checkCancelled = options.contextExtensions.checkCancelled
 
         if (this.contextExtensions.stream) {
           logger.info('Executor initialized with streaming enabled', {
@@ -189,6 +202,24 @@ export class Executor {
   }
 
   /**
+   * Consults the injected cross-instance cancellation probe, if one was supplied.
+   *
+   * Returns false (do not cancel) when no probe is set or the probe throws — a manual browser run
+   * has no probe, and an infrastructure blip must not abort a healthy server-side run.
+   */
+  private async checkDistributedCancellation(): Promise<boolean> {
+    if (!this.checkCancelled) {
+      return false
+    }
+    try {
+      return await this.checkCancelled()
+    } catch (error) {
+      logger.warn('Distributed cancellation check failed; continuing execution', { error })
+      return false
+    }
+  }
+
+  /**
    * Executes the workflow and returns the result.
    *
    * @param workflowId - Unique identifier for the workflow execution
@@ -237,6 +268,14 @@ export class Executor {
       const maxIterations = 100 // Safety limit for infinite loops
 
       while (hasMoreLayers && iteration < maxIterations && !this.isCancelled) {
+        // Cross-instance cancellation: a run started by a webhook or schedule executes in the
+        // worker, so a stop request issued elsewhere can only reach it through a shared signal.
+        // Checked between layers; the in-process flag above still handles browser-side manual runs.
+        if (await this.checkDistributedCancellation()) {
+          this.isCancelled = true
+          break
+        }
+
         const nextLayer = this.getNextExecutionLayer(context)
 
         if (this.isDebugging) {

@@ -10,6 +10,7 @@ import type {
   WorkflowExecutionPayload,
   WorkflowExecutionResult,
 } from '@/lib/bullmq/types'
+import { clearExecutionCancellation, isExecutionCancelled } from '@/lib/execution/cancellation'
 import { createLogger } from '@/lib/logs/console/logger'
 import { LoggingSession } from '@/lib/logs/execution/logging-session'
 import { buildTraceSpans } from '@/lib/logs/execution/trace-spans/trace-spans'
@@ -154,12 +155,20 @@ export async function processWorkflowExecution(
       envVarValues: decryptedEnvVars,
       workflowInput: payload.input || {},
       workflowVariables: {},
-      contextExtensions: { executionId, workspaceId },
+      contextExtensions: {
+        executionId,
+        workspaceId,
+        // Server-side runs execute here in the worker, out of reach of the in-process cancel flag,
+        // so give the executor a Redis-backed probe it can poll between layers.
+        checkCancelled: () => isExecutionCancelled(executionId),
+      },
     })
 
     loggingSession.setupExecutor(executor)
 
     const result = await executor.execute(workflowId)
+    // Clear any cancel flag so a later run reusing this id (retry, requeue) does not inherit it.
+    await clearExecutionCancellation(executionId)
     const executionResult = 'stream' in result && 'execution' in result ? result.execution : result
 
     workflowLogger.info(`[${requestId}] Workflow execution completed: ${workflowId}`, {
