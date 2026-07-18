@@ -44,8 +44,17 @@ export class EdgeManager {
     const activatedTargets: string[] = []
     const edgesToDeactivate: Array<{ target: string; handle?: string }> = []
 
+    // A completed parallel branch feeds the end sentinel through its parallel_exit edge; activate it
+    // so the end sentinel becomes ready once every branch has cleared its edge.
+    const isParallelBranchSource = node.metadata.isParallelBranch === true
+
     for (const [, edge] of node.outgoingEdges) {
       if (skipBackwardsEdge && this.isBackwardsEdge(edge.sourceHandle)) {
+        continue
+      }
+
+      if (isParallelBranchSource && edge.sourceHandle === EDGE.PARALLEL_EXIT) {
+        activatedTargets.push(edge.target)
         continue
       }
 

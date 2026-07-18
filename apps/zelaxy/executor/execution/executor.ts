@@ -2,6 +2,7 @@ import { BlockPathCalculator } from '@/lib/block-path-calculator'
 import { createLogger } from '@/lib/logs/console/logger'
 import type { BlockOutput } from '@/blocks/types'
 import { BlockType } from '@/executor/consts'
+import type { DAG, DAGNode } from '@/executor/dag/builder'
 import { DAGBuilder } from '@/executor/dag/builder'
 import { BlockExecutor } from '@/executor/execution/block-executor'
 import { EdgeManager } from '@/executor/execution/edge-manager'
@@ -15,6 +16,12 @@ import { ParallelOrchestrator } from '@/executor/orchestrators/parallel'
 import { PathTracker } from '@/executor/path/path'
 import { InputResolver } from '@/executor/resolver/resolver'
 import type { BlockLog, BlockState, ExecutionContext, ExecutionResult } from '@/executor/types'
+import {
+  buildBranchNodeId,
+  buildParallelSentinelEndId,
+  buildParallelSentinelStartId,
+  extractBaseBlockId,
+} from '@/executor/utils/subflow-utils'
 import type { SerializedBlock, SerializedWorkflow } from '@/serializer/types'
 
 const logger = createLogger('DAGExecutor')
@@ -62,6 +69,7 @@ export class DAGExecutor {
 
   async execute(workflowId: string, triggerBlockId?: string): Promise<ExecutionResult> {
     const dag = this.dagBuilder.build(this.workflow, { triggerBlockId })
+    this.expandParallelBranches(dag)
 
     const state = new ExecutionState()
     for (const [blockId, output] of Object.entries(this.initialBlockStates)) {
@@ -112,6 +120,57 @@ export class DAGExecutor {
       parallelCount: dag.parallelConfigs.size,
     })
     return engine.run(triggerBlockId)
+  }
+
+  /**
+   * Expands a parallel's single-branch template (built as `<node>₍0₎`) into one branch per
+   * distribution item, cloning the branch nodes and wiring the start sentinel to each clone and each
+   * clone to the end sentinel. Covers the common single-level parallel; nested subflow expansion is
+   * not yet handled.
+   */
+  private expandParallelBranches(dag: DAG): void {
+    for (const [parallelId, config] of dag.parallelConfigs) {
+      const total = this.branchCount(config)
+      if (total <= 1) continue
+
+      const startId = buildParallelSentinelStartId(parallelId)
+      const endId = buildParallelSentinelEndId(parallelId)
+      const startNode = dag.nodes.get(startId)
+      const endNode = dag.nodes.get(endId)
+      if (!startNode || !endNode) continue
+
+      const templates = Array.from(dag.nodes.values()).filter(
+        (n) =>
+          n.metadata.isParallelBranch &&
+          n.metadata.parallelId === parallelId &&
+          (n.metadata.branchIndex ?? 0) === 0
+      )
+      if (templates.length === 0) continue
+      for (const t of templates) t.metadata.branchTotal = total
+
+      for (let i = 1; i < total; i++) {
+        for (const t of templates) {
+          const cloneId = buildBranchNodeId(extractBaseBlockId(t.id), i)
+          const clone: DAGNode = {
+            id: cloneId,
+            block: { ...t.block, id: cloneId },
+            incomingEdges: new Set([startId]),
+            outgoingEdges: new Map([['end', { target: endId, sourceHandle: 'parallel_exit' }]]),
+            metadata: { ...t.metadata, branchIndex: i, branchTotal: total },
+          }
+          dag.nodes.set(cloneId, clone)
+          startNode.outgoingEdges.set(`start-${cloneId}`, { target: cloneId })
+          endNode.incomingEdges.add(cloneId)
+        }
+      }
+    }
+  }
+
+  private branchCount(config: any): number {
+    const raw = config?.distribution ?? config?.items
+    if (Array.isArray(raw)) return raw.length
+    if (typeof config?.count === 'number') return config.count
+    return 1
   }
 
   private createExecutionContext(workflowId: string, state: ExecutionState): ExecutionContext {
