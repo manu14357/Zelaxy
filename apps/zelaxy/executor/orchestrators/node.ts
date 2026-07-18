@@ -52,8 +52,43 @@ export class NodeExecutionOrchestrator {
       return { nodeId, output, isFinalOutput: node.outgoingEdges.size === 0 }
     }
 
+    // Expose the current loop/parallel item + index to the resolver, which reads them from the
+    // legacy context fields ({{loop.currentItem}}, {{loop.index}}, {{parallel.currentItem}}).
+    this.syncSubflowItemContext(ctx, node)
+
     const output = await this.blockExecutor.execute(ctx, node, node.block)
     return { nodeId, output, isFinalOutput: node.outgoingEdges.size === 0 }
+  }
+
+  private syncSubflowItemContext(ctx: ExecutionContext, node: DAGNode): void {
+    const loopId = node.metadata.loopId
+    if (loopId) {
+      const scope = this.loopOrchestrator.getLoopScope(ctx, loopId)
+      if (scope) {
+        // The resolver reads {{loop.index}} as loopIterations-1, so store iteration+1.
+        ctx.loopIterations.set(loopId, scope.iteration + 1)
+        if (scope.item !== undefined) ctx.loopItems.set(loopId, scope.item)
+        if (scope.items) ctx.loopItems.set(`${loopId}_items`, scope.items)
+      }
+    }
+
+    const parallelId = node.metadata.parallelId
+    if (parallelId && node.metadata.isParallelBranch) {
+      const branchIndex = node.metadata.branchIndex ?? 0
+      const scope = this.parallelOrchestrator.getParallelScope(ctx, parallelId)
+      ctx.currentVirtualBlockId = node.id
+      if (!ctx.parallelBlockMapping) ctx.parallelBlockMapping = new Map()
+      ctx.parallelBlockMapping.set(node.id, {
+        originalBlockId: extractBaseBlockId(node.id),
+        parallelId,
+        iterationIndex: branchIndex,
+      })
+      const item = scope?.items?.[branchIndex]
+      if (item !== undefined) {
+        ctx.loopItems.set(`${parallelId}_iteration_${branchIndex}`, item)
+        ctx.loopItems.set(parallelId, item)
+      }
+    }
   }
 
   private async handleSentinel(

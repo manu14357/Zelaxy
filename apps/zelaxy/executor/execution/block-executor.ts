@@ -5,6 +5,7 @@ import { extractErrorMessage } from '@/executor/driver/runtime'
 import type { BlockExecutionDelegate } from '@/executor/orchestrators/node'
 import type { InputResolver } from '@/executor/resolver/resolver'
 import type { BlockHandler, ExecutionContext, NormalizedBlockOutput } from '@/executor/types'
+import { extractBaseBlockId } from '@/executor/utils/subflow-utils'
 import type { SerializedBlock } from '@/serializer/types'
 
 const logger = createLogger('DAGBlockExecutor')
@@ -44,16 +45,22 @@ export class BlockExecutor implements BlockExecutionDelegate {
       success: false,
     }
 
+    // Parallel branch clones carry the virtual id (`body₍0₎`) as the node id; the resolver keys
+    // subflow membership and references off the original block id, so resolve/execute against it.
+    const resolveBlock: SerializedBlock = node.metadata.isParallelBranch
+      ? { ...block, id: extractBaseBlockId(node.id) }
+      : block
+
     try {
-      const inputs = this.resolver.resolveInputs(block, ctx)
+      const inputs = this.resolver.resolveInputs(resolveBlock, ctx)
       log.input = inputs
 
-      const handler = this.handlers.find((h) => h.canHandle(block))
+      const handler = this.handlers.find((h) => h.canHandle(resolveBlock))
       if (!handler) {
         throw new Error(`No handler found for block type: ${block.metadata?.id}`)
       }
 
-      const rawOutput = await handler.execute(block, inputs, ctx)
+      const rawOutput = await handler.execute(resolveBlock, inputs, ctx)
 
       const output: NormalizedBlockOutput =
         rawOutput && typeof rawOutput === 'object' && (rawOutput as any).error
