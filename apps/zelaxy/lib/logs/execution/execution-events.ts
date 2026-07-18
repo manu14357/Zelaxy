@@ -43,8 +43,15 @@ export interface ExecutionCompleteEvent {
  * Emits an execution event to the Socket.IO server via HTTP bridge.
  * This works from both the main Next.js app and BullMQ background workers.
  * Failures are silently logged — never blocks workflow execution.
+ *
+ * Server-only: the bridge authenticates with INTERNAL_API_SECRET, which is not present in the
+ * browser, and a cross-origin browser call is blocked by CORS. Client-side runs receive real-time
+ * updates over their authenticated socket connection, so this is a no-op there.
  */
 async function emitToSocketServer(endpoint: string, payload: Record<string, any>): Promise<void> {
+  if (typeof window !== 'undefined') {
+    return
+  }
   try {
     const socketUrl = getSocketServerUrl()
     const response = await fetch(`${socketUrl}${endpoint}`, {
