@@ -294,6 +294,12 @@ export class EdgeManager {
       return output.selectedConditionId === handle
     }
 
+    // Switch blocks: the edge is named case-<caseId>; the block emits the matched case id.
+    if (handle.startsWith('case-')) {
+      const caseId = handle.substring('case-'.length)
+      return output.selectedCaseId === caseId || output.selectedConditionId === caseId
+    }
+
     // Router blocks: the edge is named router-<targetBlockId>.
     if (handle.startsWith(EDGE.ROUTER_PREFIX)) {
       const routeId = handle.substring(EDGE.ROUTER_PREFIX.length)

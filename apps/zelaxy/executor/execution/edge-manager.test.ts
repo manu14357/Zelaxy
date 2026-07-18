@@ -92,6 +92,34 @@ describe('EdgeManager — router routing', () => {
   })
 })
 
+describe('EdgeManager — switch routing', () => {
+  const wf = {
+    version: '2.0',
+    blocks: [
+      block('start', BlockType.STARTER),
+      block('sw', BlockType.SWITCH, { cases: JSON.stringify([{ id: 'a' }, { id: 'b' }]) }),
+      block('x', BlockType.FUNCTION, { code: 'return 1' }),
+      block('y', BlockType.FUNCTION, { code: 'return 2' }),
+    ],
+    connections: [
+      { source: 'start', target: 'sw' },
+      { source: 'sw', target: 'x', sourceHandle: 'case-a' },
+      { source: 'sw', target: 'y', sourceHandle: 'case-b' },
+    ],
+    loops: {},
+    parallels: {},
+  } as SerializedWorkflow
+
+  it('activates only the selected case branch', () => {
+    const { dag, em } = build(wf)
+    const ready = em.processOutgoingEdges(dag.nodes.get('sw')!, {
+      selectedCaseId: 'b',
+      selectedConditionId: 'b',
+    } as NormalizedBlockOutput)
+    expect(ready).toEqual(['y'])
+  })
+})
+
 describe('EdgeManager — error routing', () => {
   const wf = {
     version: '2.0',
