@@ -10,7 +10,6 @@ import type {
   NormalizedBlockOutput,
   PauseMetadata,
 } from '@/executor/types'
-import { buildSentinelEndId, buildSentinelStartId } from '@/executor/utils/subflow-utils'
 
 const logger = createLogger('DAGExecutionEngine')
 
@@ -262,17 +261,6 @@ export class ExecutionEngine {
       }
     }
 
-    // A loop end that continues resets the loop subgraph for the next iteration before its
-    // loop_continue edge re-activates the start sentinel.
-    if (
-      node.metadata.isSentinel &&
-      node.metadata.sentinelType === 'end' &&
-      node.metadata.loopId &&
-      output.selectedRoute === EDGE.LOOP_CONTINUE
-    ) {
-      this.resetLoopForNextIteration(node.metadata.loopId)
-    }
-
     // A block error with no `error` edge to catch it fails the whole run, matching the legacy driver
     // (a caught error instead flows down the error edge below).
     if (this.isUnhandledError(node, output)) {
@@ -305,21 +293,6 @@ export class ExecutionEngine {
       if (edge.sourceHandle === EDGE.ERROR) return false
     }
     return true
-  }
-
-  private resetLoopForNextIteration(loopId: string): void {
-    const config = this.dag.loopConfigs.get(loopId)
-    if (!config) return
-
-    const startId = buildSentinelStartId(loopId)
-    const endId = buildSentinelEndId(loopId)
-    const loopNodeIds = new Set<string>([startId, endId, ...config.nodes])
-
-    for (const nodeId of loopNodeIds) {
-      this.context.executedBlocks.delete(nodeId)
-    }
-
-    this.edgeManager.restoreLoopSubgraph(loopNodeIds, startId)
   }
 
   private async isCancelled(): Promise<boolean> {

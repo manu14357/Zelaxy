@@ -20,6 +20,8 @@ import {
   buildBranchNodeId,
   buildParallelSentinelEndId,
   buildParallelSentinelStartId,
+  buildSentinelEndId,
+  buildSentinelStartId,
   extractBaseBlockId,
 } from '@/executor/utils/subflow-utils'
 import type { SerializedBlock, SerializedWorkflow } from '@/serializer/types'
@@ -71,6 +73,7 @@ export class DAGExecutor {
 
   async execute(workflowId: string, triggerBlockId?: string): Promise<ExecutionResult> {
     const dag = this.dagBuilder.build(this.workflow, { triggerBlockId })
+    this.normalizeNestedSubflowEdges(dag)
     this.expandParallelBranches(dag)
 
     const state = new ExecutionState()
@@ -104,7 +107,7 @@ export class DAGExecutor {
       this.contextExtensions.onBlockComplete
     )
     const edgeManager = new EdgeManager(dag)
-    const loopOrchestrator = new LoopOrchestrator(dag, state)
+    const loopOrchestrator = new LoopOrchestrator(dag, state, edgeManager)
     const parallelOrchestrator = new ParallelOrchestrator(dag, state)
     const nodeOrchestrator = new NodeExecutionOrchestrator(
       dag,
@@ -125,6 +128,73 @@ export class DAGExecutor {
       parallelCount: dag.parallelConfigs.size,
     })
     return engine.run(triggerBlockId)
+  }
+
+  /**
+   * Removes the spurious sentinel edges the builder adds between a subflow and nodes that live
+   * inside a *nested* child subflow. Such a node is a transitive member of the outer subflow, so the
+   * builder wires the outer start/end straight to it; correct flow must go through the child's
+   * sentinels only. Without this, a loop-in-loop miscounts.
+   */
+  private normalizeNestedSubflowEdges(dag: DAG): void {
+    const subflows: Array<{ id: string; isLoop: boolean }> = [
+      ...Array.from(dag.loopConfigs.keys()).map((id) => ({ id, isLoop: true })),
+      ...Array.from(dag.parallelConfigs.keys()).map((id) => ({ id, isLoop: false })),
+    ]
+
+    for (const { id, isLoop } of subflows) {
+      const config = dag.loopConfigs.get(id) ?? dag.parallelConfigs.get(id)
+      const startId = isLoop ? buildSentinelStartId(id) : buildParallelSentinelStartId(id)
+      const endId = isLoop ? buildSentinelEndId(id) : buildParallelSentinelEndId(id)
+      const startNode = dag.nodes.get(startId)
+      const endNode = dag.nodes.get(endId)
+      if (!startNode || !endNode) continue
+
+      const nestedInternal = new Set<string>()
+      for (const child of config?.nodes ?? []) {
+        if (!dag.loopConfigs.has(child) && !dag.parallelConfigs.has(child)) continue
+        const childStart = dag.loopConfigs.has(child)
+          ? buildSentinelStartId(child)
+          : buildParallelSentinelStartId(child)
+        const childEnd = dag.loopConfigs.has(child)
+          ? buildSentinelEndId(child)
+          : buildParallelSentinelEndId(child)
+        for (const inner of this.collectSubflowDagNodeIds(dag, child)) {
+          if (inner !== childStart && inner !== childEnd) nestedInternal.add(inner)
+        }
+      }
+
+      for (const nodeId of nestedInternal) {
+        for (const [key, edge] of Array.from(startNode.outgoingEdges)) {
+          if (edge.target === nodeId) startNode.outgoingEdges.delete(key)
+        }
+        const node = dag.nodes.get(nodeId)
+        if (node) {
+          node.incomingEdges.delete(startId)
+          for (const [key, edge] of Array.from(node.outgoingEdges)) {
+            if (edge.target === endId) node.outgoingEdges.delete(key)
+          }
+        }
+        endNode.incomingEdges.delete(nodeId)
+      }
+    }
+  }
+
+  /** All DAG node ids belonging to a subflow (its sentinels + members), recursing into nesting. */
+  private collectSubflowDagNodeIds(dag: DAG, subflowId: string): Set<string> {
+    const isLoop = dag.loopConfigs.has(subflowId)
+    const start = isLoop ? buildSentinelStartId(subflowId) : buildParallelSentinelStartId(subflowId)
+    const end = isLoop ? buildSentinelEndId(subflowId) : buildParallelSentinelEndId(subflowId)
+    const ids = new Set<string>([start, end])
+    const config = dag.loopConfigs.get(subflowId) ?? dag.parallelConfigs.get(subflowId)
+    for (const nodeId of config?.nodes ?? []) {
+      if (dag.loopConfigs.has(nodeId) || dag.parallelConfigs.has(nodeId)) {
+        for (const nested of this.collectSubflowDagNodeIds(dag, nodeId)) ids.add(nested)
+      } else {
+        ids.add(nodeId)
+      }
+    }
+    return ids
   }
 
   /**

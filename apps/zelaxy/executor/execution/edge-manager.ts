@@ -181,39 +181,6 @@ export class EdgeManager {
     this.deactivatedEdges.add(this.createEdgeKey(sourceId, targetId, sourceHandle))
   }
 
-  /**
-   * Resets a loop's subgraph so it can run another iteration: restores each in-loop node's incoming
-   * edges from the (immutable) forward edges among the loop nodes, empties the start sentinel's
-   * incoming set (it becomes ready when the end sentinel's loop_continue edge fires), and clears any
-   * edges deactivated during the finished iteration.
-   */
-  restoreLoopSubgraph(loopNodeIds: Set<string>, startId: string): void {
-    for (const nodeId of loopNodeIds) {
-      if (nodeId === startId) continue
-      const node = this.dag.nodes.get(nodeId)
-      if (!node) continue
-
-      const restored = new Set<string>()
-      for (const srcId of loopNodeIds) {
-        if (srcId === nodeId) continue
-        const src = this.dag.nodes.get(srcId)
-        if (!src) continue
-        for (const [, edge] of src.outgoingEdges) {
-          // Skip the back edge into the start sentinel — it drives the next iteration via activation.
-          if (edge.target === nodeId && !this.isBackwardsEdge(edge.sourceHandle)) {
-            restored.add(srcId)
-          }
-        }
-      }
-      node.incomingEdges = restored
-    }
-
-    const start = this.dag.nodes.get(startId)
-    if (start) start.incomingEdges = new Set()
-
-    this.clearDeactivatedEdgesForNodes(loopNodeIds)
-  }
-
   private isTargetReady(targetId: string): boolean {
     const targetNode = this.dag.nodes.get(targetId)
     return targetNode ? this.isNodeReady(targetNode) : false
