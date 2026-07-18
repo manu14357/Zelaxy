@@ -37,6 +37,8 @@ export interface DAGExecutorOptions {
     workspaceId?: string
     userId?: string
     onBlockComplete?: (log: BlockLog) => void | Promise<void>
+    isCancelled?: () => boolean
+    checkCancelled?: () => Promise<boolean>
   }
 }
 
@@ -112,7 +114,10 @@ export class DAGExecutor {
       parallelOrchestrator
     )
 
-    const engine = new ExecutionEngine(context, dag, edgeManager, nodeOrchestrator)
+    const engine = new ExecutionEngine(context, dag, edgeManager, nodeOrchestrator, {
+      isCancelled: this.contextExtensions.isCancelled,
+      checkCancelled: this.contextExtensions.checkCancelled,
+    })
     logger.info('Running DAG executor', {
       workflowId,
       nodeCount: dag.nodes.size,
@@ -188,7 +193,11 @@ export class DAGExecutor {
       loopItems: new Map(),
       completedLoops: new Set(),
       executedBlocks: state.getExecutedBlocks() as Set<string>,
-      activeExecutionPath: new Set(),
+      // Populated with all enabled blocks so a snapshot taken on pause can be resumed by the legacy
+      // resume path (which schedules from activeExecutionPath); the DAG scheduler itself ignores it.
+      activeExecutionPath: new Set(
+        this.workflow.blocks.filter((b) => b.enabled !== false).map((b) => b.id)
+      ),
       workflow: this.workflow,
       workflowVariables: this.workflowVariables,
     }

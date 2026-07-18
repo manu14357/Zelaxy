@@ -37,6 +37,14 @@ function blockRunnerOf(executor: Executor): any {
   return engineOf(executor).blockRunner
 }
 
+/**
+ * A few tests below are white-box tests of the legacy driver — they spy on or replace legacy engine
+ * internals (validateWorkflow, createExecutionContext, the block runner). When execution is routed
+ * through the DAG executor (EXECUTOR_USE_DAG=true) those internals aren't exercised, so these tests
+ * are skipped for that path; they still run against, and cover, the legacy driver.
+ */
+const DAG_PATH = typeof process !== 'undefined' && process.env.EXECUTOR_USE_DAG === 'true'
+
 vi.mock('@/stores/execution/store', () => ({
   useExecutionStore: {
     getState: vi.fn(() => ({
@@ -161,7 +169,7 @@ describe('Executor', () => {
       validateSpy.mockRestore()
     })
 
-    it('should validate workflow on execution', async () => {
+    ;(DAG_PATH ? it.skip : it)('should validate workflow on execution', async () => {
       const workflow = createMinimalWorkflow()
       const executor = new Executor(workflow)
 
@@ -337,30 +345,33 @@ describe('Executor', () => {
       }
     })
 
-    it.concurrent('should pass context extensions to execution context', async () => {
-      const workflow = createMinimalWorkflow()
-      const mockOnStream = vi.fn()
-      const selectedOutputIds = ['block1', 'block2']
-      const edges = [{ source: 'starter', target: 'block1' }]
+    ;(DAG_PATH ? it.concurrent.skip : it.concurrent)(
+      'should pass context extensions to execution context',
+      async () => {
+        const workflow = createMinimalWorkflow()
+        const mockOnStream = vi.fn()
+        const selectedOutputIds = ['block1', 'block2']
+        const edges = [{ source: 'starter', target: 'block1' }]
 
-      const executor = new Executor({
-        workflow,
-        contextExtensions: {
-          stream: true,
-          selectedOutputIds,
-          edges,
-          onStream: mockOnStream,
-        },
-      })
+        const executor = new Executor({
+          workflow,
+          contextExtensions: {
+            stream: true,
+            selectedOutputIds,
+            edges,
+            onStream: mockOnStream,
+          },
+        })
 
-      // Spy on createExecutionContext to verify context extensions are passed
-      const createContextSpy = vi.spyOn(engineOf(executor), 'createExecutionContext')
+        // Spy on createExecutionContext to verify context extensions are passed
+        const createContextSpy = vi.spyOn(engineOf(executor), 'createExecutionContext')
 
-      await executor.execute('test-workflow-id')
+        await executor.execute('test-workflow-id')
 
-      expect(createContextSpy).toHaveBeenCalled()
-      const contextArg = createContextSpy.mock.calls[0][2] // third argument is startTime, context is created internally
-    })
+        expect(createContextSpy).toHaveBeenCalled()
+        const contextArg = createContextSpy.mock.calls[0][2] // third argument is startTime, context is created internally
+      }
+    )
   })
 
   /**
@@ -688,26 +699,29 @@ describe('Executor', () => {
       }
     })
 
-    it.concurrent('should process streaming content in context', async () => {
-      const workflow = createMinimalWorkflow()
-      const mockOnStream = vi.fn()
+    ;(DAG_PATH ? it.concurrent.skip : it.concurrent)(
+      'should process streaming content in context',
+      async () => {
+        const workflow = createMinimalWorkflow()
+        const mockOnStream = vi.fn()
 
-      const executor = new Executor({
-        workflow,
-        contextExtensions: {
-          stream: true,
-          selectedOutputIds: ['block1'],
-          onStream: mockOnStream,
-        },
-      })
+        const executor = new Executor({
+          workflow,
+          contextExtensions: {
+            stream: true,
+            selectedOutputIds: ['block1'],
+            onStream: mockOnStream,
+          },
+        })
 
-      // Test that execution context contains streaming properties
-      const createContextSpy = vi.spyOn(engineOf(executor), 'createExecutionContext')
+        // Test that execution context contains streaming properties
+        const createContextSpy = vi.spyOn(engineOf(executor), 'createExecutionContext')
 
-      await executor.execute('test-workflow-id')
+        await executor.execute('test-workflow-id')
 
-      expect(createContextSpy).toHaveBeenCalled()
-    })
+        expect(createContextSpy).toHaveBeenCalled()
+      }
+    )
   })
 
   /**
@@ -1061,7 +1075,7 @@ describe('Executor', () => {
   })
 
   describe('Parallel Execution with Mixed Results', () => {
-    it.concurrent(
+    ;(DAG_PATH ? it.concurrent.skip : it.concurrent)(
       'should handle parallel execution where some blocks succeed and others fail',
       async () => {
         // Create a workflow with two parallel agents
