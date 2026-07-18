@@ -90,7 +90,7 @@ export class DAGExecutor {
       state.setBlockState(blockId, { output: output as any, executed: true, executionTime: 0 })
     }
 
-    const context = this.createExecutionContext(workflowId, state)
+    const context = this.createExecutionContext(workflowId, state, triggerBlockId)
     const { engine } = this.buildPipeline(dag, state, context)
     logger.info('Running DAG executor', {
       workflowId,
@@ -329,7 +329,11 @@ export class DAGExecutor {
     return 1
   }
 
-  private createExecutionContext(workflowId: string, state: ExecutionState): ExecutionContext {
+  private createExecutionContext(
+    workflowId: string,
+    state: ExecutionState,
+    triggerBlockId?: string
+  ): ExecutionContext {
     const context: ExecutionContext = {
       workflowId,
       workspaceId: this.contextExtensions.workspaceId,
@@ -357,7 +361,7 @@ export class DAGExecutor {
       onStream: this.contextExtensions.onStream,
     }
 
-    this.seedStartBlock(context, state)
+    this.seedStartBlock(state, triggerBlockId)
     return context
   }
 
@@ -366,10 +370,13 @@ export class DAGExecutor {
    * Mirrors the shapes the legacy driver produces for structured (inputFormat), chat, API and
    * primitive inputs.
    */
-  private seedStartBlock(context: ExecutionContext, state: ExecutionState): void {
-    const startBlock = this.workflow.blocks.find(
-      (b) => b.metadata?.id === BlockType.STARTER || b.metadata?.category === 'triggers'
-    )
+  private seedStartBlock(state: ExecutionState, triggerBlockId?: string): void {
+    // Seed the actual entry point — the same one the DAG builder and engine resolve: the given
+    // trigger block, otherwise the manual starter, otherwise the first trigger-category block.
+    const startBlock = triggerBlockId
+      ? this.workflow.blocks.find((b) => b.id === triggerBlockId)
+      : (this.workflow.blocks.find((b) => b.enabled && b.metadata?.id === BlockType.STARTER) ??
+        this.workflow.blocks.find((b) => b.metadata?.category === 'triggers'))
     if (!startBlock) return
     if (state.getBlockStates().has(startBlock.id)) return
 

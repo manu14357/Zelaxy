@@ -131,11 +131,12 @@ export class ExecutionEngine {
       return
     }
 
-    const startNode = Array.from(this.dag.nodes.values()).find(
-      (node) =>
-        node.block.metadata?.id === BlockType.STARTER ||
-        node.block.metadata?.category === 'triggers'
-    )
+    // Prefer the manual starter, then any trigger node — matching how the DAG's reachable set was
+    // resolved, so a workflow with both a starter and a schedule/webhook trigger starts consistently.
+    const nodes = Array.from(this.dag.nodes.values())
+    const startNode =
+      nodes.find((node) => node.block.metadata?.id === BlockType.STARTER) ??
+      nodes.find((node) => node.block.metadata?.category === 'triggers')
     if (startNode) {
       this.addToQueue(startNode.id)
     } else {

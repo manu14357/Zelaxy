@@ -1,5 +1,5 @@
 import { createLogger } from '@/lib/logs/console/logger'
-import { isMetadataOnlyBlockType, isTriggerBlockType } from '@/executor/consts'
+import { BlockType, isMetadataOnlyBlockType, isTriggerBlockType } from '@/executor/consts'
 import { extractBaseBlockId } from '@/executor/utils/subflow-utils'
 import type { SerializedBlock, SerializedWorkflow } from '@/serializer/types'
 
@@ -56,6 +56,12 @@ export class PathConstructor {
 
       throw new Error(`Trigger block not found: ${triggerBlockId}`)
     }
+
+    // Manual run (no explicit trigger id): a workflow can have schedule/webhook triggers alongside
+    // a manual starter. The Run button starts from the starter, so prefer it over other triggers
+    // regardless of block order — matching the legacy executor's manual-run entry point.
+    const starter = workflow.blocks.find((b) => b.enabled && b.metadata?.id === BlockType.STARTER)
+    if (starter) return starter.id
 
     const explicitTrigger = this.findExplicitTrigger(workflow)
     if (explicitTrigger) return explicitTrigger
