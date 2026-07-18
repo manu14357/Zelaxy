@@ -249,6 +249,10 @@ export class Executor {
           onBlockComplete: this.runtime.onBlockComplete,
           isCancelled: () => this.runtime.cancelled,
           checkCancelled: this.runtime.checkCancelled,
+          stream: this.runtime.contextExtensions?.stream,
+          selectedOutputIds: this.runtime.contextExtensions?.selectedOutputIds,
+          edges: this.runtime.contextExtensions?.edges,
+          onStream: this.runtime.contextExtensions?.onStream,
         },
       })
       return dag.execute(workflowId, startBlockId)

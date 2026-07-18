@@ -15,7 +15,13 @@ import { NodeExecutionOrchestrator } from '@/executor/orchestrators/node'
 import { ParallelOrchestrator } from '@/executor/orchestrators/parallel'
 import { PathTracker } from '@/executor/path/path'
 import { InputResolver } from '@/executor/resolver/resolver'
-import type { BlockLog, BlockState, ExecutionContext, ExecutionResult } from '@/executor/types'
+import type {
+  BlockLog,
+  BlockState,
+  ExecutionContext,
+  ExecutionResult,
+  StreamingExecution,
+} from '@/executor/types'
 import {
   buildBranchNodeId,
   buildParallelSentinelEndId,
@@ -41,6 +47,10 @@ export interface DAGExecutorOptions {
     onBlockComplete?: (log: BlockLog) => void | Promise<void>
     isCancelled?: () => boolean
     checkCancelled?: () => Promise<boolean>
+    stream?: boolean
+    selectedOutputIds?: string[]
+    edges?: Array<{ source: string; target: string }>
+    onStream?: (streamingExecution: StreamingExecution) => Promise<string>
   }
 }
 
@@ -104,7 +114,8 @@ export class DAGExecutor {
     const blockExecutor = new BlockExecutor(
       handlers,
       resolver,
-      this.contextExtensions.onBlockComplete
+      this.contextExtensions.onBlockComplete,
+      this.initialBlockStates
     )
     const edgeManager = new EdgeManager(dag)
     const loopOrchestrator = new LoopOrchestrator(dag, state, edgeManager)
@@ -270,6 +281,10 @@ export class DAGExecutor {
       ),
       workflow: this.workflow,
       workflowVariables: this.workflowVariables,
+      stream: this.contextExtensions.stream ?? false,
+      selectedOutputIds: this.contextExtensions.selectedOutputIds ?? [],
+      edges: this.contextExtensions.edges ?? [],
+      onStream: this.contextExtensions.onStream,
     }
 
     this.seedStartBlock(context, state)
