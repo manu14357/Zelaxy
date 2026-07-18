@@ -19,6 +19,23 @@ import {
   setupAllMocks,
 } from '@/executor/__test-utils__/executor-mocks'
 import { BlockType } from '@/executor/consts'
+import { ExecutionEngine } from '@/executor/driver/engine'
+import { extractErrorMessage as extractErrorMessageDriver } from '@/executor/driver/runtime'
+
+/**
+ * The scheduling loop, per-block execution and routing live in the driver layer that the Executor
+ * wires up. These helpers reach the driver collaborators so the white-box tests below can exercise
+ * and stub the same internals they did when this logic lived on the Executor class.
+ */
+function engineOf(executor: Executor): any {
+  return (executor as any).engine
+}
+function edgeManagerOf(executor: Executor): any {
+  return engineOf(executor).edgeManager
+}
+function blockRunnerOf(executor: Executor): any {
+  return engineOf(executor).blockRunner
+}
 
 vi.mock('@/stores/execution/store', () => ({
   useExecutionStore: {
@@ -87,10 +104,10 @@ describe('Executor', () => {
 
       // Verify that all properties are properly initialized
       expect((executor as any).actualWorkflow).toBe(workflow)
-      expect((executor as any).initialBlockStates).toEqual(initialStates)
-      expect((executor as any).environmentVariables).toEqual(envVars)
-      expect((executor as any).workflowInput).toEqual(workflowInput)
-      expect((executor as any).workflowVariables).toEqual(workflowVariables)
+      expect((executor as any).runtime.initialBlockStates).toEqual(initialStates)
+      expect((executor as any).runtime.environmentVariables).toEqual(envVars)
+      expect((executor as any).runtime.workflowInput).toEqual(workflowInput)
+      expect((executor as any).runtime.workflowVariables).toEqual(workflowVariables)
     })
 
     it.concurrent('should accept streaming context extensions', () => {
@@ -134,20 +151,21 @@ describe('Executor', () => {
    * Validation tests
    */
   describe('workflow validation', () => {
-    it.concurrent('should validate workflow on initialization', () => {
-      const validateSpy = vi.spyOn(Executor.prototype as any, 'validateWorkflow')
+    it('should validate workflow on initialization', () => {
+      const validateSpy = vi.spyOn(ExecutionEngine.prototype as any, 'validateWorkflow')
 
       const workflow = createMinimalWorkflow()
       const _executor = new Executor(workflow)
 
       expect(validateSpy).toHaveBeenCalled()
+      validateSpy.mockRestore()
     })
 
     it('should validate workflow on execution', async () => {
       const workflow = createMinimalWorkflow()
       const executor = new Executor(workflow)
 
-      const validateSpy = vi.spyOn(executor as any, 'validateWorkflow')
+      const validateSpy = vi.spyOn(engineOf(executor), 'validateWorkflow')
       validateSpy.mockClear()
 
       await executor.execute('test-workflow-id')
@@ -336,7 +354,7 @@ describe('Executor', () => {
       })
 
       // Spy on createExecutionContext to verify context extensions are passed
-      const createContextSpy = vi.spyOn(executor as any, 'createExecutionContext')
+      const createContextSpy = vi.spyOn(engineOf(executor), 'createExecutionContext')
 
       await executor.execute('test-workflow-id')
 
@@ -399,7 +417,7 @@ describe('Executor', () => {
 
       const workflow = createMinimalWorkflow()
       const executor = new Executor(workflow)
-      const isDebugging = (executor as any).isDebugging
+      const isDebugging = (executor as any).runtime.isDebugging
 
       expect(isDebugging).toBe(true)
     })
@@ -417,7 +435,7 @@ describe('Executor', () => {
 
       const workflow = createMinimalWorkflow()
       const executor = new Executor(workflow)
-      const isDebugging = (executor as any).isDebugging
+      const isDebugging = (executor as any).runtime.isDebugging
 
       expect(isDebugging).toBe(false)
     })
@@ -460,7 +478,7 @@ describe('Executor', () => {
       const executor = new Executor(workflow)
 
       // Test error handling functionality
-      const extractErrorMessage = (executor as any).extractErrorMessage.bind(executor)
+      const extractErrorMessage = extractErrorMessageDriver
 
       // Test error message extraction
       const error = new Error('Test error message')
@@ -494,7 +512,9 @@ describe('Executor', () => {
       })
 
       // Call activateErrorPath method
-      const activateErrorPath = (executor as any).activateErrorPath.bind(executor)
+      const activateErrorPath = edgeManagerOf(executor).activateErrorPath.bind(
+        edgeManagerOf(executor)
+      )
       const result = activateErrorPath('block1', context)
 
       // Should return true since there is an error path
@@ -539,7 +559,9 @@ describe('Executor', () => {
       })
 
       // Call activateErrorPath method
-      const activateErrorPath = (executor as any).activateErrorPath.bind(executor)
+      const activateErrorPath = edgeManagerOf(executor).activateErrorPath.bind(
+        edgeManagerOf(executor)
+      )
 
       // Should return false for both blocks
       expect(activateErrorPath('starter', context)).toBe(false)
@@ -565,7 +587,9 @@ describe('Executor', () => {
       })
 
       // Call activateErrorPath method
-      const activateErrorPath = (executor as any).activateErrorPath.bind(executor)
+      const activateErrorPath = edgeManagerOf(executor).activateErrorPath.bind(
+        edgeManagerOf(executor)
+      )
       const result = activateErrorPath('block1', context)
 
       // Should return false since there is no error path
@@ -592,7 +616,7 @@ describe('Executor', () => {
       }
 
       // Call the extractErrorMessage method directly
-      const extractErrorMessage = (executor as any).extractErrorMessage.bind(executor)
+      const extractErrorMessage = extractErrorMessageDriver
       const errorMessage = extractErrorMessage(testError)
 
       // Verify the error message is extracted correctly
@@ -613,7 +637,7 @@ describe('Executor', () => {
       const workflow = createMinimalWorkflow()
       const executor = new Executor(workflow)
 
-      const extractErrorMessage = (executor as any).extractErrorMessage.bind(executor)
+      const extractErrorMessage = extractErrorMessageDriver
 
       // Test the specific "undefined (undefined)" error case
       const undefinedError = { message: 'undefined (undefined)' }
@@ -678,7 +702,7 @@ describe('Executor', () => {
       })
 
       // Test that execution context contains streaming properties
-      const createContextSpy = vi.spyOn(executor as any, 'createExecutionContext')
+      const createContextSpy = vi.spyOn(engineOf(executor), 'createExecutionContext')
 
       await executor.execute('test-workflow-id')
 
@@ -753,7 +777,9 @@ describe('Executor', () => {
       }
 
       const executor = new Executor(routerWorkflow)
-      const checkDependencies = (executor as any).checkDependencies.bind(executor)
+      const checkDependencies = edgeManagerOf(executor).checkDependencies.bind(
+        edgeManagerOf(executor)
+      )
 
       // Mock context simulating: router selected api1, api1 executed, api2 not in active path
       const mockContext = {
@@ -785,7 +811,9 @@ describe('Executor', () => {
     it.concurrent('should prioritize special connection types over active path check', () => {
       const workflow = createMinimalWorkflow()
       const executor = new Executor(workflow)
-      const checkDependencies = (executor as any).checkDependencies.bind(executor)
+      const checkDependencies = edgeManagerOf(executor).checkDependencies.bind(
+        edgeManagerOf(executor)
+      )
 
       const mockContext = {
         blockStates: new Map(),
@@ -822,7 +850,9 @@ describe('Executor', () => {
     it.concurrent('should handle router decisions correctly in dependency checking', () => {
       const workflow = createMinimalWorkflow()
       const executor = new Executor(workflow)
-      const checkDependencies = (executor as any).checkDependencies.bind(executor)
+      const checkDependencies = edgeManagerOf(executor).checkDependencies.bind(
+        edgeManagerOf(executor)
+      )
 
       // Add router block to workflow
       workflow.blocks.push({
@@ -867,7 +897,9 @@ describe('Executor', () => {
     it.concurrent('should handle condition decisions correctly in dependency checking', () => {
       const conditionWorkflow = createWorkflowWithCondition()
       const executor = new Executor(conditionWorkflow)
-      const checkDependencies = (executor as any).checkDependencies.bind(executor)
+      const checkDependencies = edgeManagerOf(executor).checkDependencies.bind(
+        edgeManagerOf(executor)
+      )
 
       const mockContext = {
         blockStates: new Map(),
@@ -899,7 +931,9 @@ describe('Executor', () => {
     it.concurrent('should handle regular sequential dependencies correctly', () => {
       const workflow = createMinimalWorkflow()
       const executor = new Executor(workflow)
-      const checkDependencies = (executor as any).checkDependencies.bind(executor)
+      const checkDependencies = edgeManagerOf(executor).checkDependencies.bind(
+        edgeManagerOf(executor)
+      )
 
       const mockContext = {
         blockStates: new Map(),
@@ -928,7 +962,9 @@ describe('Executor', () => {
     it.concurrent('should handle empty dependency list', () => {
       const workflow = createMinimalWorkflow()
       const executor = new Executor(workflow)
-      const checkDependencies = (executor as any).checkDependencies.bind(executor)
+      const checkDependencies = edgeManagerOf(executor).checkDependencies.bind(
+        edgeManagerOf(executor)
+      )
 
       const mockContext = createMockContext()
       const executedBlocks = new Set<string>()
@@ -948,11 +984,11 @@ describe('Executor', () => {
       const executor = new Executor(workflow)
 
       // Initially not cancelled
-      expect((executor as any).isCancelled).toBe(false)
+      expect((executor as any).runtime.cancelled).toBe(false)
 
       // Cancel and check flag
       executor.cancel()
-      expect((executor as any).isCancelled).toBe(true)
+      expect((executor as any).runtime.cancelled).toBe(true)
     })
 
     it.concurrent('should handle cancellation in debug mode continueExecution', async () => {
@@ -985,7 +1021,7 @@ describe('Executor', () => {
       executor.cancel()
       executor.cancel()
 
-      expect((executor as any).isCancelled).toBe(true)
+      expect((executor as any).runtime.cancelled).toBe(true)
     })
 
     it.concurrent('should prevent new execution on cancelled executor', async () => {
@@ -1012,7 +1048,7 @@ describe('Executor', () => {
       // Test cancellation during the execution loop check
       // Mock the while loop condition by setting cancelled before execution
 
-      ;(executor as any).isCancelled = true
+      ;(executor as any).runtime.cancelled = true
 
       const result = await executor.execute('test-workflow-id')
 
@@ -1078,13 +1114,13 @@ describe('Executor', () => {
             throw new Error('Agent 2 failed')
           }) // agent2 fails
 
-        // Replace the executeBlock method
+        // Replace the per-block execution on the driver's block runner
 
-        ;(executor as any).executeBlock = mockExecuteBlock
+        ;(blockRunnerOf(executor) as any).executeBlock = mockExecuteBlock
 
-        // Mock other necessary methods
+        // Mock other necessary driver internals
 
-        ;(executor as any).createExecutionContext = vi.fn(() => ({
+        ;(engineOf(executor) as any).createExecutionContext = vi.fn(() => ({
           blockStates: new Map(),
           executedBlocks: new Set(['starter']),
           blockLogs: [],
@@ -1094,14 +1130,12 @@ describe('Executor', () => {
           onStream: undefined,
         }))
 
-        ;(executor as any).getNextExecutionLayer = vi
+        ;(edgeManagerOf(executor) as any).getNextExecutionLayer = vi
           .fn()
           .mockReturnValueOnce(['agent1', 'agent2']) // First call returns both agents
           .mockReturnValueOnce([]) // Second call returns empty (execution complete)
 
-        ;(executor as any).pathTracker = {
-          updateExecutionPaths: vi.fn(),
-        }
+        ;(edgeManagerOf(executor) as any).updateExecutionPaths = vi.fn()
 
         const result = await executor.execute('test-workflow')
 

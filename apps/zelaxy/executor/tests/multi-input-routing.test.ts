@@ -3,6 +3,9 @@ import { BlockType } from '@/executor/consts'
 import { Executor } from '@/executor/index'
 import type { SerializedWorkflow } from '@/serializer/types'
 
+const engineOf = (executor: Executor): any => (executor as any).engine
+const edgeManagerOf = (executor: Executor): any => engineOf(executor).edgeManager
+
 describe('Multi-Input Routing Scenarios', () => {
   let workflow: SerializedWorkflow
   let executor: Executor
@@ -93,7 +96,7 @@ describe('Multi-Input Routing Scenarios', () => {
   it('should handle multi-input target when router selects function-1', async () => {
     // Test scenario: Router selects function-1, agent should still execute with function-1's output
 
-    const context = (executor as any).createExecutionContext('test-workflow', new Date())
+    const context = engineOf(executor).createExecutionContext('test-workflow', new Date())
 
     // Step 1: Execute start block
     context.executedBlocks.add('start')
@@ -116,7 +119,7 @@ describe('Multi-Input Routing Scenarios', () => {
     context.decisions.router.set('router-1', 'function-1')
 
     // Update execution paths after router-1
-    const pathTracker = (executor as any).pathTracker
+    const pathTracker = edgeManagerOf(executor)
     pathTracker.updateExecutionPaths(['router-1'], context)
 
     // Verify only function-1 is active
@@ -138,14 +141,14 @@ describe('Multi-Input Routing Scenarios', () => {
     const agent1Connections = workflow.connections.filter((conn) => conn.target === 'agent-1')
 
     // Check dependencies for agent-1
-    const agent1DependenciesMet = (executor as any).checkDependencies(
+    const agent1DependenciesMet = edgeManagerOf(executor).checkDependencies(
       agent1Connections,
       context.executedBlocks,
       context
     )
 
     // Step 5: Get next execution layer
-    const nextLayer = (executor as any).getNextExecutionLayer(context)
+    const nextLayer = edgeManagerOf(executor).getNextExecutionLayer(context)
 
     // CRITICAL TEST: Agent should be able to execute even though it has multiple inputs
     // The key is that the dependency logic should handle this correctly:
@@ -158,7 +161,7 @@ describe('Multi-Input Routing Scenarios', () => {
   it('should handle multi-input target when router selects function-2', async () => {
     // Test scenario: Router selects function-2, agent should still execute with function-2's output
 
-    const context = (executor as any).createExecutionContext('test-workflow', new Date())
+    const context = engineOf(executor).createExecutionContext('test-workflow', new Date())
 
     // Step 1: Execute start and router-1 selecting function-2
     context.executedBlocks.add('start')
@@ -179,7 +182,7 @@ describe('Multi-Input Routing Scenarios', () => {
     context.executedBlocks.add('router-1')
     context.decisions.router.set('router-1', 'function-2')
 
-    const pathTracker = (executor as any).pathTracker
+    const pathTracker = edgeManagerOf(executor)
     pathTracker.updateExecutionPaths(['router-1'], context)
 
     // Verify only function-2 is active
@@ -198,14 +201,14 @@ describe('Multi-Input Routing Scenarios', () => {
 
     // Step 3: Check agent-1 dependencies
     const agent1Connections = workflow.connections.filter((conn) => conn.target === 'agent-1')
-    const agent1DependenciesMet = (executor as any).checkDependencies(
+    const agent1DependenciesMet = edgeManagerOf(executor).checkDependencies(
       agent1Connections,
       context.executedBlocks,
       context
     )
 
     // Step 4: Get next execution layer
-    const nextLayer = (executor as any).getNextExecutionLayer(context)
+    const nextLayer = edgeManagerOf(executor).getNextExecutionLayer(context)
 
     // CRITICAL TEST: Agent should execute with function-2's output
     expect(agent1DependenciesMet).toBe(true)
@@ -215,7 +218,7 @@ describe('Multi-Input Routing Scenarios', () => {
   it('should verify the dependency logic for inactive sources', async () => {
     // This test specifically validates the multi-input dependency logic
 
-    const context = (executor as any).createExecutionContext('test-workflow', new Date())
+    const context = engineOf(executor).createExecutionContext('test-workflow', new Date())
 
     // Setup: Router executed and selected function-1, function-1 executed
     context.executedBlocks.add('start')
@@ -228,7 +231,9 @@ describe('Multi-Input Routing Scenarios', () => {
     context.activeExecutionPath.add('agent-1') // Agent should be active due to function-1
 
     // Test individual dependency checks
-    const checkDependencies = (executor as any).checkDependencies.bind(executor)
+    const checkDependencies = edgeManagerOf(executor).checkDependencies.bind(
+      edgeManagerOf(executor)
+    )
 
     // Connection from function-1 (executed, selected) → should be met
     const function1Connection = [{ source: 'function-1', target: 'agent-1' }]

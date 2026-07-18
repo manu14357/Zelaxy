@@ -3,6 +3,9 @@ import { Executor } from '@/executor'
 import { BlockType } from '@/executor/consts'
 import type { SerializedWorkflow } from '@/serializer/types'
 
+const engineOf = (executor: Executor): any => (executor as any).engine
+const edgeManagerOf = (executor: Executor): any => engineOf(executor).edgeManager
+
 describe('Full Executor Test', () => {
   let workflow: SerializedWorkflow
   let executor: Executor
@@ -183,7 +186,7 @@ describe('Full Executor Test', () => {
 
   it('should test the executor getNextExecutionLayer method directly', async () => {
     // Create a mock context in the exact state after the condition executes
-    const context = (executor as any).createExecutionContext('test-workflow', new Date())
+    const context = engineOf(executor).createExecutionContext('test-workflow', new Date())
 
     // Set up the state as it would be after the condition executes
     context.executedBlocks.add('bd9f4f7d-8aed-4860-a3be-8bebd1931b19') // Start
@@ -212,7 +215,7 @@ describe('Full Executor Test', () => {
     context.activeExecutionPath.add('033ea142-3002-4a68-9e12-092b10b8c9c8')
 
     // Get the next execution layer
-    const nextLayer = (executor as any).getNextExecutionLayer(context)
+    const nextLayer = edgeManagerOf(executor).getNextExecutionLayer(context)
 
     // Check if Parallel 2 is in the next execution layer
     const hasParallel2 = nextLayer.includes('037140a8-fda3-44e2-896c-6adea53ea30f')

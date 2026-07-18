@@ -1,5 +1,4 @@
 import type { BlockOutput } from '@/blocks/types'
-import type { LoopScope, ParallelScope } from '@/executor/execution/state'
 import type { SerializedBlock, SerializedWorkflow } from '@/serializer/types'
 
 /**
@@ -202,10 +201,6 @@ export interface ExecutionContext {
   // Variables block support: workflow-level variables store
   // Each key is a variableId, each value is { id, name, value, type? }
   workflowVariables?: Record<string, any>
-
-  // DAG-based execution: per-loop and per-parallel scope data
-  loopScopes?: Map<string, LoopScope>
-  parallelScopes?: Map<string, ParallelScope>
 
   // Pause/resume support
   pauseExecution?: (metadata: PauseMetadata) => Promise<void>
