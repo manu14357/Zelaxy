@@ -1,11 +1,15 @@
 import { createLogger } from '@/lib/logs/console/logger'
-import { BlockType } from '@/executor/consts'
+import { BlockType, EDGE } from '@/executor/consts'
 import type { DAG } from '@/executor/dag/builder'
 import type { EdgeManager } from '@/executor/execution/edge-manager'
 import type { NodeExecutionOrchestrator } from '@/executor/orchestrators/node'
 import type { ExecutionContext, ExecutionResult, NormalizedBlockOutput } from '@/executor/types'
+import { buildSentinelEndId, buildSentinelStartId } from '@/executor/utils/subflow-utils'
 
 const logger = createLogger('DAGExecutionEngine')
+
+/** Hard ceiling on node executions to guarantee termination if loop coordination misbehaves. */
+const MAX_NODE_EXECUTIONS = 100_000
 
 /**
  * Drives a built DAG to completion. Maintains a ready-queue of nodes whose incoming edges have all
@@ -22,6 +26,7 @@ export class ExecutionEngine {
   private stoppedEarly = false
   private errorFlag = false
   private executionError: Error | null = null
+  private nodeExecutions = 0
 
   constructor(
     private context: ExecutionContext,
@@ -167,6 +172,9 @@ export class ExecutionEngine {
   }
 
   private async executeNodeAsync(nodeId: string): Promise<void> {
+    if (++this.nodeExecutions > MAX_NODE_EXECUTIONS) {
+      throw new Error(`DAG execution exceeded ${MAX_NODE_EXECUTIONS} node executions`)
+    }
     const wasExecuted = this.context.executedBlocks.has(nodeId)
     const result = await this.nodeOrchestrator.executeNode(this.context, nodeId)
     if (!wasExecuted) {
@@ -201,7 +209,47 @@ export class ExecutionEngine {
       this.finalOutput = output
     }
 
+    // A loop/parallel start that continues into its body prunes its own exit edge, so the
+    // convergence block after the subflow only waits on the end sentinel's exit.
+    if (
+      node.metadata.isSentinel &&
+      node.metadata.sentinelType === 'start' &&
+      output.shouldExit !== true
+    ) {
+      for (const [, edge] of node.outgoingEdges) {
+        if (edge.sourceHandle === EDGE.LOOP_EXIT || edge.sourceHandle === EDGE.PARALLEL_EXIT) {
+          this.edgeManager.deactivateEdge(node.id, edge.target, edge.sourceHandle)
+        }
+      }
+    }
+
+    // A loop end that continues resets the loop subgraph for the next iteration before its
+    // loop_continue edge re-activates the start sentinel.
+    if (
+      node.metadata.isSentinel &&
+      node.metadata.sentinelType === 'end' &&
+      node.metadata.loopId &&
+      output.selectedRoute === EDGE.LOOP_CONTINUE
+    ) {
+      this.resetLoopForNextIteration(node.metadata.loopId)
+    }
+
     const readyNodes = this.edgeManager.processOutgoingEdges(node, output, false)
     this.addMultipleToQueue(readyNodes)
+  }
+
+  private resetLoopForNextIteration(loopId: string): void {
+    const config = this.dag.loopConfigs.get(loopId)
+    if (!config) return
+
+    const startId = buildSentinelStartId(loopId)
+    const endId = buildSentinelEndId(loopId)
+    const loopNodeIds = new Set<string>([startId, endId, ...config.nodes])
+
+    for (const nodeId of loopNodeIds) {
+      this.context.executedBlocks.delete(nodeId)
+    }
+
+    this.edgeManager.restoreLoopSubgraph(loopNodeIds, startId)
   }
 }
