@@ -26,6 +26,7 @@ export const env = createEnv({
 
     EXECUTOR_SHADOW_COMPARE:              z.boolean().optional(),                 // Run a second executor alongside each run and log result differences
     EXECUTOR_SHADOW_SAMPLE_RATE:          z.string().optional(),                  // Fraction of runs to shadow-compare (0..1), defaults to 1
+    EXECUTOR_USE_DAG:                     z.boolean().optional(),                 // Route execute() through the sentinel/orchestrator DAG executor instead of the legacy driver
 
     // Single Sign-On (SSO) — OIDC & SAML 2.0 via better-auth
     SSO_ENABLED:                          z.boolean().optional(),                 // Enable SSO functionality (self-hosted bypass for the Enterprise plan gate)

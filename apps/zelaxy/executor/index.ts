@@ -5,6 +5,7 @@ import { BlockRunner } from '@/executor/driver/block-executor'
 import { EdgeManager } from '@/executor/driver/edge-manager'
 import { ExecutionEngine } from '@/executor/driver/engine'
 import type { DriverRuntime } from '@/executor/driver/runtime'
+import { DAGExecutor } from '@/executor/execution/executor'
 import { createBlockHandlers } from '@/executor/handlers/registry'
 import { LoopManager } from '@/executor/loops/loops'
 import { ParallelManager } from '@/executor/parallels/parallels'
@@ -20,6 +21,15 @@ import type { SerializedWorkflow } from '@/serializer/types'
 import { useGeneralStore } from '@/stores/settings/general/store'
 
 const logger = createLogger('Executor')
+
+/**
+ * Whether execute() should route through the sentinel/orchestrator DAG executor. Default off — the
+ * legacy driver remains the default until the DAG path reaches parity. Server-side flag only;
+ * browser manual runs always use the legacy path (process.env is undefined there).
+ */
+function isDagExecutorEnabled(): boolean {
+  return typeof process !== 'undefined' && process.env.EXECUTOR_USE_DAG === 'true'
+}
 
 /**
  * Public entry point for running a workflow.
@@ -225,6 +235,22 @@ export class Executor {
     workflowId: string,
     startBlockId?: string
   ): Promise<ExecutionResult | StreamingExecution> {
+    if (isDagExecutorEnabled()) {
+      const dag = new DAGExecutor({
+        workflow: this.actualWorkflow,
+        currentBlockStates: this.runtime.initialBlockStates,
+        envVarValues: this.runtime.environmentVariables,
+        workflowInput: this.runtime.workflowInput,
+        workflowVariables: this.runtime.workflowVariables,
+        contextExtensions: {
+          executionId: this.runtime.contextExtensions?.executionId,
+          workspaceId: this.runtime.contextExtensions?.workspaceId,
+          userId: this.runtime.contextExtensions?.userId,
+          onBlockComplete: this.runtime.onBlockComplete,
+        },
+      })
+      return dag.execute(workflowId, startBlockId)
+    }
     return this.engine.execute(workflowId, startBlockId)
   }
 
