@@ -14,8 +14,13 @@ import type {
 import { streamingResponseFormatProcessor } from '@/executor/utils'
 import { extractBaseBlockId } from '@/executor/utils/subflow-utils'
 import type { SerializedBlock } from '@/serializer/types'
+import { useExecutionStore } from '@/stores/execution/store'
+import { useConsoleStore } from '@/stores/panel/console/store'
 
 const logger = createLogger('DAGBlockExecutor')
+
+/** Client-side manual runs drive the canvas + console panels straight off these stores. */
+const isBrowser = typeof window !== 'undefined'
 
 /**
  * Resolves a node's inputs and dispatches it to the matching block handler, then normalizes and
@@ -59,6 +64,8 @@ export class BlockExecutor implements BlockExecutionDelegate {
       ? { ...block, id: extractBaseBlockId(node.id) }
       : block
 
+    this.markBlockActive(node)
+
     try {
       const inputs = this.resolver.resolveInputs(resolveBlock, ctx)
       log.input = inputs
@@ -87,6 +94,7 @@ export class BlockExecutor implements BlockExecutionDelegate {
       log.endedAt = new Date().toISOString()
       log.durationMs = Math.round(performance.now() - start)
       ctx.blockLogs.push(log)
+      this.markBlockDone(ctx, node, block, log)
       await this.notifyComplete(log)
 
       return output
@@ -101,6 +109,7 @@ export class BlockExecutor implements BlockExecutionDelegate {
       log.endedAt = new Date().toISOString()
       log.durationMs = Math.round(performance.now() - start)
       ctx.blockLogs.push(log)
+      this.markBlockDone(ctx, node, block, log)
       await this.notifyComplete(log)
 
       logger.error('Block execution failed', {
@@ -112,6 +121,45 @@ export class BlockExecutor implements BlockExecutionDelegate {
       // Return the error output so the edge manager can route it down an `error` edge if one exists.
       return errorOutput
     }
+  }
+
+  /** Pulse the block on the canvas while it runs (client-side manual runs only). */
+  private markBlockActive(node: DAGNode): void {
+    if (!isBrowser) return
+    const baseId = extractBaseBlockId(node.id)
+    const store = useExecutionStore.getState()
+    store.setActiveBlocks(new Set(store.activeBlockIds).add(baseId))
+  }
+
+  /** Stop the pulse and append the block's result to the console panel (client-side manual runs). */
+  private markBlockDone(
+    ctx: ExecutionContext,
+    node: DAGNode,
+    block: SerializedBlock,
+    log: any
+  ): void {
+    if (!isBrowser) return
+
+    const baseId = extractBaseBlockId(node.id)
+    const store = useExecutionStore.getState()
+    const activeBlockIds = new Set(store.activeBlockIds)
+    activeBlockIds.delete(baseId)
+    store.setActiveBlocks(activeBlockIds)
+
+    useConsoleStore.getState().addConsole({
+      input: log.input,
+      output: log.success ? log.output : {},
+      success: log.success,
+      error: log.success ? undefined : log.error,
+      durationMs: log.durationMs,
+      startedAt: log.startedAt,
+      endedAt: log.endedAt,
+      workflowId: ctx.workflowId,
+      blockId: node.id,
+      executionId: ctx.executionId,
+      blockName: block.metadata?.name || 'Unnamed Block',
+      blockType: block.metadata?.id || 'unknown',
+    })
   }
 
   /**
