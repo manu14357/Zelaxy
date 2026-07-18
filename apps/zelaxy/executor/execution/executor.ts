@@ -20,6 +20,7 @@ import type {
   BlockState,
   ExecutionContext,
   ExecutionResult,
+  NormalizedBlockOutput,
   StreamingExecution,
 } from '@/executor/types'
 import {
@@ -82,21 +83,79 @@ export class DAGExecutor {
   }
 
   async execute(workflowId: string, triggerBlockId?: string): Promise<ExecutionResult> {
-    const dag = this.dagBuilder.build(this.workflow, { triggerBlockId })
-    this.normalizeNestedSubflowEdges(dag)
-    this.expandParallelBranches(dag)
+    const dag = this.buildDag(triggerBlockId)
 
     const state = new ExecutionState()
     for (const [blockId, output] of Object.entries(this.initialBlockStates)) {
-      state.setBlockState(blockId, {
-        output: output as any,
-        executed: true,
-        executionTime: 0,
-      })
+      state.setBlockState(blockId, { output: output as any, executed: true, executionTime: 0 })
     }
 
     const context = this.createExecutionContext(workflowId, state)
+    const { engine } = this.buildPipeline(dag, state, context)
+    logger.info('Running DAG executor', {
+      workflowId,
+      nodeCount: dag.nodes.size,
+      loopCount: dag.loopConfigs.size,
+      parallelCount: dag.parallelConfigs.size,
+    })
+    return engine.run(triggerBlockId)
+  }
 
+  /**
+   * Resumes a run that halted at a human-in-the-loop / async-wait gate. The paused block's output is
+   * overwritten with the resolution and the run continues from that block's downstream, reusing the
+   * restored context's block states and executed set (mutated in place so the caller observes it).
+   */
+  async resumeFromPause(
+    context: ExecutionContext,
+    blockId: string,
+    resolution: Record<string, any>
+  ): Promise<ExecutionResult> {
+    const dag = this.buildDag()
+
+    const state = new ExecutionState(
+      context.blockStates as Map<string, BlockState>,
+      context.executedBlocks as Set<string>
+    )
+    const resumedOutput = { status: 'completed', ...resolution } as unknown as NormalizedBlockOutput
+    state.setBlockState(blockId, { output: resumedOutput, executed: true, executionTime: 0 })
+    const resumedLog = context.blockLogs.find((l) => l.blockId === blockId)
+    if (resumedLog) resumedLog.output = resumedOutput
+
+    const { engine, edgeManager } = this.buildPipeline(dag, state, context)
+    const resumedNode = dag.nodes.get(blockId)
+    const seed = resumedNode
+      ? edgeManager.processOutgoingEdges(resumedNode, resumedOutput, false)
+      : []
+    return engine.run(undefined, seed)
+  }
+
+  /** Debug single-stepping is not supported on the DAG executor (matches Sim's DAGExecutor). */
+  async continueExecution(
+    _pendingBlocks: string[],
+    context: ExecutionContext
+  ): Promise<ExecutionResult> {
+    return {
+      success: false,
+      output: {},
+      logs: context.blockLogs ?? [],
+      error: 'Debug step-through is not supported on the DAG executor',
+      metadata: { duration: 0, startTime: new Date().toISOString() },
+    }
+  }
+
+  private buildDag(triggerBlockId?: string): DAG {
+    const dag = this.dagBuilder.build(this.workflow, { triggerBlockId })
+    this.normalizeNestedSubflowEdges(dag)
+    this.expandParallelBranches(dag)
+    return dag
+  }
+
+  private buildPipeline(
+    dag: DAG,
+    state: ExecutionState,
+    context: ExecutionContext
+  ): { engine: ExecutionEngine; edgeManager: EdgeManager } {
     const loopManager = new LoopManager(this.workflow.loops || {})
     const accessibleBlocksMap = BlockPathCalculator.calculateAccessibleBlocksForWorkflow(
       this.workflow
@@ -127,18 +186,11 @@ export class DAGExecutor {
       loopOrchestrator,
       parallelOrchestrator
     )
-
     const engine = new ExecutionEngine(context, dag, edgeManager, nodeOrchestrator, {
       isCancelled: this.contextExtensions.isCancelled,
       checkCancelled: this.contextExtensions.checkCancelled,
     })
-    logger.info('Running DAG executor', {
-      workflowId,
-      nodeCount: dag.nodes.size,
-      loopCount: dag.loopConfigs.size,
-      parallelCount: dag.parallelConfigs.size,
-    })
-    return engine.run(triggerBlockId)
+    return { engine, edgeManager }
   }
 
   /**

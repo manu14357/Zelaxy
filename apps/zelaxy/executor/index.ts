@@ -236,26 +236,7 @@ export class Executor {
     startBlockId?: string
   ): Promise<ExecutionResult | StreamingExecution> {
     if (isDagExecutorEnabled()) {
-      const dag = new DAGExecutor({
-        workflow: this.actualWorkflow,
-        currentBlockStates: this.runtime.initialBlockStates,
-        envVarValues: this.runtime.environmentVariables,
-        workflowInput: this.runtime.workflowInput,
-        workflowVariables: this.runtime.workflowVariables,
-        contextExtensions: {
-          executionId: this.runtime.contextExtensions?.executionId,
-          workspaceId: this.runtime.contextExtensions?.workspaceId,
-          userId: this.runtime.contextExtensions?.userId,
-          onBlockComplete: this.runtime.onBlockComplete,
-          isCancelled: () => this.runtime.cancelled,
-          checkCancelled: this.runtime.checkCancelled,
-          stream: this.runtime.contextExtensions?.stream,
-          selectedOutputIds: this.runtime.contextExtensions?.selectedOutputIds,
-          edges: this.runtime.contextExtensions?.edges,
-          onStream: this.runtime.contextExtensions?.onStream,
-        },
-      })
-      return dag.execute(workflowId, startBlockId)
+      return this.makeDagExecutor().execute(workflowId, startBlockId)
     }
     return this.engine.execute(workflowId, startBlockId)
   }
@@ -268,6 +249,9 @@ export class Executor {
    * @returns Updated execution result
    */
   async continueExecution(blockIds: string[], context: ExecutionContext): Promise<ExecutionResult> {
+    if (isDagExecutorEnabled()) {
+      return this.makeDagExecutor().continueExecution(blockIds, context)
+    }
     return this.engine.continueExecution(blockIds, context)
   }
 
@@ -284,6 +268,32 @@ export class Executor {
     blockId: string,
     resolution: Record<string, any>
   ): Promise<ExecutionResult> {
+    if (isDagExecutorEnabled()) {
+      return this.makeDagExecutor().resumeFromPause(context, blockId, resolution)
+    }
     return this.engine.resumeFromPause(context, blockId, resolution)
+  }
+
+  /** Builds a DAGExecutor from this executor's run inputs and mutable runtime state. */
+  private makeDagExecutor(): DAGExecutor {
+    return new DAGExecutor({
+      workflow: this.actualWorkflow,
+      currentBlockStates: this.runtime.initialBlockStates,
+      envVarValues: this.runtime.environmentVariables,
+      workflowInput: this.runtime.workflowInput,
+      workflowVariables: this.runtime.workflowVariables,
+      contextExtensions: {
+        executionId: this.runtime.contextExtensions?.executionId,
+        workspaceId: this.runtime.contextExtensions?.workspaceId,
+        userId: this.runtime.contextExtensions?.userId,
+        onBlockComplete: this.runtime.onBlockComplete,
+        isCancelled: () => this.runtime.cancelled,
+        checkCancelled: this.runtime.checkCancelled,
+        stream: this.runtime.contextExtensions?.stream,
+        selectedOutputIds: this.runtime.contextExtensions?.selectedOutputIds,
+        edges: this.runtime.contextExtensions?.edges,
+        onStream: this.runtime.contextExtensions?.onStream,
+      },
+    })
   }
 }

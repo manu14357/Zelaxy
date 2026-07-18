@@ -50,7 +50,7 @@ export class ExecutionEngine {
     private hooks: EngineHooks = {}
   ) {}
 
-  async run(triggerBlockId?: string): Promise<ExecutionResult> {
+  async run(triggerBlockId?: string, seedNodeIds?: string[]): Promise<ExecutionResult> {
     const startTime = new Date()
     this.context.metadata.startTime = this.context.metadata.startTime ?? startTime.toISOString()
 
@@ -59,7 +59,11 @@ export class ExecutionEngine {
         return this.cancelledResult(startTime)
       }
 
-      this.initializeQueue(triggerBlockId)
+      if (seedNodeIds && seedNodeIds.length > 0) {
+        this.addMultipleToQueue(seedNodeIds)
+      } else {
+        this.initializeQueue(triggerBlockId)
+      }
 
       while (this.hasWork()) {
         if (this.errorFlag || this.stoppedEarly || this.pausedMeta) break
