@@ -1,7 +1,7 @@
 import { BlockPathCalculator } from '@/lib/block-path-calculator'
 import { createLogger } from '@/lib/logs/console/logger'
 import type { BlockOutput } from '@/blocks/types'
-import { BlockType } from '@/executor/consts'
+import { BlockType, isMetadataOnlyBlockType, isTriggerBlockType } from '@/executor/consts'
 import type { DAG, DAGNode } from '@/executor/dag/builder'
 import { DAGBuilder } from '@/executor/dag/builder'
 import { BlockExecutor } from '@/executor/execution/block-executor'
@@ -83,17 +83,23 @@ export class DAGExecutor {
   }
 
   async execute(workflowId: string, triggerBlockId?: string): Promise<ExecutionResult> {
-    const dag = this.buildDag(triggerBlockId)
+    // Resolve the single entry point once, so the DAG's reachable set, the engine's start queue, and
+    // the seeded start block all agree. (They previously resolved independently and could disagree —
+    // e.g. a manual run of a trigger workflow whose trigger the browser hook strips before serializing
+    // left the engine with no starter/trigger node to queue, so nothing ran.)
+    const entryBlockId = this.resolveEntryBlockId(triggerBlockId)
+    const dag = this.buildDag(entryBlockId)
 
     const state = new ExecutionState()
     for (const [blockId, output] of Object.entries(this.initialBlockStates)) {
       state.setBlockState(blockId, { output: output as any, executed: true, executionTime: 0 })
     }
 
-    const context = this.createExecutionContext(workflowId, state, triggerBlockId)
+    const context = this.createExecutionContext(workflowId, state, entryBlockId)
     const { engine } = this.buildPipeline(dag, state, context)
     logger.info('Running DAG executor', {
       workflowId,
+      entryBlockId,
       nodeCount: dag.nodes.size,
       loopCount: dag.loopConfigs.size,
       parallelCount: dag.parallelConfigs.size,
@@ -108,7 +114,7 @@ export class DAGExecutor {
       logger.warn('onExecutionStart callback error', { error: e })
     }
 
-    const result = await engine.run(triggerBlockId)
+    const result = await engine.run(entryBlockId)
 
     try {
       await this.contextExtensions.onExecutionComplete?.(result)
@@ -160,6 +166,42 @@ export class DAGExecutor {
       error: 'Debug step-through is not supported on the DAG executor',
       metadata: { duration: 0, startTime: new Date().toISOString() },
     }
+  }
+
+  /**
+   * Resolves the single block the run starts from — the one the DAG's reachable set, the engine's
+   * start queue, and the seeded start block must all agree on. A triggered run (scheduled/webhook)
+   * passes its trigger id explicitly. A manual run (Run button) has no id, and the browser hook
+   * strips trigger-category blocks before serializing, so fall back to the manual starter, then any
+   * remaining trigger block, then the first root block (a non-metadata block with no incoming edge).
+   * Mirrors {@link PathConstructor.findTriggerBlock}'s no-trigger branch so all three stay in sync.
+   */
+  private resolveEntryBlockId(triggerBlockId?: string): string | undefined {
+    if (triggerBlockId) {
+      const block = this.workflow.blocks.find((b) => b.id === triggerBlockId)
+      if (block) return triggerBlockId
+    }
+
+    const starter = this.workflow.blocks.find(
+      (b) => b.enabled && b.metadata?.id === BlockType.STARTER
+    )
+    if (starter) return starter.id
+
+    const trigger = this.workflow.blocks.find(
+      (b) => b.enabled && isTriggerBlockType(b.metadata?.id)
+    )
+    if (trigger) return trigger.id
+
+    return this.findRootBlockId()
+  }
+
+  /** First enabled block with no incoming edge that isn't a layout-only node (loop/parallel/note). */
+  private findRootBlockId(): string | undefined {
+    const hasIncoming = new Set(this.workflow.connections.map((c) => c.target))
+    const root = this.workflow.blocks.find(
+      (b) => b.enabled && !hasIncoming.has(b.id) && !isMetadataOnlyBlockType(b.metadata?.id)
+    )
+    return root?.id
   }
 
   private buildDag(triggerBlockId?: string): DAG {
@@ -332,7 +374,7 @@ export class DAGExecutor {
   private createExecutionContext(
     workflowId: string,
     state: ExecutionState,
-    triggerBlockId?: string
+    entryBlockId?: string
   ): ExecutionContext {
     const context: ExecutionContext = {
       workflowId,
@@ -361,23 +403,28 @@ export class DAGExecutor {
       onStream: this.contextExtensions.onStream,
     }
 
-    this.seedStartBlock(state, triggerBlockId)
+    this.seedStartBlock(state, entryBlockId)
     return context
   }
 
   /**
    * Seeds the trigger/starter block's output so downstream blocks can resolve `{{start.input}}`.
    * Mirrors the shapes the legacy driver produces for structured (inputFormat), chat, API and
-   * primitive inputs.
+   * primitive inputs. Only a genuine start block (the manual starter or a trigger) carries the
+   * workflow input; a plain root block (a trigger workflow run manually with its trigger stripped)
+   * has nothing to seed — it just executes and produces its own output.
    */
-  private seedStartBlock(state: ExecutionState, triggerBlockId?: string): void {
-    // Seed the actual entry point — the same one the DAG builder and engine resolve: the given
-    // trigger block, otherwise the manual starter, otherwise the first trigger-category block.
-    const startBlock = triggerBlockId
-      ? this.workflow.blocks.find((b) => b.id === triggerBlockId)
-      : (this.workflow.blocks.find((b) => b.enabled && b.metadata?.id === BlockType.STARTER) ??
-        this.workflow.blocks.find((b) => b.metadata?.category === 'triggers'))
+  private seedStartBlock(state: ExecutionState, entryBlockId?: string): void {
+    if (!entryBlockId) return
+    const startBlock = this.workflow.blocks.find((b) => b.id === entryBlockId)
     if (!startBlock) return
+
+    const isStartBlock =
+      startBlock.metadata?.id === BlockType.STARTER ||
+      isTriggerBlockType(startBlock.metadata?.id) ||
+      startBlock.metadata?.category === 'triggers'
+    if (!isStartBlock) return
+
     if (state.getBlockStates().has(startBlock.id)) return
 
     const output = this.buildStartOutput(startBlock)

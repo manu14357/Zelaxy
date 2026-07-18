@@ -90,6 +90,27 @@ describe('DAGExecutor — entry point', () => {
     expect(ran).toEqual(['return 11'])
   })
 
+  it('manual run with no starter/trigger (triggers stripped) starts from the root block', async () => {
+    // The browser hook strips trigger-category blocks before serializing a manual run, so a workflow
+    // that starts from a schedule/webhook trigger arrives here with no starter and no trigger — just
+    // the downstream chain. The run must start from the first root block, not execute nothing.
+    const wf = {
+      version: '2.0',
+      blocks: [
+        block('fn1', BlockType.FUNCTION, { code: 'return 11' }),
+        block('fn2', BlockType.FUNCTION, { code: 'return 22' }),
+      ],
+      connections: [{ source: 'fn1', target: 'fn2' }],
+      loops: {},
+      parallels: {},
+    } as unknown as SerializedWorkflow
+
+    const result = await new DAGExecutor({ workflow: wf, workflowInput: {} }).execute('wf')
+
+    expect(result.success).toBe(true)
+    expect(ran).toEqual(['return 11', 'return 22'])
+  })
+
   it('a triggered run starts from the given trigger block', async () => {
     const wf = {
       version: '2.0',
