@@ -237,10 +237,14 @@ export class EdgeManager {
       return !output.error
     }
 
-    // Condition blocks: the selected condition id names the edge (condition-<id>).
+    // Condition blocks. Multi-condition edges are named condition-<id>; simple true/false edges
+    // keep their raw handle. Either way the block emits the selected id as selectedConditionId.
     if (handle.startsWith(EDGE.CONDITION_PREFIX)) {
       const conditionId = handle.substring(EDGE.CONDITION_PREFIX.length)
       return output.selectedConditionId === conditionId
+    }
+    if (handle === 'true' || handle === 'false') {
+      return output.selectedConditionId === handle
     }
 
     // Router blocks: the edge is named router-<targetBlockId>.
