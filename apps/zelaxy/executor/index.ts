@@ -1,16 +1,7 @@
-import { BlockPathCalculator } from '@/lib/block-path-calculator'
 import { createLogger } from '@/lib/logs/console/logger'
 import type { BlockOutput } from '@/blocks/types'
-import { BlockRunner } from '@/executor/driver/block-executor'
-import { EdgeManager } from '@/executor/driver/edge-manager'
-import { ExecutionEngine } from '@/executor/driver/engine'
-import type { DriverRuntime } from '@/executor/driver/runtime'
 import { DAGExecutor } from '@/executor/execution/executor'
-import { createBlockHandlers } from '@/executor/handlers/registry'
-import { LoopManager } from '@/executor/loops/loops'
-import { ParallelManager } from '@/executor/parallels/parallels'
-import { PathTracker } from '@/executor/path/path'
-import { InputResolver } from '@/executor/resolver/resolver'
+import { validateWorkflow } from '@/executor/execution/validate'
 import type {
   BlockLog,
   ExecutionContext,
@@ -18,33 +9,29 @@ import type {
   StreamingExecution,
 } from '@/executor/types'
 import type { SerializedWorkflow } from '@/serializer/types'
-import { useGeneralStore } from '@/stores/settings/general/store'
 
 const logger = createLogger('Executor')
 
 /**
- * Whether execute() should route through the sentinel/orchestrator DAG executor. Default off — the
- * legacy driver remains the default until the DAG path reaches parity. Server-side flag only;
- * browser manual runs always use the legacy path (process.env is undefined there).
- */
-function isDagExecutorEnabled(): boolean {
-  return typeof process !== 'undefined' && process.env.EXECUTOR_USE_DAG === 'true'
-}
-
-/**
  * Public entry point for running a workflow.
  *
- * The Executor parses the constructor input, builds the shared execution components (input resolver,
- * loop/parallel managers, path tracker, block handlers) and the driver layer that runs on top of
- * them — an {@link EdgeManager} (readiness/routing), a {@link BlockRunner} (per-block execution) and
- * an {@link ExecutionEngine} (the scheduling loop). It then delegates every run to that engine while
- * owning the mutable runtime state (completion callbacks, cancellation flag) the driver reads.
+ * Parses the accepted constructor shapes, validates the workflow, and delegates every run to the
+ * sentinel/orchestrator {@link DAGExecutor}. The facade owns the mutable run state — the completion
+ * callbacks and the cancellation flag — and threads them into each DAGExecutor it builds, so a
+ * later `cancel()` or `setOnBlockComplete()` is observed by the running engine.
  */
 export class Executor {
-  private engine: ExecutionEngine
-  private runtime: DriverRuntime
   private actualWorkflow: SerializedWorkflow
-  private blockHandlers: ReturnType<typeof createBlockHandlers>
+  private initialBlockStates: Record<string, BlockOutput>
+  private environmentVariables: Record<string, string>
+  private workflowInput: any
+  private workflowVariables: Record<string, any>
+  private contextExtensions: any = {}
+  private cancelled = false
+  private checkCancelled?: () => Promise<boolean>
+  private onBlockComplete?: (blockLog: BlockLog) => void | Promise<void>
+  private onExecutionStart?: (workflowId: string, executionId?: string) => void | Promise<void>
+  private onExecutionComplete?: (result: ExecutionResult) => void | Promise<void>
 
   constructor(
     workflowParam:
@@ -67,15 +54,6 @@ export class Executor {
             workspaceId?: string
             userId?: string
             isChildExecution?: boolean
-            /**
-             * Lets a server-side caller stop a run started elsewhere.
-             *
-             * Injected rather than imported: this Executor also runs in the browser for manual
-             * runs, and reaching for Redis here would pull ioredis into the client bundle. The
-             * worker supplies a Redis-backed check; the browser supplies nothing and keeps using
-             * the in-process flag, which is correct there since the executor being cancelled is
-             * the one the user is looking at.
-             */
             checkCancelled?: () => Promise<boolean>
           }
           startBlockId?: string
@@ -85,14 +63,7 @@ export class Executor {
     workflowInput?: any,
     workflowVariables: Record<string, any> = {}
   ) {
-    // Normalize the two accepted constructor shapes into a single set of run inputs.
     let constructorStartBlockId: string | undefined
-    let contextExtensions: any = {}
-    let isChildExecution = false
-    let onBlockComplete: DriverRuntime['onBlockComplete']
-    let onExecutionStart: DriverRuntime['onExecutionStart']
-    let onExecutionComplete: DriverRuntime['onExecutionComplete']
-    let checkCancelled: (() => Promise<boolean>) | undefined
     let resolvedInput: any
 
     if (typeof workflowParam === 'object' && 'workflow' in workflowParam) {
@@ -105,194 +76,88 @@ export class Executor {
       constructorStartBlockId = options.startBlockId
 
       if (options.contextExtensions) {
-        contextExtensions = options.contextExtensions
-        isChildExecution = options.contextExtensions.isChildExecution || false
-        onBlockComplete = options.contextExtensions.onBlockComplete
-        onExecutionStart = options.contextExtensions.onExecutionStart
-        onExecutionComplete = options.contextExtensions.onExecutionComplete
-        checkCancelled = options.contextExtensions.checkCancelled
-
-        if (contextExtensions.stream) {
-          logger.info('Executor initialized with streaming enabled', {
-            hasSelectedOutputIds: Array.isArray(contextExtensions.selectedOutputIds),
-            selectedOutputCount: Array.isArray(contextExtensions.selectedOutputIds)
-              ? contextExtensions.selectedOutputIds.length
-              : 0,
-            selectedOutputIds: contextExtensions.selectedOutputIds || [],
-          })
-        }
+        this.contextExtensions = options.contextExtensions
+        this.onBlockComplete = options.contextExtensions.onBlockComplete
+        this.onExecutionStart = options.contextExtensions.onExecutionStart
+        this.onExecutionComplete = options.contextExtensions.onExecutionComplete
+        this.checkCancelled = options.contextExtensions.checkCancelled
       }
     } else {
       this.actualWorkflow = workflowParam
-
-      if (workflowInput) {
-        resolvedInput = workflowInput
-        logger.info('[Executor] Using workflow input:', JSON.stringify(resolvedInput, null, 2))
-      } else {
-        resolvedInput = {}
-      }
+      resolvedInput = workflowInput ?? {}
     }
 
-    this.runtime = {
-      initialBlockStates,
-      environmentVariables,
-      workflowInput: resolvedInput,
-      workflowVariables,
-      contextExtensions,
-      isChildExecution,
-      isDebugging: useGeneralStore.getState().isDebugModeEnabled,
-      cancelled: false,
-      checkCancelled,
-      onBlockComplete,
-      onExecutionStart,
-      onExecutionComplete,
-    }
+    this.initialBlockStates = initialBlockStates
+    this.environmentVariables = environmentVariables
+    this.workflowInput = resolvedInput
+    this.workflowVariables = workflowVariables
 
-    const loopManager = new LoopManager(this.actualWorkflow.loops || {})
-    const parallelManager = new ParallelManager(this.actualWorkflow.parallels || {})
-
-    // Calculate accessible blocks for consistent reference resolution
-    const accessibleBlocksMap = BlockPathCalculator.calculateAccessibleBlocksForWorkflow(
-      this.actualWorkflow
-    )
-
-    const resolver = new InputResolver(
-      this.actualWorkflow,
-      environmentVariables,
-      workflowVariables,
-      loopManager,
-      accessibleBlocksMap
-    )
-    const pathTracker = new PathTracker(this.actualWorkflow)
-
-    // Single source of truth for handler registration (see handlers/registry.ts).
-    // Keeping this centralized prevents the handler list from drifting and
-    // silently dropping block handlers.
-    this.blockHandlers = createBlockHandlers({ pathTracker, resolver })
-
-    const edgeManager = new EdgeManager(this.actualWorkflow, parallelManager, pathTracker)
-    const blockRunner = new BlockRunner(
-      this.actualWorkflow,
-      resolver,
-      this.blockHandlers,
-      parallelManager,
-      edgeManager,
-      this.runtime
-    )
-    this.engine = new ExecutionEngine(
-      this.actualWorkflow,
-      loopManager,
-      parallelManager,
-      edgeManager,
-      blockRunner,
-      this.runtime
-    )
-
-    this.engine.validateWorkflow(constructorStartBlockId)
+    validateWorkflow(this.actualWorkflow, constructorStartBlockId)
   }
 
-  /**
-   * Sets the callback invoked after each block finishes executing.
-   * Used by LoggingSession to stream per-block updates to the frontend.
-   */
+  /** Sets the callback invoked after each block finishes (per-block log streaming). */
   public setOnBlockComplete(cb: (blockLog: BlockLog) => void | Promise<void>): void {
-    this.runtime.onBlockComplete = cb
+    this.onBlockComplete = cb
   }
 
-  /**
-   * Sets the callback invoked when execution starts.
-   */
+  /** Sets the callback invoked when execution starts. */
   public setOnExecutionStart(
     cb: (workflowId: string, executionId?: string) => void | Promise<void>
   ): void {
-    this.runtime.onExecutionStart = cb
+    this.onExecutionStart = cb
   }
 
-  /**
-   * Sets the callback invoked when execution completes (success or error).
-   */
+  /** Sets the callback invoked when execution completes (success or error). */
   public setOnExecutionComplete(cb: (result: ExecutionResult) => void | Promise<void>): void {
-    this.runtime.onExecutionComplete = cb
+    this.onExecutionComplete = cb
   }
 
-  /**
-   * Cancels the current workflow execution.
-   * Sets the cancellation flag to stop further execution.
-   */
+  /** Cancels the current workflow execution. */
   public cancel(): void {
     logger.info('Workflow execution cancelled')
-    this.runtime.cancelled = true
+    this.cancelled = true
   }
 
-  /**
-   * Executes the workflow and returns the result.
-   *
-   * @param workflowId - Unique identifier for the workflow execution
-   * @param startBlockId - Optional block ID to start execution from (for webhook or schedule triggers)
-   * @returns Execution result containing output, logs, and metadata, or a stream, or combined execution and stream
-   */
   async execute(
     workflowId: string,
     startBlockId?: string
   ): Promise<ExecutionResult | StreamingExecution> {
-    if (isDagExecutorEnabled()) {
-      return this.makeDagExecutor().execute(workflowId, startBlockId)
-    }
-    return this.engine.execute(workflowId, startBlockId)
+    return this.build().execute(workflowId, startBlockId)
   }
 
-  /**
-   * Continues execution in debug mode from the current state.
-   *
-   * @param blockIds - Block IDs to execute in this step
-   * @param context - The current execution context
-   * @returns Updated execution result
-   */
   async continueExecution(blockIds: string[], context: ExecutionContext): Promise<ExecutionResult> {
-    if (isDagExecutorEnabled()) {
-      return this.makeDagExecutor().continueExecution(blockIds, context)
-    }
-    return this.engine.continueExecution(blockIds, context)
+    return this.build().continueExecution(blockIds, context)
   }
 
-  /**
-   * Resumes a run that halted at a human-in-the-loop or async-wait block.
-   *
-   * @param context - The rehydrated execution context from the pause snapshot
-   * @param blockId - The block that paused
-   * @param resolution - The resolution to apply to the paused block's output
-   * @returns The execution result after resuming to completion or the next pause
-   */
   async resumeFromPause(
     context: ExecutionContext,
     blockId: string,
     resolution: Record<string, any>
   ): Promise<ExecutionResult> {
-    if (isDagExecutorEnabled()) {
-      return this.makeDagExecutor().resumeFromPause(context, blockId, resolution)
-    }
-    return this.engine.resumeFromPause(context, blockId, resolution)
+    return this.build().resumeFromPause(context, blockId, resolution)
   }
 
-  /** Builds a DAGExecutor from this executor's run inputs and mutable runtime state. */
-  private makeDagExecutor(): DAGExecutor {
+  /** Builds a DAGExecutor from the run inputs plus the current mutable callbacks/cancel flag. */
+  private build(): DAGExecutor {
     return new DAGExecutor({
       workflow: this.actualWorkflow,
-      currentBlockStates: this.runtime.initialBlockStates,
-      envVarValues: this.runtime.environmentVariables,
-      workflowInput: this.runtime.workflowInput,
-      workflowVariables: this.runtime.workflowVariables,
+      currentBlockStates: this.initialBlockStates,
+      envVarValues: this.environmentVariables,
+      workflowInput: this.workflowInput,
+      workflowVariables: this.workflowVariables,
       contextExtensions: {
-        executionId: this.runtime.contextExtensions?.executionId,
-        workspaceId: this.runtime.contextExtensions?.workspaceId,
-        userId: this.runtime.contextExtensions?.userId,
-        onBlockComplete: this.runtime.onBlockComplete,
-        isCancelled: () => this.runtime.cancelled,
-        checkCancelled: this.runtime.checkCancelled,
-        stream: this.runtime.contextExtensions?.stream,
-        selectedOutputIds: this.runtime.contextExtensions?.selectedOutputIds,
-        edges: this.runtime.contextExtensions?.edges,
-        onStream: this.runtime.contextExtensions?.onStream,
+        executionId: this.contextExtensions?.executionId,
+        workspaceId: this.contextExtensions?.workspaceId,
+        userId: this.contextExtensions?.userId,
+        onBlockComplete: this.onBlockComplete,
+        onExecutionStart: this.onExecutionStart,
+        onExecutionComplete: this.onExecutionComplete,
+        isCancelled: () => this.cancelled,
+        checkCancelled: this.checkCancelled,
+        stream: this.contextExtensions?.stream,
+        selectedOutputIds: this.contextExtensions?.selectedOutputIds,
+        edges: this.contextExtensions?.edges,
+        onStream: this.contextExtensions?.onStream,
       },
     })
   }

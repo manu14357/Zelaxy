@@ -46,6 +46,8 @@ export interface DAGExecutorOptions {
     workspaceId?: string
     userId?: string
     onBlockComplete?: (log: BlockLog) => void | Promise<void>
+    onExecutionStart?: (workflowId: string, executionId?: string) => void | Promise<void>
+    onExecutionComplete?: (result: ExecutionResult) => void | Promise<void>
     isCancelled?: () => boolean
     checkCancelled?: () => Promise<boolean>
     stream?: boolean
@@ -56,13 +58,11 @@ export interface DAGExecutorOptions {
 }
 
 /**
- * Sentinel/orchestrator DAG executor. Builds the workflow into a DAG (with loop/parallel sentinel
- * nodes), then drives it with the {@link ExecutionEngine}: nodes flow through the
- * {@link NodeExecutionOrchestrator} (regular blocks → handlers via {@link BlockExecutor}; sentinels
- * → loop/parallel orchestrators) and the {@link EdgeManager} decides downstream readiness.
- *
- * This is the DAG path referenced by the migration plan. It is gated behind a flag in the executor
- * entry point and runs alongside the legacy driver until it reaches parity.
+ * Sentinel/orchestrator DAG executor — the workflow execution engine. Builds the workflow into a
+ * DAG (with loop/parallel sentinel nodes), then drives it with the {@link ExecutionEngine}: nodes
+ * flow through the {@link NodeExecutionOrchestrator} (regular blocks → handlers via
+ * {@link BlockExecutor}; sentinels → loop/parallel orchestrators) and the {@link EdgeManager}
+ * decides downstream readiness. The {@link Executor} facade validates input and delegates here.
  */
 export class DAGExecutor {
   private workflow: SerializedWorkflow
@@ -98,7 +98,25 @@ export class DAGExecutor {
       loopCount: dag.loopConfigs.size,
       parallelCount: dag.parallelConfigs.size,
     })
-    return engine.run(triggerBlockId)
+
+    try {
+      await this.contextExtensions.onExecutionStart?.(
+        workflowId,
+        this.contextExtensions.executionId
+      )
+    } catch (e) {
+      logger.warn('onExecutionStart callback error', { error: e })
+    }
+
+    const result = await engine.run(triggerBlockId)
+
+    try {
+      await this.contextExtensions.onExecutionComplete?.(result)
+    } catch (e) {
+      logger.warn('onExecutionComplete callback error', { error: e })
+    }
+
+    return result
   }
 
   /**

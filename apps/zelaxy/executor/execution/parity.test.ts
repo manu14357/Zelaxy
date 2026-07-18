@@ -1,7 +1,7 @@
 /**
- * Output-parity between the legacy driver and the DAG executor: the same workflow, run through both
- * paths, must produce the same success flag and final output. This is the in-repo "diff the outputs"
- * check — representative shapes (linear, condition, loop, parallel, switch), function execution
+ * Delegation parity: the Executor facade must produce the same success flag and final output as a
+ * directly-constructed DAGExecutor across representative shapes (linear, condition, loop, parallel,
+ * switch) — confirming the facade threads its inputs through faithfully. Function execution is
  * mocked for determinism.
  *
  * @vitest-environment node
@@ -55,15 +55,8 @@ function block(id: string, type: any, params: any = {}) {
 
 /** Run through the legacy driver (flag forced off). */
 async function runLegacy(wf: SerializedWorkflow): Promise<ExecutionResult> {
-  const prev = process.env.EXECUTOR_USE_DAG
-  process.env.EXECUTOR_USE_DAG = 'false'
-  try {
-    return (await new Executor({ workflow: wf, workflowInput: {} }).execute(
-      'wf'
-    )) as ExecutionResult
-  } finally {
-    process.env.EXECUTOR_USE_DAG = prev
-  }
+  // The facade path (delegates to DAGExecutor).
+  return (await new Executor({ workflow: wf, workflowInput: {} }).execute('wf')) as ExecutionResult
 }
 
 /** Run through the DAG executor directly. */

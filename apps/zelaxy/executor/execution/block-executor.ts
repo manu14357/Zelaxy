@@ -2,7 +2,7 @@ import { createLogger } from '@/lib/logs/console/logger'
 import type { BlockOutput } from '@/blocks/types'
 import { BlockType } from '@/executor/consts'
 import type { DAGNode } from '@/executor/dag/builder'
-import { extractErrorMessage } from '@/executor/driver/runtime'
+import { extractErrorMessage } from '@/executor/execution/errors'
 import type { BlockExecutionDelegate } from '@/executor/orchestrators/node'
 import type { InputResolver } from '@/executor/resolver/resolver'
 import type {
