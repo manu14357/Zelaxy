@@ -116,22 +116,30 @@ export async function attachRedisAdapter(io: Server): Promise<RedisAdapterClient
     pubClient.on('error', (err) => logger.error('Redis adapter pub client error:', err))
     subClient.on('error', (err) => logger.error('Redis adapter sub client error:', err))
 
-    // Attach now — local delivery works immediately, cross-pod engages once the clients connect.
-    io.adapter(createAdapter(pubClient, subClient))
+    // createAdapter() issues SUBSCRIBE/PSUBSCRIBE synchronously in its constructor. With
+    // enableOfflineQueue:false those reject ("Stream isn't writeable") if the clients haven't
+    // connected yet — an unhandled rejection at boot. So attach only once both clients are ready;
+    // until then the default in-memory adapter handles local delivery, and cross-pod engages on
+    // connect. If Redis never comes up, waitForReady stays pending and we degrade to single-instance.
+    const attach = () => {
+      io.adapter(createAdapter(pubClient, subClient))
+      logger.info('Socket.IO Redis adapter connected — cross-instance broadcasting enabled')
+    }
 
-    // Best-effort wait for the first connection so the earliest broadcasts fan out, but never block
-    // boot: if Redis is slow/down, continue and let the clients keep retrying in the background.
+    // Best-effort wait for the first connection, but never block boot on Redis.
     const ready = Promise.all([waitForReady(pubClient), waitForReady(subClient)]).then(() => true)
     const connected = await Promise.race([
       ready,
       new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 10_000)),
     ])
     if (connected) {
-      logger.info('Socket.IO Redis adapter connected — cross-instance broadcasting enabled')
+      attach()
     } else {
       logger.warn(
-        'Socket.IO Redis adapter attached but not ready within 10s — cross-instance broadcasting will engage automatically once Redis connects'
+        'Redis not ready within 10s — using in-memory adapter for now; cross-instance broadcasting will engage automatically once Redis connects'
       )
+      // Attach as soon as the clients connect, so SUBSCRIBE never runs against a non-writable stream.
+      void ready.then(attach)
     }
 
     return { pubClient, subClient }
