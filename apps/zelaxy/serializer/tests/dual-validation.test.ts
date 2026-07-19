@@ -7,8 +7,14 @@
  * 1. Early validation (serialization) - user-only required fields
  * 2. Late validation (tool execution) - user-or-llm required fields
  */
-import { describe, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import type { SubBlockConfig } from '@/blocks/types'
 import { Serializer } from '@/serializer/index'
+import {
+  collectBlockFieldIssues,
+  isSubBlockVisible,
+  WorkflowValidationError,
+} from '@/serializer/validation'
 import { validateRequiredParametersAfterMerge } from '@/tools/utils'
 
 vi.mock('@/blocks', () => ({
@@ -368,5 +374,126 @@ describe('Validation Integration Tests', () => {
         completeParams
       )
     }).not.toThrow()
+  })
+})
+
+describe('WorkflowValidationError (structured serializer errors)', () => {
+  function sub(overrides: Partial<SubBlockConfig>): SubBlockConfig {
+    return { id: 'x', type: 'short-input', ...overrides } as SubBlockConfig
+  }
+
+  it.concurrent('carries block identity and offending fields, and stays message-compatible', () => {
+    const serializer = new Serializer()
+
+    const blockWithMissingUserOnlyField: any = {
+      id: 'jina-block',
+      type: 'jina',
+      name: 'Jina Content Extractor',
+      position: { x: 0, y: 0 },
+      subBlocks: {
+        url: { value: 'https://example.com' },
+        apiKey: { value: null },
+      },
+      outputs: {},
+      enabled: true,
+    }
+
+    let caught: unknown
+    try {
+      serializer.serializeWorkflow(
+        { 'jina-block': blockWithMissingUserOnlyField },
+        [],
+        {},
+        undefined,
+        true
+      )
+    } catch (err) {
+      caught = err
+    }
+
+    expect(caught).toBeInstanceOf(WorkflowValidationError)
+    expect(caught).toBeInstanceOf(Error)
+    const validationError = caught as WorkflowValidationError
+    expect(validationError.message).toBe(
+      'Jina Content Extractor is missing required fields: API Key'
+    )
+    expect(validationError.blockId).toBe('jina-block')
+    expect(validationError.blockType).toBe('jina')
+    expect(validationError.blockName).toBe('Jina Content Extractor')
+    expect(validationError.fields).toEqual(['API Key'])
+  })
+
+  it.concurrent('isSubBlockVisible mirrors the editor filter (hidden / mode / condition)', () => {
+    // hidden is never visible
+    expect(isSubBlockVisible(sub({ id: 'a', hidden: true }), {})).toBe(false)
+
+    // mode filtering
+    expect(
+      isSubBlockVisible(sub({ id: 'a', mode: 'advanced' }), {}, { isAdvancedMode: false })
+    ).toBe(false)
+    expect(
+      isSubBlockVisible(sub({ id: 'a', mode: 'advanced' }), {}, { isAdvancedMode: true })
+    ).toBe(true)
+    expect(isSubBlockVisible(sub({ id: 'a', mode: 'basic' }), {}, { isAdvancedMode: true })).toBe(
+      false
+    )
+
+    // condition: shown only when dependent field matches
+    const conditional = sub({
+      id: 'apiKey',
+      condition: { field: 'authType', value: 'apiKey' },
+    })
+    expect(isSubBlockVisible(conditional, { authType: 'oauth' })).toBe(false)
+    expect(isSubBlockVisible(conditional, { authType: 'apiKey' })).toBe(true)
+
+    // trigger-config only shows in trigger mode / for trigger blocks
+    const triggerConfig = sub({ id: 't', type: 'trigger-config' as any })
+    expect(isSubBlockVisible(triggerConfig, {})).toBe(false)
+    expect(isSubBlockVisible(triggerConfig, {}, { isTriggerMode: true })).toBe(true)
+    // in trigger mode, non-trigger-config fields are hidden
+    expect(isSubBlockVisible(sub({ id: 'a' }), {}, { isTriggerMode: true })).toBe(false)
+  })
+
+  it.concurrent('collectBlockFieldIssues only flags visible, empty, required fields', () => {
+    const blockConfig = {
+      subBlocks: [
+        sub({ id: 'operation', title: 'Operation', type: 'dropdown', required: true }),
+        // Required but conditionally hidden -> must NOT be flagged when the condition is false.
+        sub({
+          id: 'apiKey',
+          title: 'API Key',
+          required: true,
+          condition: { field: 'operation', value: 'read' },
+        }),
+        // Required + conditionally visible in the 'write' state.
+        sub({
+          id: 'writePath',
+          title: 'Write Path',
+          required: true,
+          condition: { field: 'operation', value: 'write' },
+        }),
+        // Not required -> ignored.
+        sub({ id: 'note', title: 'Note' }),
+      ],
+    }
+
+    // operation === 'write': operation is filled; writePath is now visible + empty -> flagged.
+    // apiKey stays hidden (condition false) -> not flagged.
+    const issues = collectBlockFieldIssues(blockConfig, { operation: 'write', writePath: '' })
+    expect(issues.map((i) => i.fieldId)).toEqual(['writePath'])
+    expect(issues[0].fieldTitle).toBe('Write Path')
+
+    // Everything visible + filled -> no issues.
+    expect(
+      collectBlockFieldIssues(blockConfig, { operation: 'write', writePath: '/tmp' })
+    ).toHaveLength(0)
+
+    // Missing the always-visible required field.
+    const missingOp = collectBlockFieldIssues(blockConfig, { operation: null })
+    expect(missingOp.map((i) => i.fieldId)).toEqual(['operation'])
+  })
+
+  it.concurrent('collectBlockFieldIssues tolerates an undefined block config', () => {
+    expect(collectBlockFieldIssues(undefined, {})).toEqual([])
   })
 })

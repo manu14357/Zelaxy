@@ -9,6 +9,7 @@
  */
 
 import type { BlockConfig, SubBlockConfig } from '@/blocks/types'
+import { collectBlockFieldIssues } from '@/serializer/validation'
 
 export interface InputValidationError {
   block: string
@@ -150,18 +151,23 @@ export function lintWorkflowState(
       })
     }
 
-    // Missing ALWAYS-required fields (skip conditionally-shown ones to avoid false positives).
-    for (const sub of cfg?.subBlocks || []) {
-      if (!sub.required || sub.condition) continue
-      const val = block.subBlocks?.[sub.id]?.value
-      const empty =
-        val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0)
-      if (empty) {
-        issues.push({
-          severity: 'warning',
-          message: `Block "${block.name || id}" is missing required field "${sub.id}"`,
-        })
-      }
+    // Missing required fields — evaluated through the shared visibility filter so it mirrors the
+    // editor exactly: conditionally-hidden, wrong-mode, and trigger-only fields are not flagged,
+    // while conditionally-VISIBLE required fields now are (the old check skipped all conditionals).
+    const fieldValues: Record<string, any> = {}
+    for (const [sid, sb] of Object.entries(block.subBlocks || {})) {
+      fieldValues[sid] = (sb as any)?.value
+    }
+    const fieldIssues = collectBlockFieldIssues(cfg, fieldValues, {
+      isAdvancedMode: Boolean(block.advancedMode),
+      isTriggerMode: Boolean(block.triggerMode),
+      isTriggerBlock: Boolean(cfg?.triggers?.enabled && cfg?.category === 'triggers'),
+    })
+    for (const fi of fieldIssues) {
+      issues.push({
+        severity: 'warning',
+        message: `Block "${block.name || id}" is missing required field "${fi.fieldId}"`,
+      })
     }
   }
 

@@ -2,6 +2,7 @@ import type { Edge } from '@xyflow/react'
 import { createLogger } from '@/lib/logs/console/logger'
 import { getBlock } from '@/blocks'
 import type { SerializedBlock, SerializedWorkflow } from '@/serializer/types'
+import { WorkflowValidationError } from '@/serializer/validation'
 import type { BlockState, Loop, Parallel } from '@/stores/workflows/workflow/types'
 import { getTool } from '@/tools/utils'
 
@@ -296,7 +297,16 @@ export class Serializer {
 
     if (missingFields.length > 0) {
       const blockName = block.name || blockConfig.name || 'Block'
-      throw new Error(`${blockName} is missing required fields: ${missingFields.join(', ')}`)
+      // Structured error preserving the exact legacy message, plus block identity for UIs/copilot.
+      throw new WorkflowValidationError(
+        `${blockName} is missing required fields: ${missingFields.join(', ')}`,
+        {
+          blockId: block.id,
+          blockType: block.type,
+          blockName,
+          fields: missingFields,
+        }
+      )
     }
   }
 
