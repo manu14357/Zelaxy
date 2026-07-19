@@ -78,6 +78,13 @@
       "when": 1784457600000,
       "tag": "0010_shared_credential_vault",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785312000000,
+      "tag": "0011_public_share",
+      "breakpoints": true
     }
   ]
 }

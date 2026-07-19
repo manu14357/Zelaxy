@@ -124,6 +124,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL(`/chat/${subdomain}${url.pathname}`, request.url))
   }
 
+  // Public file sharing endpoints are token-gated at the route layer (per-share: public /
+  // password / email-OTP / sso). They must be reachable without a platform session, so allow
+  // them through here before any auth/redirect logic. See lib/public-shares.
+  if (url.pathname.startsWith('/api/files/public/')) {
+    return NextResponse.next()
+  }
+
   // Legacy redirect: /zelaxy -> /arena (will be handled by arena layout)
   if (url.pathname === '/zelaxy' || url.pathname.startsWith('/zelaxy/')) {
     // Extract workflow ID if present

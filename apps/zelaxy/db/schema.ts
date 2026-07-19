@@ -1974,6 +1974,48 @@ export const workspaceFile = pgTable(
 )
 
 /**
+ * Public file shares. A token-addressable, workspace-scoped grant that exposes a single
+ * `workspace_file` to unauthenticated visitors through one of four gate modes:
+ *   - `public`   — anyone with the link (no challenge)
+ *   - `password` — must supply the correct password (`password_hash`, salted scrypt)
+ *   - `email`    — must own an allow-listed email, verified via one-time code (email OTP)
+ *   - `sso`      — must have an active platform session (optionally allow-listed by email)
+ * The bytes are streamed privately (no-cache) by /api/files/public/[token]/content once the
+ * gate is satisfied. See lib/public-shares. Additive; existing files code is untouched.
+ */
+export const publicShareModeEnum = pgEnum('public_share_mode', [
+  'public',
+  'password',
+  'email',
+  'sso',
+])
+
+export const publicShare = pgTable(
+  'public_share',
+  {
+    id: text('id').primaryKey(),
+    token: text('token').notNull().unique(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    fileId: text('file_id')
+      .notNull()
+      .references(() => workspaceFile.id, { onDelete: 'cascade' }),
+    mode: publicShareModeEnum('mode').notNull().default('public'),
+    passwordHash: text('password_hash'), // salted scrypt "salt:hash", only for mode='password'
+    allowedEmails: json('allowed_emails').$type<string[]>(), // exact emails or "@domain" entries
+    expiresAt: timestamp('expires_at'), // null = never expires
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdx: index('public_share_ws_idx').on(table.workspaceId),
+    fileIdx: index('public_share_file_idx').on(table.fileId),
+  })
+)
+
+/**
  * Agent Skills — reusable instruction packages (the open SKILL.md format). Progressive
  * disclosure: only name + description are injected into an agent's system prompt; the agent
  * calls the load_skill tool to pull `content` into context when a skill applies. Workspace-scoped.
