@@ -3,7 +3,7 @@ import { desc, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth'
-import { CONNECTOR_REGISTRY } from '@/lib/knowledge/connectors/registry'
+import { CONNECTOR_REGISTRY, CONNECTOR_TYPES } from '@/lib/knowledge/connectors/registry'
 import { createLogger } from '@/lib/logs/console/logger'
 import { checkKnowledgeBaseAccess } from '@/app/api/knowledge/utils'
 import { db } from '@/db'
@@ -13,9 +13,14 @@ const logger = createLogger('KnowledgeConnectorsAPI')
 
 export const dynamic = 'force-dynamic'
 
+// Allowed connector types are derived from the registry so newly-registered connectors are
+// accepted automatically (there must be at least one).
+const CONNECTOR_TYPE_VALUES = CONNECTOR_TYPES as [string, ...string[]]
+
 const CreateSchema = z.object({
-  type: z.enum(['github', 'web']),
+  type: z.enum(CONNECTOR_TYPE_VALUES),
   name: z.string().min(1).max(100),
+  // config is source-specific; OAuth-based connectors (e.g. Linear) carry a credentialId here.
   config: z.record(z.any()).default({}),
   credential: z.string().nullable().optional(),
   frequency: z.enum(['hourly', '6h', 'daily', 'weekly', 'manual']).default('daily'),
@@ -57,6 +62,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       type: c.type,
       displayName: c.displayName,
       requiresCredential: c.requiresCredential,
+      // OAuth-based connectors advertise which provider to authorize + the config field holding it.
+      auth: c.auth
+        ? {
+            type: c.auth.type,
+            provider: c.auth.provider,
+            credentialField: c.auth.credentialField ?? 'credentialId',
+          }
+        : undefined,
     })),
   })
 }

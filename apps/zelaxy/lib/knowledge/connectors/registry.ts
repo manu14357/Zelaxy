@@ -1,6 +1,7 @@
 import { confluenceConnector } from './confluence'
 import { githubConnector } from './github'
 import { googleDriveConnector } from './google_drive'
+import { linearConnector } from './linear'
 import { notionConnector } from './notion'
 import { slackConnector } from './slack'
 import type { ConnectorDefinition } from './types'
@@ -16,6 +17,7 @@ export const CONNECTOR_REGISTRY: Record<string, ConnectorDefinition> = {
   confluence: confluenceConnector,
   google_drive: googleDriveConnector,
   zendesk: zendeskConnector,
+  linear: linearConnector,
 }
 
 export function getConnector(type: string): ConnectorDefinition | undefined {
