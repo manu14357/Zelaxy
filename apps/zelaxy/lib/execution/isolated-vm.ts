@@ -1,7 +1,32 @@
-import ivm from 'isolated-vm'
 import { createLogger } from '@/lib/logs/console/logger'
 
 const logger = createLogger('IsolatedVM')
+
+/**
+ * `isolated-vm` is a native module. Importing it at module top level makes Next.js load the native
+ * binary during `next build` page-data collection (and makes every test that imports this file crash
+ * where no prebuilt binary matches the runtime ABI). Load it lazily instead — only when a Function
+ * block actually executes — and surface a clean error if the platform has no compatible binary.
+ */
+type IvmModule = typeof import('isolated-vm')
+let ivmModule: IvmModule | null = null
+async function loadIvm(): Promise<IvmModule> {
+  if (ivmModule) return ivmModule
+  try {
+    const mod = await import('isolated-vm')
+    // isolated-vm is `export =` (CJS); under esModuleInterop the object may sit on `.default` or be
+    // the namespace itself, so fall back across both.
+    ivmModule = ((mod as any).default ?? mod) as IvmModule
+    return ivmModule
+  } catch (err) {
+    throw new IsolatedExecutionError(
+      `JS sandbox (isolated-vm) is unavailable on this platform: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+      ''
+    )
+  }
+}
 
 /**
  * Runs user-supplied Function-block code in a real V8 isolate.
@@ -68,6 +93,7 @@ export async function executeInIsolate(
     fetchBridge,
   } = params
 
+  const ivm = await loadIvm()
   const isolate = new ivm.Isolate({ memoryLimit: memoryLimitMb })
   let stdout = ''
 
