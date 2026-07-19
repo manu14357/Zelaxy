@@ -1,0 +1,58 @@
+---
+title: Parallel AI
+description: Web search, URL extraction, and deep research with citations via Parallel AI
+icon: Search
+---
+
+# Parallel AI
+
+Web research powered by [Parallel AI](https://parallel.ai). Search the web with intelligent
+processing, extract targeted information from specific URLs, and run deep research that synthesizes
+multiple sources with citations.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `parallel_ai` |
+| **Category** | Tool — Search |
+| **Auth** | API Key (`PARALLEL_API_KEY` or the block's API Key field) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| Search | `parallel_search` | Search the web against an objective, optionally with specific queries, mode, and domain filters. |
+| Extract from URLs | `parallel_extract` | Pull excerpts and/or full content from a list of URLs against an objective. |
+| Deep Research | `parallel_deep_research` | Run a long-form research task (up to ~45 min) returning structured content plus a `basis` of citations with confidence. |
+
+## Configuration
+
+- **Operation** — choose Search, Extract, or Deep Research.
+- **API Key** — your Parallel AI API key (sent as the `x-api-key` header).
+- **Search**: `Search Objective` (required), optional `Search Queries` (comma-separated), advanced
+  `Search Mode` (`one-shot` / `agentic` / `fast`), `Max Results`, `Max Chars Per Result`, and
+  include/exclude domain filters.
+- **Extract**: `URLs` (comma-separated, required), optional `Extract Objective`, `Include Excerpts`
+  (default yes), `Include Full Content` (default no).
+- **Deep Research**: `Research Query` (required), advanced `Research Processor`
+  (`lite`/`base`/`core`/`pro`/`ultra`), and include/exclude domain filters.
+
+## Outputs
+
+- **Search / Extract**: `results` (array of `url`, `title`, `publish_date`, `excerpts`, and
+  `full_content` for extract) plus `search_id` / `extract_id`.
+- **Deep Research**: `status`, `run_id`, `message`, `content` (structured research output), and
+  `basis` (per-field reasoning, citations, and confidence).
+
+## YAML Example
+
+```yaml
+- type: parallel_ai
+  name: Research company
+  inputs:
+    operation: deep_research
+    research_input: "Recent funding, leadership changes, and product launches for Acme Corp"
+    processor: pro
+    apiKey: "{{PARALLEL_API_KEY}}"
+```

@@ -1,0 +1,81 @@
+---
+title: Parallel AI
+description: Web search, URL extraction, and deep research with Parallel AI
+icon: Search
+---
+
+# Parallel AI
+
+Integrate [Parallel AI](https://parallel.ai) web research into a workflow — search the web, extract
+information from URLs, or run deep research with citations.
+
+<Callout type="info">
+  This is the **Parallel AI** web-research integration (`parallel_ai`), distinct from the
+  control-flow **Parallel** block that fans a subflow out over a collection.
+</Callout>
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `parallel_ai` |
+| **Category** | Tools |
+| **Auth** | API Key |
+
+## When to Use
+
+Use Parallel AI when a workflow needs fresh, cited information from the open web — answering a
+question from live sources, pulling structured facts out of specific pages, or producing a
+long-form research brief with per-claim citations.
+
+## Configuration
+
+### Operation
+
+Choose **Search**, **Extract from URLs**, or **Deep Research**. The remaining fields adapt to the
+selected operation.
+
+### API Key (required)
+
+Your Parallel AI API key. Use `{{ENV_VAR_NAME}}` to reference a workspace secret, e.g.
+`{{PARALLEL_API_KEY}}`.
+
+### Search fields
+
+`Search Objective` (required), optional `Search Queries` (comma-separated), and advanced options:
+`Search Mode` (one-shot / agentic / fast), `Max Results`, `Max Chars Per Result`, and include/exclude
+domain filters.
+
+### Extract fields
+
+`URLs` (comma-separated, required), optional `Extract Objective`, `Include Excerpts` (default yes),
+`Include Full Content` (default no).
+
+### Deep Research fields
+
+`Research Query` (required) and advanced `Research Processor` (Lite / Base / Core / Pro / Ultra) plus
+include/exclude domain filters. Deep research can take up to ~45 minutes.
+
+## Inputs & Outputs
+
+- **Search / Extract outputs**: `results` (array of `url`, `title`, `publish_date`, `excerpts`,
+  and `full_content` for extract), plus `search_id` / `extract_id`.
+- **Deep Research outputs**: `status`, `run_id`, `message`, `content`, and `basis` (citations with
+  reasoning and confidence).
+
+## Tools
+
+- `parallel_search` — web search against an objective
+- `parallel_extract` — extract from provided URLs
+- `parallel_deep_research` — comprehensive research with citations
+
+## YAML Example
+
+```yaml
+- type: parallel_ai
+  name: Search the web
+  inputs:
+    operation: search
+    objective: "When was the United Nations established? Prefer official UN sources."
+    apiKey: "{{PARALLEL_API_KEY}}"
+```

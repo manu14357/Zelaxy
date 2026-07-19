@@ -798,6 +798,7 @@ import {
   peopledatalabsPersonEnrichTool,
   peopledatalabsPersonSearchTool,
 } from '@/tools/peopledatalabs'
+import { parallelDeepResearchTool, parallelExtractTool, parallelSearchTool } from '@/tools/parallel'
 import { perplexityChatTool } from '@/tools/perplexity'
 import {
   personaGetAccountTool,
@@ -1606,6 +1607,9 @@ export const tools: Record<string, ToolConfig> = {
   google_sheets_write: googleSheetsWriteTool,
   google_sheets_update: googleSheetsUpdateTool,
   google_sheets_append: googleSheetsAppendTool,
+  parallel_search: parallelSearchTool,
+  parallel_extract: parallelExtractTool,
+  parallel_deep_research: parallelDeepResearchTool,
   perplexity_chat: perplexityChatTool,
   confluence_retrieve: confluenceRetrieveTool,
   confluence_update: confluenceUpdateTool,
