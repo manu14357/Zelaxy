@@ -1,0 +1,76 @@
+---
+title: SFTP
+description: Transfer and manage files on an SFTP server
+icon: FolderTree
+---
+
+# SFTP
+
+Connect to any SFTP (SSH File Transfer Protocol) server to move and manage files directly from your workflow. List directories, download and upload files, delete files, and create directories over a secure SSH connection.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `sftp` |
+| **Category** | Tool — File Transfer |
+| **Auth** | SSH password or private key |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **List Directory** | `sftp_list` | List files and directories at a remote path |
+| **Download File** | `sftp_get` | Read a remote file and return its contents |
+| **Upload File** | `sftp_put` | Write content to a remote file |
+| **Delete File** | `sftp_delete` | Delete a remote file |
+| **Make Directory** | `sftp_mkdir` | Create a remote directory |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Host | Short input | SFTP server hostname or IP |
+| Port | Short input | SFTP port (default: 22) |
+| Username | Short input | SSH username |
+| Password | Password | SSH password (or use a private key) |
+| Private Key | Long input | PEM-encoded SSH private key (advanced) |
+| Key Passphrase | Password | Passphrase for the private key (advanced) |
+| Operation | Dropdown | List, Download, Upload, Delete, or Make Directory |
+| Remote Path | Short input | Remote file or directory path |
+| Content | Long input | Content to upload (upload operation) |
+| Encoding | Dropdown | `utf8` for text or `base64` for binary (download/upload) |
+| Create Parents | Switch | Create parent directories (make-directory operation) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `path` | `string` | The remote path operated on |
+| `files` | `json` | Directory entries — name, type, size, modifyTime (list) |
+| `count` | `number` | Number of entries returned (list) |
+| `content` | `string` | Downloaded file contents (download) |
+| `encoding` | `string` | Encoding of the returned content (download) |
+| `size` | `number` | File size in bytes (download) |
+| `bytesWritten` | `number` | Bytes written (upload) |
+| `status` | `string` | Result status message |
+| `error` | `string` | Error message if the operation failed |
+
+## Authentication
+
+Provide **either** a password **or** a private key. For key-based auth, paste the full PEM-encoded key into **Private Key**, and supply the **Key Passphrase** if the key is encrypted. Store credentials as workflow/environment variables rather than hardcoding them.
+
+## Example: Publish a Report
+
+**Workflow:**
+```
+[Starter] → [Agent: Build CSV report] → [SFTP: Upload File] → [Response]
+```
+
+Generate a report with an Agent, then upload it to a partner's SFTP drop folder. Use the **Download File** operation in a separate workflow to pick up files other systems have placed on the server.
+
+## Tips
+
+- **Binary files** — set Encoding to `base64` for both download and upload to preserve bytes.
+- **List first** — use `sftp_list` to discover file names before a `sftp_get`.
+- **Connections are per-call** — each operation opens and closes its own SFTP session, so no state leaks between runs.

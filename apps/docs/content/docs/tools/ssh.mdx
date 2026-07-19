@@ -1,0 +1,83 @@
+---
+title: SSH
+description: Run remote commands and manage files on servers over SSH/SFTP
+icon: Terminal
+---
+
+# SSH
+
+Connect to remote hosts over SSH to execute commands and scripts, and manage files and directories over SFTP. Supports password and private-key authentication. The connection is opened by a Zelaxy server route using the Node `ssh2` client and closed after each operation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `ssh` |
+| **Category** | Tool — Cloud & Infrastructure |
+| **Auth** | Password or Private Key |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Execute Command** | `ssh_execute_command` | Run a single shell command, capture stdout/stderr/exit code |
+| **Run Script** | `ssh_run_script` | Run a multi-line shell script |
+| **Read File** | `ssh_read_file` | Read a remote file over SFTP (utf8 or base64) |
+| **Write File** | `ssh_write_file` | Write/overwrite a remote file over SFTP |
+| **Append File** | `ssh_append_file` | Append content to a remote file |
+| **Delete File** | `ssh_delete_file` | Delete a remote file |
+| **Rename / Move** | `ssh_rename` | Rename or move a remote file or directory |
+| **File Stat** | `ssh_file_stat` | Get size, permissions, and timestamps for a path |
+| **Change Permissions** | `ssh_change_permissions` | chmod a remote path with an octal mode |
+| **List Directory** | `ssh_list_directory` | List entries of a remote directory |
+| **Create Directory** | `ssh_create_directory` | Create a directory (optionally recursive) |
+| **Remove Directory** | `ssh_remove_directory` | Remove a directory (optionally recursive) |
+| **Check Exists** | `ssh_check_exists` | Check whether a remote path exists |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Host | Short input | SSH server hostname or IP |
+| Port | Short input | SSH port (default 22) |
+| Username | Short input | SSH username |
+| Authentication | Dropdown | Password or Private Key |
+| Password | Password | SSH password (password auth) |
+| Private Key | Long input | PEM/OpenSSH private key (key auth) |
+| Key Passphrase | Password | Passphrase protecting the key (optional) |
+| Operation | Dropdown | Which of the 13 operations to run |
+| Path | Short input | Remote path for file/directory operations |
+| Content | Long input | Content for write/append |
+| New Path | Short input | Destination for rename/move |
+| Permission Mode | Short input | Octal mode for change permissions (e.g. `755`) |
+| Recursive | Switch | Recursive create/remove directory |
+| Encoding | Dropdown | `utf8` or `base64` for file content |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `stdout` | `string` | Command/script standard output |
+| `stderr` | `string` | Command/script standard error |
+| `code` | `number` | Command/script exit code |
+| `content` | `string` | File contents (read file) |
+| `entries` | `json` | Directory entries (list directory) |
+| `info` | `json` | File metadata (file stat) |
+| `exists` | `boolean` | Whether a path exists (check exists) |
+| `error` | `string` | Error message if the operation fails |
+
+## Example: Deploy on push
+
+**Workflow:**
+```
+[Webhook: repo push] → [SSH: Run Script (git pull && restart)] → [Slack: Notify]
+```
+
+Trigger on a repository push, run a deploy script on the target server over SSH, then post the command output to Slack.
+
+## Tips
+
+- **Prefer key auth** — supply a private key (and passphrase if set) instead of a password for non-interactive automation.
+- **Recursive directory removal** uses `rm -rf` on the remote host; use it carefully.
+- **Base64 encoding** lets you transfer binary file contents safely through the text-based workflow.
+- The `ssh2` package must be installed on the server (`bun add ssh2`) for this tool to run.

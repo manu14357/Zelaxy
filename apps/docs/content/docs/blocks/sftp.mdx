@@ -1,0 +1,96 @@
+---
+title: SFTP Block
+description: Transfer and manage files over SFTP
+icon: FolderTree
+---
+
+# SFTP Block
+
+The SFTP block lets your workflow move and manage files on a remote SFTP (SSH File Transfer Protocol) server. Reach for it when you need to exchange files with a system that speaks SFTP — dropping generated reports onto a partner server, pulling nightly exports, or tidying up a remote directory.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `sftp` |
+| **Category** | tools |
+| **Color** | `#1E293B` |
+
+## When to Use
+
+- Upload a file your workflow generated to a remote server.
+- Download a file another system placed on an SFTP server for processing.
+- List a remote directory to discover what files are available.
+- Delete a stale or processed file from the server.
+- Create a directory to organize uploads.
+
+## Configuration
+
+### Connection
+
+- **Host** — SFTP server hostname or IP. Required.
+- **Port** — SFTP port, defaults to `22`.
+- **Username** — SSH username. Required.
+- **Password** — SSH password. Leave empty if using a private key.
+- **Private Key** (advanced) — PEM-encoded SSH private key. Leave empty if using a password.
+- **Key Passphrase** (advanced) — Passphrase for an encrypted private key.
+
+Provide **either** a password or a private key.
+
+### Operation
+
+Dropdown selecting the action to perform:
+
+- **List Directory** — list entries at the remote path.
+- **Download File** — read the file at the remote path.
+- **Upload File** — write **Content** to the remote path.
+- **Delete File** — delete the file at the remote path.
+- **Make Directory** — create the directory at the remote path.
+
+### Remote Path
+
+The remote file or directory path (e.g. `/home/user/uploads`). Required.
+
+### Content
+
+Shown for **Upload File**. The content to write to the remote file.
+
+### Encoding
+
+Shown for **Download File** and **Upload File**: `utf8` for text or `base64` for binary data.
+
+### Create Parents
+
+Shown for **Make Directory**: create parent directories as needed (like `mkdir -p`).
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `host` (string) — SFTP hostname or IP
+  - `port` (number) — SFTP port
+  - `username` (string) — SSH username
+  - `password` (string) — SSH password
+  - `privateKey` (string) — PEM-encoded private key
+  - `passphrase` (string) — private key passphrase
+  - `operation` (string) — list, get, put, delete, or mkdir
+  - `path` (string) — remote file/directory path
+  - `content` (string) — content to upload
+  - `encoding` (string) — `utf8` or `base64`
+  - `recursive` (boolean) — create parent directories
+
+- **Outputs**:
+  - `path` (string) — the remote path operated on
+  - `files` (json) — directory entries (list)
+  - `count` (number) — number of entries (list)
+  - `content` (string) — downloaded contents (download)
+  - `encoding` (string) — encoding of returned content (download)
+  - `size` (number) — file size in bytes (download)
+  - `bytesWritten` (number) — bytes written (upload)
+  - `status` (string) — result status message
+  - `error` (string) — error message if the operation failed
+
+## Notes
+
+- No OAuth — the block authenticates with the SSH credentials you provide.
+- Each operation opens and closes its own SFTP session; connections are never shared between runs.
+- For binary files, set **Encoding** to `base64` on both download and upload to preserve bytes exactly.

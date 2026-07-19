@@ -181,6 +181,8 @@ import { PeopleDataLabsBlock } from '@/blocks/blocks/peopledatalabs'
 import { ParallelAiBlock } from '@/blocks/blocks/parallel_ai'
 import { PerplexityBlock } from '@/blocks/blocks/perplexity'
 import { RedisBlock } from '@/blocks/blocks/redis'
+import { SftpBlock } from '@/blocks/blocks/sftp'
+import { SshBlock } from '@/blocks/blocks/ssh'
 import { TemporalBlock } from '@/blocks/blocks/temporal'
 import { ZepBlock } from '@/blocks/blocks/zep'
 import { PersonaBlock } from '@/blocks/blocks/persona'
@@ -334,6 +336,8 @@ export const registry: Record<string, BlockConfig> = {
   perplexity: PerplexityBlock,
   pinecone: PineconeBlock,
   redis: RedisBlock,
+  sftp: SftpBlock,
+  ssh: SshBlock,
   temporal: TemporalBlock,
   zep: ZepBlock,
   postgresql: PostgreSQLBlock,
