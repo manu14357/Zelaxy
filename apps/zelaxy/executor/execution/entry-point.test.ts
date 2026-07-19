@@ -90,6 +90,30 @@ describe('DAGExecutor — entry point', () => {
     expect(ran).toEqual(['return 11'])
   })
 
+  it('the starter runs through its handler and produces its own block log', async () => {
+    // The starter is not short-circuited — it executes through TriggerBlockHandler like every other
+    // block, so it appears in the console/logs and drives its downstream edge. Regression for the
+    // manual run that silently produced nothing.
+    const wf = {
+      version: '2.0',
+      blocks: [
+        block('start', BlockType.STARTER),
+        block('fn1', BlockType.FUNCTION, { code: 'return 11' }),
+      ],
+      connections: [{ source: 'start', target: 'fn1' }],
+      loops: {},
+      parallels: {},
+    } as unknown as SerializedWorkflow
+
+    const result = await new DAGExecutor({ workflow: wf, workflowInput: {} }).execute('wf')
+
+    expect(result.success).toBe(true)
+    const blockTypes = (result.logs ?? []).map((l) => l.blockType)
+    expect(blockTypes).toContain(BlockType.STARTER)
+    expect(blockTypes).toContain(BlockType.FUNCTION)
+    expect(ran).toEqual(['return 11'])
+  })
+
   it('manual run with no starter/trigger (triggers stripped) starts from the root block', async () => {
     // The browser hook strips trigger-category blocks before serializing a manual run, so a workflow
     // that starts from a schedule/webhook trigger arrives here with no starter and no trigger — just

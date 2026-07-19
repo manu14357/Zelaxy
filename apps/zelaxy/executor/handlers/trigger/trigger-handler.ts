@@ -1,23 +1,30 @@
 import { createLogger } from '@/lib/logs/console/logger'
+import { BlockType, isTriggerBlockType } from '@/executor/consts'
 import type { BlockHandler, ExecutionContext } from '@/executor/types'
 import type { SerializedBlock } from '@/serializer/types'
 
 const logger = createLogger('TriggerBlockHandler')
 
 /**
- * Handler for trigger blocks (Gmail, Webhook, Schedule, etc.)
- * These blocks don't execute tools - they provide input data to workflows
+ * Handler for trigger blocks (Starter, Gmail, Webhook, Schedule, etc.)
+ * These blocks don't execute tools - they provide input data to workflows.
+ *
+ * The manual **starter** is handled here too (its category is `blocks`, not `triggers`): it runs
+ * through this handler like every other block so it produces a block log and drives its downstream
+ * edges through the normal completion path — matching Sim's TriggerBlockHandler. (The executor seeds
+ * the starter's output during context creation; we return that seeded output here.)
  */
 export class TriggerBlockHandler implements BlockHandler {
   canHandle(block: SerializedBlock): boolean {
-    // Handle blocks that are triggers - either by category or by having triggerMode enabled
-    const isTriggerCategory = block.metadata?.category === 'triggers'
+    const type = block.metadata?.id
 
-    // For blocks that can be both tools and triggers (like Gmail/Outlook), check if triggerMode is enabled
-    // This would come from the serialized block config/params
+    // The manual starter and every trigger-type block (starter/schedule/webhook) are ours, plus any
+    // block flagged as a trigger by category or by triggerMode (e.g. Gmail/Outlook in trigger mode).
+    const isTriggerType = isTriggerBlockType(type)
+    const isTriggerCategory = block.metadata?.category === 'triggers'
     const hasTriggerMode = block.config?.params?.triggerMode === true
 
-    return isTriggerCategory || hasTriggerMode
+    return isTriggerType || isTriggerCategory || hasTriggerMode
   }
 
   async execute(
@@ -26,6 +33,16 @@ export class TriggerBlockHandler implements BlockHandler {
     context: ExecutionContext
   ): Promise<any> {
     logger.info(`Executing trigger block: ${block.id} (Type: ${block.metadata?.id})`)
+
+    // The starter carries the workflow input, seeded onto its own block state before the run. Return
+    // that seeded output so `{{start.*}}` resolves; fall back to the resolved input shape otherwise.
+    if (block.metadata?.id === BlockType.STARTER) {
+      const seeded = context.blockStates.get(block.id)?.output
+      if (seeded && Object.keys(seeded).length > 0) {
+        return seeded
+      }
+      return { input: inputs?.input ?? '' }
+    }
 
     // For trigger blocks, return the starter block's output which contains the workflow input
     // This ensures webhook data like message, sender, chat, etc. are accessible

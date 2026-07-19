@@ -1,6 +1,5 @@
 import { createLogger } from '@/lib/logs/console/logger'
 import type { BlockOutput } from '@/blocks/types'
-import { BlockType } from '@/executor/consts'
 import type { DAGNode } from '@/executor/dag/builder'
 import { extractErrorMessage } from '@/executor/execution/errors'
 import type { BlockExecutionDelegate } from '@/executor/orchestrators/node'
@@ -40,12 +39,10 @@ export class BlockExecutor implements BlockExecutionDelegate {
     node: DAGNode,
     block: SerializedBlock
   ): Promise<NormalizedBlockOutput> {
-    // Starter/trigger nodes are pre-seeded during context creation; return their stored output.
-    if (block.metadata?.id === BlockType.STARTER) {
-      const seeded = ctx.blockStates.get(node.id)?.output ?? ctx.blockStates.get(block.id)?.output
-      if (seeded) return seeded as NormalizedBlockOutput
-    }
-
+    // Note: the starter is not special-cased here. It runs through its handler (TriggerBlockHandler)
+    // like every other block, so it produces a block log and drives its downstream edges through the
+    // normal completion path — matching Sim. Its output is pre-seeded onto its block state during
+    // context creation and returned by that handler.
     const startedAt = new Date().toISOString()
     const start = performance.now()
     const log: any = {
