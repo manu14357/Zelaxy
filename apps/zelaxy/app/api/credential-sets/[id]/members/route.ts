@@ -140,14 +140,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     await db
       .delete(credentialMember)
-      .where(
-        and(
-          eq(credentialMember.credentialId, id),
-          eq(credentialMember.userId, targetUserId)
-        )
-      )
+      .where(and(eq(credentialMember.credentialId, id), eq(credentialMember.userId, targetUserId)))
 
-    logger.info(`[${requestId}] Credential ${id} revoked from ${targetUserId} by ${session.user.id}`)
+    logger.info(
+      `[${requestId}] Credential ${id} revoked from ${targetUserId} by ${session.user.id}`
+    )
 
     return NextResponse.json({ success: true })
   } catch (error) {

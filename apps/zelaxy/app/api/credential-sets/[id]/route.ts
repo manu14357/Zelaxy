@@ -18,9 +18,7 @@ const UpdateCredentialSchema = z.object({
   config: z.record(z.unknown()).optional(),
 })
 
-async function encryptConfig(
-  config: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function encryptConfig(config: Record<string, unknown>): Promise<Record<string, unknown>> {
   const out: Record<string, unknown> = {}
   for (const [key, val] of Object.entries(config)) {
     if (typeof val === 'string') {
@@ -33,9 +31,7 @@ async function encryptConfig(
   return out
 }
 
-async function decryptConfig(
-  config: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function decryptConfig(config: Record<string, unknown>): Promise<Record<string, unknown>> {
   const out: Record<string, unknown> = {}
   for (const [key, val] of Object.entries(config)) {
     if (typeof val === 'string') {

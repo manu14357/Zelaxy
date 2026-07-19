@@ -118,7 +118,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const data = CreateCredentialSchema.parse(body)
 
-    const workspacePermission = await getUserEntityPermissions(userId, 'workspace', data.workspaceId)
+    const workspacePermission = await getUserEntityPermissions(
+      userId,
+      'workspace',
+      data.workspaceId
+    )
     if (workspacePermission !== 'write' && workspacePermission !== 'admin') {
       logger.warn(`[${requestId}] User ${userId} denied create on workspace ${data.workspaceId}`)
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })

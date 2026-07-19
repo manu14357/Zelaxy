@@ -1,9 +1,9 @@
 import type { ToolConfig } from '@/tools/types'
 import type { RedisHgetallParams, RedisResponse } from './types'
 import {
-  REDIS_EXECUTE_URL,
   buildConnection,
   connectionParams,
+  REDIS_EXECUTE_URL,
   transformRedisResponse,
 } from './utils'
 

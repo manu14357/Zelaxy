@@ -39,11 +39,7 @@ export async function getCredentialAccess(
   credentialId: string,
   userId: string
 ): Promise<CredentialAccess> {
-  const rows = await db
-    .select()
-    .from(credential)
-    .where(eq(credential.id, credentialId))
-    .limit(1)
+  const rows = await db.select().from(credential).where(eq(credential.id, credentialId)).limit(1)
 
   const record = rows[0]
   if (!record) {

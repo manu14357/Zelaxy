@@ -792,87 +792,14 @@ import {
   pagerdutyListIncidentsTool,
   pagerdutyListServicesTool,
 } from '@/tools/pagerduty'
+import { parallelDeepResearchTool, parallelExtractTool, parallelSearchTool } from '@/tools/parallel'
 import { pdfGenerateTool } from '@/tools/pdf_generate'
 import {
   peopledatalabsCompanyEnrichTool,
   peopledatalabsPersonEnrichTool,
   peopledatalabsPersonSearchTool,
 } from '@/tools/peopledatalabs'
-import { parallelDeepResearchTool, parallelExtractTool, parallelSearchTool } from '@/tools/parallel'
 import { perplexityChatTool } from '@/tools/perplexity'
-import {
-  redisCommandTool,
-  redisDeleteTool,
-  redisExistsTool,
-  redisExpireTool,
-  redisGetTool,
-  redisHdelTool,
-  redisHgetallTool,
-  redisHgetTool,
-  redisHsetTool,
-  redisIncrbyTool,
-  redisIncrTool,
-  redisKeysTool,
-  redisLlenTool,
-  redisLpopTool,
-  redisLpushTool,
-  redisLrangeTool,
-  redisPersistTool,
-  redisRpopTool,
-  redisRpushTool,
-  redisSetnxTool,
-  redisSetTool,
-  redisTtlTool,
-} from '@/tools/redis'
-import {
-  temporalCancelWorkflowTool,
-  temporalCountWorkflowsTool,
-  temporalCreateScheduleTool,
-  temporalDeleteScheduleTool,
-  temporalDescribeNamespaceTool,
-  temporalDescribeScheduleTool,
-  temporalDescribeWorkflowTool,
-  temporalGetWorkflowHistoryTool,
-  temporalListSchedulesTool,
-  temporalListWorkflowsTool,
-  temporalPauseScheduleTool,
-  temporalQueryWorkflowTool,
-  temporalResetWorkflowTool,
-  temporalSignalWithStartWorkflowTool,
-  temporalSignalWorkflowTool,
-  temporalStartWorkflowTool,
-  temporalTerminateWorkflowTool,
-  temporalTriggerScheduleTool,
-  temporalUnpauseScheduleTool,
-  temporalUpdateScheduleTool,
-} from '@/tools/temporal'
-import {
-  zepAddMessagesTool,
-  zepAddUserTool,
-  zepCreateThreadTool,
-  zepDeleteThreadTool,
-  zepGetContextTool,
-  zepGetMessagesTool,
-  zepGetThreadsTool,
-  zepGetUserThreadsTool,
-  zepGetUserTool,
-} from '@/tools/zep'
-import {
-  sshAppendFileTool,
-  sshChangePermissionsTool,
-  sshCheckExistsTool,
-  sshCreateDirectoryTool,
-  sshDeleteFileTool,
-  sshExecuteCommandTool,
-  sshFileStatTool,
-  sshListDirectoryTool,
-  sshReadFileTool,
-  sshRemoveDirectoryTool,
-  sshRenameTool,
-  sshRunScriptTool,
-  sshWriteFileTool,
-} from '@/tools/ssh'
-import { sftpDeleteTool, sftpGetTool, sftpListTool, sftpMkdirTool, sftpPutTool } from '@/tools/sftp'
 import {
   personaGetAccountTool,
   personaGetInquiryTool,
@@ -962,6 +889,30 @@ import {
 } from '@/tools/railway'
 import { rb2bGetVisitorTool, rb2bListVisitorsTool } from '@/tools/rb2b'
 import { redditGetCommentsTool, redditGetPostsTool, redditHotPostsTool } from '@/tools/reddit'
+import {
+  redisCommandTool,
+  redisDeleteTool,
+  redisExistsTool,
+  redisExpireTool,
+  redisGetTool,
+  redisHdelTool,
+  redisHgetallTool,
+  redisHgetTool,
+  redisHsetTool,
+  redisIncrbyTool,
+  redisIncrTool,
+  redisKeysTool,
+  redisLlenTool,
+  redisLpopTool,
+  redisLpushTool,
+  redisLrangeTool,
+  redisPersistTool,
+  redisRpopTool,
+  redisRpushTool,
+  redisSetnxTool,
+  redisSetTool,
+  redisTtlTool,
+} from '@/tools/redis'
 import { reductoExtractTool, reductoParseTool, reductoSplitTool } from '@/tools/reducto'
 import { resendBatchTool, resendCancelTool, resendGetTool, resendSendTool } from '@/tools/resend'
 import {
@@ -1023,6 +974,7 @@ import {
   servicenowUpdateRecordTool,
 } from '@/tools/servicenow'
 import { sesListIdentitiesTool, sesSendEmailTool } from '@/tools/ses'
+import { sftpDeleteTool, sftpGetTool, sftpListTool, sftpMkdirTool, sftpPutTool } from '@/tools/sftp'
 import {
   sharepointCreatePageTool,
   sharepointListSitesTool,
@@ -1059,6 +1011,21 @@ import {
   squareListCustomersTool,
   squareListPaymentsTool,
 } from '@/tools/square'
+import {
+  sshAppendFileTool,
+  sshChangePermissionsTool,
+  sshCheckExistsTool,
+  sshCreateDirectoryTool,
+  sshDeleteFileTool,
+  sshExecuteCommandTool,
+  sshFileStatTool,
+  sshListDirectoryTool,
+  sshReadFileTool,
+  sshRemoveDirectoryTool,
+  sshRenameTool,
+  sshRunScriptTool,
+  sshWriteFileTool,
+} from '@/tools/ssh'
 import { stagehandAgentTool, stagehandExtractTool } from '@/tools/stagehand'
 import {
   stripeCreateCustomerTool,
@@ -1097,6 +1064,28 @@ import {
 } from '@/tools/tailscale'
 import { tavilyExtractTool, tavilySearchTool } from '@/tools/tavily'
 import { telegramMessageTool } from '@/tools/telegram'
+import {
+  temporalCancelWorkflowTool,
+  temporalCountWorkflowsTool,
+  temporalCreateScheduleTool,
+  temporalDeleteScheduleTool,
+  temporalDescribeNamespaceTool,
+  temporalDescribeScheduleTool,
+  temporalDescribeWorkflowTool,
+  temporalGetWorkflowHistoryTool,
+  temporalListSchedulesTool,
+  temporalListWorkflowsTool,
+  temporalPauseScheduleTool,
+  temporalQueryWorkflowTool,
+  temporalResetWorkflowTool,
+  temporalSignalWithStartWorkflowTool,
+  temporalSignalWorkflowTool,
+  temporalStartWorkflowTool,
+  temporalTerminateWorkflowTool,
+  temporalTriggerScheduleTool,
+  temporalUnpauseScheduleTool,
+  temporalUpdateScheduleTool,
+} from '@/tools/temporal'
 import { textractAnalyzeDocumentTool, textractDetectDocumentTextTool } from '@/tools/textract'
 import { thinkingTool } from '@/tools/thinking'
 import {
@@ -1185,6 +1174,17 @@ import {
   zendeskSearchTool,
   zendeskUpdateTicketTool,
 } from '@/tools/zendesk'
+import {
+  zepAddMessagesTool,
+  zepAddUserTool,
+  zepCreateThreadTool,
+  zepDeleteThreadTool,
+  zepGetContextTool,
+  zepGetMessagesTool,
+  zepGetThreadsTool,
+  zepGetUserThreadsTool,
+  zepGetUserTool,
+} from '@/tools/zep'
 import { zerobounceGetCreditsTool, zerobounceValidateEmailTool } from '@/tools/zerobounce'
 import {
   zoomCreateMeetingTool,

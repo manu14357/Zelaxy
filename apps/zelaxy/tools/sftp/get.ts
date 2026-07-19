@@ -28,7 +28,10 @@ export const sftpGetTool: ToolConfig<SftpGetParams, SftpGetResponse> = {
   outputs: {
     path: { type: 'string', description: 'The remote file that was downloaded' },
     content: { type: 'string', description: 'File contents in the requested encoding' },
-    encoding: { type: 'string', description: "Encoding of the returned content ('utf8' | 'base64')" },
+    encoding: {
+      type: 'string',
+      description: "Encoding of the returned content ('utf8' | 'base64')",
+    },
     size: { type: 'number', description: 'Size of the file in bytes' },
     error: { type: 'string', description: 'Error message if the operation failed', optional: true },
   },
