@@ -931,7 +931,7 @@ import {
   rootlyListIncidentsTool,
 } from '@/tools/rootly'
 import { rssFetchFeedTool, rssGetFeedInfoTool } from '@/tools/rss'
-import { s3GetObjectTool } from '@/tools/s3'
+import { s3GetObjectTool, s3PutObjectTool } from '@/tools/s3'
 import {
   salesforceCreateRecordTool,
   salesforceGetRecordTool,
@@ -1792,6 +1792,7 @@ export const tools: Record<string, ToolConfig> = {
   postgresql_database: postgresqlTool,
   elevenlabs_tts: elevenLabsTtsTool,
   s3_get_object: s3GetObjectTool,
+  s3_put_object: s3PutObjectTool,
   telegram_message: telegramMessageTool,
   clay_populate: clayPopulateTool,
   delay_wait: delayTool,
