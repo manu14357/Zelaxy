@@ -506,6 +506,24 @@ async function createTelegramWebhookSubscription(
       return // Cannot proceed without botToken
     }
 
+    // Generate (once) a secret token that Telegram echoes back on every update in the
+    // X-Telegram-Bot-Api-Secret-Token header. The trigger route uses it to verify that incoming
+    // updates genuinely came from Telegram. Persist it so the verifier can compare against it.
+    // Telegram only accepts A-Z, a-z, 0-9, `_` and `-` (1-256 chars); randomUUID satisfies this.
+    let secretToken: string = (providerConfig as Record<string, any>)?.secretToken
+    if (!secretToken) {
+      secretToken = crypto.randomUUID()
+      const updatedConfig = {
+        ...((providerConfig as Record<string, any>) || {}),
+        secretToken,
+      }
+      await db
+        .update(webhook)
+        .set({ providerConfig: updatedConfig, updatedAt: new Date() })
+        .where(eq(webhook.id, webhookData.id))
+      logger.info(`[${requestId}] Generated Telegram webhook secret token for ${webhookData.id}`)
+    }
+
     const requestOrigin = new URL(request.url).origin
     // Ensure origin does not point to localhost for external API calls
     const effectiveOrigin = requestOrigin.includes('localhost')
@@ -524,6 +542,7 @@ async function createTelegramWebhookSubscription(
     const requestBody: any = {
       url: notificationUrl,
       allowed_updates: ['message'],
+      secret_token: secretToken,
     }
 
     // Configure user-agent header to ensure Telegram can identify itself to our middleware

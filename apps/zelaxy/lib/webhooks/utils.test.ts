@@ -25,11 +25,11 @@ import {
   formatWebhookInput,
   getExternalRequestUrl,
   handleZoomUrlValidation,
+  isZendeskTimestampFresh,
   validateAsanaSignature,
   validateAshbySignature,
   validateCalcomSignature,
   validateCalendlySignature,
-  isZendeskTimestampFresh,
   validateGitHubSignature,
   validateGitLabToken,
   validateGreenhouseSignature,
@@ -42,6 +42,7 @@ import {
   validateSharedSecretHeader,
   validateSlackSignature,
   validateSvixSignature,
+  validateTelegramSecretToken,
   validateTwilioSignature,
   validateTypeformSignature,
   validateVercelSignature,
@@ -149,6 +150,47 @@ describe('validateGitLabToken', () => {
 
   it('rejects when no secret is configured', () => {
     expect(validateGitLabToken('', 'anything')).toBe(false)
+  })
+})
+
+describe('validateTelegramSecretToken', () => {
+  it('accepts a matching secret token (Telegram echoes it in the header)', () => {
+    expect(validateTelegramSecretToken('tg-secret-token', 'tg-secret-token')).toBe(true)
+  })
+
+  it('rejects a mismatched secret token', () => {
+    expect(validateTelegramSecretToken('tg-secret-token', 'other-token')).toBe(false)
+  })
+
+  it('rejects a missing secret-token header', () => {
+    expect(validateTelegramSecretToken('tg-secret-token', null)).toBe(false)
+  })
+
+  it('rejects when no secret is configured', () => {
+    expect(validateTelegramSecretToken('', 'anything')).toBe(false)
+  })
+})
+
+describe('validateWhatsAppSignature (GitHub-style x-hub-signature-256)', () => {
+  const crypto = require('crypto')
+  const appSecret = 'meta-app-secret'
+  const body = '{"object":"whatsapp_business_account","entry":[]}'
+  const validSignature = `sha256=${crypto.createHmac('sha256', appSecret).update(body, 'utf8').digest('hex')}`
+
+  it('accepts a delivery signed with the app secret', () => {
+    expect(validateGitHubSignature(appSecret, validSignature, body)).toBe(true)
+  })
+
+  it('rejects a body tampered with after signing', () => {
+    expect(validateGitHubSignature(appSecret, validSignature, `${body} tampered`)).toBe(false)
+  })
+
+  it('rejects a signature made with the wrong app secret', () => {
+    expect(validateGitHubSignature('wrong-secret', validSignature, body)).toBe(false)
+  })
+
+  it('rejects a missing signature header', () => {
+    expect(validateGitHubSignature(appSecret, null, body)).toBe(false)
   })
 })
 

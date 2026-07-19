@@ -9,6 +9,7 @@ import {
   Copy,
   Database,
   FileText,
+  GitBranch,
   History,
   Loader2,
   type LucideIcon,
@@ -1070,6 +1071,39 @@ export function ZelaxyArena() {
     [isStreaming, send]
   )
 
+  // Fork — branch the conversation into a new chat, keeping everything up to and including the
+  // clicked assistant message. Persist the current chat first so the server copies the latest state,
+  // then translate the live message index into the persisted-array index (persistChat drops empty
+  // messages, so the two arrays can diverge) before asking the server to copy + truncate.
+  const forkChat = useCallback(
+    async (assistantIndex: number) => {
+      if (isStreaming) return
+      await persistChat()
+      const sourceId = chatIdRef.current
+      if (!sourceId) return
+      const nonEmpty = (m: ChatMessage) =>
+        !!(m.content || m.tools?.length || m.parts?.length || m.attachments?.length)
+      // Index of the clicked message within the persisted (filtered) array.
+      const messageIndex =
+        messagesRef.current.slice(0, assistantIndex + 1).filter(nonEmpty).length - 1
+      if (messageIndex < 0) return
+      try {
+        const res = await fetch(`/api/zelaxy-arena/chats/${sourceId}/fork`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messageIndex }),
+        })
+        if (!res.ok) return
+        const { id } = await res.json()
+        await loadChat(id)
+        loadChatList()
+      } catch {
+        /* ignore */
+      }
+    },
+    [isStreaming, persistChat, loadChat, loadChatList]
+  )
+
   const stop = () => {
     abortRef.current?.abort()
     setIsStreaming(false)
@@ -1417,6 +1451,16 @@ export function ZelaxyArena() {
                             >
                               <RefreshCw className='h-3 w-3' />
                               Retry
+                            </button>
+                            <button
+                              type='button'
+                              disabled={isStreaming}
+                              className='flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-background/60 hover:text-foreground disabled:opacity-40'
+                              onClick={() => forkChat(i)}
+                              title='Fork this conversation into a new chat up to here'
+                            >
+                              <GitBranch className='h-3 w-3' />
+                              Fork
                             </button>
                           </div>
                         )}

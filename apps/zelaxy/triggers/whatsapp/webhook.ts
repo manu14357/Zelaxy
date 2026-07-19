@@ -19,6 +19,15 @@ export const whatsappWebhookTrigger: TriggerConfig = {
       required: true,
       isSecret: true,
     },
+    appSecret: {
+      type: 'string',
+      label: 'App Secret',
+      placeholder: 'Your Meta App Secret',
+      description:
+        'Your Meta App Secret. Used to verify the X-Hub-Signature-256 header on incoming message deliveries so only Meta can trigger this workflow.',
+      required: false,
+      isSecret: true,
+    },
   },
 
   outputs: {
@@ -57,6 +66,7 @@ export const whatsappWebhookTrigger: TriggerConfig = {
     'Paste the <strong>Verification Token</strong> (from above) into the "Verify token" field.',
     'Click "Verify and save".',
     'Click "Manage" next to Webhook fields and subscribe to `messages`.',
+    '(Optional but recommended) In "App settings" --> "Basic", copy your <strong>App Secret</strong> and paste it into the "App Secret" field above so Zelaxy can verify that message deliveries are genuinely from Meta.',
   ],
 
   samplePayload: {

@@ -7,28 +7,29 @@ import {
   handleSlackChallenge,
   handleWhatsAppVerification,
   handleZoomUrlValidation,
+  isZendeskTimestampFresh,
   validateAsanaSignature,
   validateAshbySignature,
   validateCalcomSignature,
   validateCalendlySignature,
-  isZendeskTimestampFresh,
   validateGitHubSignature,
-  validateIntercomSignature,
-  validateNotionSignature,
-  validateZendeskSignature,
   validateGitLabToken,
   validateGreenhouseSignature,
+  validateIntercomSignature,
   validateLinearSignature,
   validateMicrosoftTeamsSignature,
+  validateNotionSignature,
   validatePagerDutySignature,
   validateRootlySignature,
   validateSentrySignature,
   validateSharedSecretHeader,
   validateSlackSignature,
   validateSvixSignature,
+  validateTelegramSecretToken,
   validateTwilioSignature,
   validateTypeformSignature,
   validateVercelSignature,
+  validateZendeskSignature,
   validateZoomSignature,
   verifyProviderWebhook,
 } from '@/lib/webhooks/utils'
@@ -389,6 +390,21 @@ export async function POST(
       secretKey: 'webhookSecret',
       header: 'x-hub-signature-256',
       validate: (s, sig) => validateGitHubSignature(s, sig, rawBody as string),
+    },
+    // WhatsApp (Meta) signs deliveries exactly like GitHub: `sha256=<hex>` HMAC-SHA256 of the raw
+    // body in x-hub-signature-256, keyed by the Meta App Secret. The verificationToken only guards
+    // the GET subscribe handshake, so this is the real POST-delivery signature check.
+    whatsapp: {
+      secretKey: 'appSecret',
+      header: 'x-hub-signature-256',
+      validate: (s, sig) => validateGitHubSignature(s, sig, rawBody as string),
+    },
+    // Telegram doesn't sign the body — it echoes the secret_token registered via setWebhook back
+    // in this header on every update. Compare it (constant-time) against the stored token.
+    telegram: {
+      secretKey: 'secretToken',
+      header: 'x-telegram-bot-api-secret-token',
+      validate: (s, sig) => validateTelegramSecretToken(s, sig),
     },
     // Slack signs `v0:<timestamp>:<body>` and rejects stale timestamps, so it needs the header too
     slack: {

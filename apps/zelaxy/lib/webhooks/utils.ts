@@ -2114,6 +2114,29 @@ export function validateGitLabToken(
 }
 
 /**
+ * Validates a Telegram webhook request.
+ *
+ * Telegram does not sign the body. Instead, when a webhook is registered via setWebhook with a
+ * `secret_token`, Telegram echoes that exact value back on every update in the
+ * `X-Telegram-Bot-Api-Secret-Token` header. Comparing the header against the stored secret token
+ * (constant-time) proves the request genuinely came from Telegram.
+ *
+ * @param secretToken - Secret token generated at webhook creation and stored in providerConfig
+ * @param tokenHeader - X-Telegram-Bot-Api-Secret-Token header value from the request
+ * @returns Whether the token matches
+ */
+export function validateTelegramSecretToken(
+  secretToken: string,
+  tokenHeader: string | null | undefined
+): boolean {
+  if (!secretToken || !tokenHeader) {
+    return false
+  }
+
+  return timingSafeEquals(tokenHeader, secretToken)
+}
+
+/**
  * Constant-time comparison of two strings. Returns false on length mismatch.
  */
 function timingSafeEquals(a: string, b: string): boolean {
