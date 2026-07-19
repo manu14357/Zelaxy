@@ -500,6 +500,13 @@ export async function batchInsertRows(
   _table: TableDefinition,
   requestId: string
 ): Promise<TableRow[]> {
+  if (data.rows.length === 0) {
+    logger.info(
+      `[${requestId}] Batch insert called with 0 rows for table ${data.tableId}, skipping`
+    )
+    return []
+  }
+
   const now = new Date()
 
   const inserted = await db.transaction(async (trx) => {
