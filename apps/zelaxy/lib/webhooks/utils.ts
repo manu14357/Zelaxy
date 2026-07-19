@@ -2130,6 +2130,93 @@ function timingSafeEquals(a: string, b: string): boolean {
 }
 
 /**
+ * Validates a Notion webhook request signature.
+ *
+ * Notion signs the raw body with HMAC-SHA256 keyed by the webhook's verification token and sends it
+ * hex-encoded in the `X-Notion-Signature` header, prefixed with `sha256=`. (Notion's very first
+ * "reachability" POST carries the token in the body and is unsigned — the route short-circuits that
+ * to 200 before reaching here.)
+ */
+export function validateNotionSignature(
+  secret: string,
+  signature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secret || !signature || !body) return false
+    const crypto = require('crypto')
+    const computed = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')
+    const provided = signature.startsWith('sha256=') ? signature.slice(7) : signature
+    return timingSafeEquals(computed, provided)
+  } catch (error) {
+    logger.error('Error validating Notion signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates an Intercom webhook request signature.
+ *
+ * Intercom signs the raw body with HMAC-**SHA1** keyed by the app's client secret and sends it
+ * hex-encoded in the `X-Hub-Signature` header, prefixed with `sha1=` (note: SHA1, not SHA256, and
+ * the key is the Intercom client secret, not a separate webhook secret).
+ */
+export function validateIntercomSignature(
+  secret: string,
+  signature: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secret || !signature || !body || !signature.startsWith('sha1=')) return false
+    const crypto = require('crypto')
+    const computed = crypto.createHmac('sha1', secret).update(body, 'utf8').digest('hex')
+    return timingSafeEquals(computed, signature.slice(5))
+  } catch (error) {
+    logger.error('Error validating Intercom signature:', error)
+    return false
+  }
+}
+
+/**
+ * Validates a Zendesk webhook request signature.
+ *
+ * Zendesk signs `timestamp + rawBody` (no separator) with HMAC-SHA256 keyed by the webhook's signing
+ * secret, base64-encodes it into `X-Zendesk-Webhook-Signature`, and sends the ISO-8601 timestamp in
+ * a separate `X-Zendesk-Webhook-Signature-Timestamp` header. The caller must also enforce timestamp
+ * freshness (5-minute window) to prevent replay — see {@link isZendeskTimestampFresh}.
+ */
+export function validateZendeskSignature(
+  secret: string,
+  signature: string | null | undefined,
+  timestamp: string | null | undefined,
+  body: string
+): boolean {
+  try {
+    if (!secret || !signature || !timestamp || !body) return false
+    const crypto = require('crypto')
+    const computed = crypto
+      .createHmac('sha256', secret)
+      .update(timestamp + body, 'utf8')
+      .digest('base64')
+    return timingSafeEquals(computed, signature)
+  } catch (error) {
+    logger.error('Error validating Zendesk signature:', error)
+    return false
+  }
+}
+
+/** Max clock skew (5 minutes) allowed between Zendesk's signed timestamp and now, per Zendesk docs. */
+const ZENDESK_TIMESTAMP_MAX_SKEW_MS = 5 * 60 * 1000
+
+/** Whether Zendesk's signed ISO-8601 timestamp is recent enough to accept (anti-replay). */
+export function isZendeskTimestampFresh(timestamp: string | null | undefined): boolean {
+  if (!timestamp) return false
+  const signedAt = Date.parse(timestamp)
+  if (Number.isNaN(signedAt)) return false
+  return Math.abs(Date.now() - signedAt) <= ZENDESK_TIMESTAMP_MAX_SKEW_MS
+}
+
+/**
  * Validates a Typeform webhook request signature.
  *
  * Typeform signs the raw body with HMAC SHA-256 and sends it base64-encoded in the

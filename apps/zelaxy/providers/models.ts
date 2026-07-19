@@ -19,15 +19,18 @@ import {
   GeminiIcon,
   GroqIcon,
   LiteLLMIcon,
+  MetaProviderIcon,
   MiMoIcon,
   MistralIcon,
   NvidiaIcon,
   OllamaIcon,
   OpenAIIcon,
   OpenRouterIcon,
+  SakanaIcon,
   TogetherIcon,
   VLLMIcon,
   xAIIcon,
+  ZaiIcon,
 } from '@/components/icons'
 
 export interface ModelPricing {
@@ -1931,6 +1934,66 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
       {
         id: 'ollama-cloud/qwen3-coder:480b',
         pricing: { input: 0, output: 0, updatedAt: '2026-06-20' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+    ],
+  },
+  zai: {
+    id: 'zai',
+    name: 'Z.ai',
+    description: "Z.ai's GLM models via an OpenAI-compatible API",
+    defaultModel: 'glm-4.6',
+    modelPatterns: [/^glm-/],
+    icon: ZaiIcon,
+    models: [
+      {
+        id: 'glm-4.6',
+        pricing: { input: 0.6, output: 2.2, updatedAt: '2026-07-10' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+      {
+        id: 'glm-4.5',
+        pricing: { input: 0.6, output: 2.2, updatedAt: '2026-07-10' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+      {
+        id: 'glm-4.5-air',
+        pricing: { input: 0.2, output: 1.1, updatedAt: '2026-07-10' },
+        capabilities: { temperature: { min: 0, max: 1 }, toolUsageControl: true },
+      },
+    ],
+  },
+  sakana: {
+    id: 'sakana',
+    name: 'Sakana AI',
+    description: "Sakana AI's Fugu models via an OpenAI-compatible API",
+    defaultModel: 'fugu',
+    modelPatterns: [/^fugu/],
+    icon: SakanaIcon,
+    models: [
+      {
+        id: 'fugu',
+        pricing: { input: 5, cachedInput: 0.5, output: 30, updatedAt: '2026-06-22' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+      {
+        id: 'fugu-ultra',
+        pricing: { input: 5, cachedInput: 0.5, output: 30, updatedAt: '2026-06-22' },
+        capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
+      },
+    ],
+  },
+  meta: {
+    id: 'meta',
+    name: 'Meta',
+    description: "Meta's Muse Spark models via the Meta Model API (OpenAI-compatible)",
+    defaultModel: 'muse-spark-1.1',
+    modelPatterns: [/^muse-spark/],
+    icon: MetaProviderIcon,
+    models: [
+      {
+        id: 'muse-spark-1.1',
+        pricing: { input: 1.25, cachedInput: 0.15, output: 4.25, updatedAt: '2026-07-09' },
         capabilities: { temperature: { min: 0, max: 2 }, toolUsageControl: true },
       },
     ],

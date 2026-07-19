@@ -73,6 +73,12 @@ Dropdown for what happens if no response arrives before the timeout expires. Def
 
 Comma-separated email addresses of people allowed to approve this step. Each address receives the unique review link. Optional — if omitted, any authenticated user with access can respond.
 
+<Callout type="warn">
+  Place approval gates on the main (linear) path. Pausing **inside a loop or parallel block** is not
+  yet supported — the run fails fast with a clear error rather than resuming in a corrupt state.
+  The same applies to an async **Wait** block used inside a loop or parallel.
+</Callout>
+
 ## Inputs & Outputs
 
 - **Inputs**:

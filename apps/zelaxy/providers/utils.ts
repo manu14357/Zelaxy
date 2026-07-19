@@ -35,7 +35,10 @@ import { ollamaProvider } from '@/providers/ollama'
 import { ollamaCloudProvider } from '@/providers/ollama-cloud'
 import { openaiProvider } from '@/providers/openai'
 import { openRouterProvider } from '@/providers/openrouter'
+import { metaProvider } from '@/providers/meta'
+import { sakanaProvider } from '@/providers/sakana'
 import { togetherProvider } from '@/providers/together'
+import { zaiProvider } from '@/providers/zai'
 import type { ProviderConfig, ProviderId, ProviderToolConfig } from '@/providers/types'
 import { vllmProvider } from '@/providers/vllm'
 import { xAIProvider } from '@/providers/xai'
@@ -133,6 +136,21 @@ export const providers: Record<
     ...togetherProvider,
     models: getProviderModelsFromDefinitions('together'),
     modelPatterns: PROVIDER_DEFINITIONS.together.modelPatterns,
+  },
+  zai: {
+    ...zaiProvider,
+    models: getProviderModelsFromDefinitions('zai'),
+    modelPatterns: PROVIDER_DEFINITIONS.zai.modelPatterns,
+  },
+  sakana: {
+    ...sakanaProvider,
+    models: getProviderModelsFromDefinitions('sakana'),
+    modelPatterns: PROVIDER_DEFINITIONS.sakana.modelPatterns,
+  },
+  meta: {
+    ...metaProvider,
+    models: getProviderModelsFromDefinitions('meta'),
+    modelPatterns: PROVIDER_DEFINITIONS.meta.modelPatterns,
   },
   fireworks: {
     ...fireworksProvider,

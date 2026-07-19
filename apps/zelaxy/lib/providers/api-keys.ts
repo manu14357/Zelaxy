@@ -40,6 +40,9 @@ export const PROVIDER_CREDENTIALS: Record<string, ProviderCredential[]> = {
   ],
   openrouter: [{ name: 'OPENROUTER_API_KEY', label: 'OpenRouter API Key' }],
   together: [{ name: 'TOGETHER_API_KEY', label: 'Together AI API Key' }],
+  zai: [{ name: 'ZAI_API_KEY', label: 'Z.ai API Key' }],
+  sakana: [{ name: 'SAKANA_API_KEY', label: 'Sakana AI API Key' }],
+  meta: [{ name: 'META_API_KEY', label: 'Meta API Key' }],
   fireworks: [{ name: 'FIREWORKS_API_KEY', label: 'Fireworks AI API Key' }],
   mistral: [{ name: 'MISTRAL_API_KEY', label: 'Mistral API Key' }],
   // Self-hosted endpoints — key is optional (many run without auth); the base URL is the real input.

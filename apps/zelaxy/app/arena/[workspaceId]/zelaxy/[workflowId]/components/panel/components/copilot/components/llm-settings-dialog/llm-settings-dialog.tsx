@@ -12,15 +12,18 @@ import {
   GeminiIcon,
   GroqIcon,
   LiteLLMIcon,
+  MetaProviderIcon,
   MiMoIcon,
   MistralIcon,
   NvidiaIcon,
   OllamaIcon,
   OpenAIIcon,
   OpenRouterIcon,
+  SakanaIcon,
   TogetherIcon,
   VLLMIcon,
   xAIIcon,
+  ZaiIcon,
 } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import {
@@ -78,6 +81,9 @@ const LLM_PROVIDERS: LLMProvider[] = [
     models: getProviderModels('openrouter'),
   },
   { id: 'together', name: 'Together', icon: TogetherIcon, models: getProviderModels('together') },
+  { id: 'zai', name: 'Z.ai', icon: ZaiIcon, models: getProviderModels('zai') },
+  { id: 'sakana', name: 'Sakana AI', icon: SakanaIcon, models: getProviderModels('sakana') },
+  { id: 'meta', name: 'Meta', icon: MetaProviderIcon, models: getProviderModels('meta') },
   {
     id: 'fireworks',
     name: 'Fireworks',

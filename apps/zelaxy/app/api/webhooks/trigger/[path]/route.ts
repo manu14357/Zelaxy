@@ -11,7 +11,11 @@ import {
   validateAshbySignature,
   validateCalcomSignature,
   validateCalendlySignature,
+  isZendeskTimestampFresh,
   validateGitHubSignature,
+  validateIntercomSignature,
+  validateNotionSignature,
+  validateZendeskSignature,
   validateGitLabToken,
   validateGreenhouseSignature,
   validateLinearSignature,
@@ -449,6 +453,57 @@ export async function POST(
           rawBody as string
         ),
     },
+    // Jira and Confluence (Atlassian) both HMAC-SHA256-hex the body and send `sha256=<hex>` in the
+    // X-Hub-Signature header — identical to GitHub's algorithm, so the GitHub validator applies.
+    jira: {
+      secretKey: 'webhookSecret',
+      header: 'x-hub-signature',
+      validate: (s, sig) => validateGitHubSignature(s, sig, rawBody as string),
+    },
+    confluence: {
+      secretKey: 'webhookSecret',
+      header: 'x-hub-signature',
+      validate: (s, sig) => validateGitHubSignature(s, sig, rawBody as string),
+    },
+    // Notion signs the body with HMAC-SHA256 (hex) keyed by the webhook secret.
+    notion: {
+      secretKey: 'webhookSecret',
+      header: 'x-notion-signature',
+      validate: (s, sig) => validateNotionSignature(s, sig, rawBody as string),
+    },
+    // Intercom uses HMAC-SHA1 (not SHA256), keyed by the app's client secret.
+    intercom: {
+      secretKey: 'clientSecret',
+      header: 'x-hub-signature',
+      validate: (s, sig) => validateIntercomSignature(s, sig, rawBody as string),
+    },
+    // Zendesk signs base64(HMAC-SHA256(timestamp + body)) and sends the timestamp in a second
+    // header; reject stale timestamps (5-min window) before comparing, to block replays.
+    zendesk: {
+      secretKey: 'webhookSecret',
+      header: 'x-zendesk-webhook-signature',
+      validate: (s, sig) => {
+        const ts = request.headers.get('x-zendesk-webhook-signature-timestamp')
+        return (
+          isZendeskTimestampFresh(ts) && validateZendeskSignature(s, sig, ts, rawBody as string)
+        )
+      },
+    },
+  }
+
+  // Notion delivers its verification_token inside the first (unsigned) reachability POST. That
+  // request carries no signature, so it must be acknowledged with 200 BEFORE the signature check
+  // below, or Notion can never finish endpoint setup.
+  if (foundWebhook.provider === 'notion') {
+    try {
+      const parsed = JSON.parse(rawBody as string)
+      if (parsed && typeof parsed.verification_token === 'string' && parsed.verification_token) {
+        logger.info(`[${requestId}] Notion verification handshake acknowledged`)
+        return NextResponse.json({ status: 'ok' })
+      }
+    } catch {
+      // Not JSON — fall through to normal signature handling.
+    }
   }
 
   const signatureCheck = signatureChecks[foundWebhook.provider as string]

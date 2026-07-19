@@ -22,6 +22,9 @@ export type ProviderId =
   | 'litellm'
   | 'baseten'
   | 'ollama-cloud'
+  | 'zai'
+  | 'sakana'
+  | 'meta'
 
 /**
  * Model pricing information per million tokens

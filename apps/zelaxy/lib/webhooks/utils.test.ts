@@ -29,10 +29,13 @@ import {
   validateAshbySignature,
   validateCalcomSignature,
   validateCalendlySignature,
+  isZendeskTimestampFresh,
   validateGitHubSignature,
   validateGitLabToken,
   validateGreenhouseSignature,
+  validateIntercomSignature,
   validateLinearSignature,
+  validateNotionSignature,
   validatePagerDutySignature,
   validateRootlySignature,
   validateSentrySignature,
@@ -42,6 +45,7 @@ import {
   validateTwilioSignature,
   validateTypeformSignature,
   validateVercelSignature,
+  validateZendeskSignature,
   validateZoomSignature,
   verifyProviderWebhook,
 } from '@/lib/webhooks/utils'
@@ -1253,5 +1257,49 @@ describe('formatWebhookInput', () => {
 
     expect(result.sender.id).toBe(550198060)
     expect(result.message.from_id).toBe(550198060)
+  })
+})
+
+describe('P2.2 webhook signatures (notion, intercom, zendesk)', () => {
+  const crypto = require('crypto')
+  const secret = 'shhh-secret'
+  const body = JSON.stringify({ event: 'thing.happened', id: 42 })
+
+  it('validateNotionSignature accepts a correct sha256= hex HMAC and rejects tampering', () => {
+    const sig = `sha256=${crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')}`
+    expect(validateNotionSignature(secret, sig, body)).toBe(true)
+    expect(validateNotionSignature(secret, sig, `${body} tampered`)).toBe(false)
+    expect(validateNotionSignature(secret, null, body)).toBe(false)
+    expect(validateNotionSignature('wrong', sig, body)).toBe(false)
+  })
+
+  it('validateIntercomSignature uses SHA1 (not SHA256) with the sha1= prefix', () => {
+    const sig = `sha1=${crypto.createHmac('sha1', secret).update(body, 'utf8').digest('hex')}`
+    expect(validateIntercomSignature(secret, sig, body)).toBe(true)
+    // A SHA256 signature must NOT validate against the SHA1 scheme.
+    const sha256 = `sha1=${crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex')}`
+    expect(validateIntercomSignature(secret, sha256, body)).toBe(false)
+    expect(validateIntercomSignature(secret, `sha256=whatever`, body)).toBe(false)
+    expect(validateIntercomSignature(secret, null, body)).toBe(false)
+  })
+
+  it('validateZendeskSignature signs base64(HMAC-SHA256(timestamp+body))', () => {
+    const timestamp = new Date().toISOString()
+    const sig = crypto
+      .createHmac('sha256', secret)
+      .update(timestamp + body, 'utf8')
+      .digest('base64')
+    expect(validateZendeskSignature(secret, sig, timestamp, body)).toBe(true)
+    // Wrong timestamp -> different signature -> reject.
+    expect(validateZendeskSignature(secret, sig, '2000-01-01T00:00:00Z', body)).toBe(false)
+    expect(validateZendeskSignature(secret, sig, timestamp, `${body}x`)).toBe(false)
+    expect(validateZendeskSignature(secret, null, timestamp, body)).toBe(false)
+  })
+
+  it('isZendeskTimestampFresh accepts recent and rejects stale/invalid timestamps', () => {
+    expect(isZendeskTimestampFresh(new Date().toISOString())).toBe(true)
+    expect(isZendeskTimestampFresh(new Date(Date.now() - 10 * 60 * 1000).toISOString())).toBe(false)
+    expect(isZendeskTimestampFresh('not-a-date')).toBe(false)
+    expect(isZendeskTimestampFresh(null)).toBe(false)
   })
 })

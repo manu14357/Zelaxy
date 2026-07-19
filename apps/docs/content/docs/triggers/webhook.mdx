@@ -86,6 +86,22 @@ Every webhook trigger (regardless of provider) also stores the complete raw HTTP
 | `{{Webhook 1.webhook.data.headers}}` | HTTP request headers |
 | `{{Webhook 1.webhook.data.method}}` | HTTP method (`POST`, etc.) |
 
+### Signature verification
+
+When you configure a signing secret for a supported provider, Zelaxy verifies every incoming
+delivery and rejects requests whose signature does not match (HTTP 401) — so a caller who merely
+knows the URL cannot fire the workflow. Verification is enforced for GitHub, Slack, Linear, Asana,
+GitLab, Typeform, Sentry, Calendly, PagerDuty, Vercel, Zoom, Clerk, Resend, Cal.com, Twilio, and the
+Atlassian/support integrations **Jira**, **Confluence**, **Notion**, **Intercom**, and **Zendesk**.
+
+The scheme matches each provider's documented signing exactly — for example Intercom is HMAC-SHA1
+over the body (`sha1=` in `X-Hub-Signature`), Notion and Jira/Confluence are HMAC-SHA256 hex
+(`sha256=`), and Zendesk is base64 HMAC-SHA256 over `timestamp + body` with a 5-minute freshness
+window. Notion's initial unsigned verification handshake is acknowledged automatically. Providers
+with no documented signing scheme are intentionally left unverified rather than guessing a scheme
+that would silently reject genuine deliveries — use the generic webhook's bearer token or IP
+allowlist for those.
+
 ---
 
 ## Gmail

@@ -34,6 +34,15 @@ A dropdown that lists every workflow in the current workspace except the workflo
 
 A short text field. Provide a `{{blockName.field}}` reference (or a literal string) to pass data into the child workflow. Whatever you supply here is made available as `start.input` inside the child workflow, allowing it to receive context from the parent. Leave blank if the child workflow does not need external input.
 
+### Recursion protection
+
+Nested workflow calls are guarded against infinite loops. In addition to the editor preventing a
+workflow from selecting itself, the executor rejects a run once the chain of workflows calling one
+another gets too deep — both for inline child-workflow blocks and for cycles that cross the API/MCP
+boundary (workflow A's request triggering workflow B, whose request triggers A again). The chain is
+carried between executions in the `X-Zelaxy-Via` header, so the guard holds even when workflows
+invoke each other over HTTP rather than as nested blocks.
+
 ## Inputs & Outputs
 
 **Inputs**
