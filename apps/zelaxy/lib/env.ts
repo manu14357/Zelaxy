@@ -144,6 +144,7 @@ export const env = createEnv({
     ZAI_API_KEY:                          z.string().min(1).optional(),           // Z.ai API key (GLM models, OpenAI-compatible)
     SAKANA_API_KEY:                       z.string().min(1).optional(),           // Sakana AI API key (Fugu models, OpenAI-compatible)
     META_API_KEY:                         z.string().min(1).optional(),           // Meta Model API key (Muse Spark, OpenAI-compatible)
+    E2B_API_KEY:                          z.string().min(1).optional(),           // E2B API key for Python/shell execution in the Function block
     VLLM_BASE_URL:                        z.string().url().optional(),            // Self-hosted vLLM OpenAI-compatible base URL
     VLLM_API_KEY:                         z.string().optional(),                  // vLLM API key (optional; many servers run without auth)
     LITELLM_BASE_URL:                     z.string().url().optional(),            // Self-hosted LiteLLM proxy base URL

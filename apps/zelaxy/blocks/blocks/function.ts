@@ -14,6 +14,18 @@ export const FunctionBlock: BlockConfig<CodeExecutionOutput> = {
   icon: CodeIcon,
   subBlocks: [
     {
+      id: 'language',
+      title: 'Language',
+      type: 'dropdown',
+      layout: 'half',
+      options: [
+        { label: 'JavaScript', id: 'javascript' },
+        { label: 'Python', id: 'python' },
+        { label: 'Shell', id: 'shell' },
+      ],
+      value: () => 'javascript',
+    },
+    {
       id: 'code',
       type: 'code',
       layout: 'full',

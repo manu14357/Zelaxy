@@ -1,4 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import {
+  E2BExecutionError,
+  executeInE2B,
+  isE2BConfigured,
+  toE2BLanguage,
+} from '@/lib/execution/e2b'
 import { executeInIsolate, IsolatedExecutionError } from '@/lib/execution/isolated-vm'
 import { createLogger } from '@/lib/logs/console/logger'
 
@@ -288,6 +294,7 @@ export async function POST(req: NextRequest) {
       blockNameMapping = {},
       workflowId,
       isCustomTool = false,
+      language,
     } = body
 
     // Extract internal parameters that shouldn't be passed to the execution context
@@ -300,7 +307,70 @@ export async function POST(req: NextRequest) {
       timeout,
       workflowId,
       isCustomTool,
+      language,
     })
+
+    // Non-JS languages (Python, Bash/shell) run in an E2B cloud sandbox rather than the local V8
+    // isolate. JavaScript / undefined language falls through to the unchanged isolated-vm path below.
+    const e2bLanguage = toE2BLanguage(language)
+    if (e2bLanguage) {
+      if (!isE2BConfigured()) {
+        logger.warn(`[${requestId}] E2B not configured; cannot run ${e2bLanguage} code`)
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'E2B not configured: set the E2B_API_KEY environment variable to run Python or shell code.',
+            output: { result: null, stdout: '', executionTime: Date.now() - startTime },
+          },
+          { status: 400 }
+        )
+      }
+
+      try {
+        // Inline {{VAR}} substitution (env vars take priority over params). The isolate path injects
+        // these as JS globals, which is not possible for Python/Bash, so substitute literally.
+        const e2bCode = code.replace(/\{\{([^}]+)\}\}/g, (_match: string, name: string) => {
+          const key = name.trim()
+          const value = envVars[key] ?? executionParams[key]
+          return value === undefined || value === null ? '' : String(value)
+        })
+
+        const e2bResult = await executeInE2B({
+          code: e2bCode,
+          language: e2bLanguage,
+          timeoutMs: timeout,
+        })
+        const executionTime = Date.now() - startTime
+        logger.info(`[${requestId}] Function executed successfully using e2b (${e2bLanguage})`, {
+          executionTime,
+        })
+        return NextResponse.json({
+          success: true,
+          output: {
+            result: e2bResult.result,
+            stdout: e2bResult.stdout,
+            executionTime,
+          },
+        })
+      } catch (error: any) {
+        const executionTime = Date.now() - startTime
+        const stdout = error instanceof E2BExecutionError ? error.stdout : ''
+        logger.error(`[${requestId}] E2B function execution failed`, {
+          error: error.message || 'Unknown error',
+          language: e2bLanguage,
+          executionTime,
+        })
+        return NextResponse.json(
+          {
+            success: false,
+            error: error.message || 'E2B execution failed',
+            output: { result: null, stdout, executionTime },
+          },
+          { status: 500 }
+        )
+      }
+    }
 
     // Resolve variables in the code with workflow environment variables
     const codeResolution = resolveCodeVariables(

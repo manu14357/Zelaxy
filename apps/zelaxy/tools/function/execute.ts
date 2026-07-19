@@ -17,6 +17,12 @@ export const functionExecuteTool: ToolConfig<CodeExecutionInput, CodeExecutionOu
       visibility: 'user-or-llm',
       description: 'The code to execute',
     },
+    language: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only',
+      description: 'Execution language: javascript (default), python, or shell',
+    },
     timeout: {
       type: 'number',
       required: false,
@@ -60,6 +66,7 @@ export const functionExecuteTool: ToolConfig<CodeExecutionInput, CodeExecutionOu
 
       return {
         code: codeContent,
+        language: params.language,
         timeout: params.timeout || DEFAULT_TIMEOUT,
         envVars: params.envVars || {},
         blockData: params.blockData || {},
