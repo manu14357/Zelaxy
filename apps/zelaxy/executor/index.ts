@@ -53,6 +53,7 @@ export class Executor {
             executionId?: string
             workspaceId?: string
             userId?: string
+            callChain?: string[]
             isChildExecution?: boolean
             checkCancelled?: () => Promise<boolean>
           }
@@ -149,6 +150,7 @@ export class Executor {
         executionId: this.contextExtensions?.executionId,
         workspaceId: this.contextExtensions?.workspaceId,
         userId: this.contextExtensions?.userId,
+        callChain: this.contextExtensions?.callChain,
         onBlockComplete: this.onBlockComplete,
         onExecutionStart: this.onExecutionStart,
         onExecutionComplete: this.onExecutionComplete,

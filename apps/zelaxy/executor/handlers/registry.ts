@@ -11,8 +11,6 @@ import {
   EvaluatorBlockHandler,
   FunctionBlockHandler,
   GenericBlockHandler,
-  LoopBlockHandler,
-  ParallelBlockHandler,
   ResponseBlockHandler,
   RouterBlockHandler,
   SwitchBlockHandler,
@@ -53,8 +51,12 @@ export function createBlockHandlers(deps: HandlerRegistryDeps): BlockHandler[] {
     new EvaluatorBlockHandler(),
     new TranslateBlockHandler(),
     new CredentialBlockHandler(),
-    new LoopBlockHandler(resolver, pathTracker),
-    new ParallelBlockHandler(resolver, pathTracker),
+    // Loop/parallel container blocks are intentionally NOT handlers here. They are metadata-only
+    // block types (executor/consts.ts METADATA_ONLY_BLOCK_TYPES): the DAG builder skips them as
+    // executable nodes and represents each as a sentinel start/end node, which the Loop/Parallel
+    // orchestrators drive. block-executor only ever dispatches non-sentinel nodes, so a handler for
+    // 'loop'/'parallel' would be unreachable. Canvas loops/parallels run entirely through the
+    // orchestrators — see executor/orchestrators/{loop,parallel}.ts.
     // GenericBlockHandler must always be last (catch-all)
     new GenericBlockHandler(),
   ]

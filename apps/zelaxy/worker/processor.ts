@@ -160,6 +160,9 @@ export async function processWorkflowExecution(
       contextExtensions: {
         executionId,
         workspaceId,
+        // Carry the cross-execution call chain queued with the job so an async workflow->workflow
+        // call still counts toward the cycle guard.
+        callChain: (payload.metadata as any)?.callChain as string[] | undefined,
         // Server-side runs execute here in the worker, out of reach of the in-process cancel flag,
         // so give the executor a Redis-backed probe it can poll between layers.
         checkCancelled: () => isExecutionCancelled(executionId),

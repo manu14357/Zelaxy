@@ -100,6 +100,7 @@ export class ApiBlockHandler implements BlockHandler {
           _context: {
             workflowId: context.workflowId,
             workspaceId: context.workspaceId,
+            callChain: context.callChain,
           },
         },
         false, // skipProxy

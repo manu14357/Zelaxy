@@ -1,3 +1,4 @@
+import { serializeCallChain, ZELAXY_VIA_HEADER } from '@/lib/execution/call-chain'
 import { createLogger } from '@/lib/logs/console/logger'
 import { getMCPService, getMCPToolMeta } from '@/lib/mcp-service-registry'
 import { getBaseUrl } from '@/lib/urls/utils'
@@ -554,6 +555,23 @@ async function handleInternalRequest(
       method: requestParams.method,
       headers: new Headers(requestParams.headers),
       body: requestParams.body,
+    }
+
+    // Propagate the cross-execution call chain so a workflow reached through this request (e.g. an
+    // api block pointed at another workflow's execute endpoint) inherits the cycle guard. Only for
+    // internal/self-origin URLs — never leak internal workflow ids to a third-party API.
+    const callChain = params._context?.callChain as string[] | undefined
+    if (callChain?.length) {
+      const isInternalRoute = endpointUrl.startsWith('/api/')
+      let isSelfOrigin = false
+      try {
+        isSelfOrigin = new URL(fullUrl).origin === new URL(baseUrl).origin
+      } catch {
+        isSelfOrigin = false
+      }
+      if (isInternalRoute || isSelfOrigin) {
+        requestOptions.headers.set(ZELAXY_VIA_HEADER, serializeCallChain(callChain))
+      }
     }
 
     const response = await fetch(fullUrl, requestOptions)

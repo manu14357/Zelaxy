@@ -45,6 +45,7 @@ export interface DAGExecutorOptions {
     executionId?: string
     workspaceId?: string
     userId?: string
+    callChain?: string[]
     onBlockComplete?: (log: BlockLog) => void | Promise<void>
     onExecutionStart?: (workflowId: string, executionId?: string) => void | Promise<void>
     onExecutionComplete?: (result: ExecutionResult) => void | Promise<void>
@@ -383,6 +384,7 @@ export class DAGExecutor {
       workspaceId: this.contextExtensions.workspaceId,
       executionId: this.contextExtensions.executionId,
       userId: this.contextExtensions.userId,
+      callChain: this.contextExtensions.callChain,
       blockStates: state.getBlockStates() as Map<string, BlockState>,
       blockLogs: [],
       metadata: { startTime: new Date().toISOString(), duration: 0 },

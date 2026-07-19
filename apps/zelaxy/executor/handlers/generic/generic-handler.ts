@@ -47,6 +47,7 @@ export class GenericBlockHandler implements BlockHandler {
             _context: {
               workflowId: context.workflowId,
               workspaceId: context.workspaceId,
+              callChain: context.callChain,
             },
           }
 
@@ -63,6 +64,7 @@ export class GenericBlockHandler implements BlockHandler {
           _context: {
             workflowId: context.workflowId,
             workspaceId: context.workspaceId,
+            callChain: context.callChain,
           },
         }
       }

@@ -106,4 +106,39 @@ describe('DAGExecutor — loops', () => {
     expect(count(result, 'body')).toBe(4)
     expect(count(result, 'after')).toBe(1)
   })
+
+  it('fails loud when a human-in-the-loop pause happens inside a loop, never persisting a snapshot', async () => {
+    // A pause inside an active loop cannot yet be faithfully resumed (the resume path re-seeds only
+    // the paused block's downstream, losing the loop-continuation frontier). The engine must fail
+    // loud — a failed run with no `paused` field — so the worker never persists a corrupt snapshot,
+    // rather than silently resuming in a wrong state later.
+    const wf: SerializedWorkflow = {
+      version: '2.0',
+      blocks: [
+        block('start', BlockType.STARTER),
+        block('loop1', BlockType.LOOP),
+        block('gate', BlockType.HUMAN_IN_THE_LOOP, { title: 'Approve?' }),
+        block('after', BlockType.FUNCTION, { code: 'return 9' }),
+      ],
+      connections: [
+        { source: 'start', target: 'loop1' },
+        { source: 'loop1', target: 'gate', sourceHandle: 'loop-start-source' },
+        { source: 'loop1', target: 'after', sourceHandle: 'loop-end-source' },
+      ],
+      loops: { loop1: { id: 'loop1', nodes: ['gate'], iterations: 3, loopType: 'for' } },
+      parallels: {},
+    } as SerializedWorkflow
+
+    const result = await new DAGExecutor({
+      workflow: wf,
+      workflowInput: {},
+      contextExtensions: { executionId: 'exec-loop-pause' },
+    }).execute('wf')
+
+    expect(result.success).toBe(false)
+    expect((result as any).paused).toBeUndefined()
+    expect(result.error).toMatch(/loop/i)
+    // The post-loop block must not have run.
+    expect(count(result, 'after')).toBe(0)
+  })
 })

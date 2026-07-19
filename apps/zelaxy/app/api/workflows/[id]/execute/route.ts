@@ -5,6 +5,12 @@ import { z } from 'zod'
 import { getSession } from '@/lib/auth'
 import { checkServerSideUsageLimits } from '@/lib/billing'
 import { addWorkflowJob } from '@/lib/bullmq/producer'
+import {
+  buildNextCallChain,
+  parseCallChain,
+  validateCallChain,
+  ZELAXY_VIA_HEADER,
+} from '@/lib/execution/call-chain'
 import { createLogger } from '@/lib/logs/console/logger'
 import { LoggingSession } from '@/lib/logs/execution/logging-session'
 import { buildTraceSpans } from '@/lib/logs/execution/trace-spans/trace-spans'
@@ -69,7 +75,12 @@ class UsageLimitError extends Error {
   }
 }
 
-async function executeWorkflow(workflow: any, requestId: string, input?: any): Promise<any> {
+async function executeWorkflow(
+  workflow: any,
+  requestId: string,
+  input?: any,
+  callChain?: string[]
+): Promise<any> {
   const workflowId = workflow.id
   const executionId = uuidv4()
 
@@ -300,6 +311,7 @@ async function executeWorkflow(workflow: any, requestId: string, input?: any): P
         executionId,
         workspaceId: workflow.workspaceId,
         userId: workflow.userId,
+        callChain,
       },
     })
 
@@ -372,6 +384,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return createErrorResponse(validation.error.message, validation.error.status)
     }
 
+    // Cross-execution call-chain guard: reject if this workflow is being reached through too long a
+    // chain of workflow->workflow calls (a cycle that crosses the API boundary), then extend the
+    // chain with this workflow so any downstream call it makes carries the guard forward.
+    const incomingCallChain = parseCallChain(request.headers.get(ZELAXY_VIA_HEADER))
+    const callChainError = validateCallChain(incomingCallChain)
+    if (callChainError) {
+      logger.warn(`[${requestId}] Call chain rejected: ${callChainError}`)
+      return createErrorResponse(callChainError, 409, 'CALL_CHAIN_DEPTH_EXCEEDED')
+    }
+    const callChain = buildNextCallChain(incomingCallChain, id)
+
     // Determine trigger type based on authentication
     let triggerType: TriggerType = 'manual'
     const session = await getSession()
@@ -413,7 +436,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         }
       }
 
-      const result = await executeWorkflow(validation.workflow, requestId, undefined)
+      const result = await executeWorkflow(validation.workflow, requestId, undefined, callChain)
 
       // Check if the workflow execution contains a response block output
       const hasResponseBlock = workflowHasResponseBlock(result)
@@ -473,6 +496,16 @@ export async function POST(
       logger.warn(`[${requestId}] Workflow access validation failed: ${validation.error.message}`)
       return createErrorResponse(validation.error.message, validation.error.status)
     }
+
+    // Cross-execution call-chain guard (see GET handler): reject an over-deep workflow->workflow
+    // chain that crosses the API boundary, then extend it with this workflow.
+    const incomingCallChain = parseCallChain(request.headers.get(ZELAXY_VIA_HEADER))
+    const callChainError = validateCallChain(incomingCallChain)
+    if (callChainError) {
+      logger.warn(`[${requestId}] Call chain rejected: ${callChainError}`)
+      return createErrorResponse(callChainError, 409, 'CALL_CHAIN_DEPTH_EXCEEDED')
+    }
+    const callChain = buildNextCallChain(incomingCallChain, workflowId)
 
     // Check execution mode from header
     const executionMode = request.headers.get('X-Execution-Mode')
@@ -559,7 +592,7 @@ export async function POST(
           userId: authenticatedUserId,
           input,
           triggerType: 'api',
-          metadata: { triggerType: 'api' },
+          metadata: { triggerType: 'api', callChain },
         })
 
         logger.info(`[${requestId}] Queued workflow job ${jobId} for workflow ${workflowId}`)
@@ -600,7 +633,7 @@ export async function POST(
         )
       }
 
-      const result = await executeWorkflow(validation.workflow, requestId, input)
+      const result = await executeWorkflow(validation.workflow, requestId, input, callChain)
 
       const hasResponseBlock = workflowHasResponseBlock(result)
       if (hasResponseBlock) {
@@ -653,7 +686,7 @@ export async function OPTIONS(_request: NextRequest) {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers':
-        'Content-Type, X-API-Key, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version',
+        'Content-Type, X-API-Key, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version, X-Zelaxy-Via',
       'Access-Control-Max-Age': '86400',
     },
   })

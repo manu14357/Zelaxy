@@ -103,6 +103,12 @@ export interface ExecutionContext {
   workspaceId?: string // Workspace ID for file storage scoping
   executionId?: string // Unique execution ID for file storage scoping
   userId?: string // User ID for scoped resource access (e.g., MCP servers)
+  /**
+   * Ordered list of workflow ids in the current cross-execution call chain, used for cycle
+   * detection across the API/MCP boundary. Attached to outgoing HTTP requests via the
+   * `X-Zelaxy-Via` header. See {@link file://./../lib/execution/call-chain.ts}.
+   */
+  callChain?: string[]
   blockStates: Map<string, BlockState>
   blockLogs: BlockLog[] // Chronological log of block executions
   metadata: ExecutionMetadata // Timing metadata for the execution

@@ -858,6 +858,7 @@ export class AgentBlockHandler implements BlockHandler {
             _context: {
               workflowId: context.workflowId,
               workspaceId: context.workspaceId,
+              callChain: context.callChain,
             },
           },
           false, // skipProxy

@@ -1,4 +1,5 @@
 import { generateInternalToken } from '@/lib/auth/internal'
+import { buildNextCallChain, validateCallChain } from '@/lib/execution/call-chain'
 import { createLogger } from '@/lib/logs/console/logger'
 import { getBaseUrl } from '@/lib/urls/utils'
 import type { BlockOutput } from '@/blocks/types'
@@ -52,6 +53,16 @@ export class WorkflowBlockHandler implements BlockHandler {
         throw new Error(`Cyclic workflow dependency detected: ${executionId}`)
       }
 
+      // Cross-execution guard: extend the call chain and reject if it exceeds the depth cap. The
+      // `_sub_` depth counter above only sees this single execution's nesting; the call chain carries
+      // across the API/MCP boundary so a workflow reached via a fetch (rather than inline) still
+      // counts, catching A->B->A cycles that resolve to fresh top-level runs.
+      const childCallChain = buildNextCallChain(context.callChain || [], workflowId)
+      const callChainError = validateCallChain(childCallChain)
+      if (callChainError) {
+        throw new Error(callChainError)
+      }
+
       // Add current execution to stack
       WorkflowBlockHandler.executionStack.add(executionId)
 
@@ -98,6 +109,7 @@ export class WorkflowBlockHandler implements BlockHandler {
         workflowVariables: childWorkflow.variables || {},
         contextExtensions: {
           isChildExecution: true, // Prevent child executor from managing global state
+          callChain: childCallChain, // Carry the cross-execution cycle guard into the child
         },
       })
 

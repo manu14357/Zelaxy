@@ -6,8 +6,6 @@ import { EvaluatorBlockHandler } from '@/executor/handlers/evaluator/evaluator-h
 import { FunctionBlockHandler } from '@/executor/handlers/function/function-handler'
 import { GenericBlockHandler } from '@/executor/handlers/generic/generic-handler'
 import { HumanInTheLoopBlockHandler } from '@/executor/handlers/human-in-the-loop/human-in-the-loop-handler'
-import { LoopBlockHandler } from '@/executor/handlers/loop/loop-handler'
-import { ParallelBlockHandler } from '@/executor/handlers/parallel/parallel-handler'
 import { ResponseBlockHandler } from '@/executor/handlers/response/response-handler'
 import { RouterBlockHandler } from '@/executor/handlers/router/router-handler'
 import { SwitchBlockHandler } from '@/executor/handlers/switch/switch-handler'
@@ -27,9 +25,7 @@ export {
   FunctionBlockHandler,
   GenericBlockHandler,
   HumanInTheLoopBlockHandler,
-  LoopBlockHandler,
   ZelaxyArenaBlockHandler,
-  ParallelBlockHandler,
   ResponseBlockHandler,
   RouterBlockHandler,
   SwitchBlockHandler,

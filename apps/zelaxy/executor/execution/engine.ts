@@ -1,7 +1,7 @@
-import { serializeContext } from '@/lib/execution/context-serializer'
+import { serializeContext, unsupportedPauseReason } from '@/lib/execution/context-serializer'
 import { createLogger } from '@/lib/logs/console/logger'
 import { BlockType, EDGE } from '@/executor/consts'
-import type { DAG } from '@/executor/dag/builder'
+import type { DAG, DAGNode } from '@/executor/dag/builder'
 import type { EdgeManager } from '@/executor/execution/edge-manager'
 import type { NodeExecutionOrchestrator } from '@/executor/orchestrators/node'
 import type {
@@ -235,6 +235,16 @@ export class ExecutionEngine {
     // A human-in-the-loop or async-wait block halts the run: record the pause and stop scheduling
     // downstream nodes so the caller can persist the snapshot and resume later.
     if (output._pauseMetadata && (output as any).status === 'waiting') {
+      // ...but a pause taken INSIDE an active loop or parallel cannot yet be faithfully resumed
+      // (resumeFromPause re-seeds only the paused block's own downstream, losing the loop
+      // continuation frontier and sibling parallel branches). Fail loud rather than persist a
+      // snapshot that would resume in a wrong state with no error.
+      const unsupported = this.pauseInSubflowReason(node) ?? unsupportedPauseReason(this.context)
+      if (unsupported) {
+        this.errorFlag = true
+        this.executionError = new Error(unsupported)
+        return
+      }
       this.pausedMeta = output._pauseMetadata as PauseMetadata
       return
     }
@@ -276,6 +286,23 @@ export class ExecutionEngine {
 
     const readyNodes = this.edgeManager.processOutgoingEdges(node, output, false)
     this.addMultipleToQueue(readyNodes)
+  }
+
+  /**
+   * Reason a pause at this node cannot yet be safely persisted, or null if it can. A pause is only
+   * durably resumable on a linear path today: the node's DAG metadata is the authoritative signal
+   * for whether it sits inside a loop or parallel subflow on this execution path (context loop/
+   * parallel maps are populated by the legacy managers and may be empty here).
+   */
+  private pauseInSubflowReason(node: DAGNode): string | null {
+    const m = node.metadata
+    if (m.isParallelBranch || m.parallelId) {
+      return 'Pausing (human-in-the-loop or async wait) inside a parallel block is not yet supported'
+    }
+    if (m.isLoopNode || m.loopId) {
+      return 'Pausing (human-in-the-loop or async wait) inside a loop block is not yet supported'
+    }
+    return null
   }
 
   private isUnhandledError(

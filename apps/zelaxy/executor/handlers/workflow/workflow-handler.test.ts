@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
+import { MAX_CALL_CHAIN_DEPTH } from '@/lib/execution/call-chain'
 import { BlockType } from '@/executor/consts'
 import { WorkflowBlockHandler } from '@/executor/handlers/workflow/workflow-handler'
 import type { ExecutionContext } from '@/executor/types'
@@ -249,6 +250,39 @@ describe('WorkflowBlockHandler', () => {
         childWorkflowName: 'Child Workflow',
         result: { nested: 'data' },
       })
+    })
+  })
+
+  describe('cross-execution call chain', () => {
+    it('rejects a nested workflow when the incoming call chain is at the depth cap', async () => {
+      // A chain already at the max depth (e.g. A->B->A->... bouncing across the API boundary) must
+      // be rejected before the child is loaded or executed — the in-process _sub_ depth counter
+      // resets per top-level run and cannot see it.
+      mockContext.callChain = new Array(MAX_CALL_CHAIN_DEPTH).fill('wf')
+
+      await expect(
+        handler.execute(mockBlock, { workflowId: 'child-workflow-id' }, mockContext)
+      ).rejects.toThrow(String(MAX_CALL_CHAIN_DEPTH))
+
+      // The guard fires before the child workflow is fetched.
+      expect(mockFetch).not.toHaveBeenCalled()
+    })
+
+    it('does not apply the call-chain guard when the chain is below the cap', async () => {
+      // A short chain must pass the guard. Whatever the child does on the mock afterwards (the other
+      // execute tests all drive error paths), the failure must never be the depth-cap guard.
+      mockContext.callChain = ['grandparent', 'parent-workflow-id']
+
+      let error: unknown
+      try {
+        await handler.execute(mockBlock, { workflowId: 'child-workflow-id' }, mockContext)
+      } catch (e) {
+        error = e
+      }
+
+      if (error) {
+        expect(String((error as Error).message)).not.toContain(String(MAX_CALL_CHAIN_DEPTH))
+      }
     })
   })
 })
