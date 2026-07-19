@@ -1,0 +1,97 @@
+---
+title: Zep Block
+description: Long-term agent memory
+icon: Box
+---
+
+# Zep Block
+
+The Zep block gives your AI agents long-term memory using [Zep](https://www.getzep.com). Create users and threads, add and read messages, list threads, and retrieve the synthesized memory context block that keeps agents grounded across workflow executions.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `zep` |
+| **Category** | tools |
+| **Color** | `#0E9F6E` |
+
+## When to Use
+
+- Persist conversation history on a thread so an agent remembers prior turns across runs
+- Create users and scope memory (threads, messages, facts) to a specific user ID
+- Retrieve a compact, prompt-ready memory context block instead of replaying every message
+- List a user's threads or all threads to build memory-management or admin flows
+- Clean up stale conversations by deleting threads and their messages
+
+## Configuration
+
+### Operation
+
+Dropdown that selects which action to perform. Defaults to `add_messages`.
+
+| Label | ID |
+|-------|----|
+| Add Messages | `add_messages` |
+| Get Messages | `get_messages` |
+| Get Context | `get_context` |
+| Create Thread | `create_thread` |
+| Delete Thread | `delete_thread` |
+| Get Threads | `get_threads` |
+| Add User | `add_user` |
+| Get User | `get_user` |
+| Get User Threads | `get_user_threads` |
+
+### Thread ID
+
+Required for `add_messages`, `get_messages`, `get_context`, `create_thread`, and `delete_thread`. Identifies the conversation thread.
+
+### User ID
+
+Required for `create_thread`, `add_user`, `get_user`, and `get_user_threads`. Scopes memory to a specific user.
+
+### Messages
+
+Shown only when `operation` is `add_messages`. Required. A non-empty JSON array of message objects, each with `role` and `content` (e.g. `[{"role": "user", "content": "Hi, my name is Ada"}]`).
+
+### Email / First Name / Last Name / Metadata
+
+Shown only when `operation` is `add_user`. All optional. Metadata is arbitrary JSON attached to the user.
+
+### Message Limit
+
+Shown only when `operation` is `get_messages`. Optional. Caps the number of messages returned.
+
+### Minimum Fact Rating
+
+Shown only when `operation` is `get_context`. Optional. Filters out facts below the given confidence rating (0–1).
+
+### Page Number / Page Size
+
+Shown only when `operation` is `get_threads`. Optional pagination controls for listing threads.
+
+### API Key
+
+Required for all operations. Your Zep API key, entered as a password field. Also available as the `ZEP_API_KEY` environment variable.
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | Whether a mutating operation succeeded |
+| `messages` | `json` | Messages returned by the API |
+| `context` | `string` | Synthesized memory context block |
+| `thread` | `json` | Thread object |
+| `threads` | `json` | List of threads |
+| `user` | `json` | User object |
+| `total_count` | `number` | Total count for list operations |
+| `row_count` | `number` | Number of rows returned |
+
+## Example
+
+**Workflow:**
+```
+[Starter] → [Zep: Get Context] → [Agent: Reply with memory] → [Zep: Add Messages]
+```
+
+Pull the memory context for a thread, let an Agent respond with that context in its prompt, then write the new turn back to the thread so the memory stays current.

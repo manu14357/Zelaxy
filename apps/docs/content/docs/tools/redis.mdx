@@ -1,0 +1,93 @@
+---
+title: Redis
+description: Cache and manipulate Redis data structures — strings, hashes, and lists
+icon: Database
+---
+
+# Redis
+
+Connect to a Redis server to read and write strings, hashes, and lists, manage key expiration, run counters, and execute arbitrary commands. Commands run through a secure internal route that opens a single `ioredis` connection per request.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `redis` |
+| **Category** | Tool — Database / Cache |
+| **Auth** | Password / ACL username (optional), TLS |
+
+## Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Get** | Get the value of a string key |
+| **Set** | Set the string value of a key |
+| **Set If Not Exists (SETNX)** | Set a key only if it does not already exist |
+| **Delete** | Delete a key |
+| **Exists** | Check whether a key exists |
+| **Expire** | Set a key to expire after N seconds |
+| **TTL** | Get the remaining time-to-live of a key |
+| **Persist** | Remove a key's expiration |
+| **Increment (INCR)** | Increment an integer key by one |
+| **Increment By (INCRBY)** | Increment an integer key by an amount |
+| **Keys** | Find keys matching a glob pattern |
+| **Hash Get (HGET)** | Get a field's value in a hash |
+| **Hash Set (HSET)** | Set a field's value in a hash |
+| **Hash Delete (HDEL)** | Delete a field from a hash |
+| **Hash Get All (HGETALL)** | Get all fields and values of a hash |
+| **List Length (LLEN)** | Get the length of a list |
+| **List Push Left (LPUSH)** | Prepend a value to a list |
+| **List Push Right (RPUSH)** | Append a value to a list |
+| **List Pop Left (LPOP)** | Remove and return the first list element |
+| **List Pop Right (RPOP)** | Remove and return the last list element |
+| **List Range (LRANGE)** | Get a range of elements from a list |
+| **Raw Command** | Run an arbitrary Redis command with arguments |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Host | Short input | Redis host or IP address |
+| Port | Short input | Redis port (default: 6379) |
+| Username | Short input | Redis ACL username (Redis 6+, optional) |
+| Password | Password | Redis password (optional) |
+| Database Index | Short input | Redis database index (default: 0) |
+| Enable TLS | Switch | Use a TLS/SSL encrypted connection |
+| Operation | Dropdown | Which Redis operation to run |
+| Key | Short input | Target key (most operations) |
+| Pattern | Short input | Glob pattern for KEYS |
+| Field | Short input | Hash field name (HGET/HSET/HDEL) |
+| Value | Long input | Value to store (SET/SETNX/HSET/LPUSH/RPUSH) |
+| Seconds | Short input | TTL in seconds (EXPIRE) |
+| Increment | Short input | Amount for INCRBY |
+| Start / Stop | Short input | Index bounds for LRANGE |
+| Command | Short input | Command name for Raw Command |
+| Arguments | Code (JSON) | Argument array for Raw Command |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `result` | `json` | The reply returned by the Redis command |
+| `error` | `string` | Error message if the command failed |
+
+## YAML Example
+
+```yaml
+- type: redis
+  name: Cache lookup
+  inputs:
+    host: '{{ENV_REDIS_HOST}}'
+    port: 6379
+    password: '{{ENV_REDIS_PASSWORD}}'
+    db: 0
+    tls: true
+    operation: get
+    key: 'session:{{start.userId}}'
+```
+
+## Tips
+
+- **Raw Command** covers anything not exposed as a dedicated operation (sets, sorted sets, `GETRANGE`, etc.) — supply the command name plus a JSON array of arguments.
+- **TLS** is required by most managed Redis providers (Upstash, AWS ElastiCache in-transit encryption, Redis Cloud).
+- Store `host`, `password`, and other secrets as environment variables and reference them with `{{ENV_VAR}}`.

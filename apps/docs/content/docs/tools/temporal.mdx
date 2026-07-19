@@ -1,0 +1,91 @@
+---
+title: Temporal
+description: Durable workflow orchestration via the Temporal server REST HTTP API
+icon: Clock
+---
+
+# Temporal
+
+Orchestrate durable, long-running workflows with [Temporal](https://temporal.io). These tools call the Temporal server's REST HTTP API directly at `{serverUrl}/api/v1/...` using your namespace and (optional) API key. They are **not** the `@temporalio` SDK and **not** a proxy — every operation is a plain HTTP request against the JSON-over-HTTP mapping of `WorkflowService`.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `temporal` |
+| **Category** | Tool — Orchestration |
+| **Auth** | Bearer API key (Temporal Cloud) or none (self-hosted) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Start Workflow** | `temporal_start_workflow` | Start a new workflow execution on a task queue |
+| **Signal Workflow** | `temporal_signal_workflow` | Send a signal to a running execution |
+| **Signal With Start** | `temporal_signal_with_start_workflow` | Signal, starting the workflow if not running |
+| **Query Workflow** | `temporal_query_workflow` | Run a synchronous query handler |
+| **Describe Workflow** | `temporal_describe_workflow` | Fetch execution status and details |
+| **List Workflows** | `temporal_list_workflows` | List executions with a List Filter query |
+| **Count Workflows** | `temporal_count_workflows` | Count executions matching a query |
+| **Terminate Workflow** | `temporal_terminate_workflow` | Forcefully terminate an execution |
+| **Cancel Workflow** | `temporal_cancel_workflow` | Request graceful cancellation |
+| **Reset Workflow** | `temporal_reset_workflow` | Reset an execution to an earlier event |
+| **Get Workflow History** | `temporal_get_workflow_history` | Retrieve the event history |
+| **Create Schedule** | `temporal_create_schedule` | Create a schedule that starts a workflow |
+| **Describe Schedule** | `temporal_describe_schedule` | Fetch a schedule's config and state |
+| **Update Schedule** | `temporal_update_schedule` | Replace a schedule definition |
+| **Delete Schedule** | `temporal_delete_schedule` | Delete a schedule |
+| **List Schedules** | `temporal_list_schedules` | List schedules in a namespace |
+| **Trigger Schedule** | `temporal_trigger_schedule` | Take one scheduled action immediately |
+| **Pause Schedule** | `temporal_pause_schedule` | Pause a schedule |
+| **Unpause Schedule** | `temporal_unpause_schedule` | Resume a paused schedule |
+| **Describe Namespace** | `temporal_describe_namespace` | Fetch namespace config and status |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Server URL | Short input | Temporal server base URL (e.g. `https://your-namespace.tmprl.cloud`) |
+| Namespace | Short input | Temporal namespace |
+| API Key | Password | Bearer token for Temporal Cloud (optional for self-hosted) |
+| Workflow ID | Short input | Business identifier for the execution |
+| Workflow Type | Short input | Registered workflow name (start / signal-with-start) |
+| Task Queue | Short input | Task queue the workflow runs on |
+| Signal / Query | Short input | Signal name or query type |
+| Input (JSON) | Code | Arguments — an array is treated as positional args |
+| List Filter Query | Long input | SQL-like filter for list / count operations |
+| Schedule ID | Short input | Identifier for schedule operations |
+| Cron Expression | Short input | Cron spec used when creating a schedule |
+
+## Payload Encoding
+
+Workflow, signal, and query arguments are encoded as Temporal `Payloads`: each argument is JSON-serialized, base64-encoded, and tagged with the `json/plain` encoding. Provide an **array** to pass multiple positional arguments, or any other JSON value for a single argument. Results returned from queries are decoded back into plain JSON.
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `runId` | `string` | Run ID of a started execution |
+| `workflowId` | `string` | Workflow ID |
+| `result` | `json` | Decoded query result |
+| `status` | `string` | Execution status (RUNNING, COMPLETED, …) |
+| `executions` | `json` | Listed workflow executions |
+| `events` | `json` | Workflow history events |
+| `schedules` | `json` | Listed schedules |
+| `count` | `number` | Count of matching items |
+| `nextPageToken` | `string` | Pagination token |
+
+## Example: Approval Workflow
+
+**Workflow:**
+```
+[Starter] → [Temporal: Start Workflow] → [Human-in-the-Loop] → [Temporal: Signal Workflow]
+```
+
+Start a durable approval workflow, wait for a human decision, then signal the running workflow with the approval result so it can continue.
+
+## Tips
+
+- **Self-hosted** clusters usually need no API key — leave it blank. **Temporal Cloud** requires a Bearer API key.
+- **List Filter queries** use Temporal's SQL-like syntax, e.g. `WorkflowType = "OrderWorkflow" AND ExecutionStatus = "Running"`.
+- **Signal With Start** is idempotent for the workflow ID — ideal for "ensure running, then nudge" patterns.

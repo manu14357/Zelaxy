@@ -1,0 +1,70 @@
+---
+title: Redis Block
+description: Cache and manipulate Redis data structures
+icon: Database
+---
+
+# Redis Block
+
+The Redis block connects your workflow to a Redis server so you can cache values, manage counters, and work with hashes and lists. Reach for it when you need fast key/value storage, rate-limit counters, session caching, or simple queues alongside your automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `redis` |
+| **Category** | tools |
+| **Color** | `#DC382D` |
+
+## When to Use
+
+- Cache expensive results and read them back on later runs.
+- Maintain counters (`INCR` / `INCRBY`) for rate limiting or metrics.
+- Store and fetch structured data with hashes (`HSET` / `HGET` / `HGETALL`).
+- Use lists as lightweight queues (`LPUSH` / `RPOP` / `LRANGE`).
+- Set and inspect key expiration (`EXPIRE`, `TTL`, `PERSIST`).
+- Run any other Redis command through the Raw Command operation.
+
+## Configuration
+
+### Connection
+
+- **Host** — Redis host or IP address (required).
+- **Port** — Redis port, defaults to `6379`.
+- **Username** — ACL username for Redis 6+ (optional).
+- **Password** — Redis password, stored as a secret (optional).
+- **Database Index** — Which Redis logical database to use, defaults to `0`.
+- **Enable TLS** — Toggle a TLS/SSL encrypted connection (required by most managed providers).
+
+### Operation
+
+A dropdown selecting which command to run. The block reveals only the fields relevant to the chosen operation:
+
+- **Key** — for the string, hash, and list operations that target a single key.
+- **Pattern** — for `Keys` (glob match).
+- **Field** — for `HGET`, `HSET`, `HDEL`.
+- **Value** — for `SET`, `SETNX`, `HSET`, `LPUSH`, `RPUSH`.
+- **Seconds** — for `EXPIRE`.
+- **Increment** — for `INCRBY`.
+- **Start / Stop** — for `LRANGE`.
+- **Command / Arguments** — for Raw Command (a command name plus a JSON array of arguments).
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `host` (string) — Redis host or IP
+  - `port` (number) — Redis port
+  - `username` (string) — ACL username
+  - `password` (string) — Redis password
+  - `db` (number) — Database index
+  - `tls` (boolean) — Enable TLS
+  - `operation` (string) — Operation to perform
+  - `key` / `pattern` / `field` / `value` / `seconds` / `increment` / `start` / `stop` / `command` / `arguments` — operation-specific parameters
+
+- **Outputs**:
+  - `result` (json) — The reply returned by the Redis command
+  - `error` (string) — Error message if the command failed
+
+## How It Works
+
+Redis is not an HTTP service, so the block's tools POST to an internal Zelaxy route (`/api/tools/redis/execute`). That route opens a single `ioredis` connection per request, runs the requested command, returns the result, and closes the connection — no persistent pool is kept between runs.

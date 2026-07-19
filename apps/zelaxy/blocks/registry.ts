@@ -180,6 +180,9 @@ import { ParallelBlock } from '@/blocks/blocks/parallel'
 import { PeopleDataLabsBlock } from '@/blocks/blocks/peopledatalabs'
 import { ParallelAiBlock } from '@/blocks/blocks/parallel_ai'
 import { PerplexityBlock } from '@/blocks/blocks/perplexity'
+import { RedisBlock } from '@/blocks/blocks/redis'
+import { TemporalBlock } from '@/blocks/blocks/temporal'
+import { ZepBlock } from '@/blocks/blocks/zep'
 import { PersonaBlock } from '@/blocks/blocks/persona'
 import { PineconeBlock } from '@/blocks/blocks/pinecone'
 import { PipedriveBlock } from '@/blocks/blocks/pipedrive'
@@ -329,6 +332,9 @@ export const registry: Record<string, BlockConfig> = {
   parallel_ai: ParallelAiBlock,
   perplexity: PerplexityBlock,
   pinecone: PineconeBlock,
+  redis: RedisBlock,
+  temporal: TemporalBlock,
+  zep: ZepBlock,
   postgresql: PostgreSQLBlock,
   qdrant: QdrantBlock,
   memory: MemoryBlock,

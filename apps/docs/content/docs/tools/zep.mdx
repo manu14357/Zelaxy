@@ -1,0 +1,83 @@
+---
+title: Zep
+description: Long-term agent memory — threads, users, messages, and context
+icon: Box
+---
+
+# Zep
+
+Give your AI agents durable memory with [Zep](https://www.getzep.com). Zep stores conversation messages on threads, links them to users, and synthesizes a compact memory context block you can feed straight back into a prompt. Zelaxy calls the Zep Cloud API (`api.getzep.com`) directly using your API key.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `zep` |
+| **Category** | Tool — Memory |
+| **Auth** | API Key (`Authorization: Api-Key <key>`) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Add Messages** | `zep_add_messages` | Append messages to a thread |
+| **Get Messages** | `zep_get_messages` | Read messages from a thread |
+| **Get Context** | `zep_get_context` | Fetch the synthesized memory context block |
+| **Create Thread** | `zep_create_thread` | Create a thread tied to a user |
+| **Delete Thread** | `zep_delete_thread` | Delete a thread and its messages |
+| **Get Threads** | `zep_get_threads` | List all threads (paginated) |
+| **Add User** | `zep_add_user` | Create a user |
+| **Get User** | `zep_get_user` | Retrieve a user by ID |
+| **Get User Threads** | `zep_get_user_threads` | List threads for a user |
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| API Key | Password | Your Zep API key (also available as `ZEP_API_KEY`) |
+| Thread ID | Short input | Thread identifier (add/get messages, context, create/delete thread) |
+| User ID | Short input | User identifier (create thread, add/get user, user threads) |
+| Messages | Code (JSON) | Array of `{ role, content }` message objects (add messages) |
+| Email / First Name / Last Name | Short input | Optional user fields (add user) |
+| Metadata | Code (JSON) | Optional user metadata (add user) |
+| Message Limit | Slider | Max messages to return (get messages) |
+| Minimum Fact Rating | Slider | Filter low-confidence facts from context (get context) |
+| Page Number / Page Size | Short input | Pagination for thread listing (get threads) |
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | Whether a mutating operation succeeded |
+| `messages` | `json` | Messages returned by the API |
+| `context` | `string` | Synthesized memory context block |
+| `thread` | `json` | Thread object |
+| `threads` | `json` | List of threads |
+| `user` | `json` | User object |
+| `total_count` | `number` | Total count for list operations |
+| `row_count` | `number` | Number of rows returned |
+
+## YAML Example
+
+```yaml
+- type: zep
+  name: Remember conversation
+  inputs:
+    operation: add_messages
+    threadId: thread-ada-001
+    messages: '[{"role": "user", "content": "My favorite language is Rust"}]'
+    apiKey: '{{ZEP_API_KEY}}'
+
+- type: zep
+  name: Recall context
+  inputs:
+    operation: get_context
+    threadId: thread-ada-001
+    apiKey: '{{ZEP_API_KEY}}'
+```
+
+## Tips
+
+- **Create the user and thread first** — `add_user` then `create_thread` establish the memory scope before you add messages.
+- **Feed `context` into an Agent** — the context block is prompt-ready and far cheaper than replaying every message.
+- **Minimum fact rating** filters out low-confidence facts when retrieving context.

@@ -1,0 +1,93 @@
+---
+title: Temporal Block
+description: Orchestrate durable Temporal workflows and schedules
+icon: Box
+---
+
+# Temporal Block
+
+The Temporal block brings durable execution to your workflows. Start, signal, query, describe, list, terminate, cancel and reset workflow executions, and manage Temporal schedules — all through the Temporal server's REST HTTP API using your namespace and connection details.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `temporal` |
+| **Category** | tools |
+| **Color** | `#141414` |
+
+## When to Use
+
+- Kick off a long-running, durable workflow and hand it work to do reliably.
+- Signal a running workflow with human decisions or external events.
+- Query live workflow state synchronously without waiting for completion.
+- Inspect, list, or count executions for monitoring and dashboards.
+- Terminate, cancel, or reset executions during incident response.
+- Create and manage schedules (cron-style) that periodically launch workflows.
+
+## Configuration
+
+### Operation
+
+Dropdown selecting which Temporal operation to run — workflow lifecycle (start, signal, query, describe, list, count, terminate, cancel, reset, history), schedule management (create, describe, update, delete, list, trigger, pause, unpause), or describe namespace.
+
+### Connection
+
+- **Server URL** — the Temporal server base URL (e.g. `https://your-namespace.tmprl.cloud`). Required.
+- **Namespace** — the Temporal namespace. Required.
+- **API Key** — Bearer token for Temporal Cloud; optional for self-hosted clusters. Stored as a secret.
+
+### Workflow fields
+
+`Workflow ID`, `Run ID`, `Workflow Type`, `Task Queue`, `Signal Name`, `Query Type`, and `Input (JSON)` appear based on the chosen operation. `Input` accepts a JSON array of positional arguments (or any JSON value for a single argument).
+
+### Schedule fields
+
+`Schedule ID`, `Cron Expression`, and `Schedule (JSON)` drive schedule operations. Creating a schedule can be done with the convenience fields (cron + workflow type/task queue/input) or by supplying a full `Schedule (JSON)` object.
+
+## Inputs & Outputs
+
+- **Inputs**:
+  - `operation` (string) — Operation to perform
+  - `serverUrl` (string) — Temporal server base URL
+  - `namespace` (string) — Temporal namespace
+  - `apiKey` (string) — Temporal API key
+  - `workflowId` / `runId` / `workflowType` / `taskQueue` (string)
+  - `signalName` / `queryType` (string) — Signal or query name
+  - `input` (json) — Workflow/signal/query arguments
+  - `query` (string) — List Filter query for list/count
+  - `scheduleId` / `cronExpression` (string) — Schedule fields
+  - `schedule` (json) — Full Schedule object
+- **Outputs**:
+  - `runId` / `workflowId` (string) — Execution identifiers
+  - `result` (json) — Decoded query result
+  - `status` (string) — Execution status
+  - `executions` / `events` / `schedules` (json) — Listed data
+  - `count` (number) — Count of matching items
+  - `nextPageToken` (string) — Pagination token
+
+## Tools
+
+The block routes to one tool per operation, each targeting the Temporal REST HTTP API:
+
+**Start Workflow** (`temporal_start_workflow`), **Signal Workflow** (`temporal_signal_workflow`), **Signal With Start** (`temporal_signal_with_start_workflow`), **Query Workflow** (`temporal_query_workflow`), **Describe Workflow** (`temporal_describe_workflow`), **List Workflows** (`temporal_list_workflows`), **Count Workflows** (`temporal_count_workflows`), **Terminate Workflow** (`temporal_terminate_workflow`), **Cancel Workflow** (`temporal_cancel_workflow`), **Reset Workflow** (`temporal_reset_workflow`), **Get Workflow History** (`temporal_get_workflow_history`), **Create Schedule** (`temporal_create_schedule`), **Describe Schedule** (`temporal_describe_schedule`), **Update Schedule** (`temporal_update_schedule`), **Delete Schedule** (`temporal_delete_schedule`), **List Schedules** (`temporal_list_schedules`), **Trigger Schedule** (`temporal_trigger_schedule`), **Pause Schedule** (`temporal_pause_schedule`), **Unpause Schedule** (`temporal_unpause_schedule`), **Describe Namespace** (`temporal_describe_namespace`).
+
+## YAML Example
+
+```yaml
+temporal_1:
+  type: temporal
+  name: "Temporal"
+  inputs:
+    operation: "temporal_start_workflow"
+    serverUrl: "https://your-namespace.tmprl.cloud"
+    namespace: "default"
+    apiKey: "{{TEMPORAL_API_KEY}}"
+    workflowId: "order-12345"
+    workflowType: "OrderWorkflow"
+    taskQueue: "orders"
+    input: '[{ "orderId": "12345" }]'
+  connections:
+    outgoing:
+      - target: next-block-id
+```
