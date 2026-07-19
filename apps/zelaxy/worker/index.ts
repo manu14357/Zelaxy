@@ -14,7 +14,8 @@
 
 import { type Job, Worker } from 'bullmq'
 import Redis from 'ioredis'
-import { QUEUE_NAME } from '@/lib/bullmq/queues'
+import { getWebhookConcurrency, getWorkflowConcurrency } from '@/lib/bullmq/concurrency'
+import { WEBHOOK_QUEUE_NAME, WORKFLOW_QUEUE_NAME } from '@/lib/bullmq/queues'
 import {
   JOB_NAMES,
   type WebhookExecutionPayload,
@@ -24,7 +25,10 @@ import { processWebhookExecution, processWorkflowExecution } from './processor'
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
-const CONCURRENCY = Number.parseInt(process.env.WORKER_CONCURRENCY || '5', 10)
+// Per-queue concurrency. With no per-type env vars set, both fall back to the
+// legacy WORKER_CONCURRENCY (default 5) — i.e. unchanged behaviour.
+const WORKFLOW_CONCURRENCY = getWorkflowConcurrency()
+const WEBHOOK_CONCURRENCY = getWebhookConcurrency()
 const MAX_STALLED_COUNT = 2
 const STALL_INTERVAL = 30_000 // 30s
 const LOCK_DURATION = 180_000 // 3 minutes — matches former Trigger.dev maxDuration
@@ -80,53 +84,70 @@ async function processJob(job: Job): Promise<any> {
 
 // ─── Worker Setup ────────────────────────────────────────────────────────────
 
+// Both Workers share one Redis connection (BullMQ allows this) and run the same
+// job router. Each is bound to its own queue with its own concurrency, which is
+// how per-job-type concurrency is achieved on BullMQ OSS.
 const connection = createWorkerConnection()
 
-const worker = new Worker(QUEUE_NAME, processJob, {
-  connection,
-  concurrency: CONCURRENCY,
-  maxStalledCount: MAX_STALLED_COUNT,
-  stalledInterval: STALL_INTERVAL,
-  lockDuration: LOCK_DURATION,
-  // Rate limiting (optional — uncomment to limit throughput)
-  // limiter: { max: 10, duration: 1_000 },
-})
+function createQueueWorker(queueName: string, concurrency: number): Worker {
+  return new Worker(queueName, processJob, {
+    connection,
+    concurrency,
+    maxStalledCount: MAX_STALLED_COUNT,
+    stalledInterval: STALL_INTERVAL,
+    lockDuration: LOCK_DURATION,
+    // Rate limiting (optional — uncomment to limit throughput)
+    // limiter: { max: 10, duration: 1_000 },
+  })
+}
+
+const workflowWorker = createQueueWorker(WORKFLOW_QUEUE_NAME, WORKFLOW_CONCURRENCY)
+const webhookWorker = createQueueWorker(WEBHOOK_QUEUE_NAME, WEBHOOK_CONCURRENCY)
+
+const workers: { worker: Worker; queueName: string; concurrency: number }[] = [
+  { worker: workflowWorker, queueName: WORKFLOW_QUEUE_NAME, concurrency: WORKFLOW_CONCURRENCY },
+  { worker: webhookWorker, queueName: WEBHOOK_QUEUE_NAME, concurrency: WEBHOOK_CONCURRENCY },
+]
 
 // ─── Worker Events ───────────────────────────────────────────────────────────
 
-worker.on('ready', () => {
-  log('info', `Worker ready — listening on queue "${QUEUE_NAME}" with concurrency ${CONCURRENCY}`)
-})
-
-worker.on('active', (job) => {
-  log('info', `Job ${job.id} active`, { name: job.name })
-})
-
-worker.on('completed', (job, result) => {
-  log('info', `Job ${job.id} completed`, {
-    name: job.name,
-    success: result?.success,
-    workflowId: result?.workflowId,
-    duration:
-      job.finishedOn && job.processedOn ? `${job.finishedOn - job.processedOn}ms` : undefined,
+for (const { worker, queueName, concurrency } of workers) {
+  worker.on('ready', () => {
+    log('info', `Worker ready — listening on queue "${queueName}" with concurrency ${concurrency}`)
   })
-})
 
-worker.on('failed', (job, err) => {
-  log('error', `Job ${job?.id} failed`, {
-    name: job?.name,
-    error: err.message,
-    attempt: job?.attemptsMade,
+  worker.on('active', (job) => {
+    log('info', `Job ${job.id} active`, { name: job.name, queue: queueName })
   })
-})
 
-worker.on('stalled', (jobId) => {
-  log('warn', `Job ${jobId} stalled`)
-})
+  worker.on('completed', (job, result) => {
+    log('info', `Job ${job.id} completed`, {
+      name: job.name,
+      queue: queueName,
+      success: result?.success,
+      workflowId: result?.workflowId,
+      duration:
+        job.finishedOn && job.processedOn ? `${job.finishedOn - job.processedOn}ms` : undefined,
+    })
+  })
 
-worker.on('error', (err) => {
-  log('error', 'Worker error', { error: err.message })
-})
+  worker.on('failed', (job, err) => {
+    log('error', `Job ${job?.id} failed`, {
+      name: job?.name,
+      queue: queueName,
+      error: err.message,
+      attempt: job?.attemptsMade,
+    })
+  })
+
+  worker.on('stalled', (jobId) => {
+    log('warn', `Job ${jobId} stalled`, { queue: queueName })
+  })
+
+  worker.on('error', (err) => {
+    log('error', 'Worker error', { queue: queueName, error: err.message })
+  })
+}
 
 // ─── Graceful Shutdown ───────────────────────────────────────────────────────
 
@@ -139,9 +160,9 @@ async function shutdown(signal: string) {
   log('info', `Received ${signal} — starting graceful shutdown...`)
 
   try {
-    // Close worker first (waits for in-flight jobs to complete)
-    await worker.close()
-    log('info', 'Worker closed — all in-flight jobs completed')
+    // Close workers first (each waits for its in-flight jobs to complete)
+    await Promise.all(workers.map(({ worker }) => worker.close()))
+    log('info', 'Workers closed — all in-flight jobs completed')
 
     // Close Redis connection
     await connection.quit()
@@ -159,8 +180,10 @@ process.on('SIGINT', () => shutdown('SIGINT'))
 // ─── Keep Process Alive ──────────────────────────────────────────────────────
 
 log('info', 'BullMQ worker starting...', {
-  queue: QUEUE_NAME,
-  concurrency: CONCURRENCY,
+  queues: {
+    [WORKFLOW_QUEUE_NAME]: WORKFLOW_CONCURRENCY,
+    [WEBHOOK_QUEUE_NAME]: WEBHOOK_CONCURRENCY,
+  },
   lockDuration: `${LOCK_DURATION / 1000}s`,
   redisUrl: process.env.REDIS_URL?.replace(/\/\/.*@/, '//***@') || 'not set',
 })

@@ -1,5 +1,5 @@
 import { Job } from 'bullmq'
-import { getLLMQueue } from './queues'
+import { getWebhookQueue, getWorkflowQueue } from './queues'
 import {
   JOB_NAMES,
   type JobStatus,
@@ -8,13 +8,13 @@ import {
 } from './types'
 
 /**
- * Add a workflow execution job to the queue.
+ * Add a workflow execution job to the workflow queue.
  * Called from Vercel API routes (fire-and-forget).
  */
 export async function addWorkflowJob(
   payload: WorkflowExecutionPayload
 ): Promise<{ jobId: string }> {
-  const queue = getLLMQueue()
+  const queue = getWorkflowQueue()
   const job = await queue.add(JOB_NAMES.WORKFLOW_EXECUTION, payload, {
     jobId: `wf-${payload.workflowId}-${Date.now()}`,
   })
@@ -22,11 +22,11 @@ export async function addWorkflowJob(
 }
 
 /**
- * Add a webhook execution job to the queue.
+ * Add a webhook execution job to the webhook queue.
  * Called from Vercel API routes (fire-and-forget).
  */
 export async function addWebhookJob(payload: WebhookExecutionPayload): Promise<{ jobId: string }> {
-  const queue = getLLMQueue()
+  const queue = getWebhookQueue()
   const job = await queue.add(JOB_NAMES.WEBHOOK_EXECUTION, payload, {
     jobId: `wh-${payload.webhookId}-${Date.now()}`,
   })
@@ -36,10 +36,16 @@ export async function addWebhookJob(payload: WebhookExecutionPayload): Promise<{
 /**
  * Get job status by ID — used by the /api/jobs/[jobId] polling endpoint.
  * Maps BullMQ internal states to the existing API response format.
+ *
+ * Jobs now live in one of two queues (workflow / webhook). The `wh-` prefix
+ * identifies webhook jobs; anything else is a workflow job. We still fall back
+ * to the other queue so old jobs enqueued before the split are still found.
  */
 export async function getJobStatus(jobId: string): Promise<JobStatus | null> {
-  const queue = getLLMQueue()
-  const job = await Job.fromId(queue, jobId)
+  const primary = jobId.startsWith('wh-') ? getWebhookQueue() : getWorkflowQueue()
+  const secondary = jobId.startsWith('wh-') ? getWorkflowQueue() : getWebhookQueue()
+
+  const job = (await Job.fromId(primary, jobId)) ?? (await Job.fromId(secondary, jobId))
 
   if (!job) return null
 

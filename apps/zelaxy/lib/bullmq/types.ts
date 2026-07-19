@@ -40,7 +40,17 @@ export interface WebhookExecutionResult {
 export type JobPayload = WorkflowExecutionPayload | WebhookExecutionPayload
 export type JobResult = WorkflowExecutionResult | WebhookExecutionResult
 
-// Job names used in the llm-jobs queue
+// BullMQ queue names. Each job type has its own queue so each can be served by
+// a Worker with its own concurrency (BullMQ OSS has no per-job-name concurrency).
+// WORKFLOW keeps the historical 'llm-jobs' name so in-flight jobs drain on deploy.
+export const QUEUE_NAMES = {
+  WORKFLOW: 'llm-jobs',
+  WEBHOOK: 'webhook-jobs',
+} as const
+
+export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES]
+
+// Job name executed on each queue.
 export const JOB_NAMES = {
   WORKFLOW_EXECUTION: 'workflow-execution',
   WEBHOOK_EXECUTION: 'webhook-execution',
