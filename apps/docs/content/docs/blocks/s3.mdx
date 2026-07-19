@@ -35,9 +35,17 @@ Your AWS Access Key ID, used to sign the request. This field is required and tre
 
 Your AWS Secret Access Key, paired with the Access Key ID to produce AWS Signature Version 4 authentication headers. Required and treated as a secret.
 
+### Operation
+
+Choose **Get Object** (default) to read an object, or **Put Object** to upload one. The remaining fields adapt to the selected operation. Get Object is the default, so existing workflows behave unchanged.
+
 ### S3 Object URL
 
-The full HTTPS URL of the S3 object in the format `https://bucket-name.s3.region.amazonaws.com/path/to/file`. The block automatically parses the bucket name, AWS region, and object key from this URL. Required.
+*(Get Object)* The full HTTPS URL of the S3 object in the format `https://bucket-name.s3.region.amazonaws.com/path/to/file`. The block automatically parses the bucket name, AWS region, and object key from this URL. Required for Get Object.
+
+### Region / Bucket / Key / Content
+
+*(Put Object)* For an upload, provide the AWS **Region**, **Bucket**, object **Key** (path), the **Content** to write, and an optional **Content Type**. The upload runs through a signed server-side request (the bytes can't be signed correctly from the client), using your Access Key / Secret Key as the credentials.
 
 ## Inputs & Outputs
 
@@ -53,6 +61,8 @@ The full HTTPS URL of the S3 object in the format `https://bucket-name.s3.region
 ## Tools
 
 **S3 Get Object** (`s3_get_object`) — Issues a signed HEAD request to Amazon S3 to verify the object exists and retrieve its metadata, then generates an AWS Signature Version 4 presigned GET URL (1-hour expiry) for downloading the object. Returns the presigned URL and a metadata object containing the file type, byte size, file name, and last-modified timestamp.
+
+**S3 Put Object** (`s3_put_object`) — Uploads content to `s3://bucket/key` via a signed server-side `PutObject` request (the tool runtime can't sign a request body directly without corrupting the bytes, so the upload goes through an internal proxy authenticated by your AWS credentials). Returns the object key and bucket on success.
 
 ## YAML Example
 
