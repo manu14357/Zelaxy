@@ -2070,3 +2070,105 @@ export const workflowExecutionPause = pgTable(
     dueIdx: index('wf_exec_pause_due_idx').on(table.status, table.resumeAt),
   })
 )
+
+// Shared credential vault
+// -----------------------------------------------------------------------------
+// A workspace-scoped store of secrets (OAuth tokens, workspace/personal env
+// values, service-account keys) that can be shared with individual members.
+// Secret material lives in `value`/`config` encrypted at rest via the same
+// AES-256-GCM helper (encryptSecret/decryptSecret in lib/utils) used for
+// environment variables — never store plaintext in these columns.
+export const credentialTypeEnum = pgEnum('credential_type', [
+  'oauth',
+  'env_workspace',
+  'env_personal',
+  'service_account',
+])
+
+export const credential = pgTable(
+  'credential',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    type: credentialTypeEnum('type').notNull(),
+    // Encrypted single secret (e.g. an env value or service-account key). Nullable
+    // because oauth credentials keep their material in `config` instead.
+    value: text('value'),
+    // Encrypted JSON blob for structured credentials (oauth token sets, extra
+    // metadata). Each string field inside is individually encrypted at write time.
+    config: jsonb('config'),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdIdx: index('credential_workspace_id_idx').on(table.workspaceId),
+    createdByIdx: index('credential_created_by_idx').on(table.createdBy),
+    typeIdx: index('credential_type_idx').on(table.type),
+    // Names are unique per workspace so create can dedupe -> 409.
+    workspaceNameUnique: uniqueIndex('credential_workspace_name_unique').on(
+      table.workspaceId,
+      table.name
+    ),
+  })
+)
+
+// Per-user sharing grants on a credential (in addition to workspace-level access).
+export const credentialMember = pgTable(
+  'credential_member',
+  {
+    id: text('id').primaryKey(),
+    credentialId: text('credential_id')
+      .notNull()
+      .references(() => credential.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    permission: permissionTypeEnum('permission').notNull().default('read'),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    credentialIdIdx: index('credential_member_credential_id_idx').on(table.credentialId),
+    userIdIdx: index('credential_member_user_id_idx').on(table.userId),
+    // A user has at most one grant per credential.
+    credentialUserUnique: uniqueIndex('credential_member_credential_user_unique').on(
+      table.credentialId,
+      table.userId
+    ),
+  })
+)
+
+// In-flight credential drafts, used to dedupe concurrent create attempts for the
+// same (workspace, name) before the row is committed to `credential`.
+export const pendingCredentialDraft = pgTable(
+  'pending_credential_draft',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    type: credentialTypeEnum('type').notNull(),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdIdx: index('pending_credential_draft_workspace_id_idx').on(table.workspaceId),
+    // One in-flight draft per (workspace, name) enforces dedupe at the DB level.
+    workspaceNameUnique: uniqueIndex('pending_credential_draft_workspace_name_unique').on(
+      table.workspaceId,
+      table.name
+    ),
+  })
+)

@@ -71,6 +71,13 @@
       "when": 1783086070133,
       "tag": "0009_sso_provider",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784457600000,
+      "tag": "0010_shared_credential_vault",
+      "breakpoints": true
     }
   ]
 }
