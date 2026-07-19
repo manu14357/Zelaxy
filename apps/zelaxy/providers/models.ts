@@ -32,6 +32,10 @@ import {
   xAIIcon,
   ZaiIcon,
 } from '@/components/icons'
+// Imported directly from their files (not the barrel) so this module stays self-contained while
+// the shared components/icons/index.ts barrel export is added by the integrator.
+import { AzureAnthropicIcon } from '@/components/icons/azure-anthropic-icon'
+import { VertexIcon } from '@/components/icons/vertex-icon'
 
 export interface ModelPricing {
   input: number // Per 1M tokens
@@ -657,6 +661,68 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
       },
     ],
   },
+  'azure-anthropic': {
+    id: 'azure-anthropic',
+    name: 'Azure Anthropic',
+    description: 'Anthropic Claude models hosted on Microsoft Azure',
+    defaultModel: 'azure/claude-sonnet-5',
+    modelPatterns: [/^azure\/claude/],
+    icon: AzureAnthropicIcon,
+    models: [
+      {
+        id: 'azure/claude-sonnet-5',
+        pricing: {
+          input: 3.0,
+          cachedInput: 1.5,
+          output: 15.0,
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'azure/claude-opus-4-8',
+        pricing: {
+          input: 5.0,
+          cachedInput: 2.5,
+          output: 25.0,
+          updatedAt: '2026-06-20',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'azure/claude-haiku-4-5',
+        pricing: {
+          input: 1.0,
+          cachedInput: 0.5,
+          output: 5.0,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'azure/claude-sonnet-4-5',
+        pricing: {
+          input: 3.0,
+          cachedInput: 1.5,
+          output: 15.0,
+          updatedAt: '2025-09-10',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 1 },
+          toolUsageControl: true,
+        },
+      },
+    ],
+  },
   google: {
     id: 'google',
     name: 'Google',
@@ -745,6 +811,68 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
       },
       {
         id: 'gemini-2.5-flash-lite',
+        pricing: {
+          input: 0.075,
+          cachedInput: 0.01875,
+          output: 0.3,
+          updatedAt: '2025-10-25',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+    ],
+  },
+  vertex: {
+    id: 'vertex',
+    name: 'Google Vertex AI',
+    description: 'Google Gemini models on Vertex AI (GCP)',
+    defaultModel: 'vertex/gemini-3.5-flash',
+    modelPatterns: [/^vertex\//],
+    icon: VertexIcon,
+    models: [
+      {
+        id: 'vertex/gemini-3.5-flash',
+        pricing: {
+          input: 1.5,
+          cachedInput: 0.15,
+          output: 9.0,
+          updatedAt: '2026-07-14',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'vertex/gemini-2.5-pro',
+        pricing: {
+          input: 0.15,
+          cachedInput: 0.075,
+          output: 0.6,
+          updatedAt: '2025-06-17',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'vertex/gemini-2.5-flash',
+        pricing: {
+          input: 0.15,
+          cachedInput: 0.075,
+          output: 0.6,
+          updatedAt: '2025-06-17',
+        },
+        capabilities: {
+          temperature: { min: 0, max: 2 },
+          toolUsageControl: true,
+        },
+      },
+      {
+        id: 'vertex/gemini-2.5-flash-lite',
         pricing: {
           input: 0.075,
           cachedInput: 0.01875,

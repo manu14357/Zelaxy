@@ -4,7 +4,9 @@ export type ProviderId =
   | 'openai'
   | 'azure-openai'
   | 'anthropic'
+  | 'azure-anthropic'
   | 'google'
+  | 'vertex'
   | 'deepseek'
   | 'xai'
   | 'cerebras'
@@ -173,9 +175,12 @@ export interface ProviderRequest {
   streamToolCalls?: boolean // Whether to stream tool call responses back to user (default: false)
   environmentVariables?: Record<string, string> // Environment variables for tool execution
   isCopilotRequest?: boolean // Flag to indicate this request is from the copilot system
-  // Azure OpenAI specific parameters
+  // Azure OpenAI / Azure Anthropic specific parameters
   azureEndpoint?: string
   azureApiVersion?: string
+  // Google Vertex AI specific parameters (GCP project + region hosting the Gemini models).
+  vertexProject?: string
+  vertexLocation?: string
   // Base URL override for OpenAI-compatible providers with a user-specific endpoint (vLLM, LiteLLM,
   // self-hosted Baseten deployments).
   baseUrl?: string

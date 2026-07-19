@@ -66,6 +66,7 @@ import { vercelWebhookTrigger } from './vercel'
 import { webflowWebhookTrigger } from './webflow'
 import { whatsappWebhookTrigger } from './whatsapp'
 import { wordpressWebhookTrigger } from './wordpress'
+import { workspaceEventsPollingTrigger } from './workspace_events'
 import { zendeskWebhookTrigger } from './zendesk'
 import { zoomWebhookTrigger } from './zoom'
 
@@ -137,6 +138,7 @@ export const TRIGGER_REGISTRY: TriggerRegistry = {
   webflow_webhook: webflowWebhookTrigger,
   whatsapp_webhook: whatsappWebhookTrigger,
   wordpress_webhook: wordpressWebhookTrigger,
+  workspace_events_poller: workspaceEventsPollingTrigger,
   zoom_webhook: zoomWebhookTrigger,
   zendesk_webhook: zendeskWebhookTrigger,
 }

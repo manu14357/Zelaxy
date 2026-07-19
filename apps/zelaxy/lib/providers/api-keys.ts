@@ -27,8 +27,10 @@ export interface ProviderCredential {
 export const PROVIDER_CREDENTIALS: Record<string, ProviderCredential[]> = {
   openai: [{ name: 'OPENAI_API_KEY', label: 'OpenAI API Key' }],
   'azure-openai': [{ name: 'AZURE_OPENAI_API_KEY', label: 'Azure OpenAI API Key' }],
+  'azure-anthropic': [{ name: 'AZURE_ANTHROPIC_API_KEY', label: 'Azure Anthropic API Key' }],
   anthropic: [{ name: 'ANTHROPIC_API_KEY', label: 'Anthropic API Key' }],
   google: [{ name: 'GEMINI_API_KEY', label: 'Gemini API Key' }],
+  vertex: [{ name: 'VERTEX_ACCESS_TOKEN', label: 'Vertex AI Access Token (OAuth Bearer)' }],
   deepseek: [{ name: 'DEEPSEEK_API_KEY', label: 'DeepSeek API Key' }],
   xai: [{ name: 'XAI_API_KEY', label: 'xAI API Key' }],
   groq: [{ name: 'GROQ_API_KEY', label: 'Groq API Key' }],

@@ -23,6 +23,7 @@ import type {
   NormalizedBlockOutput,
   StreamingExecution,
 } from '@/executor/types'
+import { computeExecutionSets, validateRunFromBlock } from '@/executor/utils/run-from-block'
 import {
   buildBranchNodeId,
   buildParallelSentinelEndId,
@@ -32,6 +33,15 @@ import {
   extractBaseBlockId,
 } from '@/executor/utils/subflow-utils'
 import type { SerializedBlock, SerializedWorkflow } from '@/serializer/types'
+
+/**
+ * A prior run's captured OUTPUT snapshot, supplied to {@link DAGExecutor.executeFromBlock}. Keyed by
+ * logical block id; only outputs are retained (config lives on the workflow already).
+ */
+export interface RunFromBlockSnapshot {
+  blockStates: Record<string, { output: NormalizedBlockOutput }>
+  executedBlocks?: string[]
+}
 
 const logger = createLogger('DAGExecutor')
 
@@ -157,6 +167,93 @@ export class DAGExecutor {
     return engine.run(undefined, seed)
   }
 
+  /**
+   * Run-from-block (P2.6): restart the workflow at `startBlockId`, restoring every upstream block's
+   * OUTPUT from `sourceSnapshot` instead of re-executing the whole graph. The DAG is built with ALL
+   * blocks (not just those reachable from a trigger); the ancestor closure of the start is seeded
+   * from the snapshot and marked executed; the start's forward closure ("dirty" set) re-runs.
+   *
+   * Two invariants keep the engine from stalling:
+   *  - only the dirty set is ever scheduled (the seed is the single start node), and
+   *  - incoming edges from non-dirty (upstream) sources are pruned, so a convergent downstream block
+   *    that also had an upstream parent doesn't wait forever on an edge that will never fire.
+   */
+  async executeFromBlock(
+    workflowId: string,
+    startBlockId: string,
+    sourceSnapshot: RunFromBlockSnapshot
+  ): Promise<ExecutionResult> {
+    const dag = this.buildDag(undefined, true)
+
+    const validation = validateRunFromBlock(startBlockId, dag)
+    if (!validation.valid || !validation.effectiveStartBlockId) {
+      return {
+        success: false,
+        output: {},
+        logs: [],
+        error: validation.error ?? `Cannot run from block "${startBlockId}"`,
+        metadata: { duration: 0, startTime: new Date().toISOString() },
+      }
+    }
+    const effectiveStartBlockId = validation.effectiveStartBlockId
+
+    const { dirtySet, upstreamSet } = computeExecutionSets(dag, effectiveStartBlockId)
+
+    const state = new ExecutionState()
+
+    // Seed the ancestors' outputs so downstream references (`{{block.field}}`) resolve without re-run.
+    for (const blockId of upstreamSet) {
+      if (dirtySet.has(blockId)) continue
+      const snap = sourceSnapshot.blockStates[blockId]
+      if (!snap) continue
+      state.setBlockState(blockId, {
+        output: snap.output,
+        executed: true,
+        executionTime: 0,
+      })
+    }
+
+    // Prune incoming edges from non-dirty sources so convergent blocks in the dirty set don't deadlock
+    // waiting on an upstream edge that will never re-fire.
+    for (const nodeId of dirtySet) {
+      const node = dag.nodes.get(nodeId)
+      if (!node) continue
+      for (const source of Array.from(node.incomingEdges)) {
+        if (!dirtySet.has(source)) node.incomingEdges.delete(source)
+      }
+    }
+
+    const context = this.createExecutionContext(workflowId, state, undefined)
+    const { engine } = this.buildPipeline(dag, state, context)
+    logger.info('Running DAG executor from block', {
+      workflowId,
+      startBlockId,
+      effectiveStartBlockId,
+      dirtyCount: dirtySet.size,
+      upstreamCount: upstreamSet.size,
+      nodeCount: dag.nodes.size,
+    })
+
+    try {
+      await this.contextExtensions.onExecutionStart?.(
+        workflowId,
+        this.contextExtensions.executionId
+      )
+    } catch (e) {
+      logger.warn('onExecutionStart callback error', { error: e })
+    }
+
+    const result = await engine.run(undefined, [effectiveStartBlockId])
+
+    try {
+      await this.contextExtensions.onExecutionComplete?.(result)
+    } catch (e) {
+      logger.warn('onExecutionComplete callback error', { error: e })
+    }
+
+    return result
+  }
+
   /** Debug single-stepping is not supported on the DAG executor (matches Sim's DAGExecutor). */
   async continueExecution(
     _pendingBlocks: string[],
@@ -207,8 +304,8 @@ export class DAGExecutor {
     return root?.id
   }
 
-  private buildDag(triggerBlockId?: string): DAG {
-    const dag = this.dagBuilder.build(this.workflow, { triggerBlockId })
+  private buildDag(triggerBlockId?: string, includeAllBlocks?: boolean): DAG {
+    const dag = this.dagBuilder.build(this.workflow, { triggerBlockId, includeAllBlocks })
     this.normalizeNestedSubflowEdges(dag)
     this.expandParallelBranches(dag)
     return dag

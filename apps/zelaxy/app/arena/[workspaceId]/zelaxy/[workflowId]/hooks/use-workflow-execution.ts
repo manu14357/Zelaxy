@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import { createLogger } from '@/lib/logs/console/logger'
@@ -19,8 +19,10 @@ import type { BlockLog, ExecutionResult, StreamingExecution } from '@/executor/t
 import { Serializer } from '@/serializer'
 import type { SerializedWorkflow } from '@/serializer/types'
 import { useExecutionStore } from '@/stores/execution/store'
+import { useNotificationStore } from '@/stores/notifications/store'
 import { useConsoleStore } from '@/stores/panel/console/store'
 import { useVariablesStore } from '@/stores/panel/variables/store'
+import { type RunSnapshot, useRunSnapshotStore } from '@/stores/run-snapshot-store'
 import { useEnvironmentStore } from '@/stores/settings/environment/store'
 import { useGeneralStore } from '@/stores/settings/general/store'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
@@ -529,7 +531,8 @@ export function useWorkflowExecution() {
   const executeWorkflow = async (
     workflowInput?: any,
     onStream?: (se: StreamingExecution) => Promise<void>,
-    executionId?: string
+    executionId?: string,
+    runFrom?: { startBlockId: string; sourceSnapshot: RunSnapshot }
   ): Promise<ExecutionResult | StreamingExecution> => {
     // Use currentWorkflow but check if we're in diff mode
     const {
@@ -671,6 +674,21 @@ export function useWorkflowExecution() {
     const workspaceId =
       (activeWorkflowId ? workflows[activeWorkflowId]?.workspaceId : undefined) || urlWorkspaceId
 
+    // Accumulate each block's OUTPUT during this run so we can persist a run-output snapshot on
+    // completion (see run-snapshot-store). "Run from here" restores these upstream outputs instead of
+    // re-executing the whole workflow. A run-from-block run starts from the prior snapshot so the
+    // resulting snapshot stays coherent (upstream states preserved, re-run blocks overwritten).
+    const runOutputs = new Map<string, { output: any }>()
+    const executedIds = new Set<string>()
+    if (runFrom) {
+      for (const [blockId, bs] of Object.entries(runFrom.sourceSnapshot.blockStates)) {
+        runOutputs.set(blockId, { output: bs.output })
+      }
+      for (const blockId of runFrom.sourceSnapshot.executedBlocks) {
+        executedIds.add(blockId)
+      }
+    }
+
     // Create executor options
     const executorOptions: ExecutorOptions = {
       workflow,
@@ -689,6 +707,10 @@ export function useWorkflowExecution() {
         executionId,
         workspaceId,
         onBlockComplete: async (blockLog: any) => {
+          if (blockLog?.success && blockLog.blockId && blockLog.output !== undefined) {
+            runOutputs.set(blockLog.blockId, { output: blockLog.output })
+            executedIds.add(blockLog.blockId)
+          }
           if (!activeWorkflowId || !executionId) return
           const traceSpan = buildSingleBlockTraceSpan(blockLog)
           await emitExecutionBlockComplete({
@@ -710,6 +732,14 @@ export function useWorkflowExecution() {
           })
         },
         onExecutionComplete: async (result: any) => {
+          // Persist the accumulated run-output snapshot so "run from here" can restore upstream
+          // outputs. Written for every run that produced at least one block output.
+          if (activeWorkflowId && runOutputs.size > 0) {
+            useRunSnapshotStore.getState().setSnapshot(activeWorkflowId, {
+              blockStates: Object.fromEntries(runOutputs),
+              executedBlocks: Array.from(executedIds),
+            })
+          }
           if (!activeWorkflowId || !executionId) return
           await emitExecutionComplete({
             workflowId: activeWorkflowId,
@@ -726,7 +756,14 @@ export function useWorkflowExecution() {
     const newExecutor = new Executor(executorOptions)
     setExecutor(newExecutor)
 
-    // Execute workflow
+    // Execute the workflow — either a full run or, for "run from here", from the chosen block using
+    // the restored upstream snapshot.
+    if (runFrom) {
+      return newExecutor.executeFromBlock(activeWorkflowId || '', runFrom.startBlockId, {
+        blockStates: runFrom.sourceSnapshot.blockStates,
+        executedBlocks: runFrom.sourceSnapshot.executedBlocks,
+      })
+    }
     return newExecutor.execute(activeWorkflowId || '')
   }
 
@@ -962,12 +999,97 @@ export function useWorkflowExecution() {
     }
   }, [executor, isDebugging, resetDebugState, setIsExecuting, setIsDebugging, setActiveBlocks])
 
+  /**
+   * Runs the workflow starting from `blockId`, restoring upstream block outputs from the last run's
+   * snapshot. Rejects (with a user-facing notification) when there is no snapshot yet or when any
+   * incoming-edge source has not run — a downstream block cannot resolve its inputs otherwise.
+   */
+  const handleRunFromBlock = useCallback(
+    async (blockId: string) => {
+      if (!activeWorkflowId) return
+
+      const snapshot = useRunSnapshotStore.getState().getSnapshot(activeWorkflowId)
+      if (!snapshot || Object.keys(snapshot.blockStates).length === 0) {
+        useNotificationStore.getState().addNotification({
+          level: 'error',
+          message:
+            'Run the workflow once before using "Run from here" so upstream outputs are available.',
+          workflowId: activeWorkflowId,
+        })
+        return
+      }
+
+      // Every incoming-edge source must have a captured output (or be a trigger — a manual run seeds
+      // the trigger, so it needs no persisted output). Otherwise the started block cannot resolve
+      // its inputs.
+      const executedSet = new Set(snapshot.executedBlocks)
+      const { blocks, edges } = currentWorkflow
+      const missing: string[] = []
+      for (const edge of edges) {
+        if (edge.target !== blockId) continue
+        const sourceBlock = blocks[edge.source]
+        const isTrigger = sourceBlock?.type
+          ? getBlock(sourceBlock.type)?.category === 'triggers'
+          : false
+        if (isTrigger) continue
+        if (!executedSet.has(edge.source) && !snapshot.blockStates[edge.source]) {
+          missing.push(sourceBlock?.name || edge.source)
+        }
+      }
+      if (missing.length > 0) {
+        useNotificationStore.getState().addNotification({
+          level: 'error',
+          message: `Cannot run from this block: upstream ${
+            missing.length > 1 ? 'blocks have' : 'block has'
+          } not run yet (${missing.join(', ')}). Run the full workflow first.`,
+          workflowId: activeWorkflowId,
+        })
+        return
+      }
+
+      setExecutionResult(null)
+      setIsExecuting(true)
+      const executionId = uuidv4()
+      try {
+        const result = await executeWorkflow(undefined, undefined, executionId, {
+          startBlockId: blockId,
+          sourceSnapshot: snapshot,
+        })
+        if (result && 'success' in result) {
+          setExecutionResult(result)
+          setIsExecuting(false)
+          setActiveBlocks(new Set())
+          persistLogs(executionId, result).catch((err) =>
+            logger.error('Error persisting logs:', { error: err })
+          )
+        }
+        return result
+      } catch (error: any) {
+        const errorResult = handleExecutionError(error)
+        persistLogs(executionId, errorResult).catch((err) => {
+          logger.error('Error persisting logs:', { error: err })
+        })
+        return errorResult
+      }
+    },
+    [activeWorkflowId, currentWorkflow, setIsExecuting, setActiveBlocks]
+  )
+
+  // Register the handler so leaf UI (per-block action bars) can trigger a run without instantiating
+  // this heavy hook per node.
+  useEffect(() => {
+    useRunSnapshotStore.getState().registerRunFromBlockHandler((blockId) => {
+      void handleRunFromBlock(blockId)
+    })
+  }, [handleRunFromBlock])
+
   return {
     isExecuting,
     isDebugging,
     pendingBlocks,
     executionResult,
     handleRunWorkflow,
+    handleRunFromBlock,
     handleStepDebug,
     handleResumeDebug,
     handleCancelDebug,

@@ -1,6 +1,6 @@
 import { createLogger } from '@/lib/logs/console/logger'
 import type { BlockOutput } from '@/blocks/types'
-import { DAGExecutor } from '@/executor/execution/executor'
+import { DAGExecutor, type RunFromBlockSnapshot } from '@/executor/execution/executor'
 import { validateWorkflow } from '@/executor/execution/validate'
 import type {
   BlockLog,
@@ -124,6 +124,19 @@ export class Executor {
     startBlockId?: string
   ): Promise<ExecutionResult | StreamingExecution> {
     return this.build().execute(workflowId, startBlockId)
+  }
+
+  /**
+   * Runs the workflow starting from `startBlockId`, restoring upstream block outputs from a prior
+   * run's `sourceSnapshot` (see {@link DAGExecutor.executeFromBlock}). Powers the editor's
+   * "run from here" action.
+   */
+  async executeFromBlock(
+    workflowId: string,
+    startBlockId: string,
+    sourceSnapshot: RunFromBlockSnapshot
+  ): Promise<ExecutionResult> {
+    return this.build().executeFromBlock(workflowId, startBlockId, sourceSnapshot)
   }
 
   async continueExecution(blockIds: string[], context: ExecutionContext): Promise<ExecutionResult> {

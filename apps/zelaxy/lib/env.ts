@@ -145,6 +145,10 @@ export const env = createEnv({
     SAKANA_API_KEY:                       z.string().min(1).optional(),           // Sakana AI API key (Fugu models, OpenAI-compatible)
     META_API_KEY:                         z.string().min(1).optional(),           // Meta Model API key (Muse Spark, OpenAI-compatible)
     E2B_API_KEY:                          z.string().min(1).optional(),           // E2B API key for Python/shell execution in the Function block
+    AZURE_ANTHROPIC_ENDPOINT:             z.string().url().optional(),            // Azure Anthropic (Foundry) service endpoint
+    AZURE_ANTHROPIC_API_VERSION:          z.string().optional(),                  // Azure Anthropic API version
+    VERTEX_PROJECT:                       z.string().optional(),                  // Google Vertex AI project id
+    VERTEX_LOCATION:                      z.string().optional(),                  // Google Vertex AI region, e.g. us-central1
     VLLM_BASE_URL:                        z.string().url().optional(),            // Self-hosted vLLM OpenAI-compatible base URL
     VLLM_API_KEY:                         z.string().optional(),                  // vLLM API key (optional; many servers run without auth)
     LITELLM_BASE_URL:                     z.string().url().optional(),            // Self-hosted LiteLLM proxy base URL

@@ -36,6 +36,11 @@ function startLocalCronJobs() {
   const cronJobs = [
     { path: '/api/webhooks/poll/gmail', intervalMs: 60_000, name: 'Gmail poll' },
     { path: '/api/webhooks/poll/outlook', intervalMs: 60_000, name: 'Outlook poll' },
+    {
+      path: '/api/webhooks/poll/workspace-events',
+      intervalMs: 60_000,
+      name: 'Workspace-events poll',
+    },
     { path: '/api/schedules/execute', intervalMs: 60_000, name: 'Schedule execute' },
   ]
 

@@ -1,0 +1,74 @@
+---
+title: Workspace Events Block
+description: Trigger a workflow when a workspace alert rule fires on another workflow
+icon: Bell
+---
+
+# Workspace Events Block
+
+The Workspace Events block is a **trigger**: it starts a workflow when a workspace alert rule fires on any other workflow in the same workspace — consecutive failures, failure-rate spikes, error counts, latency thresholds/spikes, or cost thresholds. It reuses the workspace alert engine that powers notifications, but exposes those events as a composable trigger you can build automations on top of.
+
+There is no webhook URL to register. Zelaxy evaluates your workspace's run history on a schedule (about once per minute) and runs this workflow once per firing event.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `workspace_events` |
+| **Category** | `triggers` |
+| **Color** | `#10B981` |
+
+## When to Use
+
+- Auto-remediate a failing workflow (restart, roll back, re-run)
+- Escalate to a human or channel when failure rates or costs spike
+- Capture every failing run in the workspace into a log or warehouse
+- Enforce latency/cost guardrails across the workspace
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Event type | Select | `any`, `consecutive_failures`, `failure_rate`, `error_count`, `latency_threshold`, `latency_spike`, `cost_threshold` |
+| Thresholds (JSON) | Text | Optional JSON overriding rule thresholds (`count`, `windowHours`, `durationMs`, `dollars`, `percent`). Leave blank for defaults |
+| Watched workflow IDs | Text | Comma-separated workflow IDs to watch. Leave blank for every workflow in the workspace |
+
+## How It Works
+
+1. Add the block, choose an **Event type**, and activate the workflow.
+2. The **first poll only seeds the cursor** — existing runs are recorded and nothing is triggered, so history is never replayed.
+3. As other workflows complete runs, each firing event runs this workflow once, oldest first.
+4. The workflow hosting this trigger is **always excluded**, so reacting to an event can never re-trigger itself.
+
+> `no_activity` alerts have no triggering run, so they are delivered through workspace notification channels rather than this poll-driven trigger.
+
+## Outputs
+
+The poller flattens each event to the top level of the block's output.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `rule_type` | string | The alert rule type that fired |
+| `reason` | string | Why the rule fired |
+| `workflow_id` | string | ID of the workflow whose run triggered the event |
+| `workflow_name` | string | Name of that workflow |
+| `execution_id` | string | Execution ID of the triggering run |
+| `status` | string | `success` or `error` |
+| `level` | string | `info` or `error` |
+| `trigger` | string | How the triggering run was started |
+| `duration_ms` | number | Duration of the triggering run in ms |
+| `cost` | number | Cost of the triggering run |
+| `started_at` | string | ISO start time |
+| `ended_at` | string | ISO end time |
+
+## Referencing Data
+
+Use `{{Workspace Events 1.field}}` in downstream blocks:
+
+```
+{{Workspace Events 1.reason}}         → "Last 3 runs all failed"
+{{Workspace Events 1.workflow_name}}  → "Nightly sync"
+{{Workspace Events 1.status}}         → "error"
+```
+
+See the [Workspace Events trigger](/triggers/workspace-events) page for full event details and examples.

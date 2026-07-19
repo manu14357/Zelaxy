@@ -13,6 +13,10 @@
       "schedule": "*/1 * * * *"
     },
     {
+      "path": "/api/webhooks/poll/workspace-events",
+      "schedule": "*/1 * * * *"
+    },
+    {
       "path": "/api/logs/cleanup",
       "schedule": "0 0 * * *"
     },

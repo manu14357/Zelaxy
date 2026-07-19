@@ -57,7 +57,9 @@ ID: `model` | Type: `combobox` | Layout: half | **Required**
 
 Searchable dropdown listing every available model across all supported providers, including locally-running Ollama models. Each entry shows its provider icon. You can also type a model name directly.
 
-Supported providers include: OpenAI, Anthropic, Google, xAI, DeepSeek, Groq, Cerebras, Azure OpenAI, Mistral, Perplexity, Cohere, OpenRouter, NVIDIA, Fireworks, Together, Z.ai, Sakana AI, Meta, Xiaomi MiMo, Xiaomi MiMo Token Plan, vLLM, LiteLLM, Baseten, Ollama, and Ollama Cloud.
+Supported providers include: OpenAI, Anthropic, Azure Anthropic, Google, Google Vertex AI, xAI, DeepSeek, Groq, Cerebras, Azure OpenAI, Mistral, Perplexity, Cohere, OpenRouter, NVIDIA, Fireworks, Together, Z.ai, Sakana AI, Meta, Xiaomi MiMo, Xiaomi MiMo Token Plan, vLLM, LiteLLM, Baseten, Ollama, and Ollama Cloud.
+
+Azure Anthropic runs Claude models through an Azure AI Foundry deployment (set `AZURE_ANTHROPIC_ENDPOINT` / `AZURE_ANTHROPIC_API_VERSION`, or the Agent block's Azure fields), and Google Vertex AI runs Gemini through a GCP project (set `VERTEX_PROJECT` / `VERTEX_LOCATION`) — the enterprise procurement paths for teams that can't use the public Anthropic/Gemini API keys.
 
 Z.ai (GLM models — set `ZAI_API_KEY`), Sakana AI (Fugu models — `SAKANA_API_KEY`), and Meta (Muse Spark via the Meta Model API — `META_API_KEY`) are OpenAI-compatible endpoints; select any of their models from the dropdown and provide the matching API key.
 

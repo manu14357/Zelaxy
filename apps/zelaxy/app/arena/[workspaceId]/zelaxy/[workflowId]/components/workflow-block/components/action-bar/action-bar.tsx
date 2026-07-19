@@ -1,9 +1,11 @@
-import { Circle, CircleOff, Copy, Trash2 } from 'lucide-react'
+import { Circle, CircleOff, Copy, Play, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useUserPermissionsContext } from '@/app/arena/[workspaceId]/providers/workspace-permissions-provider'
 import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
+import { useRunSnapshotStore } from '@/stores/run-snapshot-store'
+import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import { useWorkflowStore } from '@/stores/workflows/workflow/store'
 
 interface ActionBarProps {
@@ -17,6 +19,15 @@ export function ActionBar({ blockId, blockType, disabled = false }: ActionBarPro
     useCollaborativeWorkflow()
   const isEnabled = useWorkflowStore((state) => state.blocks[blockId]?.enabled ?? true)
   const userPermissions = useUserPermissionsContext()
+
+  // "Run from here": available once a prior run captured upstream outputs (see run-snapshot-store).
+  const activeWorkflowId = useWorkflowRegistry((state) => state.activeWorkflowId)
+  const hasSnapshot = useRunSnapshotStore((state) =>
+    activeWorkflowId
+      ? Object.keys(state.snapshots[activeWorkflowId]?.blockStates ?? {}).length > 0
+      : false
+  )
+  const runFromBlockHandler = useRunSnapshotStore((state) => state.runFromBlockHandler)
 
   const isStarterBlock = blockType === 'starter'
 
@@ -36,22 +47,32 @@ export function ActionBar({ blockId, blockType, disabled = false }: ActionBarPro
         'z-[60] p-0'
       )}
     >
-      {/* <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            className={cn(
-              isEnabled
-                ? 'bg-primary hover:bg-primary/90'
-                : 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed'
-            )}
-            size="sm"
-            disabled={!isEnabled}
-          >
-            <Play fill="currentColor" className="!h-3.5 !w-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="right">Run Block</TooltipContent>
-      </Tooltip> */}
+      {!isStarterBlock && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={() => {
+                if (!hasSnapshot || disabled) return
+                runFromBlockHandler?.(blockId)
+              }}
+              aria-disabled={!hasSnapshot}
+              className={cn(
+                'h-8 w-8 rounded-full p-0 transition-all duration-200',
+                'border border-white/20 bg-white/10 shadow-lg backdrop-blur-sm',
+                'text-sky-500 hover:border-sky-400/30 hover:bg-sky-500/20 hover:text-sky-400',
+                !hasSnapshot && 'cursor-not-allowed opacity-50'
+              )}
+            >
+              <Play className='h-4 w-4 fill-current' />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side='bottom' className='font-medium text-xs'>
+            {hasSnapshot ? 'Run from here' : 'Run the workflow once to enable "Run from here"'}
+          </TooltipContent>
+        </Tooltip>
+      )}
 
       <Tooltip>
         <TooltipTrigger asChild>

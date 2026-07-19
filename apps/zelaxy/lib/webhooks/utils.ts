@@ -1906,6 +1906,48 @@ export function formatWebhookInput(
     }
   }
 
+  if (foundWebhook.provider === 'workspace_events') {
+    // Workspace events are polled rather than pushed: the workspace-events polling service posts
+    // { event } back to this route so alert-rule events go through the same pipeline as real
+    // webhooks. Flatten the event fields to top-level outputs — this case MUST stay before the
+    // generic default, or every workspace_events output silently resolves to nothing.
+    const event = body?.event || {}
+
+    const eventData = {
+      rule_type: event.rule_type || '',
+      reason: event.reason || '',
+      workflow_id: event.workflow_id || '',
+      workflow_name: event.workflow_name || '',
+      execution_id: event.execution_id || '',
+      status: event.status || '',
+      level: event.level || '',
+      trigger: event.trigger || '',
+      duration_ms: event.duration_ms ?? 0,
+      cost: event.cost ?? 0,
+      started_at: event.started_at || '',
+      ended_at: event.ended_at || '',
+      event,
+      raw: body,
+    }
+
+    return {
+      input: event.reason || `Workspace event: ${event.rule_type || 'event'}`,
+      ...eventData,
+      workspace_events: { ...eventData, ...body },
+      webhook: {
+        data: {
+          provider: 'workspace_events',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
   if (foundWebhook.provider === 'google_forms') {
     // Posted by the Apps Script the user installs on their form.
     const answers = body?.answers || {}

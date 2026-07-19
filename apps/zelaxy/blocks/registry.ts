@@ -269,6 +269,7 @@ import { WordpressBlock } from '@/blocks/blocks/wordpress'
 import { WorkdayBlock } from '@/blocks/blocks/workday'
 import { WorkflowBlock } from '@/blocks/blocks/workflow'
 import { WorkflowInputBlock } from '@/blocks/blocks/workflow_input'
+import { WorkspaceEventsBlock } from '@/blocks/blocks/workspace_events'
 import { XBlock } from '@/blocks/blocks/x'
 import { YouTubeBlock } from '@/blocks/blocks/youtube'
 import { ZelaxyArenaBlock } from '@/blocks/blocks/zelaxy_arena'
@@ -555,6 +556,7 @@ export const registry: Record<string, BlockConfig> = {
   start_trigger: StartTriggerBlock,
   video_generator: VideoGeneratorBlock,
   workflow_input: WorkflowInputBlock,
+  workspace_events: WorkspaceEventsBlock,
 }
 
 export const getBlock = (type: string): BlockConfig | undefined => registry[type]

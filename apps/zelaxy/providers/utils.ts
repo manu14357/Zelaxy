@@ -2,6 +2,7 @@ import { getCostMultiplier, isHosted } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
 import { isToonEnabled, toonEncodeForLLM } from '@/lib/toon/encoder'
 import { anthropicProvider } from '@/providers/anthropic'
+import { azureAnthropicProvider } from '@/providers/azure-anthropic'
 import { azureOpenAIProvider } from '@/providers/azure-openai'
 import { basetenProvider } from '@/providers/baseten'
 import { bedrockProvider } from '@/providers/bedrock'
@@ -38,6 +39,7 @@ import { openRouterProvider } from '@/providers/openrouter'
 import { metaProvider } from '@/providers/meta'
 import { sakanaProvider } from '@/providers/sakana'
 import { togetherProvider } from '@/providers/together'
+import { vertexProvider } from '@/providers/vertex'
 import { zaiProvider } from '@/providers/zai'
 import type { ProviderConfig, ProviderId, ProviderToolConfig } from '@/providers/types'
 import { vllmProvider } from '@/providers/vllm'
@@ -72,10 +74,20 @@ export const providers: Record<
     ),
     modelPatterns: PROVIDER_DEFINITIONS.anthropic.modelPatterns,
   },
+  'azure-anthropic': {
+    ...azureAnthropicProvider,
+    models: getProviderModelsFromDefinitions('azure-anthropic'),
+    modelPatterns: PROVIDER_DEFINITIONS['azure-anthropic'].modelPatterns,
+  },
   google: {
     ...googleProvider,
     models: getProviderModelsFromDefinitions('google'),
     modelPatterns: PROVIDER_DEFINITIONS.google.modelPatterns,
+  },
+  vertex: {
+    ...vertexProvider,
+    models: getProviderModelsFromDefinitions('vertex'),
+    modelPatterns: PROVIDER_DEFINITIONS.vertex.modelPatterns,
   },
   deepseek: {
     ...deepseekProvider,

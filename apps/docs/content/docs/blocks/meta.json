@@ -47,6 +47,7 @@
     "api_trigger",
     "chat_trigger",
     "input_trigger",
+    "workspace_events",
     "---AI & ML---",
     "huggingface",
     "mem0",
