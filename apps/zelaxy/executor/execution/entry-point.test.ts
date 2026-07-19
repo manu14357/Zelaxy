@@ -154,3 +154,45 @@ describe('DAGExecutor — entry point', () => {
     expect(ran).toEqual(['return 99'])
   })
 })
+
+describe('DAGExecutor — currentBlockStates must not poison ExecutionState', () => {
+  beforeEach(() => {
+    ran.length = 0
+    mockExecuteTool.mockClear()
+  })
+
+  it('runs every block even when currentBlockStates carries raw subblock values for them', async () => {
+    // The browser always sends `currentBlockStates`: a map of blockId -> raw subblock *config*
+    // values (e.g. { code, timeout }), used only for streaming's responseFormat lookup — never
+    // execution outputs. Seeding ExecutionState from it (old bug) marked every block "already
+    // executed" before the run started, so `hasExecuted()` short-circuited every node before it
+    // ever reached a handler: the run reported success having executed nothing.
+    const wf = {
+      version: '2.0',
+      blocks: [
+        block('start', BlockType.STARTER),
+        block('fn1', BlockType.FUNCTION, { code: 'return 1' }),
+      ],
+      connections: [{ source: 'start', target: 'fn1' }],
+      loops: {},
+      parallels: {},
+    } as unknown as SerializedWorkflow
+
+    const currentBlockStates = {
+      start: { startWorkflow: 'manual', inputFormat: null },
+      fn1: { code: 'return 1', timeout: 5000 },
+    } as any
+
+    const result = await new DAGExecutor({
+      workflow: wf,
+      currentBlockStates,
+      workflowInput: {},
+    }).execute('wf')
+
+    expect(result.success).toBe(true)
+    expect(ran).toEqual(['return 1'])
+    const blockTypes = (result.logs ?? []).map((l) => l.blockType)
+    expect(blockTypes).toContain(BlockType.STARTER)
+    expect(blockTypes).toContain(BlockType.FUNCTION)
+  })
+})

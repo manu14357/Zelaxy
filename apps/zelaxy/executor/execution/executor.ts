@@ -90,10 +90,12 @@ export class DAGExecutor {
     const entryBlockId = this.resolveEntryBlockId(triggerBlockId)
     const dag = this.buildDag(entryBlockId)
 
+    // Note: `initialBlockStates` (the UI's `currentBlockStates`) holds each block's raw subblock
+    // *config* values (e.g. `responseFormat`, used by BlockExecutor for streaming) — not prior
+    // execution outputs. It must never seed `ExecutionState`: doing so marked every block in the
+    // workflow as already-`executed`, so the orchestrator's `hasExecuted()` gate short-circuited
+    // every node before it ever reached a handler — a manual run "succeeded" having run nothing.
     const state = new ExecutionState()
-    for (const [blockId, output] of Object.entries(this.initialBlockStates)) {
-      state.setBlockState(blockId, { output: output as any, executed: true, executionTime: 0 })
-    }
 
     const context = this.createExecutionContext(workflowId, state, entryBlockId)
     const { engine } = this.buildPipeline(dag, state, context)
