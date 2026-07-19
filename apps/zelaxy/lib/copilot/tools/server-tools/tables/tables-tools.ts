@@ -8,7 +8,15 @@
  */
 
 import { and, eq, isNull } from 'drizzle-orm'
-import { createTable, deleteRows, insertRow, listRows, listTables, updateRow } from '@/lib/table'
+import {
+  createTable,
+  deleteRows,
+  insertRow,
+  listRows,
+  listTables,
+  TableConflictError,
+  updateRow,
+} from '@/lib/table'
 import type { ColumnDefinition } from '@/lib/table/csv'
 import { getBaseUrl } from '@/lib/urls/utils'
 import { db } from '@/db'
@@ -86,22 +94,56 @@ class CreateTableTool extends BaseCopilotTool<CreateTableParams, any> {
   readonly id = 'create_table'
   readonly displayName = 'Creating table'
   protected async executeImpl(params: CreateTableParams) {
+    // Idempotent by name: the agent has no cross-turn memory of what it already created (each chat
+    // message is a fresh request), so it can legitimately re-propose a table it made earlier — e.g.
+    // after re-reading a workflow block, or in a later turn of the same conversation. Reusing the
+    // existing table (rather than throwing the DB's hard "already exists" conflict) lets the agent
+    // proceed instead of surfacing a dead-end error mid-task.
+    const existing = await resolveTableByName(params.workspaceId, params.name)
+    if (existing) {
+      return {
+        id: existing.id,
+        name: existing.name,
+        columns: (existing.schema?.columns ?? []).map((c: any) => c.name),
+        reused: true,
+        note: `A table named "${existing.name}" already exists — reusing it instead of creating a duplicate.`,
+      }
+    }
+
     const columns: ColumnDefinition[] = (params.columns || []).map((c) => ({
       name: c.name,
       type: c.type as ColumnDefinition['type'],
       required: c.required ?? false,
     }))
-    const table = await createTable(
-      {
-        name: params.name,
-        description: params.description ?? null,
-        schema: { columns },
-        workspaceId: params.workspaceId,
-        userId: params.userId,
-      },
-      reqId()
-    )
-    return { id: table.id, name: table.name, columns: columns.map((c) => c.name) }
+    try {
+      const table = await createTable(
+        {
+          name: params.name,
+          description: params.description ?? null,
+          schema: { columns },
+          workspaceId: params.workspaceId,
+          userId: params.userId,
+        },
+        reqId()
+      )
+      return { id: table.id, name: table.name, columns: columns.map((c) => c.name) }
+    } catch (error) {
+      // Narrow race: another call created the same-named table between the check above and this
+      // insert. Same graceful reuse instead of a hard failure.
+      if (error instanceof TableConflictError) {
+        const nowExisting = await resolveTableByName(params.workspaceId, params.name)
+        if (nowExisting) {
+          return {
+            id: nowExisting.id,
+            name: nowExisting.name,
+            columns: (nowExisting.schema?.columns ?? []).map((c: any) => c.name),
+            reused: true,
+            note: `A table named "${nowExisting.name}" already exists — reusing it instead of creating a duplicate.`,
+          }
+        }
+      }
+      throw error
+    }
   }
 }
 
