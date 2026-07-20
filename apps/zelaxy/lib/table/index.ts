@@ -531,7 +531,18 @@ export async function batchInsertRows(
       ...(data.userId ? { createdBy: data.userId } : {}),
     }))
 
-    return trx.insert(userTableRows).values(rowsToInsert).returning()
+    const result = await trx.insert(userTableRows).values(rowsToInsert).returning()
+
+    // insertRow/deleteRow(s) both keep this denormalized counter in sync; this path never did, so
+    // every AI-built workflow's `table` block (batch_insert_rows) left the table's row_count stuck
+    // at 0 forever regardless of how many rows actually landed — the Tables list reads this cached
+    // column directly rather than counting rows, so it silently showed "0 rows" for populated tables.
+    await trx
+      .update(userTableDefinitions)
+      .set({ rowCount: sql`${userTableDefinitions.rowCount} + ${result.length}`, updatedAt: now })
+      .where(eq(userTableDefinitions.id, data.tableId))
+
+    return result
   })
 
   logger.info(`[${requestId}] Batch inserted ${data.rows.length} rows into table ${data.tableId}`)
