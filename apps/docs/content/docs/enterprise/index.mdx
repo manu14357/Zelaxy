@@ -1,0 +1,46 @@
+---
+title: Enterprise
+description: Run Zelaxy for a team — single sign-on, self-hosted deployment, and the security model behind workspaces, permissions, and secrets.
+icon: Building2
+---
+
+# Enterprise
+
+Everything you need to run Zelaxy for an organization: how people sign in, how you deploy and operate it, and how the platform keeps data and credentials safe.
+
+<Cards>
+  <Card
+    title="Single Sign-On"
+    href="/docs/enterprise/sso"
+    description="Connect your identity provider over OIDC or SAML 2.0 — Entra ID, Google Workspace, Okta, ADFS — so your team signs in with corporate credentials."
+  />
+  <Card
+    title="Deployment"
+    href="/docs/enterprise/deployment"
+    description="Self-host Zelaxy: architecture, environment configuration, the background worker and socket server, and database setup."
+  />
+  <Card
+    title="Security Model"
+    href="/docs/enterprise/security"
+    description="Workspaces, roles and permissions, encrypted credential storage, and how secrets are referenced but never exposed."
+  />
+  <Card
+    title="Sponsors"
+    href="/docs/enterprise/sponsors"
+    description="Zelaxy is MIT-licensed and open source. Support ongoing development."
+  />
+</Cards>
+
+## Is Zelaxy right for a team?
+
+| Capability | What it gives you |
+|-----------|-------------------|
+| **Workspaces** | Isolated environments with their own workflows, credentials, knowledge, and members. |
+| **Roles & permissions** | Per-workspace `read` / `write` / `admin` access, checked on every API route. |
+| **SSO** | Domain-based sign-in through your existing IdP — no separate Zelaxy passwords. |
+| **Self-hosting** | Run the entire stack on your own infrastructure; your data never leaves it. |
+| **Open source** | MIT-licensed. Audit, fork, and extend the platform freely. |
+
+## Deploy on your terms
+
+Zelaxy is a standard Next.js app plus a Postgres database (with pgvector), a Socket.IO realtime server, and a background worker. You can run it anywhere that runs Node and Postgres — see [Deployment](/docs/enterprise/deployment) for the full picture.

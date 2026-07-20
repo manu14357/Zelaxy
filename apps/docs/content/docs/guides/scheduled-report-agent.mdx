@@ -1,0 +1,80 @@
+---
+title: Scheduled Report Agent
+description: On a cron schedule, pull metrics, have an agent write a narrative summary, and deliver it to Slack every weekday morning.
+icon: CalendarClock
+---
+
+# Scheduled Report Agent
+
+## What you'll build
+
+A hands-off reporting agent that wakes up on a schedule, gathers fresh data, turns raw numbers into a readable narrative, and posts it to your team — so nobody has to assemble the morning update by hand.
+
+**Trigger:** a Schedule (cron) — for example weekdays at 9:00am.
+
+## The workflow
+
+<WorkflowGraph
+  nodes={[
+    { title: 'Starter', subtitle: 'schedule · cron', tone: 'trigger' },
+    { title: 'Pull metrics', subtitle: 'API / Supabase / Sheets', tone: 'data' },
+    { title: 'Agent', subtitle: 'narrate the numbers', tone: 'agent' },
+    { title: 'Slack', subtitle: 'post to #standup', tone: 'tool' },
+  ]}
+  caption={<>Runs every weekday untouched — data in, narrative out, delivered to the team.</>}
+/>
+
+## Build it
+
+<Steps>
+
+<Step>
+### Starter — schedule trigger
+
+Add a **[Starter](/docs/blocks/starter)** and set its trigger to **Schedule**. Use cron `0 9 * * 1-5` (weekdays at 9am). See [Triggers](/docs/triggers) for cron syntax.
+</Step>
+
+<Step>
+### Pull the metrics
+
+Add whatever source your numbers live in:
+
+- an **[API](/docs/blocks/api)** block to hit an analytics endpoint, or
+- a **[Supabase](/docs/tools/supabase)** / **[Snowflake](/docs/tools/snowflake)** block to query a warehouse, or
+- a **[Google Sheets](/docs/tools/google-sheets)** block to read a tracking sheet.
+
+The result is available as, e.g., `{{api.data}}`.
+</Step>
+
+<Step>
+### Agent — turn numbers into a narrative
+
+Add an **[Agent](/docs/blocks/agent)**. Prompt:
+
+> You are an analyst writing the daily standup update. Given today's metrics, write a short Slack-formatted summary: the headline number, what changed vs. yesterday, and one thing to watch. Be concise. Use bullet points.
+
+Pass the data: `Metrics: {{api.data}}`.
+</Step>
+
+<Step>
+### Slack — deliver it
+
+Add a **[Slack](/docs/tools/slack)** block that posts `{{agent.content}}` to your `#standup` channel. That's the whole loop — it now runs every weekday untouched.
+</Step>
+
+</Steps>
+
+## Make it yours
+
+- **Multiple recipients.** Fan out with a **[Parallel](/docs/blocks/parallel)** block to post to Slack *and* email the summary via **[Gmail](/docs/tools/gmail)**.
+- **Charts.** Have the agent output a compact table, or add an **[Image Generator](/docs/blocks/image_generator)** step for a simple visual.
+- **Alerting.** Add a **[Condition](/docs/blocks/condition)** block so it only pings the channel when a metric crosses a threshold — a quiet-by-default report.
+- **Weekly + daily.** Duplicate the workflow with a `0 9 * * 1` cron for a Monday deep-dive.
+
+## Related
+
+<Cards>
+  <Card title="Triggers" href="/docs/triggers" description="Schedules, webhooks, and service events." />
+  <Card title="API block" href="/docs/blocks/api" description="Call any REST endpoint for data." />
+  <Card title="Parallel block" href="/docs/blocks/parallel" description="Deliver to multiple destinations at once." />
+</Cards>

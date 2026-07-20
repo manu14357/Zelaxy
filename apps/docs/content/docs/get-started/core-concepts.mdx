@@ -1,0 +1,81 @@
+---
+title: Core Concepts
+description: The five ideas that make every Zelaxy workflow work — blocks, connections, variables, triggers, and outputs.
+icon: Compass
+---
+
+# Core Concepts
+
+Master these five ideas and every workflow in Zelaxy — from a one-block toy to a multi-agent pipeline — makes sense.
+
+## Blocks
+
+A **block** is a self-contained unit of work you drag onto the canvas. Each has **inputs** (configuration + data from upstream), does one job, and produces **outputs**. Blocks fall into a few families:
+
+| Family | Examples | Purpose |
+|--------|----------|---------|
+| **AI & Reasoning** | [Agent](/docs/blocks/agent), [Evaluator](/docs/blocks/evaluator), [Vision](/docs/blocks/vision) | Language, reasoning, and multimodal work. |
+| **Flow Control** | [Condition](/docs/blocks/condition), [Router](/docs/blocks/router), [Loop](/docs/blocks/loop), [Parallel](/docs/blocks/parallel) | Decide the path and shape execution. |
+| **Data & I/O** | [Function](/docs/blocks/function), [API](/docs/blocks/api), [Response](/docs/blocks/response) | Transform data and talk to the outside world. |
+| **Knowledge & Memory** | [Knowledge](/docs/blocks/knowledge), [Memory](/docs/blocks/memory) | Retrieve documents and persist state. |
+| **Integrations** | [Slack](/docs/tools/slack), [Gmail](/docs/tools/gmail), 240+ more | Call external services via [tools](/docs/tools). |
+
+## Connections
+
+A **connection** is a line you draw from one block's output to another block's input. It defines **data flow and order**: the target block runs after the source, and can read the source's outputs. Zelaxy runs the graph as a DAG — blocks run as soon as their inputs are ready, and independent branches can run in [parallel](/docs/blocks/parallel).
+
+## Variables & references
+
+This is the heart of Zelaxy. Every block's output is addressable with **double-brace references**:
+
+```
+{{blockName.fieldName}}
+```
+
+- `{{starter.input}}` — the trigger payload.
+- `{{agent.content}}` — an agent's text answer.
+- `{{agent.output}}` — an agent's **structured** (JSON) answer when Response Format is on.
+- `{{knowledge.results}}` — retrieved document chunks.
+- `{{ENV_VAR}}` — a secret/env value, injected at run time and never saved into the graph.
+
+<Callout type="warn">
+  References use **double braces**: `{{block.field}}`. Angle brackets like `<block.field>` do **not** resolve. And when an Agent has structured output enabled, read `{{agent.output}}` — not `{{agent.content}}`.
+</Callout>
+
+You can rename blocks on the canvas to make references self-documenting — `{{researcher.output.facts}}` reads better than `{{agent1.output.facts}}`.
+
+## Triggers
+
+A **trigger** decides *how a workflow starts*. Configured on the Starter block:
+
+- **Chat / Manual** — you run it yourself or via a chat panel.
+- **Webhook** — an external service (Gmail, Slack, GitHub, Stripe…) starts it on an event.
+- **Schedule** — a cron expression runs it on a recurring timer.
+- **API** — a programmatic HTTP call starts it.
+
+Whatever the trigger, its payload arrives as `{{starter.input}}`. See [Triggers](/docs/triggers).
+
+## Outputs
+
+Each block documents the fields it emits. Downstream blocks reference those fields. A **[Response](/docs/blocks/response)** block (optional) marks the final result returned to the caller or shown in chat.
+
+## Putting it together
+
+<WorkflowGraph
+  nodes={[
+    { title: 'Starter', subtitle: 'webhook · {{starter.input}}', tone: 'trigger' },
+    { title: 'Agent', subtitle: 'classify · {{agent.output}}', tone: 'agent' },
+    { title: 'Router', subtitle: 'branch on the result', tone: 'logic', branches: ['urgent → Slack', 'normal → Gmail'] },
+  ]}
+/>
+
+The trigger fills `{{starter.input}}`; the agent classifies it into `{{agent.output}}`; the router branches on that; each branch calls a tool. Every guide in the [Guides](/docs/guides) section is just this pattern, scaled up.
+
+## Next
+
+<Cards>
+  <Card title="Quickstart" href="/docs/get-started/quickstart" description="Build your first workflow in five minutes." />
+  <Card title="Guides" href="/docs/guides" description="Complete example agent workflows." />
+  <Card title="Blocks" href="/docs/blocks" description="The full block reference." />
+  <Card title="AI Models" href="/docs/get-started/models" description="Providers, capabilities, and how to choose." />
+</Cards>

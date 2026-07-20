@@ -1,0 +1,99 @@
+---
+title: Customer Support Agent
+description: Classify inbound support email, draft a grounded reply from your knowledge base, gate urgent cases behind a human, and notify the team in Slack.
+icon: Headset
+---
+
+# Customer Support Agent
+
+## What you'll build
+
+An always-on agent that reads new support emails, decides how urgent they are, drafts a reply grounded in your help-center docs, and either sends it automatically or escalates to a human for approval.
+
+**Trigger:** a Gmail webhook that fires on every new inbound email.
+
+## The workflow
+
+<WorkflowGraph
+  nodes={[
+    { title: 'Starter', subtitle: 'Gmail trigger', tone: 'trigger' },
+    { title: 'Agent', subtitle: 'classify urgency + intent', tone: 'agent' },
+    { title: 'Router', subtitle: 'branch on urgency', tone: 'logic', branches: ['urgent → Slack alert', 'normal → draft + send', 'spam → stop'] },
+  ]}
+  caption={<>The Router picks exactly one path; the "normal" path drafts a grounded reply behind a human gate.</>}
+/>
+
+## Build it
+
+<Steps>
+
+<Step>
+### Starter — Gmail trigger
+
+Add a **[Starter](/docs/blocks/starter)** and set its trigger to **Gmail**. New emails arrive with `{{starter.input.subject}}`, `{{starter.input.from}}`, and `{{starter.input.body}}`.
+</Step>
+
+<Step>
+### Agent — classify urgency and intent
+
+Add an **[Agent](/docs/blocks/agent)** with **Response Format** on so the classification is typed:
+
+```json
+{
+  "urgency": "urgent | normal | spam",
+  "intent": "string",
+  "language": "string"
+}
+```
+
+Prompt it to read `{{starter.input.subject}}` and `{{starter.input.body}}` and fill the schema.
+</Step>
+
+<Step>
+### Router — branch on urgency
+
+Add a **[Router](/docs/blocks/router)** block keyed on `{{agent.output.urgency}}` with three paths: **urgent**, **normal**, **spam**. The Router picks exactly one downstream path.
+</Step>
+
+<Step>
+### Urgent path — alert the team
+
+On the **urgent** path, add a **[Slack](/docs/tools/slack)** block that posts to your `#support` channel: the customer, the subject, and `{{agent.output.intent}}`. No auto-reply — a human takes it from here.
+</Step>
+
+<Step>
+### Normal path — draft a grounded reply
+
+On the **normal** path:
+
+1. Add a **[Knowledge](/docs/blocks/knowledge)** block that searches your help-center collection using `{{agent.output.intent}}` as the query — this grounds the reply in real docs.
+2. Add a second **[Agent](/docs/blocks/agent)** that writes a reply in `{{agent.output.language}}`, using `{{knowledge.results}}` as source material. Instruct it to answer only from the retrieved docs and to hand off to a human if it can't.
+</Step>
+
+<Step>
+### Human-in-the-loop — approve before sending
+
+Add a **[Human in the Loop](/docs/blocks/human_in_the_loop)** block after the draft. It pauses the run and surfaces the drafted reply for a teammate to approve or edit. On approval, continue; on rejection, stop.
+</Step>
+
+<Step>
+### Gmail — send the reply
+
+Add a **[Gmail](/docs/tools/gmail)** block that replies to `{{starter.input.from}}` with the approved draft. Done.
+</Step>
+
+</Steps>
+
+## Make it yours
+
+- **Skip the human gate** for low-risk intents by routing "how do I…" questions straight to send, and only gating refunds/cancellations.
+- **Add a guardrail.** Put a **[Guardrails](/docs/blocks/guardrails)** block before send to block replies that leak PII or make promises about pricing.
+- **Support more channels.** Swap the Gmail trigger for a **[Slack](/docs/tools/slack)** or **[Intercom](/docs/tools/intercom)** trigger — the rest of the graph is unchanged.
+
+## Related
+
+<Cards>
+  <Card title="Router block" href="/docs/blocks/router" description="Multi-path branching on an agent decision." />
+  <Card title="Human in the Loop" href="/docs/blocks/human_in_the_loop" description="Pause a run for human approval." />
+  <Card title="Guardrails" href="/docs/blocks/guardrails" description="Validate output for PII, JSON shape, and more." />
+</Cards>

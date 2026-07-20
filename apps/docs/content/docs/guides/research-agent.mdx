@@ -1,0 +1,103 @@
+---
+title: Deep Research Agent
+description: A workflow that searches the web and academic sources in parallel, then synthesizes the findings into a cited research brief with structured output.
+icon: Telescope
+---
+
+# Deep Research Agent
+
+## What you'll build
+
+A workflow that takes a research question, searches multiple sources **in parallel**, and returns a structured, cited brief — the kind of task you'd otherwise do by hand across a dozen browser tabs.
+
+**Trigger:** a chat message or API call carrying the question in `{{starter.input}}`.
+
+## The workflow
+
+<WorkflowGraph
+  nodes={[
+    { title: 'Starter', subtitle: 'chat trigger', tone: 'trigger' },
+    { title: 'Parallel', subtitle: 'search concurrently', tone: 'logic', branches: ['Tavily · web search', 'ArXiv · papers'] },
+    { title: 'Agent', subtitle: 'synthesize + cite', tone: 'agent' },
+    { title: 'Response', subtitle: 'structured JSON', tone: 'output' },
+  ]}
+  caption={<>Both searches run in parallel, then the agent synthesizes a cited brief.</>}
+/>
+
+## Build it
+
+<Steps>
+
+<Step>
+### Starter — accept the question
+
+Add a **[Starter](/docs/blocks/starter)** block and set its trigger to **Chat** (or API). The user's question arrives as `{{starter.input}}`.
+</Step>
+
+<Step>
+### Parallel — search two sources at once
+
+Add a **[Parallel](/docs/blocks/parallel)** block so the web and academic searches run concurrently instead of one-after-the-other. Inside it, place:
+
+- a **[Tavily](/docs/tools/tavily)** tool block — AI-optimized web search. Query: `{{starter.input}}`.
+- an **[ArXiv](/docs/tools/arxiv)** tool block — academic papers. Query: `{{starter.input}}`.
+
+Parallel waits for both branches, then exposes their combined results downstream.
+</Step>
+
+<Step>
+### Agent — synthesize with citations
+
+Add an **[Agent](/docs/blocks/agent)** block. Give it a system prompt like:
+
+> You are a research analyst. Using ONLY the search results provided, write a concise brief that answers the question. Cite every claim with its source URL. If the sources disagree, say so.
+
+In the user message, pass both result sets:
+
+```
+Question: {{starter.input}}
+
+Web results:
+{{parallel.tavily.results}}
+
+Academic results:
+{{parallel.arxiv.results}}
+```
+
+Turn on **Response Format** (structured output) with a schema so the result is machine-readable:
+
+```json
+{
+  "summary": "string",
+  "key_findings": ["string"],
+  "sources": [{ "title": "string", "url": "string" }]
+}
+```
+</Step>
+
+<Step>
+### Response — return the brief
+
+Add a **[Response](/docs/blocks/response)** block and return `{{agent.output}}`. Because the agent used structured output, downstream consumers get typed JSON, not free text.
+
+<Callout type="warn">
+  With Response Format on, read the agent's result from `{{agent.output}}` (the parsed object), **not** `{{agent.content}}`. Wiring a downstream block to `.content` when structured output is enabled is the most common cause of "undefined is not valid JSON".
+</Callout>
+</Step>
+
+</Steps>
+
+## Make it yours
+
+- **Add more sources.** Drop an **[Exa](/docs/tools/exa)** (neural search) or **[Perplexity](/docs/tools/perplexity)** block into the Parallel block — each new branch runs at no extra latency.
+- **Go deeper on one result.** Add a **[Firecrawl](/docs/tools/firecrawl)** block after the search to scrape the top URL's full text before synthesis.
+- **Let the agent decide.** Instead of a fixed Parallel, connect the search tools *to* the Agent as agent tools and let it choose which to call and when.
+- **Swap the model.** Any provider works — see the [AI Models reference](/docs/get-started/models). For long briefs, pick a model with a large context window.
+
+## Related
+
+<Cards>
+  <Card title="Agent block" href="/docs/blocks/agent" description="Structured output, tool calling, and provider selection." />
+  <Card title="Parallel block" href="/docs/blocks/parallel" description="Run independent branches concurrently." />
+  <Card title="RAG Knowledge Agent" href="/docs/guides/rag-knowledge-agent" description="Ground answers in your own documents instead of the web." />
+</Cards>

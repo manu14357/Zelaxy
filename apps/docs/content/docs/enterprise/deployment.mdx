@@ -1,0 +1,100 @@
+---
+title: Deployment
+description: Self-host Zelaxy — the architecture, the four processes you run, environment configuration, and database setup.
+icon: Server
+---
+
+# Deployment
+
+Zelaxy is self-hostable end to end. Nothing about the platform requires a hosted service — you run the same code that powers the cloud, on your own infrastructure, with your data staying inside it.
+
+## Architecture
+
+A running Zelaxy deployment is four cooperating processes plus a database:
+
+| Process | Role |
+|---------|------|
+| **Web app** | The Next.js 15 app — the visual editor, the APIs, and the workflow executor. |
+| **Socket server** | A Socket.IO server for realtime multiplayer editing of the canvas. |
+| **Worker** | Background jobs (scheduled triggers, long-running executions) via Trigger.dev. |
+| **Postgres** | Data + vector store. Requires the **pgvector** extension for Knowledge/RAG. |
+
+The web app is stateless — scale it horizontally behind a load balancer. State lives in Postgres and (for realtime) the socket server.
+
+## Prerequisites
+
+- **Node** (or [Bun](https://bun.sh), which the repo uses) and a package manager
+- **PostgreSQL 15+** with the `pgvector` extension available
+- At least one **LLM provider API key** (OpenAI, Anthropic, Google, etc. — see [AI Models](/docs/get-started/models))
+
+## Configure the environment
+
+Copy the example env file and fill in your values:
+
+```bash
+cp apps/zelaxy/.env.example apps/zelaxy/.env
+```
+
+The essential variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Postgres connection string (with pgvector). |
+| `BETTER_AUTH_SECRET` | Secret that signs auth sessions — generate a long random value. |
+| `BETTER_AUTH_URL` | The public URL users reach the app at. |
+| `ALLOWED_ORIGINS` | Comma-separated origins permitted to call the API / sockets. |
+| `CRON_SECRET` | Shared secret protecting the schedule/cron endpoints. |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, … | Provider keys for the models you enable. |
+
+<Callout type="warn">
+  Secrets belong in the environment, never in the repo or in a workflow definition. Inside workflows, reference them as `{{ENV_VAR}}` — Zelaxy injects the value at execution time and never persists it into the saved graph.
+</Callout>
+
+Integration OAuth apps (Slack, Google, GitHub, …) each add a `*_CLIENT_ID` / `*_CLIENT_SECRET` pair — set only the ones you use. The full annotated list lives in `.env.example`.
+
+## Set up the database
+
+```bash
+cd apps/zelaxy
+bun run db:push        # apply the Drizzle schema (creates tables + pgvector)
+```
+
+For production, prefer versioned migrations:
+
+```bash
+bun run db:migrate
+```
+
+## Run it
+
+```bash
+bun install                     # from the repo root
+cd apps/zelaxy
+bun run dev:full                # app + socket server + worker (development)
+```
+
+For production, build once and run each process:
+
+```bash
+bun run build
+bun run start                   # web app
+# run the socket server and worker as separate long-lived processes
+```
+
+<Callout type="info">
+  Put the web app behind TLS (a reverse proxy like Nginx or Caddy), point `BETTER_AUTH_URL` and `ALLOWED_ORIGINS` at the public HTTPS origin, and make sure the socket server is reachable from browsers for realtime editing.
+</Callout>
+
+## Scaling notes
+
+- **Web app** scales horizontally — it's stateless.
+- **Worker** handles scheduled and background executions; run enough replicas for your job volume.
+- **Postgres** is the source of truth — size it for your workflow history and vector index, and back it up.
+
+## Related
+
+<Cards>
+  <Card title="Security Model" href="/docs/enterprise/security" description="Workspaces, permissions, and how secrets are handled." />
+  <Card title="Single Sign-On" href="/docs/enterprise/sso" description="Wire up your identity provider." />
+  <Card title="AI Models" href="/docs/get-started/models" description="Which providers to configure and what they support." />
+</Cards>

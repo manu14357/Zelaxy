@@ -1,0 +1,90 @@
+---
+title: Lead Enrichment Agent
+description: Turn a raw email address into a scored, enriched lead — pull company and contact data, have an agent qualify it, and write the result to your CRM.
+icon: UserPlus
+---
+
+# Lead Enrichment Agent
+
+## What you'll build
+
+A workflow that takes a bare email address, enriches it with company and contact data, has an agent score the lead's fit, and writes the qualified record to your CRM — the busywork every sales team wishes it could skip.
+
+**Trigger:** a webhook from your signup form, or a Schedule that processes new rows in a table.
+
+## The workflow
+
+<WorkflowGraph
+  nodes={[
+    { title: 'Starter', subtitle: 'email in (webhook)', tone: 'trigger' },
+    { title: 'Enrich', subtitle: 'Hunter / Clay', tone: 'tool' },
+    { title: 'Agent', subtitle: 'score fit + reason', tone: 'agent' },
+    { title: 'Condition', subtitle: 'score ≥ 70?', tone: 'logic', branches: ['true → write to CRM', 'false → drop / log'] },
+  ]}
+  caption={<>Enrich the raw email, let an agent qualify it, then branch on the score.</>}
+/>
+
+## Build it
+
+<Steps>
+
+<Step>
+### Starter — receive the email
+
+Add a **[Starter](/docs/blocks/starter)** with a **Webhook** trigger. The lead's email arrives as `{{starter.input.email}}`.
+</Step>
+
+<Step>
+### Enrich — pull company + contact data
+
+Add a **[Hunter](/docs/tools/hunter)** block to verify the email and fetch company data, or a **[Clay](/docs/tools/clay)** block for deeper enrichment. Input: `{{starter.input.email}}`. Output includes company name, size, role, and domain.
+</Step>
+
+<Step>
+### Agent — score the lead
+
+Add an **[Agent](/docs/blocks/agent)** with **Response Format**:
+
+```json
+{
+  "score": "number",
+  "tier": "hot | warm | cold",
+  "reasoning": "string"
+}
+```
+
+Give it your ideal-customer profile in the system prompt, then pass the enrichment data:
+
+```
+Enrichment: {{hunter.data}}
+Score this lead 0-100 against our ICP and explain why.
+```
+</Step>
+
+<Step>
+### Condition — qualify
+
+Add a **[Condition](/docs/blocks/condition)** block: `{{agent.output.score}} >= 70`. The true branch is a qualified lead; the false branch drops or logs it.
+</Step>
+
+<Step>
+### CRM — write the qualified lead
+
+On the true branch, add an **[Airtable](/docs/tools/airtable)**, **[Notion](/docs/tools/notion)**, or **[HubSpot-style HTTP](/docs/blocks/api)** block to create the record with the email, enrichment fields, `{{agent.output.tier}}`, and `{{agent.output.reasoning}}`.
+</Step>
+
+</Steps>
+
+## Make it yours
+
+- **Batch it.** Wrap the enrich-and-score steps in a **[Loop](/docs/blocks/loop)** block to process a whole table of leads on a Schedule trigger.
+- **Notify sales.** Add a **[Slack](/docs/tools/slack)** block on the "hot" tier so reps get pinged instantly.
+- **Dedupe.** Query your CRM first with a **[Condition](/docs/blocks/condition)** to skip leads you already have.
+
+## Related
+
+<Cards>
+  <Card title="Condition block" href="/docs/blocks/condition" description="Boolean and LLM-based branching." />
+  <Card title="Loop block" href="/docs/blocks/loop" description="Iterate over arrays of records." />
+  <Card title="Scheduled Report Agent" href="/docs/guides/scheduled-report-agent" description="Run workflows on a cron schedule." />
+</Cards>

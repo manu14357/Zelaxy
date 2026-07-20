@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { DocsLayout } from 'fumadocs-ui/layouts/notebook'
-import { Blocks, BookOpen, Github, Heart, House, Map as MapIcon, Wrench, Zap } from 'lucide-react'
+import { BookOpen, Github, Heart, House, Map as MapIcon } from 'lucide-react'
 import { source } from '@/lib/source'
 import { DocsFooter } from '../components/footer'
 import { NavbarCTA } from '../components/navbar-cta'
@@ -39,41 +39,15 @@ export default function Layout({ children }: { children: ReactNode }) {
         url: '/docs',
         mode: 'top',
       }}
-      tabMode='sidebar'
+      // n8n-style: root sections (Get Started, Blocks, Tools, Triggers, Guides,
+      // Enterprise) render as a horizontal tab row beneath the navbar.
+      tabMode='navbar'
       links={[
         {
           type: 'main',
           text: 'Home',
           url: 'https://zelaxy.in',
           icon: <House style={{ width: 15, height: 15 }} />,
-        },
-        {
-          type: 'main',
-          text: 'Docs',
-          url: '/docs',
-          icon: <BookOpen style={{ width: 15, height: 15, color: '#f59e0b' }} />,
-          active: 'url',
-        },
-        {
-          type: 'main',
-          text: 'Blocks',
-          url: '/docs/blocks',
-          icon: <Blocks style={{ width: 15, height: 15, color: '#3b82f6' }} />,
-          active: 'nested-url',
-        },
-        {
-          type: 'main',
-          text: 'Tools',
-          url: '/docs/tools',
-          icon: <Wrench style={{ width: 15, height: 15, color: '#10b981' }} />,
-          active: 'nested-url',
-        },
-        {
-          type: 'main',
-          text: 'Triggers',
-          url: '/docs/triggers',
-          icon: <Zap style={{ width: 15, height: 15, color: '#ef4444' }} />,
-          active: 'nested-url',
         },
         {
           type: 'menu',

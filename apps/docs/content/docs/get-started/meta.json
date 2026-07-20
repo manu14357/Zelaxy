@@ -1,0 +1,6 @@
+{
+  "title": "Get Started",
+  "icon": "Rocket",
+  "root": true,
+  "pages": ["quickstart", "core-concepts", "models"]
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Guides",
+  "icon": "GraduationCap",
+  "root": true,
+  "pages": [
+    "---Overview---",
+    "index",
+    "---Agent Workflows---",
+    "research-agent",
+    "customer-support-agent",
+    "rag-knowledge-agent",
+    "content-pipeline",
+    "lead-enrichment-agent",
+    "scheduled-report-agent"
+  ]
+}

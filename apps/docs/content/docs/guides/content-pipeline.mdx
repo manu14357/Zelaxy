@@ -1,0 +1,98 @@
+---
+title: Multi-Agent Content Pipeline
+description: Chain a researcher, a writer, and an editor agent so a single topic becomes publish-ready copy through specialized hand-offs.
+icon: PenTool
+---
+
+# Multi-Agent Content Pipeline
+
+## What you'll build
+
+Three specialized agents that hand off in sequence — a **researcher** gathers facts, a **writer** drafts from them, and an **editor** polishes and fact-checks. Splitting the work across focused agents beats asking one agent to do everything, because each has a narrow job and a tailored prompt.
+
+**Trigger:** an API call or chat message with the topic in `{{starter.input}}`.
+
+## The workflow
+
+<WorkflowGraph
+  nodes={[
+    { title: 'Starter', subtitle: 'topic in', tone: 'trigger' },
+    { title: 'Researcher', subtitle: 'gather facts · Tavily tool', tone: 'agent' },
+    { title: 'Writer', subtitle: 'draft from research', tone: 'agent' },
+    { title: 'Editor', subtitle: 'polish + fact-check', tone: 'agent' },
+    { title: 'Response', subtitle: 'publish-ready copy', tone: 'output' },
+  ]}
+  caption={<>Three specialized agents hand off in sequence — each with a narrow, tailored job.</>}
+/>
+
+## Build it
+
+<Steps>
+
+<Step>
+### Starter — accept the topic
+
+Add a **[Starter](/docs/blocks/starter)**. The topic arrives as `{{starter.input}}`.
+</Step>
+
+<Step>
+### Researcher agent — gather facts
+
+Add an **[Agent](/docs/blocks/agent)** and connect a **[Tavily](/docs/tools/tavily)** block to it as an **agent tool**, so the agent decides what to search. Use **Response Format**:
+
+```json
+{
+  "outline": ["string"],
+  "facts": [{ "claim": "string", "source": "string" }]
+}
+```
+
+Prompt: *"Research the topic. Produce a factual outline and a list of claims, each with a source URL."*
+</Step>
+
+<Step>
+### Writer agent — draft from the research
+
+Add a second **[Agent](/docs/blocks/agent)**. Feed it the researcher's output:
+
+```
+Topic: {{starter.input}}
+Outline: {{agent1.output.outline}}
+Facts: {{agent1.output.facts}}
+```
+
+Prompt: *"Write an engaging 600-word article following the outline. Use only the provided facts. Mark any claim you can't support with [needs source]."*
+</Step>
+
+<Step>
+### Editor agent — polish and verify
+
+Add a third **[Agent](/docs/blocks/agent)** that receives `{{agent2.content}}` and the original facts. Prompt: *"Copy-edit for clarity and tone. Verify every factual claim against the facts list. Remove or flag anything unsupported. Return clean Markdown."*
+</Step>
+
+<Step>
+### Response — return the finished piece
+
+Add a **[Response](/docs/blocks/response)** block returning `{{agent3.content}}`.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  When you have several agents in one workflow, reference each by its block name — e.g. `{{agent1.output}}`, `{{agent2.content}}`. Rename blocks on the canvas (e.g. `researcher`, `writer`, `editor`) to make references self-documenting: `{{researcher.output.facts}}`.
+</Callout>
+
+## Make it yours
+
+- **Add an image.** Insert an **[Image Generator](/docs/blocks/image_generator)** block after the writer to produce a hero image from the article title.
+- **Publish automatically.** End with a **[Notion](/docs/tools/notion)** or **[WordPress-style HTTP](/docs/blocks/api)** block to push the final copy straight to your CMS.
+- **Quality gate.** Add an **[Evaluator](/docs/blocks/evaluator)** block to score the draft; loop back to the writer if the score is below a threshold.
+- **Different voices.** Give each agent a different model — a strong reasoning model for the editor, a fast one for the writer.
+
+## Related
+
+<Cards>
+  <Card title="Evaluator block" href="/docs/blocks/evaluator" description="Score outputs and gate on quality." />
+  <Card title="Image Generator" href="/docs/blocks/image_generator" description="Create images from text prompts." />
+  <Card title="Deep Research Agent" href="/docs/guides/research-agent" description="A deeper look at the research half of this pipeline." />
+</Cards>

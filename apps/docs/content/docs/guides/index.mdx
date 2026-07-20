@@ -1,0 +1,64 @@
+---
+title: Guides
+description: End-to-end example workflows you can rebuild in minutes — real agents for research, support, RAG, content, enrichment, and reporting.
+icon: GraduationCap
+---
+
+These are complete, buildable workflows — not snippets. Each guide walks through every block, the connections between them, and the exact `{{references}}` that carry data across the graph. Pick one that resembles what you want to build, then adapt it.
+
+<Callout type="info">
+  Every guide follows the same shape: **what you build → the block graph → step-by-step wiring → what to change next.** If you are new here, start with the [Research Agent](/docs/guides/research-agent) — it exercises triggers, agents, tools, and structured output in one pass.
+</Callout>
+
+## Agent Workflows
+
+<Cards>
+  <Card
+    title="Deep Research Agent"
+    href="/docs/guides/research-agent"
+    description="A trigger fans out web + academic search, an agent synthesizes findings into a cited brief, and structured output makes the result machine-readable."
+  />
+  <Card
+    title="Customer Support Agent"
+    href="/docs/guides/customer-support-agent"
+    description="Classify inbound email, draft a reply grounded in your knowledge base, and route urgent cases to Slack — with a human-in-the-loop gate."
+  />
+  <Card
+    title="RAG Knowledge Agent"
+    href="/docs/guides/rag-knowledge-agent"
+    description="Answer questions strictly from your own documents using the Knowledge block for vector search, with guardrails against hallucination."
+  />
+  <Card
+    title="Multi-Agent Content Pipeline"
+    href="/docs/guides/content-pipeline"
+    description="A researcher agent, a writer agent, and an editor agent hand off in sequence to produce publish-ready copy from a single topic."
+  />
+  <Card
+    title="Lead Enrichment Agent"
+    href="/docs/guides/lead-enrichment-agent"
+    description="Take a raw email address, enrich it with company + contact data, score the lead with an agent, and write the result to your CRM."
+  />
+  <Card
+    title="Scheduled Report Agent"
+    href="/docs/guides/scheduled-report-agent"
+    description="On a cron schedule, pull metrics, have an agent write a narrative summary, and deliver it to Slack every weekday morning."
+  />
+</Cards>
+
+## How to read these guides
+
+| Section | What it tells you |
+|---------|-------------------|
+| **What you'll build** | The outcome in one sentence, plus the trigger that starts it. |
+| **The workflow** | An ASCII graph of every block and how they connect. |
+| **Build it** | Numbered steps — one per block — with the exact config and references. |
+| **Make it yours** | Concrete variations: swap the model, add a tool, change the trigger. |
+
+## Core building blocks you'll reuse
+
+<Cards>
+  <Card title="Agent" href="/docs/blocks/agent" description="The reasoning core — LLMs with tool calling and structured output." />
+  <Card title="Knowledge" href="/docs/blocks/knowledge" description="Vector search over your documents for grounded, cited answers." />
+  <Card title="Condition & Router" href="/docs/blocks/router" description="Branch the graph on an agent's decision or a boolean check." />
+  <Card title="Triggers" href="/docs/triggers" description="Start workflows from webhooks, schedules, and service events." />
+</Cards>

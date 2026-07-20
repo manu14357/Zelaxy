@@ -1,0 +1,69 @@
+---
+title: Security Model
+description: How Zelaxy isolates teams with workspaces, enforces per-workspace roles on every API route, and stores credentials so secrets are referenced but never exposed.
+icon: ShieldCheck
+---
+
+# Security Model
+
+Zelaxy's security rests on three pillars: **workspaces** isolate teams, **permissions** gate every action, and **credentials** keep secrets out of workflow definitions. This page explains each.
+
+## Workspaces
+
+A workspace is the unit of isolation. Each one owns its own:
+
+- workflows and their execution history
+- credentials and connected integrations
+- knowledge collections (documents + embeddings)
+- members and their roles
+
+Data does not cross workspace boundaries. A member of one workspace has no visibility into another unless explicitly added.
+
+## Roles & permissions
+
+Every workspace member holds one of three roles, and **every API route checks it** before returning data or making a change:
+
+| Role | Can |
+|------|-----|
+| `read` | View workflows, logs, and resources. |
+| `write` | Everything `read` can, plus create and edit workflows and run them. |
+| `admin` | Everything `write` can, plus manage members, credentials, and workspace settings. |
+
+Server-side, routes resolve the caller's permission with a single check against the workspace before doing anything:
+
+```ts
+const permission = await getUserEntityPermissions(userId, 'workspace', workspaceId)
+if (!permission) return unauthorized()        // not a member
+if (permission !== 'admin') return forbidden() // needs elevated access
+```
+
+Workspace-wide list endpoints take a `?workspaceId=` parameter and verify membership before returning rows — there is no unscoped "all data" path.
+
+## Credentials & secrets
+
+Secrets are never written into a workflow's saved graph. Instead:
+
+1. **Stored credentials.** API keys and OAuth tokens live in the workspace credential store, encrypted at rest. Integration blocks reference a credential by id; the raw secret is fetched only at execution time.
+2. **Environment references.** In any field you can write `{{ENV_VAR}}`, which resolves from the deployment's environment at run time. The literal value never enters the serialized workflow, the editor, or logs.
+
+<Callout type="warn">
+  Because secrets are resolved at execution time and not stored in the graph, exporting or sharing a workflow never leaks its keys — the references travel, the values don't.
+</Callout>
+
+## Authentication
+
+Sign-in is handled by [better-auth](https://www.better-auth.com/). Email/password works out of the box; for teams, connect your identity provider over OIDC or SAML 2.0 — see [Single Sign-On](/docs/enterprise/sso). Sessions are signed with `BETTER_AUTH_SECRET` and scoped to `BETTER_AUTH_URL`.
+
+You can further lock down who may register with `DISABLE_REGISTRATION`, `ALLOWED_LOGIN_DOMAINS`, and `ALLOWED_LOGIN_EMAILS`.
+
+## Execution isolation
+
+Custom code in **[Function](/docs/blocks/function)** blocks runs in an isolated VM sandbox, not in the main server context — user code can't reach the host process or other workflows' data.
+
+## Related
+
+<Cards>
+  <Card title="Single Sign-On" href="/docs/enterprise/sso" description="OIDC / SAML 2.0 domain-based sign-in." />
+  <Card title="Deployment" href="/docs/enterprise/deployment" description="Environment configuration and self-hosting." />
+  <Card title="Credential block" href="/docs/blocks/credential" description="How blocks reference stored credentials." />
+</Cards>

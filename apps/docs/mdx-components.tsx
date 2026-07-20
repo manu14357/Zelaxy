@@ -13,6 +13,9 @@ import { Step, Steps } from 'fumadocs-ui/components/steps'
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
 import type { MDXComponents } from 'mdx/types'
+import { LiveCount } from '@/app/components/live-count'
+import { ProviderGrid } from '@/app/components/provider-grid'
+import { WorkflowGraph } from '@/app/components/workflow-graph'
 
 /**
  * Custom MDX component overrides for enhanced Zelaxy docs rendering.
@@ -245,6 +248,9 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Tabs,
     Accordion,
     Accordions,
+    LiveCount,
+    WorkflowGraph,
+    ProviderGrid,
     ...customComponents,
     ...components,
   }

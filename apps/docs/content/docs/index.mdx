@@ -7,10 +7,19 @@ icon: BookOpen
 Zelaxy is an AI-powered workflow automation platform built on a modular, block-based architecture. You connect **blocks** on a visual canvas — each performs a specific function — to build powerful automation pipelines without writing code.
 
 <Cards>
-  <Card title="Core Blocks" href="/docs/blocks" description="260+ building blocks — AI agents, conditions, routers, loops, functions, and more." />
-  <Card title="Tool Integrations" href="/docs/tools" description="240+ external services — messaging, email, databases, search, AI/ML, and more." />
+  <Card title="Quickstart" href="/docs/get-started/quickstart" description="Build and run your first AI agent workflow in five minutes." />
+  <Card title="Core Concepts" href="/docs/get-started/core-concepts" description="Blocks, connections, variables, and how data flows across the graph." />
+  <Card title="Guides" href="/docs/guides" description="Complete example agent workflows — research, support, RAG, and more." />
+  <Card title="AI Models" href="/docs/get-started/models" description="Every provider and what each model can do." />
+</Cards>
+
+## Explore the reference
+
+<Cards>
+  <Card title="Blocks" href="/docs/blocks" description={<><LiveCount type="blocks" />+ building blocks — AI agents, conditions, routers, loops, functions, and more.</>} />
+  <Card title="Tools" href="/docs/tools" description={<><LiveCount type="tools" />+ integrations — messaging, email, databases, search, AI/ML, and more.</>} />
   <Card title="Triggers" href="/docs/triggers" description="Webhooks, schedules, and service events that start workflows automatically." />
-  <Card title="Getting Started" href="/docs#how-it-works" description="Understand how blocks connect and build your first workflow in minutes." />
+  <Card title="Enterprise" href="/docs/enterprise" description="SSO, self-hosted deployment, and the workspace security model." />
 </Cards>
 
 ## How It Works
@@ -36,24 +45,32 @@ Every workflow in Zelaxy follows the same pattern:
 | **Tools** | External service integrations (Slack, Gmail, GitHub, etc.) that blocks can call. |
 | **Triggers** | Events that start workflows automatically — webhooks, schedules, or service events. |
 
+See [Core Concepts](/docs/get-started/core-concepts) for the full picture.
+
 ## Example: Customer Support Bot
 
 Here's a simple workflow that auto-responds to support emails:
 
-```
-[Gmail Trigger] → [Agent Block] → [Condition Block] → [Gmail Send] / [Slack Notify]
-```
+<WorkflowGraph
+  nodes={[
+    { title: 'Gmail Trigger', subtitle: 'new email arrives', tone: 'trigger' },
+    { title: 'Agent', subtitle: 'classify + draft', tone: 'agent' },
+    { title: 'Condition', subtitle: 'urgent?', tone: 'logic', branches: ['urgent → Slack notify', 'normal → Gmail reply'] },
+  ]}
+/>
 
 1. **Gmail Trigger** fires when a new email arrives
-2. **Agent Block** (GPT-4o) analyzes the email: classifies urgency, drafts a reply
+2. **Agent Block** analyzes the email: classifies urgency, drafts a reply
 3. **Condition Block** checks `{{agent.content}}` for urgency level
 4. If urgent → **Slack** notifies the team; otherwise → **Gmail** sends the auto-reply
+
+Want the full build? See the [Customer Support Agent guide](/docs/guides/customer-support-agent).
 
 ## Explore the Platform
 
 <Cards>
   <Card title="AI & Reasoning" href="/docs/blocks/agent" description="The Agent block — multi-provider LLMs with tool calling, structured output, and memory." />
-  <Card title="Flow Control" href="/docs/blocks/condition" description="Conditions, routers, switches, loops, and parallel execution." />
+  <Card title="Flow Control" href="/docs/blocks/router" description="Conditions, routers, switches, loops, and parallel execution." />
   <Card title="Knowledge & RAG" href="/docs/blocks/knowledge" description="Vector search across your documents for retrieval-augmented generation." />
   <Card title="Build a Tool Call" href="/docs/tools/slack" description="Connect an Agent to real services like Slack, Gmail, and Notion." />
 </Cards>

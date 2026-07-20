@@ -1,0 +1,16 @@
+{
+  "title": "Enterprise",
+  "icon": "Building2",
+  "root": true,
+  "pages": [
+    "---Overview---",
+    "index",
+    "---Access & Identity---",
+    "sso",
+    "---Operations---",
+    "deployment",
+    "security",
+    "---Community---",
+    "sponsors"
+  ]
+}

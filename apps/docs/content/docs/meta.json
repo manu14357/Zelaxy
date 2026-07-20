@@ -1,15 +1,5 @@
 {
   "title": "Documentation",
   "icon": "BookOpen",
-  "pages": [
-    "---Getting Started---",
-    "index",
-    "blocks",
-    "tools",
-    "triggers",
-    "---Enterprise---",
-    "sso",
-    "---Support---",
-    "sponsors"
-  ]
+  "pages": ["index", "get-started", "blocks", "tools", "triggers", "guides", "enterprise"]
 }

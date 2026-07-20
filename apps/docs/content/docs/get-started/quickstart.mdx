@@ -1,0 +1,70 @@
+---
+title: Quickstart
+description: Build and run your first Zelaxy workflow in five minutes — a chat-triggered AI agent that answers questions.
+icon: Rocket
+---
+
+# Quickstart
+
+You'll build a working AI agent that answers questions from a chat message. Five blocks, five minutes.
+
+<Steps>
+
+<Step>
+### Create a workflow
+
+From your workspace, open the **Hub** and create a new workflow. You land on the visual canvas with a **Starter** block already placed — every workflow begins there.
+</Step>
+
+<Step>
+### Set the trigger
+
+Select the **[Starter](/docs/blocks/starter)** block and choose the **Chat** trigger. Now the workflow runs whenever a chat message comes in, and that message is available downstream as `{{starter.input}}`.
+</Step>
+
+<Step>
+### Add an Agent
+
+Drag an **[Agent](/docs/blocks/agent)** block onto the canvas and draw a connection from Starter to it. Pick a model (any provider — see [AI Models](/docs/get-started/models)) and set the user message to:
+
+```
+{{starter.input}}
+```
+
+Optionally add a system prompt like *"You are a helpful assistant. Answer concisely."*
+</Step>
+
+<Step>
+### Return the answer
+
+Add a **[Response](/docs/blocks/response)** block, connect the Agent to it, and set its value to `{{agent.content}}`. This is what the user sees.
+</Step>
+
+<Step>
+### Run it
+
+Hit **Run**, type a question into the chat panel, and watch the agent respond. You just shipped an AI workflow.
+</Step>
+
+</Steps>
+
+## What just happened
+
+<WorkflowGraph
+  nodes={[
+    { title: 'Starter', subtitle: 'chat · {{starter.input}}', tone: 'trigger' },
+    { title: 'Agent', subtitle: 'answers · {{agent.content}}', tone: 'agent' },
+    { title: 'Response', subtitle: 'shown to user', tone: 'output' },
+  ]}
+/>
+
+Data flowed between blocks through `{{references}}` — the single most important idea in Zelaxy. Read [Core Concepts](/docs/get-started/core-concepts) to understand references, connections, and outputs in depth.
+
+## Where to go next
+
+<Cards>
+  <Card title="Core Concepts" href="/docs/get-started/core-concepts" description="Blocks, connections, variables, and how data flows." />
+  <Card title="Guides" href="/docs/guides" description="Full example workflows: research, support, RAG, and more." />
+  <Card title="Blocks" href="/docs/blocks" description="Every block you can add to the canvas." />
+  <Card title="Tools" href="/docs/tools" description="Connect Slack, Gmail, GitHub, databases, and more." />
+</Cards>

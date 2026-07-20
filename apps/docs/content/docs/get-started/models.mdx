@@ -1,0 +1,80 @@
+---
+title: AI Models
+description: Every LLM provider Zelaxy supports, what each model can do — tool calling, vision, structured output, and extended thinking — and how to pick one.
+icon: BrainCircuit
+---
+
+# AI Models
+
+The **[Agent](/docs/blocks/agent)** block (and Evaluator, Router, and Translate) can run on any supported provider. You pick a model from a dropdown; Zelaxy handles the provider's API contract, auth, and streaming. This page covers who's supported and what the models can do.
+
+<Callout type="info">
+  New models are added continuously. The list in the app's model dropdown is always the source of truth — this page describes the providers and capabilities rather than freezing an exact model count.
+</Callout>
+
+## Supported providers
+
+Every logo below is the same brand icon Zelaxy renders in its own model picker — not a placeholder.
+
+### Frontier labs
+
+The flagship reasoning and multimodal model families.
+
+<ProviderGrid ids={["openai", "anthropic", "google", "xai", "deepseek", "mistral", "meta"]} />
+
+### Fast inference
+
+Purpose-built for high-throughput, low-latency serving of open and hosted models.
+
+<ProviderGrid ids={["groq", "cerebras", "fireworks", "together", "baseten"]} />
+
+### Cloud-native
+
+Run frontier models inside your own Azure, AWS, or GCP tenant for data residency and billing consolidation.
+
+<ProviderGrid ids={["azure-openai", "azure-anthropic", "bedrock", "vertex"]} />
+
+### Open & self-hosted
+
+Local, self-hosted, gateway, and additional thinking-capable providers.
+
+<ProviderGrid ids={["ollama", "ollama-cloud", "vllm", "litellm", "openrouter", "nvidia", "zai", "mimo", "mimo-token-plan", "sakana"]} />
+
+To enable a provider, set its API key in your environment (e.g. `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`) — see [Deployment](/docs/enterprise/deployment).
+
+## Model capabilities
+
+Not every model supports every feature. Zelaxy reads each model's capabilities and adapts the Agent block's UI accordingly — options that don't apply are hidden.
+
+| Capability | What it means | Where it shows up |
+|-----------|---------------|-------------------|
+| **Tool calling** | The model can call connected tool blocks during reasoning. | Connect any [tool](/docs/tools) to the Agent as an agent tool. |
+| **Tool-usage control** | You can force, disallow, or auto-select tool use. | Agent block → tool settings. |
+| **Structured output** | The model returns typed JSON matching a schema. | Agent block → Response Format. Read the result from `{{agent.output}}`. |
+| **Vision** | The model can read images. | Pass image inputs; or use the [Vision block](/docs/blocks/vision). |
+| **Extended thinking** | The model exposes a real reasoning phase (Anthropic `thinking`, MiMo `thinking:{type}`, o-series effort). | Agent block → **Thinking** toggle (shown only for models that support it). |
+| **Temperature range** | Some models accept `0–2`, others a narrower range or none. | Agent block → temperature slider adapts automatically. |
+
+### Extended thinking
+
+Thinking-capable models — including Claude (Sonnet/Opus/Fable), MiMo, and the OpenAI o-series — can spend explicit reasoning tokens before answering. When you select one, the Agent block shows a **Thinking** toggle. Turning it on trades latency and cost for deeper reasoning on hard tasks.
+
+<Callout type="warn">
+  Extended thinking changes provider constraints under the hood — for example, Anthropic thinking forces `temperature = 1` and is incompatible with forced tool choice. Zelaxy applies these rules for you, but it's why some options grey out when Thinking is on.
+</Callout>
+
+## Choosing a model
+
+- **Hard reasoning, planning, code** → a frontier reasoning model with Thinking on (Claude Opus, GPT-5/o-series).
+- **High volume, low latency** → Groq, Cerebras, or a small fast model (GPT-5-nano, Claude Haiku).
+- **Cost-sensitive** → DeepSeek, Mistral, or open models via Ollama/vLLM.
+- **Data residency / your cloud** → Azure OpenAI, Azure Anthropic, Bedrock, or Vertex AI.
+- **Structured extraction** → any tool-calling model with Response Format enabled.
+
+## Related
+
+<Cards>
+  <Card title="Agent block" href="/docs/blocks/agent" description="Where you pick the model and configure thinking, tools, and structured output." />
+  <Card title="Deployment" href="/docs/enterprise/deployment" description="Set provider API keys for your deployment." />
+  <Card title="Guides" href="/docs/guides" description="See models in action across real agent workflows." />
+</Cards>

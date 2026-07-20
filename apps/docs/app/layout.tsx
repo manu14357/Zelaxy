@@ -4,6 +4,7 @@ import { RootProvider } from 'fumadocs-ui/provider'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { Announcement } from './components/announcement'
+import CustomSearchDialog from './components/search-dialog'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -128,7 +129,30 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* Static client-side search (Orama) — index fetched once, then searches are instant. */}
         <RootProvider
           theme={{ defaultTheme: 'light', enableSystem: true }}
-          search={{ options: { type: 'static' } }}
+          search={{
+            SearchDialog: CustomSearchDialog,
+            options: {
+              type: 'static',
+              // Let users narrow a search to one section, n8n-style.
+              allowClear: true,
+              tags: [
+                { name: 'Get Started', value: 'get-started' },
+                { name: 'Blocks', value: 'blocks' },
+                { name: 'Tools', value: 'tools' },
+                { name: 'Triggers', value: 'triggers' },
+                { name: 'Guides', value: 'guides' },
+                { name: 'Enterprise', value: 'enterprise' },
+              ],
+              // Quick links shown before the user types anything.
+              links: [
+                ['Quickstart', '/docs/get-started/quickstart'],
+                ['Core Concepts', '/docs/get-started/core-concepts'],
+                ['Agent block', '/docs/blocks/agent'],
+                ['Guides — example workflows', '/docs/guides'],
+                ['AI Models', '/docs/get-started/models'],
+              ],
+            },
+          }}
         >
           <Announcement />
           {children}

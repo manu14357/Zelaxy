@@ -49,7 +49,7 @@ export default async function Page(props: PageProps) {
     <DocsPage
       toc={page.data.toc}
       full={page.data.full}
-      breadcrumb={{ enabled: true, includeRoot: { url: '/docs' }, includeSeparator: true }}
+      breadcrumb={{ enabled: true, includeSeparator: true }}
       editOnGithub={{
         owner: 'manu14357',
         repo: 'Zelaxy',

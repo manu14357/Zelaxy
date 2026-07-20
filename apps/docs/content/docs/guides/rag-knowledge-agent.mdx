@@ -1,0 +1,92 @@
+---
+title: RAG Knowledge Agent
+description: Answer questions strictly from your own documents using vector search, with a guardrail that blocks answers the sources don't support.
+icon: BookMarked
+---
+
+# RAG Knowledge Agent
+
+## What you'll build
+
+A question-answering agent that only speaks from **your** documents. It retrieves the most relevant passages with vector search, answers from them, and refuses to guess when the documents don't contain the answer — retrieval-augmented generation (RAG) with a hallucination guard.
+
+**Trigger:** a chat message carrying the question in `{{starter.input}}`.
+
+## The workflow
+
+<WorkflowGraph
+  nodes={[
+    { title: 'Starter', subtitle: 'chat trigger', tone: 'trigger' },
+    { title: 'Knowledge', subtitle: 'vector search (top-K)', tone: 'data' },
+    { title: 'Agent', subtitle: 'answer from passages', tone: 'agent' },
+    { title: 'Guardrails', subtitle: 'grounded? block if not', tone: 'logic' },
+    { title: 'Response', subtitle: 'cited answer', tone: 'output' },
+  ]}
+  caption={<>Retrieve first, answer only from the retrieved passages, then verify the answer is grounded.</>}
+/>
+
+## Before you start
+
+Create a **Knowledge** collection and upload your documents (PDFs, Markdown, web pages). Zelaxy chunks and embeds them into pgvector automatically. See the [Knowledge block](/docs/blocks/knowledge) for ingestion details.
+
+## Build it
+
+<Steps>
+
+<Step>
+### Starter — accept the question
+
+Add a **[Starter](/docs/blocks/starter)** with a **Chat** trigger. The question is `{{starter.input}}`.
+</Step>
+
+<Step>
+### Knowledge — retrieve relevant passages
+
+Add a **[Knowledge](/docs/blocks/knowledge)** block. Point it at your collection, set the query to `{{starter.input}}`, and choose a top-K (start with 5). It returns the closest chunks as `{{knowledge.results}}`, each with its source and a similarity score.
+</Step>
+
+<Step>
+### Agent — answer only from the passages
+
+Add an **[Agent](/docs/blocks/agent)** with a strict system prompt:
+
+> Answer the question using ONLY the passages below. Quote or paraphrase them and cite each source. If the passages do not contain the answer, reply exactly: "I don't have that in my documents." Do not use outside knowledge.
+
+User message:
+
+```
+Question: {{starter.input}}
+
+Passages:
+{{knowledge.results}}
+```
+</Step>
+
+<Step>
+### Guardrails — block ungrounded answers
+
+Add a **[Guardrails](/docs/blocks/guardrails)** block after the agent. Enable the **hallucination / grounding** check so any answer not supported by `{{knowledge.results}}` is flagged before it reaches the user. On failure, fall back to the "I don't have that" message.
+</Step>
+
+<Step>
+### Response — return the grounded answer
+
+Add a **[Response](/docs/blocks/response)** block returning `{{agent.content}}`.
+</Step>
+
+</Steps>
+
+## Make it yours
+
+- **Cite inline.** Turn on structured output on the agent (`{ "answer": "string", "sources": ["string"] }`) and render the sources list in your UI.
+- **Multi-collection.** Add a **[Router](/docs/blocks/router)** before Knowledge that picks which collection to search based on the question's topic.
+- **Freshness.** Combine with the [Research Agent](/docs/guides/research-agent) — search your docs first, and only fall back to the web when Knowledge returns nothing.
+- **Memory.** Add a **[Memory](/docs/blocks/memory)** block to keep conversation context across turns for a true chat experience.
+
+## Related
+
+<Cards>
+  <Card title="Knowledge block" href="/docs/blocks/knowledge" description="Vector search and document ingestion." />
+  <Card title="Guardrails" href="/docs/blocks/guardrails" description="Hallucination, PII, and schema checks." />
+  <Card title="Memory block" href="/docs/blocks/memory" description="Persist context across chat turns." />
+</Cards>
