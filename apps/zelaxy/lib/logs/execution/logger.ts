@@ -156,6 +156,13 @@ export class ExecutionLogger implements IExecutionLoggerService {
     // Extract files from trace spans and final output
     const executionFiles = this.extractFilesFromExecution(traceSpans, finalOutput)
 
+    // buildTraceSpans always wraps the run in a single top-level 'workflow' span (the whole tree's
+    // root), with one child per block that actually executed — so `traceSpans.length` is always
+    // exactly 1 by construction, regardless of how many blocks ran. The real per-block spans are
+    // nested in `.children` (recursively, for anything inside a loop/parallel). Flatten those out to
+    // get accurate counts instead of reporting "1 block" for every execution.
+    const blockSpans = this.flattenBlockSpans(traceSpans)
+
     const [updatedLog] = await db
       .update(workflowExecutionLogs)
       .set({
@@ -163,9 +170,9 @@ export class ExecutionLogger implements IExecutionLoggerService {
         message,
         endedAt: new Date(endedAt),
         totalDurationMs,
-        blockCount: traceSpans?.length ?? 0,
-        successCount: traceSpans?.filter((s: any) => s.status !== 'error').length ?? 0,
-        errorCount: traceSpans?.filter((s: any) => s.status === 'error').length ?? 0,
+        blockCount: blockSpans.length,
+        successCount: blockSpans.filter((s) => s.status !== 'error').length,
+        errorCount: blockSpans.filter((s) => s.status === 'error').length,
         skippedCount: 0,
         totalCost: costSummary.totalCost.toString(),
         totalInputCost: costSummary.totalInputCost.toString(),
@@ -456,6 +463,23 @@ export class ExecutionLogger implements IExecutionLoggerService {
       logger.warn(`Failed to append block span for execution ${executionId}:`, error)
       // Non-fatal — the final completeWorkflowExecution will write the full set
     }
+  }
+
+  /**
+   * Recursively collects every span EXCEPT the top-level 'workflow' wrapper span buildTraceSpans
+   * always adds — i.e. the actual per-block spans, including ones nested inside a loop/parallel.
+   */
+  private flattenBlockSpans(spans?: TraceSpan[]): TraceSpan[] {
+    if (!spans) return []
+    const result: TraceSpan[] = []
+    const walk = (span: TraceSpan) => {
+      if (span.type !== 'workflow') result.push(span)
+      if (Array.isArray(span.children)) {
+        for (const child of span.children) walk(child)
+      }
+    }
+    for (const span of spans) walk(span)
+    return result
   }
 
   /**
