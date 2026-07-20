@@ -398,6 +398,22 @@ async function executeMiMoRequest(
       content = content.replace(/```json\n?|\n?```/g, '').trim()
     }
 
+    // The model consumed its entire max_tokens budget and produced NO content and NO tool calls —
+    // it never got to write an answer at all (this happens with reasoning-capable models on a large
+    // prompt: the internal reasoning pass alone can exhaust a modest max_tokens before the model
+    // reaches its final-answer text). Silently returning `content: ''` here looks like a successful,
+    // if empty, response — the agent block reports success, and the failure only surfaces two steps
+    // downstream (e.g. a function block crashing on `undefined.map`) with no clue why. Fail loudly
+    // and specifically instead, at the point where the real cause is known.
+    const hitTokenLimit = currentResponse.choices[0]?.finish_reason === 'length'
+    const hasToolCalls = (currentResponse.choices[0]?.message?.tool_calls?.length ?? 0) > 0
+    if (hitTokenLimit && !content && !hasToolCalls) {
+      const usedTokens = currentResponse.usage?.completion_tokens
+      throw new Error(
+        `${options.name} hit its max_tokens limit${usedTokens ? ` (${usedTokens} tokens)` : ''} before generating any output — the whole budget was spent before the model reached its answer (common with a long prompt or a model that reasons internally first). Increase maxTokens on this block and try again.`
+      )
+    }
+
     const tokens = {
       prompt: currentResponse.usage?.prompt_tokens || 0,
       completion: currentResponse.usage?.completion_tokens || 0,
