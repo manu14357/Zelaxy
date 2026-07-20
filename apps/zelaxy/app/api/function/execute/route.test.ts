@@ -17,10 +17,122 @@ const mockLogger = {
   debug: vi.fn(),
 }
 
+/**
+ * `isolated-vm` is a native addon with no prebuilt binary for every runtime ABI (CI's Node 22 abi
+ * 127 has none), so the route's real `executeInIsolate` throws there and every test that exercises
+ * it would flake in CI only. Replace it with a faithful re-implementation on Node's built-in `vm`
+ * module — real code execution, real thrown errors/line numbers/stack traces, same
+ * IsolatedExecutionError contract — so tests stay deterministic and portable while still exercising
+ * genuine execution semantics (not a canned return value). Uses the `node:` specifier so it resolves
+ * to the real module even though this file separately mocks the bare `'vm'` specifier below (dead
+ * legacy mocking from before the isolated-vm migration, left in place for the other mocked paths).
+ */
+function mockIsolatedVmModule() {
+  vi.doMock('@/lib/execution/isolated-vm', async () => {
+    // `vi.doMock('vm', ...)` below (dead legacy mocking) intercepts BOTH the bare 'vm' specifier
+    // and the 'node:vm' alias, so a plain dynamic import here would resolve to that canned mock
+    // instead of the real module. importActual explicitly bypasses mocking to get the real thing.
+    const nodeVm = await vi.importActual<typeof import('node:vm')>('node:vm')
+
+    class IsolatedExecutionError extends Error {
+      constructor(
+        message: string,
+        public readonly stdout: string,
+        public readonly isTimeout = false,
+        public readonly isMemoryLimit = false,
+        public readonly originalName?: string,
+        originalStack?: string
+      ) {
+        super(message)
+        this.name = originalName || 'IsolatedExecutionError'
+        if (originalStack) this.stack = originalStack
+      }
+    }
+
+    async function executeInIsolate(params: {
+      code: string
+      globals?: Record<string, unknown>
+      timeoutMs?: number
+      filename?: string
+      fetchBridge?: (url: string, init?: any) => Promise<any>
+    }) {
+      const {
+        code,
+        globals = {},
+        timeoutMs = 10000,
+        filename = 'user-function.js',
+        fetchBridge,
+      } = params
+      let stdout = ''
+      const fmt = (args: unknown[]) =>
+        args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')
+
+      const context = nodeVm.createContext({
+        ...globals,
+        console: {
+          log: (...args: unknown[]) => {
+            stdout += `${fmt(args)}\n`
+          },
+          error: (...args: unknown[]) => {
+            stdout += `ERROR: ${fmt(args)}\n`
+          },
+        },
+        fetch: fetchBridge
+          ? async (url: string, init?: any) => {
+              const res = await fetchBridge(String(url), init)
+              return {
+                status: res.status,
+                ok: res.status >= 200 && res.status < 300,
+                headers: res.headers,
+                text: async () => res.body,
+                json: async () => JSON.parse(res.body),
+              }
+            }
+          : undefined,
+      })
+
+      try {
+        const script = new nodeVm.Script(code, { filename })
+        const result = await script.runInContext(context, { timeout: timeoutMs })
+        return { result, stdout }
+      } catch (error: any) {
+        // `vm.createContext()` runs the script in a separate realm, so an error thrown inside it
+        // fails `instanceof Error` against the outer realm's Error constructor — duck-type instead
+        // (matches how real isolated-vm's cross-boundary error copy is described: name/message
+        // survive on the copy). Real isolated-vm marshals the error into a genuine host Error, so
+        // this is a mock-only concern, not a divergence from production behavior.
+        const message =
+          error && typeof error === 'object' && 'message' in error
+            ? String(error.message)
+            : String(error)
+        const isTimeout = /script execution timed out/i.test(message)
+        const originalName =
+          error && typeof error === 'object' && error.name && error.name !== 'Error'
+            ? error.name
+            : undefined
+        const originalStack =
+          error && typeof error === 'object' && 'stack' in error ? String(error.stack) : undefined
+        throw new IsolatedExecutionError(
+          message,
+          stdout,
+          isTimeout,
+          false,
+          originalName,
+          originalStack
+        )
+      }
+    }
+
+    return { executeInIsolate, IsolatedExecutionError }
+  })
+}
+
 describe('Function Execute API Route', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.resetAllMocks()
+
+    mockIsolatedVmModule()
 
     vi.doMock('vm', () => ({
       createContext: mockCreateContext,
@@ -520,6 +632,8 @@ describe('Function Execute API - Template Variable Edge Cases', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.resetAllMocks()
+
+    mockIsolatedVmModule()
 
     vi.doMock('@/lib/logs/console/logger', () => ({
       createLogger: vi.fn().mockReturnValue(mockLogger),

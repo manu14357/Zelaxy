@@ -92,6 +92,25 @@ describeIvm('executeInIsolate', () => {
     }
   })
 
+  it('preserves the original error name and a stack referencing the user script', async () => {
+    try {
+      await executeInIsolate({
+        code: wrap('const obj = null; return obj.someMethod()'),
+        filename: 'user-function.js',
+      })
+      throw new Error('should have thrown')
+    } catch (e) {
+      expect(e).toBeInstanceOf(IsolatedExecutionError)
+      const err = e as IsolatedExecutionError
+      // `super(message)` alone would capture a stack pointing at executeInIsolate's own throw site
+      // instead of the user code's location — the route's error formatter parses `user-function.js:N`
+      // out of the stack to tell the user which line failed, so losing this silently degrades every
+      // Function block error to "no line number available".
+      expect(err.name).toBe('TypeError')
+      expect(err.stack).toContain('user-function.js')
+    }
+  })
+
   it('bridges fetch as a callback rather than the host function', async () => {
     let calledWith = ''
     const { result } = await executeInIsolate({

@@ -74,10 +74,18 @@ export class IsolatedExecutionError extends Error {
     public readonly isTimeout = false,
     public readonly isMemoryLimit = false,
     /** The original error name from inside the isolate (ReferenceError, TypeError, …) when known. */
-    public readonly originalName?: string
+    public readonly originalName?: string,
+    /**
+     * The original error's stack, when available. `super(message)` otherwise captures a fresh stack
+     * pointing at this constructor's own call site (inside `executeInIsolate`'s catch block) instead
+     * of the user code's location, which silently discarded the `user-function.js:N` reference the
+     * route's error formatter parses out to show the user which line failed.
+     */
+    originalStack?: string
   ) {
     super(message)
     this.name = originalName || 'IsolatedExecutionError'
+    if (originalStack) this.stack = originalStack
   }
 }
 
@@ -189,8 +197,16 @@ export async function executeInIsolate(
     // user instead of labelling everything 'IsolatedExecutionError'.
     const originalName =
       error instanceof Error && error.name && error.name !== 'Error' ? error.name : undefined
+    const originalStack = error instanceof Error ? error.stack : undefined
 
-    throw new IsolatedExecutionError(message, stdout, isTimeout, isMemoryLimit, originalName)
+    throw new IsolatedExecutionError(
+      message,
+      stdout,
+      isTimeout,
+      isMemoryLimit,
+      originalName,
+      originalStack
+    )
   } finally {
     if (!isolate.isDisposed) {
       isolate.dispose()
