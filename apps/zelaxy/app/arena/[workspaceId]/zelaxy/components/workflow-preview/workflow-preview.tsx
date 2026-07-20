@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Background,
   BackgroundVariant,
@@ -286,21 +286,60 @@ export function WorkflowPreview({
     // Replay the reveal only when the block set changes (a fresh build), not on every render.
   }, [animateReveal, totalNodes, blocksStructure.ids])
 
+  // Persist the instance so we can re-fit whenever the block LAYOUT changes, not just on first
+  // mount — an in-place edit/rebuild (build_workflow called again on the same artifact) updates
+  // `workflowState` on an already-mounted preview, so `onInit` never fires a second time and the
+  // view would otherwise stay fit to the stale, no-longer-correct bounds.
+  const [flowInstance, setFlowInstance] = useState<ReactFlowInstance | null>(null)
   const handleInit = useCallback((instance: ReactFlowInstance) => {
-    // Delay fitView to ensure nodes are measured in the DOM. `minZoom` stops a long workflow from
-    // shrinking to an unreadable hairline — it fits as much as it can at ≥0.55 scale (blocks stay
-    // legible) and the user pans to see the rest; `maxZoom` lets a tiny 1–2 block flow zoom IN.
-    // `includeHiddenNodes` keeps the view fit to the FULL layout during the block-by-block reveal.
-    requestAnimationFrame(() => {
-      instance.fitView({
-        padding: 0.18,
-        duration: 300,
-        minZoom: 0.55,
-        maxZoom: 1.25,
-        includeHiddenNodes: true,
-      })
+    setFlowInstance(instance)
+  }, [])
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  const runFitView = useCallback((instance: ReactFlowInstance) => {
+    // `minZoom` stops a long workflow from shrinking to an unreadable hairline — it fits as much as
+    // it can at ≥0.55 scale (blocks stay legible) and the user pans to see the rest; `maxZoom` lets a
+    // tiny 1–2 block flow zoom IN. `includeHiddenNodes` keeps the view fit to the FULL layout during
+    // the block-by-block reveal.
+    instance.fitView({
+      padding: 0.18,
+      duration: 300,
+      minZoom: 0.55,
+      maxZoom: 1.25,
+      includeHiddenNodes: true,
     })
   }, [])
+
+  useEffect(() => {
+    if (!flowInstance) return
+    // Delay fitView to ensure nodes are measured in the DOM.
+    const raf = requestAnimationFrame(() => runFitView(flowInstance))
+    return () => cancelAnimationFrame(raf)
+    // Re-fit whenever the instance mounts AND whenever the block/loop/parallel set actually
+    // changes shape (id sets, not just counts, so a swap-in-place at the same count still re-fits).
+  }, [flowInstance, runFitView, blocksStructure.ids, loopsStructure.ids, parallelsStructure.ids])
+
+  // React Flow measures its viewport from the DOM container at mount time. This preview lives
+  // inside a drag-resizable split panel (ZelaxyArena's live session view) and only mounts once
+  // `workflowState` first arrives — if the container's real height isn't settled yet at that exact
+  // moment (mid-layout, panel just became visible, split still animating), React Flow's viewport
+  // gets stuck sized against that stale measurement and nothing else ever tells it to recompute,
+  // rendering as a persistently blank canvas with no error. Watch the container itself and re-fit
+  // on any real size change, independent of whether the block data changed at all.
+  useEffect(() => {
+    if (!flowInstance || !rootRef.current) return
+    const el = rootRef.current
+    let raf = 0
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => runFitView(flowInstance))
+    })
+    observer.observe(el)
+    return () => {
+      cancelAnimationFrame(raf)
+      observer.disconnect()
+    }
+  }, [flowInstance, runFitView])
 
   // Handle migrated logs that don't have complete workflow state
   if (!isValidWorkflowState) {
@@ -334,7 +373,7 @@ export function WorkflowPreview({
 
   return (
     <ReactFlowProvider>
-      <div style={{ height, width }} className={cn('preview-mode')}>
+      <div ref={rootRef} style={{ height, width }} className={cn('preview-mode')}>
         <ReactFlow
           colorMode={resolvedColorMode}
           nodes={displayNodes}
