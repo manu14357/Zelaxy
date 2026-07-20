@@ -211,15 +211,18 @@ export function Table({
     <div className='relative flex h-full w-full flex-col overflow-hidden'>
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className='flex shrink-0 items-center gap-2 border-border border-b px-4 py-2'>
-        {/* Back to the tables list. Only on the real route — resuming the last table via the nav
-            would otherwise leave no way back to the grid (the header has no other list link). */}
+        {/* Back to wherever the user actually came from — the standalone tables list, OR the Hub's
+            Tables tab, both of which navigate here as a real route (isRouteView). A hardcoded push
+            to /tables ignored that and always landed on the standalone list even when the user came
+            from the Hub, stranding them there instead of returning to the Hub. router.back() follows
+            the real browser history instead, so it lands wherever the user actually was. */}
         {isRouteView && (
           <Button
             variant='ghost'
             size='icon'
             className='h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground'
-            onClick={() => router.push(`/arena/${workspaceId}/tables`)}
-            title='All tables'
+            onClick={() => router.back()}
+            title='Back'
           >
             <ArrowLeft className='h-4 w-4' />
           </Button>
