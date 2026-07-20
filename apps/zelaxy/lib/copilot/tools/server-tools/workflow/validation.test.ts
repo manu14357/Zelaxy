@@ -195,4 +195,55 @@ describe('lintWorkflowState', () => {
     const issues = lintWorkflowState(blocks, edges, registry)
     expect(issues.some((i) => i.message.includes('not an output'))).toBe(false)
   })
+
+  // Regression: an agent with responseFormat set has NO `.content` at runtime — the parsed schema's
+  // top-level fields replace it directly on the output (AgentBlockHandler.processStructuredResponse).
+  // A workflow that references `.content` on such a block "builds" clean but fails at execution with
+  // `JSON.parse("undefined")` — the lint must catch this at build time, not wave it through.
+  const responseFormatValue = JSON.stringify({
+    name: 'football_news',
+    schema: {
+      type: 'object',
+      properties: { articles: { type: 'array' } },
+      required: ['articles'],
+    },
+  })
+
+  it('accepts a schema field reference on an agent block with responseFormat set', () => {
+    const blocks = {
+      a: { type: 'starter', name: 'Start', subBlocks: {} },
+      ag: {
+        type: 'agent',
+        name: 'Extract',
+        subBlocks: { responseFormat: { value: responseFormatValue } },
+      },
+      b: { type: 'agent', name: 'Step', subBlocks: { userPrompt: { value: '{{ag.articles}}' } } },
+    }
+    const edges = [
+      { source: 'a', target: 'ag' },
+      { source: 'ag', target: 'b' },
+    ]
+    const issues = lintWorkflowState(blocks, edges, registry)
+    expect(issues.some((i) => i.message.includes('not an output'))).toBe(false)
+  })
+
+  it('flags a `.content` reference on an agent block with responseFormat set', () => {
+    const blocks = {
+      a: { type: 'starter', name: 'Start', subBlocks: {} },
+      ag: {
+        type: 'agent',
+        name: 'Extract',
+        subBlocks: { responseFormat: { value: responseFormatValue } },
+      },
+      b: { type: 'agent', name: 'Step', subBlocks: { userPrompt: { value: '{{ag.content}}' } } },
+    }
+    const edges = [
+      { source: 'a', target: 'ag' },
+      { source: 'ag', target: 'b' },
+    ]
+    const issues = lintWorkflowState(blocks, edges, registry)
+    expect(
+      issues.some((i) => i.message.includes('content') && i.message.includes('not an output'))
+    ).toBe(true)
+  })
 })

@@ -23,6 +23,31 @@ interface WrittenSubBlock {
   value: any
 }
 
+/**
+ * An `agent` block's real output shape depends on its `responseFormat`: with none set, it's the
+ * static `{content, model, tokens, toolCalls, context}`; with one set and the model returning valid
+ * JSON, `content` doesn't exist at all — the parsed schema's top-level fields replace it directly on
+ * the output (see AgentBlockHandler.processStructuredResponse). Mirrors the wrapping
+ * AgentBlockHandler.parseResponseFormat applies (a bare JSON Schema object gets normalized to
+ * `{schema: <that object>}`) so this stays in sync with what actually runs.
+ */
+function getAgentResponseFormatFields(block: any): string[] | null {
+  const raw = block?.subBlocks?.responseFormat?.value
+  if (!raw) return null
+  let parsed: any
+  try {
+    parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+  } catch {
+    return null
+  }
+  if (!parsed || typeof parsed !== 'object') return null
+  const schema = parsed.schema && typeof parsed.schema === 'object' ? parsed.schema : parsed
+  const properties = schema?.properties
+  if (!properties || typeof properties !== 'object') return null
+  const fields = Object.keys(properties)
+  return fields.length > 0 ? fields : null
+}
+
 function resolveOptionIds(config: SubBlockConfig): string[] | null {
   if (!config.options) return null
   const opts = typeof config.options === 'function' ? config.options() : config.options
@@ -228,7 +253,19 @@ export function lintWorkflowState(
         if (SYSTEM_REFS.has(nRef) || !field) continue
         const target = blockByRef.get(nRef)
         if (!target || target.type === 'function') continue
-        const outputs = blockRegistry.get(target.type)?.outputs
+        let outputs = blockRegistry.get(target.type)?.outputs
+        // An agent with responseFormat set replaces `content`/`context` with the schema's own
+        // top-level fields at runtime (see getAgentResponseFormatFields) — validate against those
+        // instead of the static registry shape, or every correct schema-field reference gets flagged
+        // as invalid and every incorrect `.content` reference gets waved through.
+        if (target.type === 'agent') {
+          const schemaFields = getAgentResponseFormatFields(target)
+          if (schemaFields) {
+            outputs = Object.fromEntries(
+              [...schemaFields, 'model', 'tokens', 'toolCalls'].map((f) => [f, {}])
+            ) as any
+          }
+        }
         if (outputs && Object.keys(outputs).length > 0 && !(field in outputs)) {
           const fkey = `${id}:${ref}.${field}`
           if (!reportedRefs.has(fkey)) {

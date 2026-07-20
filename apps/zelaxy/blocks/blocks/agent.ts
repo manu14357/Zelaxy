@@ -557,7 +557,11 @@ Example 3 (Array Input):
     },
   },
   outputs: {
-    content: { type: 'string', description: 'Generated response content' },
+    content: {
+      type: 'string',
+      description:
+        "Generated response content. ONLY present when responseFormat is NOT set. When responseFormat IS set and the model returns valid JSON, there is no `content` field at all — the parsed JSON object's fields are placed directly on the output instead. E.g. a responseFormat schema with a top-level `articles` array means the output is `{ articles: [...] }`, referenced downstream as `{{<blockKey>.articles}}` — NOT `{{<blockKey>.content}}`, and NOT by JSON.parse-ing `.content` in a function block (it will be undefined).",
+    },
     model: { type: 'string', description: 'Model used for generation' },
     tokens: { type: 'any', description: 'Token usage statistics' },
     toolCalls: { type: 'any', description: 'Tool call results' },
