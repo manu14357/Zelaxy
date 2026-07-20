@@ -141,11 +141,21 @@ async function executeMiMoRequest(
 
     const payload: any = { model: apiModel, messages: allMessages }
     if (request.temperature !== undefined) payload.temperature = request.temperature
+    // MiMo's Chat Completions endpoint takes `max_completion_tokens`, NOT the `max_tokens` name
+    // most OpenAI-compatible APIs use — sending `max_tokens` here is silently ignored by MiMo's API
+    // (unrecognized fields aren't rejected), so a configured limit never actually applied.
     if (request.maxTokens !== undefined && request.maxTokens >= 1)
-      payload.max_tokens = request.maxTokens
+      payload.max_completion_tokens = request.maxTokens
     if (request.topP !== undefined) payload.top_p = request.topP
     if (request.presencePenalty !== undefined) payload.presence_penalty = request.presencePenalty
     if (request.frequencyPenalty !== undefined) payload.frequency_penalty = request.frequencyPenalty
+    // MiMo reasoning models think before answering unless told not to; that internal reasoning pass
+    // draws from the SAME completion-token budget, and on a long prompt can exhaust it entirely
+    // before the model ever writes an answer (the exact "0 content, full token usage" failure this
+    // guards against below). Default OFF — only spend the budget on hidden reasoning when a caller
+    // explicitly asks for it (`request.thinking`, e.g. an agent block's Thinking toggle) — matching
+    // MiMo's own documented request shape (`thinking: { type: 'enabled' | 'disabled' }`).
+    payload.thinking = { type: request.thinking ? 'enabled' : 'disabled' }
 
     let preparedTools: ReturnType<typeof prepareToolsWithUsageControl> | null = null
     if (tools?.length) {

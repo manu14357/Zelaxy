@@ -11,6 +11,7 @@ import {
   MODELS_TEMP_RANGE_0_1,
   MODELS_TEMP_RANGE_0_2,
   MODELS_WITH_TEMPERATURE_SUPPORT,
+  MODELS_WITH_THINKING,
   providers,
 } from '@/providers/utils'
 
@@ -193,6 +194,22 @@ Create a system prompt that defines the agent's role, behavior, and constraints.
       max: 8192,
       step: 1,
       mode: 'advanced',
+    },
+    {
+      id: 'thinking',
+      title: 'Thinking',
+      type: 'switch',
+      layout: 'half',
+      mode: 'advanced',
+      description:
+        'Let the model reason internally before answering. Uses part of Max Output Tokens for that reasoning — on a long prompt, a small Max Output Tokens can leave nothing for the actual answer. Off by default: most requests answer directly, faster and cheaper.',
+      // Only models with a genuinely controllable reasoning toggle (see ModelCapabilities.thinking
+      // in providers/models.ts) — not every "smart" model exposes this, and forcing the field on an
+      // unsupported model would silently do nothing.
+      condition: {
+        field: 'model',
+        value: MODELS_WITH_THINKING,
+      },
     },
     {
       id: 'presencePenalty',
@@ -452,6 +469,7 @@ Example 3 (Array Input):
           'maxTokens',
           'presencePenalty',
           'frequencyPenalty',
+          'thinking',
           'timeout',
           'enableStreaming',
           'tools',
@@ -527,6 +545,11 @@ Example 3 (Array Input):
     maxTokens: { type: 'number', description: 'Maximum output tokens' },
     presencePenalty: { type: 'number', description: 'Penalizes repeated topics (-2.0 to 2.0)' },
     frequencyPenalty: { type: 'number', description: 'Penalizes repeated tokens (-2.0 to 2.0)' },
+    thinking: {
+      type: 'boolean',
+      description:
+        'Let the model reason internally before answering (models with a controllable thinking mode only). Off by default.',
+    },
     timeout: { type: 'number', description: 'Request timeout in seconds' },
     enableStreaming: { type: 'boolean', description: 'Enable real-time streaming' },
     tools: { type: 'json', description: 'Tools available to the agent' },

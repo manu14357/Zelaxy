@@ -14,6 +14,8 @@ export interface AgentInputs {
   topK?: number
   presencePenalty?: number
   frequencyPenalty?: number
+  /** Let the model reason internally before answering, on models that support toggling it. */
+  thinking?: boolean
   timeout?: number
   customInstructions?: string
   apiKey?: string

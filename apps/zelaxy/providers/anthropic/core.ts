@@ -323,6 +323,23 @@ ${fieldDescriptions}
     }
   }
 
+  // Extended thinking ("show your reasoning before answering"). Applied once, here, on the shared
+  // base payload so every downstream path (early streaming, the tool-call loop, structured output)
+  // inherits it consistently instead of each branch reimplementing the same budget math. Only when
+  // explicitly requested — every existing workflow that never sets this keeps its exact current
+  // behavior. Anthropic requires temperature=1 and forbids top_p while thinking is enabled, and
+  // doesn't support combining it with a FORCED tool_choice (only auto-routed tool use works with
+  // thinking) — skip enabling it in that one combination rather than send an invalid request.
+  if (request.thinking && (!payload.tool_choice || payload.tool_choice === 'auto')) {
+    const maxTokens = typeof payload.max_tokens === 'number' ? payload.max_tokens : 8000
+    const budget = Math.max(1024, Math.min(8000, maxTokens - 1024))
+    payload.thinking = { type: 'enabled', budget_tokens: budget }
+    payload.max_tokens = Math.max(maxTokens, budget + 2048)
+    payload.temperature = 1
+    // biome-ignore lint/performance/noDelete: one-time payload cleanup, not a hot path
+    delete payload.top_p
+  }
+
   // Check if we should stream tool calls (default: false for chat, true for copilot)
   const shouldStreamToolCalls = request.streamToolCalls ?? false
 
@@ -335,17 +352,10 @@ ${fieldDescriptions}
     const providerStartTime = Date.now()
     const providerStartTimeISO = new Date(providerStartTime).toISOString()
 
-    // Create a streaming request. When extended thinking is requested, enable it (Anthropic
-    // requires temperature=1 and max_tokens > thinking budget) and stream reasoning as NDJSON.
-    const useThinking = !!request.thinking
+    // Reasoning streams as NDJSON when thinking is enabled (see the shared payload construction
+    // above); a normal completion streams as plain text otherwise.
+    const useThinking = !!payload.thinking
     const createParams: any = { ...payload, stream: true }
-    if (useThinking) {
-      const maxTokens = typeof payload.max_tokens === 'number' ? payload.max_tokens : 8000
-      const budget = Math.max(1024, Math.min(8000, maxTokens - 1024))
-      createParams.thinking = { type: 'enabled', budget_tokens: budget }
-      createParams.max_tokens = Math.max(maxTokens, budget + 2048)
-      createParams.temperature = 1
-    }
     const streamResponse: any = await anthropic.messages.create(createParams)
 
     // Start collecting token usage

@@ -1058,6 +1058,7 @@ export class AgentBlockHandler implements BlockHandler {
       presencePenalty: inputs.presencePenalty != null ? Number(inputs.presencePenalty) : undefined,
       frequencyPenalty:
         inputs.frequencyPenalty != null ? Number(inputs.frequencyPenalty) : undefined,
+      thinking: inputs.thinking === true,
       timeout: inputs.timeout != null ? Math.round(Number(inputs.timeout)) : undefined,
       apiKey: inputs.apiKey,
       azureEndpoint: inputs.azureEndpoint,
@@ -1167,6 +1168,7 @@ export class AgentBlockHandler implements BlockHandler {
       topK: providerRequest.topK,
       presencePenalty: providerRequest.presencePenalty,
       frequencyPenalty: providerRequest.frequencyPenalty,
+      thinking: providerRequest.thinking,
       apiKey: finalApiKey,
       azureEndpoint: providerRequest.azureEndpoint,
       azureApiVersion: providerRequest.azureApiVersion,

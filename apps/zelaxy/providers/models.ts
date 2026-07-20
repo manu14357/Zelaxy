@@ -51,6 +51,13 @@ export interface ModelCapabilities {
   }
   toolUsageControl?: boolean
   computerUse?: boolean
+  /**
+   * The model can reason internally before answering, and that behavior is controllable per-request
+   * (not just an on-by-default black box) — e.g. MiMo's `thinking: {type}` field or Anthropic's
+   * extended thinking (`thinking: {type:'enabled', budget_tokens}`). Drives the agent block's
+   * Thinking toggle: only shown for models that actually support turning it on/off.
+   */
+  thinking?: boolean
 }
 
 export interface ModelDefinition {
@@ -486,6 +493,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         capabilities: {
           temperature: { min: 0, max: 1 },
           toolUsageControl: true,
+          thinking: true,
         },
       },
       {
@@ -499,6 +507,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         capabilities: {
           temperature: { min: 0, max: 1 },
           toolUsageControl: true,
+          thinking: true,
         },
       },
       {
@@ -512,6 +521,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         capabilities: {
           temperature: { min: 0, max: 1 },
           toolUsageControl: true,
+          thinking: true,
         },
       },
       {
@@ -525,6 +535,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         capabilities: {
           temperature: { min: 0, max: 1 },
           toolUsageControl: true,
+          thinking: true,
         },
       },
       {
@@ -1314,6 +1325,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         capabilities: {
           temperature: { min: 0, max: 2 },
           toolUsageControl: true,
+          thinking: true,
         },
       },
       {
@@ -1327,6 +1339,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         capabilities: {
           temperature: { min: 0, max: 2 },
           toolUsageControl: true,
+          thinking: true,
         },
       },
       // V2 series — routed to V2.5 pricing, deprecated 2026-06-30.
@@ -1396,6 +1409,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         capabilities: {
           temperature: { min: 0, max: 2 },
           toolUsageControl: true,
+          thinking: true,
         },
       },
       {
@@ -1409,6 +1423,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
         capabilities: {
           temperature: { min: 0, max: 2 },
           toolUsageControl: true,
+          thinking: true,
         },
       },
       {
@@ -2251,6 +2266,21 @@ export function getModelPricing(modelId: string): ModelPricing | null {
  */
 export function getModelCapabilities(modelId: string): ModelCapabilities | null {
   return findModelDefinition(modelId)?.capabilities ?? null
+}
+
+/**
+ * Get all models with a controllable internal-reasoning ("thinking") toggle.
+ */
+export function getModelsWithThinking(): string[] {
+  const models: string[] = []
+  for (const provider of Object.values(PROVIDER_DEFINITIONS)) {
+    for (const model of provider.models) {
+      if (model.capabilities.thinking) {
+        models.push(model.id)
+      }
+    }
+  }
+  return models
 }
 
 /**
