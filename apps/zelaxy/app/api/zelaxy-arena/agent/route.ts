@@ -581,6 +581,13 @@ export async function POST(req: NextRequest) {
         // The workflow persisted this turn (if any). If the model rebuilds, we UPDATE this one
         // instead of inserting a duplicate.
         let persistedWorkflowId: string | null = null
+        // True once a build_workflow call has succeeded with NO lint/validation issues to fix. The
+        // system prompt already says "call build_workflow once... do NOT rebuild unless asked", but
+        // some models (small/budget ones especially) ignore it and immediately re-run the entire
+        // build for no reason — regenerating slightly different YAML each time, so the exact-args
+        // dedup above never catches it. A clean build has nothing left to fix, so any further
+        // build_workflow/edit_workflow call this turn is redundant work, not a legitimate retry.
+        let cleanBuildDone = false
 
         // A workflow the user @-mentioned (e.g. "analyze @My Workflow"). Lets read/inspect tools
         // (get_user_workflow, get_workflow_console, run_workflow, edit_workflow) target it when
@@ -731,6 +738,35 @@ export async function POST(req: NextRequest) {
               continue
             }
 
+            // A model that ignores "call build_workflow once" and immediately re-runs the entire
+            // build regenerates slightly different YAML each time (so the exact-args dedup above
+            // never matches) even though the prior build already succeeded with nothing left to fix.
+            // Skip re-running the (expensive) YAML conversion — tell the model it's done instead.
+            if (toolCall.name === 'build_workflow' && persistedWorkflowId && cleanBuildDone) {
+              const nudge = JSON.stringify({
+                success: true,
+                message:
+                  'You already successfully built this workflow and it has no outstanding lint or validation issues — it is DONE. Do not call build_workflow again this turn; summarize what you created and stop.',
+                workflowId: persistedWorkflowId,
+              })
+              controller.enqueue(
+                sse({
+                  type: 'tool_result',
+                  toolCallId,
+                  name: toolCall.name,
+                  success: true,
+                  result: nudge,
+                })
+              )
+              messages.push({
+                role: 'tool',
+                name: toolCall.name,
+                tool_call_id: toolCallId,
+                content: nudge,
+              })
+              continue
+            }
+
             // Don't run a state-mutating tool after the user pressed Stop.
             if (req.signal.aborted) break
 
@@ -752,6 +788,9 @@ export async function POST(req: NextRequest) {
             const builtState = result.data?.workflowState ?? (result as any).workflowState
             if (toolCall.name === 'build_workflow' && result.success && builtState) {
               const desc = result.data?.description ?? (result as any).description
+              const lintIssues = (result.data as any)?.workflowLint?.length ?? 0
+              const validationIssues = (result.data as any)?.inputValidationErrors?.length ?? 0
+              if (lintIssues === 0 && validationIssues === 0) cleanBuildDone = true
               if (persistedWorkflowId) {
                 // Model rebuilt — UPDATE the same workflow instead of creating a duplicate.
                 await saveWorkflowToNormalizedTables(persistedWorkflowId, builtState).catch((e) =>
