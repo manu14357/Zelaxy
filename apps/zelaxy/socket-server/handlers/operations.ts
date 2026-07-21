@@ -4,6 +4,7 @@ import { persistWorkflowOperation } from '@/socket-server/database/operations'
 import type { HandlerDependencies } from '@/socket-server/handlers/workflow'
 import type { AuthenticatedSocket } from '@/socket-server/middleware/auth'
 import { verifyOperationPermission } from '@/socket-server/middleware/permissions'
+import { classifyOperation, enforceRateLimit } from '@/socket-server/middleware/rate-limit'
 import type { RoomManager } from '@/socket-server/rooms/manager'
 import { WorkflowOperationSchema } from '@/socket-server/validation/schemas'
 
@@ -16,6 +17,15 @@ export function setupOperationsHandlers(
   const roomManager =
     deps instanceof Object && 'roomManager' in deps ? deps.roomManager : (deps as RoomManager)
   socket.on('workflow-operation', async (data) => {
+    // Per-socket rate limit BEFORE any work. Position ops (the only ops read-only users may emit) use
+    // the generous LOOSE bucket so drags stay smooth and viewers are never throttled off; every
+    // mutating op uses the TIGHT bucket. On exhaustion the op is rejected via operation-failed
+    // (retryable) so the client queue backs off rather than wedging.
+    const rateLimitKind = classifyOperation(data?.operation, data?.target)
+    if (!enforceRateLimit(socket, rateLimitKind, data?.operationId)) {
+      return
+    }
+
     const workflowId = roomManager.getWorkflowIdForSocket(socket.id)
     const session = roomManager.getUserSession(socket.id)
 

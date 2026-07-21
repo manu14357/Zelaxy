@@ -8,6 +8,7 @@ import {
 } from '@/socket-server/config/socket'
 import { assertSchemaCompatibility } from '@/socket-server/database/preflight'
 import { setupAllHandlers } from '@/socket-server/handlers'
+import { flushAllPendingSubblocks } from '@/socket-server/handlers/subblocks'
 import { type AuthenticatedSocket, authenticateSocket } from '@/socket-server/middleware/auth'
 import { pruneRoleCache } from '@/socket-server/middleware/permissions'
 import { RoomManager } from '@/socket-server/rooms/manager'
@@ -105,7 +106,7 @@ async function main() {
   })
 
   let shuttingDown = false
-  const shutdown = (signal: string) => {
+  const shutdown = async (signal: string) => {
     if (shuttingDown) return
     shuttingDown = true
     logger.info(`Received ${signal}, shutting down Socket.IO server...`)
@@ -117,6 +118,14 @@ async function main() {
       process.exit(1)
     }, SHUTDOWN_TIMEOUT_MS)
     if (typeof forceExit.unref === 'function') forceExit.unref()
+
+    // Persist any coalesced subblock edits still sitting in their debounce window before we close
+    // connections, so no in-flight keystroke is lost on restart.
+    try {
+      await flushAllPendingSubblocks(roomManager)
+    } catch (error) {
+      logger.error('Error flushing pending subblock updates during shutdown:', error)
+    }
 
     // Tell THIS pod's clients the server is going away so they reconnect promptly. Scope to local
     // sockets (io.local) — a plain io.emit would fan out across the Redis adapter to every pod's

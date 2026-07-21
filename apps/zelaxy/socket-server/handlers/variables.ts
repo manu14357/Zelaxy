@@ -5,6 +5,7 @@ import { workflow } from '@/db/schema'
 import type { HandlerDependencies } from '@/socket-server/handlers/workflow'
 import type { AuthenticatedSocket } from '@/socket-server/middleware/auth'
 import { resolveCurrentWorkflowRole } from '@/socket-server/middleware/permissions'
+import { enforceRateLimit } from '@/socket-server/middleware/rate-limit'
 import type { RoomManager } from '@/socket-server/rooms/manager'
 
 const logger = createLogger('VariablesHandlers')
@@ -17,6 +18,12 @@ export function setupVariablesHandlers(
     deps instanceof Object && 'roomManager' in deps ? deps.roomManager : (deps as RoomManager)
 
   socket.on('variable-update', async (data) => {
+    // Variable edits are mutating ops → TIGHT bucket. Reject via operation-failed (retryable) on
+    // exhaustion so the client queue backs off instead of wedging.
+    if (!enforceRateLimit(socket, 'tight', data?.operationId)) {
+      return
+    }
+
     const workflowId = roomManager.getWorkflowIdForSocket(socket.id)
     const session = roomManager.getUserSession(socket.id)
 

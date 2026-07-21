@@ -46,10 +46,19 @@ export class RoomManager {
   // role is the caller's access level in the joined workflow (admin | write | read), cached at join
   // time so per-operation handlers can authorize writes without re-querying the database each event.
   private userSessions = new Map<string, { userId: string; userName: string; role?: string }>()
-  private io: Server
+  private _io: Server
 
   constructor(io: Server) {
-    this.io = io
+    this._io = io
+  }
+
+  /**
+   * The underlying Socket.IO server. Exposed so detached emitters (e.g. the coalesced subblock flush
+   * timer, which fires without a bound socket) can broadcast to rooms and emit to specific sockets.
+   * With the Redis adapter attached, io.to(room) / io.to(socketId) fan out cross-pod.
+   */
+  get io(): Server {
+    return this._io
   }
 
   createWorkflowRoom(workflowId: string): WorkflowRoom {
@@ -84,7 +93,7 @@ export class RoomManager {
     // every pod, so a deletion for a room whose members live on ANOTHER instance still reaches them.
     // Gating this on the in-memory Map (which only tracks THIS pod's members) would silently drop
     // the event on a multi-pod deploy.
-    this.io.to(workflowId).emit('workflow-deleted', {
+    this._io.to(workflowId).emit('workflow-deleted', {
       workflowId,
       message: 'This workflow has been deleted',
       timestamp: Date.now(),
@@ -106,7 +115,7 @@ export class RoomManager {
     })
 
     socketsToDisconnect.forEach((socketId) => {
-      const socket = this.io.sockets.sockets.get(socketId)
+      const socket = this._io.sockets.sockets.get(socketId)
       if (socket) {
         socket.leave(workflowId)
         logger.debug(`Disconnected socket ${socketId} from deleted workflow ${workflowId}`)
@@ -124,7 +133,7 @@ export class RoomManager {
     logger.info(`Handling workflow revert notification for ${workflowId}`)
 
     // Emit unconditionally so members on other pods (reachable via the Redis adapter) are notified.
-    this.io.to(workflowId).emit('workflow-reverted', {
+    this._io.to(workflowId).emit('workflow-reverted', {
       workflowId,
       message: 'Workflow has been reverted to deployed state',
       timestamp,
@@ -152,7 +161,7 @@ export class RoomManager {
     // Notify all clients in the workflow room that the workflow has been updated so they refresh
     // their local state. Emit unconditionally — the Redis adapter fans io.to() out to members on
     // other pods; gating on the in-memory Map would drop the event for a cross-pod room.
-    this.io.to(workflowId).emit('workflow-updated', {
+    this._io.to(workflowId).emit('workflow-updated', {
       workflowId,
       message: 'Workflow has been updated externally',
       timestamp,
@@ -179,7 +188,7 @@ export class RoomManager {
 
     // Emit the rehydrate-from-database event unconditionally. The Redis adapter fans io.to() out to
     // members on other pods; gating on the in-memory Map would drop the event for a cross-pod room.
-    this.io.to(workflowId).emit('copilot-workflow-edit', {
+    this._io.to(workflowId).emit('copilot-workflow-edit', {
       workflowId,
       description,
       message: 'Copilot has edited the workflow - rehydrating from database',
@@ -297,18 +306,18 @@ export class RoomManager {
 
   private emitFromLocalMap(workflowId: string): void {
     const room = this.workflowRooms.get(workflowId)
-    if (room) this.io.to(workflowId).emit('presence-update', Array.from(room.users.values()))
+    if (room) this._io.to(workflowId).emit('presence-update', Array.from(room.users.values()))
   }
 
   private async emitPresenceRoster(workflowId: string): Promise<void> {
     try {
-      const sockets = await this.io.in(workflowId).fetchSockets()
+      const sockets = await this._io.in(workflowId).fetchSockets()
       const roster = sockets
         .map((s) => (s.data as { presence?: UserPresence } | undefined)?.presence)
         .filter((p): p is UserPresence => Boolean(p))
 
       if (roster.length > 0) {
-        this.io.to(workflowId).emit('presence-update', roster)
+        this._io.to(workflowId).emit('presence-update', roster)
         return
       }
       // No presence data resolved (e.g. sockets mid-join) — fall back to the local map.
@@ -330,7 +339,7 @@ export class RoomManager {
     for (const [workflowId, room] of this.workflowRooms) {
       let changed = false
       for (const socketId of [...room.users.keys()]) {
-        if (!this.io.sockets.sockets.has(socketId)) {
+        if (!this._io.sockets.sockets.has(socketId)) {
           room.users.delete(socketId)
           room.activeConnections = Math.max(0, room.activeConnections - 1)
           this.socketToWorkflow.delete(socketId)
