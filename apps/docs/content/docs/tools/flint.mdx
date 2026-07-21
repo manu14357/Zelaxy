@@ -1,0 +1,69 @@
+---
+title: Flint
+description: Run background agent tasks that modify your Flint sites, generate pages from a template, and check task status
+icon: Sparkles
+---
+
+# Flint
+
+Flint runs background agent tasks against your Flint sites. Start a task from a natural-language prompt to modify a site, generate a batch of pages from an existing template, or poll a task to check its status and collect the resulting page URLs.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `flint` |
+| **Category** | Tool — Marketing & Outreach |
+| **Auth** | API Key (`Authorization: Bearer` header) |
+
+## Operations
+
+| Operation | Tool ID | Description |
+|-----------|---------|-------------|
+| **Create Task** | `flint_create_task` | Start a background agent task that modifies a site from a natural-language prompt |
+| **Generate Pages** | `flint_generate_pages` | Start a task that generates up to 10 pages from an existing template page |
+| **Get Task** | `flint_get_task` | Fetch the status and results (created/modified/deleted pages) of a task |
+
+## Configuration
+
+| Setting | Type | Required | Description |
+|---------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Flint API key — set as `{{FLINT_API_KEY}}`. Sent as `Authorization: Bearer <key>`. Starts with `ak_`. |
+| `siteId` | `string` | Yes* | ID of the Flint site to modify (`flint_create_task`, `flint_generate_pages`) |
+| `prompt` | `string` | Yes* | Natural-language instructions for the agent (`flint_create_task`) |
+| `templatePageSlug` | `string` | Yes* | Slug of the existing template page to generate from, e.g. `/case-studies/template` (`flint_generate_pages`) |
+| `items` | `json` | Yes* | JSON array of 1–10 pages to generate, each with `targetPageSlug` and `context` (`flint_generate_pages`) |
+| `taskId` | `string` | Yes* | Identifier of the task returned when it was created (`flint_get_task`) |
+| `publish` | `boolean` | No | Automatically publish the changes when the task completes (`flint_create_task`, `flint_generate_pages`) |
+| `callbackUrl` | `string` | No | HTTPS webhook URL that Flint POSTs to when the task completes or fails (`flint_create_task`, `flint_generate_pages`) |
+
+<Callout type="info">
+  Fields marked Yes* are required only for the operations listed in their description.
+</Callout>
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `taskId` | `string` | Identifier of the background task |
+| `status` | `string` | Task status: `running`, `completed`, or `failed` |
+| `createdAt` | `string` | ISO 8601 timestamp when the task was created (`flint_create_task`, `flint_generate_pages`) |
+| `pagesCreated` | `array` | Pages created by the task, each `{ slug, previewUrl, editUrl, publishedUrl }` (`flint_get_task`) |
+| `pagesModified` | `array` | Pages modified by the task (`flint_get_task`) |
+| `pagesDeleted` | `array` | Pages deleted by the task (`flint_get_task`) |
+| `errorMessage` | `string` | Error message when the task failed (`flint_get_task`) |
+
+## Example
+
+```
+[Schedule] → [Flint: Generate Pages] → [Flint: Get Task] → [Google Sheets: Write URLs]
+```
+
+Read city and service rows, build a `items` array of `{ targetPageSlug, context }` objects, and start a Flint Generate Pages task against `{{FLINT_API_KEY}}`. Save the returned `{{flint.taskId}}`, poll with Get Task until `status` is `completed`, then write each page's `publishedUrl` back to the sheet.
+
+## Tips
+
+- **Poll, don't block.** Task creation returns immediately with `status: running`. Use the Get Task operation (optionally on a schedule or inside a Loop) to wait for `completed` or `failed`.
+- **Publish is opt-in.** Leave `publish` unset to keep changes in preview for review; set it to `true` only when you want the task to publish automatically on completion.
+- **Use a callback for long tasks.** Provide a `callbackUrl` to receive a webhook when the task finishes instead of polling.
+- **Batch limit.** `flint_generate_pages` accepts at most 10 items per task; split larger batches across multiple tasks.

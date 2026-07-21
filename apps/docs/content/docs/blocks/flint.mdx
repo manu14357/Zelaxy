@@ -1,0 +1,77 @@
+---
+title: Flint Block
+description: Run background agent tasks on your Flint sites
+icon: Box
+---
+
+# Flint Block
+
+The Flint block runs background agent tasks against your Flint sites. Start a task from a natural-language prompt, generate a batch of pages from a template, or check a task's status and collect the resulting page URLs — all from your automation.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `flint` |
+| **Category** | tools |
+| **Color** | `#F6F54F` |
+
+## When to Use
+
+- Modify a Flint site with a natural-language prompt (for example, "Add a new About page with a team section").
+- Generate up to 10 landing, case-study, or location pages from a single template in one task.
+- Poll a task to branch on whether it is running, completed, or failed and read the created/modified page URLs.
+- Combine with tables, agents, and schedules to build programmatic-SEO and content-refresh workflows.
+
+## Configuration
+
+### Operation
+
+Selects which Flint action to run. Required. One of:
+
+| Label | ID |
+|-------|----|
+| Create Task | `flint_create_task` |
+| Generate Pages | `flint_generate_pages` |
+| Get Task | `flint_get_task` |
+
+### API Key
+
+Your Flint API key (starts with `ak_`), found in Flint team settings. Sent as a bearer token. Store it as an environment variable and reference it with `{{FLINT_API_KEY}}`.
+
+### Operation fields
+
+| Field | Operations | Required | Description |
+|-------|------------|----------|-------------|
+| Site ID | Create Task, Generate Pages | Yes | ID of the Flint site to modify |
+| Prompt | Create Task | Yes | Natural-language instructions for the agent |
+| Template Page Slug | Generate Pages | Yes | Slug of the existing template page, e.g. `/case-studies/template` |
+| Pages (JSON) | Generate Pages | Yes | JSON array of 1–10 `{ targetPageSlug, context }` objects. Supports the AI wand. |
+| Task ID | Get Task | Yes | The task ID returned when the task was created |
+| Publish on Completion | Create Task, Generate Pages | No | Advanced. Automatically publish changes when the task completes. |
+| Callback URL | Create Task, Generate Pages | No | Advanced. HTTPS webhook Flint POSTs to when the task finishes. |
+
+## Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `taskId` | string | Identifier of the background task |
+| `status` | string | Task status: `running`, `completed`, or `failed` |
+| `createdAt` | string | When the task was created |
+| `pagesCreated` | array | Pages created by the task `[{ slug, previewUrl, editUrl, publishedUrl }]` |
+| `pagesModified` | array | Pages modified by the task |
+| `pagesDeleted` | array | Pages deleted by the task |
+| `errorMessage` | string | Error message when the task failed |
+
+## Example: Case-study generator
+
+1. Trigger the workflow when a deal is marked closed-won.
+2. Use an **Agent** block to draft case-study context from the customer details.
+3. Add a **Flint** block set to **Generate Pages** with the template slug and a one-item `items` array built from the agent output; enable **Publish on Completion**.
+4. Save `{{flint.taskId}}`, then add a second **Flint** block set to **Get Task** to confirm the page published and read its `publishedUrl`.
+
+## Tips
+
+- Task creation returns immediately with `status: running` — poll with **Get Task** until it reaches `completed` or `failed`.
+- Leave **Publish on Completion** off to keep changes in preview for review.
+- The **Pages (JSON)** field accepts at most 10 items per task; split larger batches into multiple tasks.

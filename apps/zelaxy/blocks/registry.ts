@@ -81,6 +81,7 @@ import { FileBlock } from '@/blocks/blocks/file'
 import { FindymailBlock } from '@/blocks/blocks/findymail'
 import { FirecrawlBlock } from '@/blocks/blocks/firecrawl'
 import { FirefliesBlock } from '@/blocks/blocks/fireflies'
+import { FlintBlock } from '@/blocks/blocks/flint'
 import { FunctionBlock } from '@/blocks/blocks/function'
 import { GammaBlock } from '@/blocks/blocks/gamma'
 import { GenericWebhookBlock } from '@/blocks/blocks/generic_webhook'
@@ -239,6 +240,7 @@ import { SttBlock } from '@/blocks/blocks/stt'
 import { SupabaseBlock } from '@/blocks/blocks/supabase'
 import { SwitchBlock } from '@/blocks/blocks/switch'
 import { TableBlock } from '@/blocks/blocks/table'
+import { TableTriggerBlock } from '@/blocks/blocks/table_trigger'
 import { TailscaleBlock } from '@/blocks/blocks/tailscale'
 import { TavilyBlock } from '@/blocks/blocks/tavily'
 import { TelegramBlock } from '@/blocks/blocks/telegram'
@@ -297,6 +299,7 @@ export const registry: Record<string, BlockConfig> = {
   evaluator: EvaluatorBlock,
   exa: ExaBlock,
   firecrawl: FirecrawlBlock,
+  flint: FlintBlock,
   file: FileBlock,
   function: FunctionBlock,
   generic_webhook: GenericWebhookBlock,
@@ -476,6 +479,7 @@ export const registry: Record<string, BlockConfig> = {
   supabase: SupabaseBlock,
   switch: SwitchBlock,
   table: TableBlock,
+  table_trigger: TableTriggerBlock,
   tavily: TavilyBlock,
   telegram: TelegramBlock,
   thinking: ThinkingBlock,

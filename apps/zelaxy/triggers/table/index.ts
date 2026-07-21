@@ -1,0 +1,1 @@
+export { tableRowPollingTrigger } from './poller'

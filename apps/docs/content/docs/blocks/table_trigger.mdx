@@ -1,0 +1,54 @@
+---
+title: Table New Row Block
+description: Trigger a workflow when a new row is added to a Zelaxy table
+icon: Table
+---
+
+# Table New Row Block
+
+The Table New Row block is a **trigger**: it starts a workflow whenever a new row is added to a user-defined Zelaxy table. Use it to react to sign-ups, form captures, imported records, or anything else that lands in a table — without polling the table yourself.
+
+There is no webhook URL to register. Zelaxy scans the watched table on a schedule (about once per minute) and runs this workflow once per new row.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `table_trigger` |
+| **Category** | `triggers` |
+| **Color** | `#10B981` |
+
+## When to Use
+
+- Onboard a user when a row lands in a *Signups* table
+- Enrich each new record with a lookup
+- Route new rows to a ticket, channel, or downstream automation
+- Mirror new rows into an external system
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Table ID | Text | ID of the table to watch. The table must live in the same workspace as this workflow |
+
+## How It Works
+
+1. Add the block, enter the **Table ID** to watch, and activate the workflow.
+2. The **first poll only seeds the cursor** — existing rows are recorded and nothing is triggered, so history is never replayed.
+3. As new rows are added, each one runs this workflow once, oldest first.
+4. The watched table must belong to the **same workspace** as this workflow; rows in other workspaces are ignored.
+
+## Outputs
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `row_id` | string | ID of the newly added row |
+| `table_id` | string | ID of the table the row was added to |
+| `table_name` | string | Name of that table |
+| `data` | object | The row's column values as a JSON object |
+| `position` | number | Ordinal position of the row in the table |
+| `created_at` | string | When the row was created (ISO) |
+
+Reference a single column value with a nested reference, e.g. `{{Table: New Row 1.data.email}}`.
+
+See the [Table New Row Trigger](/docs/triggers/table) page for the full field reference and examples.

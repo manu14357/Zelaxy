@@ -2070,6 +2070,42 @@ export function formatWebhookInput(
     }
   }
 
+  if (foundWebhook.provider === 'table') {
+    // Table "New Row" events are polled rather than pushed: the table polling service posts
+    // { event } back to this route so new-row events go through the same pipeline as real
+    // webhooks. Flatten the event fields to top-level outputs — this case MUST stay before the
+    // generic default, or every table-trigger output silently resolves to nothing.
+    const event = body?.event || {}
+
+    const eventData = {
+      row_id: event.row_id || '',
+      table_id: event.table_id || '',
+      table_name: event.table_name || '',
+      data: event.data || {},
+      position: event.position ?? 0,
+      created_at: event.created_at || '',
+      row: event,
+      raw: body,
+    }
+
+    return {
+      input: `New row ${event.row_id || ''} in ${event.table_name || 'table'}`,
+      ...eventData,
+      table: { ...eventData, ...body },
+      webhook: {
+        data: {
+          provider: 'table',
+          path: foundWebhook.path,
+          providerConfig: foundWebhook.providerConfig,
+          payload: body,
+          headers: Object.fromEntries(request.headers.entries()),
+          method: request.method,
+        },
+      },
+      workflowId: foundWorkflow.id,
+    }
+  }
+
   // Generic format for other providers
   return {
     webhook: {

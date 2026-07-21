@@ -2,5 +2,5 @@
   "title": "Triggers",
   "icon": "Zap",
   "root": true,
-  "pages": ["generic-webhook", "schedule", "webhook", "workspace-events"]
+  "pages": ["generic-webhook", "schedule", "table", "webhook", "workspace-events"]
 }

@@ -57,6 +57,7 @@ import { sentryWebhookTrigger } from './sentry'
 import { servicenowWebhookTrigger } from './servicenow'
 import { slackWebhookTrigger } from './slack'
 import { stripeWebhookTrigger } from './stripe/webhook'
+import { tableRowPollingTrigger } from './table'
 import { telegramWebhookTrigger } from './telegram'
 import { twilioWebhookTrigger } from './twilio'
 import { twilioVoiceWebhookTrigger } from './twilio_voice'
@@ -138,6 +139,7 @@ export const TRIGGER_REGISTRY: TriggerRegistry = {
   webflow_webhook: webflowWebhookTrigger,
   whatsapp_webhook: whatsappWebhookTrigger,
   wordpress_webhook: wordpressWebhookTrigger,
+  table_poller: tableRowPollingTrigger,
   workspace_events_poller: workspaceEventsPollingTrigger,
   zoom_webhook: zoomWebhookTrigger,
   zendesk_webhook: zendeskWebhookTrigger,

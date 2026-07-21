@@ -376,6 +376,7 @@ import {
   firefliesGetUserTool,
   firefliesListTranscriptsTool,
 } from '@/tools/fireflies'
+import { flintCreateTaskTool, flintGeneratePagesTool, flintGetTaskTool } from '@/tools/flint'
 import { functionExecuteTool } from '@/tools/function'
 import {
   gammaCheckStatusTool,
@@ -1216,6 +1217,9 @@ export const tools: Record<string, ToolConfig> = {
   load_skill: loadSkillTool,
   firecrawl_scrape: scrapeTool,
   firecrawl_search: searchTool,
+  flint_create_task: flintCreateTaskTool,
+  flint_generate_pages: flintGeneratePagesTool,
+  flint_get_task: flintGetTaskTool,
   firecrawl_crawl: crawlTool,
   google_search: googleSearchTool,
   jina_read_url: readUrlTool,

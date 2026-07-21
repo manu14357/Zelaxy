@@ -1,0 +1,108 @@
+---
+title: Table New Row Trigger
+description: Run a workflow when a new row is added to a Zelaxy table
+icon: Table
+---
+
+# Table New Row Trigger
+
+The Table trigger runs a workflow whenever a **new row** is added to a user-defined Zelaxy table. Use it to react to sign-ups, form captures, imported records, or anything else that lands in a table — without polling the table yourself.
+
+Unlike webhook triggers, there is no URL to register: Zelaxy scans the watched table on a schedule (about once per minute) and runs this workflow **once per new row**.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Type** | `table_trigger` |
+| **Trigger ID** | `table_poller` |
+| **Provider** | `table` |
+| **Category** | Trigger |
+| **Delivery** | Internal polling (no external endpoint) |
+
+## When to Use
+
+- Onboard: send a welcome email or provision an account when a row lands in a *Signups* table
+- Enrich: look up and append data to each new record
+- Route: open a ticket, notify a channel, or kick off downstream automation per new row
+- Sync: mirror new rows into an external system
+
+## Configuration
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| Table ID | Text | ID of the table to watch. Copy it from the table view or a Table block. The table must live in the same workspace as this workflow. |
+
+## How It Works
+
+1. Add the Table trigger to a workflow and enter the **Table ID** to watch.
+2. Activate the workflow. Zelaxy begins scanning that table on a schedule.
+3. The **first poll only seeds the cursor** — it records the rows that already exist and triggers nothing. This prevents replaying existing rows when you connect the trigger.
+4. As new rows are added, each one runs this workflow once, oldest first.
+5. The watched table must belong to the **same workspace** as this workflow. Rows in tables from other workspaces are ignored.
+
+<Callout type="warn">
+Avoid pointing a Table trigger at a table that the **same workflow also writes to** — inserting a row would trigger a new run, which could insert another row, and so on. Rows carry no workflow-of-origin, so the poller cannot break this loop for you.
+</Callout>
+
+## Event Fields
+
+The poller flattens each new row to the top level of the trigger block's output, so you can reference the fields directly.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `row_id` | string | ID of the newly added row |
+| `table_id` | string | ID of the table the row was added to |
+| `table_name` | string | Name of that table |
+| `data` | object | The row's column values as a JSON object |
+| `position` | number | Ordinal position of the row in the table |
+| `created_at` | string | When the row was created (ISO) |
+
+### Example event
+
+```json
+{
+  "row_id": "row_abc123",
+  "table_id": "tbl_abc123",
+  "table_name": "Signups",
+  "data": { "email": "john@example.com", "name": "John", "plan": "pro" },
+  "position": 42,
+  "created_at": "2024-01-15T13:14:15.000Z"
+}
+```
+
+## Accessing Data in Downstream Blocks
+
+Reference the flattened fields with the `{{BlockName.field}}` syntax. The block name is the label shown on the canvas (default: **Table: New Row 1**).
+
+```
+{{Table: New Row 1.row_id}}        → "row_abc123"
+{{Table: New Row 1.table_name}}    → "Signups"
+{{Table: New Row 1.data}}          → { "email": "john@example.com", ... }
+```
+
+Reach into a specific column with a nested reference:
+
+```
+{{Table: New Row 1.data.email}}    → "john@example.com"
+```
+
+### Example: Welcome new signups
+
+**Workflow:**
+```
+[Table: New Row 1 (Signups)] → [Agent: Draft welcome] → [Gmail: Send]
+```
+
+Whenever a row lands in the *Signups* table, this workflow runs. Pass the row into the Agent block:
+
+```
+New signup {{Table: New Row 1.data.name}} ({{Table: New Row 1.data.email}}) on the
+{{Table: New Row 1.data.plan}} plan. Draft a short welcome email.
+```
+
+## Tips
+
+- **No replay** — connecting the trigger never fires for rows that already exist; only new rows count.
+- **Same-workspace only** — the watched table must be in the workflow's workspace.
+- **Nested references** — use `{{Table: New Row 1.data.<column>}}` to pull a single column value.
