@@ -126,6 +126,57 @@ export function setupOperationsHandlers(
         return // Early return for position updates
       }
 
+      // Batch position updates (multi-select drag): broadcast first for smooth
+      // real-time movement, then persist asynchronously — mirrors the single
+      // update-position path above so N dragged blocks cost one op, not N.
+      if (target === 'blocks' && operation === 'batch-update-positions') {
+        const broadcastData = {
+          operation,
+          target,
+          payload,
+          timestamp: operationTimestamp,
+          senderId: socket.id,
+          userId: session.userId,
+          userName: session.userName,
+          metadata: {
+            workflowId,
+            operationId: crypto.randomUUID(),
+            isBatchPositionUpdate: true,
+          },
+        }
+
+        socket.to(workflowId).emit('workflow-operation', broadcastData)
+
+        persistWorkflowOperation(workflowId, {
+          operation,
+          target,
+          payload,
+          timestamp: operationTimestamp,
+          userId: session.userId,
+        })
+          .then(() => {
+            room.lastModified = Date.now()
+            if (operationId) {
+              socket.emit('operation-confirmed', {
+                operationId,
+                serverTimestamp: Date.now(),
+              })
+            }
+          })
+          .catch((error) => {
+            logger.error('Failed to persist batch position update:', error)
+            if (operationId) {
+              socket.emit('operation-failed', {
+                operationId,
+                error: error instanceof Error ? error.message : 'Database persistence failed',
+                retryable: true,
+              })
+            }
+          })
+
+        return
+      }
+
       if (target === 'variable' && ['add', 'remove', 'duplicate'].includes(operation)) {
         // Persist first, then broadcast
         await persistWorkflowOperation(workflowId, {

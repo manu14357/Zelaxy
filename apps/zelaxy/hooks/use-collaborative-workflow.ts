@@ -204,6 +204,63 @@ export function useCollaborativeWorkflow() {
               }
               break
           }
+        } else if (target === 'blocks') {
+          // Batch block operations (multi-select drag/delete/paste). Applied as a
+          // single remote op so N blocks move/delete together.
+          switch (operation) {
+            case 'batch-update-positions': {
+              const updates: Array<{ id: string; position: Position }> = payload?.updates || []
+              const updateTimestamp = data.timestamp
+              for (const update of updates) {
+                if (!update?.id || !update.position) continue
+                if (updateTimestamp) {
+                  const lastTimestamp = lastPositionTimestamps.current.get(update.id) || 0
+                  if (updateTimestamp < lastTimestamp) {
+                    // Skip out-of-order position update to prevent jagged movement
+                    continue
+                  }
+                  lastPositionTimestamps.current.set(update.id, updateTimestamp)
+                }
+                workflowStore.updateBlockPosition(update.id, update.position)
+              }
+              break
+            }
+            case 'batch-add-blocks': {
+              const blocksToAdd: Array<Record<string, any>> = payload?.blocks || []
+              for (const block of blocksToAdd) {
+                workflowStore.addBlock(
+                  block.id,
+                  block.type,
+                  block.name,
+                  block.position,
+                  block.data,
+                  block.parentId ?? block.data?.parentId,
+                  block.extent ?? block.data?.extent,
+                  {
+                    enabled: block.enabled,
+                    horizontalHandles: block.horizontalHandles,
+                    isWide: block.isWide,
+                    advancedMode: block.advancedMode,
+                    triggerMode: block.triggerMode ?? false,
+                    height: block.height,
+                  }
+                )
+              }
+              const edgesToAdd: Array<Record<string, any>> = payload?.edges || []
+              for (const edge of edgesToAdd) {
+                workflowStore.addEdge(edge as Edge)
+              }
+              break
+            }
+            case 'batch-remove-blocks': {
+              const ids: string[] = payload?.ids || []
+              for (const id of ids) {
+                workflowStore.removeBlock(id)
+                lastPositionTimestamps.current.delete(id)
+              }
+              break
+            }
+          }
         } else if (target === 'edge') {
           switch (operation) {
             case 'add':
@@ -212,6 +269,16 @@ export function useCollaborativeWorkflow() {
             case 'remove':
               workflowStore.removeEdge(payload.id)
               break
+          }
+        } else if (target === 'edges') {
+          switch (operation) {
+            case 'batch-remove-edges': {
+              const ids: string[] = payload?.ids || []
+              for (const id of ids) {
+                workflowStore.removeEdge(id)
+              }
+              break
+            }
           }
         } else if (target === 'subflow') {
           switch (operation) {
@@ -658,6 +725,97 @@ export function useCollaborativeWorkflow() {
       )
     },
     [executeQueuedDebouncedOperation, workflowStore]
+  )
+
+  // Batch collaborative operations: emit ONE op for a whole multi-select gesture
+  // (drag/delete/paste) instead of N single-block ops.
+  const collaborativeBatchUpdatePositions = useCallback(
+    (updates: Array<{ id: string; position: Position }>) => {
+      if (updates.length === 0) return
+      executeQueuedDebouncedOperation('batch-update-positions', 'blocks', { updates }, () => {
+        for (const { id, position } of updates) {
+          workflowStore.updateBlockPosition(id, position)
+        }
+      })
+    },
+    [executeQueuedDebouncedOperation, workflowStore]
+  )
+
+  const collaborativeBatchRemoveBlocks = useCallback(
+    (ids: string[]) => {
+      if (ids.length === 0) return
+      for (const id of ids) {
+        cancelOperationsForBlock(id)
+      }
+      executeQueuedOperation('batch-remove-blocks', 'blocks', { ids }, () => {
+        for (const id of ids) {
+          workflowStore.removeBlock(id)
+        }
+      })
+    },
+    [executeQueuedOperation, workflowStore, cancelOperationsForBlock]
+  )
+
+  const collaborativeBatchRemoveEdges = useCallback(
+    (ids: string[]) => {
+      if (ids.length === 0) return
+      executeQueuedOperation('batch-remove-edges', 'edges', { ids }, () => {
+        for (const id of ids) {
+          workflowStore.removeEdge(id)
+        }
+      })
+    },
+    [executeQueuedOperation, workflowStore]
+  )
+
+  const collaborativeBatchAddBlocks = useCallback(
+    (
+      blocks: Array<Record<string, any>>,
+      options?: {
+        edges?: Edge[]
+        loops?: Record<string, any>
+        parallels?: Record<string, any>
+        subBlockValues?: Record<string, Record<string, any>>
+      }
+    ) => {
+      if (blocks.length === 0) return
+      executeQueuedOperation(
+        'batch-add-blocks',
+        'blocks',
+        {
+          blocks,
+          edges: options?.edges,
+          loops: options?.loops,
+          parallels: options?.parallels,
+          subBlockValues: options?.subBlockValues,
+        },
+        () => {
+          for (const block of blocks) {
+            workflowStore.addBlock(
+              block.id,
+              block.type,
+              block.name,
+              block.position,
+              block.data,
+              block.parentId ?? block.data?.parentId,
+              block.extent ?? block.data?.extent,
+              {
+                enabled: block.enabled,
+                horizontalHandles: block.horizontalHandles,
+                isWide: block.isWide,
+                advancedMode: block.advancedMode,
+                triggerMode: block.triggerMode ?? false,
+                height: block.height,
+              }
+            )
+          }
+          for (const edge of options?.edges || []) {
+            workflowStore.addEdge(edge)
+          }
+        }
+      )
+    },
+    [executeQueuedOperation, workflowStore]
   )
 
   const collaborativeUpdateBlockName = useCallback(
@@ -1241,6 +1399,11 @@ export function useCollaborativeWorkflow() {
     collaborativeUpdateBlockPosition,
     collaborativeUpdateBlockName,
     collaborativeRemoveBlock,
+    // Batch collaborative operations (multi-select drag/delete/paste)
+    collaborativeBatchUpdatePositions,
+    collaborativeBatchRemoveBlocks,
+    collaborativeBatchRemoveEdges,
+    collaborativeBatchAddBlocks,
     collaborativeToggleBlockEnabled,
     collaborativeUpdateParentId,
     collaborativeToggleBlockWide,

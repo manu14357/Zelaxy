@@ -233,6 +233,9 @@ const WorkflowContent = React.memo(() => {
     collaborativeUpdateBlockPosition,
     collaborativeUpdateParentId: updateParentId,
     collaborativeSetSubblockValue,
+    collaborativeBatchUpdatePositions,
+    collaborativeBatchRemoveBlocks,
+    collaborativeBatchRemoveEdges,
   } = useCollaborativeWorkflow()
 
   const { resetLoaded: resetVariablesLoaded } = useVariablesStore()
@@ -1154,16 +1157,22 @@ const WorkflowContent = React.memo(() => {
     validateNestedSubflows()
   }, [blocks, validateNestedSubflows])
 
-  // Update edges
+  // Update edges. Collect all 'remove' changes from a single React Flow change
+  // batch (e.g. a multi-select delete, or edges cascaded by node deletion) and
+  // emit ONE batch-remove-edges op instead of N single removes.
   const onEdgesChange = useCallback(
     (changes: any) => {
+      const edgeIdsToRemove: string[] = []
       changes.forEach((change: any) => {
         if (change.type === 'remove') {
-          removeEdge(change.id)
+          edgeIdsToRemove.push(change.id)
         }
       })
+      if (edgeIdsToRemove.length > 0) {
+        collaborativeBatchRemoveEdges(edgeIdsToRemove)
+      }
     },
-    [removeEdge]
+    [collaborativeBatchRemoveEdges]
   )
 
   // Handle connections with improved parent tracking
@@ -1489,6 +1498,34 @@ const WorkflowContent = React.memo(() => {
     ]
   )
 
+  // Multi-select drag: emit ONE batch-update-positions op for all selected nodes
+  // instead of one per node. React Flow does not fire onNodeDrag during a
+  // selection drag, so the final positions are broadcast here on drop.
+  const onSelectionDragStop = useCallback(
+    (_event: React.MouseEvent, draggedNodes: any[]) => {
+      const positionUpdates = draggedNodes
+        .filter((node) => node?.id && node.position)
+        .map((node) => ({ id: node.id, position: node.position }))
+      if (positionUpdates.length > 0) {
+        collaborativeBatchUpdatePositions(positionUpdates)
+      }
+    },
+    [collaborativeBatchUpdatePositions]
+  )
+
+  // Multi-select (or single) node delete via the keyboard: emit ONE
+  // batch-remove-blocks op. Connected edges are removed via onEdgesChange
+  // (batched) and by the server-side cascade, both of which are idempotent.
+  const onNodesDelete = useCallback(
+    (deletedNodes: any[]) => {
+      const ids = deletedNodes.map((node) => node.id).filter(Boolean)
+      if (ids.length > 0) {
+        collaborativeBatchRemoveBlocks(ids)
+      }
+    },
+    [collaborativeBatchRemoveBlocks]
+  )
+
   // Update onPaneClick to only handle edge selection
   const onPaneClick = useCallback(() => {
     setSelectedEdgeInfo(null)
@@ -1683,6 +1720,8 @@ const WorkflowContent = React.memo(() => {
           onNodeDrag={effectivePermissions.canEdit ? onNodeDrag : undefined}
           onNodeDragStop={effectivePermissions.canEdit ? onNodeDragStop : undefined}
           onNodeDragStart={effectivePermissions.canEdit ? onNodeDragStart : undefined}
+          onSelectionDragStop={effectivePermissions.canEdit ? onSelectionDragStop : undefined}
+          onNodesDelete={effectivePermissions.canEdit ? onNodesDelete : undefined}
           snapToGrid={false}
           snapGrid={[20, 20]}
           elevateEdgesOnSelect={true}

@@ -2,6 +2,13 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import { io, type Socket } from 'socket.io-client'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import {
+  BatchAddBlocksSchema,
+  BatchRemoveBlocksSchema,
+  BatchRemoveEdgesSchema,
+  BatchUpdatePositionsSchema,
+  WorkflowOperationSchema,
+} from '@/socket-server/validation/schemas'
 
 describe('Socket Server Integration Tests', () => {
   let httpServer: any
@@ -223,5 +230,161 @@ describe('Socket Server Integration Tests', () => {
     expect(receivedOperations.size).toBe(numOperations)
 
     client2.close()
+  })
+
+  it('should broadcast a batch position update as a single operation', async () => {
+    const workflowId = 'batch-positions-workflow'
+
+    const client2 = io(`http://localhost:${serverPort}`)
+    await new Promise<void>((resolve) => {
+      client2.on('connect', resolve)
+    })
+
+    clientSocket.emit('join-workflow', { workflowId })
+    client2.emit('join-workflow', { workflowId })
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    const received: any[] = []
+    const operationPromise = new Promise<void>((resolve) => {
+      client2.on('workflow-operation', (data) => {
+        received.push(data)
+        resolve()
+      })
+    })
+
+    // Dragging three selected blocks emits ONE op, not three.
+    clientSocket.emit('workflow-operation', {
+      workflowId,
+      operation: 'batch-update-positions',
+      target: 'blocks',
+      payload: {
+        updates: [
+          { id: 'b1', position: { x: 10, y: 20 } },
+          { id: 'b2', position: { x: 30, y: 40 } },
+          { id: 'b3', position: { x: 50, y: 60 } },
+        ],
+      },
+      timestamp: Date.now(),
+    })
+
+    await operationPromise
+    expect(received).toHaveLength(1)
+    expect(received[0].operation).toBe('batch-update-positions')
+    expect(received[0].target).toBe('blocks')
+    expect(received[0].payload.updates).toHaveLength(3)
+    client2.close()
+  })
+
+  it('should broadcast batch remove operations for blocks and edges', async () => {
+    const workflowId = 'batch-remove-workflow'
+
+    const client2 = io(`http://localhost:${serverPort}`)
+    await new Promise<void>((resolve) => {
+      client2.on('connect', resolve)
+    })
+
+    clientSocket.emit('join-workflow', { workflowId })
+    client2.emit('join-workflow', { workflowId })
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    const byTarget = new Map<string, any>()
+    const bothReceived = new Promise<void>((resolve) => {
+      client2.on('workflow-operation', (data) => {
+        byTarget.set(data.target, data)
+        if (byTarget.has('blocks') && byTarget.has('edges')) resolve()
+      })
+    })
+
+    clientSocket.emit('workflow-operation', {
+      workflowId,
+      operation: 'batch-remove-blocks',
+      target: 'blocks',
+      payload: { ids: ['b1', 'b2'] },
+      timestamp: Date.now(),
+    })
+    clientSocket.emit('workflow-operation', {
+      workflowId,
+      operation: 'batch-remove-edges',
+      target: 'edges',
+      payload: { ids: ['e1', 'e2', 'e3'] },
+      timestamp: Date.now(),
+    })
+
+    await bothReceived
+    expect(byTarget.get('blocks').payload.ids).toEqual(['b1', 'b2'])
+    expect(byTarget.get('edges').payload.ids).toEqual(['e1', 'e2', 'e3'])
+    client2.close()
+  })
+})
+
+describe('Batch operation validation schemas', () => {
+  const ts = 1_700_000_000_000
+
+  it('validates a batch-update-positions op', () => {
+    const op = {
+      operation: 'batch-update-positions',
+      target: 'blocks',
+      payload: { updates: [{ id: 'b1', position: { x: 1, y: 2 } }] },
+      timestamp: ts,
+      operationId: 'op-1',
+    }
+    expect(BatchUpdatePositionsSchema.safeParse(op).success).toBe(true)
+    expect(WorkflowOperationSchema.safeParse(op).success).toBe(true)
+  })
+
+  it('rejects a batch-update-positions op with a malformed position', () => {
+    const op = {
+      operation: 'batch-update-positions',
+      target: 'blocks',
+      payload: { updates: [{ id: 'b1', position: { x: 'nope', y: 2 } }] },
+      timestamp: ts,
+    }
+    expect(BatchUpdatePositionsSchema.safeParse(op).success).toBe(false)
+  })
+
+  it('validates a batch-add-blocks op with optional edges/loops/parallels', () => {
+    const op = {
+      operation: 'batch-add-blocks',
+      target: 'blocks',
+      payload: {
+        blocks: [{ id: 'b1', type: 'function', name: 'Fn', position: { x: 0, y: 0 } }],
+        edges: [{ id: 'e1', source: 'b0', target: 'b1' }],
+        loops: {},
+        parallels: {},
+        subBlockValues: { b1: { code: 'return 1' } },
+      },
+      timestamp: ts,
+    }
+    expect(BatchAddBlocksSchema.safeParse(op).success).toBe(true)
+    expect(WorkflowOperationSchema.safeParse(op).success).toBe(true)
+  })
+
+  it('validates batch-remove-blocks and batch-remove-edges ops', () => {
+    const removeBlocks = {
+      operation: 'batch-remove-blocks',
+      target: 'blocks',
+      payload: { ids: ['b1', 'b2'] },
+      timestamp: ts,
+    }
+    const removeEdges = {
+      operation: 'batch-remove-edges',
+      target: 'edges',
+      payload: { ids: ['e1'] },
+      timestamp: ts,
+    }
+    expect(BatchRemoveBlocksSchema.safeParse(removeBlocks).success).toBe(true)
+    expect(BatchRemoveEdgesSchema.safeParse(removeEdges).success).toBe(true)
+    expect(WorkflowOperationSchema.safeParse(removeBlocks).success).toBe(true)
+    expect(WorkflowOperationSchema.safeParse(removeEdges).success).toBe(true)
+  })
+
+  it('rejects a batch op whose target does not match its operation', () => {
+    const op = {
+      operation: 'batch-remove-edges',
+      target: 'blocks',
+      payload: { ids: ['e1'] },
+      timestamp: ts,
+    }
+    expect(WorkflowOperationSchema.safeParse(op).success).toBe(false)
   })
 })

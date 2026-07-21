@@ -1,4 +1,4 @@
-import { and, eq, or } from 'drizzle-orm'
+import { and, eq, inArray, or, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { env } from '@/lib/env'
@@ -66,6 +66,29 @@ enum SubflowType {
 // Helper function to check if a block type is a subflow type
 function isSubflowBlockType(blockType: string): blockType is SubflowType {
   return Object.values(SubflowType).includes(blockType as SubflowType)
+}
+
+// Recursively find all descendant block ids of a container using the parentId column.
+// Zelaxy stores the parent link in a dedicated `parent_id` column (not data->>'parentId').
+function findDescendants(
+  containerId: string,
+  allBlocks: Array<{ id: string; parentId: string | null }>
+): string[] {
+  const descendants: string[] = []
+  const visited = new Set<string>()
+  const stack = [containerId]
+  while (stack.length > 0) {
+    const current = stack.pop()!
+    if (visited.has(current)) continue
+    visited.add(current)
+    for (const b of allBlocks) {
+      if (b.parentId === current) {
+        descendants.push(b.id)
+        stack.push(b.id)
+      }
+    }
+  }
+  return descendants
 }
 
 // Helper function to update subflow node lists when child blocks are added/removed
@@ -194,8 +217,14 @@ export async function persistWorkflowOperation(workflowId: string, operation: an
         case 'block':
           await handleBlockOperationTx(tx, workflowId, op, payload, userId)
           break
+        case 'blocks':
+          await handleBlocksOperationTx(tx, workflowId, op, payload, userId)
+          break
         case 'edge':
           await handleEdgeOperationTx(tx, workflowId, op, payload, userId)
+          break
+        case 'edges':
+          await handleEdgesOperationTx(tx, workflowId, op, payload, userId)
           break
         case 'subflow':
           await handleSubflowOperationTx(tx, workflowId, op, payload, userId)
@@ -715,6 +744,354 @@ async function handleBlockOperationTx(
     default:
       logger.warn(`Unknown block operation: ${operation}`)
       throw new Error(`Unsupported block operation: ${operation}`)
+  }
+}
+
+// Batch block operations (multi-select drag/delete/paste). Additive to the
+// single-block handler above: these persist N blocks in one transaction so a
+// multi-select gesture is one op, not N. No locked/protected filtering (Zelaxy
+// has none); parentId/extent/isWide are dedicated columns.
+async function handleBlocksOperationTx(
+  tx: any,
+  workflowId: string,
+  operation: string,
+  payload: any,
+  userId: string
+) {
+  switch (operation) {
+    case 'batch-update-positions': {
+      const { updates } = payload
+      if (!Array.isArray(updates) || updates.length === 0) {
+        return
+      }
+
+      for (const update of updates) {
+        const { id, position } = update
+        if (!id || !position) continue
+
+        await tx
+          .update(workflowBlocks)
+          .set({
+            positionX: position.x,
+            positionY: position.y,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(workflowBlocks.id, id), eq(workflowBlocks.workflowId, workflowId)))
+      }
+
+      logger.debug(`Batch updated positions for ${updates.length} blocks in workflow ${workflowId}`)
+      break
+    }
+
+    case 'batch-add-blocks': {
+      const { blocks, edges, loops, parallels, subBlockValues } = payload
+
+      logger.info(`Batch adding blocks to workflow ${workflowId}`, {
+        blockCount: blocks?.length || 0,
+        edgeCount: edges?.length || 0,
+        loopCount: Object.keys(loops || {}).length,
+        parallelCount: Object.keys(parallels || {}).length,
+      })
+
+      if (Array.isArray(blocks) && blocks.length > 0) {
+        const blockValues = blocks.map((block: Record<string, any>) => {
+          const blockId = block.id as string
+          const parentId = (block.parentId ?? block.data?.parentId ?? null) as string | null
+          const extent = (block.extent ?? block.data?.extent ?? null) as string | null
+
+          // Overlay any explicitly provided subBlock values on top of the block's own subBlocks
+          const baseSubBlocks = (block.subBlocks as Record<string, any>) || {}
+          const overlay = subBlockValues?.[blockId]
+          const mergedSubBlocks = overlay
+            ? Object.fromEntries(
+                Object.entries(baseSubBlocks).map(([key, sub]) => [
+                  key,
+                  overlay[key] !== undefined ? { ...(sub as any), value: overlay[key] } : sub,
+                ])
+              )
+            : baseSubBlocks
+
+          return {
+            id: blockId,
+            workflowId,
+            type: block.type as string,
+            name: block.name as string,
+            positionX: (block.position as { x: number; y: number }).x,
+            positionY: (block.position as { x: number; y: number }).y,
+            data: (block.data as Record<string, any>) || {},
+            subBlocks: mergedSubBlocks,
+            outputs: (block.outputs as Record<string, any>) || {},
+            parentId,
+            extent,
+            enabled: (block.enabled as boolean) ?? true,
+            horizontalHandles: (block.horizontalHandles as boolean) ?? true,
+            isWide: (block.isWide as boolean) ?? false,
+            advancedMode: (block.advancedMode as boolean) ?? false,
+            triggerMode: (block.triggerMode as boolean) ?? false,
+            height: (block.height as number) || 0,
+          }
+        })
+
+        await tx
+          .insert(workflowBlocks)
+          .values(blockValues)
+          .onConflictDoUpdate({
+            target: workflowBlocks.id,
+            set: {
+              type: sql`excluded.type`,
+              name: sql`excluded.name`,
+              positionX: sql`excluded.position_x`,
+              positionY: sql`excluded.position_y`,
+              enabled: sql`excluded.enabled`,
+              horizontalHandles: sql`excluded.horizontal_handles`,
+              isWide: sql`excluded.is_wide`,
+              advancedMode: sql`excluded.advanced_mode`,
+              triggerMode: sql`excluded.trigger_mode`,
+              height: sql`excluded.height`,
+              subBlocks: sql`excluded.sub_blocks`,
+              outputs: sql`excluded.outputs`,
+              data: sql`excluded.data`,
+              parentId: sql`excluded.parent_id`,
+              extent: sql`excluded.extent`,
+              updatedAt: sql`now()`,
+            },
+          })
+
+        // Auto-create subflow entries for loop/parallel blocks not already supplied in payload
+        const loopIds = new Set(loops ? Object.keys(loops) : [])
+        const parallelIds = new Set(parallels ? Object.keys(parallels) : [])
+        for (const block of blocks as Array<Record<string, any>>) {
+          const blockId = block.id as string
+          if (block.type === SubflowType.LOOP && !loopIds.has(blockId)) {
+            await tx
+              .insert(workflowSubflows)
+              .values({
+                id: blockId,
+                workflowId,
+                type: 'loop',
+                config: {
+                  id: blockId,
+                  nodes: [],
+                  iterations: block.data?.count || DEFAULT_LOOP_ITERATIONS,
+                  loopType: block.data?.loopType || 'for',
+                  forEachItems: block.data?.collection || '',
+                },
+              })
+              .onConflictDoUpdate({
+                target: workflowSubflows.id,
+                set: { config: sql`excluded.config`, updatedAt: sql`now()` },
+              })
+          } else if (block.type === SubflowType.PARALLEL && !parallelIds.has(blockId)) {
+            await tx
+              .insert(workflowSubflows)
+              .values({
+                id: blockId,
+                workflowId,
+                type: 'parallel',
+                config: {
+                  id: blockId,
+                  nodes: [],
+                  distribution: block.data?.collection || '',
+                },
+              })
+              .onConflictDoUpdate({
+                target: workflowSubflows.id,
+                set: { config: sql`excluded.config`, updatedAt: sql`now()` },
+              })
+          }
+        }
+      }
+
+      if (Array.isArray(edges) && edges.length > 0) {
+        const edgeValues = edges.map((edge: Record<string, any>) => ({
+          id: edge.id as string,
+          workflowId,
+          sourceBlockId: edge.source as string,
+          targetBlockId: edge.target as string,
+          sourceHandle: (edge.sourceHandle as string | null) || null,
+          targetHandle: (edge.targetHandle as string | null) || null,
+        }))
+
+        await tx
+          .insert(workflowEdges)
+          .values(edgeValues)
+          .onConflictDoUpdate({
+            target: workflowEdges.id,
+            set: {
+              sourceBlockId: sql`excluded.source_block_id`,
+              targetBlockId: sql`excluded.target_block_id`,
+              sourceHandle: sql`excluded.source_handle`,
+              targetHandle: sql`excluded.target_handle`,
+            },
+          })
+      }
+
+      if (loops && Object.keys(loops).length > 0) {
+        const loopValues = Object.entries(loops).map(([id, loop]) => ({
+          id,
+          workflowId,
+          type: 'loop',
+          config: loop as Record<string, any>,
+        }))
+        await tx
+          .insert(workflowSubflows)
+          .values(loopValues)
+          .onConflictDoUpdate({
+            target: workflowSubflows.id,
+            set: { config: sql`excluded.config`, updatedAt: sql`now()` },
+          })
+      }
+
+      if (parallels && Object.keys(parallels).length > 0) {
+        const parallelValues = Object.entries(parallels).map(([id, parallel]) => ({
+          id,
+          workflowId,
+          type: 'parallel',
+          config: parallel as Record<string, any>,
+        }))
+        await tx
+          .insert(workflowSubflows)
+          .values(parallelValues)
+          .onConflictDoUpdate({
+            target: workflowSubflows.id,
+            set: { config: sql`excluded.config`, updatedAt: sql`now()` },
+          })
+      }
+
+      // Update parent subflow node lists for any newly parented blocks
+      const parentIds = new Set<string>()
+      for (const block of (blocks as Array<Record<string, any>>) || []) {
+        const parentId = (block.parentId ?? block.data?.parentId) as string | undefined
+        if (parentId) parentIds.add(parentId)
+      }
+      for (const parentId of parentIds) {
+        await updateSubflowNodeList(tx, workflowId, parentId)
+      }
+
+      logger.info(`Successfully batch added blocks to workflow ${workflowId}`)
+      break
+    }
+
+    case 'batch-remove-blocks': {
+      const { ids } = payload
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return
+      }
+
+      logger.info(`Batch removing ${ids.length} blocks from workflow ${workflowId}`)
+
+      // Fetch all blocks so we can cascade subflow descendants and collect parents
+      const allBlocks = await tx
+        .select({
+          id: workflowBlocks.id,
+          type: workflowBlocks.type,
+          parentId: workflowBlocks.parentId,
+        })
+        .from(workflowBlocks)
+        .where(eq(workflowBlocks.workflowId, workflowId))
+
+      type BlockRecord = (typeof allBlocks)[number]
+      const blocksById: Record<string, BlockRecord> = Object.fromEntries(
+        allBlocks.map((b: BlockRecord) => [b.id, b])
+      )
+
+      // Collect ids plus all descendants of any subflow (loop/parallel) being removed
+      const allBlocksToDelete = new Set<string>(ids)
+      for (const id of ids) {
+        const block = blocksById[id]
+        if (block && isSubflowBlockType(block.type)) {
+          for (const descId of findDescendants(id, allBlocks)) {
+            allBlocksToDelete.add(descId)
+          }
+        }
+      }
+
+      const blockIdsArray = Array.from(allBlocksToDelete)
+
+      // Collect parent ids BEFORE deletion so their node lists can be refreshed
+      const parentIds = new Set<string>()
+      for (const id of ids) {
+        const parentId = blocksById[id]?.parentId
+        if (parentId) parentIds.add(parentId)
+      }
+
+      // Remove edges connected to any of the blocks
+      await tx
+        .delete(workflowEdges)
+        .where(
+          and(
+            eq(workflowEdges.workflowId, workflowId),
+            or(
+              inArray(workflowEdges.sourceBlockId, blockIdsArray),
+              inArray(workflowEdges.targetBlockId, blockIdsArray)
+            )
+          )
+        )
+
+      // Remove subflow entries
+      await tx
+        .delete(workflowSubflows)
+        .where(
+          and(
+            eq(workflowSubflows.workflowId, workflowId),
+            inArray(workflowSubflows.id, blockIdsArray)
+          )
+        )
+
+      // Remove the blocks themselves
+      await tx
+        .delete(workflowBlocks)
+        .where(
+          and(eq(workflowBlocks.workflowId, workflowId), inArray(workflowBlocks.id, blockIdsArray))
+        )
+
+      // Refresh parent subflow node lists (skip parents that were themselves removed)
+      for (const parentId of parentIds) {
+        if (!allBlocksToDelete.has(parentId)) {
+          await updateSubflowNodeList(tx, workflowId, parentId)
+        }
+      }
+
+      logger.info(
+        `Successfully batch removed ${blockIdsArray.length} blocks from workflow ${workflowId}`
+      )
+      break
+    }
+
+    default:
+      logger.warn(`Unknown blocks operation: ${operation}`)
+      throw new Error(`Unsupported blocks operation: ${operation}`)
+  }
+}
+
+// Batch edge operations (multi-select delete). Additive to the single-edge handler.
+async function handleEdgesOperationTx(
+  tx: any,
+  workflowId: string,
+  operation: string,
+  payload: any,
+  userId: string
+) {
+  switch (operation) {
+    case 'batch-remove-edges': {
+      const { ids } = payload
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return
+      }
+
+      logger.info(`Batch removing ${ids.length} edges from workflow ${workflowId}`)
+
+      await tx
+        .delete(workflowEdges)
+        .where(and(eq(workflowEdges.workflowId, workflowId), inArray(workflowEdges.id, ids)))
+
+      logger.debug(`Batch removed edges from workflow ${workflowId}`)
+      break
+    }
+
+    default:
+      logger.warn(`Unknown edges operation: ${operation}`)
+      throw new Error(`Unsupported edges operation: ${operation}`)
   }
 }
 

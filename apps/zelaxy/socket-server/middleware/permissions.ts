@@ -150,6 +150,11 @@ export async function verifyOperationPermission(
         'update-trigger-mode',
         'toggle-handles',
         'duplicate',
+        // Batch collaborative operations (multi-select drag/delete/paste)
+        'batch-update-positions',
+        'batch-add-blocks',
+        'batch-remove-blocks',
+        'batch-remove-edges',
       ],
       write: [
         'add',
@@ -164,8 +169,14 @@ export async function verifyOperationPermission(
         'update-trigger-mode',
         'toggle-handles',
         'duplicate',
+        // Batch collaborative operations (multi-select drag/delete/paste)
+        'batch-update-positions',
+        'batch-add-blocks',
+        'batch-remove-blocks',
+        'batch-remove-edges',
       ],
-      read: ['update-position'], // Read-only users can only move things around
+      // Read-only users can only move things around (single or batched positions)
+      read: ['update-position', 'batch-update-positions'],
     }
 
     const allowedOperations = rolePermissions[accessInfo.role as keyof typeof rolePermissions] || []

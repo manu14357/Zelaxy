@@ -67,6 +67,68 @@ export const EdgeOperationSchema = z.object({
   operationId: z.string().optional(),
 })
 
+// Batch operations on multiple blocks at once (target: 'blocks'). These let a
+// multi-select drag or delete emit ONE collaborative op instead of N single-block
+// ops. Additive: the single-block BlockOperationSchema above is unchanged.
+export const BatchUpdatePositionsSchema = z.object({
+  operation: z.literal('batch-update-positions'),
+  target: z.literal('blocks'),
+  payload: z.object({
+    updates: z.array(
+      z.object({
+        id: z.string(),
+        position: PositionSchema,
+      })
+    ),
+  }),
+  timestamp: z.number(),
+  operationId: z.string().optional(),
+})
+
+export const BatchAddBlocksSchema = z.object({
+  operation: z.literal('batch-add-blocks'),
+  target: z.literal('blocks'),
+  payload: z.object({
+    blocks: z.array(z.record(z.any())),
+    edges: z.array(z.record(z.any())).optional(),
+    loops: z.record(z.any()).optional(),
+    parallels: z.record(z.any()).optional(),
+    subBlockValues: z.record(z.record(z.any())).optional(),
+  }),
+  timestamp: z.number(),
+  operationId: z.string().optional(),
+})
+
+export const BatchRemoveBlocksSchema = z.object({
+  operation: z.literal('batch-remove-blocks'),
+  target: z.literal('blocks'),
+  payload: z.object({
+    ids: z.array(z.string()),
+  }),
+  timestamp: z.number(),
+  operationId: z.string().optional(),
+})
+
+export const BlocksOperationSchema = z.union([
+  BatchUpdatePositionsSchema,
+  BatchAddBlocksSchema,
+  BatchRemoveBlocksSchema,
+])
+
+// Batch operations on multiple edges at once (target: 'edges').
+export const BatchRemoveEdgesSchema = z.object({
+  operation: z.literal('batch-remove-edges'),
+  target: z.literal('edges'),
+  payload: z.object({
+    ids: z.array(z.string()),
+  }),
+  timestamp: z.number(),
+  operationId: z.string().optional(),
+})
+
+// Only one edges-batch op today; alias directly (z.union needs 2+ members).
+export const EdgesOperationSchema = BatchRemoveEdgesSchema
+
 export const SubflowOperationSchema = z.object({
   operation: z.enum(['add', 'remove', 'update']),
   target: z.literal('subflow'),
@@ -116,7 +178,11 @@ export const VariableOperationSchema = z.union([
 
 export const WorkflowOperationSchema = z.union([
   BlockOperationSchema,
+  BatchUpdatePositionsSchema,
+  BatchAddBlocksSchema,
+  BatchRemoveBlocksSchema,
   EdgeOperationSchema,
+  BatchRemoveEdgesSchema,
   SubflowOperationSchema,
   VariableOperationSchema,
 ])
