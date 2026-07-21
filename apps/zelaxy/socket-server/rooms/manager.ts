@@ -80,17 +80,25 @@ export class RoomManager {
   handleWorkflowDeletion(workflowId: string) {
     logger.info(`Handling workflow deletion notification for ${workflowId}`)
 
-    const room = this.workflowRooms.get(workflowId)
-    if (!room) {
-      logger.debug(`No active room found for deleted workflow ${workflowId}`)
-      return
-    }
-
+    // Broadcast to the room unconditionally. With the Redis adapter attached, io.to() fans out to
+    // every pod, so a deletion for a room whose members live on ANOTHER instance still reaches them.
+    // Gating this on the in-memory Map (which only tracks THIS pod's members) would silently drop
+    // the event on a multi-pod deploy.
     this.io.to(workflowId).emit('workflow-deleted', {
       workflowId,
       message: 'This workflow has been deleted',
       timestamp: Date.now(),
     })
+
+    // Local cleanup only concerns sockets connected to THIS pod. If there's no local room, there's
+    // nothing on this instance to disconnect/clean up — the emit above already reached other pods.
+    const room = this.workflowRooms.get(workflowId)
+    if (!room) {
+      logger.debug(
+        `No local room for deleted workflow ${workflowId}; broadcast fanned out via adapter`
+      )
+      return
+    }
 
     const socketsToDisconnect: string[] = []
     room.users.forEach((_presence, socketId) => {
@@ -115,59 +123,62 @@ export class RoomManager {
   handleWorkflowRevert(workflowId: string, timestamp: number) {
     logger.info(`Handling workflow revert notification for ${workflowId}`)
 
-    const room = this.workflowRooms.get(workflowId)
-    if (!room) {
-      logger.debug(`No active room found for reverted workflow ${workflowId}`)
-      return
-    }
-
+    // Emit unconditionally so members on other pods (reachable via the Redis adapter) are notified.
     this.io.to(workflowId).emit('workflow-reverted', {
       workflowId,
       message: 'Workflow has been reverted to deployed state',
       timestamp,
     })
 
+    // Local bookkeeping only applies to a room tracked on THIS instance.
+    const room = this.workflowRooms.get(workflowId)
+    if (!room) {
+      logger.debug(
+        `No local room for reverted workflow ${workflowId}; broadcast fanned out via adapter`
+      )
+      return
+    }
+
     room.lastModified = timestamp
 
-    logger.info(`Notified ${room.users.size} users about workflow revert: ${workflowId}`)
+    logger.info(`Notified ${room.users.size} local users about workflow revert: ${workflowId}`)
   }
 
   handleWorkflowUpdate(workflowId: string) {
     logger.info(`Handling workflow update notification for ${workflowId}`)
 
-    const room = this.workflowRooms.get(workflowId)
-    if (!room) {
-      logger.debug(`No active room found for updated workflow ${workflowId}`)
-      return
-    }
-
     const timestamp = Date.now()
 
-    // Notify all clients in the workflow room that the workflow has been updated
-    // This will trigger them to refresh their local state
+    // Notify all clients in the workflow room that the workflow has been updated so they refresh
+    // their local state. Emit unconditionally — the Redis adapter fans io.to() out to members on
+    // other pods; gating on the in-memory Map would drop the event for a cross-pod room.
     this.io.to(workflowId).emit('workflow-updated', {
       workflowId,
       message: 'Workflow has been updated externally',
       timestamp,
     })
 
+    // Local bookkeeping only applies to a room tracked on THIS instance.
+    const room = this.workflowRooms.get(workflowId)
+    if (!room) {
+      logger.debug(
+        `No local room for updated workflow ${workflowId}; broadcast fanned out via adapter`
+      )
+      return
+    }
+
     room.lastModified = timestamp
 
-    logger.info(`Notified ${room.users.size} users about workflow update: ${workflowId}`)
+    logger.info(`Notified ${room.users.size} local users about workflow update: ${workflowId}`)
   }
 
   handleCopilotWorkflowEdit(workflowId: string, description?: string) {
     logger.info(`Handling copilot workflow edit notification for ${workflowId}`)
 
-    const room = this.workflowRooms.get(workflowId)
-    if (!room) {
-      logger.debug(`No active room found for copilot workflow edit ${workflowId}`)
-      return
-    }
-
     const timestamp = Date.now()
 
-    // Emit special event for copilot edits that tells clients to rehydrate from database
+    // Emit the rehydrate-from-database event unconditionally. The Redis adapter fans io.to() out to
+    // members on other pods; gating on the in-memory Map would drop the event for a cross-pod room.
     this.io.to(workflowId).emit('copilot-workflow-edit', {
       workflowId,
       description,
@@ -175,9 +186,20 @@ export class RoomManager {
       timestamp,
     })
 
+    // Local bookkeeping only applies to a room tracked on THIS instance.
+    const room = this.workflowRooms.get(workflowId)
+    if (!room) {
+      logger.debug(
+        `No local room for copilot workflow edit ${workflowId}; broadcast fanned out via adapter`
+      )
+      return
+    }
+
     room.lastModified = timestamp
 
-    logger.info(`Notified ${room.users.size} users about copilot workflow edit: ${workflowId}`)
+    logger.info(
+      `Notified ${room.users.size} local users about copilot workflow edit: ${workflowId}`
+    )
   }
 
   async validateWorkflowConsistency(
