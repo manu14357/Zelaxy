@@ -29,13 +29,17 @@ export function Navigation() {
     <nav className={`nav-bar fixed inset-x-0 z-50 ${scrolled ? 'nav-bar--scrolled' : ''}`}>
       <div className='mx-auto flex h-14 max-w-[1320px] items-center gap-4 px-5 sm:px-8'>
         {/* Logo */}
-        <Link href='/' className='flex items-center gap-2.5'>
-          <span className='b-strong s-panel grid h-7 w-7 place-items-center rounded-[7px] border'>
-            <img src='/Zelaxy.png' alt='' width={16} height={16} className='h-4 w-4' />
-          </span>
-          <span className='t-ink font-semibold text-[15px] tracking-[-0.01em]'>Zelaxy</span>
-          <span className='t-faint bp-label hidden sm:inline' style={{ fontSize: '9px' }}>
-            OS&nbsp;v1.0
+        <Link href='/' className='group flex items-center gap-2.5'>
+          <img
+            src='/Zelaxy.png'
+            alt='Zelaxy'
+            width={28}
+            height={28}
+            className='h-7 w-7 transition-transform duration-300 group-hover:scale-105'
+          />
+          <span className='t-ink font-semibold text-[19px] tracking-[-0.01em]'>Zelaxy</span>
+          <span className='t-faint b-hair hidden rounded-full border px-1.5 py-0.5 font-medium text-[10px] leading-none tracking-[0.02em] sm:inline'>
+            OS v1.0
           </span>
         </Link>
 
@@ -57,16 +61,12 @@ export function Navigation() {
 
         {/* Right */}
         <div className='ml-auto flex items-center gap-2'>
-          <a href={getDocsUrl()} className='t-dim hover-ink hidden text-[13px] sm:inline'>
-            Docs
-          </a>
           <a
-            href='https://github.com/manu14357/Zelaxy'
-            target='_blank'
-            rel='noopener noreferrer'
-            className='t-dim hover-ink hidden text-[13px] sm:inline'
+            href={getDocsUrl()}
+            className='t-accent b-accent hidden items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium text-[13px] transition-colors hover:bg-[var(--bp-accent)] hover:text-[#1c0c00] sm:inline-flex'
           >
-            GitHub
+            <span className='s-accent inline-block h-1.5 w-1.5 rounded-full' />
+            Docs
           </a>
           <span className='hair hidden h-4 w-px sm:block' />
           <ThemeToggle />
