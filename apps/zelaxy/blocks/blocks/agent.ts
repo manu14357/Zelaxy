@@ -200,7 +200,7 @@ Create a system prompt that defines the agent's role, behavior, and constraints.
       title: 'Thinking',
       type: 'switch',
       layout: 'half',
-      mode: 'advanced',
+      mode: 'basic',
       description:
         'Let the model reason internally before answering. Uses part of Max Output Tokens for that reasoning — on a long prompt, a small Max Output Tokens can leave nothing for the actual answer. Off by default: most requests answer directly, faster and cheaper.',
       // Only models with a genuinely controllable reasoning toggle (see ModelCapabilities.thinking
