@@ -91,7 +91,8 @@ export default function Layout({ children }: { children: ReactNode }) {
         mode: 'light-dark',
       }}
       sidebar={{
-        defaultOpenLevel: 1,
+        // Folders start collapsed; a folder still auto-opens if the current page is inside it.
+        defaultOpenLevel: 0,
         // Always-visible sidebar on desktop (no collapse toggle); still a slide-in drawer on mobile.
         collapsible: false,
       }}
