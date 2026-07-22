@@ -26,10 +26,27 @@ import { BaseCopilotTool } from '../base'
 
 const reqId = () => crypto.randomUUID().slice(0, 8)
 
+// Case/whitespace/punctuation- and filler-word-insensitive form of a table name, used ONLY as a
+// fallback when the exact-match lookup below misses. Catches the model proposing the same table
+// under a near-duplicate name across tool calls in one turn (e.g. "Leads" vs "Leads Table" vs
+// "leads_table") — without this, create_table's exact-name idempotency check doesn't fire and a
+// visible duplicate table gets created even though it's conceptually the same table.
+export function normalizeTableName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\btable\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 async function resolveTableByName(workspaceId: string, tableName: string) {
   const tables = await listTables(workspaceId)
-  const target = tables.find((t) => t.name.toLowerCase() === tableName.toLowerCase())
-  return target ?? null
+  const exact = tables.find((t) => t.name.toLowerCase() === tableName.toLowerCase())
+  if (exact) return exact
+  const normalized = normalizeTableName(tableName)
+  if (!normalized) return null
+  return tables.find((t) => normalizeTableName(t.name) === normalized) ?? null
 }
 
 async function resolveWorkflowByName(workspaceId: string, name: string) {

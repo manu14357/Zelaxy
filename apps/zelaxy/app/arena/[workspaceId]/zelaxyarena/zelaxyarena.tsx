@@ -404,6 +404,12 @@ export function ZelaxyArena() {
   const [showHistory, setShowHistory] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  // Mirrors `isStreaming` but updates synchronously (a ref, not React state) so `send()` can guard
+  // re-entry immediately — two calls to `send()` in the same tick (e.g. a held/repeated Enter key
+  // firing onKeyDown twice before React commits the first call's setIsStreaming(true)) would both
+  // still see the STATE value as stale `false` and both proceed, each starting its own full agent
+  // turn (its own "thinking" + tool calls) for what the user experienced as one message.
+  const isStreamingRef = useRef(false)
   const messagesRef = useRef<ChatMessage[]>([])
   const chatIdRef = useRef<string | null>(null)
   const artifactsRef = useRef<ResourceArtifact[]>([])
@@ -689,14 +695,17 @@ export function ZelaxyArena() {
       // Allow an attachments-only message (e.g. an image with no caption).
       if (!trimmed && !displayAttachments?.length) return
       // A turn is still streaming — queue this message instead of dropping it. It auto-sends when
-      // the current turn finishes (see the auto-dispatch effect).
-      if (isStreaming) {
+      // the current turn finishes (see the auto-dispatch effect). Checked via the REF (synchronous),
+      // not the `isStreaming` state, so two calls to send() in the same tick can't both read a stale
+      // `false` and both start a full agent turn for one user message.
+      if (isStreamingRef.current) {
         setQueued((q) => [
           ...q,
           { text: trimmed, apiText, attachments, contexts, displayAttachments },
         ])
         return
       }
+      isStreamingRef.current = true
 
       const userMsg: ChatMessage = {
         id: crypto.randomUUID(),
@@ -1036,6 +1045,7 @@ export function ZelaxyArena() {
           }))
         }
       } finally {
+        isStreamingRef.current = false
         setIsStreaming(false)
         abortRef.current = null
         // Persistence happens in an effect once streaming ends, so the final assistant text
@@ -1106,6 +1116,7 @@ export function ZelaxyArena() {
 
   const stop = () => {
     abortRef.current?.abort()
+    isStreamingRef.current = false
     setIsStreaming(false)
     setQueued([])
     // Mark the in-flight assistant turn as stopped and flip any still-running tools to a final state.
@@ -1127,6 +1138,7 @@ export function ZelaxyArena() {
 
   const newChat = () => {
     abortRef.current?.abort()
+    isStreamingRef.current = false
     setIsStreaming(false)
     setMessages([])
     setArtifacts([])
