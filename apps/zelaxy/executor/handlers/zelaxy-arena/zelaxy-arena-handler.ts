@@ -218,7 +218,14 @@ export class ZelaxyArenaBlockHandler implements BlockHandler {
       systemPrompt: inputs.systemPrompt,
       tools: inputs.tools,
       temperature: inputs.temperature,
-      maxTokens: inputs.maxTokens,
+      // maxTokens is a free-text field, so the resolved value arrives as a raw string — coerce it to
+      // a real number here. The execute route only accepts `typeof maxTokens === 'number'` and
+      // silently falls back to the default otherwise, so an uncoerced string here made this field a
+      // no-op regardless of what the user configured.
+      maxTokens:
+        inputs.maxTokens != null && Number(inputs.maxTokens) >= 1
+          ? Math.round(Number(inputs.maxTokens))
+          : undefined,
       // Pass workspace context so the block runs as the FULL ZelaxyArena agent (tools + snapshot),
       // not a bare LLM call — matching what the chat agent can do.
       workspaceId: ctx.workspaceId,

@@ -1051,8 +1051,13 @@ export class AgentBlockHandler implements BlockHandler {
       context: toonEncodeForLLM(messages),
       tools: formattedTools,
       temperature: inputs.temperature,
+      // maxTokens is a free-text field (not a slider), so the resolved value may arrive as a raw
+      // string ("8192") rather than a number — coerce it the same way topP/topK/timeout already do,
+      // otherwise a string leaks into the provider request payload where a JSON number is required.
       maxTokens:
-        inputs.maxTokens !== undefined && inputs.maxTokens >= 1 ? inputs.maxTokens : undefined,
+        inputs.maxTokens != null && Number(inputs.maxTokens) >= 1
+          ? Math.round(Number(inputs.maxTokens))
+          : undefined,
       topP: inputs.topP != null ? Number(inputs.topP) : undefined,
       topK: inputs.topK != null ? Math.round(Number(inputs.topK)) : undefined,
       presencePenalty: inputs.presencePenalty != null ? Number(inputs.presencePenalty) : undefined,

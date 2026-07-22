@@ -188,12 +188,12 @@ Create a system prompt that defines the agent's role, behavior, and constraints.
     {
       id: 'maxTokens',
       title: 'Max Output Tokens',
-      type: 'slider',
+      type: 'short-input',
       layout: 'half',
-      min: 100,
-      max: 8192,
-      step: 1,
+      placeholder: 'e.g. 8192',
       mode: 'advanced',
+      description:
+        'Leave blank for the provider default. A large structured response (many rows/fields) or Thinking can need well over 8192 — a low value here silently truncates the output mid-JSON, which fails to parse as valid structured output.',
     },
     {
       id: 'thinking',
