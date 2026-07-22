@@ -1174,6 +1174,11 @@ export class AgentBlockHandler implements BlockHandler {
       presencePenalty: providerRequest.presencePenalty,
       frequencyPenalty: providerRequest.frequencyPenalty,
       thinking: providerRequest.thinking,
+      // Was previously dropped here entirely — the block's Timeout slider had zero effect on a real
+      // (server-side) workflow run, only on the browser-preview path (executeBrowserSide, which does
+      // forward it). Whatever the provider's own client default happened to be governed every real
+      // execution instead of the user's configured value.
+      timeout: providerRequest.timeout,
       apiKey: finalApiKey,
       azureEndpoint: providerRequest.azureEndpoint,
       azureApiVersion: providerRequest.azureApiVersion,
@@ -1357,7 +1362,10 @@ export class AgentBlockHandler implements BlockHandler {
       timestamp: new Date().toISOString(),
     })
 
-    if (error.name === 'AbortError') {
+    // Node/undici name a signal-based abort 'TimeoutError' (AbortSignal.timeout()), not 'AbortError'
+    // ('AbortError' is a manual controller.abort()) — checking only the latter let a raw, unhelpful
+    // message like "signal timed out" reach the user instead of this one.
+    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
       throw new Error('Provider request timed out - the API took too long to respond')
     }
     if (error.name === 'TypeError' && error.message.includes('fetch')) {

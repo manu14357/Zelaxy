@@ -159,6 +159,9 @@ export interface ProviderRequest {
   topK?: number
   presencePenalty?: number
   frequencyPenalty?: number
+  // Request timeout in SECONDS (matches the agent block's "Timeout (seconds)" UI field). Only
+  // honored by providers that explicitly read it when constructing their HTTP client / request.
+  timeout?: number
   apiKey: string
   messages?: Message[]
   responseFormat?: {

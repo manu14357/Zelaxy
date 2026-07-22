@@ -115,7 +115,13 @@ async function executeMiMoRequest(
   const apiModel = toApiModel(model, options.apiModelPrefix)
 
   try {
-    const mimo = new OpenAI({ apiKey: request.apiKey, baseURL: options.baseUrl })
+    const mimo = new OpenAI({
+      apiKey: request.apiKey,
+      baseURL: options.baseUrl,
+      // request.timeout is SECONDS (the block's "Timeout (seconds)" field); the SDK wants ms.
+      // Left unset, the SDK defaults to 10 minutes — fine, but the user's configured value should win.
+      timeout: request.timeout ? request.timeout * 1000 : undefined,
+    })
 
     const allMessages = []
     if (request.systemPrompt) {
