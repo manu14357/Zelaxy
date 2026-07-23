@@ -22,6 +22,14 @@ interface EditWorkflowOperation {
   operation_type: 'add' | 'edit' | 'delete'
   block_id: string
   params?: Record<string, any>
+  // The tool schema documents `type`/`name`/`position` as nested under `params` for an 'add'
+  // operation, but not every model nests them that way in practice (observed: a model placing
+  // `type` as a sibling of `params` on the operation itself). Accept both shapes rather than
+  // silently dropping the block — a dropped block leaves any edge wired to it dangling, which
+  // fails the whole save with a foreign-key violation once it reaches the database.
+  type?: string
+  name?: string
+  position?: { x: number; y: number }
 }
 
 /**
@@ -215,19 +223,31 @@ async function applyOperationsToYaml(
         }
         break
 
-      case 'add':
-        if (params?.type && params?.name) {
+      case 'add': {
+        // See the matching comment in editWorkflowLocal below — accept type/name/position from
+        // either params or the operation itself, and default name from block_id.
+        const blockType = params?.type ?? operation.type
+        const blockName =
+          params?.name ??
+          operation.name ??
+          block_id
+            .replace(/[_-]+/g, ' ')
+            .replace(/\b\w/g, (c: string) => c.toUpperCase())
+            .trim()
+
+        if (blockType) {
           workflowData.blocks[block_id] = {
-            type: params.type,
-            name: params.name,
-            inputs: params.inputs || {},
-            connections: params.connections || {},
+            type: blockType,
+            name: blockName,
+            inputs: params?.inputs || {},
+            connections: params?.connections || {},
           }
-          logger.info(`Added block ${block_id}`, { type: params.type, name: params.name })
+          logger.info(`Added block ${block_id}`, { type: blockType, name: blockName })
         } else {
-          logger.warn(`Invalid add operation for block ${block_id} - missing type or name`)
+          logger.warn(`Invalid add operation for block ${block_id} - missing block type`)
         }
         break
+      }
 
       default:
         logger.warn(`Unknown operation type: ${operation_type}`)
@@ -251,6 +271,7 @@ import { eq } from 'drizzle-orm'
 import { loadWorkflowFromNormalizedTables } from '@/lib/workflows/db-helpers'
 import { db } from '@/db'
 import { workflow as workflowTable } from '@/db/schema'
+import { parseBlockConnections } from '@/stores/workflows/yaml/parsing-utils'
 import { BaseCopilotTool } from '../base'
 
 interface EditWorkflowParams {
@@ -513,27 +534,44 @@ async function editWorkflowLocal(
             logger.info(`Updated name for block ${block_id} to ${params.name}`)
           }
 
-          // Update connections (add/modify edges)
+          // Update connections (add/modify edges). Reuses the same parser build_workflow's YAML
+          // pipeline uses, so a condition block's `connections.conditions` (if/else if/else) wires
+          // to the correct 'true'/'false'/'condition-<id>' handles instead of being silently dropped.
           if (params?.connections) {
-            // Remove existing edges from this block
-            workflowState.edges = (workflowState.edges || []).filter(
-              (edge: any) => edge.source !== block_id
+            const { edges: parsedEdges, errors: connectionErrors } = parseBlockConnections(
+              block_id,
+              params.connections,
+              block.type
             )
 
-            // Add new edges based on connections
-            if (params.connections.outgoing) {
-              for (const conn of params.connections.outgoing) {
-                const targetId = typeof conn === 'string' ? conn : conn.target
+            if (connectionErrors.length > 0) {
+              logger.warn(`Invalid connections for block ${block_id}, edges left unchanged`, {
+                errors: connectionErrors,
+              })
+              inputValidationErrors.push({
+                block: block_id,
+                field: 'connections',
+                message: connectionErrors.join('; '),
+              })
+            } else {
+              // Only replace this block's outgoing edges once the new set parsed successfully —
+              // never wipe existing wiring on a malformed/partial connections payload.
+              workflowState.edges = (workflowState.edges || []).filter(
+                (edge: any) => edge.source !== block_id
+              )
+              for (const parsedEdge of parsedEdges) {
                 workflowState.edges.push({
-                  id: `edge-${block_id}-${targetId}-${Date.now()}`,
+                  id: `edge-${block_id}-${parsedEdge.target}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
                   source: block_id,
-                  target: targetId,
-                  sourceHandle: conn.sourceHandle || 'source',
-                  targetHandle: conn.targetHandle || 'target',
+                  target: parsedEdge.target,
+                  sourceHandle: parsedEdge.sourceHandle,
+                  targetHandle: parsedEdge.targetHandle,
                 })
               }
+              logger.info(`Updated connections for block ${block_id}`, {
+                edgeCount: parsedEdges.length,
+              })
             }
-            logger.info(`Updated connections for block ${block_id}`)
           }
         } else {
           logger.warn(`Block ${block_id} not found for editing`)
@@ -542,12 +580,27 @@ async function editWorkflowLocal(
       }
 
       case 'add': {
-        if (params?.type && params?.name) {
-          const blockConfig = blockRegistry.get(params.type)
+        // Accept `type`/`name`/`position` whether the model nested them under `params` (as the
+        // tool schema documents) or put them as siblings of `params` on the operation itself —
+        // both shapes have been observed in practice. `name` is purely cosmetic (nothing about
+        // wiring/execution depends on it), so default it from block_id instead of failing the
+        // whole operation when it's omitted.
+        const blockType = params?.type ?? operation.type
+        const blockPosition = params?.position ?? operation.position
+        const blockName =
+          params?.name ??
+          operation.name ??
+          block_id
+            .replace(/[_-]+/g, ' ')
+            .replace(/\b\w/g, (c: string) => c.toUpperCase())
+            .trim()
+
+        if (blockType) {
+          const blockConfig = blockRegistry.get(blockType)
 
           // Build subBlocks from inputs
           const subBlocks: Record<string, any> = {}
-          if (params.inputs) {
+          if (params?.inputs) {
             for (const [inputKey, inputValue] of Object.entries(params.inputs)) {
               const subBlockConfig = blockConfig?.subBlocks?.find((sb: any) => sb.id === inputKey)
               subBlocks[inputKey] = {
@@ -557,9 +610,7 @@ async function editWorkflowLocal(
               }
             }
             // Validate/normalize the new block's input values against its sub-block config.
-            inputValidationErrors.push(
-              ...validateBlockSubBlocks(params.type, blockConfig, subBlocks)
-            )
+            inputValidationErrors.push(...validateBlockSubBlocks(blockType, blockConfig, subBlocks))
           }
 
           // Position the new block
@@ -571,9 +622,9 @@ async function editWorkflowLocal(
 
           workflowState.blocks[block_id] = {
             id: block_id,
-            type: params.type,
-            name: params.name,
-            position: params.position || { x: 100, y: maxY + 200 },
+            type: blockType,
+            name: blockName,
+            position: blockPosition || { x: 100, y: maxY + 200 },
             subBlocks,
             enabled: true,
             outputs: {},
@@ -583,23 +634,45 @@ async function editWorkflowLocal(
             data: {},
           }
 
-          // Add connections if specified
-          if (params.connections?.outgoing) {
-            for (const conn of params.connections.outgoing) {
-              const targetId = typeof conn === 'string' ? conn : conn.target
-              workflowState.edges.push({
-                id: `edge-${block_id}-${targetId}-${Date.now()}`,
-                source: block_id,
-                target: targetId,
-                sourceHandle: conn.sourceHandle || 'source',
-                targetHandle: conn.targetHandle || 'target',
+          // Add connections if specified — same parser as the 'edit' path above, so a new
+          // condition block's `connections.conditions` wires correctly from the start.
+          if (params?.connections) {
+            const { edges: parsedEdges, errors: connectionErrors } = parseBlockConnections(
+              block_id,
+              params.connections,
+              blockType
+            )
+
+            if (connectionErrors.length > 0) {
+              logger.warn(`Invalid connections for new block ${block_id}`, {
+                errors: connectionErrors,
               })
+              inputValidationErrors.push({
+                block: block_id,
+                field: 'connections',
+                message: connectionErrors.join('; '),
+              })
+            } else {
+              for (const parsedEdge of parsedEdges) {
+                workflowState.edges.push({
+                  id: `edge-${block_id}-${parsedEdge.target}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                  source: block_id,
+                  target: parsedEdge.target,
+                  sourceHandle: parsedEdge.sourceHandle,
+                  targetHandle: parsedEdge.targetHandle,
+                })
+              }
             }
           }
 
-          logger.info(`Added block ${block_id} (type: ${params.type})`)
+          logger.info(`Added block ${block_id} (type: ${blockType})`)
         } else {
-          logger.warn(`Invalid add operation for block ${block_id} - missing type or name`)
+          logger.warn(`Invalid add operation for block ${block_id} - missing block type`)
+          inputValidationErrors.push({
+            block: block_id,
+            field: 'type',
+            message: `add operation for "${block_id}" is missing a block type — the block was NOT created. Retry with "type" set to a real block type (either in params.type or as a sibling of params on the operation).`,
+          })
         }
         break
       }
@@ -613,6 +686,33 @@ async function editWorkflowLocal(
     finalBlockCount: Object.keys(workflowState.blocks).length,
     finalEdgeCount: workflowState.edges?.length || 0,
   })
+
+  // Structural lint (orphan blocks, edges to missing blocks, missing required fields) so the model
+  // can issue a corrective follow-up edit instead of declaring success on a broken graph. Run this
+  // BEFORE stripping dangling edges below, so it still reports the edge that caused the problem.
+  const workflowLint = lintWorkflowState(
+    workflowState.blocks,
+    workflowState.edges || [],
+    blockRegistry
+  )
+
+  // Defense-in-depth: an edge can end up pointing at a block that was never actually created (e.g.
+  // its own 'add' operation was rejected for a bad payload) — persisting that reaches the database
+  // as a foreign-key violation and fails the ENTIRE save with a raw 500, wiping out every other
+  // change in this edit. Drop dangling edges here instead so a partial failure stays partial.
+  const validBlockIds = new Set(Object.keys(workflowState.blocks))
+  const danglingEdges = (workflowState.edges || []).filter(
+    (edge: any) => !validBlockIds.has(edge.source) || !validBlockIds.has(edge.target)
+  )
+  if (danglingEdges.length > 0) {
+    logger.warn('Dropping dangling edges referencing missing blocks', {
+      count: danglingEdges.length,
+      edges: danglingEdges.map((e: any) => ({ source: e.source, target: e.target })),
+    })
+    workflowState.edges = (workflowState.edges || []).filter(
+      (edge: any) => validBlockIds.has(edge.source) && validBlockIds.has(edge.target)
+    )
+  }
 
   // Build a modified YAML from the updated state using js-yaml
   const { dump: yamlDump } = await import('js-yaml')
@@ -665,14 +765,6 @@ async function editWorkflowLocal(
   if (inputValidationErrors.length > 0) {
     logger.info('Edit produced input validation errors', { count: inputValidationErrors.length })
   }
-
-  // Structural lint (orphan blocks, edges to missing blocks, missing required fields) so the model
-  // can issue a corrective follow-up edit instead of declaring success on a broken graph.
-  const workflowLint = lintWorkflowState(
-    workflowState.blocks,
-    workflowState.edges || [],
-    blockRegistry
-  )
 
   return {
     yamlContent: modifiedYaml,

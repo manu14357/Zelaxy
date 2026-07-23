@@ -176,6 +176,20 @@ export function lintWorkflowState(
       })
     }
 
+    // A branching block (condition/router/switch) that kept its incoming edge but lost every
+    // outgoing branch edge is easy to miss with the "fully disconnected" check above — it still
+    // has an incoming edge, so it passes that check even though nothing downstream can ever run.
+    // This is exactly what `edit_workflow` used to produce when it wiped a condition block's edges
+    // and failed to rebuild them from `connections.conditions`.
+    const isBranchingBlock =
+      block.type === 'condition' || block.type === 'router' || block.type === 'switch'
+    if (isBranchingBlock && hasIncoming.has(id) && !hasOutgoing.has(id)) {
+      issues.push({
+        severity: 'error',
+        message: `Block "${block.name || id}" (${block.type}) has no outgoing branch edges — its true/false (or case) paths are not wired to anything`,
+      })
+    }
+
     // Missing required fields — evaluated through the shared visibility filter so it mirrors the
     // editor exactly: conditionally-hidden, wrong-mode, and trigger-only fields are not flagged,
     // while conditionally-VISIBLE required fields now are (the old check skipped all conditionals).
@@ -208,7 +222,8 @@ export function lintWorkflowState(
   // that here so the model learns its reference doesn't match any block it created (the #1 cause of
   // workflows that "build" but produce empty values at runtime).
   const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, '')
-  const SYSTEM_REFS = new Set(['start', 'loop', 'parallel', 'variable', 'env'])
+  // 'starter' is accepted alongside 'start' — see InputResolver.isStarterReference; keep in sync.
+  const SYSTEM_REFS = new Set(['start', 'starter', 'loop', 'parallel', 'variable', 'env'])
   const validRefs = new Set<string>(SYSTEM_REFS)
   const blockByRef = new Map<string, any>()
   for (const [id, block] of Object.entries(blocks)) {

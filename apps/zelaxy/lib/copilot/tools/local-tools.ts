@@ -139,7 +139,61 @@ Note: The workflowId is automatically injected from the request context.`,
               },
               params: {
                 type: 'object',
-                description: 'Parameters for the operation (inputs, connections, type, name)',
+                description:
+                  "Parameters for the operation. For 'edit'/'add': { inputs?, connections?, name?, type? (add only), position? (add only) }.",
+                properties: {
+                  inputs: {
+                    type: 'object',
+                    description: 'Sub-block values to set on the block, keyed by sub-block id.',
+                  },
+                  connections: {
+                    type: 'object',
+                    description:
+                      'Outgoing connections FROM this block. For most blocks use "outgoing": ' +
+                      '[{target, sourceHandle?}]. For a "condition" block you MUST use "conditions" ' +
+                      'instead (the same shape build_workflow uses) — putting branches under ' +
+                      '"outgoing" will NOT wire the true/false paths and silently breaks the block.',
+                    properties: {
+                      outgoing: {
+                        type: 'array',
+                        description: 'Non-condition blocks only.',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            target: { type: 'string', description: 'Target block id' },
+                            sourceHandle: {
+                              type: 'string',
+                              description:
+                                'Leave unset for regular blocks. Never used for condition blocks.',
+                            },
+                          },
+                          required: ['target'],
+                        },
+                      },
+                      conditions: {
+                        type: 'object',
+                        description:
+                          'Condition-block branches ONLY. Keys: "if", "else if", "else if-2", ..., ' +
+                          '"else". Value: target block id (or array of ids).',
+                      },
+                      success: {
+                        type: 'string',
+                        description: 'Target block id for a success/default path.',
+                      },
+                      error: { type: 'string', description: 'Target block id for an error path.' },
+                    },
+                  },
+                  name: { type: 'string', description: 'New display name for the block.' },
+                  type: {
+                    type: 'string',
+                    description: "Block type (e.g. 'agent', 'condition') — required for 'add'.",
+                  },
+                  position: {
+                    type: 'object',
+                    description: "Canvas position for a new block ('add' operations only).",
+                    properties: { x: { type: 'number' }, y: { type: 'number' } },
+                  },
+                },
               },
             },
             required: ['operation_type', 'block_id'],
