@@ -41,13 +41,18 @@ export type ToolVisualStatus = 'pending' | 'running' | 'done' | 'error' | 'skipp
 export function toolVisualStatus(state: string): ToolVisualStatus {
   switch (state) {
     case 'executing':
-    case 'accepted':
     case 'background':
       return 'running'
     case 'success':
     case 'completed':
     case 'applied':
     case 'ready_for_review':
+    // 'accepted' is a TERMINAL, done state — not a running one. It is set exclusively by
+    // updatePreviewToolCallState('accepted') when a workflow diff is applied to the canvas (now
+    // automatically, via the live-apply flow). Accepting an interrupt tool goes straight to
+    // 'executing', never 'accepted', so nothing in 'accepted' is ever still working. Mapping it to
+    // 'running' left a finished build_workflow/edit_workflow ("Edited workflow") spinning forever.
+    case 'accepted':
       return 'done'
     case 'errored':
     case 'aborted':

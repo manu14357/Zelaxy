@@ -17,9 +17,12 @@ const tool = (over: Partial<CopilotToolCall>): CopilotToolCall => ({
 describe('toolVisualStatus', () => {
   it('collapses the fine-grained tool states into coarse visual buckets', () => {
     expect(toolVisualStatus('executing')).toBe('running')
-    expect(toolVisualStatus('accepted')).toBe('running')
+    expect(toolVisualStatus('background')).toBe('running')
     expect(toolVisualStatus('success')).toBe('done')
     expect(toolVisualStatus('ready_for_review')).toBe('done')
+    // 'accepted' is terminal (a workflow diff was applied) — it must read as done, not running,
+    // or a finished build/edit_workflow spins forever. See toolVisualStatus for the full rationale.
+    expect(toolVisualStatus('accepted')).toBe('done')
     expect(toolVisualStatus('errored')).toBe('error')
     expect(toolVisualStatus('rejected')).toBe('skipped')
     expect(toolVisualStatus('pending')).toBe('pending')

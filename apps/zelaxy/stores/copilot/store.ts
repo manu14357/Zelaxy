@@ -528,6 +528,60 @@ function setToolCallState(
 }
 
 /**
+ * Defensive consistency pass run once when a stream finishes. A non-interrupt tool call (e.g.
+ * build_workflow/edit_workflow, which auto-execute server-side and are expected to resolve to a
+ * terminal state via a tool_result/tool_error event within the SAME turn) can occasionally still be
+ * sitting in 'executing' once the stream is genuinely over — its result may have raced the stream's
+ * completion, or been dropped along the way. Left alone, that tool call's status icon stays a
+ * spinner/pending glyph forever, in both the live UI and whatever gets persisted to chat history.
+ * Force it to reflect what actually happened (done, if a result did arrive; errored, if it never
+ * did) rather than leaving it stuck. Deliberately narrow: only 'executing' + !requiresInterrupt —
+ * 'pending'/'accepted'/'background' are legitimate, intentionally-indefinite states for
+ * interrupt-requiring or backgrounded tools and must not be touched here.
+ */
+export function reconcileStuckToolCalls(toolCalls: any[], contentBlocks: any[]): void {
+  for (let i = 0; i < toolCalls.length; i++) {
+    const toolCall = toolCalls[i]
+    if (toolCall.state !== 'executing' || toolRequiresInterrupt(toolCall.name)) continue
+
+    // Build a genuinely NEW object rather than mutating `toolCall` in place. setToolCallState
+    // mutates its argument's properties directly — fine for most callers, but any reference-
+    // equality-based re-render check (e.g. a memoized message component that compares
+    // `prevToolCall !== nextToolCall` or reads `.state` off whatever reference it was last given)
+    // can silently miss an in-place mutation, since prev and next end up pointing at the identical
+    // object. Replacing the array element guarantees downstream consumers see a real change.
+    const reconciled = { ...toolCall }
+    if (toolCall.result !== undefined) {
+      logger.warn('Tool call had a result but was still "executing" at stream end - reconciling', {
+        id: toolCall.id,
+        name: toolCall.name,
+      })
+      setToolCallState(reconciled, 'success', { result: toolCall.result })
+    } else {
+      logger.warn('Tool call never resolved before the stream ended - marking as failed', {
+        id: toolCall.id,
+        name: toolCall.name,
+      })
+      setToolCallState(reconciled, 'errored', {
+        error: 'No result received before the response completed',
+      })
+    }
+    toolCalls[i] = reconciled
+  }
+
+  // contentBlocks hold their own copy of each tool call - replace the whole block (not just
+  // mutate .toolCall) so block-level reference checks also see a real change.
+  for (let i = 0; i < contentBlocks.length; i++) {
+    const block = contentBlocks[i]
+    if (block.type !== 'tool_call') continue
+    const updated = toolCalls.find((tc) => tc.id === block.toolCall?.id)
+    if (updated && updated !== block.toolCall) {
+      contentBlocks[i] = { ...block, toolCall: updated }
+    }
+  }
+}
+
+/**
  * Helper function to create a tool call object with proper initial state
  */
 function createToolCall(id: string, name: string, input: any = {}, skipAutoExecute = false): any {
@@ -711,7 +765,9 @@ type SSEHandler = (
   set: any
 ) => Promise<void> | void
 
-const sseHandlers: Record<string, SSEHandler> = {
+// Exported for direct unit testing of individual SSE→state transitions (see store.test.ts) —
+// otherwise internal to this module.
+export const sseHandlers: Record<string, SSEHandler> = {
   // Handle chat ID event (custom event)
   chat_id: async (data, context, get) => {
     context.newChatId = data.chatId
@@ -757,17 +813,23 @@ const sseHandlers: Record<string, SSEHandler> = {
     if (!toolCallId) return
 
     // Find tool call in context
-    const toolCall =
+    const existingToolCall =
       context.toolCalls.find((tc) => tc.id === toolCallId) ||
       context.contentBlocks
         .filter((b) => b.type === 'tool_call')
         .map((b) => b.toolCall)
         .find((tc) => tc.id === toolCallId)
 
-    if (!toolCall) {
+    if (!existingToolCall) {
       logger.error('Tool call not found for result', { toolCallId })
       return
     }
+
+    // Clone rather than mutate `existingToolCall` in place. setToolCallState mutates its argument's
+    // properties directly, which a reference-equality-based re-render check (a memoized message
+    // component comparing a toolCall by reference, or reading .state off whatever object it was
+    // last given) can silently miss once "previous" and "next" point at the identical object.
+    const toolCall = { ...existingToolCall }
 
     // Ensure tool call is in context for updates
     if (!context.toolCalls.find((tc) => tc.id === toolCallId)) {
@@ -816,8 +878,8 @@ const sseHandlers: Record<string, SSEHandler> = {
     // Ensure the toolCall in context.toolCalls is also updated with the latest state
     const toolCallIndex = context.toolCalls.findIndex((tc) => tc.id === toolCallId)
     if (toolCallIndex !== -1) {
-      const existingToolCall = context.toolCalls[toolCallIndex]
-      context.toolCalls[toolCallIndex] = preserveToolTerminalState(toolCall, existingToolCall)
+      const priorToolCall = context.toolCalls[toolCallIndex]
+      context.toolCalls[toolCallIndex] = preserveToolTerminalState(toolCall, priorToolCall)
     }
 
     updateStreamingMessage(set, context)
@@ -2736,34 +2798,26 @@ export const useCopilotStore = create<CopilotStore>()(
           }
         }
 
-        // Add timeout to prevent hanging
+        // Add timeout to prevent hanging. Tracked separately from AbortController's own signal so
+        // the catch block below can tell "the user pressed Stop" apart from "our own safety timeout
+        // cancelled an in-flight read" — they used to be handled identically, which mattered a lot
+        // in practice: a turn with several edit_workflow/build_workflow retries (each its own LLM
+        // round-trip) is exactly the kind of turn that can approach 2 minutes, while a simple tool
+        // like get_blocks_metadata never does. Whichever tool call was still "executing" at that
+        // instant used to be abandoned outright — the code below returned before ever reconciling
+        // it or saving anything — leaving it a permanent spinner.
+        let timedOut = false
         const timeoutId = setTimeout(() => {
           logger.warn('Stream timeout reached, completing response')
+          timedOut = true
           reader.cancel()
         }, 120000) // 2 minute timeout
 
-        try {
-          // Process SSE events
-          for await (const data of parseSSEStream(reader, decoder)) {
-            const { abortController } = get()
-
-            // Check if we should abort
-            if (abortController?.signal.aborted) {
-              logger.info('🚫 Stream reading aborted - breaking out of SSE loop')
-              break
-            }
-
-            // Get handler for this event type
-            const handler = sseHandlers[data.type] || sseHandlers.default
-            await handler(data, context, get, set)
-
-            // Check if handler set stream completion flag
-            if (context.streamComplete) {
-              break
-            }
-          }
-
-          // Stream ended - finalize the message
+        // Shared by both the normal completion path (the SSE loop ended on its own) and the
+        // timeout path below — reconciles any tool call still stuck "executing", commits the final
+        // message state, and persists it, so a timed-out turn ends the same way a normal one does
+        // instead of being silently dropped.
+        const finalizeStream = async () => {
           logger.info(
             `Completed streaming response, content length: ${context.accumulatedContent.size}`
           )
@@ -2783,6 +2837,9 @@ export const useCopilotStore = create<CopilotStore>()(
               }
             })
           }
+
+          // Catch any tool call still stuck "executing" now that nothing more will ever update it.
+          reconcileStuckToolCalls(context.toolCalls, context.contentBlocks)
 
           // PERFORMANCE OPTIMIZATION: Final content update with completed content from StringBuilder
           const finalContent = context.accumulatedContent.toString()
@@ -2858,9 +2915,43 @@ export const useCopilotStore = create<CopilotStore>()(
               logger.error('Error persisting complete streaming state:', error)
             }
           }
+        }
+
+        try {
+          // Process SSE events
+          for await (const data of parseSSEStream(reader, decoder)) {
+            const { abortController } = get()
+
+            // Check if we should abort
+            if (abortController?.signal.aborted) {
+              logger.info('🚫 Stream reading aborted - breaking out of SSE loop')
+              break
+            }
+
+            // Get handler for this event type
+            const handler = sseHandlers[data.type] || sseHandlers.default
+            await handler(data, context, get, set)
+
+            // Check if handler set stream completion flag
+            if (context.streamComplete) {
+              break
+            }
+          }
+
+          await finalizeStream()
         } catch (error) {
           // Handle AbortError gracefully
           if (error instanceof Error && error.name === 'AbortError') {
+            if (timedOut) {
+              // Not a real user abort — our own safety timeout cancelled a still-in-flight read.
+              // Finalize the same way a normal completion does, so whatever streamed in gets saved
+              // and any tool call still "executing" is reconciled to a real terminal state instead
+              // of staying a spinner forever.
+              logger.warn('Stream timed out after 120s — finalizing with what streamed in so far')
+              await finalizeStream()
+              return
+            }
+
             logger.info('Stream reading was aborted by user')
             // Cancel any pending RAF updates and clear queue on abort
             if (streamingUpdateRAF !== null) {
