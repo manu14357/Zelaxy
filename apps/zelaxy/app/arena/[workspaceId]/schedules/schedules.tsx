@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertCircle,
   CalendarClock,
+  CalendarDays,
   CheckCircle2,
   Clock,
   ExternalLink,
+  List,
   MoreHorizontal,
   Pause,
   Play,
@@ -25,7 +27,9 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { createLogger } from '@/lib/logs/console/logger'
+import { parseCronToHumanReadable } from '@/lib/schedules/utils'
 import { useUserPermissionsContext } from '@/app/arena/[workspaceId]/providers/workspace-permissions-provider'
+import { ScheduleCalendar } from '@/app/arena/[workspaceId]/schedules/components/schedule-calendar'
 
 const logger = createLogger('Schedules')
 
@@ -66,6 +70,7 @@ export function Schedules() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [view, setView] = useState<'list' | 'calendar'>('calendar')
 
   const fetchSchedules = useCallback(async () => {
     if (!workspaceId) return
@@ -147,10 +152,32 @@ export function Schedules() {
               </p>
             </div>
           </div>
-          <Button variant='ghost' size='sm' onClick={fetchSchedules} disabled={isLoading}>
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span className='ml-1.5 hidden sm:inline'>Refresh</span>
-          </Button>
+          <div className='flex items-center gap-2'>
+            <div className='flex items-center gap-0.5 rounded-lg border border-border/50 bg-muted/30 p-0.5'>
+              <Button
+                variant={view === 'calendar' ? 'default' : 'ghost'}
+                size='sm'
+                className='h-7 px-2 text-xs'
+                onClick={() => setView('calendar')}
+              >
+                <CalendarDays className='h-3.5 w-3.5' />
+                <span className='ml-1 hidden sm:inline'>Calendar</span>
+              </Button>
+              <Button
+                variant={view === 'list' ? 'default' : 'ghost'}
+                size='sm'
+                className='h-7 px-2 text-xs'
+                onClick={() => setView('list')}
+              >
+                <List className='h-3.5 w-3.5' />
+                <span className='ml-1 hidden sm:inline'>List</span>
+              </Button>
+            </div>
+            <Button variant='ghost' size='sm' onClick={fetchSchedules} disabled={isLoading}>
+              <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <span className='ml-1.5 hidden sm:inline'>Refresh</span>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -180,6 +207,13 @@ export function Schedules() {
               Add a Schedule trigger to a workflow to run it automatically on a recurring basis.
             </p>
           </div>
+        ) : view === 'calendar' ? (
+          <ScheduleCalendar
+            schedules={schedules}
+            onOpenWorkflow={(workflowId) =>
+              router.push(`/arena/${workspaceId}/zelaxy/${workflowId}`)
+            }
+          />
         ) : (
           <div className='overflow-hidden rounded-xl border border-border/50'>
             {/* Column header */}
@@ -204,8 +238,21 @@ export function Schedules() {
                   <ExternalLink className='h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60' />
                   <span className='truncate'>{schedule.workflowName || 'Untitled workflow'}</span>
                 </button>
-                <span className='truncate font-mono text-[12px] text-muted-foreground'>
-                  {schedule.cronExpression || schedule.triggerType}
+                <span className='truncate text-[12px] text-muted-foreground'>
+                  {schedule.cronExpression ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className='cursor-default'>
+                          {parseCronToHumanReadable(schedule.cronExpression)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent className='font-mono'>
+                        {schedule.cronExpression}
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    schedule.triggerType
+                  )}
                 </span>
                 <span className='flex items-center gap-1.5 text-[12px] text-muted-foreground'>
                   <Clock className='h-3 w-3' />
