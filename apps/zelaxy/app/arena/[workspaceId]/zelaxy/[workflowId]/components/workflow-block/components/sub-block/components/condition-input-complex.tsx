@@ -14,7 +14,7 @@ import { highlight, languages } from 'prismjs'
 import 'prismjs/components/prism-javascript'
 import 'prismjs/themes/prism.css'
 
-import { Handle, Position, useUpdateNodeInternals } from '@xyflow/react'
+import { useUpdateNodeInternals } from '@xyflow/react'
 import Editor from 'react-simple-code-editor'
 import { Button } from '@/components/ui/button'
 import { checkEnvVarTrigger, EnvVarDropdown } from '@/components/ui/env-var-dropdown'
@@ -519,9 +519,20 @@ export function ConditionInput({
     // Must always have at least 2 blocks: if + else
     if (conditionalBlocks.length <= 2) return
 
-    // Remove any associated edges before removing the block
+    // A middle ("else if") row owns a `condition-{id}` handle; the first/last row owns the canvas
+    // node's fixed 'true'/'false' handle instead. Removing either endpoint reassigns that handle
+    // to whichever row gets promoted into its slot, so the old edge (if any) must be removed with
+    // it rather than silently reattaching to the promoted row.
+    const removedIndex = conditionalBlocks.findIndex((block) => block.id === id)
+    const isFirst = removedIndex === 0
+    const isLast = removedIndex === conditionalBlocks.length - 1
+
     edges.forEach((edge) => {
-      if (edge.sourceHandle?.startsWith(`condition-${id}`)) {
+      if (edge.source !== blockId) return
+      const matchesMiddleHandle = edge.sourceHandle?.startsWith(`condition-${id}`)
+      const matchesEndpointHandle =
+        (isFirst && edge.sourceHandle === 'true') || (isLast && edge.sourceHandle === 'false')
+      if (matchesMiddleHandle || matchesEndpointHandle) {
         removeEdge(edge.id)
       }
     })
@@ -673,41 +684,6 @@ export function ConditionInput({
                   <span className='text-muted-foreground text-xs'>— {style.description}</span>
                 )}
               </div>
-
-              {/* Connection Handle */}
-              <Handle
-                type='source'
-                position={Position.Right}
-                id={`condition-${block.id}`}
-                key={`${block.id}-${index}`}
-                className={cn(
-                  '!w-3 !h-6',
-                  block.title === 'if' && '!bg-emerald-500',
-                  block.title === 'else if' && '!bg-amber-500',
-                  block.title === 'else' && '!bg-slate-500',
-                  '!rounded-[3px] !border-2 !border-white dark:!border-gray-800',
-                  '!z-[30]',
-                  'group-hover:!shadow-[0_0_0_3px_rgba(156,163,175,0.25)]',
-                  'hover:!w-4 hover:!right-[-30px]',
-                  '!cursor-crosshair',
-                  'transition-all duration-150',
-                  '!right-[-27px]'
-                )}
-                data-nodeid={`${blockId}-${subBlockId}`}
-                data-handleid={`condition-${block.id}`}
-                style={{
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                }}
-                isConnectableStart={true}
-                isConnectableEnd={false}
-                isValidConnection={(connection) => {
-                  if (connection.source === connection.target) return false
-                  const sourceNodeId = connection.source?.split('-')[0]
-                  const targetNodeId = connection.target?.split('-')[0]
-                  return sourceNodeId !== targetNodeId
-                }}
-              />
 
               {/* Action Buttons */}
               <div className='flex items-center gap-0.5'>

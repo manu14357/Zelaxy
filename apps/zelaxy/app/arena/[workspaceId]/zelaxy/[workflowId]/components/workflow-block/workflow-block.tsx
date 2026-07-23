@@ -163,6 +163,35 @@ export function WorkflowBlock({ id, data }: NodeProps<WorkflowBlockNode>) {
     return []
   }, [switchCasesRaw])
 
+  // Read condition rows from sub-block store for rendering dynamic handles. A condition block
+  // always has at least an if/else pair; any "else if" rows in between need their own handle too
+  // — previously only if/else got real node handles, so a 3rd+ branch had nowhere to connect to.
+  const conditionRowsRaw = useSubBlockStore((state) =>
+    type === 'condition' ? state.workflowValues[activeWorkflowId || '']?.[id]?.conditions : null
+  )
+  const conditionRows = useMemo(() => {
+    if (!conditionRowsRaw || typeof conditionRowsRaw !== 'string') return []
+    try {
+      const parsed = JSON.parse(conditionRowsRaw)
+      if (Array.isArray(parsed) && parsed.length > 0 && 'id' in parsed[0])
+        return parsed as { id: string; title: string; value: string }[]
+    } catch {}
+    return []
+  }, [conditionRowsRaw])
+
+  // Falls back to a synthetic if/else pair before the sub-block value has loaded, so the node
+  // still renders its two default handles instead of none.
+  const conditionHandleRows = useMemo(
+    () =>
+      conditionRows.length >= 2
+        ? conditionRows
+        : [
+            { id: 'if', title: 'if', value: '' },
+            { id: 'else', title: 'else', value: '' },
+          ],
+    [conditionRows]
+  )
+
   const blockAdvancedMode = useWorkflowStore((state) => state.blocks[id]?.advancedMode ?? false)
   const blockTriggerMode = useWorkflowStore((state) => state.blocks[id]?.triggerMode ?? false)
 
@@ -345,7 +374,7 @@ export function WorkflowBlock({ id, data }: NodeProps<WorkflowBlockNode>) {
   // Update node internals when handles change
   useEffect(() => {
     updateNodeInternals(id)
-  }, [id, horizontalHandles, updateNodeInternals, switchCases])
+  }, [id, horizontalHandles, updateNodeInternals, switchCases, conditionHandleRows])
 
   const debounce = (func: (...args: any[]) => void, wait: number) => {
     let timeout: NodeJS.Timeout
@@ -595,7 +624,7 @@ export function WorkflowBlock({ id, data }: NodeProps<WorkflowBlockNode>) {
           'relative cursor-pointer select-none',
           'transition-all duration-200 ease-out',
           isWide ? 'w-[240px]' : 'w-[180px]',
-          type !== 'switch' && 'h-[80px]',
+          type !== 'switch' && type !== 'condition' && 'h-[80px]',
           !isEnabled && 'opacity-50 grayscale-[30%]',
           isActive && 'shadow-[0_0_12px_-2px_rgba(249,115,22,0.25)] ring-[2px] ring-primary/80',
           isPending && 'shadow-[0_0_12px_-2px_rgba(245,158,11,0.25)] ring-[2px] ring-amber-400/80',
@@ -615,7 +644,9 @@ export function WorkflowBlock({ id, data }: NodeProps<WorkflowBlockNode>) {
         style={
           type === 'switch'
             ? { height: `${Math.max(80, 40 + switchCases.length * 28)}px` }
-            : undefined
+            : type === 'condition'
+              ? { height: `${Math.max(80, 40 + conditionHandleRows.length * 28)}px` }
+              : undefined
         }
       >
         {/* Show debug indicator for pending blocks */}
@@ -835,81 +866,64 @@ export function WorkflowBlock({ id, data }: NodeProps<WorkflowBlockNode>) {
               </>
             ) : type === 'condition' ? (
               <>
-                {/* True Handle */}
-                <Handle
-                  type='source'
-                  position={horizontalHandles ? Position.Right : Position.Bottom}
-                  id='true'
-                  className={cn(
-                    horizontalHandles ? '!w-3 !h-5' : '!w-5 !h-3',
-                    '!bg-emerald-500 dark:!bg-emerald-400 !rounded-full !border-2 !border-background !shadow-[0_1px_4px_rgba(0,0,0,0.12)]',
-                    '!z-[30]',
-                    '!pointer-events-auto',
-                    'group-hover:!bg-emerald-600 group-hover:!shadow-[0_0_8px_rgba(16,185,129,0.35)]',
-                    horizontalHandles
-                      ? 'hover:!w-3.5 hover:!h-6 hover:!bg-emerald-600'
-                      : 'hover:!w-6 hover:!h-3.5 hover:!bg-emerald-600',
-                    '!cursor-crosshair',
-                    'transition-all duration-150 ease-out'
-                  )}
-                  style={{
-                    ...(horizontalHandles
-                      ? {
-                          right: '-6px',
-                          top: '35%',
-                          transform: 'translateY(-50%)',
-                        }
-                      : {
-                          bottom: '-6px',
-                          left: '35%',
-                          transform: 'translateX(-50%)',
-                        }),
-                  }}
-                  data-nodeid={id}
-                  data-handleid='true'
-                  isConnectableStart={true}
-                  isConnectableEnd={false}
-                  isValidConnection={(connection) => connection.target !== id}
-                />
-
-                {/* False Handle */}
-                <Handle
-                  type='source'
-                  position={horizontalHandles ? Position.Right : Position.Bottom}
-                  id='false'
-                  className={cn(
-                    horizontalHandles ? '!w-3 !h-5' : '!w-5 !h-3',
-                    '!bg-rose-500 dark:!bg-rose-400 !rounded-full !border-2 !border-background !shadow-[0_1px_4px_rgba(0,0,0,0.12)]',
-                    '!z-[30]',
-                    '!pointer-events-auto',
-                    'group-hover:!bg-rose-600 group-hover:!shadow-[0_0_8px_rgba(244,63,94,0.35)]',
-                    horizontalHandles
-                      ? 'hover:!w-3.5 hover:!h-6 hover:!bg-rose-600'
-                      : 'hover:!w-6 hover:!h-3.5 hover:!bg-rose-600',
-                    '!cursor-crosshair',
-                    'transition-all duration-150 ease-out'
-                  )}
-                  style={{
-                    position: 'absolute',
-                    ...(horizontalHandles
-                      ? {
-                          right: '-6px',
-                          top: '65%',
-                          transform: 'translateY(-50%)',
-                        }
-                      : {
-                          bottom: '-6px',
-                          left: 'auto',
-                          right: '65%',
-                          transform: 'translateX(50%)',
-                        }),
-                  }}
-                  data-nodeid={id}
-                  data-handleid='false'
-                  isConnectableStart={true}
-                  isConnectableEnd={false}
-                  isValidConnection={(connection) => connection.target !== id}
-                />
+                {/* Condition blocks have dynamic per-branch handles: 'true' for the first (if) row,
+                    'false' for the last (else) row, 'condition-{id}' for every row in between. The
+                    node's height (see the Card's style above) grows with the row count so these
+                    have room to spread out instead of stacking on top of each other. */}
+                {conditionHandleRows.map((row, index) => {
+                  const total = conditionHandleRows.length
+                  const isFirst = index === 0
+                  const isLast = index === total - 1
+                  const handleId = isFirst ? 'true' : isLast ? 'false' : `condition-${row.id}`
+                  const topPercent = total <= 1 ? 50 : 15 + (index / (total - 1)) * 70
+                  const colorClass = isFirst
+                    ? '!bg-emerald-500 dark:!bg-emerald-400'
+                    : isLast
+                      ? '!bg-rose-500 dark:!bg-rose-400'
+                      : '!bg-amber-500 dark:!bg-amber-400'
+                  const hoverColorClass = isFirst
+                    ? 'group-hover:!bg-emerald-600 group-hover:!shadow-[0_0_8px_rgba(16,185,129,0.35)] hover:!bg-emerald-600'
+                    : isLast
+                      ? 'group-hover:!bg-rose-600 group-hover:!shadow-[0_0_8px_rgba(244,63,94,0.35)] hover:!bg-rose-600'
+                      : 'group-hover:!bg-amber-600 group-hover:!shadow-[0_0_8px_rgba(245,158,11,0.35)] hover:!bg-amber-600'
+                  return (
+                    <Handle
+                      key={handleId}
+                      type='source'
+                      position={horizontalHandles ? Position.Right : Position.Bottom}
+                      id={handleId}
+                      className={cn(
+                        horizontalHandles ? '!w-3 !h-5' : '!w-5 !h-3',
+                        colorClass,
+                        '!rounded-full !border-2 !border-background !shadow-[0_1px_4px_rgba(0,0,0,0.12)]',
+                        '!z-[30]',
+                        '!pointer-events-auto',
+                        hoverColorClass,
+                        horizontalHandles ? 'hover:!w-3.5 hover:!h-6' : 'hover:!w-6 hover:!h-3.5',
+                        '!cursor-crosshair',
+                        'transition-all duration-150 ease-out'
+                      )}
+                      style={{
+                        ...(horizontalHandles
+                          ? {
+                              right: '-6px',
+                              top: `${topPercent}%`,
+                              transform: 'translateY(-50%)',
+                            }
+                          : {
+                              bottom: '-6px',
+                              left: `${topPercent}%`,
+                              transform: 'translateX(-50%)',
+                            }),
+                      }}
+                      data-nodeid={id}
+                      data-handleid={handleId}
+                      isConnectableStart={true}
+                      isConnectableEnd={false}
+                      isValidConnection={(connection) => connection.target !== id}
+                    />
+                  )
+                })}
               </>
             ) : (
               <>
