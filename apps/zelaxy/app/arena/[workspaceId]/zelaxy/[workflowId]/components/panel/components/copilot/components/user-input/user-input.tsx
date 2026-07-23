@@ -656,7 +656,7 @@ const UserInput = forwardRef<UserInputRef, UserInputProps>(
             placeholder={isDragging ? 'Drop files here...' : placeholder}
             disabled={disabled}
             rows={1}
-            className='composer-bare-textarea mb-1.5 min-h-[28px] w-full resize-none overflow-hidden border-0 bg-transparent px-1 py-0.5 text-muted-foreground text-xs focus-visible:ring-0 focus-visible:ring-offset-0'
+            className='composer-bare-textarea mb-1.5 min-h-[28px] w-full resize-none overflow-y-auto border-0 bg-transparent px-1 py-0.5 text-muted-foreground text-xs focus-visible:ring-0 focus-visible:ring-offset-0'
             style={{ height: 'auto' }}
           />
 
