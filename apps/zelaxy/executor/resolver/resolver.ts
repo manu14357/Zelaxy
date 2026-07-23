@@ -42,10 +42,14 @@ export class InputResolver {
       ])
     )
 
-    // Add special handling for the starter block - allow referencing it as "start"
+    // Add special handling for the starter block - allow referencing it as "start" (the documented
+    // reserved keyword) or "starter" (the block's own `type`/`metadata.id` — a natural mistake for
+    // an LLM or user to make by analogy with every other block, which is referenced by name/id, not
+    // by type; both resolve identically, see isStarterReference below).
     const starterBlock = workflow.blocks.find((block) => block.metadata?.id === 'starter')
     if (starterBlock) {
       this.blockByNormalizedName.set('start', starterBlock)
+      this.blockByNormalizedName.set('starter', starterBlock)
       // Also add the normalized actual name if it exists
       if (starterBlock.metadata?.name) {
         this.blockByNormalizedName.set(
@@ -70,6 +74,16 @@ export class InputResolver {
         this.parallelsByBlockId.set(blockId, parallelId)
       }
     }
+  }
+
+  /**
+   * "start" is the documented reserved keyword for the trigger block; "starter" is its block
+   * `type`, which is just as easy to reach for by analogy with every other reference form (block
+   * NAME/id, not type). Treat both as the same alias everywhere the resolver special-cases "start".
+   */
+  private isStarterReference(blockRef: string): boolean {
+    const ref = blockRef.toLowerCase()
+    return ref === 'start' || ref === 'starter'
   }
 
   /**
@@ -510,8 +524,8 @@ export class InputResolver {
       // System references and regular block references are both processed
       // Accessibility validation happens later in validateBlockReference
 
-      // Special case for "start" references
-      if (blockRef.toLowerCase() === 'start') {
+      // Special case for "start" (and "starter") references
+      if (this.isStarterReference(blockRef)) {
         // Find the starter block
         const starterBlock = this.workflow.blocks.find((block) => block.metadata?.id === 'starter')
         if (starterBlock) {
@@ -569,7 +583,7 @@ export class InputResolver {
             let formattedValue: string
 
             // Special handling for all blocks referencing starter input
-            if (blockRef.toLowerCase() === 'start' && pathParts.join('.').includes('input')) {
+            if (this.isStarterReference(blockRef) && pathParts.join('.').includes('input')) {
               const blockType = currentBlock.metadata?.id
 
               // Format based on which block is consuming this value
@@ -1174,7 +1188,7 @@ export class InputResolver {
     }
 
     // Add special aliases
-    names.push('start') // Always allow start alias
+    names.push('start', 'starter') // Always allow the start/starter aliases
 
     return [...new Set(names)] // Remove duplicates
   }
@@ -1189,7 +1203,8 @@ export class InputResolver {
    */
   private isAccessibleBlockReference(blockRef: string, currentBlockId: string): boolean {
     // Special cases that are always allowed
-    const specialRefs = ['start', 'loop', 'parallel']
+    if (this.isStarterReference(blockRef)) return true
+    const specialRefs = ['loop', 'parallel']
     if (specialRefs.includes(blockRef.toLowerCase())) {
       return true
     }
@@ -1215,8 +1230,8 @@ export class InputResolver {
     currentBlockId: string,
     context: ExecutionContext
   ): { isValid: boolean; resolvedBlockId?: string; errorMessage?: string } {
-    // Special case: 'start' is always allowed
-    if (blockRef.toLowerCase() === 'start') {
+    // Special case: 'start' (and 'starter') is always allowed
+    if (this.isStarterReference(blockRef)) {
       const starterBlock = this.workflow.blocks.find((block) => block.metadata?.id === 'starter')
       return starterBlock
         ? { isValid: true, resolvedBlockId: starterBlock.id }

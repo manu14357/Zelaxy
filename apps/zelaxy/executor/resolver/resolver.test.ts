@@ -446,6 +446,36 @@ describe('InputResolver', () => {
       expect(result.startType).toBe('text')
     })
 
+    it('accepts "starter" (the block\'s own type) as an alias for "start" — a natural reference an LLM or user reaches for since every other block is referenced by name/id, not type', () => {
+      const block: SerializedBlock = {
+        id: 'test-block',
+        metadata: { id: 'generic', name: 'Test Block' },
+        position: { x: 0, y: 0 },
+        config: {
+          tool: 'generic',
+          params: {
+            starterRef: '{{starter.input}}',
+            starterType: '{{starter.type}}',
+            // Mixed casing should resolve the same way "Start"/"START" already do.
+            starterRefUpper: '{{STARTER.input}}',
+          },
+        },
+        inputs: {
+          starterRef: 'string',
+          starterType: 'string',
+          starterRefUpper: 'string',
+        },
+        outputs: {},
+        enabled: true,
+      }
+
+      const result = resolver.resolveInputs(block, mockContext)
+
+      expect(result.starterRef).toBe('Hello World')
+      expect(result.starterType).toBe('text')
+      expect(result.starterRefUpper).toBe('Hello World')
+    })
+
     it('should throw an error for references to inactive blocks', () => {
       const block: SerializedBlock = {
         id: 'test-block',
@@ -1521,6 +1551,28 @@ describe('InputResolver', () => {
 
       const result = connectionResolver.resolveInputs(testBlock, contextWithConnections)
       expect(result.code).toBe('return "Hello World"') // Should be quoted for function blocks
+    })
+
+    it('resolves a condition expression that references {{starter.input...}} instead of {{start.input...}} (reported: "Block \\"starter\\" was not found")', () => {
+      // condition-handler.ts resolves each row's raw expression via resolveBlockReferences
+      // directly (resolveInputs deliberately passes a condition block's `conditions` field
+      // through unresolved — see the sibling test above) — so exercise that same entry point.
+      const conditionBlock: SerializedBlock = {
+        id: 'test-condition-starter-alias',
+        metadata: { id: BlockType.CONDITION, name: 'Age Gate' },
+        position: { x: 200, y: 100 },
+        config: { tool: BlockType.CONDITION, params: {} },
+        inputs: {},
+        outputs: {},
+        enabled: true,
+      }
+
+      const result = connectionResolver.resolveBlockReferences(
+        '{{starter.input}} === "Hello World"',
+        contextWithConnections,
+        conditionBlock
+      )
+      expect(result).toBe('"Hello World" === "Hello World"')
     })
 
     it('should format start.input properly for different block types', () => {
