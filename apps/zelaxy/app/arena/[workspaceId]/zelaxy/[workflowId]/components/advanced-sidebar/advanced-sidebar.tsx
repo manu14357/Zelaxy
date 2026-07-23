@@ -4,6 +4,7 @@ import type React from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   BookOpen,
+  Bot,
   Boxes,
   ChevronLeft,
   ChevronRight,
@@ -393,7 +394,7 @@ const SIDEBAR_ICONS: SidebarIcon[] = [
   },
   {
     id: 'copilot',
-    icon: Sparkles,
+    icon: Bot,
     label: 'Agie',
     description: 'Your AI Copilot in Every Flow',
   },
