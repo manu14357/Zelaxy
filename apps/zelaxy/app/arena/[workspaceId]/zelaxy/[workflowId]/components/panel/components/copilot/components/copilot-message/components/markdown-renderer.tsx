@@ -43,42 +43,46 @@ const getTextContent = (element: React.ReactNode): string => {
   return ''
 }
 
-// Fix for code block text rendering issues
+// Fix for code block text rendering issues. Always (re)write the tag's content rather than only
+// injecting once — a "skip if the id already exists" guard means an already-open tab (or a stale
+// tag left behind by a hot reload, since a DOM node injected as a side effect isn't cleaned up just
+// because this module re-evaluates) keeps whatever CSS was here the FIRST time it ran, silently
+// ignoring any later edit to these rules until a full page reload.
 if (typeof document !== 'undefined') {
   const styleId = 'copilot-markdown-fix'
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement('style')
-    style.id = styleId
-    style.textContent = `
-      .copilot-markdown-wrapper pre {
-        color: #e5e7eb !important;
-        font-weight: 400 !important;
-        text-shadow: none !important;
-        filter: none !important;
-        opacity: 1 !important;
-        -webkit-font-smoothing: antialiased !important;
-        -moz-osx-font-smoothing: grayscale !important;
-        text-rendering: optimizeLegibility !important;
-      }
-      
-      .dark .copilot-markdown-wrapper pre {
-        color: #f3f4f6 !important;
-      }
-      
-      .copilot-markdown-wrapper pre code,
-      .copilot-markdown-wrapper pre code *,
-      .copilot-markdown-wrapper pre span,
-      .copilot-markdown-wrapper pre div {
-        color: inherit !important;
-        opacity: 1 !important;
-        font-weight: 400 !important;
-        text-shadow: none !important;
-        filter: none !important;
-        -webkit-font-smoothing: antialiased !important;
-        -moz-osx-font-smoothing: grayscale !important;
-        text-rendering: optimizeLegibility !important;
-      }
-    `
+  const style = document.getElementById(styleId) ?? document.createElement('style')
+  style.id = styleId
+  style.textContent = `
+    .copilot-markdown-wrapper pre {
+      color: #1f2937 !important;
+      font-weight: 400 !important;
+      text-shadow: none !important;
+      filter: none !important;
+      opacity: 1 !important;
+      -webkit-font-smoothing: antialiased !important;
+      -moz-osx-font-smoothing: grayscale !important;
+      text-rendering: optimizeLegibility !important;
+    }
+
+    .dark .copilot-markdown-wrapper pre {
+      color: #f3f4f6 !important;
+    }
+
+    .copilot-markdown-wrapper pre code,
+    .copilot-markdown-wrapper pre code *,
+    .copilot-markdown-wrapper pre span,
+    .copilot-markdown-wrapper pre div {
+      color: inherit !important;
+      opacity: 1 !important;
+      font-weight: 400 !important;
+      text-shadow: none !important;
+      filter: none !important;
+      -webkit-font-smoothing: antialiased !important;
+      -moz-osx-font-smoothing: grayscale !important;
+      text-rendering: optimizeLegibility !important;
+    }
+  `
+  if (!style.isConnected) {
     document.head.appendChild(style)
   }
 }
@@ -243,12 +247,14 @@ export default function CopilotMarkdownRenderer({ content }: CopilotMarkdownRend
         }
 
         return (
-          <div className='my-6 w-0 min-w-full overflow-hidden rounded-lg bg-gray-900 text-sm dark:bg-black'>
-            <div className='flex items-center justify-between border-gray-700 border-b px-4 py-1.5 dark:border-gray-800'>
-              <span className='font-geist-sans text-gray-400 text-xs'>{language}</span>
+          <div className='my-6 w-0 min-w-full overflow-hidden rounded-lg bg-gray-100 text-sm dark:bg-black'>
+            <div className='flex items-center justify-between border-gray-200 border-b px-4 py-1.5 dark:border-gray-800'>
+              <span className='font-geist-sans text-gray-500 text-xs dark:text-gray-400'>
+                {language}
+              </span>
               <button
                 onClick={handleCopy}
-                className='text-muted-foreground transition-colors hover:text-gray-300'
+                className='text-muted-foreground transition-colors hover:text-gray-700 dark:hover:text-gray-300'
                 title='Copy'
               >
                 {showCopySuccess ? (
@@ -259,7 +265,7 @@ export default function CopilotMarkdownRenderer({ content }: CopilotMarkdownRend
               </button>
             </div>
             <div className='overflow-x-auto'>
-              <pre className='whitespace-pre p-4 font-mono text-gray-100 text-sm leading-relaxed'>
+              <pre className='whitespace-pre p-4 font-mono text-gray-800 text-sm leading-relaxed dark:text-gray-100'>
                 {actualCodeText}
               </pre>
             </div>
