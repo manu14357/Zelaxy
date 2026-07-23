@@ -465,16 +465,6 @@ ${tryParseThenEncode(resolvedContext || 'No context provided')}`
       ...(context.loopItems.get(block.id) || {}),
     }
 
-    // Determine mode based on connection handles
-    // Multi-condition mode uses handles like 'condition-cond1', 'condition-else1'
-    // Simple mode uses handles like 'true', 'false'
-    const hasSimpleHandles = outgoingConnections.some(
-      (conn) => conn.sourceHandle === 'true' || conn.sourceHandle === 'false'
-    )
-    const hasConditionHandles = outgoingConnections.some((conn) =>
-      conn.sourceHandle?.startsWith('condition-')
-    )
-
     // Parse conditions if it's a JSON array
     let conditions: Array<{ id: string; title: string; value: string }> = []
     let conditionValue = ''
@@ -506,9 +496,15 @@ ${tryParseThenEncode(resolvedContext || 'No context provided')}`
       conditionValue = String(inputs.conditions || '')
     }
 
-    // Use simple mode if connections use true/false handles (backward compatible)
-    // or if there are no condition-{id} handles
-    const useSimpleMode = hasSimpleHandles || !hasConditionHandles
+    // Simple mode only applies when there's no parseable multi-condition array at all (a legacy
+    // block whose `conditions` input is a bare string/value). Whenever we DO have a conditions
+    // array — even just the default if/else pair — always run it through the multi-condition loop
+    // below: that loop already accepts 'true'/'false' for the first/last row (see acceptableHandles),
+    // so it's a strict superset of simple mode. This used to be
+    // `hasSimpleHandles || !hasConditionHandles`, which meant a block with BOTH a wired if/else
+    // (true/false) edge AND a wired 'else if' (condition-{id}) edge silently discarded the
+    // 'else if' branch and only ever evaluated the first condition.
+    const useSimpleMode = conditions.length === 0
 
     // Simple mode: single boolean expression with true/false handles
     if (useSimpleMode) {
@@ -545,16 +541,33 @@ ${tryParseThenEncode(resolvedContext || 'No context provided')}`
     // Multi-condition mode: iterate through conditions in order
     logger.info('Evaluating multi-condition block', { conditions: conditions.map((c) => c.title) })
 
-    for (const condition of conditions) {
-      const { id, title, value } = condition
+    // The canvas node only ever renders dedicated 'true'/'false' handles for the first and last
+    // rows (see workflow-block.tsx) — every row in between gets its own `condition-{id}` handle.
+    // Accept whichever form is actually wired, so both a plain if/else block (true/false) and a
+    // multi-branch if/else-if/else block (true, condition-{id}, ..., false) resolve correctly.
+    const acceptableHandles = (index: number, id: string): string[] => {
+      const handles = [`condition-${id}`]
+      if (index === 0) handles.push('true')
+      if (index === conditions.length - 1) handles.push('false')
+      return handles
+    }
+
+    // The block's public output contract documents `selectedConditionId` as "(true/false)" — report
+    // the literal matched handle when it's the semantic 'true'/'false' one, and only fall back to
+    // the row's own internal id for a genuine 'condition-{id}' (else-if) match.
+    const reportedConditionId = (matchedHandle: string | undefined, id: string): string =>
+      matchedHandle === 'true' || matchedHandle === 'false' ? matchedHandle : id
+
+    for (let i = 0; i < conditions.length; i++) {
+      const { id, title, value } = conditions[i]
+      const handles = acceptableHandles(i, id)
 
       // 'else' condition is always true (catch-all)
       const isElse = title.toLowerCase() === 'else' || value.trim() === ''
 
       if (isElse) {
-        // Find the else connection
         const elseConnection = outgoingConnections.find(
-          (conn) => conn.sourceHandle === `condition-${id}`
+          (conn) => conn.sourceHandle && handles.includes(conn.sourceHandle)
         )
 
         if (elseConnection) {
@@ -562,7 +575,7 @@ ${tryParseThenEncode(resolvedContext || 'No context provided')}`
           return {
             decision: true,
             content: `Else condition matched: ${title}`,
-            selectedConditionId: id,
+            selectedConditionId: reportedConditionId(elseConnection.sourceHandle, id),
             selectedConnection: elseConnection,
           }
         }
@@ -581,9 +594,8 @@ ${tryParseThenEncode(resolvedContext || 'No context provided')}`
         )
 
         if (result.decision) {
-          // Find the connection for this condition
           const condConnection = outgoingConnections.find(
-            (conn) => conn.sourceHandle === `condition-${id}`
+            (conn) => conn.sourceHandle && handles.includes(conn.sourceHandle)
           )
 
           if (condConnection) {
@@ -591,12 +603,14 @@ ${tryParseThenEncode(resolvedContext || 'No context provided')}`
             return {
               decision: true,
               content: result.content,
-              selectedConditionId: id,
+              selectedConditionId: reportedConditionId(condConnection.sourceHandle, id),
               selectedConnection: condConnection,
             }
           }
           // Condition matched but no connection, continue to next
-          logger.warn(`Condition '${title}' matched but no connection found for condition-${id}`)
+          logger.warn(
+            `Condition '${title}' matched but no connection found for ${handles.join(' or ')}`
+          )
         }
       } catch (error: any) {
         // Re-throw with condition title for better error messages
@@ -610,18 +624,20 @@ ${tryParseThenEncode(resolvedContext || 'No context provided')}`
     }
 
     // No condition matched - check for any else connection
-    const elseCondition = conditions.find(
+    const elseIndex = conditions.findIndex(
       (c) => c.title.toLowerCase() === 'else' || c.value.trim() === ''
     )
-    if (elseCondition) {
+    if (elseIndex !== -1) {
+      const elseCondition = conditions[elseIndex]
+      const handles = acceptableHandles(elseIndex, elseCondition.id)
       const elseConnection = outgoingConnections.find(
-        (conn) => conn.sourceHandle === `condition-${elseCondition.id}`
+        (conn) => conn.sourceHandle && handles.includes(conn.sourceHandle)
       )
       if (elseConnection) {
         return {
           decision: false,
           content: 'No conditions matched, taking else path',
-          selectedConditionId: elseCondition.id,
+          selectedConditionId: reportedConditionId(elseConnection.sourceHandle, elseCondition.id),
           selectedConnection: elseConnection,
         }
       }
