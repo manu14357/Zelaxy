@@ -1,3 +1,4 @@
+import { getTableName } from 'drizzle-orm'
 import { NextRequest } from 'next/server'
 import { vi } from 'vitest'
 
@@ -460,11 +461,15 @@ export function mockScheduleExecuteDb({
   vi.doMock('@/db', () => {
     const select = vi.fn().mockImplementation(() => ({
       from: vi.fn().mockImplementation((table: any) => {
-        const tbl = String(table)
+        const tbl = getTableName(table)
         if (tbl === 'workflow_schedule' || tbl === 'schedule') {
+          // The real query filters to due, non-disabled schedules
+          // (`lte(nextRunAt, now) && not(eq(status, 'disabled'))`); mirror that
+          // here since this mock's `where()` doesn't evaluate real predicates.
+          const dueSchedules = schedules.filter((s) => s.status !== 'disabled')
           return {
             where: vi.fn().mockImplementation(() => ({
-              limit: vi.fn().mockImplementation(() => schedules),
+              limit: vi.fn().mockImplementation(() => dueSchedules),
             })),
           }
         }

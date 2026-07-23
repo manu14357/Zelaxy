@@ -3,12 +3,15 @@
  *
  * @vitest-environment node
  */
+import { getTableName } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   mockExecutionDependencies,
   mockScheduleExecuteDb,
   sampleWorkflowState,
 } from '@/app/api/__test-utils__/utils'
+
+let cronConstructorSpy: ReturnType<typeof vi.fn>
 
 describe('Scheduled Workflow Execution API Route', () => {
   beforeEach(() => {
@@ -27,17 +30,18 @@ describe('Scheduled Workflow Execution API Route', () => {
       }),
     }))
 
+    cronConstructorSpy = vi.fn().mockImplementation(() => ({
+      nextRun: vi.fn().mockReturnValue(new Date(Date.now() + 60000)), // Next run in 1 minute
+    }))
     vi.doMock('croner', () => ({
-      Cron: vi.fn().mockImplementation(() => ({
-        nextRun: vi.fn().mockReturnValue(new Date(Date.now() + 60000)), // Next run in 1 minute
-      })),
+      Cron: cronConstructorSpy,
     }))
 
     vi.doMock('@/db', () => {
       const mockDb = {
         select: vi.fn().mockImplementation(() => ({
-          from: vi.fn().mockImplementation((table: string) => {
-            if (table === 'schedule') {
+          from: vi.fn().mockImplementation((table: any) => {
+            if (getTableName(table) === 'workflow_schedule') {
               return {
                 where: vi.fn().mockImplementation(() => ({
                   limit: vi.fn().mockImplementation(() => [
@@ -53,7 +57,7 @@ describe('Scheduled Workflow Execution API Route', () => {
                 })),
               }
             }
-            if (table === 'workflow') {
+            if (getTableName(table) === 'workflow') {
               return {
                 where: vi.fn().mockImplementation(() => ({
                   limit: vi.fn().mockImplementation(() => [
@@ -66,7 +70,7 @@ describe('Scheduled Workflow Execution API Route', () => {
                 })),
               }
             }
-            if (table === 'environment') {
+            if (getTableName(table) === 'environment') {
               return {
                 where: vi.fn().mockImplementation(() => ({
                   limit: vi.fn().mockImplementation(() => [
@@ -264,5 +268,48 @@ describe('Scheduled Workflow Execution API Route', () => {
     expect(data).toHaveProperty('executedCount', 0)
 
     expect(executeMock).not.toHaveBeenCalled()
+  })
+
+  it('recalculates the next run time in the schedule timezone, not the server default', async () => {
+    vi.doMock('@/executor', () => ({
+      Executor: vi.fn().mockImplementation(() => ({
+        execute: vi.fn().mockResolvedValue({ success: true, metadata: {} }),
+      })),
+    }))
+
+    vi.doMock('@/services/queue', () => ({
+      RateLimiter: vi.fn().mockImplementation(() => ({
+        checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
+      })),
+    }))
+
+    vi.doMock('@/lib/billing', () => ({
+      checkServerSideUsageLimits: vi.fn().mockResolvedValue({ isExceeded: false }),
+    }))
+
+    mockScheduleExecuteDb({
+      schedules: [
+        {
+          id: 'schedule-tz',
+          workflowId: 'workflow-id',
+          userId: 'user-id',
+          status: 'active',
+          nextRunAt: new Date(Date.now() - 60_000),
+          lastRanAt: new Date(Date.now() - 3_600_000),
+          cronExpression: '0 9 * * *',
+          timezone: 'America/New_York',
+          failedCount: 0,
+        },
+      ],
+    })
+
+    const { GET } = await import('@/app/api/schedules/execute/route')
+    const response = await GET()
+
+    expect(response.status).toBe(200)
+    expect(cronConstructorSpy).toHaveBeenCalledWith(
+      '0 9 * * *',
+      expect.objectContaining({ timezone: 'America/New_York' })
+    )
   })
 })
