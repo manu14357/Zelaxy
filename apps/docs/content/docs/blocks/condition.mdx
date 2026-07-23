@@ -6,7 +6,7 @@ icon: GitBranch
 
 # Condition Block
 
-The Condition block adds IF/ELSE branching to a workflow by evaluating a condition and routing execution down one of two paths — **True** or **False**. It supports boolean expressions for simple comparisons and LLM-as-a-Judge for complex, natural-language decisions that require AI reasoning.
+The Condition block adds branching to a workflow by evaluating one or more conditions in order and routing execution down the matching path. In its simplest form that's a two-way **if / else** — but a Condition block can have any number of `else if` branches in between, each with its own path. It supports boolean expressions for simple comparisons and LLM-as-a-Judge for complex, natural-language decisions that require AI reasoning.
 
 ## Overview
 
@@ -45,9 +45,11 @@ Selecting `expression` shows the **Boolean Expression** input. Selecting `llm` s
 **Type:** condition-input  
 **Visible when:** `evaluationMode` = `expression`
 
-Enter one or more boolean expressions. Each row is evaluated and the combined result determines the True or False path. Expressions support `==`, `!=`, `>`, `<`, `>=`, `<=`, `&&`, `||`, and `.length` checks against block outputs referenced with `{{blockName.field}}`.
+This is a list of branches, not a single combined expression. It starts with two rows — **IF** and **ELSE** — and you can add as many **ELSE IF** rows between them as you need (the `+` button on the IF row). Each row is its own separate path: rows are checked top to bottom, the first one whose expression evaluates to true is taken, and if none match, ELSE runs. Expressions support `==`, `!=`, `>`, `<`, `>=`, `<=`, `&&`, `||`, and `.length` checks against block outputs referenced with `{{blockName.field}}`.
 
-Example placeholder: `{{agent1.content}}==1 or content.length > 10`
+Example IF expression: `{{agent1.content}}==1 or content.length > 10`
+
+**Connecting branches on the canvas** — every row gets its own connection point on the right edge of the block: green for IF, amber for each ELSE IF, red for ELSE. Drag a connection from each one to whatever should run for that branch. A branch left unconnected has nowhere to go — if execution takes that path, the workflow will error, so wire up every row you define (or remove the ones you don't need). The block grows taller automatically as you add ELSE IF branches so there's room for each handle.
 
 ---
 
@@ -126,9 +128,9 @@ When enabled, the block only treats an LLM YES decision as True if the model's r
 
 - **Outputs**:
   - `content` (string) — Condition evaluation content or LLM reasoning text
-  - `conditionResult` (boolean) — Boolean result of the condition evaluation (`true` routes to the True path, `false` to the False path)
+  - `conditionResult` (boolean) — Whether a condition matched (`true`), or the ELSE fallback was taken (`false`)
   - `selectedPath` (json) — Information about the execution path that was selected, including `blockId`, `blockType`, and `blockTitle` of the downstream block
-  - `selectedConditionId` (string) — Identifier of the selected path (`true` or `false`)
+  - `selectedConditionId` (string) — Which branch was taken: `true` or `false` for a plain two-way if/else, or the internal id of the matched row for an ELSE IF branch
   - `llmJudgement` (json) — LLM judgement details when using LLM mode; contains `reasoning` (string), `confidence` (number 0–1), `model` (string), and `decision` (`yes` or `no`)
 
 ## Tools
@@ -137,25 +139,46 @@ This block uses no external tools. In **expression** mode the evaluation runs en
 
 ## YAML Example
 
+Condition branches are their own connection type — a plain `connections.outgoing` target does **not**
+connect a branch (the path will look wired in the YAML but nothing downstream will run, and the workflow
+errors if that branch is taken). Always wire branches under `connections.conditions`, and give
+`inputs.conditions` the same keys: `if`, then `else-if` / `else-if-2` / `else-if-3` / ... for as many
+extra branches as you need, then `else`.
+
 ```yaml
-# Boolean expression mode — route based on an agent's classification output
+# Boolean expression mode, simple if/else — route based on an agent's classification output
 condition_1:
   type: condition
   name: "Check Urgency"
   inputs:
     evaluationMode: expression
     conditions:
-      - left: "{{agent1.content}}"
-        operator: "=="
-        right: "urgent"
+      if: "{{agent1.content}} == 'urgent'"
   connections:
-    outgoing:
-      - target: slack_notify        # True path
-      - target: log_low_priority    # False path
+    conditions:
+      if: slack_notify        # runs when the condition is true
+      else: log_low_priority  # runs when it's false
 ```
 
 ```yaml
-# LLM-as-a-Judge mode — AI evaluates tone and professionalism
+# Boolean expression mode with an extra branch — three-way routing
+condition_3:
+  type: condition
+  name: "Route by Score"
+  inputs:
+    evaluationMode: expression
+    conditions:
+      if: "{{score.result.value}} >= 90"
+      else-if: "{{score.result.value}} >= 50"
+  connections:
+    conditions:
+      if: high_priority        # score >= 90
+      else-if: medium_priority # 50 <= score < 90
+      else: low_priority       # everything else
+```
+
+```yaml
+# LLM-as-a-Judge mode — AI evaluates tone and professionalism (always a plain if/else)
 condition_2:
   type: condition
   name: "Content Quality Check"
@@ -167,7 +190,10 @@ condition_2:
     apiKey: "{{OPENAI_API_KEY}}"
     requireConfidence: true
   connections:
-    outgoing:
-      - target: publish_block      # True path (YES with >80% confidence)
-      - target: rejection_response # False path
+    conditions:
+      if: publish_block       # YES with >80% confidence
+      else: rejection_response
 ```
+
+Editing an existing condition block with `edit_workflow`? The same rule applies to an operation's
+`params.connections.conditions` — it is not part of `params.connections.outgoing`.

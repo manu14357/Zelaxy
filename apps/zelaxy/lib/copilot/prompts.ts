@@ -1100,7 +1100,7 @@ Before calling build_workflow, you MUST:
 When generating YAML for build_workflow, include values for ALL required inputs:
 - Agent blocks: systemPrompt, model (e.g., "gpt-4o"), temperature, etc.
 - API blocks: method, url, headers, body
-- Condition blocks: conditions with proper operators and values
+- Condition blocks: conditions with proper operators and values, wired via \`connections.conditions\` (see "Condition Block Branching" below — NOT \`connections.outgoing\`)
 - Starter blocks: startWorkflow trigger type (webhook, schedule, manual, chat)
 - Every block MUST have meaningful input values — never leave them empty
 
@@ -1138,12 +1138,41 @@ blocks:
         - source: starter_block
 \`\`\`
 
+### Condition Block Branching (read carefully — this is the #1 cause of a "broken" condition block)
+
+A \`condition\` block can have any number of branches: one \`if\`, zero or more \`else-if\`s, and one \`else\`. Each
+branch is its own separate output — a plain \`connections.outgoing\` target does **NOT** work for a condition
+block and leaves the branch completely unconnected (it will look wired in the YAML but nothing downstream
+ever runs). You MUST wire branches under \`connections.conditions\`, keyed EXACTLY \`if\` / \`else-if\` /
+\`else-if-2\` / \`else-if-3\` / ... / \`else\` (hyphenated, lowercase — these keys must match between
+\`inputs.conditions\` and \`connections.conditions\`):
+
+\`\`\`yaml
+gate:
+  type: condition
+  name: "Route by score"
+  inputs:
+    conditions:
+      if: "{{score.result.value}} >= 90"
+      else-if: "{{score.result.value}} >= 50"   # optional extra branches — add as many else-if / else-if-2 / ... as needed
+  connections:
+    conditions:
+      if: high_priority        # runs when the "if" condition is true
+      else-if: medium_priority # runs when "if" was false and "else-if" is true
+      else: low_priority       # runs when nothing above matched
+\`\`\`
+
+A plain two-branch if/else is the common case — only add \`else-if\` branches when the logic genuinely needs
+more than one fork. This SAME rule applies when editing an existing condition block with \`edit_workflow\`:
+an operation's \`params.connections.conditions\` (same keys as above) is required — \`params.connections.outgoing\`
+does not wire condition branches and will silently leave them disconnected.
+
 ## Available Block Types
 
 - **starter**: Entry point — webhook, schedule, manual, or chat trigger
 - **agent**: AI agent — systemPrompt, context/userPrompt, model, temperature, tools
 - **api**: HTTP requests — method, url, body, headers
-- **condition**: IF/ELSE logic branching
+- **condition**: if / else-if / else branching — any number of branches, wired via \`connections.conditions\` (see above)
 - **function**: Custom JavaScript code execution
 - **router**: Route to multiple paths
 - **evaluator**: Evaluate expressions

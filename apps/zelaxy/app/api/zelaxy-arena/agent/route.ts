@@ -273,20 +273,22 @@ blocks:
 
 Every block lives UNDER \`blocks:\`, keyed by a short id, with \`type\` (a real block type), \`name\`, \`inputs\` (real sub-block ids), and \`connections.outgoing[].target\`. Use the per-block \`yamlExample\` from get_blocks_metadata for each block's inputs.
 
-BRANCHING (condition / router blocks) — a \`condition\` block has exactly THREE connections: ONE incoming edge (the block feeding into it) plus TWO outgoing branches — \`if\` (true) and \`else\` (false). Each branch is its own output, so a plain \`outgoing.target\` SILENTLY FAILS TO CONNECT (the path dead-ends) — you MUST wire the branches under \`connections.conditions\`, keyed by \`if\` / \`else if\` / \`else\`. ALWAYS connect BOTH \`if\` AND \`else\` to a real downstream block (a condition with one branch left dangling looks broken on the canvas):
+BRANCHING (condition / router blocks) — a \`condition\` block has ONE incoming edge plus as MANY outgoing branches as you need: an \`if\`, zero or more \`else-if\`s, and an \`else\`. Each branch is its own output, so a plain \`outgoing.target\` SILENTLY FAILS TO CONNECT (the path dead-ends) — you MUST wire branches under \`connections.conditions\`, keyed EXACTLY \`if\` / \`else-if\` / \`else-if-2\` / \`else-if-3\` / ... / \`else\` (hyphenated, no spaces — this matches the canvas UI's own branch keys). This is TRUE FOR BOTH TOOLS: in build_workflow's YAML it's \`connections: { conditions: {...} }\` as shown below; in edit_workflow it's the SAME shape under an operation's \`params.connections.conditions\` — do NOT put condition branches under edit_workflow's \`params.connections.outgoing\`, that only works for non-condition blocks and will leave every branch unconnected. ALWAYS connect every branch you define to a real downstream block (a condition with a branch left dangling looks broken on the canvas):
 \`\`\`yaml
   gate:
     type: condition
     name: "Has updates?"
     inputs:
       conditions:
-        if: "{{format.result.hasUpdates}} == true"   # inputs.conditions is a MAP keyed by branch
+        if: "{{format.result.hasUpdates}} == true"       # inputs.conditions is a MAP keyed by branch
+        else-if: "{{format.result.needsReview}} == true" # optional — add else-if-2, else-if-3, ... for more branches
     connections:
       conditions:
-        if: store_rows      # runs when the condition is true
-        else: done          # runs otherwise (omit if nothing should run)
+        if: store_rows        # runs when the first condition is true
+        else-if: flag_review  # runs when the else-if condition is true (only reached if "if" was false)
+        else: done            # runs when nothing else matched (omit only if nothing should run there)
 \`\`\`
-The branch keys in \`inputs.conditions\` and \`connections.conditions\` MUST match (\`if\` / \`else if\` / \`else\`). Only branch when the user needs a real fork — for a simple linear "do A then B then C", connect blocks straight through with \`outgoing\` and DON'T add a condition.
+The branch keys in \`inputs.conditions\` and \`connections.conditions\` MUST match exactly. A two-branch if/else is the common case and is perfectly fine — only add \`else-if\` branches when the user's logic genuinely needs more than one fork. For a simple linear "do A then B then C", connect blocks straight through with \`outgoing\` and DON'T add a condition.
 
 USE DEDICATED INTEGRATION BLOCKS, not raw \`api\`, when one exists: to message Telegram use the \`telegram\` block (inputs: botToken, chatId, text) — NOT an \`api\` POST to api.telegram.org. Likewise prefer \`slack\`, \`gmail\`, etc. over hand-built HTTP. Only use the \`api\` block when there is no dedicated block for that service.
 
