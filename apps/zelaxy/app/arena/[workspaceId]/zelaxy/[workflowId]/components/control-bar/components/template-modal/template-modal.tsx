@@ -47,6 +47,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { ColorPicker } from '@/components/ui/color-picker'
@@ -181,6 +182,7 @@ export function TemplateModal({ open, onOpenChange, workflowId }: TemplateModalP
   const onSubmit = async (data: TemplateFormData) => {
     if (!session?.user) {
       logger.error('User not authenticated')
+      toast.error('You must be signed in to publish a template')
       return
     }
 
@@ -217,14 +219,18 @@ export function TemplateModal({ open, onOpenChange, workflowId }: TemplateModalP
       const result = await response.json()
       logger.info('Template created successfully:', result)
 
+      toast.success('Template published', {
+        description: `"${data.name}" is now live in the Blueprint Gallery.`,
+      })
+
       // Reset form and close modal
       form.reset()
       onOpenChange(false)
-
-      // TODO: Show success toast/notification
     } catch (error) {
       logger.error('Failed to create template:', error)
-      // TODO: Show error toast/notification
+      toast.error('Failed to publish template', {
+        description: error instanceof Error ? error.message : 'Please try again.',
+      })
     } finally {
       setIsSubmitting(false)
     }

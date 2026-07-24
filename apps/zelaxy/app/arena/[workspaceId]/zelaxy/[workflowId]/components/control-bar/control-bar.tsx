@@ -1068,6 +1068,12 @@ export function ControlBar({ hasValidationErrors = false }: ControlBarProps) {
           {/* Separator */}
           <div className='h-4 w-px bg-border/40 sm:h-5' />
 
+          {/* Publish as Template */}
+          <div className='flex items-center'>{renderPublishButton()}</div>
+
+          {/* Separator */}
+          <div className='h-4 w-px bg-border/40 sm:h-5' />
+
           {/* Debug Toggle */}
           {!isDebugging && <div className='flex items-center'>{renderDebugModeToggle()}</div>}
 

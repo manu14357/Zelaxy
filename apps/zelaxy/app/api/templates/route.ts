@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth'
 import { createLogger } from '@/lib/logs/console/logger'
+import { getUserEntityPermissions } from '@/lib/permissions/utils'
 import { db } from '@/db'
 import { templateStars, templates, workflow } from '@/db/schema'
 
@@ -197,15 +198,34 @@ export async function POST(request: NextRequest) {
       workflowId: data.workflowId,
     })
 
-    // Verify the workflow exists and belongs to the user
-    const workflowExists = await db
-      .select({ id: workflow.id })
+    // Verify the workflow exists and the user can access it
+    const sourceWorkflow = await db
+      .select({ id: workflow.id, userId: workflow.userId, workspaceId: workflow.workspaceId })
       .from(workflow)
       .where(eq(workflow.id, data.workflowId))
       .limit(1)
 
-    if (workflowExists.length === 0) {
+    if (sourceWorkflow.length === 0) {
       logger.warn(`[${requestId}] Workflow not found: ${data.workflowId}`)
+      return NextResponse.json({ error: 'Workflow not found' }, { status: 404 })
+    }
+
+    const source = sourceWorkflow[0]
+    let canPublish = source.userId === session.user.id
+
+    if (!canPublish && source.workspaceId) {
+      const userPermission = await getUserEntityPermissions(
+        session.user.id,
+        'workspace',
+        source.workspaceId
+      )
+      canPublish = userPermission === 'admin' || userPermission === 'write'
+    }
+
+    if (!canPublish) {
+      logger.warn(
+        `[${requestId}] User ${session.user.id} lacks access to publish workflow ${data.workflowId}`
+      )
       return NextResponse.json({ error: 'Workflow not found' }, { status: 404 })
     }
 
