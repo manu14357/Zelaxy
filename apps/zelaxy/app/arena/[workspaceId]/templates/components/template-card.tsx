@@ -22,6 +22,7 @@ import {
   Layers,
   Lightbulb,
   LineChart,
+  Loader2,
   Mail,
   Megaphone,
   MessageSquare,
@@ -42,6 +43,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
 import { getBlock } from '@/blocks/registry'
@@ -227,6 +229,7 @@ export function TemplateCard({
   const [localIsStarred, setLocalIsStarred] = useState(isStarred)
   const [localStarCount, setLocalStarCount] = useState(stars)
   const [isStarLoading, setIsStarLoading] = useState(false)
+  const [isUsing, setIsUsing] = useState(false)
 
   // Extract block types from state if provided, otherwise use the blocks prop
   // Filter out starter blocks in both cases and sort for consistent rendering
@@ -293,6 +296,11 @@ export function TemplateCard({
   // Handle use template
   const handleUseClick = async (e: React.MouseEvent) => {
     e.stopPropagation()
+
+    // Prevent double-clicks from creating duplicate workflows
+    if (isUsing) return
+    setIsUsing(true)
+
     try {
       const response = await fetch(`/api/templates/${id}/use`, {
         method: 'POST',
@@ -310,6 +318,7 @@ export function TemplateCard({
 
         if (!data.workflowId) {
           logger.error('No workflowId returned from API:', data)
+          toast.error('Failed to use template')
           return
         }
 
@@ -326,9 +335,13 @@ export function TemplateCard({
       } else {
         const errorText = await response.text()
         logger.error('Failed to use template:', response.statusText, errorText)
+        toast.error('Failed to use template', { description: errorText || undefined })
       }
     } catch (error) {
       logger.error('Error using template:', error)
+      toast.error('Failed to use template')
+    } finally {
+      setIsUsing(false)
     }
   }
 
@@ -380,9 +393,11 @@ export function TemplateCard({
               />
               <button
                 onClick={handleUseClick}
-                className='rounded-md bg-primary px-2.5 py-1 font-medium text-[11px] text-primary-foreground transition-all duration-150 hover:bg-primary/90 hover:shadow-sm'
+                disabled={isUsing}
+                className='flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 font-medium text-[11px] text-primary-foreground transition-all duration-150 hover:bg-primary/90 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60'
               >
-                Use
+                {isUsing && <Loader2 className='h-3 w-3 animate-spin' />}
+                {isUsing ? 'Using...' : 'Use'}
               </button>
             </div>
           </div>

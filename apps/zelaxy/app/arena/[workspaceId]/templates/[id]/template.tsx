@@ -46,6 +46,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
@@ -212,36 +213,31 @@ export default function TemplateDetails({
 
     setIsUsing(true)
     try {
-      // TODO: Implement proper template usage logic
-      // This should create a new workflow from the template state
-      // For now, we'll create a basic workflow and navigate to it
       logger.info('Using template:', template.id)
 
-      // Create a new workflow
-      const response = await fetch('/api/workflows', {
+      // Copy the template's actual blocks/edges into a new workflow (same
+      // endpoint the gallery card uses) - this used to just create an empty
+      // workflow with the template's name/color and none of its content.
+      const response = await fetch(`/api/templates/${template.id}/use`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: `${template.name} (Copy)`,
-          description: `Created from template: ${template.name}`,
-          color: template.color,
-          workspaceId,
-          folderId: null,
-        }),
+        body: JSON.stringify({ workspaceId }),
       })
 
       if (!response.ok) {
         throw new Error('Failed to create workflow from template')
       }
 
-      const newWorkflow = await response.json()
+      const data = await response.json()
+      if (!data.workflowId) {
+        throw new Error('No workflowId returned from API')
+      }
 
       // Navigate to the new workflow
-      router.push(`/arena/${workspaceId}/zelaxy/${newWorkflow.id}`)
+      router.push(`/arena/${workspaceId}/zelaxy/${data.workflowId}`)
     } catch (error) {
       logger.error('Error using template:', error)
-      // Show error to user (could implement toast notification)
-    } finally {
+      toast.error('Failed to use template')
       setIsUsing(false)
     }
   }
