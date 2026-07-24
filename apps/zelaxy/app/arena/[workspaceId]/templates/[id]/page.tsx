@@ -46,6 +46,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
         icon: templates.icon,
         category: templates.category,
         state: templates.state,
+        isHidden: templates.isHidden,
         createdAt: templates.createdAt,
         updatedAt: templates.updatedAt,
       })
@@ -58,6 +59,11 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
     }
 
     const template = templateData[0]
+
+    // Hidden templates are only visible to the creator who hid them
+    if (template.isHidden && template.userId !== session.user.id) {
+      notFound()
+    }
 
     // Validate that required fields are present
     if (!template.id || !template.name || !template.author) {
@@ -98,6 +104,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
       icon: template.icon || 'FileText', // Default icon if missing
       category: template.category as any,
       state: template.state as any,
+      isHidden: template.isHidden,
       createdAt: template.createdAt ? template.createdAt.toISOString() : new Date().toISOString(),
       updatedAt: template.updatedAt ? template.updatedAt.toISOString() : new Date().toISOString(),
       isStarred,

@@ -1181,6 +1181,7 @@ export const templates = pgTable(
     icon: text('icon').notNull().default('FileText'), // Lucide icon name as string
     category: text('category').notNull(),
     state: jsonb('state').notNull(), // Using jsonb for better performance
+    isHidden: boolean('is_hidden').notNull().default(false),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },

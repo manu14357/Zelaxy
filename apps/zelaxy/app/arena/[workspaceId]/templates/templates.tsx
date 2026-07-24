@@ -53,6 +53,7 @@ export interface Template {
   icon: string
   category: CategoryValue
   state: WorkflowState
+  isHidden: boolean
   createdAt: Date | string
   updatedAt: Date | string
   isStarred: boolean
@@ -183,6 +184,20 @@ export default function Templates({ initialTemplates, currentUserId }: Templates
     )
   }
 
+  // Handle hide/unhide callback from blueprint card (creator only)
+  const handleHiddenChange = (templateId: string, isHidden: boolean) => {
+    setTemplates((prevTemplates) =>
+      prevTemplates.map((template) =>
+        template.id === templateId ? { ...template, isHidden } : template
+      )
+    )
+  }
+
+  // Handle delete callback from blueprint card (creator only)
+  const handleTemplateDeleted = (templateId: string) => {
+    setTemplates((prevTemplates) => prevTemplates.filter((template) => template.id !== templateId))
+  }
+
   const filteredTemplates = (category: CategoryValue | 'your' | 'recent') => {
     let filteredByCategory = templates
 
@@ -223,6 +238,10 @@ export default function Templates({ initialTemplates, currentUserId }: Templates
       state={template.state as { blocks?: Record<string, { type: string; name?: string }> }}
       isStarred={template.isStarred}
       onStarChange={handleStarChange}
+      isOwner={template.userId === currentUserId}
+      isHidden={template.isHidden}
+      onHiddenChange={handleHiddenChange}
+      onDeleted={handleTemplateDeleted}
     />
   )
 

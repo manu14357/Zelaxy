@@ -19,6 +19,7 @@ import {
   DollarSign,
   Edit,
   Eye,
+  EyeOff,
   FileText,
   Folder,
   Globe,
@@ -38,6 +39,7 @@ import {
   ShoppingCart,
   Star,
   Target,
+  Trash2,
   TrendingUp,
   User,
   Users,
@@ -47,6 +49,17 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
@@ -127,6 +140,10 @@ export default function TemplateDetails({
   const [starCount, setStarCount] = useState(template?.stars || 0)
   const [isStarring, setIsStarring] = useState(false)
   const [isUsing, setIsUsing] = useState(false)
+  const [isHidden, setIsHidden] = useState(template?.isHidden || false)
+  const [isTogglingHidden, setIsTogglingHidden] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const isOwner = template?.userId === currentUserId
 
   // Defensive check for template after hooks are initialized
   if (!template) {
@@ -242,6 +259,52 @@ export default function TemplateDetails({
     }
   }
 
+  const handleToggleHidden = async () => {
+    if (isTogglingHidden) return
+    setIsTogglingHidden(true)
+    const nextHidden = !isHidden
+
+    try {
+      const response = await fetch(`/api/templates/${template.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isHidden: nextHidden }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update template visibility')
+      }
+
+      setIsHidden(nextHidden)
+      toast.success(nextHidden ? 'Blueprint hidden' : 'Blueprint visible again')
+    } catch (error) {
+      logger.error('Error toggling template visibility:', error)
+      toast.error('Failed to update blueprint visibility')
+    } finally {
+      setIsTogglingHidden(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (isDeleting) return
+    setIsDeleting(true)
+
+    try {
+      const response = await fetch(`/api/templates/${template.id}`, { method: 'DELETE' })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete template')
+      }
+
+      toast.success('Blueprint deleted')
+      router.push(`/arena/${workspaceId}/templates`)
+    } catch (error) {
+      logger.error('Error deleting template:', error)
+      toast.error('Failed to delete blueprint')
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className='flex min-h-screen flex-col'>
       {/* Header */}
@@ -269,7 +332,14 @@ export default function TemplateDetails({
 
               {/* Title and description */}
               <div>
-                <h1 className='font-bold text-3xl text-foreground'>{template.name}</h1>
+                <div className='flex items-center gap-2'>
+                  <h1 className='font-bold text-3xl text-foreground'>{template.name}</h1>
+                  {isOwner && isHidden && (
+                    <span className='rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground text-xs uppercase tracking-wider'>
+                      Hidden
+                    </span>
+                  )}
+                </div>
                 <p className='mt-2 max-w-3xl text-lg text-muted-foreground'>
                   {template.description}
                 </p>
@@ -301,6 +371,58 @@ export default function TemplateDetails({
               >
                 Use this template
               </Button>
+
+              {isOwner && (
+                <>
+                  {/* Hide/Unhide button */}
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={handleToggleHidden}
+                    disabled={isTogglingHidden}
+                  >
+                    {isHidden ? (
+                      <Eye className='mr-2 h-4 w-4' />
+                    ) : (
+                      <EyeOff className='mr-2 h-4 w-4' />
+                    )}
+                    {isHidden ? 'Unhide' : 'Hide'}
+                  </Button>
+
+                  {/* Delete button */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        className='border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700'
+                      >
+                        <Trash2 className='mr-2 h-4 w-4' />
+                        Delete
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete blueprint?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This permanently removes "{template.name}" from the Blueprint Gallery.
+                          This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          disabled={isDeleting}
+                          className='bg-red-500 hover:bg-red-600'
+                        >
+                          {isDeleting ? 'Deleting...' : 'Delete'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
             </div>
           </div>
 

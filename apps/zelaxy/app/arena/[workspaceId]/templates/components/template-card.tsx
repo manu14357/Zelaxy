@@ -15,6 +15,8 @@ import {
   Database,
   DollarSign,
   Edit,
+  Eye,
+  EyeOff,
   FileText,
   Folder,
   Globe,
@@ -26,6 +28,7 @@ import {
   Mail,
   Megaphone,
   MessageSquare,
+  MoreVertical,
   NotebookPen,
   Phone,
   Play,
@@ -35,6 +38,7 @@ import {
   ShoppingCart,
   Star,
   Target,
+  Trash2,
   TrendingUp,
   User,
   Users,
@@ -44,6 +48,21 @@ import {
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
 import { getBlock } from '@/blocks/registry'
@@ -132,6 +151,11 @@ interface TemplateCardProps {
   onTemplateUsed?: () => void
   // Callback when star state changes (for parent state updates)
   onStarChange?: (templateId: string, isStarred: boolean, newStarCount: number) => void
+  // Whether the current user created this template - gates Hide/Delete
+  isOwner?: boolean
+  isHidden?: boolean
+  onHiddenChange?: (templateId: string, isHidden: boolean) => void
+  onDeleted?: (templateId: string) => void
 }
 
 // Skeleton component for loading states
@@ -221,6 +245,10 @@ export function TemplateCard({
   isStarred = false,
   onTemplateUsed,
   onStarChange,
+  isOwner = false,
+  isHidden = false,
+  onHiddenChange,
+  onDeleted,
 }: TemplateCardProps) {
   const router = useRouter()
   const params = useParams()
@@ -230,6 +258,8 @@ export function TemplateCard({
   const [localStarCount, setLocalStarCount] = useState(stars)
   const [isStarLoading, setIsStarLoading] = useState(false)
   const [isUsing, setIsUsing] = useState(false)
+  const [isTogglingHidden, setIsTogglingHidden] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Extract block types from state if provided, otherwise use the blocks prop
   // Filter out starter blocks in both cases and sort for consistent rendering
@@ -345,6 +375,57 @@ export function TemplateCard({
     }
   }
 
+  // Handle hide/unhide (creator only)
+  const handleToggleHidden = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (isTogglingHidden) return
+
+    setIsTogglingHidden(true)
+    const nextHidden = !isHidden
+
+    try {
+      const response = await fetch(`/api/templates/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isHidden: nextHidden }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update template visibility')
+      }
+
+      onHiddenChange?.(id, nextHidden)
+      toast.success(nextHidden ? 'Blueprint hidden' : 'Blueprint visible again')
+    } catch (error) {
+      logger.error('Error toggling template visibility:', error)
+      toast.error('Failed to update blueprint visibility')
+    } finally {
+      setIsTogglingHidden(false)
+    }
+  }
+
+  // Handle delete (creator only)
+  const handleDelete = async () => {
+    if (isDeleting) return
+    setIsDeleting(true)
+
+    try {
+      const response = await fetch(`/api/templates/${id}`, { method: 'DELETE' })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete template')
+      }
+
+      onDeleted?.(id)
+      toast.success('Blueprint deleted')
+    } catch (error) {
+      logger.error('Error deleting template:', error)
+      toast.error('Failed to delete blueprint')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div
       className={cn(
@@ -377,9 +458,14 @@ export function TemplateCard({
               <h3 className='truncate font-semibold text-[13px] text-foreground leading-tight'>
                 {title}
               </h3>
+              {isOwner && isHidden && (
+                <span className='flex-shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px] text-muted-foreground uppercase tracking-wider'>
+                  Hidden
+                </span>
+              )}
             </div>
 
-            {/* Star and Use button */}
+            {/* Star, Use button, and owner actions */}
             <div className='flex flex-shrink-0 items-center gap-2'>
               <Star
                 onClick={handleStarClick}
@@ -399,6 +485,59 @@ export function TemplateCard({
                 {isUsing && <Loader2 className='h-3 w-3 animate-spin' />}
                 {isUsing ? 'Using...' : 'Use'}
               </button>
+              {isOwner && (
+                <AlertDialog>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className='rounded-md p-0.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground'
+                        aria-label='Blueprint actions'
+                      >
+                        <MoreVertical className='h-3.5 w-3.5' />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align='end' onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem onClick={handleToggleHidden} disabled={isTogglingHidden}>
+                        {isHidden ? (
+                          <Eye className='mr-2 h-3.5 w-3.5' />
+                        ) : (
+                          <EyeOff className='mr-2 h-3.5 w-3.5' />
+                        )}
+                        {isHidden ? 'Unhide' : 'Hide'}
+                      </DropdownMenuItem>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem
+                          onSelect={(e) => e.preventDefault()}
+                          className='text-red-600 focus:text-red-600'
+                        >
+                          <Trash2 className='mr-2 h-3.5 w-3.5' />
+                          Delete
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete blueprint?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This permanently removes "{title}" from the Blueprint Gallery. This action
+                        cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className='bg-red-500 hover:bg-red-600'
+                      >
+                        {isDeleting ? 'Deleting...' : 'Delete'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
 

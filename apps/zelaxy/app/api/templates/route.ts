@@ -63,6 +63,9 @@ export async function GET(request: NextRequest) {
     // Build query conditions
     const conditions = []
 
+    // Hidden templates are only visible to the creator who hid them
+    conditions.push(or(eq(templates.isHidden, false), eq(templates.userId, session.user.id)))
+
     // Apply category filter if provided
     if (params.category) {
       conditions.push(eq(templates.category, params.category))
@@ -94,6 +97,7 @@ export async function GET(request: NextRequest) {
         icon: templates.icon,
         category: templates.category,
         state: templates.state,
+        isHidden: templates.isHidden,
         createdAt: templates.createdAt,
         updatedAt: templates.updatedAt,
         isStarred: sql<boolean>`CASE WHEN ${templateStars.id} IS NOT NULL THEN true ELSE false END`,

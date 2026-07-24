@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, or, sql } from 'drizzle-orm'
 import { getSession } from '@/lib/auth'
 import type { Template } from '@/app/arena/[workspaceId]/templates/templates'
 import Templates from '@/app/arena/[workspaceId]/templates/templates'
@@ -27,6 +27,7 @@ export default async function TemplatesPage() {
       icon: templates.icon,
       category: templates.category,
       state: templates.state,
+      isHidden: templates.isHidden,
       createdAt: templates.createdAt,
       updatedAt: templates.updatedAt,
       isStarred: sql<boolean>`CASE WHEN ${templateStars.id} IS NOT NULL THEN true ELSE false END`,
@@ -36,6 +37,8 @@ export default async function TemplatesPage() {
       templateStars,
       and(eq(templateStars.templateId, templates.id), eq(templateStars.userId, session.user.id))
     )
+    // Hidden templates are only visible to the creator who hid them
+    .where(or(eq(templates.isHidden, false), eq(templates.userId, session.user.id)))
     .orderBy(desc(templates.views), desc(templates.createdAt))
 
   return (
