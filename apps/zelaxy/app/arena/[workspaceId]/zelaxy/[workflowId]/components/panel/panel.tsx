@@ -10,7 +10,6 @@ import {
   MessageSquare,
   RefreshCw,
   Settings,
-  Store,
   Trash2,
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
@@ -212,19 +211,6 @@ export function Panel() {
           {/* Control Icons - Shown when expanded */}
           {isControlsExpanded && (
             <>
-              {/* Deploy Button */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className='flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-accent-foreground hover:shadow-md'
-                    title='Deploy'
-                  >
-                    <Store className='h-5 w-5' />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side='left'>Deploy</TooltipContent>
-              </Tooltip>
-
               {/* Copy/Duplicate Button */}
               <Tooltip>
                 <TooltipTrigger asChild>
