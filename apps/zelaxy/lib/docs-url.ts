@@ -32,13 +32,17 @@ function getDocsBaseUrl(): string {
 
 /**
  * Convert a block registry type key to a docs URL slug.
- * e.g. "google_sheets" → "google-sheets", "twilio_sms" → "twilio"
+ *
+ * The `blocks` category's doc pages are filed under the raw registry type
+ * (underscores and all - e.g. "human_in_the_loop.mdx"), while `tools` and
+ * `triggers` doc pages are hyphenated (e.g. "google_sheets" → "google-sheets").
+ * Verified against every page in apps/docs/content/docs/{blocks,tools,triggers}.
  */
-function blockTypeToSlug(blockType: string): string {
+function blockTypeToSlug(blockType: string, category: BlockCategory): string {
   if (BLOCK_TYPE_TO_DOC_SLUG[blockType]) {
     return BLOCK_TYPE_TO_DOC_SLUG[blockType]
   }
-  return blockType.replace(/_/g, '-')
+  return category === 'blocks' ? blockType : blockType.replace(/_/g, '-')
 }
 
 /**
@@ -54,7 +58,7 @@ export function getBlockDocsUrl(blockType: string, category: BlockCategory): str
   }
 
   const base = getDocsBaseUrl()
-  const slug = blockTypeToSlug(blockType)
+  const slug = blockTypeToSlug(blockType, category)
 
   return `${base}/docs/${category}/${slug}`
 }

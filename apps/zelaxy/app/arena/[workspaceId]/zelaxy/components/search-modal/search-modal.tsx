@@ -25,6 +25,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useBrandConfig } from '@/lib/branding/branding'
+import { getBlockDocsUrl } from '@/lib/docs-url'
 import { cn } from '@/lib/utils'
 import {
   TemplateCard,
@@ -279,12 +280,13 @@ export function SearchModal({
 
     // Add individual block/tool docs
     allBlocks.forEach((block) => {
-      if (block.docsLink) {
+      const docsUrl = getBlockDocsUrl(block.type, block.category)
+      if (docsUrl) {
         docsItems.push({
           id: `docs-${block.type}`,
           name: block.name,
           icon: block.icon,
-          href: block.docsLink,
+          href: docsUrl,
           type: block.category === 'blocks' || block.category === 'triggers' ? 'block' : 'tool',
         })
       }
