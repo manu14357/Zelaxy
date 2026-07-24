@@ -99,27 +99,9 @@ export async function PATCH(request: Request) {
     const userId = session.user.id
     const body = await request.json()
 
+    let validatedData: z.infer<typeof SettingsSchema>
     try {
-      const validatedData = SettingsSchema.parse(body)
-
-      // Store the settings
-      await db
-        .insert(settings)
-        .values({
-          id: nanoid(),
-          userId,
-          ...validatedData,
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: [settings.userId],
-          set: {
-            ...validatedData,
-            updatedAt: new Date(),
-          },
-        })
-
-      return NextResponse.json({ success: true }, { status: 200 })
+      validatedData = SettingsSchema.parse(body)
     } catch (validationError) {
       if (validationError instanceof z.ZodError) {
         logger.warn(`[${requestId}] Invalid settings data`, {
@@ -132,9 +114,31 @@ export async function PATCH(request: Request) {
       }
       throw validationError
     }
+
+    // Store the settings. A write failure here MUST surface as a real error —
+    // silently reporting success while the DB write actually failed let the
+    // client believe a setting (e.g. theme) was saved when it wasn't, so the
+    // next unrelated settings refetch would "revert" it back to the old value
+    // with no visible cause.
+    await db
+      .insert(settings)
+      .values({
+        id: nanoid(),
+        userId,
+        ...validatedData,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [settings.userId],
+        set: {
+          ...validatedData,
+          updatedAt: new Date(),
+        },
+      })
+
+    return NextResponse.json({ success: true }, { status: 200 })
   } catch (error: any) {
     logger.error(`[${requestId}] Settings update error`, error)
-    // Return success on error instead of error response
-    return NextResponse.json({ success: true }, { status: 200 })
+    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
   }
 }

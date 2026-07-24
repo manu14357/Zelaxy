@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import {
   Building2,
-  ChevronDown,
   Edit3,
   ImageIcon,
   KeyRound,
@@ -19,13 +18,6 @@ import {
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -99,7 +91,6 @@ export function Account({ onOpenChange }: AccountProps) {
 
   // Mock accounts for the multi-account UI
   const [accounts, setAccounts] = useState<AccountData[]>([])
-  const [open, setOpen] = useState(false)
 
   // Fetch complete profile data
   const fetchProfileData = async () => {
@@ -174,7 +165,6 @@ export function Account({ onOpenChange }: AccountProps) {
   const handleSignIn = () => {
     // Use Next.js router to navigate to login page
     router.push('/login')
-    setOpen(false)
   }
 
   const handleSignOut = async () => {
@@ -197,8 +187,6 @@ export function Account({ onOpenChange }: AccountProps) {
       logger.error('Error signing out:', { error })
       // Still navigate even if there's an error
       router.push('/login?fromLogout=true')
-    } finally {
-      setOpen(false)
     }
   }
 
@@ -557,126 +545,68 @@ export function Account({ onOpenChange }: AccountProps) {
         {isPending || isLoadingUserData ? (
           <AccountSkeleton />
         ) : (
-          <div className='space-y-0'>
-            {/* Account card */}
-            <DropdownMenu open={open} onOpenChange={setOpen}>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type='button'
-                  className={cn(
-                    'flex w-full items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/50 p-3.5 text-left transition-colors',
-                    'hover:bg-accent/40',
-                    open && 'bg-accent/40'
-                  )}
-                >
-                  <div className='flex items-center gap-3'>
-                    <div className='relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full'>
-                      {userData.isLoggedIn ? (
-                        <img
-                          src={
-                            storeAvatarUrl ||
-                            session?.user?.image ||
-                            getDefaultAvatarUrl(session?.user?.name || session?.user?.email)
-                          }
-                          alt={session?.user?.name || 'User'}
-                          className='h-full w-full object-cover'
-                        />
-                      ) : (
-                        <div className='flex h-full w-full items-center justify-center bg-muted text-muted-foreground'>
-                          <User className='h-4 w-4' />
-                        </div>
-                      )}
-                    </div>
-                    <div className='min-w-0'>
-                      <p className='truncate font-medium text-[13px] text-foreground'>
-                        {userData.isLoggedIn ? activeAccount?.name : 'Sign in'}
-                      </p>
-                      <p className='truncate text-[12px] text-muted-foreground'>
-                        {userData.isLoggedIn ? activeAccount?.email : 'Click to sign in'}
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronDown
-                    className={cn(
-                      'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
-                      open && 'rotate-180'
-                    )}
-                  />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align='start'
-                className='max-h-[350px] w-[min(280px,calc(100vw-4rem))] overflow-y-auto rounded-xl'
-                sideOffset={6}
-              >
+          <div className='space-y-3'>
+            {/* Account card (display only) */}
+            <div className='flex items-center gap-3 rounded-xl border border-border/60 bg-card/50 p-3.5'>
+              <div className='relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full'>
                 {userData.isLoggedIn ? (
-                  <>
-                    {accounts.length > 1 && (
-                      <>
-                        <div className='px-2 py-1.5 font-semibold text-[11px] text-muted-foreground uppercase tracking-wider'>
-                          Switch Account
-                        </div>
-                        {accounts.map((account) => (
-                          <DropdownMenuItem
-                            key={account.id}
-                            className={cn(
-                              'flex cursor-pointer items-center gap-2.5 rounded-lg p-2.5',
-                              account.isActive && 'bg-accent'
-                            )}
-                          >
-                            <div className='flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full'>
-                              <img
-                                src={
-                                  session?.user?.image ||
-                                  getDefaultAvatarUrl(account.name || account.email)
-                                }
-                                alt={account.name || 'User'}
-                                className='h-full w-full object-cover'
-                              />
-                            </div>
-                            <div className='min-w-0'>
-                              <p className='truncate font-medium text-[13px] leading-none'>
-                                {account.name}
-                              </p>
-                              <p className='truncate text-[11px] text-muted-foreground'>
-                                {account.email}
-                              </p>
-                            </div>
-                          </DropdownMenuItem>
-                        ))}
-                        <DropdownMenuSeparator />
-                      </>
-                    )}
-                    <DropdownMenuItem
-                      className='flex cursor-pointer items-center gap-2 rounded-lg py-2 pl-2.5 text-[13px]'
-                      onClick={() => {
-                        setResetPasswordDialogOpen(true)
-                        setOpen(false)
-                      }}
-                    >
-                      <Lock className='h-3.5 w-3.5' />
-                      Reset Password
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className='flex cursor-pointer items-center gap-2 rounded-lg py-2 pl-2.5 text-[13px] text-destructive focus:text-destructive'
-                      onClick={handleSignOut}
-                    >
-                      <LogOut className='h-3.5 w-3.5' />
-                      Sign Out
-                    </DropdownMenuItem>
-                  </>
+                  <img
+                    src={
+                      storeAvatarUrl ||
+                      session?.user?.image ||
+                      getDefaultAvatarUrl(session?.user?.name || session?.user?.email)
+                    }
+                    alt={session?.user?.name || 'User'}
+                    className='h-full w-full object-cover'
+                  />
                 ) : (
-                  <DropdownMenuItem
-                    className='flex cursor-pointer items-center gap-2 rounded-lg py-2 pl-2.5 text-[13px]'
-                    onClick={handleSignIn}
-                  >
-                    <UserPlus className='h-3.5 w-3.5' />
-                    Sign in
-                  </DropdownMenuItem>
+                  <div className='flex h-full w-full items-center justify-center bg-muted text-muted-foreground'>
+                    <User className='h-4 w-4' />
+                  </div>
                 )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </div>
+              <div className='min-w-0'>
+                <p className='truncate font-medium text-[13px] text-foreground'>
+                  {userData.isLoggedIn ? activeAccount?.name : 'Not signed in'}
+                </p>
+                <p className='truncate text-[12px] text-muted-foreground'>
+                  {userData.isLoggedIn ? activeAccount?.email : 'Sign in to access your account'}
+                </p>
+              </div>
+            </div>
+
+            {/* Primary account actions — always visible, not hidden behind a menu */}
+            {userData.isLoggedIn ? (
+              <div className='flex flex-col gap-2 sm:flex-row'>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => setResetPasswordDialogOpen(true)}
+                  className='h-9 flex-1 justify-center rounded-lg text-[13px]'
+                >
+                  <Lock className='mr-1.5 h-3.5 w-3.5' />
+                  Reset Password
+                </Button>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={handleSignOut}
+                  className='h-9 flex-1 justify-center rounded-lg border-destructive/30 text-[13px] text-destructive hover:bg-destructive/10 hover:text-destructive'
+                >
+                  <LogOut className='mr-1.5 h-3.5 w-3.5' />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Button
+                size='sm'
+                onClick={handleSignIn}
+                className='h-9 w-full justify-center rounded-lg text-[13px]'
+              >
+                <UserPlus className='mr-1.5 h-3.5 w-3.5' />
+                Sign in
+              </Button>
+            )}
           </div>
         )}
       </SettingSection>

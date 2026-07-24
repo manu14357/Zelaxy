@@ -107,14 +107,17 @@ export const useGeneralStore = create<GeneralStore>()(
             // Apply the theme to the UI INSTANTLY and persist in the background. The switch must
             // never be gated by the settings API (it can take seconds) — gating it behind
             // `isThemeLoading` made the theme feel stuck and blocked rapid re-clicks.
-            const previous = get().theme
+            //
+            // Also never roll the visible theme back if the persist fails or is slow: a flaky
+            // request used to silently revert the user's just-picked theme several seconds later,
+            // which read as "the theme switch doesn't work." The choice still persists to
+            // localStorage via this store's persist middleware, so it survives a reload even if
+            // the server sync failed — the background persist can simply retry/catch up later.
             set({ theme })
             try {
               await get().updateSetting('theme', theme)
             } catch (error) {
-              // Roll back only if the user hasn't since picked a different theme.
-              if (get().theme === theme) set({ theme: previous })
-              logger.error('Failed to persist theme, rolled back:', error)
+              logger.error('Failed to persist theme to the server (kept locally):', error)
             }
           },
 
