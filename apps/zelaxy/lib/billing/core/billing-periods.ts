@@ -109,25 +109,26 @@ export function calculateNextBillingPeriod(periodEnd: Date): {
 
 /**
  * Initialize billing period for a user based on their subscription
- * Can optionally accept Stripe subscription dates to ensure proper alignment
+ * Can optionally accept the Razorpay subscription's own current_start/
+ * current_end dates to ensure proper alignment
  */
 export async function initializeBillingPeriod(
   userId: string,
-  stripeSubscriptionStart?: Date,
-  stripeSubscriptionEnd?: Date
+  razorpaySubscriptionStart?: Date,
+  razorpaySubscriptionEnd?: Date
 ): Promise<void> {
   try {
     let start: Date
     let end: Date
 
-    if (stripeSubscriptionStart && stripeSubscriptionEnd) {
-      // Use Stripe subscription dates for perfect alignment
-      start = stripeSubscriptionStart
-      end = stripeSubscriptionEnd
-      logger.info('Using Stripe subscription dates for billing period', {
+    if (razorpaySubscriptionStart && razorpaySubscriptionEnd) {
+      // Use the Razorpay subscription's own dates for perfect alignment
+      start = razorpaySubscriptionStart
+      end = razorpaySubscriptionEnd
+      logger.info('Using Razorpay subscription dates for billing period', {
         userId,
-        stripeStart: stripeSubscriptionStart,
-        stripeEnd: stripeSubscriptionEnd,
+        razorpayStart: razorpaySubscriptionStart,
+        razorpayEnd: razorpaySubscriptionEnd,
       })
     } else {
       // Fallback: Get user's subscription to determine billing period
@@ -212,12 +213,18 @@ export async function resetUserBillingPeriod(userId: string): Promise<void> {
       newPeriodEnd = billingPeriod.end
     }
 
-    // Archive current period cost and reset for new period
+    // Archive current period cost and reset for new period. Also resets
+    // billedOverageThisPeriod - it tracks overage already charged (via
+    // period-end billing or a mid-cycle threshold settlement, see
+    // lib/billing/threshold-billing.ts) *within the period that just ended*;
+    // carrying it into the new period would make all of the new period's
+    // overage look like it was already billed.
     await db
       .update(userStats)
       .set({
         lastPeriodCost: currentPeriodCost, // Archive previous period
         currentPeriodCost: '0', // Reset to zero for new period
+        billedOverageThisPeriod: '0',
         billingPeriodStart: newPeriodStart,
         billingPeriodEnd: newPeriodEnd,
       })

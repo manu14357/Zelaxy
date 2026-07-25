@@ -1,6 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm'
-import { client } from '@/lib/auth-client'
 import { DEFAULT_FREE_CREDITS } from '@/lib/billing/constants'
+import { isPlanTierName, PLAN_FEATURE_LIMITS } from '@/lib/billing/plan-defaults'
 import {
   calculateDefaultUsageLimit,
   checkEnterprisePlan,
@@ -191,6 +191,11 @@ export async function hasExceededCostLimit(userId: string): Promise<boolean> {
   }
 }
 
+function getFeatureLimitsForPlan(plan: string | undefined | null) {
+  const planName = plan || ''
+  return PLAN_FEATURE_LIMITS[isPlanTierName(planName) ? planName : 'free']
+}
+
 /**
  * Check if sharing features are enabled for user
  */
@@ -206,13 +211,7 @@ export async function isSharingEnabled(userId: string): Promise<boolean> {
       return false // Free users don't have sharing
     }
 
-    // Use Better-Auth client to check feature flags
-    const { data: subscriptions } = await client.subscription.list({
-      query: { referenceId: subscription.referenceId },
-    })
-
-    const activeSubscription = subscriptions?.find((sub) => sub.status === 'active')
-    return !!activeSubscription?.limits?.sharingEnabled
+    return getFeatureLimitsForPlan(subscription.plan).sharingEnabled
   } catch (error) {
     logger.error('Error checking sharing permission', { error, userId })
     return false
@@ -234,13 +233,7 @@ export async function isMultiplayerEnabled(userId: string): Promise<boolean> {
       return false // Free users don't have multiplayer
     }
 
-    // Use Better-Auth client to check feature flags
-    const { data: subscriptions } = await client.subscription.list({
-      query: { referenceId: subscription.referenceId },
-    })
-
-    const activeSubscription = subscriptions?.find((sub) => sub.status === 'active')
-    return !!activeSubscription?.limits?.multiplayerEnabled
+    return getFeatureLimitsForPlan(subscription.plan).multiplayerEnabled
   } catch (error) {
     logger.error('Error checking multiplayer permission', { error, userId })
     return false
@@ -262,13 +255,7 @@ export async function isWorkspaceCollaborationEnabled(userId: string): Promise<b
       return false // Free users don't have workspace collaboration
     }
 
-    // Use Better-Auth client to check feature flags
-    const { data: subscriptions } = await client.subscription.list({
-      query: { referenceId: subscription.referenceId },
-    })
-
-    const activeSubscription = subscriptions?.find((sub) => sub.status === 'active')
-    return !!activeSubscription?.limits?.workspaceCollaborationEnabled
+    return getFeatureLimitsForPlan(subscription.plan).workspaceCollaborationEnabled
   } catch (error) {
     logger.error('Error checking workspace collaboration permission', { error, userId })
     return false
@@ -319,20 +306,10 @@ export async function getUserSubscriptionState(userId: string): Promise<UserSubs
         workspaceCollaborationEnabled = true
       } else {
         // Production mode - check subscription features
-        try {
-          const { data: subscriptions } = await client.subscription.list({
-            query: { referenceId: subscription.referenceId },
-          })
-          const activeSubscription = subscriptions?.find((sub) => sub.status === 'active')
-
-          sharingEnabled = !!activeSubscription?.limits?.sharingEnabled
-          multiplayerEnabled = !!activeSubscription?.limits?.multiplayerEnabled
-          workspaceCollaborationEnabled =
-            !!activeSubscription?.limits?.workspaceCollaborationEnabled
-        } catch (error) {
-          logger.error('Error checking subscription features', { error, userId })
-          // Default to false on error
-        }
+        const limits = getFeatureLimitsForPlan(subscription?.plan)
+        sharingEnabled = limits.sharingEnabled
+        multiplayerEnabled = limits.multiplayerEnabled
+        workspaceCollaborationEnabled = limits.workspaceCollaborationEnabled
       }
     }
 

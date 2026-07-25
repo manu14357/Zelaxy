@@ -4,7 +4,7 @@ import { quickValidateEmail } from '@/lib/email/validation'
 import { isBillingEnabled } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
-import { invitation, member, organization, subscription, user, userStats } from '@/db/schema'
+import { invitation, member, organization, user, userStats } from '@/db/schema'
 
 const logger = createLogger('SeatManagement')
 
@@ -287,68 +287,6 @@ export async function validateBulkInvitations(
       seatsNeeded: 0,
       seatsAvailable: 0,
       validationResult,
-    }
-  }
-}
-
-/**
- * Update organization seat count in subscription
- */
-export async function updateOrganizationSeats(
-  organizationId: string,
-  newSeatCount: number,
-  updatedBy: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    // Get current subscription
-    const subscriptionRecord = await getHighestPrioritySubscription(organizationId)
-
-    if (!subscriptionRecord) {
-      return { success: false, error: 'No active subscription found' }
-    }
-
-    // Validate minimum seat requirements
-    const memberCount = await db
-      .select({ count: count() })
-      .from(member)
-      .where(eq(member.organizationId, organizationId))
-
-    const currentMembers = memberCount[0]?.count || 0
-
-    if (newSeatCount < currentMembers) {
-      return {
-        success: false,
-        error: `Cannot reduce seats below current member count (${currentMembers})`,
-      }
-    }
-
-    // Update subscription seat count
-    await db
-      .update(subscription)
-      .set({
-        seats: newSeatCount,
-      })
-      .where(eq(subscription.id, subscriptionRecord.id))
-
-    logger.info('Organization seat count updated', {
-      organizationId,
-      oldSeatCount: subscriptionRecord.seats,
-      newSeatCount,
-      updatedBy,
-    })
-
-    return { success: true }
-  } catch (error) {
-    logger.error('Failed to update organization seats', {
-      organizationId,
-      newSeatCount,
-      updatedBy,
-      error,
-    })
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
     }
   }
 }

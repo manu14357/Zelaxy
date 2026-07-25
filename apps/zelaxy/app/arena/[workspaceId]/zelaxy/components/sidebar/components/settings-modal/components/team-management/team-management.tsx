@@ -10,7 +10,8 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui'
-import { client, useSession } from '@/lib/auth-client'
+import { useSession } from '@/lib/auth-client'
+import { openRazorpaySubscriptionCheckout } from '@/lib/billing/razorpay-checkout-client'
 import { checkEnterprisePlan } from '@/lib/billing/subscriptions/utils'
 import { env } from '@/lib/env'
 import { isBillingEnabled } from '@/lib/environment'
@@ -61,6 +62,7 @@ export function TeamManagement() {
     inviteMember,
     removeMember,
     cancelInvitation,
+    resendInvitation,
     addSeats,
     reduceSeats,
     updateOrganizationSettings,
@@ -75,6 +77,7 @@ export function TeamManagement() {
   const { getSubscriptionStatus } = useSubscriptionStore()
 
   const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member')
   const [showWorkspaceInvite, setShowWorkspaceInvite] = useState(false)
   const [selectedWorkspaces, setSelectedWorkspaces] = useState<
     Array<{ workspaceId: string; permission: string }>
@@ -175,13 +178,15 @@ export function TeamManagement() {
 
     await inviteMember(
       inviteEmail.trim(),
-      selectedWorkspaces.length > 0 ? selectedWorkspaces : undefined
+      selectedWorkspaces.length > 0 ? selectedWorkspaces : undefined,
+      inviteRole
     )
 
     setInviteEmail('')
+    setInviteRole('member')
     setSelectedWorkspaces([])
     setShowWorkspaceInvite(false)
-  }, [session?.user?.id, activeOrgId, inviteEmail, selectedWorkspaces])
+  }, [session?.user?.id, activeOrgId, inviteEmail, selectedWorkspaces, inviteRole])
 
   const handleWorkspaceToggle = useCallback((workspaceId: string, permission: string) => {
     setSelectedWorkspaces((prev) => {
@@ -275,16 +280,19 @@ export function TeamManagement() {
       if (!session?.user || !activeOrgId) return
       logger.info('Team upgrade requested', { seats, organizationId: activeOrgId })
       try {
-        // Start the real team-plan subscription via better-auth → Stripe checkout (no
-        // subscriptionId = a NEW subscription). On success the user is redirected to checkout.
-        const { error } = await client.subscription.upgrade({
+        // Start the real team-plan subscription via Razorpay Checkout (a new
+        // subscription, not an in-place seat update).
+        const result = await openRazorpaySubscriptionCheckout({
           plan: 'team',
           referenceId: activeOrgId,
           seats,
-          successUrl: window.location.href,
-          cancelUrl: window.location.href,
+          prefillEmail: session?.user?.email,
+          prefillName: session?.user?.name,
         })
-        if (error) throw new Error(error.message || 'Failed to start team subscription')
+        // Closing the widget without paying is normal, not an error.
+        if (result.dismissed) return
+        if (!result.success) throw new Error(result.error || 'Failed to start team subscription')
+
         await useOrganizationStore.getState().refreshOrganization()
       } catch (error) {
         logger.error('Team upgrade failed', { error })
@@ -373,6 +381,8 @@ export function TeamManagement() {
             <MemberInvitationCard
               inviteEmail={inviteEmail}
               setInviteEmail={setInviteEmail}
+              inviteRole={inviteRole}
+              setInviteRole={setInviteRole}
               isInviting={isInviting}
               showWorkspaceInvite={showWorkspaceInvite}
               setShowWorkspaceInvite={setShowWorkspaceInvite}
@@ -410,6 +420,7 @@ export function TeamManagement() {
             <PendingInvitationsList
               organization={activeOrganization}
               onCancelInvitation={cancelInvitation}
+              onResendInvitation={resendInvitation}
             />
           )}
         </TabsContent>

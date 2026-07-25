@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/button'
 function getErrorMessage(reason: string, details?: string): string {
   switch (reason) {
     case 'missing-token':
+    case 'missing-invitation-id':
       return 'The invitation link is invalid or missing a required parameter.'
     case 'invalid-token':
+    case 'invalid-invitation':
       return 'The invitation link is invalid or has already been used.'
     case 'expired':
       return 'This invitation has expired. Please ask for a new invitation.'
@@ -22,6 +24,8 @@ function getErrorMessage(reason: string, details?: string): string {
         : 'This invitation was sent to a different email address than the one you are logged in with.'
     case 'workspace-not-found':
       return 'The workspace associated with this invitation could not be found.'
+    case 'seat-cap':
+      return "This organization doesn't have any available seats right now. Please ask an admin to add seats and try again."
     case 'server-error':
       return 'An unexpected error occurred while processing your invitation. Please try again later.'
     default:

@@ -5,5 +5,43 @@
       "*": false
     }
   },
-  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]; then exit 1; else exit 0; fi"
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]; then exit 1; else exit 0; fi",
+  "crons": [
+    {
+      "path": "/api/schedules/execute",
+      "schedule": "*/1 * * * *"
+    },
+    {
+      "path": "/api/webhooks/poll/gmail",
+      "schedule": "*/1 * * * *"
+    },
+    {
+      "path": "/api/webhooks/poll/outlook",
+      "schedule": "*/1 * * * *"
+    },
+    {
+      "path": "/api/webhooks/poll/table",
+      "schedule": "*/1 * * * *"
+    },
+    {
+      "path": "/api/webhooks/poll/workspace-events",
+      "schedule": "*/1 * * * *"
+    },
+    {
+      "path": "/api/logs/cleanup",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/billing/daily",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/billing/credits/refresh",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/billing/threshold",
+      "schedule": "*/20 * * * *"
+    }
+  ]
 }

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { DEFAULT_FREE_CREDITS } from '@/lib/billing/constants'
+import { resumePendingSubscription } from '@/lib/billing/razorpay-checkout-client'
 import { createLogger } from '@/lib/logs/console/logger'
 import type {
   BillingStatus,
@@ -485,6 +486,10 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
 
 // Auto-load subscription data when store is first accessed
 if (typeof window !== 'undefined') {
-  // Load data in parallel on store creation
-  useSubscriptionStore.getState().loadData()
+  // If the user just came back from Razorpay's hosted checkout page,
+  // reconcile that subscription first so the very first render already shows
+  // the upgraded plan instead of briefly flashing the old one.
+  void resumePendingSubscription()
+    .catch(() => ({ activated: false }))
+    .then(() => useSubscriptionStore.getState().loadData())
 }

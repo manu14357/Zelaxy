@@ -40,7 +40,7 @@ export const user = pgTable('user', {
   location: text('location'),
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
-  stripeCustomerId: text('stripe_customer_id'),
+  razorpayCustomerId: text('razorpay_customer_id'),
 })
 
 export const session = pgTable('session', {
@@ -481,7 +481,48 @@ export const userStats = pgTable('user_stats', {
   billingPeriodEnd: timestamp('billing_period_end'), // When current billing period ends
   lastPeriodCost: decimal('last_period_cost').default('0'), // Usage from previous billing period
   lastActive: timestamp('last_active').notNull().defaultNow(),
+  // Set true when a usage-billing invoice payment fails; gates access until
+  // handleInvoicePaymentSucceeded (or a manual admin action) clears it.
+  billingBlocked: boolean('billing_blocked').notNull().default(false),
+  billingBlockedReason: text('billing_blocked_reason'),
+  // How much overage has already been billed within the current billing
+  // period, so processDailyBillingCheck can bill only the delta instead of
+  // re-deriving overage purely from currentPeriodCost (which would
+  // double-bill if the cron runs more than once, or accumulate unboundedly
+  // if it never fires at all).
+  billedOverageThisPeriod: decimal('billed_overage_this_period').notNull().default('0'),
+  // Prepaid balance applied to overage charges before a Razorpay payment
+  // link is issued. See db/schema.ts's creditTransactions for the audit
+  // trail of every change to this number.
+  creditBalance: decimal('credit_balance').notNull().default('0'),
 })
+
+// Audit trail for every change to userStats.creditBalance - the running
+// total on userStats is a denormalized cache of summing this table, kept in
+// sync by lib/billing/credits/*, not the other way around.
+export const creditTransactions = pgTable(
+  'credit_transactions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    // Positive = credit added (purchase, daily refresh, admin adjustment).
+    // Negative = credit consumed (applied to an overage charge).
+    amount: decimal('amount').notNull(),
+    type: text('type').notNull(), // 'purchase' | 'daily_refresh' | 'applied_to_charge' | 'admin_adjustment'
+    description: text('description'),
+    relatedInvoiceId: text('related_invoice_id'),
+    balanceAfter: decimal('balance_after').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdCreatedAtIdx: index('credit_transactions_user_id_created_at_idx').on(
+      table.userId,
+      table.createdAt
+    ),
+  })
+)
 
 export const customTools = pgTable('custom_tools', {
   id: text('id').primaryKey(),
@@ -501,8 +542,8 @@ export const subscription = pgTable(
     id: text('id').primaryKey(),
     plan: text('plan').notNull(),
     referenceId: text('reference_id').notNull(),
-    stripeCustomerId: text('stripe_customer_id'),
-    stripeSubscriptionId: text('stripe_subscription_id'),
+    razorpayCustomerId: text('razorpay_customer_id'),
+    razorpaySubscriptionId: text('razorpay_subscription_id'),
     status: text('status'),
     periodStart: timestamp('period_start'),
     periodEnd: timestamp('period_end'),
@@ -511,6 +552,17 @@ export const subscription = pgTable(
     trialStart: timestamp('trial_start'),
     trialEnd: timestamp('trial_end'),
     metadata: json('metadata'),
+    // Set by handleSubscriptionDeleted (canceledAt when Razorpay first marks
+    // the subscription as cancelled, endedAt once it actually ends) - needed to
+    // distinguish "canceling, still active until period end" from "ended" and
+    // to avoid re-processing the same deletion webhook twice.
+    canceledAt: timestamp('canceled_at'),
+    endedAt: timestamp('ended_at'),
+    // 'month' | 'year' - not yet used by any plan (no annual Razorpay Plan
+    // exists today), but the column exists so onSubscriptionDeleted/invoice
+    // logic doesn't have to special-case its absence once annual billing
+    // lands.
+    billingInterval: text('billing_interval'),
   },
   (table) => ({
     referenceStatusIdx: index('subscription_reference_status_idx').on(
@@ -579,6 +631,12 @@ export const organization = pgTable('organization', {
   metadata: json('metadata'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  // Accumulated usage cost from members who left the org mid-billing-period,
+  // so their usage isn't silently dropped from the org's overage total when
+  // they're removed. Added to totalTeamUsage alongside current members'
+  // usage in processOrganizationOverageBilling, then reset to 0 whenever the
+  // org's billing period resets.
+  departedMemberUsage: decimal('departed_member_usage').notNull().default('0'),
 })
 
 export const member = pgTable('member', {
@@ -1239,6 +1297,32 @@ export const templateStars = pgTable(
     uniqueUserTemplateConstraint: uniqueIndex('template_stars_user_template_unique').on(
       table.userId,
       table.templateId
+    ),
+  })
+)
+
+// Idempotency ledger for Razorpay webhook handlers. Razorpay delivers
+// webhooks at-least-once, so every money-mutating handler claims a row here
+// (keyed by the Razorpay event id) before doing any work - a second delivery
+// of the same event id hits the unique constraint and either replays the
+// cached result (if the first delivery already succeeded) or is rejected as
+// in-flight. Deliberately Postgres, not Redis/an in-memory cache, so the
+// claim survives a process restart and isn't lost on deploy.
+export const paymentWebhookEvents = pgTable(
+  'payment_webhook_events',
+  {
+    id: text('id').primaryKey(), // the Razorpay event id (x-razorpay-event-id header)
+    eventType: text('event_type').notNull(),
+    status: text('status').notNull().default('processing'), // 'processing' | 'succeeded' | 'failed_retryable' | 'failed_terminal'
+    result: json('result'), // cached handler return value, replayed on a duplicate delivery
+    error: text('error'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    completedAt: timestamp('completed_at'),
+  },
+  (table) => ({
+    statusCreatedAtIdx: index('payment_webhook_events_status_created_at_idx').on(
+      table.status,
+      table.createdAt
     ),
   })
 )

@@ -6,12 +6,15 @@ import Link from 'next/link'
 import { getDocsUrl } from '@/lib/docs-url'
 import { ThemeToggle } from './theme-toggle'
 
+// Leading "/" so these resolve correctly from any page, not just the
+// homepage - a bare "#manifesto" href on, say, /pricing would just try to
+// scroll the current (anchor-less) page instead of navigating home first.
 const NAV = [
-  { href: '#manifesto', label: 'Manifesto', id: '01' },
-  { href: '#canvas', label: 'Canvas', id: '02' },
-  { href: '#capabilities', label: 'Capabilities', id: '04' },
-  { href: '#ecosystem', label: 'Ecosystem', id: '05' },
-  { href: '#developers', label: 'Developers', id: '07' },
+  { href: '/#manifesto', label: 'Manifesto', id: '01' },
+  { href: '/#canvas', label: 'Canvas', id: '02' },
+  { href: '/#capabilities', label: 'Capabilities', id: '04' },
+  { href: '/#ecosystem', label: 'Ecosystem', id: '05' },
+  { href: '/#developers', label: 'Developers', id: '07' },
 ]
 
 export function Navigation() {
@@ -61,6 +64,13 @@ export function Navigation() {
 
         {/* Right */}
         <div className='ml-auto flex items-center gap-2'>
+          <Link
+            href='/pricing'
+            className='t-dim hover-ink hidden items-center text-[13px] sm:inline-flex'
+          >
+            Pricing
+          </Link>
+          <span className='hair hidden h-4 w-px sm:block' />
           <a
             href={getDocsUrl()}
             className='t-accent b-accent hidden items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium text-[13px] transition-colors hover:bg-[var(--bp-accent)] hover:text-[#1c0c00] sm:inline-flex'
@@ -106,6 +116,16 @@ export function Navigation() {
                 {item.label}
               </a>
             ))}
+            <Link
+              href='/pricing'
+              onClick={() => setOpen(false)}
+              className='t-dim flex items-center gap-3 py-2.5 text-[15px]'
+            >
+              <span className='t-accent bp-label' style={{ fontSize: '10px' }}>
+                $
+              </span>
+              Pricing
+            </Link>
             <div className='b-hair mt-3 flex gap-2 border-t pt-3'>
               <a
                 href={getDocsUrl()}

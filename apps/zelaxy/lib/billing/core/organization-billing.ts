@@ -1,5 +1,5 @@
-import { and, eq } from 'drizzle-orm'
-import { DEFAULT_FREE_CREDITS } from '@/lib/billing/constants'
+import { and, eq, sql } from 'drizzle-orm'
+import { DEFAULT_FREE_CREDITS, getPlanMinimumCost } from '@/lib/billing/constants'
 import { getPlanPricing } from '@/lib/billing/core/billing'
 import { getHighestPrioritySubscription } from '@/lib/billing/core/subscription'
 import { createLogger } from '@/lib/logs/console/logger'
@@ -7,6 +7,52 @@ import { db } from '@/db'
 import { member, organization, user, userStats } from '@/db/schema'
 
 const logger = createLogger('OrganizationBilling')
+
+/**
+ * Captures a departing member's current-period usage into the organization's
+ * departedMemberUsage running total, so it isn't silently dropped from the
+ * org's overage bill when they're removed mid-period. Call this BEFORE
+ * deleting the member row. Safe to call even if the member has no usage
+ * (adds 0) or the org has no subscription (still records the usage in case
+ * one exists by the time the period is billed).
+ */
+export async function accumulateDepartedMemberUsage(
+  organizationId: string,
+  departedUserId: string
+): Promise<void> {
+  try {
+    const stats = await db
+      .select({ currentPeriodCost: userStats.currentPeriodCost })
+      .from(userStats)
+      .where(eq(userStats.userId, departedUserId))
+      .limit(1)
+
+    const departedUsage = Number.parseFloat(stats[0]?.currentPeriodCost?.toString() || '0')
+
+    if (departedUsage <= 0) return
+
+    await db
+      .update(organization)
+      .set({
+        departedMemberUsage: sql`${organization.departedMemberUsage} + ${departedUsage}`,
+      })
+      .where(eq(organization.id, organizationId))
+
+    logger.info('Accumulated departed member usage into organization total', {
+      organizationId,
+      departedUserId,
+      departedUsage,
+    })
+  } catch (error) {
+    // Don't block the member removal itself on a usage-accounting failure —
+    // log it loudly so it can be reconciled manually if it ever happens.
+    logger.error('Failed to accumulate departed member usage (member removal still proceeds)', {
+      organizationId,
+      departedUserId,
+      error,
+    })
+  }
+}
 
 interface OrganizationUsageData {
   organizationId: string
@@ -197,15 +243,7 @@ export async function updateMemberUsageLimit(
     }
 
     // Validate minimum limit based on plan
-    const planLimits = {
-      free: DEFAULT_FREE_CREDITS,
-      pro: 20,
-      team: 40,
-      enterprise: 100, // Default, can be overridden by metadata
-    }
-
-    let minimumLimit =
-      planLimits[subscription.plan as keyof typeof planLimits] || DEFAULT_FREE_CREDITS
+    let minimumLimit = getPlanMinimumCost(subscription.plan)
 
     // For enterprise, check metadata for custom limits
     if (subscription.plan === 'enterprise' && subscription.metadata) {

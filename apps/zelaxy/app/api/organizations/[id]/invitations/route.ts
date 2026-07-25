@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import { and, eq, inArray } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import {
   getEmailSubject,
   renderBatchInvitationEmail,
@@ -14,10 +15,19 @@ import {
 import { sendEmail } from '@/lib/email/mailer'
 import { quickValidateEmail } from '@/lib/email/validation'
 import { env } from '@/lib/env'
+import { grantWorkspaceAccessDirectly } from '@/lib/invitations/direct-grant'
 import { createLogger } from '@/lib/logs/console/logger'
 import { hasWorkspaceAdminAccess } from '@/lib/permissions/utils'
 import { db } from '@/db'
-import { invitation, member, organization, user, workspace, workspaceInvitation } from '@/db/schema'
+import {
+  invitation,
+  member,
+  organization,
+  permissions,
+  user,
+  workspace,
+  workspaceInvitation,
+} from '@/db/schema'
 
 const logger = createLogger('OrganizationInvitationsAPI')
 
@@ -27,6 +37,24 @@ interface WorkspaceInvitation {
   workspaceId: string
   permission: 'admin' | 'write' | 'read'
 }
+
+const CreateOrganizationInvitationsSchema = z
+  .object({
+    email: z.string().trim().min(1).optional(),
+    emails: z.array(z.string()).optional(),
+    role: z.enum(['member', 'admin']).optional().default('member'),
+    workspaceInvitations: z
+      .array(
+        z.object({
+          workspaceId: z.string().min(1),
+          permission: z.enum(['admin', 'write', 'read']),
+        })
+      )
+      .optional(),
+  })
+  .refine((data) => !!data.email || (Array.isArray(data.emails) && data.emails.length > 0), {
+    message: 'Email or emails array is required',
+  })
 
 /**
  * GET /api/organizations/[id]/invitations
@@ -118,19 +146,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const isBatch = url.searchParams.get('batch') === 'true'
 
     const body = await request.json()
-    const { email, emails, role = 'member', workspaceInvitations } = body
+    const { email, emails, role, workspaceInvitations } =
+      CreateOrganizationInvitationsSchema.parse(body)
 
     // Handle single invitation vs batch
-    const invitationEmails = email ? [email] : emails
-
-    // Validate input
-    if (!invitationEmails || !Array.isArray(invitationEmails) || invitationEmails.length === 0) {
-      return NextResponse.json({ error: 'Email or emails array is required' }, { status: 400 })
-    }
-
-    if (!['member', 'admin'].includes(role)) {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
-    }
+    const invitationEmails = email ? [email] : (emails as string[])
 
     // Verify user has admin access
     const memberEntry = await db
@@ -231,9 +251,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }
 
-    // Check for existing members
+    // Check for existing members (with userId, needed for the direct-grant fast path below)
     const existingMembers = await db
-      .select({ userEmail: user.email })
+      .select({ userEmail: user.email, userId: member.userId })
       .from(member)
       .innerJoin(user, eq(member.userId, user.id))
       .where(eq(member.organizationId, organizationId))
@@ -250,7 +270,80 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const pendingEmails = existingInvitations.map((i) => i.email)
     const emailsToInvite = newEmails.filter((email: string) => !pendingEmails.includes(email))
 
-    if (emailsToInvite.length === 0) {
+    // Direct-grant fast path: emails that already belong to this organization don't need (or
+    // want) another org invitation — but if workspace access was requested for them as part of
+    // a batch invite, grant it immediately instead of silently dropping it. Mirrors the same
+    // fast path in the workspace-tier invite route (app/api/arenas/invitations/route.ts).
+    const directGrants: Array<{ email: string; workspaceIds: string[] }> = []
+    if (isBatch && validWorkspaceInvitations.length > 0) {
+      const alreadyMemberEmails = processedEmails.filter((email: string) =>
+        existingEmails.includes(email)
+      )
+
+      if (alreadyMemberEmails.length > 0) {
+        const workspaceDetailsForGrant = await db
+          .select({ id: workspace.id, name: workspace.name })
+          .from(workspace)
+          .where(
+            inArray(
+              workspace.id,
+              validWorkspaceInvitations.map((w) => w.workspaceId)
+            )
+          )
+
+        const inviterForGrant = await db
+          .select({ name: user.name })
+          .from(user)
+          .where(eq(user.id, session.user.id))
+          .limit(1)
+
+        for (const grantEmail of alreadyMemberEmails) {
+          const memberRow = existingMembers.find((m) => m.userEmail === grantEmail)
+          if (!memberRow) continue
+
+          // Don't re-grant workspaces the user already has access to
+          const alreadyGranted = await db
+            .select({ entityId: permissions.entityId })
+            .from(permissions)
+            .where(
+              and(
+                eq(permissions.userId, memberRow.userId),
+                eq(permissions.entityType, 'workspace'),
+                inArray(
+                  permissions.entityId,
+                  validWorkspaceInvitations.map((w) => w.workspaceId)
+                )
+              )
+            )
+          const alreadyGrantedIds = new Set(alreadyGranted.map((p) => p.entityId))
+
+          const workspacesToGrant = validWorkspaceInvitations
+            .filter((w) => !alreadyGrantedIds.has(w.workspaceId))
+            .map((w) => ({
+              workspaceId: w.workspaceId,
+              workspaceName:
+                workspaceDetailsForGrant.find((ws) => ws.id === w.workspaceId)?.name ||
+                'Unknown Workspace',
+              permission: w.permission,
+            }))
+
+          if (workspacesToGrant.length > 0) {
+            await grantWorkspaceAccessDirectly({
+              userId: memberRow.userId,
+              email: grantEmail,
+              inviterName: inviterForGrant[0]?.name || 'Someone',
+              workspaces: workspacesToGrant,
+            })
+            directGrants.push({
+              email: grantEmail,
+              workspaceIds: workspacesToGrant.map((w) => w.workspaceId),
+            })
+          }
+        }
+      }
+    }
+
+    if (emailsToInvite.length === 0 && directGrants.length === 0) {
       return NextResponse.json(
         {
           error: 'All emails are already members or have pending invitations',
@@ -280,7 +373,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       createdAt: new Date(),
     }))
 
-    await db.insert(invitation).values(invitationsToCreate)
+    if (invitationsToCreate.length > 0) {
+      await db.insert(invitation).values(invitationsToCreate)
+    }
 
     // Create workspace invitations if batch mode
     const workspaceInvitationIds: string[] = []
@@ -389,15 +484,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       role,
       isBatch,
       workspaceInvitationCount: workspaceInvitationIds.length,
+      directGrantCount: directGrants.length,
     })
 
     return NextResponse.json({
       success: true,
-      message: `${invitationsToCreate.length} invitation(s) sent successfully`,
+      message:
+        directGrants.length > 0
+          ? `${invitationsToCreate.length} invitation(s) sent, ${directGrants.length} member(s) granted workspace access directly`
+          : `${invitationsToCreate.length} invitation(s) sent successfully`,
       data: {
         invitationsSent: invitationsToCreate.length,
         invitedEmails: emailsToInvite,
-        existingMembers: processedEmails.filter((email: string) => existingEmails.includes(email)),
+        directGrants,
+        existingMembers: processedEmails.filter(
+          (email: string) =>
+            existingEmails.includes(email) && !directGrants.some((g) => g.email === email)
+        ),
         pendingInvitations: processedEmails.filter((email: string) =>
           pendingEmails.includes(email)
         ),
@@ -413,6 +516,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       },
     })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      logger.warn('Invalid organization invitation request body', { errors: error.errors })
+      return NextResponse.json(
+        { error: error.errors[0]?.message || 'Invalid request body', details: error.errors },
+        { status: 400 }
+      )
+    }
+
     logger.error('Failed to create organization invitations', {
       organizationId: (await params).id,
       error,

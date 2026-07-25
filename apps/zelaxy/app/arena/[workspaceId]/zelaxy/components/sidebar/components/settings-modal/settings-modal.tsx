@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui'
+import { CLOSE_OVERLAYS_EVENT } from '@/lib/billing/razorpay-checkout-client'
 import { getEnv, isTruthy } from '@/lib/env'
 import { isBillingEnabled } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
@@ -95,6 +96,15 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const loadSettings = useGeneralStore((state) => state.loadSettings)
   const { activeOrganization } = useOrganizationStore()
   const hasLoadedInitialData = useRef(false)
+
+  // Razorpay Checkout mounts its iframe on <body>, outside this dialog. Radix's
+  // modal mode would leave that iframe unclickable (pointer-events: none on
+  // <body>) and unfocusable (focus trap), so step aside while it's open.
+  useEffect(() => {
+    const closeForCheckout = () => onOpenChange(false)
+    window.addEventListener(CLOSE_OVERLAYS_EVENT, closeForCheckout)
+    return () => window.removeEventListener(CLOSE_OVERLAYS_EVENT, closeForCheckout)
+  }, [onOpenChange])
 
   // ── Data Loading ─────────────────────────────────────────────────────────
 

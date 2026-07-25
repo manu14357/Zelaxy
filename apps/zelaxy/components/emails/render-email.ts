@@ -4,6 +4,7 @@ import {
   InvitationEmail,
   OTPVerificationEmail,
   ResetPasswordEmail,
+  WorkspaceAddedEmail,
 } from '@/components/emails'
 
 export async function renderOTPEmail(
@@ -65,6 +66,24 @@ export async function renderBatchInvitationEmail(
   )
 }
 
+interface GrantedWorkspace {
+  workspaceName: string
+  permission?: 'admin' | 'write' | 'read'
+}
+
+/**
+ * Renders the "direct-grant" notification email — sent instead of an invitation when the
+ * invitee already belongs to the target organization, so access is granted immediately with
+ * no accept step. See lib/invitations/direct-grant.ts.
+ */
+export async function renderWorkspaceAddedEmail(
+  inviterName: string,
+  workspaces: GrantedWorkspace[],
+  appUrl?: string
+): Promise<string> {
+  return await render(WorkspaceAddedEmail({ inviterName, workspaces, appUrl }))
+}
+
 export function getEmailSubject(
   type:
     | 'sign-in'
@@ -73,6 +92,7 @@ export function getEmailSubject(
     | 'reset-password'
     | 'invitation'
     | 'batch-invitation'
+    | 'workspace-added'
 ): string {
   switch (type) {
     case 'sign-in':
@@ -87,6 +107,8 @@ export function getEmailSubject(
       return "You've been invited to join a team on Zelaxy"
     case 'batch-invitation':
       return "You've been invited to join a team and workspaces on Zelaxy"
+    case 'workspace-added':
+      return "You've been given access to a workspace on Zelaxy"
     default:
       return 'Zelaxy'
   }

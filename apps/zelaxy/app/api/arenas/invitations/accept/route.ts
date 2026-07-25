@@ -2,36 +2,52 @@ import { randomUUID } from 'crypto'
 import { and, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { env } from '@/lib/env'
 import { db } from '@/db'
 import { permissions, user, workspace, workspaceInvitation } from '@/db/schema'
 
 export const dynamic = 'force-dynamic'
 
-// Accept an invitation via token
+export type AcceptWorkspaceInvitationReason =
+  | 'missing-token'
+  | 'unauthenticated'
+  | 'invalid-token'
+  | 'expired'
+  | 'already-processed'
+  | 'email-mismatch'
+  | 'workspace-not-found'
+  | 'server-error'
+
+/**
+ * Accept a workspace invitation via token.
+ *
+ * IMPORTANT: this is a JSON API, not a redirect-based page route. It is called via
+ * `fetch()` from `app/invite/[id]/invite.tsx`, which only treats acceptance as
+ * successful when the response body has `success: true`. Do NOT change this back to
+ * `NextResponse.redirect(...)` — `fetch()` follows redirects transparently, which makes
+ * `response.ok` true even on failure and previously caused the client to show "Invitation
+ * Accepted" regardless of the real outcome. If a future caller needs a browser-navigable
+ * (non-fetch) entry point, add a distinct route for it rather than changing this contract.
+ */
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token')
 
   if (!token) {
-    // Redirect to a page explaining the error
-    return NextResponse.redirect(
-      new URL(
-        '/invite/invite-error?reason=missing-token',
-        env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
-      )
+    return NextResponse.json(
+      { success: false, reason: 'missing-token', error: 'Missing invitation token' },
+      { status: 400 }
     )
   }
 
   const session = await getSession()
 
   if (!session?.user?.id) {
-    // No need to encode API URL as callback, just redirect to invite page
-    // The middleware will handle proper login flow and return to invite page
-    return NextResponse.redirect(
-      new URL(
-        `/invite/${token}?token=${token}`,
-        env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
-      )
+    return NextResponse.json(
+      {
+        success: false,
+        reason: 'unauthenticated',
+        error: 'You must be signed in to accept this invitation',
+      },
+      { status: 401 }
     )
   }
 
@@ -44,31 +60,33 @@ export async function GET(req: NextRequest) {
       .then((rows) => rows[0])
 
     if (!invitation) {
-      return NextResponse.redirect(
-        new URL(
-          '/invite/invite-error?reason=invalid-token',
-          env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
-        )
+      return NextResponse.json(
+        { success: false, reason: 'invalid-token', error: 'This invitation link is invalid' },
+        { status: 404 }
       )
     }
 
     // Check if invitation has expired
     if (new Date() > new Date(invitation.expiresAt)) {
-      return NextResponse.redirect(
-        new URL(
-          '/invite/invite-error?reason=expired',
-          env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
-        )
+      return NextResponse.json(
+        {
+          success: false,
+          reason: 'expired',
+          error: 'This invitation has expired. Please ask for a new invitation.',
+        },
+        { status: 410 }
       )
     }
 
     // Check if invitation is already accepted
     if (invitation.status !== 'pending') {
-      return NextResponse.redirect(
-        new URL(
-          '/invite/invite-error?reason=already-processed',
-          env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
-        )
+      return NextResponse.json(
+        {
+          success: false,
+          reason: 'already-processed',
+          error: 'This invitation has already been accepted or declined.',
+        },
+        { status: 409 }
       )
     }
 
@@ -107,11 +125,13 @@ export async function GET(req: NextRequest) {
         .where(eq(user.id, session.user.id))
         .then((rows) => rows[0])
 
-      return NextResponse.redirect(
-        new URL(
-          `/invite/invite-error?reason=email-mismatch&details=${encodeURIComponent(`Invitation was sent to ${invitation.email}, but you're logged in as ${userData?.email || session.user.email}`)}`,
-          env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
-        )
+      return NextResponse.json(
+        {
+          success: false,
+          reason: 'email-mismatch',
+          error: `Invitation was sent to ${invitation.email}, but you're logged in as ${userData?.email || session.user.email}`,
+        },
+        { status: 403 }
       )
     }
 
@@ -123,11 +143,13 @@ export async function GET(req: NextRequest) {
       .then((rows) => rows[0])
 
     if (!workspaceDetails) {
-      return NextResponse.redirect(
-        new URL(
-          '/invite/invite-error?reason=workspace-not-found',
-          env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
-        )
+      return NextResponse.json(
+        {
+          success: false,
+          reason: 'workspace-not-found',
+          error: 'The workspace associated with this invitation could not be found.',
+        },
+        { status: 404 }
       )
     }
 
@@ -145,7 +167,7 @@ export async function GET(req: NextRequest) {
       .then((rows) => rows[0])
 
     if (existingPermission) {
-      // User already has permissions, just mark the invitation as accepted and redirect
+      // User already has permissions, just mark the invitation as accepted
       await db
         .update(workspaceInvitation)
         .set({
@@ -154,12 +176,11 @@ export async function GET(req: NextRequest) {
         })
         .where(eq(workspaceInvitation.id, invitation.id))
 
-      return NextResponse.redirect(
-        new URL(
-          `/arena/${invitation.workspaceId}/zelaxy`,
-          env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
-        )
-      )
+      return NextResponse.json({
+        success: true,
+        workspaceId: invitation.workspaceId,
+        alreadyMember: true,
+      })
     }
 
     // Add user permissions and mark invitation as accepted in a transaction
@@ -185,20 +206,20 @@ export async function GET(req: NextRequest) {
         .where(eq(workspaceInvitation.id, invitation.id))
     })
 
-    // Redirect to the workspace
-    return NextResponse.redirect(
-      new URL(
-        `/arena/${invitation.workspaceId}/zelaxy`,
-        env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
-      )
-    )
+    return NextResponse.json({
+      success: true,
+      workspaceId: invitation.workspaceId,
+      alreadyMember: false,
+    })
   } catch (error) {
     console.error('Error accepting invitation:', error)
-    return NextResponse.redirect(
-      new URL(
-        '/invite/invite-error?reason=server-error',
-        env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
-      )
+    return NextResponse.json(
+      {
+        success: false,
+        reason: 'server-error',
+        error: 'An unexpected error occurred while processing your invitation.',
+      },
+      { status: 500 }
     )
   }
 }

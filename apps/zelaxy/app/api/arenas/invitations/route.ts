@@ -1,13 +1,14 @@
 import { randomUUID } from 'crypto'
-import { render } from '@react-email/render'
 import { and, eq, inArray } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
-import { WorkspaceInvitationEmail } from '@/components/emails/workspace-invitation'
+import { z } from 'zod'
 import { getSession } from '@/lib/auth'
-import { env } from '@/lib/env'
+import {
+  findExistingOrgMemberByEmail,
+  grantWorkspaceAccessDirectly,
+} from '@/lib/invitations/direct-grant'
+import { sendWorkspaceInvitationEmail } from '@/lib/invitations/send-workspace-invitation-email'
 import { createLogger } from '@/lib/logs/console/logger'
-import { getEmailDomain } from '@/lib/urls/utils'
 import { db } from '@/db'
 import {
   permissions,
@@ -20,9 +21,15 @@ import {
 export const dynamic = 'force-dynamic'
 
 const logger = createLogger('WorkspaceInvitationsAPI')
-const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
 
 type PermissionType = (typeof permissionTypeEnum.enumValues)[number]
+
+const CreateWorkspaceInvitationSchema = z.object({
+  workspaceId: z.string().min(1, 'Workspace ID is required'),
+  email: z.string().trim().toLowerCase().email('A valid email address is required'),
+  role: z.string().max(50).optional().default('member'),
+  permission: z.enum(['admin', 'write', 'read']).optional().default('read'),
+})
 
 // Get all invitations for the user's workspaces
 export async function GET(req: NextRequest) {
@@ -75,20 +82,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { workspaceId, email, role = 'member', permission = 'read' } = await req.json()
-
-    if (!workspaceId || !email) {
-      return NextResponse.json({ error: 'Workspace ID and email are required' }, { status: 400 })
-    }
-
-    // Validate permission type
-    const validPermissions: PermissionType[] = ['admin', 'write', 'read']
-    if (!validPermissions.includes(permission)) {
-      return NextResponse.json(
-        { error: `Invalid permission: must be one of ${validPermissions.join(', ')}` },
-        { status: 400 }
-      )
-    }
+    const body = await req.json()
+    const { workspaceId, email, role, permission } = CreateWorkspaceInvitationSchema.parse(body)
 
     // Check if user has admin permissions for this workspace
     const userPermission = await db
@@ -153,6 +148,44 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         )
       }
+
+      // Direct-grant fast path: if the invitee is already a member of the organization that
+      // owns this workspace, they're already trusted — skip the token/invitation/accept-click
+      // flow entirely and grant workspace access immediately, with just a notification email.
+      if (workspaceDetails.organizationId) {
+        const existingOrgMember = await findExistingOrgMemberByEmail(
+          workspaceDetails.organizationId,
+          email
+        )
+
+        if (existingOrgMember) {
+          await grantWorkspaceAccessDirectly({
+            userId: existingOrgMember.userId,
+            email,
+            inviterName: session.user.name || session.user.email || 'A team member',
+            workspaces: [{ workspaceId, workspaceName: workspaceDetails.name, permission }],
+          })
+
+          // Clean up any stale pending invitation for this email/workspace so it doesn't
+          // linger as a dead token-based invite once access has already been granted.
+          await db
+            .update(workspaceInvitation)
+            .set({ status: 'accepted', updatedAt: new Date() })
+            .where(
+              and(
+                eq(workspaceInvitation.workspaceId, workspaceId),
+                eq(workspaceInvitation.email, email),
+                eq(workspaceInvitation.status, 'pending')
+              )
+            )
+
+          return NextResponse.json({
+            success: true,
+            directGrant: true,
+            email,
+          })
+        }
+      }
     }
 
     // Check if there's already a pending invitation
@@ -202,7 +235,7 @@ export async function POST(req: NextRequest) {
     await db.insert(workspaceInvitation).values(invitationData)
 
     // Send the invitation email
-    await sendInvitationEmail({
+    await sendWorkspaceInvitationEmail({
       to: email,
       inviterName: session.user.name || session.user.email || 'A user',
       workspaceName: workspaceDetails.name,
@@ -211,62 +244,15 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, invitation: invitationData })
   } catch (error) {
-    logger.error('Error creating workspace invitation:', error)
-    return NextResponse.json({ error: 'Failed to create invitation' }, { status: 500 })
-  }
-}
-
-// Helper function to send invitation email using the Resend API
-async function sendInvitationEmail({
-  to,
-  inviterName,
-  workspaceName,
-  token,
-}: {
-  to: string
-  inviterName: string
-  workspaceName: string
-  token: string
-}) {
-  try {
-    const baseUrl = env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
-    // Always use the client-side invite route with token parameter
-    const invitationLink = `${baseUrl}/invite/${token}?token=${token}`
-
-    const emailHtml = await render(
-      WorkspaceInvitationEmail({
-        workspaceName,
-        inviterName,
-        invitationLink,
-      })
-    )
-
-    if (!resend) {
-      logger.error('RESEND_API_KEY not configured')
+    if (error instanceof z.ZodError) {
+      logger.warn('Invalid workspace invitation request body', { errors: error.errors })
       return NextResponse.json(
-        {
-          error:
-            'Email service not configured. Please set RESEND_API_KEY in environment variables.',
-        },
-        { status: 500 }
+        { error: error.errors[0]?.message || 'Invalid request body', details: error.errors },
+        { status: 400 }
       )
     }
 
-    const emailDomain = env.EMAIL_DOMAIN || getEmailDomain()
-    const fromAddress = `noreply@${emailDomain}`
-
-    logger.info(`Attempting to send email from ${fromAddress} to ${to}`)
-
-    const result = await resend.emails.send({
-      from: fromAddress,
-      to,
-      subject: `You've been invited to join "${workspaceName}" on Zelaxy`,
-      html: emailHtml,
-    })
-
-    logger.info(`Invitation email sent successfully to ${to}`, { result })
-  } catch (error) {
-    logger.error('Error sending invitation email:', error)
-    // Continue even if email fails - the invitation is still created
+    logger.error('Error creating workspace invitation:', error)
+    return NextResponse.json({ error: 'Failed to create invitation' }, { status: 500 })
   }
 }

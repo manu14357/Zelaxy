@@ -9,7 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useSession, useSubscription } from '@/lib/auth-client'
+import { useSession } from '@/lib/auth-client'
+import { cancelRazorpaySubscription } from '@/lib/billing/razorpay-checkout-client'
 import { createLogger } from '@/lib/logs/console/logger'
 import { useOrganizationStore } from '@/stores/organization'
 import { useSubscriptionStore } from '@/stores/subscription/store'
@@ -33,7 +34,6 @@ export function CancelSubscription({ subscription, subscriptionData }: CancelSub
   const [error, setError] = useState<string | null>(null)
 
   const { data: session } = useSession()
-  const betterAuthSubscription = useSubscription()
   const { activeOrganization } = useOrganizationStore()
   const { getSubscriptionStatus } = useSubscriptionStore()
 
@@ -63,18 +63,14 @@ export function CancelSubscription({ subscription, subscriptionData }: CancelSub
         activeOrgId,
       })
 
-      const result = await betterAuthSubscription.cancel({
-        returnUrl: window.location.href,
-        referenceId,
-      })
+      const result = await cancelRazorpaySubscription(referenceId, true)
 
-      if (result && 'error' in result && result.error) {
-        setError(result.error.message || 'Failed to cancel subscription')
-        logger.error('Failed to cancel subscription via Better Auth', { error: result.error })
+      if (!result.success) {
+        setError(result.error || 'Failed to cancel subscription')
+        logger.error('Failed to cancel subscription', { error: result.error })
       } else {
-        // Better Auth cancel redirects to Stripe Billing Portal
-        // So if we reach here without error, the redirect should happen
-        logger.info('Redirecting to Stripe Billing Portal for cancellation')
+        logger.info('Subscription cancellation requested')
+        setIsDialogOpen(false)
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to cancel subscription'
@@ -145,8 +141,8 @@ export function CancelSubscription({ subscription, subscriptionData }: CancelSub
           <DialogHeader>
             <DialogTitle>Cancel {subscription.plan} subscription?</DialogTitle>
             <DialogDescription>
-              You'll be redirected to Stripe to manage your subscription. You'll keep access until{' '}
-              {formatDate(periodEndDate)}, then downgrade to free plan.
+              Your subscription will stop renewing. You'll keep access until{' '}
+              {formatDate(periodEndDate)}, then downgrade to the free plan.
             </DialogDescription>
           </DialogHeader>
 
@@ -166,7 +162,7 @@ export function CancelSubscription({ subscription, subscriptionData }: CancelSub
               Keep Subscription
             </Button>
             <Button variant='destructive' onClick={handleCancel} disabled={isLoading}>
-              {isLoading ? 'Redirecting...' : 'Continue'}
+              {isLoading ? 'Canceling…' : 'Continue'}
             </Button>
           </DialogFooter>
         </DialogContent>

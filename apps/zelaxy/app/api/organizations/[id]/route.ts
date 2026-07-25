@@ -5,7 +5,6 @@ import { getSession } from '@/lib/auth'
 import {
   getOrganizationSeatAnalytics,
   getOrganizationSeatInfo,
-  updateOrganizationSeats,
 } from '@/lib/billing/validation/seat-management'
 import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
@@ -133,33 +132,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
-    // Handle seat count update
+    // Seat count is intentionally NOT settable through this route: it used to
+    // write subscription.seats directly to Postgres without ever calling the
+    // payment provider, so any org admin could raise their billed-looking
+    // seat count (and therefore usage headroom, since headroom derives from
+    // seats × pricePerSeat) with no corresponding Razorpay charge. The
+    // correct, Razorpay-syncing path is POST /api/billing/subscription/seats
+    // via addSeats()/reduceSeats() in stores/organization/store.ts.
     if (seats !== undefined) {
-      if (typeof seats !== 'number' || seats < 1) {
-        return NextResponse.json({ error: 'Invalid seat count' }, { status: 400 })
-      }
-
-      const result = await updateOrganizationSeats(organizationId, seats, session.user.id)
-
-      if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: 400 })
-      }
-
-      logger.info('Organization seat count updated', {
-        organizationId,
-        newSeatCount: seats,
-        updatedBy: session.user.id,
-      })
-
-      return NextResponse.json({
-        success: true,
-        message: 'Seat count updated successfully',
-        data: {
-          seats: seats,
-          updatedBy: session.user.id,
-          updatedAt: new Date().toISOString(),
+      return NextResponse.json(
+        {
+          error:
+            'Seat count cannot be changed via this endpoint. Use the seat management UI so seats stay in sync with Razorpay billing.',
         },
-      })
+        { status: 400 }
+      )
     }
 
     // Handle settings update

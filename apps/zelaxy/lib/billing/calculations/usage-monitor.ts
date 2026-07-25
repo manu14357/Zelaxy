@@ -16,6 +16,8 @@ interface UsageData {
   isExceeded: boolean
   currentUsage: number
   limit: number
+  /** true if a usage-billing invoice payment failed and access is on hold — distinct from ordinary usage-limit exhaustion */
+  isBillingBlocked?: boolean
 }
 
 /**
@@ -74,7 +76,13 @@ export async function checkUsageStatus(userId: string): Promise<UsageData> {
 
     // Check if usage exceeds threshold or limit
     const isWarning = percentUsed >= WARNING_THRESHOLD && percentUsed < 100
-    const isExceeded = currentUsage >= limit
+    const isBillingBlocked = statsRecords[0].billingBlocked === true
+    // A billing block gates access the same way an exceeded limit does (this
+    // reuses checkServerSideUsageLimits's existing isExceeded gate rather
+    // than requiring every call site to separately check a new flag) but is
+    // reported as a distinct reason so the message shown isn't the wrong one
+    // ("upgrade your plan" when the real issue is a failed card charge).
+    const isExceeded = currentUsage >= limit || isBillingBlocked
 
     logger.info('Final usage statistics', {
       userId,
@@ -83,6 +91,7 @@ export async function checkUsageStatus(userId: string): Promise<UsageData> {
       percentUsed,
       isWarning,
       isExceeded,
+      isBillingBlocked,
     })
 
     return {
@@ -91,6 +100,7 @@ export async function checkUsageStatus(userId: string): Promise<UsageData> {
       isExceeded,
       currentUsage,
       limit,
+      isBillingBlocked,
     }
   } catch (error) {
     logger.error('Error checking usage status', {
@@ -180,6 +190,7 @@ export async function checkServerSideUsageLimits(userId: string): Promise<{
   currentUsage: number
   limit: number
   message?: string
+  isBillingBlocked?: boolean
 }> {
   try {
     // If billing is disabled, always allow execution
@@ -200,9 +211,12 @@ export async function checkServerSideUsageLimits(userId: string): Promise<{
       isExceeded: usageData.isExceeded,
       currentUsage: usageData.currentUsage,
       limit: usageData.limit,
-      message: usageData.isExceeded
-        ? `Usage limit exceeded: ${usageData.currentUsage?.toFixed(2) || 0}$ used of ${usageData.limit?.toFixed(2) || 0}$ limit. Please upgrade your plan to continue.`
-        : undefined,
+      isBillingBlocked: usageData.isBillingBlocked,
+      message: usageData.isBillingBlocked
+        ? 'Your account is on hold because a payment failed. Please update your payment method to continue.'
+        : usageData.isExceeded
+          ? `Usage limit exceeded: ${usageData.currentUsage?.toFixed(2) || 0}$ used of ${usageData.limit?.toFixed(2) || 0}$ limit. Please upgrade your plan to continue.`
+          : undefined,
     }
   } catch (error) {
     logger.error('Error in server-side usage limit check', {

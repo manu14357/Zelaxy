@@ -1,9 +1,7 @@
 import { ssoClient } from '@better-auth/sso/client'
-import { stripeClient } from '@better-auth/stripe/client'
 import { emailOTPClient, genericOAuthClient, organizationClient } from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
 import { env, getEnv } from '@/lib/env'
-import { isDev, isProd } from '@/lib/environment'
 
 export function getBaseURL() {
   let baseURL
@@ -21,46 +19,15 @@ export function getBaseURL() {
   return baseURL
 }
 
+// Subscription management (upgrade/cancel) is NOT a better-auth client
+// plugin here - unlike Stripe, Razorpay has no official better-auth
+// integration, so it's handled by our own API routes + the Razorpay
+// Checkout widget instead. See lib/billing/razorpay-checkout-client.ts.
 export const client = createAuthClient({
   baseURL: getBaseURL(),
-  plugins: [
-    emailOTPClient(),
-    genericOAuthClient(),
-    ssoClient(),
-    // Only include Stripe client in production
-    ...(isProd
-      ? [
-          stripeClient({
-            subscription: true, // Enable subscription management
-          }),
-        ]
-      : []),
-    organizationClient(),
-  ],
+  plugins: [emailOTPClient(), genericOAuthClient(), ssoClient(), organizationClient()],
 })
 
 export const { useSession, useActiveOrganization } = client
-
-export const useSubscription = () => {
-  // In development, provide mock implementations
-  if (isDev) {
-    return {
-      list: async () => ({ data: [] }),
-      upgrade: async () => ({
-        error: { message: 'Subscriptions are disabled in development mode' },
-      }),
-      cancel: async () => ({ data: null }),
-      restore: async () => ({ data: null }),
-    }
-  }
-
-  // In production, use the real implementation
-  return {
-    list: client.subscription?.list,
-    upgrade: client.subscription?.upgrade,
-    cancel: client.subscription?.cancel,
-    restore: client.subscription?.restore,
-  }
-}
 
 export const { signIn, signUp, signOut } = client

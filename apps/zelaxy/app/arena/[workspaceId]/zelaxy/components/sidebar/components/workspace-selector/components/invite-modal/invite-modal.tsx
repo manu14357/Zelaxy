@@ -1,7 +1,7 @@
 'use client'
 
 import React, { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2, X } from 'lucide-react'
+import { Loader2, RotateCw, X } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import {
   AlertDialog,
@@ -60,6 +60,8 @@ interface PermissionsTableProps {
   onPermissionChange: (userId: string, permissionType: PermissionType) => void
   onRemoveMember?: (userId: string, email: string) => void
   onRemoveInvitation?: (invitationId: string, email: string) => void
+  onResendInvitation?: (invitationId: string, email: string) => void
+  resendingInvitationId?: string | null
   disabled?: boolean
   existingUserPermissionChanges: Record<string, Partial<UserPermissions>>
   isSaving?: boolean
@@ -176,6 +178,8 @@ const PermissionsTable = ({
   onPermissionChange,
   onRemoveMember,
   onRemoveInvitation,
+  onResendInvitation,
+  resendingInvitationId,
   disabled,
   existingUserPermissionChanges,
   isSaving,
@@ -335,6 +339,35 @@ const PermissionsTable = ({
                     className='w-auto'
                   />
 
+                  {isPendingInvitation &&
+                    currentUserIsAdmin &&
+                    user.invitationId &&
+                    onResendInvitation && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant='ghost'
+                            size='icon'
+                            onClick={() => onResendInvitation(user.invitationId!, user.email)}
+                            disabled={
+                              disabled || isSaving || resendingInvitationId === user.invitationId
+                            }
+                            className='h-4 w-4 p-0 text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground'
+                          >
+                            {resendingInvitationId === user.invitationId ? (
+                              <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                            ) : (
+                              <RotateCw className='h-3.5 w-3.5' />
+                            )}
+                            <span className='sr-only'>Resend invite</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Resend invite</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
                   {/* X button with consistent spacing - always reserve space */}
                   <div className='flex h-4 w-4 items-center justify-center'>
                     {((canShowRemoveButton && onRemoveMember) ||
@@ -408,6 +441,7 @@ export function InviteModal({ open, onOpenChange, workspaceName }: InviteModalPr
     email: string
   } | null>(null)
   const [isRemovingInvitation, setIsRemovingInvitation] = useState(false)
+  const [resendingInvitationId, setResendingInvitationId] = useState<string | null>(null)
   const params = useParams()
   const workspaceId = params.workspaceId as string
 
@@ -743,6 +777,41 @@ export function InviteModal({ open, onOpenChange, workspaceName }: InviteModalPr
     setInvitationToRemove(null)
   }, [])
 
+  const handleResendInvitation = useCallback(
+    async (invitationId: string, email: string) => {
+      if (!userPerms.canAdmin) return
+
+      setResendingInvitationId(invitationId)
+      setErrorMessage(null)
+
+      try {
+        const response = await fetch(`/api/arenas/invitations/${invitationId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to resend invitation')
+        }
+
+        setSuccessMessage(`Invitation for ${email} has been resent`)
+        setTimeout(() => setSuccessMessage(null), 3000)
+      } catch (error) {
+        logger.error('Error resending invitation:', error)
+        const errorMsg =
+          error instanceof Error ? error.message : 'Failed to resend invitation. Please try again.'
+        setErrorMessage(errorMsg)
+      } finally {
+        setResendingInvitationId(null)
+      }
+    },
+    [userPerms.canAdmin]
+  )
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
       if (['Enter', ',', ' '].includes(e.key) && inputValue.trim()) {
@@ -909,6 +978,7 @@ export function InviteModal({ open, onOpenChange, workspaceName }: InviteModalPr
     setIsRemovingMember(false)
     setInvitationToRemove(null)
     setIsRemovingInvitation(false)
+    setResendingInvitationId(null)
   }, [])
 
   return (
@@ -984,6 +1054,8 @@ export function InviteModal({ open, onOpenChange, workspaceName }: InviteModalPr
               onPermissionChange={handlePermissionChange}
               onRemoveMember={handleRemoveMemberClick}
               onRemoveInvitation={handleRemoveInvitationClick}
+              onResendInvitation={handleResendInvitation}
+              resendingInvitationId={resendingInvitationId}
               disabled={isSubmitting || isSaving || isRemovingMember || isRemovingInvitation}
               existingUserPermissionChanges={existingUserPermissionChanges}
               isSaving={isSaving}
