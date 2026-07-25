@@ -50,6 +50,27 @@ function buildCheckoutBranding(prefillEmail?: string, prefillName?: string) {
   return branding
 }
 
+/**
+ * Turns Razorpay's failure copy into something a Zelaxy customer can act on.
+ *
+ * Razorpay writes its `description` for the *merchant's* own support desk -
+ * "contact our support team" means Razorpay's, which reads as nonsense inside
+ * our checkout - and a couple of the `source: "business"` reasons are really
+ * merchant account configuration rather than anything the customer did wrong.
+ * Anything unrecognised is passed through untouched, since Razorpay's card
+ * decline messages are already clear and rewriting them would lose detail.
+ */
+function describePaymentFailure(error?: { description?: string; reason?: string }): string {
+  switch (error?.reason) {
+    case 'international_transaction_not_allowed':
+      return 'That card was issued outside India, which this account cannot charge yet. Please use an Indian card.'
+    case 'recurring_payment_not_enabled':
+      return 'Automatic monthly billing is not available on this account yet.'
+    default:
+      return error?.description || 'Payment failed'
+  }
+}
+
 async function dismissBlockingOverlays(): Promise<void> {
   window.dispatchEvent(new CustomEvent(CLOSE_OVERLAYS_EVENT))
   // Let the close animation finish so Radix restores pointer-events on
@@ -491,7 +512,7 @@ async function openSubscriptionCheckoutWidget(
       logger.error('Razorpay payment failed', { response })
       settle({
         success: false,
-        error: failure.error?.description || 'Payment failed',
+        error: describePaymentFailure(failure.error),
         // Razorpay refuses the mandate at payment time on accounts without
         // Recurring Payments; the caller retries the month as a one-off.
         recurringRefused:
