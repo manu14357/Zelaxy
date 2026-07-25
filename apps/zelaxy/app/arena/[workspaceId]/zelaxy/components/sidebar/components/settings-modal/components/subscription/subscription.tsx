@@ -87,16 +87,6 @@ export function Subscription({ onOpenChange }: SubscriptionProps) {
           prefillName: session.user.name,
         })
 
-        // The embedded widget never ran (blocked by an extension, tracking
-        // prevention or policy). Send them to Razorpay's hosted page instead of
-        // leaving them on a dead "refused to connect" frame - the plan is
-        // reconciled by resumePendingSubscription when they come back.
-        if (result.blocked && result.hostedUrl) {
-          toast.info('Opening the secure payment page…')
-          window.location.href = result.hostedUrl
-          return
-        }
-
         if (!result.success) {
           // Closing the widget is a normal thing to do, not an error worth
           // interrupting the user over.

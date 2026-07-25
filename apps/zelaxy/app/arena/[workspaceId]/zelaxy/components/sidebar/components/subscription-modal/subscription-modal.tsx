@@ -92,7 +92,15 @@ export function SubscriptionModal({ open, onOpenChange }: SubscriptionModalProps
           // Closing the widget without paying is normal, not an error.
           if (result.dismissed) return
           logger.error('Failed to complete subscription upgrade:', result.error)
-          toast.error(result.error || 'Could not complete the upgrade')
+          toast.error(result.error || 'Could not complete the upgrade', {
+            action: result.hostedUrl
+              ? {
+                  label: 'Open payment page',
+                  onClick: () => window.open(result.hostedUrl, '_blank', 'noopener'),
+                }
+              : undefined,
+            duration: 10000,
+          })
           return
         }
 

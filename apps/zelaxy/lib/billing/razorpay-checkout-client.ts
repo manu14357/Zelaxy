@@ -71,16 +71,27 @@ function keepCheckoutInteractive(): void {
   }, 300)
 }
 
-/** How long to wait for the checkout iframe to show any sign of life. */
-const BLOCKED_CHECKOUT_TIMEOUT_MS = 9000
+/**
+ * How long to wait for the checkout iframe to show any sign of life before
+ * treating it as blocked. Deliberately generous: this used to be 9s, which
+ * sounded reasonable against a fast local connection but was long enough to
+ * misfire for real users on a slower network or a busier machine, where the
+ * iframe was genuinely still loading rather than blocked. Because a false
+ * positive here used to force-navigate the customer away from a widget that
+ * would have worked fine, it's now only ever a passive fallback offer (see
+ * the caller) - so erring toward fewer, later false positives is the safe
+ * direction to round this timeout in.
+ */
+const BLOCKED_CHECKOUT_TIMEOUT_MS = 20000
 
 /**
  * Watches for the checkout iframe reporting in. A checkout that actually runs
- * posts messages to its opener almost immediately; total silence means the
- * frame never executed. There is no way to feature-detect an extension or a
+ * posts messages to its opener within a second or two on a normal connection;
+ * total silence for BLOCKED_CHECKOUT_TIMEOUT_MS means the frame most likely
+ * never executed. There is no way to feature-detect an extension or a
  * tracking-prevention rule blocking a third-party payment iframe - the parent
  * page just sees an opaque, permanently blank frame - so absence of chatter is
- * the only signal available.
+ * the only signal available, and it's a heuristic, not a certainty.
  */
 function createBlockedCheckoutWatchdog(onBlocked: () => void) {
   let sawCheckoutActivity = false
@@ -269,13 +280,19 @@ export async function openRazorpaySubscriptionCheckout(
     await dismissBlockingOverlays()
 
     return await new Promise<SubscriptionCheckoutResult>((resolve) => {
-      // A checkout that actually renders chats to its opener over postMessage
-      // within a second or two. Silence means the iframe never ran - blocked by
-      // an extension, tracking prevention or an enterprise policy, none of
-      // which we can see or feature-detect. Rather than leave the customer
-      // staring at "refused to connect", hand them Razorpay's hosted page.
+      // If the frame never reports in, surface it as an ordinary failure with
+      // the hosted page offered as a manual, user-chosen action (new tab) -
+      // never navigate the current tab automatically. The widget may simply
+      // still be loading, and force-navigating away from a working-but-slow
+      // widget is worse than doing nothing: it silently abandons whatever the
+      // customer was doing in it.
       const watchdog = createBlockedCheckoutWatchdog(() =>
-        resolve({ success: false, blocked: true, hostedUrl: shortUrl })
+        resolve({
+          success: false,
+          blocked: true,
+          error: "The payment window didn't load. This can happen with some browser extensions.",
+          hostedUrl: shortUrl,
+        })
       )
 
       const settle = (result: SubscriptionCheckoutResult) => {
