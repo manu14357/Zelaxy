@@ -191,26 +191,6 @@ export function getWorkflowExecutionCSPPolicy(): string {
 }
 
 /**
- * Without an explicit Permissions-Policy header, browsers default most
- * features (including device-motion ones) to an allowlist of `self` -
- * cross-origin content gets denied regardless of what that content's own
- * iframe wants, since the top-level document is the ultimate gate. Razorpay
- * Checkout's fraud-detection bundle asks for accelerometer/gyroscope/
- * magnetometer as a genuine anti-fraud signal (device-tilt data is a real
- * signal banks use), and without this it's silently denied - harmless to
- * the payment itself, but it does mean Razorpay's fraud scoring runs with
- * less signal than it's designed to have. Unlike Permissions-Policy origins
- * don't support wildcard subdomains the way CSP sources do, so this lists
- * the iframe's actual host rather than reusing RAZORPAY_HOSTS.
- */
-export function generateRazorpayPermissionsPolicy(): string {
-  const origin = '"https://api.razorpay.com"'
-  return ['accelerometer', 'gyroscope', 'magnetometer']
-    .map((feature) => `${feature}=(self ${origin})`)
-    .join(', ')
-}
-
-/**
  * Add a source to a specific directive (modifies build-time directives)
  */
 export function addCSPSource(directive: keyof CSPDirectives, source: string): void {

@@ -2,7 +2,7 @@ import { getSessionCookie } from 'better-auth/cookies'
 import { type NextRequest, NextResponse } from 'next/server'
 import { isDev } from './lib/environment'
 import { createLogger } from './lib/logs/console/logger'
-import { generateRazorpayPermissionsPolicy, generateRuntimeCSP } from './lib/security/csp'
+import { generateRuntimeCSP } from './lib/security/csp'
 import { getBaseDomain } from './lib/urls/utils'
 
 const logger = createLogger('Middleware')
@@ -258,7 +258,6 @@ export async function middleware(request: NextRequest) {
     url.pathname === '/'
   ) {
     response.headers.set('Content-Security-Policy', generateRuntimeCSP())
-    response.headers.set('Permissions-Policy', generateRazorpayPermissionsPolicy())
   }
 
   return response
