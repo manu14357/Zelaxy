@@ -185,6 +185,50 @@ export interface SubscriptionCheckoutResult {
  */
 const PENDING_SUBSCRIPTION_KEY = 'zelaxy.pendingSubscription'
 
+/**
+ * Query param stamped onto the current URL for as long as Checkout is open.
+ * The widget itself is a same-page overlay with no navigation of its own -
+ * without this the address bar visibly doesn't change while a payment is in
+ * progress, which reads as broken even though the widget is working. This is
+ * cosmetic (a plain history.pushState, not a Next.js route change - nothing
+ * re-renders because of it) but it also means the subscription id survives a
+ * hard refresh even in the rare case sessionStorage doesn't (private mode,
+ * or the pending record already being cleared), giving resumePendingSubscription
+ * a second, independent way to find it.
+ */
+const CHECKOUT_URL_PARAM = 'checkout'
+
+function setCheckoutUrlParam(subscriptionId: string): void {
+  try {
+    const url = new URL(window.location.href)
+    url.searchParams.set(CHECKOUT_URL_PARAM, subscriptionId)
+    window.history.pushState(null, '', url)
+  } catch {
+    // Purely cosmetic - a failure here just means the URL doesn't reflect
+    // the in-progress checkout, the checkout itself is unaffected.
+  }
+}
+
+function clearCheckoutUrlParam(): void {
+  try {
+    const url = new URL(window.location.href)
+    if (!url.searchParams.has(CHECKOUT_URL_PARAM)) return
+    url.searchParams.delete(CHECKOUT_URL_PARAM)
+    window.history.replaceState(null, '', url)
+  } catch {
+    // no-op - see setCheckoutUrlParam
+  }
+}
+
+function readCheckoutUrlParam(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return new URL(window.location.href).searchParams.get(CHECKOUT_URL_PARAM)
+  } catch {
+    return null
+  }
+}
+
 export interface PendingSubscription {
   subscriptionId: string
   plan: 'pro' | 'team'
@@ -277,6 +321,7 @@ export async function openRazorpaySubscriptionCheckout(
       // subscription.activated webhook, it just won't settle instantly.
     }
 
+    setCheckoutUrlParam(subscriptionId)
     await dismissBlockingOverlays()
 
     return await new Promise<SubscriptionCheckoutResult>((resolve) => {
@@ -286,19 +331,20 @@ export async function openRazorpaySubscriptionCheckout(
       // still be loading, and force-navigating away from a working-but-slow
       // widget is worse than doing nothing: it silently abandons whatever the
       // customer was doing in it.
+      const settle = (result: SubscriptionCheckoutResult) => {
+        watchdog.cancel()
+        clearCheckoutUrlParam()
+        resolve(result)
+      }
+
       const watchdog = createBlockedCheckoutWatchdog(() =>
-        resolve({
+        settle({
           success: false,
           blocked: true,
           error: "The payment window didn't load. This can happen with some browser extensions.",
           hostedUrl: shortUrl,
         })
       )
-
-      const settle = (result: SubscriptionCheckoutResult) => {
-        watchdog.cancel()
-        resolve(result)
-      }
 
       const razorpay = new window.Razorpay!({
         key: keyId,
@@ -372,16 +418,24 @@ export interface ResumePendingSubscriptionResult {
  * checkout, asks the server to reconcile that subscription so the new plan
  * shows up immediately. A still-unpaid subscription (they hit back or
  * cancelled) is simply dropped, leaving them on their current plan.
+ *
+ * The subscription id normally comes from sessionStorage, but a refresh
+ * mid-payment (the widget itself has no persistence across a full page
+ * reload - no payment widget's does, since card fields can't survive a
+ * reload for PCI reasons) can only restore the id itself, not any card
+ * details already typed. The `checkout` URL param is a second, independent
+ * source for that id, in case sessionStorage was ever unavailable.
  */
 export async function resumePendingSubscription(): Promise<ResumePendingSubscriptionResult> {
   const pending = readPendingSubscription()
-  if (!pending?.subscriptionId) return { activated: false }
+  const subscriptionId = pending?.subscriptionId || readCheckoutUrlParam()
+  if (!subscriptionId) return { activated: false }
 
   try {
     const response = await fetch('/api/billing/subscription/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscriptionId: pending.subscriptionId }),
+      body: JSON.stringify({ subscriptionId }),
     })
 
     // Leave the parked state alone on a transient failure (a 401 while the
@@ -391,20 +445,21 @@ export async function resumePendingSubscription(): Promise<ResumePendingSubscrip
       return { activated: false }
     }
 
-    const { activated } = await response.json()
+    const { activated, plan: activatedPlan } = await response.json()
+    const plan = activatedPlan || pending?.plan
+
+    clearCheckoutUrlParam()
 
     // Keep the parked state only while the mandate is still genuinely
     // pending, so a customer who steps away mid-payment and returns later
     // in the same tab still gets it picked up.
     if (activated) {
       clearPendingSubscription()
-      logger.info('Subscription activated after returning from hosted checkout', {
-        plan: pending.plan,
-      })
-      return { activated: true, plan: pending.plan }
+      logger.info('Subscription activated after returning from hosted checkout', { plan })
+      return { activated: true, plan }
     }
 
-    return { activated: false, plan: pending.plan }
+    return { activated: false, plan }
   } catch (error) {
     logger.error('Failed to resume pending subscription', { error })
     return { activated: false }
