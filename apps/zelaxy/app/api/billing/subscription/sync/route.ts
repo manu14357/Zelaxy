@@ -69,17 +69,28 @@ export async function POST(request: NextRequest) {
     const razorpay = requireRazorpayClient()
     const remote = await razorpay.subscriptions.fetch(subscriptionId)
 
+    const notes = (remote.notes || {}) as Record<string, string>
+    const referenceId = notes.zelaxyReferenceId || row.referenceId
+    const plan = notes.zelaxyPlan || row.plan
+
     if (!PAID_STATUSES.has(remote.status)) {
       logger.info('Pending subscription is not paid yet', {
         subscriptionId,
         status: remote.status,
       })
-      return NextResponse.json({ status: remote.status, activated: false })
+      // `resumable` distinguishes "the customer can still pay this" from
+      // "this one is dead" (cancelled/expired). Razorpay keeps a subscription
+      // in `created` until the authorisation payment succeeds, so a customer
+      // who reloaded mid-payment can be handed the very same subscription
+      // again rather than having a second one created for the same intent.
+      return NextResponse.json({
+        status: remote.status,
+        activated: false,
+        resumable: remote.status === 'created',
+        plan,
+        shortUrl: remote.short_url,
+      })
     }
-
-    const notes = (remote.notes || {}) as Record<string, string>
-    const referenceId = notes.zelaxyReferenceId || row.referenceId
-    const plan = notes.zelaxyPlan || row.plan
 
     await handleSubscriptionActivated({
       razorpaySubscriptionId: subscriptionId,

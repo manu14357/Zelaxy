@@ -486,10 +486,20 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
 
 // Auto-load subscription data when store is first accessed
 if (typeof window !== 'undefined') {
-  // If the user just came back from Razorpay's hosted checkout page,
-  // reconcile that subscription first so the very first render already shows
-  // the upgraded plan instead of briefly flashing the old one.
-  void resumePendingSubscription()
-    .catch(() => ({ activated: false }))
-    .then(() => useSubscriptionStore.getState().loadData())
+  // Load first so the UI isn't blocked behind a checkout the customer may be
+  // sitting in for minutes, then reconcile (and possibly reopen) whatever
+  // payment was in flight. `refresh` rather than `loadData` on the way out:
+  // an activation just changed the plan, and loadData would hand back the
+  // pre-upgrade snapshot still sitting in the 30s cache.
+  void useSubscriptionStore
+    .getState()
+    .loadData()
+    .then(() => resumePendingSubscription())
+    .then((result) => {
+      if (result.activated) return useSubscriptionStore.getState().refresh()
+    })
+    .catch(() => {
+      // Resuming is best-effort - the subscription.activated webhook remains
+      // the source of truth, so a failure here only delays the UI catching up.
+    })
 }

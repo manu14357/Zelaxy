@@ -321,83 +321,13 @@ export async function openRazorpaySubscriptionCheckout(
       // subscription.activated webhook, it just won't settle instantly.
     }
 
-    setCheckoutUrlParam(subscriptionId)
-    await dismissBlockingOverlays()
-
-    return await new Promise<SubscriptionCheckoutResult>((resolve) => {
-      // If the frame never reports in, surface it as an ordinary failure with
-      // the hosted page offered as a manual, user-chosen action (new tab) -
-      // never navigate the current tab automatically. The widget may simply
-      // still be loading, and force-navigating away from a working-but-slow
-      // widget is worse than doing nothing: it silently abandons whatever the
-      // customer was doing in it.
-      const settle = (result: SubscriptionCheckoutResult) => {
-        watchdog.cancel()
-        clearCheckoutUrlParam()
-        resolve(result)
-      }
-
-      const watchdog = createBlockedCheckoutWatchdog(() =>
-        settle({
-          success: false,
-          blocked: true,
-          error: "The payment window didn't load. This can happen with some browser extensions.",
-          hostedUrl: shortUrl,
-        })
-      )
-
-      const razorpay = new window.Razorpay!({
-        key: keyId,
-        subscription_id: subscriptionId,
-        description: `${params.plan === 'pro' ? 'Pro' : 'Team'} plan subscription`,
-        ...buildCheckoutBranding(params.prefillEmail, params.prefillName),
-        handler: async (response: unknown) => {
-          const payload = response as {
-            razorpay_payment_id: string
-            razorpay_subscription_id: string
-            razorpay_signature: string
-          }
-          try {
-            const verifyResponse = await fetch('/api/billing/subscription/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            })
-
-            if (!verifyResponse.ok) {
-              const errorData = await verifyResponse.json().catch(() => ({}))
-              // Leave the parked state in place - the payment did go through,
-              // so resumePendingSubscription can still settle it on reload.
-              settle({ success: false, error: errorData.error || 'Failed to verify payment' })
-              return
-            }
-
-            clearPendingSubscription()
-            settle({ success: true })
-          } catch (error) {
-            logger.error('Failed to verify subscription payment', { error })
-            settle({ success: false, error: 'Failed to verify payment' })
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            settle({ success: false, dismissed: true, hostedUrl: shortUrl })
-          },
-        },
-      })
-
-      razorpay.on('payment.failed', (response: unknown) => {
-        const failure = response as { error?: { description?: string } }
-        logger.error('Razorpay payment failed', { response })
-        settle({
-          success: false,
-          error: failure.error?.description || 'Payment failed',
-          hostedUrl: shortUrl,
-        })
-      })
-
-      razorpay.open()
-      keepCheckoutInteractive()
+    return await openSubscriptionCheckoutWidget({
+      keyId,
+      subscriptionId,
+      plan: params.plan,
+      shortUrl,
+      prefillEmail: params.prefillEmail,
+      prefillName: params.prefillName,
     })
   } catch (error) {
     logger.error('Failed to open subscription checkout', { error })
@@ -408,23 +338,129 @@ export async function openRazorpaySubscriptionCheckout(
   }
 }
 
-export interface ResumePendingSubscriptionResult {
-  activated: boolean
-  plan?: 'pro' | 'team'
+interface OpenCheckoutWidgetParams {
+  keyId: string
+  subscriptionId: string
+  plan: 'pro' | 'team'
+  shortUrl?: string
+  prefillEmail?: string
+  prefillName?: string
 }
 
 /**
- * Called on app load. If the customer just came back from Razorpay's hosted
- * checkout, asks the server to reconcile that subscription so the new plan
- * shows up immediately. A still-unpaid subscription (they hit back or
- * cancelled) is simply dropped, leaving them on their current plan.
+ * Opens Razorpay Checkout for an already-created subscription and resolves
+ * once the flow settles. Split out from openRazorpaySubscriptionCheckout so a
+ * checkout interrupted by a page reload can be reopened against the *same*
+ * Razorpay subscription, rather than abandoning it and creating another one
+ * for the same intent.
+ */
+async function openSubscriptionCheckoutWidget(
+  params: OpenCheckoutWidgetParams
+): Promise<SubscriptionCheckoutResult> {
+  const { keyId, subscriptionId, plan, shortUrl } = params
+
+  setCheckoutUrlParam(subscriptionId)
+  await dismissBlockingOverlays()
+
+  return await new Promise<SubscriptionCheckoutResult>((resolve) => {
+    // If the frame never reports in, surface it as an ordinary failure with
+    // the hosted page offered as a manual, user-chosen action (new tab) -
+    // never navigate the current tab automatically. The widget may simply
+    // still be loading, and force-navigating away from a working-but-slow
+    // widget is worse than doing nothing: it silently abandons whatever the
+    // customer was doing in it.
+    const settle = (result: SubscriptionCheckoutResult) => {
+      watchdog.cancel()
+      clearCheckoutUrlParam()
+      resolve(result)
+    }
+
+    const watchdog = createBlockedCheckoutWatchdog(() =>
+      settle({
+        success: false,
+        blocked: true,
+        error: "The payment window didn't load. This can happen with some browser extensions.",
+        hostedUrl: shortUrl,
+      })
+    )
+
+    const razorpay = new window.Razorpay!({
+      key: keyId,
+      subscription_id: subscriptionId,
+      description: `${plan === 'pro' ? 'Pro' : 'Team'} plan subscription`,
+      ...buildCheckoutBranding(params.prefillEmail, params.prefillName),
+      handler: async (response: unknown) => {
+        const payload = response as {
+          razorpay_payment_id: string
+          razorpay_subscription_id: string
+          razorpay_signature: string
+        }
+        try {
+          const verifyResponse = await fetch('/api/billing/subscription/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+
+          if (!verifyResponse.ok) {
+            const errorData = await verifyResponse.json().catch(() => ({}))
+            // Leave the parked state in place - the payment did go through,
+            // so resumePendingSubscription can still settle it on reload.
+            settle({ success: false, error: errorData.error || 'Failed to verify payment' })
+            return
+          }
+
+          clearPendingSubscription()
+          settle({ success: true })
+        } catch (error) {
+          logger.error('Failed to verify subscription payment', { error })
+          settle({ success: false, error: 'Failed to verify payment' })
+        }
+      },
+      modal: {
+        ondismiss: () => {
+          settle({ success: false, dismissed: true, hostedUrl: shortUrl })
+        },
+      },
+    })
+
+    razorpay.on('payment.failed', (response: unknown) => {
+      const failure = response as { error?: { description?: string } }
+      logger.error('Razorpay payment failed', { response })
+      settle({
+        success: false,
+        error: failure.error?.description || 'Payment failed',
+        hostedUrl: shortUrl,
+      })
+    })
+
+    razorpay.open()
+    keepCheckoutInteractive()
+  })
+}
+
+export interface ResumePendingSubscriptionResult {
+  activated: boolean
+  plan?: 'pro' | 'team'
+  /** True when an interrupted checkout was reopened for the customer. */
+  resumed?: boolean
+}
+
+/**
+ * Called on app load, and the reason a reload mid-payment isn't a dead end.
  *
- * The subscription id normally comes from sessionStorage, but a refresh
- * mid-payment (the widget itself has no persistence across a full page
- * reload - no payment widget's does, since card fields can't survive a
- * reload for PCI reasons) can only restore the id itself, not any card
- * details already typed. The `checkout` URL param is a second, independent
- * source for that id, in case sessionStorage was ever unavailable.
+ * Razorpay leaves a subscription in `created` until its authorisation payment
+ * succeeds, so an interrupted checkout is still payable afterwards. This
+ * looks up whichever subscription was in flight - from sessionStorage, or
+ * from the `?checkout=` URL param, which survives even where sessionStorage
+ * doesn't - and then either settles it (already paid, e.g. paid then
+ * reloaded) or reopens Checkout against that same subscription. Without this
+ * a reload dropped the customer back on the canvas with the payment silently
+ * abandoned, and a retry would mint a second subscription for one intent.
+ *
+ * What still cannot survive a reload is anything already typed into the card
+ * fields: those live in Razorpay's cross-origin iframe and are deliberately
+ * non-persistent for PCI reasons, as in every card widget.
  */
 export async function resumePendingSubscription(): Promise<ResumePendingSubscriptionResult> {
   const pending = readPendingSubscription()
@@ -445,20 +481,51 @@ export async function resumePendingSubscription(): Promise<ResumePendingSubscrip
       return { activated: false }
     }
 
-    const { activated, plan: activatedPlan } = await response.json()
-    const plan = activatedPlan || pending?.plan
+    const {
+      activated,
+      plan: syncedPlan,
+      resumable,
+      shortUrl,
+    } = (await response.json()) as {
+      activated: boolean
+      plan?: 'pro' | 'team'
+      resumable?: boolean
+      shortUrl?: string
+    }
+    const plan = syncedPlan || pending?.plan
 
-    clearCheckoutUrlParam()
-
-    // Keep the parked state only while the mandate is still genuinely
-    // pending, so a customer who steps away mid-payment and returns later
-    // in the same tab still gets it picked up.
     if (activated) {
       clearPendingSubscription()
-      logger.info('Subscription activated after returning from hosted checkout', { plan })
+      clearCheckoutUrlParam()
+      logger.info('Pending subscription settled on load', { plan })
       return { activated: true, plan }
     }
 
+    // Still payable - put the customer back where they were.
+    const keyId = env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+    if (resumable && plan && keyId) {
+      await loadRazorpayCheckoutScript()
+      if (window.Razorpay) {
+        logger.info('Reopening interrupted checkout', { subscriptionId, plan })
+        const result = await openSubscriptionCheckoutWidget({
+          keyId,
+          subscriptionId,
+          plan,
+          shortUrl,
+        })
+        // Either way the customer has now had their chance at this one, so
+        // stop tracking it - otherwise dismissing the reopened widget would
+        // just have it reappear on every subsequent reload. The
+        // subscription.activated webhook still covers the case where they
+        // did pay and something went wrong locally.
+        clearPendingSubscription()
+        return { activated: result.success, plan, resumed: true }
+      }
+    }
+
+    // Dead (cancelled/expired) or not resumable - stop tracking it.
+    clearPendingSubscription()
+    clearCheckoutUrlParam()
     return { activated: false, plan }
   } catch (error) {
     logger.error('Failed to resume pending subscription', { error })
