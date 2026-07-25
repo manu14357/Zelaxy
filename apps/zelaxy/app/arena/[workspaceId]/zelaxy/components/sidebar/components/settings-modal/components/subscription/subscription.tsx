@@ -110,7 +110,14 @@ export function Subscription({ onOpenChange }: SubscriptionProps) {
         // Drop the cached pre-upgrade snapshot so the new plan shows up
         // without needing a page reload.
         await refresh()
-        toast.success(`You're on the ${targetPlan === 'pro' ? 'Pro' : 'Team'} plan`)
+        // A one-time purchase buys a single month with no mandate behind it,
+        // so say so rather than implying it renews on its own.
+        toast.success(`You're on the ${targetPlan === 'pro' ? 'Pro' : 'Team'} plan`, {
+          description:
+            result.mode === 'order'
+              ? 'Paid for one month. Renew from here before it ends — this plan does not auto-renew.'
+              : undefined,
+        })
       } catch (error) {
         logger.error('Failed to initiate subscription upgrade:', error)
         toast.error('Failed to start the upgrade. Please try again or contact support.')

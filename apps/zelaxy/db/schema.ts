@@ -544,6 +544,13 @@ export const subscription = pgTable(
     referenceId: text('reference_id').notNull(),
     razorpayCustomerId: text('razorpay_customer_id'),
     razorpaySubscriptionId: text('razorpay_subscription_id'),
+    // Set instead of razorpaySubscriptionId when a plan month was bought as a
+    // one-time Order rather than a Razorpay Subscription (see
+    // createPlanPurchaseOrder for why that is the default path). Kept as its
+    // own column rather than overloading razorpaySubscriptionId, because an
+    // order id and a subscription id address different Razorpay APIs and
+    // silently mixing them would break every fetch that follows.
+    razorpayOrderId: text('razorpay_order_id'),
     status: text('status'),
     periodStart: timestamp('period_start'),
     periodEnd: timestamp('period_end'),
@@ -569,6 +576,9 @@ export const subscription = pgTable(
       table.referenceId,
       table.status
     ),
+    // Order-paid plans are looked up by order id on the verify/sync path and
+    // from the payment.captured webhook.
+    razorpayOrderIdx: index('subscription_razorpay_order_idx').on(table.razorpayOrderId),
     enterpriseMetadataCheck: check(
       'check_enterprise_metadata',
       sql`plan != 'enterprise' OR (metadata IS NOT NULL AND (metadata->>'perSeatAllowance' IS NOT NULL OR metadata->>'totalAllowance' IS NOT NULL))`

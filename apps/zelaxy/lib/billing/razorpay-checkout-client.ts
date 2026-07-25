@@ -170,6 +170,16 @@ export interface SubscriptionCheckoutResult {
   /** True when the embedded widget never ran and the hosted page should be used. */
   blocked?: boolean
   /**
+   * True when Razorpay refused the recurring mandate because the merchant
+   * account isn't approved for it - recoverable by buying the month outright.
+   */
+  recurringRefused?: boolean
+  /**
+   * Which billing mode actually completed. 'order' means a single month was
+   * bought with no mandate behind it, so nothing will auto-renew.
+   */
+  mode?: 'subscription' | 'order'
+  /**
    * Razorpay's own hosted page for this subscription. Offered as a fallback
    * when the embedded widget can't run - browser extensions, tracking
    * prevention and enterprise policies all block third-party payment iframes,
@@ -276,22 +286,8 @@ export async function openRazorpaySubscriptionCheckout(
   params: OpenSubscriptionCheckoutParams
 ): Promise<SubscriptionCheckoutResult> {
   try {
-    const checkoutResponse = await fetch('/api/billing/subscription/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        plan: params.plan,
-        referenceId: params.referenceId,
-        seats: params.seats,
-      }),
-    })
-
-    if (!checkoutResponse.ok) {
-      const errorData = await checkoutResponse.json().catch(() => ({}))
-      return { success: false, error: errorData.error || 'Failed to start checkout' }
-    }
-
-    const { subscriptionId, shortUrl } = await checkoutResponse.json()
+    const checkout = await startCheckout(params, false)
+    if ('error' in checkout) return { success: false, error: checkout.error }
 
     const keyId = env.NEXT_PUBLIC_RAZORPAY_KEY_ID
     if (!keyId) {
@@ -303,12 +299,12 @@ export async function openRazorpaySubscriptionCheckout(
       return {
         success: false,
         error: 'Razorpay Checkout failed to load',
-        hostedUrl: shortUrl,
+        hostedUrl: checkout.shortUrl,
       }
     }
 
     const pending: PendingSubscription = {
-      subscriptionId,
+      subscriptionId: checkout.subscriptionId || checkout.orderId || '',
       plan: params.plan,
       returnUrl: `${window.location.pathname}${window.location.search}`,
       startedAt: Date.now(),
@@ -318,17 +314,36 @@ export async function openRazorpaySubscriptionCheckout(
       window.sessionStorage.setItem(PENDING_SUBSCRIPTION_KEY, JSON.stringify(pending))
     } catch {
       // Non-fatal: without the parked state the plan still activates via the
-      // subscription.activated webhook, it just won't settle instantly.
+      // webhook, it just won't settle instantly.
     }
 
-    return await openSubscriptionCheckoutWidget({
+    const result = await openSubscriptionCheckoutWidget({
       keyId,
-      subscriptionId,
+      checkout,
       plan: params.plan,
-      shortUrl,
       prefillEmail: params.prefillEmail,
       prefillName: params.prefillName,
     })
+
+    // Whether the merchant may take a recurring mandate is only knowable at
+    // payment time: creating the subscription succeeds, then Razorpay
+    // refuses the authorisation. Rather than dead-end the customer, buy the
+    // month outright instead - same price, same plan, just no auto-renewal.
+    if (!result.success && result.recurringRefused) {
+      logger.warn('Recurring mandate refused by Razorpay, retrying as a one-time payment')
+      const oneTime = await startCheckout(params, true)
+      if ('error' in oneTime) return { success: false, error: oneTime.error }
+
+      return await openSubscriptionCheckoutWidget({
+        keyId,
+        checkout: oneTime,
+        plan: params.plan,
+        prefillEmail: params.prefillEmail,
+        prefillName: params.prefillName,
+      })
+    }
+
+    return result
   } catch (error) {
     logger.error('Failed to open subscription checkout', { error })
     return {
@@ -338,13 +353,50 @@ export async function openRazorpaySubscriptionCheckout(
   }
 }
 
+/** What the checkout endpoint decided this upgrade should be. */
+export interface StartedCheckout {
+  mode: 'subscription' | 'order'
+  subscriptionId?: string
+  orderId?: string
+  amountPaise?: number
+  amountRupees?: number
+  shortUrl?: string
+}
+
 interface OpenCheckoutWidgetParams {
   keyId: string
-  subscriptionId: string
+  checkout: StartedCheckout
   plan: 'pro' | 'team'
-  shortUrl?: string
   prefillEmail?: string
   prefillName?: string
+}
+
+/**
+ * Asks the server to start an upgrade. It prefers an auto-debiting
+ * subscription and falls back to a one-time order when the Razorpay account
+ * can't do recurring; `forceOneTime` skips straight to the order.
+ */
+async function startCheckout(
+  params: OpenSubscriptionCheckoutParams,
+  forceOneTime: boolean
+): Promise<StartedCheckout | { error: string }> {
+  const response = await fetch('/api/billing/subscription/checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      plan: params.plan,
+      referenceId: params.referenceId,
+      seats: params.seats,
+      forceOneTime,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    return { error: errorData.error || 'Failed to start checkout' }
+  }
+
+  return (await response.json()) as StartedCheckout
 }
 
 /**
@@ -357,9 +409,11 @@ interface OpenCheckoutWidgetParams {
 async function openSubscriptionCheckoutWidget(
   params: OpenCheckoutWidgetParams
 ): Promise<SubscriptionCheckoutResult> {
-  const { keyId, subscriptionId, plan, shortUrl } = params
+  const { keyId, checkout, plan } = params
+  const { shortUrl } = checkout
+  const razorpayId = checkout.subscriptionId || checkout.orderId || ''
 
-  setCheckoutUrlParam(subscriptionId)
+  setCheckoutUrlParam(razorpayId)
   await dismissBlockingOverlays()
 
   return await new Promise<SubscriptionCheckoutResult>((resolve) => {
@@ -386,13 +440,21 @@ async function openSubscriptionCheckoutWidget(
 
     const razorpay = new window.Razorpay!({
       key: keyId,
-      subscription_id: subscriptionId,
-      description: `${plan === 'pro' ? 'Pro' : 'Team'} plan subscription`,
+      // Exactly one of these is set - subscription_id opens Checkout in
+      // mandate mode, order_id in one-time mode.
+      ...(checkout.mode === 'subscription'
+        ? { subscription_id: checkout.subscriptionId }
+        : { order_id: checkout.orderId, amount: checkout.amountPaise, currency: 'INR' }),
+      description:
+        checkout.mode === 'subscription'
+          ? `${plan === 'pro' ? 'Pro' : 'Team'} plan subscription`
+          : `${plan === 'pro' ? 'Pro' : 'Team'} plan — 1 month`,
       ...buildCheckoutBranding(params.prefillEmail, params.prefillName),
       handler: async (response: unknown) => {
         const payload = response as {
           razorpay_payment_id: string
-          razorpay_subscription_id: string
+          razorpay_subscription_id?: string
+          razorpay_order_id?: string
           razorpay_signature: string
         }
         try {
@@ -411,7 +473,7 @@ async function openSubscriptionCheckoutWidget(
           }
 
           clearPendingSubscription()
-          settle({ success: true })
+          settle({ success: true, mode: checkout.mode })
         } catch (error) {
           logger.error('Failed to verify subscription payment', { error })
           settle({ success: false, error: 'Failed to verify payment' })
@@ -425,11 +487,16 @@ async function openSubscriptionCheckoutWidget(
     })
 
     razorpay.on('payment.failed', (response: unknown) => {
-      const failure = response as { error?: { description?: string } }
+      const failure = response as { error?: { description?: string; reason?: string } }
       logger.error('Razorpay payment failed', { response })
       settle({
         success: false,
         error: failure.error?.description || 'Payment failed',
+        // Razorpay refuses the mandate at payment time on accounts without
+        // Recurring Payments; the caller retries the month as a one-off.
+        recurringRefused:
+          checkout.mode === 'subscription' &&
+          failure.error?.reason === 'recurring_payment_not_enabled',
         hostedUrl: shortUrl,
       })
     })
@@ -486,11 +553,15 @@ export async function resumePendingSubscription(): Promise<ResumePendingSubscrip
       plan: syncedPlan,
       resumable,
       shortUrl,
+      mode,
+      amountPaise,
     } = (await response.json()) as {
       activated: boolean
       plan?: 'pro' | 'team'
       resumable?: boolean
       shortUrl?: string
+      mode?: 'subscription' | 'order'
+      amountPaise?: number
     }
     const plan = syncedPlan || pending?.plan
 
@@ -501,17 +572,20 @@ export async function resumePendingSubscription(): Promise<ResumePendingSubscrip
       return { activated: true, plan }
     }
 
-    // Still payable - put the customer back where they were.
+    // Still payable - put the customer back where they were, in whichever
+    // mode the interrupted attempt had actually started in.
     const keyId = env.NEXT_PUBLIC_RAZORPAY_KEY_ID
     if (resumable && plan && keyId) {
       await loadRazorpayCheckoutScript()
       if (window.Razorpay) {
-        logger.info('Reopening interrupted checkout', { subscriptionId, plan })
+        logger.info('Reopening interrupted checkout', { razorpayId: subscriptionId, mode, plan })
         const result = await openSubscriptionCheckoutWidget({
           keyId,
-          subscriptionId,
+          checkout:
+            mode === 'order'
+              ? { mode: 'order', orderId: subscriptionId, amountPaise }
+              : { mode: 'subscription', subscriptionId, shortUrl },
           plan,
-          shortUrl,
         })
         // Either way the customer has now had their chance at this one, so
         // stop tracking it - otherwise dismissing the reopened widget would

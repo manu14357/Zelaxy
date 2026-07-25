@@ -70,6 +70,43 @@ async function dispatchEvent(event: RazorpayWebhookPayload): Promise<void> {
         logger.warn('Razorpay webhook missing payment payload', { event: event.event })
         return
       }
+
+      const notes = (payment.notes || {}) as Record<string, string>
+
+      // Plans bought as a one-time order (accounts without Recurring
+      // Payments) activate here, the same way a mandate would via
+      // subscription.activated. This is what covers the customer closing the
+      // tab before the client-side verify call lands.
+      if (notes.zelaxyOrderType === 'plan_purchase') {
+        if (!payment.order_id || !notes.zelaxyReferenceId || !notes.zelaxyPlan) {
+          logger.warn('Plan purchase payment missing order id or zelaxy notes', {
+            paymentId: payment.id,
+          })
+          return
+        }
+
+        const periodStart = new Date()
+        const periodEnd = new Date(periodStart)
+        periodEnd.setMonth(periodEnd.getMonth() + 1)
+
+        await handleSubscriptionActivated({
+          razorpayOrderId: payment.order_id,
+          razorpayCustomerId: payment.customer_id ?? null,
+          plan: notes.zelaxyPlan,
+          referenceId: notes.zelaxyReferenceId,
+          seats: Number(notes.zelaxySeats) || 1,
+          currentStart: periodStart,
+          currentEnd: periodEnd,
+        })
+
+        // No mandate means nothing renews on its own.
+        await db
+          .update(subscriptionTable)
+          .set({ cancelAtPeriodEnd: true })
+          .where(eq(subscriptionTable.razorpayOrderId, payment.order_id))
+        return
+      }
+
       await handleCreditPurchaseCompleted(payment)
       return
     }

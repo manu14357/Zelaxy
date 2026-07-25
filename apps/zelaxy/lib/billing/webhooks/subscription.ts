@@ -129,7 +129,14 @@ export async function handleSubscriptionDeleted(subscriptionRecord: {
 }
 
 export interface HandleSubscriptionActivatedInput {
-  razorpaySubscriptionId: string
+  /** Set when the plan came from a Razorpay Subscription (auto-debiting). */
+  razorpaySubscriptionId?: string
+  /**
+   * Set instead when a single month was bought as a one-time Order, on an
+   * account that cannot take recurring mandates. Exactly one of the two
+   * identifies the row to activate.
+   */
+  razorpayOrderId?: string
   razorpayCustomerId: string | null
   plan: string
   referenceId: string
@@ -157,8 +164,16 @@ export async function handleSubscriptionActivated(
 ): Promise<HandleSubscriptionActivatedResult> {
   let referenceId = input.referenceId
 
+  // Order ids and subscription ids live in separate columns because they
+  // address different Razorpay APIs, so match the row on whichever one this
+  // activation actually came from.
+  const matchesPaidRow = input.razorpayOrderId
+    ? eq(subscriptionTable.razorpayOrderId, input.razorpayOrderId)
+    : eq(subscriptionTable.razorpaySubscriptionId, input.razorpaySubscriptionId ?? '')
+
   logger.info('Processing subscription activation', {
     subscriptionId: input.razorpaySubscriptionId,
+    orderId: input.razorpayOrderId,
     referenceId,
     plan: input.plan,
   })
@@ -172,7 +187,7 @@ export async function handleSubscriptionActivated(
       periodStart: input.currentStart ?? undefined,
       periodEnd: input.currentEnd ?? undefined,
     })
-    .where(eq(subscriptionTable.razorpaySubscriptionId, input.razorpaySubscriptionId))
+    .where(matchesPaidRow)
 
   // Auto-create an organization for team plan purchases (mirrors the old
   // better-auth Stripe plugin's onSubscriptionComplete behavior) - the
@@ -210,10 +225,7 @@ export async function handleSubscriptionActivated(
           createdAt: new Date(),
         })
 
-        await db
-          .update(subscriptionTable)
-          .set({ referenceId: orgId })
-          .where(eq(subscriptionTable.razorpaySubscriptionId, input.razorpaySubscriptionId))
+        await db.update(subscriptionTable).set({ referenceId: orgId }).where(matchesPaidRow)
 
         await db
           .update(sessionTable)
