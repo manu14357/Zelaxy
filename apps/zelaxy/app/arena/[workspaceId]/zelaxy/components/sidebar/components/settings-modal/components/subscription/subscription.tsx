@@ -57,6 +57,17 @@ export function Subscription({ onOpenChange }: SubscriptionProps) {
   const billingStatus = getBillingStatus()
   const activeOrgId = activeOrganization?.id
 
+  // Usage is only ever fetched once, at initial page load (see the
+  // module-level bootstrap in stores/subscription/store.ts) - nothing
+  // refetches it afterwards, so this pane could sit showing a snapshot from
+  // before the user ran anything, arbitrarily stale, for the entire tab
+  // session. Force a fresh read every time this settings pane is opened
+  // (it remounts on each open, since the parent Dialog unmounts on close),
+  // the same way the team-billing effect below already does for org data.
+  useEffect(() => {
+    refresh()
+  }, [])
+
   useEffect(() => {
     if (subscription.isTeam && activeOrgId) {
       loadOrganizationBillingData(activeOrgId)
