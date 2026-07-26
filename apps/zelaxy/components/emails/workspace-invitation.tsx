@@ -12,9 +12,8 @@ import {
   Text,
 } from '@react-email/components'
 import { getBrandConfig } from '@/lib/branding/branding'
-import { env } from '@/lib/env'
-import { getAssetUrl } from '@/lib/utils'
 import { baseStyles } from './base-styles'
+import { getEmailBaseUrl, getEmailLogoUrl } from './email-config'
 import EmailFooter from './footer'
 
 interface WorkspaceInvitationEmailProps {
@@ -23,7 +22,7 @@ interface WorkspaceInvitationEmailProps {
   invitationLink?: string
 }
 
-const baseUrl = env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
+const baseUrl = getEmailBaseUrl()
 
 export const WorkspaceInvitationEmail = ({
   workspaceName = 'Workspace',
@@ -58,7 +57,7 @@ export const WorkspaceInvitationEmail = ({
             <Row>
               <Column style={{ textAlign: 'center' }}>
                 <Img
-                  src={brand.logoUrl || getAssetUrl('Zelaxy.png')}
+                  src={getEmailLogoUrl()}
                   width='114'
                   alt={brand.name}
                   style={{

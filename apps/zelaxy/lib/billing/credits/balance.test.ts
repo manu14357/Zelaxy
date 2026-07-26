@@ -1,18 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { statsRows, updateSetCalls, insertedTransactions } = vi.hoisted(() => ({
+const { statsRows, priorTxRows, updateSetCalls, insertedTransactions } = vi.hoisted(() => ({
   statsRows: { value: [] as any[] },
+  // Rows returned by the idempotencyKey existence check (2nd select in the txn).
+  priorTxRows: { value: [] as any[] },
   updateSetCalls: [] as any[],
   insertedTransactions: [] as any[],
 }))
 
 function makeTx() {
+  let limitCall = 0
   return {
     select: vi.fn().mockReturnThis(),
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
     for: vi.fn().mockReturnThis(),
-    limit: vi.fn(() => Promise.resolve(statsRows.value)),
+    limit: vi.fn(() => {
+      limitCall += 1
+      // 1st limit() reads userStats; a 2nd (only when an idempotencyKey is
+      // supplied) checks creditTransactions for a prior application.
+      return Promise.resolve(limitCall === 1 ? statsRows.value : priorTxRows.value)
+    }),
     update: vi.fn().mockReturnThis(),
     set: vi.fn((values: any) => {
       updateSetCalls.push(values)
@@ -66,6 +74,7 @@ describe('adjustCreditBalance', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     statsRows.value = []
+    priorTxRows.value = []
     updateSetCalls.length = 0
     insertedTransactions.length = 0
   })
@@ -78,6 +87,35 @@ describe('adjustCreditBalance', () => {
     expect(newBalance).toBe(15)
     expect(updateSetCalls[0]).toMatchObject({ creditBalance: '15' })
     expect(insertedTransactions[0]).toMatchObject({ amount: '10', type: 'purchase' })
+  })
+
+  it('is a no-op when the idempotencyKey was already applied', async () => {
+    statsRows.value = [{ creditBalance: '5' }]
+    priorTxRows.value = [{ id: 'tx_existing' }] // a prior tx already carries this key
+
+    const newBalance = await adjustCreditBalance('user_1', 10, 'purchase', {
+      idempotencyKey: 'activation_sub_1',
+    })
+
+    expect(newBalance).toBe(5) // unchanged
+    expect(updateSetCalls).toHaveLength(0) // balance not touched
+    expect(insertedTransactions).toHaveLength(0) // no duplicate transaction
+  })
+
+  it('applies once and stores the idempotencyKey as relatedInvoiceId when not yet applied', async () => {
+    statsRows.value = [{ creditBalance: '5' }]
+    priorTxRows.value = [] // no prior tx for this key
+
+    const newBalance = await adjustCreditBalance('user_1', 10, 'purchase', {
+      idempotencyKey: 'activation_sub_1',
+    })
+
+    expect(newBalance).toBe(15)
+    expect(insertedTransactions[0]).toMatchObject({
+      amount: '10',
+      type: 'purchase',
+      relatedInvoiceId: 'activation_sub_1',
+    })
   })
 
   it('throws instead of allowing the balance to go negative', async () => {

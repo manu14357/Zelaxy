@@ -1,9 +1,10 @@
 import { eq } from 'drizzle-orm'
 import { findAccountByRazorpayCustomerId } from '@/lib/billing/core/billing'
-import { sendEmail } from '@/lib/email/mailer'
+import { sendPaymentFailedNotice } from '@/lib/billing/emails'
+import { invoiceIdForPaymentLink, recordInvoice } from '@/lib/billing/invoices/ledger'
 import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
-import { member, user, userStats } from '@/db/schema'
+import { member, userStats } from '@/db/schema'
 
 const logger = createLogger('RazorpayPaymentWebhooks')
 
@@ -33,6 +34,12 @@ interface RazorpayPaymentEntity {
   customer_id?: string | null
 }
 
+// The exact billingBlockedReason written by a failed recurring charge. Shared
+// so the recovery path (handleSubscriptionActivated) can clear ONLY this kind
+// of block on a successful charge, never an unrelated unpaid-overage block.
+export const RECURRING_CHARGE_BLOCK_REASON =
+  'A recurring charge on your Zelaxy subscription could not be collected.'
+
 async function setBillingBlocked(userIds: string[], reason: string | null): Promise<void> {
   await Promise.all(
     userIds.map((userId) =>
@@ -42,31 +49,6 @@ async function setBillingBlocked(userIds: string[], reason: string | null): Prom
         .where(eq(userStats.userId, userId))
     )
   )
-}
-
-async function sendPaymentFailedEmail(userId: string, amountDue: number): Promise<void> {
-  const userRecord = await db
-    .select({ email: user.email, name: user.name })
-    .from(user)
-    .where(eq(user.id, userId))
-    .limit(1)
-
-  if (userRecord.length === 0 || !userRecord[0].email) return
-
-  const html = `
-    <h2>Payment link expired</h2>
-    <p>Hi ${userRecord[0].name || 'there'},</p>
-    <p>The payment link for your usage overage of ₹${amountDue.toFixed(2)} expired before it
-    was paid. Your account access is on hold until this is resolved.</p>
-    <p>Please contact support or check your account's billing settings for a new payment link.</p>
-  `
-
-  await sendEmail({
-    to: userRecord[0].email,
-    subject: 'Action required: overage payment link expired',
-    html,
-    emailType: 'transactional',
-  })
 }
 
 async function resolveAccountUserIds(entity: {
@@ -87,17 +69,23 @@ async function resolveAccountUserIds(entity: {
       .where(eq(member.organizationId, notes.zelaxyOrganizationId))
     return { userIds: members.map((m) => m.userId), accountType: 'organization' }
   }
+  // Subscriptions/plan orders stamp {zelaxyReferenceId, zelaxyReferenceType}
+  // (NOT zelaxyUserId/zelaxyOrganizationId). Resolve directly from the type -
+  // referenceId is a user.id / organization.id, so it must NOT be fed to the
+  // Razorpay-customer-id lookup (a disjoint id space that would never match).
   if (notes.zelaxyReferenceId) {
-    const account = await findAccountByRazorpayCustomerId(notes.zelaxyReferenceId)
-    if (account) {
-      return {
-        userIds: account.type === 'user' ? [account.userId] : account.memberUserIds,
-        accountType: account.type,
-      }
+    if (notes.zelaxyReferenceType === 'organization') {
+      const members = await db
+        .select({ userId: member.userId })
+        .from(member)
+        .where(eq(member.organizationId, notes.zelaxyReferenceId))
+      return { userIds: members.map((m) => m.userId), accountType: 'organization' }
     }
+    // 'user' (or unset): the reference id is the user id.
+    return { userIds: [notes.zelaxyReferenceId], accountType: 'user' }
   }
 
-  // Fallback: reverse-lookup by Razorpay customer id.
+  // Fallback: reverse-lookup by Razorpay customer id (events without notes).
   if (entity.customer_id) {
     const account = await findAccountByRazorpayCustomerId(entity.customer_id)
     if (account) {
@@ -147,6 +135,24 @@ export async function handlePaymentLinkPaid(paymentLink: RazorpayPaymentLinkEnti
 
   await setBillingBlocked(account.userIds, null)
 
+  const paidReferenceId = notes.zelaxyOrganizationId || notes.zelaxyUserId || account.userIds[0]
+  if (paidReferenceId) {
+    await recordInvoice({
+      id: invoiceIdForPaymentLink(paymentLink.id),
+      referenceId: paidReferenceId,
+      userId: notes.zelaxyUserId || account.userIds[0] || null,
+      organizationId: notes.zelaxyOrganizationId || null,
+      type: 'overage',
+      status: 'paid',
+      amountDue: chargedAmount,
+      amountPaid: chargedAmount,
+      currency: 'INR',
+      description: 'Usage overage',
+      razorpayPaymentLinkId: paymentLink.id,
+      paidAt: new Date(),
+    })
+  }
+
   logger.info('Cleared billing block after successful overage payment', {
     paymentLinkId: paymentLink.id,
     accountType: account.accountType,
@@ -190,6 +196,23 @@ export async function handlePaymentLinkExpired(paymentLink: RazorpayPaymentLinkE
   const reason = `Overage payment link ${paymentLink.id} for ₹${failedAmount.toFixed(2)} expired unpaid`
   await setBillingBlocked(account.userIds, reason)
 
+  const expiredReferenceId = notes.zelaxyOrganizationId || notes.zelaxyUserId || account.userIds[0]
+  if (expiredReferenceId) {
+    await recordInvoice({
+      id: invoiceIdForPaymentLink(paymentLink.id),
+      referenceId: expiredReferenceId,
+      userId: notes.zelaxyUserId || account.userIds[0] || null,
+      organizationId: notes.zelaxyOrganizationId || null,
+      type: 'overage',
+      status: 'expired',
+      amountDue: failedAmount,
+      amountPaid: 0,
+      currency: 'INR',
+      description: 'Usage overage (unpaid)',
+      razorpayPaymentLinkId: paymentLink.id,
+    })
+  }
+
   logger.error('Blocked billing access after payment link expiry', {
     paymentLinkId: paymentLink.id,
     accountType: account.accountType,
@@ -197,10 +220,76 @@ export async function handlePaymentLinkExpired(paymentLink: RazorpayPaymentLinkE
   })
 
   try {
-    await Promise.all(account.userIds.map((userId) => sendPaymentFailedEmail(userId, failedAmount)))
+    await Promise.all(
+      account.userIds.map((userId) =>
+        sendPaymentFailedNotice(userId, {
+          amountInr: failedAmount,
+          reason:
+            'The payment link for your usage overage expired before it was paid. Your account access is on hold until this is resolved.',
+        })
+      )
+    )
   } catch (error) {
     logger.error('Failed to send payment-link-expired notification email', {
       paymentLinkId: paymentLink.id,
+      error,
+    })
+  }
+}
+
+/**
+ * Handle a FAILED recurring charge - a Razorpay auto-debit subscription that
+ * halted/paused (subscription.halted / subscription.pending) or an outright
+ * payment.failed. This is the dunning path the Stripe migration dropped: under
+ * Stripe, invoice.payment_failed blocked access and notified; here nothing
+ * handled these, so a customer whose renewal failed kept full access silently.
+ * Blocks access and emails the affected user(s).
+ */
+export async function handleRecurringChargeFailed(
+  entity: {
+    id?: string
+    notes?: Record<string, string> | null
+    customer_id?: string | null
+  },
+  opts: { amountInr?: number; block?: boolean } = {}
+): Promise<void> {
+  const { amountInr, block = true } = opts
+  const account = await resolveAccountUserIds(entity)
+  if (!account) {
+    logger.error('No user/organization found for failed recurring charge', { id: entity.id })
+    return
+  }
+
+  // Only gate access once retries are exhausted (subscription.halted). A soft
+  // failure that Razorpay will retry (subscription.pending) just notifies.
+  if (block) {
+    await setBillingBlocked(account.userIds, RECURRING_CHARGE_BLOCK_REASON)
+    logger.error('Blocked billing access after failed recurring charge', {
+      id: entity.id,
+      accountType: account.accountType,
+      affectedUsers: account.userIds.length,
+    })
+  } else {
+    logger.warn('Recurring charge failed; will retry (not blocking yet)', {
+      id: entity.id,
+      accountType: account.accountType,
+      affectedUsers: account.userIds.length,
+    })
+  }
+
+  try {
+    await Promise.all(
+      account.userIds.map((userId) =>
+        sendPaymentFailedNotice(userId, {
+          amountInr,
+          reason:
+            'An automatic charge for your Zelaxy subscription could not be collected. Your account access is on hold until this is resolved.',
+        })
+      )
+    )
+  } catch (error) {
+    logger.error('Failed to send recurring-charge-failed notification email', {
+      id: entity.id,
       error,
     })
   }

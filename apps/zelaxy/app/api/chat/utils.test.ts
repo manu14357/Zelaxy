@@ -38,6 +38,16 @@ vi.mock('@/stores/workflows/server-utils', () => ({
   mergeSubblockState: vi.fn().mockReturnValue({}),
 }))
 
+// Stub the heavy modules chat/utils imports transitively but these tests never
+// exercise (the whole block registry + MCP service init). Loading them fresh
+// per test — the file resetModules() in beforeEach — is what made the first
+// `await import('@/app/api/chat/utils')` blow past its timeout on a cold cache.
+vi.mock('@/blocks', () => ({ getBlock: vi.fn(() => null) }))
+vi.mock('@/services/mcp', () => ({ MCPService: vi.fn() }))
+vi.mock('@/lib/mcp-service-registry', () => ({ registerMCPService: vi.fn() }))
+vi.mock('@/lib/tokenization', () => ({ processStreamingBlockLogs: vi.fn() }))
+vi.mock('@/lib/billing', () => ({ checkServerSideUsageLimits: vi.fn() }))
+
 describe('Chat API Utils', () => {
   beforeEach(() => {
     vi.resetModules()
@@ -80,7 +90,7 @@ describe('Chat API Utils', () => {
 
       const isInvalidSubdomain = validateAuthToken(token, 'wrong-subdomain-id')
       expect(isInvalidSubdomain).toBe(false)
-    }, 15000)
+    }, 60000)
 
     it('should reject expired tokens', async () => {
       const { validateAuthToken } = await import('@/app/api/chat/utils')
@@ -93,7 +103,7 @@ describe('Chat API Utils', () => {
 
       const isValid = validateAuthToken(expiredToken, subdomainId)
       expect(isValid).toBe(false)
-    }, 15000)
+    }, 60000)
   })
 
   describe('Cookie handling', () => {

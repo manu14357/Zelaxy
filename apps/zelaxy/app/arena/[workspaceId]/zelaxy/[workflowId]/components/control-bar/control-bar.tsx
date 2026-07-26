@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
+import { NotificationBell } from '@/components/notification-bell'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1088,6 +1089,12 @@ export function ControlBar({ hasValidationErrors = false }: ControlBarProps) {
 
           {/* Export YAML */}
           <ExportControls />
+
+          {/* Separator */}
+          <div className='h-4 w-px bg-border/40 sm:h-5' />
+
+          {/* In-app notifications (usage alerts, etc.) */}
+          <NotificationBell />
         </div>
       </div>
 

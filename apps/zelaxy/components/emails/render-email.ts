@@ -1,9 +1,14 @@
 import { render } from '@react-email/components'
 import {
   BatchInvitationEmail,
+  BillingReceiptEmail,
   InvitationEmail,
   OTPVerificationEmail,
+  PaymentFailedEmail,
+  PlanWelcomeEmail,
+  type ReceiptLineItem,
   ResetPasswordEmail,
+  UsageAlertEmail,
   WorkspaceAddedEmail,
 } from '@/components/emails'
 
@@ -82,6 +87,49 @@ export async function renderWorkspaceAddedEmail(
   appUrl?: string
 ): Promise<string> {
   return await render(WorkspaceAddedEmail({ inviterName, workspaces, appUrl }))
+}
+
+export async function renderBillingReceiptEmail(props: {
+  name: string
+  heading?: string
+  intro?: string
+  lineItems: ReceiptLineItem[]
+  totalLabel?: string
+  totalValue?: string
+  ctaLabel?: string
+  ctaUrl?: string
+  footnote?: string
+}): Promise<string> {
+  return await render(BillingReceiptEmail(props))
+}
+
+export async function renderPlanWelcomeEmail(props: {
+  name: string
+  planLabel: string
+  appUrl?: string
+  docsUrl?: string
+}): Promise<string> {
+  return await render(PlanWelcomeEmail(props))
+}
+
+export async function renderPaymentFailedEmail(props: {
+  name: string
+  amount?: string
+  reason?: string
+  actionUrl?: string
+}): Promise<string> {
+  return await render(PaymentFailedEmail(props))
+}
+
+export async function renderUsageAlertEmail(props: {
+  name: string
+  planLabel: string
+  percent: number
+  usedLabel?: string
+  limitLabel?: string
+  appUrl?: string
+}): Promise<string> {
+  return await render(UsageAlertEmail(props))
 }
 
 export function getEmailSubject(

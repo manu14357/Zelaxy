@@ -1,8 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createCreditPurchaseOrderMock, adjustCreditBalanceMock } = vi.hoisted(() => ({
+const {
+  createCreditPurchaseOrderMock,
+  adjustCreditBalanceMock,
+  recordInvoiceMock,
+  sendCreditReceiptEmailMock,
+} = vi.hoisted(() => ({
   createCreditPurchaseOrderMock: vi.fn(),
   adjustCreditBalanceMock: vi.fn(),
+  recordInvoiceMock: vi.fn(() => Promise.resolve({ created: true })),
+  sendCreditReceiptEmailMock: vi.fn(),
 }))
 
 vi.mock('@/lib/billing/razorpay/orders', () => ({
@@ -11,6 +18,15 @@ vi.mock('@/lib/billing/razorpay/orders', () => ({
 
 vi.mock('@/lib/billing/credits/balance', () => ({
   adjustCreditBalance: adjustCreditBalanceMock,
+}))
+
+vi.mock('@/lib/billing/invoices/ledger', () => ({
+  recordInvoice: recordInvoiceMock,
+  invoiceIdForPayment: (id: string) => `inv_pay_${id}`,
+}))
+
+vi.mock('@/lib/billing/emails', () => ({
+  sendCreditReceiptEmail: sendCreditReceiptEmailMock,
 }))
 
 vi.mock('@/lib/env', () => ({
@@ -73,6 +89,7 @@ describe('handleCreditPurchaseCompleted', () => {
     })
 
     expect(adjustCreditBalanceMock).not.toHaveBeenCalled()
+    expect(recordInvoiceMock).not.toHaveBeenCalled()
   })
 
   it('credits the user balance, converted from INR to the internal credit unit', async () => {
@@ -86,12 +103,33 @@ describe('handleCreditPurchaseCompleted', () => {
       },
     })
 
+    // The grant is keyed on the payment id; adjustCreditBalance dedups on that
+    // key inside its row lock, so a stale redelivery credits at most once
+    // (idempotency behavior itself is covered in balance.test.ts).
     expect(adjustCreditBalanceMock).toHaveBeenCalledWith(
       'user_1',
       10,
       'purchase',
-      expect.objectContaining({ relatedInvoiceId: 'pay_1' })
+      expect.objectContaining({ idempotencyKey: 'pay_1' })
     )
+    // A receipt is recorded in the local ledger, keyed idempotently on the
+    // payment id, denominated in the INR actually paid (not the credit units).
+    expect(recordInvoiceMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'inv_pay_pay_1',
+        referenceId: 'user_1',
+        type: 'credit_purchase',
+        status: 'paid',
+        amountPaid: 830,
+        currency: 'INR',
+        razorpayPaymentId: 'pay_1',
+      })
+    )
+    // A receipt email is sent, gated on the newly-written invoice.
+    expect(sendCreditReceiptEmailMock).toHaveBeenCalledWith('user_1', {
+      amountRupees: 830,
+      creditUnits: 10,
+    })
   })
 
   it('does not throw and does not credit anything if notes are missing userId/amount', async () => {
@@ -104,5 +142,6 @@ describe('handleCreditPurchaseCompleted', () => {
     ).resolves.toBeUndefined()
 
     expect(adjustCreditBalanceMock).not.toHaveBeenCalled()
+    expect(recordInvoiceMock).not.toHaveBeenCalled()
   })
 })

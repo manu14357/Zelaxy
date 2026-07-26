@@ -1,7 +1,6 @@
-import { Container, Img, Link, Section, Text } from '@react-email/components'
+import { Container, Link, Section, Text } from '@react-email/components'
 import { getBrandConfig } from '@/lib/branding/branding'
-import { env } from '@/lib/env'
-import { getAssetUrl } from '@/lib/utils'
+import { getEmailBaseUrl } from './email-config'
 
 interface UnsubscribeOptions {
   unsubscribeToken?: string
@@ -13,10 +12,7 @@ interface EmailFooterProps {
   unsubscribe?: UnsubscribeOptions
 }
 
-export const EmailFooter = ({
-  baseUrl = env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/',
-  unsubscribe,
-}: EmailFooterProps) => {
+export const EmailFooter = ({ baseUrl = getEmailBaseUrl(), unsubscribe }: EmailFooterProps) => {
   const brand = getBrandConfig()
 
   const footerStyles = {
@@ -92,38 +88,25 @@ export const EmailFooter = ({
             <Link
               href='https://x.com/zelaxyai'
               rel='noopener noreferrer'
-              style={footerStyles.socialIcon}
+              style={footerStyles.linkStyle}
             >
-              <Img
-                src={getAssetUrl('static/x-icon.png')}
-                width='20'
-                height='20'
-                alt='X (Twitter)'
-              />
+              X
             </Link>
+            {'   ·   '}
             <Link
               href='https://discord.gg/zelaxy'
               rel='noopener noreferrer'
-              style={footerStyles.socialIcon}
+              style={footerStyles.linkStyle}
             >
-              <Img
-                src={getAssetUrl('static/discord-icon.png')}
-                width='20'
-                height='20'
-                alt='Discord Community'
-              />
+              Discord
             </Link>
+            {'   ·   '}
             <Link
               href='https://github.com/zelaxy/zelaxy'
               rel='noopener noreferrer'
-              style={footerStyles.socialIcon}
+              style={footerStyles.linkStyle}
             >
-              <Img
-                src={getAssetUrl('static/github-icon.png')}
-                width='20'
-                height='20'
-                alt='GitHub Repository'
-              />
+              GitHub
             </Link>
           </Section>
         </Section>

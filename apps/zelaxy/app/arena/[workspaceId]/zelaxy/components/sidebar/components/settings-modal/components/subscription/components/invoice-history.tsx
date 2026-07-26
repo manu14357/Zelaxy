@@ -12,12 +12,14 @@ interface InvoiceHistoryProps {
   organizationId?: string
 }
 
+// Keys are the statuses the local billing_invoice ledger actually emits
+// (created | paid | failed | expired | refunded) - not Stripe's invoice states.
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   paid: 'default',
-  open: 'secondary',
-  uncollectible: 'destructive',
-  void: 'outline',
-  draft: 'outline',
+  created: 'outline',
+  failed: 'destructive',
+  expired: 'destructive',
+  refunded: 'secondary',
 }
 
 function formatDate(iso: string): string {
@@ -29,6 +31,19 @@ function formatDate(iso: string): string {
     }).format(new Date(iso))
   } catch {
     return iso
+  }
+}
+
+function formatAmount(amount: number, currency: string): string {
+  const code = currency || 'INR'
+  try {
+    return new Intl.NumberFormat(code === 'INR' ? 'en-IN' : 'en-US', {
+      style: 'currency',
+      currency: code,
+      maximumFractionDigits: 2,
+    }).format(amount)
+  } catch {
+    return `${code} ${amount.toFixed(2)}`
   }
 }
 
@@ -121,10 +136,10 @@ export function InvoiceHistory({ organizationId }: InvoiceHistoryProps) {
           </div>
           <div className='flex shrink-0 items-center gap-2'>
             <span className='font-medium text-[13px] tabular-nums'>
-              $
-              {invoice.amountPaid > 0
-                ? invoice.amountPaid.toFixed(2)
-                : invoice.amountDue.toFixed(2)}
+              {formatAmount(
+                invoice.amountPaid > 0 ? invoice.amountPaid : invoice.amountDue,
+                invoice.currency
+              )}
             </span>
             {invoice.hostedInvoiceUrl && (
               <a

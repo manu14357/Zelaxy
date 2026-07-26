@@ -495,6 +495,11 @@ export const userStats = pgTable('user_stats', {
   // link is issued. See db/schema.ts's creditTransactions for the audit
   // trail of every change to this number.
   creditBalance: decimal('credit_balance').notNull().default('0'),
+  // Highest usage-% bucket (50/75/80/90/100) already alerted this billing
+  // period, so a usage-threshold alert (email + in-app notification) fires at
+  // most once per bucket per period. Reset to 0 on billing-period reset/init
+  // (see lib/billing/core/billing-periods.ts).
+  alertedUsageThreshold: integer('alerted_usage_threshold').notNull().default(0),
 })
 
 // Audit trail for every change to userStats.creditBalance - the running
@@ -582,6 +587,87 @@ export const subscription = pgTable(
     enterpriseMetadataCheck: check(
       'check_enterprise_metadata',
       sql`plan != 'enterprise' OR (metadata IS NOT NULL AND (metadata->>'perSeatAllowance' IS NOT NULL OR metadata->>'totalAllowance' IS NOT NULL))`
+    ),
+  })
+)
+
+// Local ledger of every billing event we charge for. Razorpay's SDK has no
+// "list payments/invoices for a given customer" filter, so this table is the
+// single source of truth that powers the in-app invoice history AND the
+// receipt emails - both read the same row. Written idempotently from the
+// payment-success paths (subscription activation, one-time plan orders, credit
+// purchases, overage payment links); the primary key is derived
+// deterministically from the Razorpay id so a verify+webhook double-fire or a
+// webhook retry upserts the same row instead of duplicating it.
+export const billingInvoice = pgTable(
+  'billing_invoice',
+  {
+    id: text('id').primaryKey(),
+    // The billing subject: a user id (pro/credits) or an organization id
+    // (team/enterprise). Mirrors subscription.referenceId so the invoices
+    // endpoint can scope by the same key.
+    referenceId: text('reference_id').notNull(),
+    // Who actually paid / should receive the receipt email. Populated even
+    // when referenceId is an organization (the purchasing owner).
+    userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
+    organizationId: text('organization_id').references(() => organization.id, {
+      onDelete: 'set null',
+    }),
+    type: text('type').notNull(), // 'subscription' | 'plan_purchase' | 'overage' | 'credit_purchase' | 'other'
+    status: text('status').notNull().default('paid'), // 'created' | 'paid' | 'failed' | 'expired' | 'refunded'
+    amountDue: decimal('amount_due').notNull().default('0'),
+    amountPaid: decimal('amount_paid').notNull().default('0'),
+    currency: text('currency').notNull().default('INR'),
+    description: text('description'),
+    plan: text('plan'),
+    seats: integer('seats'),
+    // At most one of order/subscription/payment-link identifies the Razorpay
+    // entity this invoice came from; paymentId is the captured payment where
+    // one exists.
+    razorpayPaymentId: text('razorpay_payment_id'),
+    razorpayOrderId: text('razorpay_order_id'),
+    razorpaySubscriptionId: text('razorpay_subscription_id'),
+    razorpayPaymentLinkId: text('razorpay_payment_link_id'),
+    // A link the customer can open (Razorpay short_url / receipt), when Razorpay
+    // gives us one - null for order/subscription charges where it doesn't.
+    hostedInvoiceUrl: text('hosted_invoice_url'),
+    billingPeriodStart: timestamp('billing_period_start'),
+    billingPeriodEnd: timestamp('billing_period_end'),
+    metadata: json('metadata'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    paidAt: timestamp('paid_at'),
+  },
+  (table) => ({
+    referenceCreatedIdx: index('billing_invoice_reference_created_idx').on(
+      table.referenceId,
+      table.createdAt
+    ),
+  })
+)
+
+// In-app notifications (a persistent alert the user sees in the app, alongside
+// any email). Currently written by the usage-threshold alerts (50/75/80/90/100%
+// of plan usage); general enough to carry other billing/system alerts later.
+export const notification = pgTable(
+  'notification',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(), // 'usage_alert' | ...
+    title: text('title').notNull(),
+    message: text('message').notNull(),
+    level: text('level').notNull().default('info'), // 'info' | 'warning' | 'error'
+    read: boolean('read').notNull().default(false),
+    metadata: json('metadata'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    userReadCreatedIdx: index('notification_user_read_created_idx').on(
+      table.userId,
+      table.read,
+      table.createdAt
     ),
   })
 )

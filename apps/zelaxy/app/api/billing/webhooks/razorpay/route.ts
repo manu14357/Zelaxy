@@ -6,6 +6,7 @@ import { verifyRazorpayWebhookSignature } from '@/lib/billing/razorpay/webhook-v
 import { withPaymentWebhookIdempotency } from '@/lib/billing/webhooks/idempotency'
 import {
   handlePaymentLinkWebhook,
+  handleRecurringChargeFailed,
   type RazorpayPaymentEntity,
   type RazorpayPaymentLinkEntity,
 } from '@/lib/billing/webhooks/razorpay-payment-webhooks'
@@ -24,10 +25,18 @@ const SUPPORTED_EVENTS = [
   'payment_link.paid',
   'payment_link.expired',
   'payment.captured',
+  // Some Razorpay dashboards emit order.paid instead of (or alongside)
+  // payment.captured for a one-time order; handle both so plan activation
+  // never silently drops.
+  'order.paid',
   'subscription.activated',
   'subscription.charged',
   'subscription.cancelled',
   'subscription.completed',
+  // Failed auto-renewal (dunning): 'pending' = a charge failed, Razorpay will
+  // retry; 'halted' = retries exhausted, gate access.
+  'subscription.pending',
+  'subscription.halted',
 ]
 
 interface RazorpaySubscriptionEntity {
@@ -64,7 +73,10 @@ async function dispatchEvent(event: RazorpayWebhookPayload): Promise<void> {
       await handlePaymentLinkWebhook(event.event, paymentLink)
       return
     }
-    case 'payment.captured': {
+    case 'payment.captured':
+    case 'order.paid': {
+      // order.paid carries the same payment entity in its payload; both route
+      // through the identical plan-activation / credit-purchase logic.
       const payment = event.payload.payment?.entity
       if (!payment) {
         logger.warn('Razorpay webhook missing payment payload', { event: event.event })
@@ -91,6 +103,7 @@ async function dispatchEvent(event: RazorpayWebhookPayload): Promise<void> {
 
         await handleSubscriptionActivated({
           razorpayOrderId: payment.order_id,
+          razorpayPaymentId: payment.id,
           razorpayCustomerId: payment.customer_id ?? null,
           plan: notes.zelaxyPlan,
           referenceId: notes.zelaxyReferenceId,
@@ -164,6 +177,19 @@ async function dispatchEvent(event: RazorpayWebhookPayload): Promise<void> {
         referenceId: dbRow.referenceId,
         plan: dbRow.plan,
         endedAt: subscription.ended_at ? new Date(subscription.ended_at * 1000) : undefined,
+      })
+      return
+    }
+    case 'subscription.halted':
+    case 'subscription.pending': {
+      const subscription = event.payload.subscription?.entity
+      if (!subscription) {
+        logger.warn('Razorpay webhook missing subscription payload', { event: event.event })
+        return
+      }
+      // halted = retries exhausted (gate access); pending = will retry (notify only).
+      await handleRecurringChargeFailed(subscription, {
+        block: event.event === 'subscription.halted',
       })
       return
     }

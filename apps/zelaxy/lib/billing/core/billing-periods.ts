@@ -153,6 +153,7 @@ export async function initializeBillingPeriod(
         billingPeriodStart: start,
         billingPeriodEnd: end,
         currentPeriodCost: '0',
+        alertedUsageThreshold: 0, // fresh period -> re-arm usage alerts
       })
       .where(eq(userStats.userId, userId))
 
@@ -225,6 +226,7 @@ export async function resetUserBillingPeriod(userId: string): Promise<void> {
         lastPeriodCost: currentPeriodCost, // Archive previous period
         currentPeriodCost: '0', // Reset to zero for new period
         billedOverageThisPeriod: '0',
+        alertedUsageThreshold: 0, // re-arm usage alerts for the new period
         billingPeriodStart: newPeriodStart,
         billingPeriodEnd: newPeriodEnd,
       })

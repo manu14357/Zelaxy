@@ -1,8 +1,18 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray, type SQL, sql } from 'drizzle-orm'
+import { getPlanMinimumCost, isPlanPerSeat } from '@/lib/billing/constants'
 import {
   processOrganizationOverageBilling,
   processUserOverageBilling,
 } from '@/lib/billing/core/billing'
+import { adjustCreditBalance } from '@/lib/billing/credits/balance'
+import { sendPlanReceiptEmail, sendPlanWelcomeEmail } from '@/lib/billing/emails'
+import {
+  invoiceIdForOrder,
+  invoiceIdForSubscription,
+  recordInvoice,
+} from '@/lib/billing/invoices/ledger'
+import { RAZORPAY_PLAN_PRICING } from '@/lib/billing/razorpay-pricing'
+import { RECURRING_CHARGE_BLOCK_REASON } from '@/lib/billing/webhooks/razorpay-payment-webhooks'
 import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
 import {
@@ -10,6 +20,7 @@ import {
   organization,
   session as sessionTable,
   subscription as subscriptionTable,
+  userStats,
   user as userTable,
 } from '@/db/schema'
 
@@ -138,6 +149,8 @@ export interface HandleSubscriptionActivatedInput {
    */
   razorpayOrderId?: string
   razorpayCustomerId: string | null
+  /** The captured Razorpay payment id, when known (recorded on the invoice). */
+  razorpayPaymentId?: string | null
   plan: string
   referenceId: string
   seats: number
@@ -148,6 +161,10 @@ export interface HandleSubscriptionActivatedInput {
 export interface HandleSubscriptionActivatedResult {
   /** The final referenceId - rewritten to a newly-created organization id for team plan purchases. */
   referenceId: string
+  /** True only for the created->active transition (not renewals/duplicates); gates one-time side effects like the welcome email. */
+  isFirstActivation: boolean
+  /** True when this call wrote a NEW invoice row (not a duplicate); gates the per-charge receipt email. */
+  invoiceRecorded: boolean
 }
 
 /**
@@ -178,7 +195,17 @@ export async function handleSubscriptionActivated(
     plan: input.plan,
   })
 
-  await db
+  // Atomically claim the first activation. This handler runs at least twice per
+  // activation - synchronously from the client verify route AND from the
+  // subscription.activated / payment.captured webhook - and can run again on
+  // reload via the sync route. Flipping the row to 'active' ONLY while it is
+  // not already active is won by exactly one caller under row locking, giving a
+  // race-safe "is this the first activation?" signal. The once-per-subscription
+  // side effects (team-org creation, the prepaid credit grant, and the welcome
+  // email) hang off this claim so a double-fire can't duplicate them - the
+  // previous code re-ran the whole block on every call, minting a fresh
+  // organization on each verify+webhook pair.
+  const firstActivationClaim = await db
     .update(subscriptionTable)
     .set({
       status: 'active',
@@ -187,102 +214,327 @@ export async function handleSubscriptionActivated(
       periodStart: input.currentStart ?? undefined,
       periodEnd: input.currentEnd ?? undefined,
     })
-    .where(matchesPaidRow)
+    .where(and(matchesPaidRow, sql`${subscriptionTable.status} is distinct from 'active'`))
+    .returning({ id: subscriptionTable.id })
 
-  // Auto-create an organization for team plan purchases (mirrors the old
-  // better-auth Stripe plugin's onSubscriptionComplete behavior) - the
-  // purchaser becomes the org's owner and the subscription is re-pointed to
-  // reference the new organization instead of the individual user.
+  const isFirstActivation = firstActivationClaim.length > 0
+
+  if (!isFirstActivation) {
+    // Renewal charge or duplicate delivery: the row is already active. Still
+    // move the live period/seat/customer fields forward (a renewal advances the
+    // billing window), but skip every once-per-subscription side effect below.
+    await db
+      .update(subscriptionTable)
+      .set({
+        razorpayCustomerId: input.razorpayCustomerId,
+        seats: input.seats,
+        periodStart: input.currentStart ?? undefined,
+        periodEnd: input.currentEnd ?? undefined,
+      })
+      .where(matchesPaidRow)
+  }
+
+  // Resolve the organization (team plans) and the paying user SEPARATELY - the
+  // two must never be conflated. `input.referenceId` is a USER id for an
+  // individual/first-time-team purchase, but an ORGANIZATION id when an
+  // owner/admin manages an existing org's subscription (renewals, re-subscribe).
+  // Filing an invoice under the wrong subject - or writing an org id into
+  // billing_invoice.user_id (a FK to user.id) - is the bug class this replaces.
+  let organizationId: string | null = null
+  let payingUserId: string | null = null
+
   if (input.plan === 'team') {
-    try {
-      const userRecord = await db
-        .select()
-        .from(userTable)
-        .where(eq(userTable.id, referenceId))
-        .limit(1)
-
-      if (userRecord.length > 0) {
-        const currentUser = userRecord[0]
-        const orgId = `org_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
-        const orgSlug = `${currentUser.name?.toLowerCase().replace(/\s+/g, '-') || 'team'}-${Date.now()}`
-
-        await db.insert(organization).values({
-          id: orgId,
-          name: `${currentUser.name || 'User'}'s Team`,
-          slug: orgSlug,
-          metadata: input.razorpayCustomerId
-            ? { razorpayCustomerId: input.razorpayCustomerId }
-            : null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-
-        await db.insert(memberTable).values({
-          id: `member_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`,
-          userId: currentUser.id,
-          organizationId: orgId,
-          role: 'owner',
-          createdAt: new Date(),
-        })
-
-        await db.update(subscriptionTable).set({ referenceId: orgId }).where(matchesPaidRow)
-
+    if (await isOrganizationId(input.referenceId)) {
+      // Org-direct management: the subscription already belongs to an org.
+      organizationId = input.referenceId
+      referenceId = input.referenceId
+      payingUserId = await getOrganizationOwnerId(organizationId)
+    } else {
+      // First-time team purchase (referenceId is the buyer). Ensure the org
+      // exists exactly once - race-safe AND crash-recoverable (see
+      // ensureTeamOrganization). Runs on every delivery, not just the first
+      // claim, so a redelivery repairs a partially-created org.
+      payingUserId = input.referenceId
+      organizationId = await ensureTeamOrganization(
+        matchesPaidRow,
+        input.referenceId,
+        input.razorpayCustomerId
+      )
+      referenceId = organizationId ?? input.referenceId
+    }
+  } else {
+    // Individual (pro) subscription: referenceId is the user.
+    payingUserId = input.referenceId
+    if (input.razorpayCustomerId) {
+      try {
         await db
-          .update(sessionTable)
-          .set({ activeOrganizationId: orgId })
-          .where(eq(sessionTable.userId, currentUser.id))
-
-        logger.info('Auto-created organization for team subscription', {
-          organizationId: orgId,
-          userId: currentUser.id,
-          subscriptionId: input.razorpaySubscriptionId,
+          .update(userTable)
+          .set({ razorpayCustomerId: input.razorpayCustomerId })
+          .where(eq(userTable.id, input.referenceId))
+      } catch (error) {
+        logger.error('Failed to persist Razorpay customer id on user', {
+          referenceId: input.referenceId,
+          error,
         })
+      }
+    }
+  }
 
-        referenceId = orgId
+  // Sync usage limits + initialize the billing period. These write user_stats
+  // (a FK to user.id), so run them ONLY for individual references - passing an
+  // org id would FK-violate user_stats.user_id. Team/enterprise usage is
+  // computed live per member and billed through the org-overage path instead.
+  if (organizationId === null) {
+    try {
+      const { syncUsageLimitsFromSubscription } = await import('@/lib/billing')
+      const { initializeBillingPeriod } = await import('@/lib/billing/core/billing-periods')
+
+      await syncUsageLimitsFromSubscription(referenceId)
+      logger.info('Usage limits synced after subscription activation', { referenceId })
+
+      if (input.currentStart && input.currentEnd) {
+        await initializeBillingPeriod(referenceId, input.currentStart, input.currentEnd)
+        logger.info('Billing period initialized for new subscription', { referenceId })
       }
     } catch (error) {
-      logger.error('Failed to auto-create organization for team subscription', {
-        subscriptionId: input.razorpaySubscriptionId,
+      logger.error(
+        'Failed to sync usage limits or initialize billing period after subscription activation',
+        { referenceId, error }
+      )
+    }
+  }
+
+  // Prepaid credit grant on upgrade, for individual (pro) plans only - credits
+  // are user-scoped; org-level credits are a separate, unbuilt ledger. Two
+  // guards: (1) money must have actually moved - a settled order or a charged
+  // period - so an 'authenticated'-but-not-yet-charged mandate (currentStart
+  // null) grants nothing, staying consistent with the invoice-skip below;
+  // (2) the idempotencyKey (keyed on the subscription/order) makes the grant
+  // apply exactly once across the verify+webhook double-fire AND across
+  // renewals, while remaining RETRYABLE - a transient failure on one delivery
+  // is simply re-attempted on the next, unlike a one-shot isFirstActivation gate
+  // which would lose the grant forever. Runs after the usage sync so the
+  // user_stats row exists. Denominated in the USD metering domain (the plan
+  // minimum), matching how creditBalance is spent.
+  if (
+    (input.razorpayOrderId || input.currentStart) &&
+    payingUserId &&
+    organizationId === null &&
+    !isPlanPerSeat(input.plan)
+  ) {
+    try {
+      const grant = getPlanMinimumCost(input.plan)
+      if (grant > 0) {
+        await adjustCreditBalance(payingUserId, grant, 'purchase', {
+          description: `${planLabel(input.plan)} plan activation credit`,
+          idempotencyKey: `activation_${input.razorpaySubscriptionId ?? input.razorpayOrderId ?? input.referenceId}`,
+        })
+        logger.info('Granted prepaid credits on subscription activation', {
+          userId: payingUserId,
+          plan: input.plan,
+          grant,
+        })
+      }
+    } catch (error) {
+      logger.error('Failed to grant prepaid credits on subscription activation', {
+        userId: payingUserId,
+        plan: input.plan,
+        error,
+      })
+    }
+  }
+
+  // Recovery: a successful charge clears any failed-renewal dunning block that
+  // subscription.halted set (symmetric with how a paid overage link clears its
+  // block). Scoped to the recurring-charge reason via an exact match so it never
+  // forgives an unrelated unpaid-overage block. Only on a real charge.
+  if (input.razorpayOrderId || input.currentStart) {
+    try {
+      const blockedUserIds = organizationId
+        ? (
+            await db
+              .select({ userId: memberTable.userId })
+              .from(memberTable)
+              .where(eq(memberTable.organizationId, organizationId))
+          ).map((m) => m.userId)
+        : payingUserId
+          ? [payingUserId]
+          : []
+      if (blockedUserIds.length > 0) {
+        await db
+          .update(userStats)
+          .set({ billingBlocked: false, billingBlockedReason: null })
+          .where(
+            and(
+              inArray(userStats.userId, blockedUserIds),
+              eq(userStats.billingBlockedReason, RECURRING_CHARGE_BLOCK_REASON)
+            )
+          )
+      }
+    } catch (error) {
+      logger.error('Failed to clear dunning block on subscription activation', {
         referenceId,
         error,
       })
     }
-  } else if (input.razorpayCustomerId) {
-    // Individual (pro) subscription - persist the Razorpay customer id for
-    // future reuse/webhook resolution.
-    try {
-      await db
-        .update(userTable)
-        .set({ razorpayCustomerId: input.razorpayCustomerId })
-        .where(eq(userTable.id, referenceId))
-    } catch (error) {
-      logger.error('Failed to persist Razorpay customer id on user', { referenceId, error })
-    }
   }
 
-  // Sync usage limits and initialize the billing period for the (possibly
-  // rewritten) referenceId.
-  try {
-    const { syncUsageLimitsFromSubscription } = await import('@/lib/billing')
-    const { initializeBillingPeriod } = await import('@/lib/billing/core/billing-periods')
+  // Persist a receipt/invoice row for this charge. Skip the pre-charge window: a
+  // Razorpay subscription can be 'authenticated' (mandate approved) before its
+  // first charge settles, when currentStart is null and no money has moved -
+  // recording then prices nothing AND, because the id would differ from the
+  // post-charge id, would duplicate the invoice/receipt. One-time orders always
+  // carry a concrete period, so they always record. `created` (a NEW row was
+  // written) is the once-per-payment gate a receipt email hangs off (Phase 2).
+  let invoiceCreated = false
+  if (input.razorpayOrderId || input.currentStart) {
+    const invoiceId = input.razorpayOrderId
+      ? invoiceIdForOrder(input.razorpayOrderId)
+      : invoiceIdForSubscription(input.razorpaySubscriptionId ?? 'unknown', input.currentStart)
+    const amountInr = computePlanChargeInr(input.plan, input.seats)
+    const result = await recordInvoice({
+      id: invoiceId,
+      referenceId,
+      userId: payingUserId,
+      organizationId,
+      type: input.razorpayOrderId ? 'plan_purchase' : 'subscription',
+      status: 'paid',
+      amountDue: amountInr,
+      amountPaid: amountInr,
+      currency: 'INR',
+      description: `${planLabel(input.plan)} plan${input.seats > 1 ? ` × ${input.seats} seats` : ''}`,
+      plan: input.plan,
+      seats: input.seats,
+      razorpayPaymentId: input.razorpayPaymentId ?? null,
+      razorpayOrderId: input.razorpayOrderId ?? null,
+      razorpaySubscriptionId: input.razorpaySubscriptionId ?? null,
+      billingPeriodStart: input.currentStart,
+      billingPeriodEnd: input.currentEnd,
+      paidAt: new Date(),
+    })
+    invoiceCreated = result.created
 
-    await syncUsageLimitsFromSubscription(referenceId)
-    logger.info('Usage limits synced after subscription activation', { referenceId })
-
-    if (input.currentStart && input.currentEnd) {
-      await initializeBillingPeriod(referenceId, input.currentStart, input.currentEnd)
-      logger.info('Billing period initialized for new subscription', {
-        referenceId,
-        billingStart: input.currentStart,
-        billingEnd: input.currentEnd,
+    // Receipt email: gated on a NEWLY-written invoice, so exactly one caller of
+    // the verify+webhook double-fire sends it, once per charge (incl. renewals).
+    if (invoiceCreated && payingUserId) {
+      await sendPlanReceiptEmail(payingUserId, {
+        plan: input.plan,
+        amountInr,
+        seats: input.seats,
+        periodStart: input.currentStart,
+        periodEnd: input.currentEnd,
       })
     }
-  } catch (error) {
-    logger.error(
-      'Failed to sync usage limits or initialize billing period after subscription activation',
-      { referenceId, error }
-    )
   }
 
-  return { referenceId }
+  // Welcome email: once, on the first activation (the atomic claim guarantees a
+  // single winner). Best-effort - a missed welcome email never blocks activation.
+  if (isFirstActivation && payingUserId) {
+    await sendPlanWelcomeEmail(payingUserId, { plan: input.plan })
+  }
+
+  return { referenceId, isFirstActivation, invoiceRecorded: invoiceCreated }
+}
+
+/**
+ * Idempotently ensures a first-time team purchase has its auto-provisioned
+ * organization, returning the org id (or null if the user row is missing).
+ *
+ * Everything runs inside ONE transaction that takes a `FOR UPDATE` lock on the
+ * subscription row, which buys two guarantees the previous one-shot version
+ * lacked:
+ *  - Race-safe: concurrent activations (verify + webhook) serialize on the row
+ *    lock; the first creates the org and re-points the row, the rest read the
+ *    re-pointed row and reuse it - never a duplicate org.
+ *  - Crash-recoverable: a partial failure (e.g. member insert throws after the
+ *    org insert) rolls the whole thing back, so a later redelivery re-attempts
+ *    from a clean slate instead of leaving an active subscription with no org.
+ */
+async function ensureTeamOrganization(
+  matchesPaidRow: SQL,
+  purchaserUserId: string,
+  razorpayCustomerId: string | null
+): Promise<string | null> {
+  return db.transaction(async (tx) => {
+    const row = (
+      await tx.select().from(subscriptionTable).where(matchesPaidRow).for('update').limit(1)
+    )[0]
+    if (!row) return null
+
+    // Already re-pointed to an organization by a prior (committed) activation?
+    // Reuse it - this is the idempotent fast path for renewals and duplicates.
+    const existingOrg = await tx
+      .select({ id: organization.id })
+      .from(organization)
+      .where(eq(organization.id, row.referenceId))
+      .limit(1)
+    if (existingOrg.length > 0) return row.referenceId
+
+    const userRecord = await tx
+      .select()
+      .from(userTable)
+      .where(eq(userTable.id, purchaserUserId))
+      .limit(1)
+    if (userRecord.length === 0) return null
+
+    const currentUser = userRecord[0]
+    const orgId = `org_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+    const orgSlug = `${currentUser.name?.toLowerCase().replace(/\s+/g, '-') || 'team'}-${Date.now()}`
+
+    await tx.insert(organization).values({
+      id: orgId,
+      name: `${currentUser.name || 'User'}'s Team`,
+      slug: orgSlug,
+      metadata: razorpayCustomerId ? { razorpayCustomerId } : null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    await tx.insert(memberTable).values({
+      id: `member_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`,
+      userId: currentUser.id,
+      organizationId: orgId,
+      role: 'owner',
+      createdAt: new Date(),
+    })
+
+    await tx.update(subscriptionTable).set({ referenceId: orgId }).where(matchesPaidRow)
+
+    await tx
+      .update(sessionTable)
+      .set({ activeOrganizationId: orgId })
+      .where(eq(sessionTable.userId, currentUser.id))
+
+    logger.info('Auto-created organization for team subscription', {
+      organizationId: orgId,
+      userId: currentUser.id,
+    })
+
+    return orgId
+  })
+}
+
+/** The owner of an organization (for receipts/emails), or null if none. */
+async function getOrganizationOwnerId(organizationId: string): Promise<string | null> {
+  const owner = await db
+    .select({ userId: memberTable.userId })
+    .from(memberTable)
+    .where(and(eq(memberTable.organizationId, organizationId), eq(memberTable.role, 'owner')))
+    .limit(1)
+  return owner[0]?.userId ?? null
+}
+
+function planLabel(plan: string): string {
+  return plan.charAt(0).toUpperCase() + plan.slice(1)
+}
+
+/**
+ * The INR amount actually charged for a plan month, from the same pricing
+ * constant the checkout uses. Per-seat plans multiply by seat count; plans with
+ * no purchasable INR price (free/enterprise) resolve to 0.
+ */
+function computePlanChargeInr(plan: string, seats: number): number {
+  const pricing = RAZORPAY_PLAN_PRICING[plan as keyof typeof RAZORPAY_PLAN_PRICING]
+  if (!pricing) return 0
+  return isPlanPerSeat(plan) ? pricing.priceInr * seats : pricing.priceInr
 }

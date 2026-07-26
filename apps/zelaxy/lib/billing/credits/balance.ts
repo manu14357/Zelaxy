@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
 import { creditTransactions, userStats } from '@/db/schema'
@@ -28,12 +28,19 @@ export async function getCreditBalance(userId: string): Promise<number> {
  * Records every change in creditTransactions for audit purposes. Throws if
  * the resulting balance would go negative — callers that need to charge
  * "up to whatever's available" should use deductAvailableCredits instead.
+ *
+ * Pass `idempotencyKey` to make the adjustment apply at-most-once: if a prior
+ * transaction of the same `type` already carries that key (stored in
+ * relatedInvoiceId), this call is a no-op that returns the current balance.
+ * The check runs under the same `FOR UPDATE` lock as the write, so it is atomic
+ * even against a verify+webhook double-fire or a stale webhook redelivery —
+ * neither can double-apply the same keyed grant.
  */
 export async function adjustCreditBalance(
   userId: string,
   amount: number,
   type: CreditTransactionType,
-  options: { description?: string; relatedInvoiceId?: string } = {}
+  options: { description?: string; relatedInvoiceId?: string; idempotencyKey?: string } = {}
 ): Promise<number> {
   return db.transaction(async (tx) => {
     const rows = await tx
@@ -48,6 +55,22 @@ export async function adjustCreditBalance(
     }
 
     const currentBalance = Number.parseFloat(rows[0].creditBalance?.toString() || '0')
+
+    const dedupKey = options.idempotencyKey
+    if (dedupKey) {
+      const existing = await tx
+        .select({ id: creditTransactions.id })
+        .from(creditTransactions)
+        .where(
+          and(eq(creditTransactions.relatedInvoiceId, dedupKey), eq(creditTransactions.type, type))
+        )
+        .limit(1)
+      if (existing.length > 0) {
+        logger.info('Skipping already-applied credit adjustment', { userId, type, dedupKey })
+        return currentBalance
+      }
+    }
+
     const newBalance = Math.round((currentBalance + amount) * 100) / 100
 
     if (newBalance < 0) {
@@ -67,7 +90,7 @@ export async function adjustCreditBalance(
       amount: amount.toString(),
       type,
       description: options.description ?? null,
-      relatedInvoiceId: options.relatedInvoiceId ?? null,
+      relatedInvoiceId: dedupKey ?? options.relatedInvoiceId ?? null,
       balanceAfter: newBalance.toString(),
     })
 

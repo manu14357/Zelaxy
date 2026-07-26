@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth'
+import { type BillingInvoiceRow, listInvoicesForReference } from '@/lib/billing/invoices/ledger'
 import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
 import { member } from '@/db/schema'
@@ -22,22 +23,33 @@ export interface InvoiceHistoryItem {
   created: string
   hostedInvoiceUrl: string | null
   description: string | null
-  type: 'subscription' | 'overage' | 'other'
+  type: 'subscription' | 'plan_purchase' | 'overage' | 'credit_purchase' | 'other'
+}
+
+function toInvoiceHistoryItem(row: BillingInvoiceRow): InvoiceHistoryItem {
+  const amountPaid = Number.parseFloat(row.amountPaid ?? '0')
+  const amountDue = Number.parseFloat(row.amountDue ?? '0')
+  return {
+    id: row.id,
+    status: row.status,
+    amountDue: Number.isFinite(amountDue) ? amountDue : 0,
+    amountPaid: Number.isFinite(amountPaid) ? amountPaid : 0,
+    currency: row.currency,
+    created: row.createdAt.toISOString(),
+    hostedInvoiceUrl: row.hostedInvoiceUrl,
+    description: row.description,
+    type: (row.type as InvoiceHistoryItem['type']) ?? 'other',
+  }
 }
 
 /**
  * GET /api/billing/invoices - Recent invoice history (last N, default 10).
  *
- * Under Stripe this listed stripeClient.invoices.list({customer}). Razorpay's
- * REST API has no equivalent "list payments/payment links for a given
- * customer" filter exposed by this SDK - only pagination, no customer-id
- * query param. Reliably reconstructing this view needs a dedicated local
- * ledger table (recording every payment link/order we create), which is a
- * standalone follow-up, not part of the Stripe->Razorpay migration itself.
- * Returning an empty list here rather than scanning all of the merchant's
- * Razorpay payments to filter client-side, which wouldn't scale and would
- * mean fetching data far beyond what this endpoint's caller is authorized
- * to see.
+ * Backed by the local `billing_invoice` ledger (lib/billing/invoices/ledger),
+ * which every payment-success path writes to. Razorpay's SDK exposes no
+ * "list payments/invoices for a given customer" filter, so a local ledger is
+ * the only reliable, authorization-scoped source for this view. Scoped by
+ * referenceId: the caller's own user id, or an organization id they own/admin.
  */
 export async function GET(request: NextRequest) {
   const requestId = crypto.randomUUID().slice(0, 8)
@@ -49,7 +61,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const { organizationId } = QuerySchema.parse(Object.fromEntries(searchParams.entries()))
+    const { organizationId, limit } = QuerySchema.parse(Object.fromEntries(searchParams.entries()))
 
     if (organizationId) {
       // Only an org's owner/admin may view its invoice history.
@@ -67,7 +79,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const data: InvoiceHistoryItem[] = []
+    // Team/enterprise invoices are keyed by organization id (the subscription
+    // is re-pointed there on activation); everything else by the user id.
+    const referenceId = organizationId ?? session.user.id
+    const rows = await listInvoicesForReference(referenceId, limit)
+    const data: InvoiceHistoryItem[] = rows.map(toInvoiceHistoryItem)
     return NextResponse.json({ data })
   } catch (error: any) {
     if (error instanceof z.ZodError) {

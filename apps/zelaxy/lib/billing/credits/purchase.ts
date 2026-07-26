@@ -1,4 +1,6 @@
 import { adjustCreditBalance } from '@/lib/billing/credits/balance'
+import { sendCreditReceiptEmail } from '@/lib/billing/emails'
+import { invoiceIdForPayment, recordInvoice } from '@/lib/billing/invoices/ledger'
 import { createCreditPurchaseOrder } from '@/lib/billing/razorpay/orders'
 import { convertInrPaymentToCreditUnits } from '@/lib/billing/razorpay-pricing'
 import { env } from '@/lib/env'
@@ -88,15 +90,41 @@ export async function handleCreditPurchaseCompleted(payment: {
   // convertInrPaymentToCreditUnits's doc comment for why).
   const creditUnits = convertInrPaymentToCreditUnits(amountRupees)
 
+  // Idempotent on the payment id: the webhook idempotency wrapper can reclaim an
+  // event stuck in 'processing' past the stale window and re-run this handler
+  // after a crash. adjustCreditBalance dedups on the key inside its row lock, so
+  // a redelivery credits the balance at most once - never double, never lost.
   await adjustCreditBalance(userId, creditUnits, 'purchase', {
     description: `Purchased ₹${amountRupees} in credits`,
-    relatedInvoiceId: payment.id,
+    idempotencyKey: payment.id,
   })
-
   logger.info('Applied purchased credits to user balance', {
     userId,
     amountRupees,
     creditUnits,
     paymentId: payment.id,
   })
+
+  // Record a receipt in the local ledger so the purchase shows in invoice
+  // history and can be emailed. Idempotent on the payment id.
+  const { created } = await recordInvoice({
+    id: invoiceIdForPayment(payment.id),
+    referenceId: userId,
+    userId,
+    type: 'credit_purchase',
+    status: 'paid',
+    amountDue: amountRupees,
+    amountPaid: amountRupees,
+    currency: 'INR',
+    description: `Purchased ₹${amountRupees} in credits`,
+    razorpayPaymentId: payment.id,
+    razorpayOrderId: payment.order_id,
+    paidAt: new Date(),
+  })
+
+  // Receipt email, gated on a NEWLY-written invoice so a stale redelivery
+  // doesn't re-send it. Best-effort.
+  if (created) {
+    await sendCreditReceiptEmail(userId, { amountRupees, creditUnits })
+  }
 }

@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import { eq, sql } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { checkUsageAlerts } from '@/lib/billing/usage-alerts'
 import { env } from '@/lib/env'
 import { isProd } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
@@ -163,6 +164,9 @@ export async function POST(req: NextRequest) {
         addedTokens: totalTokens,
       })
     }
+
+    // Usage-threshold alerts (50/75/80/90/100%) - best-effort.
+    await checkUsageAlerts(userId)
 
     const duration = Date.now() - startTime
 
