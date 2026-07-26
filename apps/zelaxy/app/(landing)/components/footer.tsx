@@ -9,11 +9,12 @@ const COLUMNS: { title: string; links: { name: string; href: string }[] }[] = [
   {
     title: 'Platform',
     links: [
-      { name: 'The Canvas', href: '#canvas' },
-      { name: 'Capabilities', href: '#capabilities' },
-      { name: 'Ecosystem', href: '#ecosystem' },
-      { name: 'Enterprise', href: '#enterprise' },
-      { name: 'Open Platform', href: '#open' },
+      { name: 'The Canvas', href: '/#canvas' },
+      { name: 'Capabilities', href: '/#capabilities' },
+      { name: 'Ecosystem', href: '/#ecosystem' },
+      { name: 'Enterprise', href: '/#enterprise' },
+      { name: 'Open Platform', href: '/#open' },
+      { name: 'Pricing', href: '/pricing' },
     ],
   },
   {

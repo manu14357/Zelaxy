@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AlertCircle, CreditCard, Gauge, Users, Zap } from 'lucide-react'
+import { AlertCircle, CreditCard, Gauge, Receipt, Users, Wallet, Zap } from 'lucide-react'
+import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle, Button, Skeleton } from '@/components/ui'
-import { useSession, useSubscription } from '@/lib/auth-client'
-import { DEFAULT_FREE_CREDITS } from '@/lib/billing/constants'
+import { useSession } from '@/lib/auth-client'
+import { DEFAULT_FREE_CREDITS, getPlanMinimumCost } from '@/lib/billing/constants'
+import { openRazorpaySubscriptionCheckout } from '@/lib/billing/razorpay-checkout-client'
+import { RAZORPAY_PLAN_PRICING } from '@/lib/billing/razorpay-pricing'
 import { createLogger } from '@/lib/logs/console/logger'
 import {
   BillingSummary,
   CancelSubscription,
+  CreditsSection,
+  InvoiceHistory,
   TeamSeatsDialog,
   UsageLimitEditor,
 } from '@/app/arena/[workspaceId]/zelaxy/components/sidebar/components/settings-modal/components/subscription/components'
@@ -22,7 +27,7 @@ interface SubscriptionProps {
 
 export function Subscription({ onOpenChange }: SubscriptionProps) {
   const { data: session } = useSession()
-  const betterAuthSubscription = useSubscription()
+  const [upgradingPlan, setUpgradingPlan] = useState<'pro' | 'team' | null>(null)
 
   const {
     isLoading,
@@ -32,6 +37,7 @@ export function Subscription({ onOpenChange }: SubscriptionProps) {
     getBillingStatus,
     usageLimitData,
     subscriptionData,
+    refresh,
   } = useSubscriptionStore()
 
   const {
@@ -51,6 +57,17 @@ export function Subscription({ onOpenChange }: SubscriptionProps) {
   const billingStatus = getBillingStatus()
   const activeOrgId = activeOrganization?.id
 
+  // Usage is only ever fetched once, at initial page load (see the
+  // module-level bootstrap in stores/subscription/store.ts) - nothing
+  // refetches it afterwards, so this pane could sit showing a snapshot from
+  // before the user ran anything, arbitrarily stale, for the entire tab
+  // session. Force a fresh read every time this settings pane is opened
+  // (it remounts on each open, since the parent Dialog unmounts on close),
+  // the same way the team-billing effect below already does for org data.
+  useEffect(() => {
+    refresh()
+  }, [])
+
   useEffect(() => {
     if (subscription.isTeam && activeOrgId) {
       loadOrganizationBillingData(activeOrgId)
@@ -66,48 +83,60 @@ export function Subscription({ onOpenChange }: SubscriptionProps) {
     async (targetPlan: 'pro' | 'team') => {
       if (!session?.user?.id) return
 
-      // Get current subscription data including stripeSubscriptionId
-      const subscriptionData = useSubscriptionStore.getState().subscriptionData
-      const currentSubscriptionId = subscriptionData?.stripeSubscriptionId
-
       let referenceId = session.user.id
       if (subscription.isTeam && activeOrgId) {
         referenceId = activeOrgId
       }
 
-      const currentUrl = window.location.origin + window.location.pathname
-
+      setUpgradingPlan(targetPlan)
       try {
-        const upgradeParams: any = {
+        const result = await openRazorpaySubscriptionCheckout({
           plan: targetPlan,
           referenceId,
-          successUrl: currentUrl,
-          cancelUrl: currentUrl,
           seats: targetPlan === 'team' ? 1 : undefined,
+          prefillEmail: session.user.email,
+          prefillName: session.user.name,
+        })
+
+        if (!result.success) {
+          // Closing the widget is a normal thing to do, not an error worth
+          // interrupting the user over.
+          if (result.dismissed) return
+          logger.error('Failed to complete subscription upgrade:', result.error)
+
+          toast.error(result.error || 'Could not complete the upgrade', {
+            action: result.hostedUrl
+              ? {
+                  label: 'Open payment page',
+                  onClick: () => window.open(result.hostedUrl, '_blank', 'noopener'),
+                }
+              : undefined,
+            duration: 10000,
+          })
+          return
         }
 
-        // Add subscriptionId if we have an existing subscription to ensure proper plan switching
-        if (currentSubscriptionId) {
-          upgradeParams.subscriptionId = currentSubscriptionId
-          logger.info('Upgrading existing subscription', {
-            targetPlan,
-            currentSubscriptionId,
-            referenceId,
-          })
-        } else {
-          logger.info('Creating new subscription (no existing subscription found)', {
-            targetPlan,
-            referenceId,
-          })
-        }
+        logger.info('Subscription upgrade completed', { targetPlan, referenceId })
 
-        await betterAuthSubscription.upgrade(upgradeParams)
+        // Drop the cached pre-upgrade snapshot so the new plan shows up
+        // without needing a page reload.
+        await refresh()
+        // A one-time purchase buys a single month with no mandate behind it,
+        // so say so rather than implying it renews on its own.
+        toast.success(`You're on the ${targetPlan === 'pro' ? 'Pro' : 'Team'} plan`, {
+          description:
+            result.mode === 'order'
+              ? 'Paid for one month. Renew from here before it ends — this plan does not auto-renew.'
+              : undefined,
+        })
       } catch (error) {
         logger.error('Failed to initiate subscription upgrade:', error)
-        alert('Failed to initiate upgrade. Please try again or contact support.')
+        toast.error('Failed to start the upgrade. Please try again or contact support.')
+      } finally {
+        setUpgradingPlan(null)
       }
     },
-    [session?.user?.id, subscription.isTeam, activeOrgId, betterAuthSubscription]
+    [session?.user, subscription.isTeam, activeOrgId, refresh]
   )
 
   const handleSeatsUpdate = useCallback(
@@ -240,22 +269,26 @@ export function Subscription({ onOpenChange }: SubscriptionProps) {
         </SettingRow>
         {subscription.isFree && (
           <p className='text-[12px] text-muted-foreground'>
-            Upgrade to Pro ($20 minimum) or Team ($40 minimum) to customize your usage limit.
+            Upgrade to Pro (${getPlanMinimumCost('pro')} minimum) or Team ($
+            {getPlanMinimumCost('team')} minimum) to customize your usage limit.
           </p>
         )}
         {subscription.isPro && (
           <p className='text-[12px] text-muted-foreground'>
-            Pro plan minimum: $20. You can set your individual limit higher.
+            Pro plan minimum: ${getPlanMinimumCost('pro')}. You can set your individual limit
+            higher.
           </p>
         )}
         {subscription.isTeam && !isTeamAdmin && (
           <p className='text-[12px] text-muted-foreground'>
-            Contact your team owner to adjust your limit. Team plan minimum: $40.
+            Contact your team owner to adjust your limit. Team plan minimum: $
+            {getPlanMinimumCost('team')}.
           </p>
         )}
         {subscription.isTeam && isTeamAdmin && (
           <p className='text-[12px] text-muted-foreground'>
-            Team plan minimum: $40 per member. Manage team member limits in the Team tab.
+            Team plan minimum: ${getPlanMinimumCost('team')} per member. Manage team member limits
+            in the Team tab.
           </p>
         )}
       </SettingSection>
@@ -320,15 +353,21 @@ export function Subscription({ onOpenChange }: SubscriptionProps) {
             <Button
               onClick={() => handleUpgrade('pro')}
               className='h-9 w-full rounded-lg text-[13px]'
+              disabled={upgradingPlan !== null}
             >
-              Upgrade to Pro — $20/month
+              {upgradingPlan === 'pro'
+                ? 'Opening checkout…'
+                : `Upgrade to Pro — ₹${RAZORPAY_PLAN_PRICING.pro.priceInr}/month`}
             </Button>
             <Button
               onClick={() => handleUpgrade('team')}
               variant='outline'
               className='h-9 w-full rounded-lg text-[13px]'
+              disabled={upgradingPlan !== null}
             >
-              Upgrade to Team — $40/seat/month
+              {upgradingPlan === 'team'
+                ? 'Opening checkout…'
+                : `Upgrade to Team — ₹${RAZORPAY_PLAN_PRICING.team.priceInr}/seat/month`}
             </Button>
             <p className='text-center text-[12px] text-muted-foreground'>
               Need a custom plan?{' '}
@@ -347,8 +386,14 @@ export function Subscription({ onOpenChange }: SubscriptionProps) {
       )}
 
       {subscription.isPro && !subscription.isTeam && (
-        <Button onClick={() => handleUpgrade('team')} className='h-9 w-full rounded-lg text-[13px]'>
-          Upgrade to Team — $40/seat/month
+        <Button
+          onClick={() => handleUpgrade('team')}
+          className='h-9 w-full rounded-lg text-[13px]'
+          disabled={upgradingPlan !== null}
+        >
+          {upgradingPlan === 'team'
+            ? 'Opening checkout…'
+            : `Upgrade to Team — ₹${RAZORPAY_PLAN_PRICING.team.priceInr}/seat/month`}
         </Button>
       )}
 
@@ -356,6 +401,17 @@ export function Subscription({ onOpenChange }: SubscriptionProps) {
         <p className='py-2 text-center text-[13px] text-muted-foreground'>
           Enterprise plan — Contact support for changes.
         </p>
+      )}
+
+      {/* ── Credits ────────────────────────────────────────────────── */}
+      {subscription.isPaid && (
+        <SettingSection
+          title='Credits'
+          description='Prepaid balance applied to usage overage before your card is charged.'
+          icon={<Wallet className='h-4 w-4' />}
+        >
+          <CreditsSection />
+        </SettingSection>
       )}
 
       {/* Cancel Subscription */}
@@ -370,12 +426,25 @@ export function Subscription({ onOpenChange }: SubscriptionProps) {
         }}
       />
 
+      {/* ── Invoice History ─────────────────────────────────────────── */}
+      {subscription.isPaid && (
+        <SettingSection
+          title='Invoice History'
+          description='Your last 10 invoices.'
+          icon={<Receipt className='h-4 w-4' />}
+        >
+          <InvoiceHistory
+            organizationId={subscription.isTeam && activeOrgId ? activeOrgId : undefined}
+          />
+        </SettingSection>
+      )}
+
       {/* Team Seats Dialog */}
       <TeamSeatsDialog
         open={isSeatsDialogOpen}
         onOpenChange={setIsSeatsDialogOpen}
         title='Update Team Seats'
-        description='Each seat costs $40/month and provides $40 in monthly inference credits. Adjust the number of licensed seats for your team.'
+        description={`Each seat costs ₹${RAZORPAY_PLAN_PRICING.team.priceInr}/month and provides $${getPlanMinimumCost('team')} in monthly inference credits. Adjust the number of licensed seats for your team.`}
         currentSeats={
           shouldShowOrgBilling ? organizationBillingData?.totalSeats || 1 : subscription.seats || 1
         }

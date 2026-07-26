@@ -149,15 +149,17 @@ export const useOrganizationStore = create<OrganizationStore>()(
         try {
           logger.info('Loading subscription for organization', { orgId })
 
-          const { data, error } = await client.subscription.list({
-            query: { referenceId: orgId },
-          })
+          const response = await fetch(
+            `/api/billing/subscriptions?referenceId=${encodeURIComponent(orgId)}`
+          )
 
-          if (error) {
-            logger.error('Error fetching organization subscription', { error })
+          if (!response.ok) {
+            logger.error('Error fetching organization subscription', { status: response.status })
             set({ error: 'Failed to load subscription data' })
             return
           }
+
+          const { data } = (await response.json()) as { data: any[] }
 
           // Find active team or enterprise subscription
           const teamSubscription = data?.find(
@@ -511,7 +513,11 @@ export const useOrganizationStore = create<OrganizationStore>()(
       },
 
       // Team management
-      inviteMember: async (email: string, workspaceInvitations?: WorkspaceInvitation[]) => {
+      inviteMember: async (
+        email: string,
+        workspaceInvitations?: WorkspaceInvitation[],
+        role: 'member' | 'admin' = 'member'
+      ) => {
         const { activeOrganization, subscriptionData } = get()
         if (!activeOrganization) return
 
@@ -538,6 +544,7 @@ export const useOrganizationStore = create<OrganizationStore>()(
             email,
             organizationId: activeOrganization.id,
             workspaceInvitations,
+            role,
           })
 
           // Use direct API call with workspace invitations if selected
@@ -551,7 +558,7 @@ export const useOrganizationStore = create<OrganizationStore>()(
                 },
                 body: JSON.stringify({
                   email,
-                  role: 'member',
+                  role,
                   workspaceInvitations,
                 }),
               }
@@ -565,7 +572,7 @@ export const useOrganizationStore = create<OrganizationStore>()(
             // Use existing client method for organization-only invitations
             const inviteResult = await client.organization.inviteMember({
               email,
-              role: 'member',
+              role,
               organizationId: activeOrganization.id,
             })
 
@@ -657,6 +664,32 @@ export const useOrganizationStore = create<OrganizationStore>()(
         }
       },
 
+      resendInvitation: async (invitationId: string) => {
+        const { activeOrganization } = get()
+        if (!activeOrganization) return
+
+        set({ isLoading: true, error: null })
+
+        try {
+          const response = await fetch(
+            `/api/organizations/${activeOrganization.id}/invitations/${invitationId}/resend`,
+            { method: 'POST' }
+          )
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(errorData.error || 'Failed to resend invitation')
+          }
+
+          await get().refreshOrganization()
+        } catch (error) {
+          logger.error('Failed to resend invitation', { error })
+          set({ error: error instanceof Error ? error.message : 'Failed to resend invitation' })
+        } finally {
+          set({ isLoading: false })
+        }
+      },
+
       updateMemberUsageLimit: async (userId: string, organizationId: string, newLimit: number) => {
         try {
           const response = await fetch(
@@ -696,17 +729,15 @@ export const useOrganizationStore = create<OrganizationStore>()(
         set({ isLoading: true, error: null })
 
         try {
-          const { error } = await client.subscription.upgrade({
-            plan: 'team',
-            referenceId: activeOrganization.id,
-            subscriptionId: subscriptionData.id,
-            seats: newSeatCount,
-            successUrl: window.location.href,
-            cancelUrl: window.location.href,
+          const response = await fetch('/api/billing/subscription/seats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ referenceId: activeOrganization.id, seats: newSeatCount }),
           })
 
-          if (error) {
-            throw new Error(error.message || 'Failed to update seats')
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(errorData.error || 'Failed to update seats')
           }
 
           await get().refreshOrganization()
@@ -744,17 +775,15 @@ export const useOrganizationStore = create<OrganizationStore>()(
         set({ isLoading: true, error: null })
 
         try {
-          const { error } = await client.subscription.upgrade({
-            plan: 'team',
-            referenceId: activeOrganization.id,
-            subscriptionId: subscriptionData.id,
-            seats: newSeatCount,
-            successUrl: window.location.href,
-            cancelUrl: window.location.href,
+          const response = await fetch('/api/billing/subscription/seats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ referenceId: activeOrganization.id, seats: newSeatCount }),
           })
 
-          if (error) {
-            throw new Error(error.message || 'Failed to reduce seats')
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(errorData.error || 'Failed to reduce seats')
           }
 
           await get().refreshOrganization()
@@ -771,9 +800,12 @@ export const useOrganizationStore = create<OrganizationStore>()(
         const { hasTeamPlan, hasEnterprisePlan } = get()
 
         try {
-          const userSubResponse = await client.subscription.list()
+          const userSubResponse = await fetch('/api/billing/subscriptions')
+          const userSubData = userSubResponse.ok
+            ? ((await userSubResponse.json()) as { data: any[] })
+            : { data: [] }
           let teamSubscription: Subscription | null =
-            (userSubResponse.data?.find(
+            (userSubData.data?.find(
               (sub) => (sub.plan === 'team' || sub.plan === 'enterprise') && sub.status === 'active'
             ) as Subscription | undefined) || null
 

@@ -1,22 +1,37 @@
-import { X } from 'lucide-react'
+import { useState } from 'react'
+import { Loader2, RotateCw, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Invitation, Organization } from '@/stores/organization'
 
 interface PendingInvitationsListProps {
   organization: Organization
   onCancelInvitation: (invitationId: string) => void
+  onResendInvitation?: (invitationId: string) => Promise<void> | void
 }
 
 export function PendingInvitationsList({
   organization,
   onCancelInvitation,
+  onResendInvitation,
 }: PendingInvitationsListProps) {
+  const [resendingId, setResendingId] = useState<string | null>(null)
+
   const pendingInvitations = organization.invitations?.filter(
     (invitation) => invitation.status === 'pending'
   )
 
   if (!pendingInvitations || pendingInvitations.length === 0) {
     return null
+  }
+
+  const handleResend = async (invitationId: string) => {
+    if (!onResendInvitation) return
+    setResendingId(invitationId)
+    try {
+      await onResendInvitation(invitationId)
+    } finally {
+      setResendingId(null)
+    }
   }
 
   return (
@@ -42,14 +57,33 @@ export function PendingInvitationsList({
               </div>
             </div>
 
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={() => onCancelInvitation(invitation.id)}
-              className='h-7 w-7 rounded-lg p-0 text-muted-foreground hover:text-destructive'
-            >
-              <X className='h-3.5 w-3.5' />
-            </Button>
+            <div className='flex items-center gap-1'>
+              {onResendInvitation && (
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={() => handleResend(invitation.id)}
+                  disabled={resendingId === invitation.id}
+                  title='Resend invite'
+                  className='h-7 w-7 rounded-lg p-0 text-muted-foreground hover:text-foreground'
+                >
+                  {resendingId === invitation.id ? (
+                    <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                  ) : (
+                    <RotateCw className='h-3.5 w-3.5' />
+                  )}
+                </Button>
+              )}
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={() => onCancelInvitation(invitation.id)}
+                title='Cancel invite'
+                className='h-7 w-7 rounded-lg p-0 text-muted-foreground hover:text-destructive'
+              >
+                <X className='h-3.5 w-3.5' />
+              </Button>
+            </div>
           </div>
         ))}
       </div>

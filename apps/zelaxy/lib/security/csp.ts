@@ -21,6 +21,15 @@ export interface CSPDirectives {
   'worker-src'?: string[]
 }
 
+// Razorpay Checkout pulls from a spread of subdomains that changes with
+// their releases (checkout, cdn, api, express, checkout-static-next, and
+// several lumberjack-* telemetry hosts), and it opens the payment UI by
+// POSTing a generated form to api.razorpay.com/v1/checkout/public targeted
+// at its own iframe - so it needs form-action too, not just frame-src.
+// Enumerating individual hosts meant a silently-blank checkout every time
+// they added one, so allow the vendor domain as a whole.
+const RAZORPAY_HOSTS = 'https://*.razorpay.com'
+
 // Build-time CSP directives (for next.config.ts)
 export const buildTimeCSPDirectives: CSPDirectives = {
   'default-src': ["'self'"],
@@ -39,9 +48,10 @@ export const buildTimeCSPDirectives: CSPDirectives = {
     'https://*.vercel.app',
     'https://vitals.vercel-insights.com',
     'https://b2bjsstore.s3.us-west-2.amazonaws.com',
+    RAZORPAY_HOSTS,
   ],
 
-  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', RAZORPAY_HOSTS],
 
   'img-src': [
     "'self'",
@@ -55,6 +65,7 @@ export const buildTimeCSPDirectives: CSPDirectives = {
     'https://*.public.blob.vercel-storage.com',
     'https://*.s3.amazonaws.com',
     'https://s3.amazonaws.com',
+    RAZORPAY_HOSTS,
     ...(env.S3_BUCKET_NAME && env.AWS_REGION
       ? [`https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com`]
       : []),
@@ -100,17 +111,20 @@ export const buildTimeCSPDirectives: CSPDirectives = {
     'https://pro.ip-api.com',
     'https://api.github.com',
     'https://*.sentry.io',
+    RAZORPAY_HOSTS,
   ],
 
-  // Google Picker and Drive integration
+  // Google Picker and Drive integration; Razorpay renders the Checkout
+  // payment form in an iframe
   'frame-src': [
     'https://drive.google.com',
     'https://docs.google.com', // Required for Google Picker
     'https://*.google.com',
+    RAZORPAY_HOSTS,
   ],
 
   'frame-ancestors': ["'self'"],
-  'form-action': ["'self'"],
+  'form-action': ["'self'", RAZORPAY_HOSTS],
   'base-uri': ["'self'"],
   'object-src': ["'none'"],
   'worker-src': ['blob:', "'self'"],
@@ -145,15 +159,15 @@ export function generateRuntimeCSP(): string {
 
   return `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://apis.google.com https://*.vercel-scripts.com https://*.vercel-insights.com https://vercel.live https://*.vercel.live https://vercel.com https://*.vercel.app https://vitals.vercel-insights.com https://b2bjsstore.s3.us-west-2.amazonaws.com;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    img-src 'self' data: blob: https://*.googleusercontent.com https://*.google.com https://*.atlassian.com https://cdn.discordapp.com https://*.githubusercontent.com https://*.public.blob.vercel-storage.com;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://apis.google.com https://*.vercel-scripts.com https://*.vercel-insights.com https://vercel.live https://*.vercel.live https://vercel.com https://*.vercel.app https://vitals.vercel-insights.com https://b2bjsstore.s3.us-west-2.amazonaws.com ${RAZORPAY_HOSTS};
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com ${RAZORPAY_HOSTS};
+    img-src 'self' data: blob: https://*.googleusercontent.com https://*.google.com https://*.atlassian.com https://cdn.discordapp.com https://*.githubusercontent.com https://*.public.blob.vercel-storage.com ${RAZORPAY_HOSTS};
     media-src 'self' blob:;
     font-src 'self' https://fonts.gstatic.com;
-    connect-src 'self' ${appUrl} ${ollamaUrl} ${socketUrl} ${socketWsUrl} https://*.up.railway.app wss://*.up.railway.app https://api.browser-use.com https://api.exa.ai https://api.firecrawl.dev https://*.googleapis.com https://*.amazonaws.com https://*.s3.amazonaws.com https://*.blob.core.windows.net https://*.vercel-insights.com https://vitals.vercel-insights.com https://*.atlassian.com https://*.supabase.co https://vercel.live https://*.vercel.live https://vercel.com https://*.vercel.app wss://*.vercel.app https://pro.ip-api.com https://api.github.com https://*.sentry.io;
-    frame-src https://drive.google.com https://docs.google.com https://*.google.com;
+    connect-src 'self' ${appUrl} ${ollamaUrl} ${socketUrl} ${socketWsUrl} https://*.up.railway.app wss://*.up.railway.app https://api.browser-use.com https://api.exa.ai https://api.firecrawl.dev https://*.googleapis.com https://*.amazonaws.com https://*.s3.amazonaws.com https://*.blob.core.windows.net https://*.vercel-insights.com https://vitals.vercel-insights.com https://*.atlassian.com https://*.supabase.co https://vercel.live https://*.vercel.live https://vercel.com https://*.vercel.app wss://*.vercel.app https://pro.ip-api.com https://api.github.com https://*.sentry.io ${RAZORPAY_HOSTS};
+    frame-src https://drive.google.com https://docs.google.com https://*.google.com ${RAZORPAY_HOSTS};
     frame-ancestors 'self';
-    form-action 'self';
+    form-action 'self' ${RAZORPAY_HOSTS};
     base-uri 'self';
     object-src 'none';
     worker-src blob: 'self';

@@ -43,12 +43,20 @@ function startLocalCronJobs() {
       name: 'Workspace-events poll',
     },
     { path: '/api/schedules/execute', intervalMs: 60_000, name: 'Schedule execute' },
+    // Production runs this once/day (see vercel.json); polled far more often
+    // here purely so the local dev loop actually exercises the code path.
+    { path: '/api/billing/daily', intervalMs: 300_000, name: 'Billing daily check' },
+    { path: '/api/billing/credits/refresh', intervalMs: 300_000, name: 'Credit refresh' },
+    // Production polls every ~20 minutes (see vercel.json); polled more
+    // often here purely so the local dev loop actually exercises the code
+    // path without a long wait.
+    { path: '/api/billing/threshold', intervalMs: 120_000, name: 'Threshold billing check' },
   ]
 
   // Delay the first run to allow the server to fully start
   setTimeout(() => {
-    const jobNames = cronJobs.map((j) => j.name).join(', ')
-    logger.info(`[LocalCron] Starting cron jobs: ${jobNames} (every 60s)`)
+    const jobDescriptions = cronJobs.map((j) => `${j.name} (every ${j.intervalMs / 1000}s)`)
+    logger.info(`[LocalCron] Starting cron jobs: ${jobDescriptions.join(', ')}`)
 
     for (const job of cronJobs) {
       // Run immediately on startup

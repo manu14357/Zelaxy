@@ -117,14 +117,18 @@ export default function Invite() {
     setIsAccepting(true)
     try {
       if (invitationType === 'workspace') {
-        // For workspace invites, call the API route with token
+        // For workspace invites, call the API route with token. This route returns a real
+        // JSON body ({ success: boolean, ... }) rather than a redirect — do not rely on
+        // response.ok/response.url here: fetch() follows redirects transparently, so a
+        // redirect-based failure page would still report response.ok === true.
         const response = await fetch(
           `/api/arenas/invitations/accept?token=${encodeURIComponent(token || '')}`
         )
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || 'Failed to accept invitation')
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to accept invitation')
         }
 
         setAccepted(true)

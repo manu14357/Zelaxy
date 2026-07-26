@@ -3,6 +3,11 @@ import { createMockRequest, mockAuth, mockConsoleLogger } from '@/app/api/__test
 
 describe('Workspace Invitations API Route', () => {
   const mockWorkspace = { id: 'workspace-1', name: 'Test Workspace' }
+  const mockWorkspaceWithOrg = {
+    id: 'workspace-1',
+    name: 'Test Workspace',
+    organizationId: 'org-1',
+  }
   const mockUser = { id: 'user-1', email: 'test@example.com' }
   const mockInvitation = { id: 'invitation-1', status: 'pending' }
 
@@ -10,6 +15,8 @@ describe('Workspace Invitations API Route', () => {
   let mockGetSession: any
   let mockResendSend: any
   let mockInsertValues: any
+  let mockFindExistingOrgMemberByEmail: any
+  let mockGrantWorkspaceAccessDirectly: any
 
   beforeEach(() => {
     vi.resetModules()
@@ -41,10 +48,19 @@ describe('Workspace Invitations API Route', () => {
       }),
       insert: vi.fn().mockReturnThis(),
       values: mockInsertValues,
+      update: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
     }
 
     vi.doMock('@/db', () => ({
       db: mockDbChain,
+    }))
+
+    mockFindExistingOrgMemberByEmail = vi.fn().mockResolvedValue(null)
+    mockGrantWorkspaceAccessDirectly = vi.fn().mockResolvedValue({ success: true })
+    vi.doMock('@/lib/invitations/direct-grant', () => ({
+      findExistingOrgMemberByEmail: mockFindExistingOrgMemberByEmail,
+      grantWorkspaceAccessDirectly: mockGrantWorkspaceAccessDirectly,
     }))
 
     vi.doMock('@/db/schema', () => ({
@@ -176,7 +192,8 @@ describe('Workspace Invitations API Route', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data).toEqual({ error: 'Workspace ID and email are required' })
+      expect(data.error).toBeTruthy()
+      expect(data.details).toBeDefined()
     })
 
     it('should return 400 when email is missing', async () => {
@@ -188,7 +205,23 @@ describe('Workspace Invitations API Route', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data).toEqual({ error: 'Workspace ID and email are required' })
+      expect(data.error).toBeTruthy()
+      expect(data.details).toBeDefined()
+    })
+
+    it('should return 400 when email is not a valid email address', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } })
+
+      const { POST } = await import('@/app/api/arenas/invitations/route')
+      const req = createMockRequest('POST', {
+        workspaceId: 'workspace-1',
+        email: 'not-an-email',
+      })
+      const response = await POST(req)
+      const data = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(data.error).toBeTruthy()
     })
 
     it('should return 400 when permission type is invalid', async () => {
@@ -204,9 +237,8 @@ describe('Workspace Invitations API Route', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data).toEqual({
-        error: 'Invalid permission: must be one of admin, write, read',
-      })
+      expect(data.error).toBeTruthy()
+      expect(data.details).toBeDefined()
     })
 
     it('should return 403 when user does not have admin permissions', async () => {
@@ -318,6 +350,72 @@ describe('Workspace Invitations API Route', () => {
       expect(data.invitation.email).toBe('test@example.com')
       expect(data.invitation.permissions).toBe('read')
       expect(data.invitation.token).toBe('mock-uuid-1234')
+      expect(mockInsertValues).toHaveBeenCalled()
+    })
+
+    it('grants workspace access directly when the invitee already belongs to the workspace organization', async () => {
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', name: 'Test User', email: 'sender@example.com' },
+      })
+      mockDbResults = [
+        [{ permissionType: 'admin' }], // Inviter has admin permissions
+        [mockWorkspaceWithOrg], // Workspace exists and belongs to an organization
+        [mockUser], // Invitee already has a user account
+        [], // Invitee doesn't already have workspace permissions
+        [], // Cleanup update of any stale pending invitation
+      ]
+      mockFindExistingOrgMemberByEmail.mockResolvedValue({ userId: mockUser.id })
+
+      const { POST } = await import('@/app/api/arenas/invitations/route')
+      const req = createMockRequest('POST', {
+        workspaceId: 'workspace-1',
+        email: 'test@example.com',
+        permission: 'write',
+      })
+      const response = await POST(req)
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data).toEqual({ success: true, directGrant: true, email: 'test@example.com' })
+      expect(mockFindExistingOrgMemberByEmail).toHaveBeenCalledWith('org-1', 'test@example.com')
+      expect(mockGrantWorkspaceAccessDirectly).toHaveBeenCalledWith({
+        userId: mockUser.id,
+        email: 'test@example.com',
+        inviterName: 'Test User',
+        workspaces: [
+          { workspaceId: 'workspace-1', workspaceName: 'Test Workspace', permission: 'write' },
+        ],
+      })
+      // No token-based invitation should have been created for the direct-grant path
+      expect(mockInsertValues).not.toHaveBeenCalled()
+    })
+
+    it('falls back to a token invitation when the invitee is not yet an org member', async () => {
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', name: 'Test User', email: 'sender@example.com' },
+      })
+      mockDbResults = [
+        [{ permissionType: 'admin' }], // Inviter has admin permissions
+        [mockWorkspaceWithOrg], // Workspace exists and belongs to an organization
+        [mockUser], // Invitee already has a user account
+        [], // Invitee doesn't already have workspace permissions
+        [], // No existing pending invitation
+      ]
+      mockFindExistingOrgMemberByEmail.mockResolvedValue(null)
+
+      const { POST } = await import('@/app/api/arenas/invitations/route')
+      const req = createMockRequest('POST', {
+        workspaceId: 'workspace-1',
+        email: 'test@example.com',
+        permission: 'read',
+      })
+      const response = await POST(req)
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.invitation).toBeDefined()
+      expect(mockGrantWorkspaceAccessDirectly).not.toHaveBeenCalled()
       expect(mockInsertValues).toHaveBeenCalled()
     })
   })

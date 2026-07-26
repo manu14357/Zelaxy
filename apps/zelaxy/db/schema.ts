@@ -40,7 +40,7 @@ export const user = pgTable('user', {
   location: text('location'),
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
-  stripeCustomerId: text('stripe_customer_id'),
+  razorpayCustomerId: text('razorpay_customer_id'),
 })
 
 export const session = pgTable('session', {
@@ -481,7 +481,53 @@ export const userStats = pgTable('user_stats', {
   billingPeriodEnd: timestamp('billing_period_end'), // When current billing period ends
   lastPeriodCost: decimal('last_period_cost').default('0'), // Usage from previous billing period
   lastActive: timestamp('last_active').notNull().defaultNow(),
+  // Set true when a usage-billing invoice payment fails; gates access until
+  // handleInvoicePaymentSucceeded (or a manual admin action) clears it.
+  billingBlocked: boolean('billing_blocked').notNull().default(false),
+  billingBlockedReason: text('billing_blocked_reason'),
+  // How much overage has already been billed within the current billing
+  // period, so processDailyBillingCheck can bill only the delta instead of
+  // re-deriving overage purely from currentPeriodCost (which would
+  // double-bill if the cron runs more than once, or accumulate unboundedly
+  // if it never fires at all).
+  billedOverageThisPeriod: decimal('billed_overage_this_period').notNull().default('0'),
+  // Prepaid balance applied to overage charges before a Razorpay payment
+  // link is issued. See db/schema.ts's creditTransactions for the audit
+  // trail of every change to this number.
+  creditBalance: decimal('credit_balance').notNull().default('0'),
+  // Highest usage-% bucket (50/75/80/90/100) already alerted this billing
+  // period, so a usage-threshold alert (email + in-app notification) fires at
+  // most once per bucket per period. Reset to 0 on billing-period reset/init
+  // (see lib/billing/core/billing-periods.ts).
+  alertedUsageThreshold: integer('alerted_usage_threshold').notNull().default(0),
 })
+
+// Audit trail for every change to userStats.creditBalance - the running
+// total on userStats is a denormalized cache of summing this table, kept in
+// sync by lib/billing/credits/*, not the other way around.
+export const creditTransactions = pgTable(
+  'credit_transactions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    // Positive = credit added (purchase, daily refresh, admin adjustment).
+    // Negative = credit consumed (applied to an overage charge).
+    amount: decimal('amount').notNull(),
+    type: text('type').notNull(), // 'purchase' | 'daily_refresh' | 'applied_to_charge' | 'admin_adjustment'
+    description: text('description'),
+    relatedInvoiceId: text('related_invoice_id'),
+    balanceAfter: decimal('balance_after').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdCreatedAtIdx: index('credit_transactions_user_id_created_at_idx').on(
+      table.userId,
+      table.createdAt
+    ),
+  })
+)
 
 export const customTools = pgTable('custom_tools', {
   id: text('id').primaryKey(),
@@ -501,8 +547,15 @@ export const subscription = pgTable(
     id: text('id').primaryKey(),
     plan: text('plan').notNull(),
     referenceId: text('reference_id').notNull(),
-    stripeCustomerId: text('stripe_customer_id'),
-    stripeSubscriptionId: text('stripe_subscription_id'),
+    razorpayCustomerId: text('razorpay_customer_id'),
+    razorpaySubscriptionId: text('razorpay_subscription_id'),
+    // Set instead of razorpaySubscriptionId when a plan month was bought as a
+    // one-time Order rather than a Razorpay Subscription (see
+    // createPlanPurchaseOrder for why that is the default path). Kept as its
+    // own column rather than overloading razorpaySubscriptionId, because an
+    // order id and a subscription id address different Razorpay APIs and
+    // silently mixing them would break every fetch that follows.
+    razorpayOrderId: text('razorpay_order_id'),
     status: text('status'),
     periodStart: timestamp('period_start'),
     periodEnd: timestamp('period_end'),
@@ -511,15 +564,110 @@ export const subscription = pgTable(
     trialStart: timestamp('trial_start'),
     trialEnd: timestamp('trial_end'),
     metadata: json('metadata'),
+    // Set by handleSubscriptionDeleted (canceledAt when Razorpay first marks
+    // the subscription as cancelled, endedAt once it actually ends) - needed to
+    // distinguish "canceling, still active until period end" from "ended" and
+    // to avoid re-processing the same deletion webhook twice.
+    canceledAt: timestamp('canceled_at'),
+    endedAt: timestamp('ended_at'),
+    // 'month' | 'year' - not yet used by any plan (no annual Razorpay Plan
+    // exists today), but the column exists so onSubscriptionDeleted/invoice
+    // logic doesn't have to special-case its absence once annual billing
+    // lands.
+    billingInterval: text('billing_interval'),
   },
   (table) => ({
     referenceStatusIdx: index('subscription_reference_status_idx').on(
       table.referenceId,
       table.status
     ),
+    // Order-paid plans are looked up by order id on the verify/sync path and
+    // from the payment.captured webhook.
+    razorpayOrderIdx: index('subscription_razorpay_order_idx').on(table.razorpayOrderId),
     enterpriseMetadataCheck: check(
       'check_enterprise_metadata',
       sql`plan != 'enterprise' OR (metadata IS NOT NULL AND (metadata->>'perSeatAllowance' IS NOT NULL OR metadata->>'totalAllowance' IS NOT NULL))`
+    ),
+  })
+)
+
+// Local ledger of every billing event we charge for. Razorpay's SDK has no
+// "list payments/invoices for a given customer" filter, so this table is the
+// single source of truth that powers the in-app invoice history AND the
+// receipt emails - both read the same row. Written idempotently from the
+// payment-success paths (subscription activation, one-time plan orders, credit
+// purchases, overage payment links); the primary key is derived
+// deterministically from the Razorpay id so a verify+webhook double-fire or a
+// webhook retry upserts the same row instead of duplicating it.
+export const billingInvoice = pgTable(
+  'billing_invoice',
+  {
+    id: text('id').primaryKey(),
+    // The billing subject: a user id (pro/credits) or an organization id
+    // (team/enterprise). Mirrors subscription.referenceId so the invoices
+    // endpoint can scope by the same key.
+    referenceId: text('reference_id').notNull(),
+    // Who actually paid / should receive the receipt email. Populated even
+    // when referenceId is an organization (the purchasing owner).
+    userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
+    organizationId: text('organization_id').references(() => organization.id, {
+      onDelete: 'set null',
+    }),
+    type: text('type').notNull(), // 'subscription' | 'plan_purchase' | 'overage' | 'credit_purchase' | 'other'
+    status: text('status').notNull().default('paid'), // 'created' | 'paid' | 'failed' | 'expired' | 'refunded'
+    amountDue: decimal('amount_due').notNull().default('0'),
+    amountPaid: decimal('amount_paid').notNull().default('0'),
+    currency: text('currency').notNull().default('INR'),
+    description: text('description'),
+    plan: text('plan'),
+    seats: integer('seats'),
+    // At most one of order/subscription/payment-link identifies the Razorpay
+    // entity this invoice came from; paymentId is the captured payment where
+    // one exists.
+    razorpayPaymentId: text('razorpay_payment_id'),
+    razorpayOrderId: text('razorpay_order_id'),
+    razorpaySubscriptionId: text('razorpay_subscription_id'),
+    razorpayPaymentLinkId: text('razorpay_payment_link_id'),
+    // A link the customer can open (Razorpay short_url / receipt), when Razorpay
+    // gives us one - null for order/subscription charges where it doesn't.
+    hostedInvoiceUrl: text('hosted_invoice_url'),
+    billingPeriodStart: timestamp('billing_period_start'),
+    billingPeriodEnd: timestamp('billing_period_end'),
+    metadata: json('metadata'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    paidAt: timestamp('paid_at'),
+  },
+  (table) => ({
+    referenceCreatedIdx: index('billing_invoice_reference_created_idx').on(
+      table.referenceId,
+      table.createdAt
+    ),
+  })
+)
+
+// In-app notifications (a persistent alert the user sees in the app, alongside
+// any email). Currently written by the usage-threshold alerts (50/75/80/90/100%
+// of plan usage); general enough to carry other billing/system alerts later.
+export const notification = pgTable(
+  'notification',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(), // 'usage_alert' | ...
+    title: text('title').notNull(),
+    message: text('message').notNull(),
+    level: text('level').notNull().default('info'), // 'info' | 'warning' | 'error'
+    read: boolean('read').notNull().default(false),
+    metadata: json('metadata'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    userReadCreatedIdx: index('notification_user_read_created_idx').on(
+      table.userId,
+      table.read,
+      table.createdAt
     ),
   })
 )
@@ -579,6 +727,12 @@ export const organization = pgTable('organization', {
   metadata: json('metadata'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  // Accumulated usage cost from members who left the org mid-billing-period,
+  // so their usage isn't silently dropped from the org's overage total when
+  // they're removed. Added to totalTeamUsage alongside current members'
+  // usage in processOrganizationOverageBilling, then reset to 0 whenever the
+  // org's billing period resets.
+  departedMemberUsage: decimal('departed_member_usage').notNull().default('0'),
 })
 
 export const member = pgTable('member', {
@@ -1239,6 +1393,32 @@ export const templateStars = pgTable(
     uniqueUserTemplateConstraint: uniqueIndex('template_stars_user_template_unique').on(
       table.userId,
       table.templateId
+    ),
+  })
+)
+
+// Idempotency ledger for Razorpay webhook handlers. Razorpay delivers
+// webhooks at-least-once, so every money-mutating handler claims a row here
+// (keyed by the Razorpay event id) before doing any work - a second delivery
+// of the same event id hits the unique constraint and either replays the
+// cached result (if the first delivery already succeeded) or is rejected as
+// in-flight. Deliberately Postgres, not Redis/an in-memory cache, so the
+// claim survives a process restart and isn't lost on deploy.
+export const paymentWebhookEvents = pgTable(
+  'payment_webhook_events',
+  {
+    id: text('id').primaryKey(), // the Razorpay event id (x-razorpay-event-id header)
+    eventType: text('event_type').notNull(),
+    status: text('status').notNull().default('processing'), // 'processing' | 'succeeded' | 'failed_retryable' | 'failed_terminal'
+    result: json('result'), // cached handler return value, replayed on a duplicate delivery
+    error: text('error'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    completedAt: timestamp('completed_at'),
+  },
+  (table) => ({
+    statusCreatedAtIdx: index('payment_webhook_events_status_created_at_idx').on(
+      table.status,
+      table.createdAt
     ),
   })
 )

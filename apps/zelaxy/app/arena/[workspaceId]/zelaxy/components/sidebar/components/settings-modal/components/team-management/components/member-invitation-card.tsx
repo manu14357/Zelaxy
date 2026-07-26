@@ -61,9 +61,59 @@ const PermissionSelector = React.memo<PermissionSelectorProps>(
 
 PermissionSelector.displayName = 'PermissionSelector'
 
+type OrgRole = 'member' | 'admin'
+
+interface RoleSelectorProps {
+  value: OrgRole
+  onChange: (value: OrgRole) => void
+  disabled?: boolean
+}
+
+const RoleSelector = React.memo<RoleSelectorProps>(({ value, onChange, disabled = false }) => {
+  const roleOptions = useMemo(
+    () => [
+      { value: 'member' as OrgRole, label: 'Member', description: 'Billing access only' },
+      {
+        value: 'admin' as OrgRole,
+        label: 'Admin',
+        description: 'Can manage team and billing',
+      },
+    ],
+    []
+  )
+
+  return (
+    <div className='inline-flex overflow-hidden rounded-lg border border-border/60 bg-muted/40'>
+      {roleOptions.map((option, index) => (
+        <button
+          key={option.value}
+          type='button'
+          onClick={() => !disabled && onChange(option.value)}
+          disabled={disabled}
+          title={option.description}
+          className={cn(
+            'relative px-2.5 py-1 font-medium text-[11px] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+            disabled && 'cursor-not-allowed opacity-50',
+            value === option.value
+              ? 'z-10 bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:z-20 hover:bg-muted/50 hover:text-foreground',
+            index > 0 && 'border-border/60 border-l'
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+})
+
+RoleSelector.displayName = 'RoleSelector'
+
 interface MemberInvitationCardProps {
   inviteEmail: string
   setInviteEmail: (email: string) => void
+  inviteRole: OrgRole
+  setInviteRole: (role: OrgRole) => void
   isInviting: boolean
   showWorkspaceInvite: boolean
   setShowWorkspaceInvite: (show: boolean) => void
@@ -84,6 +134,8 @@ function ButtonSkeleton() {
 export function MemberInvitationCard({
   inviteEmail,
   setInviteEmail,
+  inviteRole,
+  setInviteRole,
   isInviting,
   showWorkspaceInvite,
   setShowWorkspaceInvite,
@@ -124,6 +176,7 @@ export function MemberInvitationCard({
               className='h-9 w-full rounded-lg text-[13px]'
             />
           </div>
+          <RoleSelector value={inviteRole} onChange={setInviteRole} disabled={isInviting} />
           <Button
             variant='outline'
             size='sm'

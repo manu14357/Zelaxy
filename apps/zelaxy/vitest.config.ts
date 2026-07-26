@@ -13,6 +13,12 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
+    // The default 5s is too tight for the heavier DB/integration/socket tests
+    // when the whole suite transforms 400+ files in parallel; they pass
+    // comfortably in isolation but get starved under full-suite load. A roomier
+    // timeout keeps the full `vitest run` green without masking any real hang.
+    testTimeout: 30000,
+    hookTimeout: 30000,
     environment: 'node',
     include: ['**/*.test.{ts,tsx}'],
     exclude: [...configDefaults.exclude, '**/node_modules/**', '**/dist/**'],

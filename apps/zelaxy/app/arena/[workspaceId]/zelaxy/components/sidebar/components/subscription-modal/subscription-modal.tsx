@@ -1,12 +1,11 @@
 'use client'
 
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Building2,
   Check,
   Clock,
   Database,
-  DollarSign,
   HeadphonesIcon,
   Infinity as InfinityIcon,
   MessageSquare,
@@ -15,6 +14,7 @@ import {
   Workflow,
   Zap,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -22,7 +22,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { useSession, useSubscription } from '@/lib/auth-client'
+import { useSession } from '@/lib/auth-client'
+import {
+  CLOSE_OVERLAYS_EVENT,
+  openRazorpaySubscriptionCheckout,
+} from '@/lib/billing/razorpay-checkout-client'
+import { RAZORPAY_PLAN_PRICING } from '@/lib/billing/razorpay-pricing'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
 import { useOrganizationStore } from '@/stores/organization'
@@ -43,9 +48,9 @@ interface PlanFeature {
 
 export function SubscriptionModal({ open, onOpenChange }: SubscriptionModalProps) {
   const { data: session } = useSession()
-  const betterAuthSubscription = useSubscription()
   const { activeOrganization } = useOrganizationStore()
-  const { loadData, getSubscriptionStatus, isLoading } = useSubscriptionStore()
+  const { loadData, refresh, getSubscriptionStatus } = useSubscriptionStore()
+  const [upgradingPlan, setUpgradingPlan] = useState<'pro' | 'team' | null>(null)
 
   // Load subscription data when modal opens
   useEffect(() => {
@@ -54,67 +59,79 @@ export function SubscriptionModal({ open, onOpenChange }: SubscriptionModalProps
     }
   }, [open, loadData])
 
+  // Step aside for Razorpay Checkout - its iframe mounts on <body>, outside
+  // this dialog, where Radix's modal mode would block clicks and focus.
+  useEffect(() => {
+    const closeForCheckout = () => onOpenChange(false)
+    window.addEventListener(CLOSE_OVERLAYS_EVENT, closeForCheckout)
+    return () => window.removeEventListener(CLOSE_OVERLAYS_EVENT, closeForCheckout)
+  }, [onOpenChange])
+
   const subscription = getSubscriptionStatus()
 
   const handleUpgrade = useCallback(
     async (targetPlan: 'pro' | 'team') => {
       if (!session?.user?.id) return
 
-      const subscriptionData = useSubscriptionStore.getState().subscriptionData
-      const currentSubscriptionId = subscriptionData?.stripeSubscriptionId
-
       let referenceId = session.user.id
       if (subscription.isTeam && activeOrganization?.id) {
         referenceId = activeOrganization.id
       }
 
-      const currentUrl = window.location.origin + window.location.pathname
-
+      setUpgradingPlan(targetPlan)
       try {
-        const upgradeParams: any = {
+        const result = await openRazorpaySubscriptionCheckout({
           plan: targetPlan,
           referenceId,
-          successUrl: currentUrl,
-          cancelUrl: currentUrl,
           seats: targetPlan === 'team' ? 1 : undefined,
+          prefillEmail: session.user.email,
+          prefillName: session.user.name,
+        })
+
+        if (!result.success) {
+          // Closing the widget without paying is normal, not an error.
+          if (result.dismissed) return
+          logger.error('Failed to complete subscription upgrade:', result.error)
+          toast.error(result.error || 'Could not complete the upgrade', {
+            action: result.hostedUrl
+              ? {
+                  label: 'Open payment page',
+                  onClick: () => window.open(result.hostedUrl, '_blank', 'noopener'),
+                }
+              : undefined,
+            duration: 10000,
+          })
+          return
         }
 
-        if (currentSubscriptionId) {
-          upgradeParams.subscriptionId = currentSubscriptionId
-        }
-
-        await betterAuthSubscription.upgrade(upgradeParams)
+        // refresh(), not loadData() - the plan just changed, and loadData
+        // would hand back the pre-upgrade data still sitting in the 30s cache.
+        await refresh()
+        onOpenChange(false)
+        toast.success(`You're on the ${targetPlan === 'pro' ? 'Pro' : 'Team'} plan`)
       } catch (error) {
         logger.error('Failed to initiate subscription upgrade:', error)
-        alert('Failed to initiate upgrade. Please try again or contact support.')
+        toast.error('Failed to start the upgrade. Please try again or contact support.')
+      } finally {
+        setUpgradingPlan(null)
       }
     },
-    [session?.user?.id, subscription.isTeam, activeOrganization?.id, betterAuthSubscription]
+    [session?.user, subscription.isTeam, activeOrganization?.id, refresh, onOpenChange]
   )
 
   const handleContactUs = () => {
     window.open('https://form.typeform.com/to/jqCO12pF', '_blank')
   }
 
-  // Define all 4 plans
+  // Prices are derived from RAZORPAY_PLAN_PRICING (the same INR amounts
+  // Razorpay actually charges via the subscription mandate) instead of
+  // being hand-typed here, so this copy can't silently drift from what's
+  // actually charged. No Free plan - it isn't a purchasable subscription.
   const plans = [
     {
-      name: 'Free',
-      price: '$0',
-      description: '',
-      features: [
-        { text: '$10 free inference credit', included: true, icon: DollarSign },
-        { text: '10 runs per minute (sync)', included: true, icon: Zap },
-        { text: '50 runs per minute (async)', included: true, icon: Clock },
-        { text: '7-day log retention', included: true, icon: Database },
-      ],
-      isActive: subscription.isFree,
-      action: null, // No action for free plan
-    },
-    {
       name: 'Pro',
-      price: '$20',
-      description: '/month',
+      price: `₹${RAZORPAY_PLAN_PRICING.pro.priceInr}`,
+      description: RAZORPAY_PLAN_PRICING.pro.period,
       features: [
         { text: '25 runs per minute (sync)', included: true, icon: Zap },
         { text: '200 runs per minute (async)', included: true, icon: Clock },
@@ -122,36 +139,37 @@ export function SubscriptionModal({ open, onOpenChange }: SubscriptionModalProps
         { text: 'Unlimited workflows', included: true, icon: Workflow },
         { text: 'Unlimited invites', included: true, icon: Users },
         { text: 'Unlimited log retention', included: true, icon: Database },
-      ],
+      ] as PlanFeature[],
       isActive: subscription.isPro && !subscription.isTeam,
-      action: subscription.isFree ? () => handleUpgrade('pro') : null,
+      action: !subscription.isPro && !subscription.isTeam ? () => handleUpgrade('pro') : null,
+      isLoading: upgradingPlan === 'pro',
     },
     {
       name: 'Team',
-      price: '$40',
-      description: '/month',
+      price: `₹${RAZORPAY_PLAN_PRICING.team.priceInr}`,
+      description: RAZORPAY_PLAN_PRICING.team.period,
       features: [
         { text: '75 runs per minute (sync)', included: true, icon: Zap },
         { text: '500 runs per minute (async)', included: true, icon: Clock },
         { text: 'Everything in Pro', included: true, icon: InfinityIcon },
         { text: 'Dedicated Slack channel', included: true, icon: MessageSquare },
-      ],
+      ] as PlanFeature[],
       isActive: subscription.isTeam,
       action: !subscription.isTeam ? () => handleUpgrade('team') : null,
-    },
-    {
-      name: 'Enterprise',
-      price: '',
-      description: '',
-      features: [
-        { text: 'Custom rate limits', included: true, icon: Zap },
-        { text: 'Enterprise hosting license', included: true, icon: Server },
-        { text: 'Custom enterprise support', included: true, icon: HeadphonesIcon },
-      ],
-      isActive: subscription.isEnterprise,
-      action: handleContactUs,
+      isLoading: upgradingPlan === 'team',
     },
   ]
+
+  const enterprisePlan = {
+    name: 'Enterprise',
+    features: [
+      { text: 'Custom rate limits', included: true, icon: Zap },
+      { text: 'Enterprise hosting license', included: true, icon: Server },
+      { text: 'Custom enterprise support', included: true, icon: HeadphonesIcon },
+    ] as PlanFeature[],
+    isActive: subscription.isEnterprise,
+    action: handleContactUs,
+  }
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -161,10 +179,10 @@ export function SubscriptionModal({ open, onOpenChange }: SubscriptionModalProps
         </AlertDialogHeader>
 
         <div className='flex min-h-0 flex-1 items-center justify-center overflow-hidden px-8 pb-8'>
-          <div className='flex w-full max-w-4xl flex-col gap-6'>
-            {/* Main Plans Grid - Free, Pro, Team */}
-            <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
-              {plans.slice(0, 3).map((plan) => (
+          <div className='flex w-full max-w-3xl flex-col gap-6'>
+            {/* Main Plans Grid - Pro, Team */}
+            <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+              {plans.map((plan) => (
                 <div
                   key={plan.name}
                   className={cn('relative flex flex-col rounded-[10px] border p-6')}
@@ -207,12 +225,13 @@ export function SubscriptionModal({ open, onOpenChange }: SubscriptionModalProps
                         onClick={plan.action}
                         className='w-full rounded-[8px]'
                         variant='default'
+                        disabled={plan.isLoading}
                       >
-                        Upgrade
+                        {plan.isLoading ? 'Opening checkout…' : 'Upgrade'}
                       </Button>
                     ) : (
                       <Button variant='outline' className='w-full rounded-[8px]' disabled>
-                        {plan.name === 'Free' ? 'Basic plan' : 'Upgrade'}
+                        Upgrade
                       </Button>
                     )}
                   </div>
@@ -224,17 +243,17 @@ export function SubscriptionModal({ open, onOpenChange }: SubscriptionModalProps
             <div
               className={cn(
                 'relative flex flex-col rounded-[10px] border p-6 md:flex-row md:items-center md:justify-between',
-                plans[3].isActive && 'border-gray-400'
+                enterprisePlan.isActive && 'border-gray-400'
               )}
             >
               {/* Left Side - Plan Info */}
               <div className='mb-4 md:mb-0'>
-                <h3 className='mb-2 font-semibold text-lg'>{plans[3].name}</h3>
+                <h3 className='mb-2 font-semibold text-lg'>{enterprisePlan.name}</h3>
                 <p className='mb-3 text-muted-foreground text-sm'>
                   Custom solutions tailored to your enterprise needs
                 </p>
                 <div className='flex items-center gap-4'>
-                  {plans[3].features.map((feature, index) => (
+                  {enterprisePlan.features.map((feature, index) => (
                     <div key={index} className='flex items-center gap-4'>
                       <div className='flex items-center gap-2 text-sm'>
                         {feature.icon ? (
@@ -244,7 +263,7 @@ export function SubscriptionModal({ open, onOpenChange }: SubscriptionModalProps
                         )}
                         <span className='text-muted-foreground'>{feature.text}</span>
                       </div>
-                      {index < plans[3].features.length - 1 && (
+                      {index < enterprisePlan.features.length - 1 && (
                         <div className='h-4 w-px bg-border' />
                       )}
                     </div>
@@ -254,20 +273,16 @@ export function SubscriptionModal({ open, onOpenChange }: SubscriptionModalProps
 
               {/* Right Side - Button */}
               <div className='md:ml-auto md:w-[200px]'>
-                {plans[3].isActive ? (
+                {enterprisePlan.isActive ? (
                   <Button variant='secondary' className='w-full rounded-[8px]' disabled>
                     Current plan
                   </Button>
-                ) : plans[3].action ? (
+                ) : (
                   <Button
-                    onClick={plans[3].action}
+                    onClick={enterprisePlan.action}
                     className='w-full rounded-[8px]'
                     variant='default'
                   >
-                    Contact us
-                  </Button>
-                ) : (
-                  <Button className='w-full rounded-[8px]' variant='default' disabled>
                     Contact us
                   </Button>
                 )}

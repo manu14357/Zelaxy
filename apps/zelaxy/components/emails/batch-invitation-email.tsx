@@ -12,7 +12,7 @@ import {
   Text,
 } from '@react-email/components'
 import { getBrandConfig } from '@/lib/branding/branding'
-import { getAssetUrl } from '@/lib/utils'
+import { getEmailLogoUrl } from './email-config'
 
 interface WorkspaceInvitation {
   workspaceId: string
@@ -72,13 +72,7 @@ export const BatchInvitationEmail = ({
       <Body style={main}>
         <Container style={container}>
           <Section style={logoContainer}>
-            <Img
-              src={brand.logoUrl || getAssetUrl('Zelaxy.png')}
-              width='120'
-              height='36'
-              alt={brand.name}
-              style={logo}
-            />
+            <Img src={getEmailLogoUrl()} width='120' height='36' alt={brand.name} style={logo} />
           </Section>
 
           <Heading style={h1}>You're invited to join {organizationName}!</Heading>

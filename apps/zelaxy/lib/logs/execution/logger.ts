@@ -1,5 +1,6 @@
 import { eq, sql } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
+import { checkUsageAlerts } from '@/lib/billing/usage-alerts'
 import { getCostMultiplier } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
 import { snapshotService } from '@/lib/logs/execution/snapshot/service'
@@ -371,6 +372,11 @@ export class ExecutionLogger implements IExecutionLoggerService {
           addedTokens: costSummary.totalTokens,
         })
       }
+
+      // Fire usage-threshold alerts (50/75/80/90/100%) as this run pushes the
+      // period cost across a bucket. Best-effort and self-guarded - it never
+      // blocks execution logging or billing.
+      await checkUsageAlerts(userId)
     } catch (error) {
       logger.error('Error updating user stats with cost information', {
         workflowId,

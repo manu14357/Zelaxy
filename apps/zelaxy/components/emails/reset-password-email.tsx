@@ -12,7 +12,7 @@ import {
 } from '@react-email/components'
 import { format } from 'date-fns'
 import { getBrandConfig } from '@/lib/branding/branding'
-import { env } from '@/lib/env'
+import { getEmailBaseUrl } from './email-config'
 import EmailFooter from './footer'
 
 interface ResetPasswordEmailProps {
@@ -21,7 +21,7 @@ interface ResetPasswordEmailProps {
   updatedDate?: Date
 }
 
-const baseUrl = env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/'
+const baseUrl = getEmailBaseUrl()
 
 export const ResetPasswordEmail = ({
   username = '',

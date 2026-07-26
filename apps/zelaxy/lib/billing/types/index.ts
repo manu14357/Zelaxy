@@ -49,22 +49,11 @@ export interface UserSubscriptionState {
   planName: string
 }
 
-export interface SubscriptionPlan {
-  name: string
-  priceId: string
-  limits: {
-    cost: number
-    sharingEnabled: number
-    multiplayerEnabled: number
-    workspaceCollaborationEnabled: number
-  }
-}
-
 export interface BillingEntity {
   id: string
   type: 'user' | 'organization'
   referenceId: string
-  metadata?: { stripeCustomerId?: string; [key: string]: any } | null
+  metadata?: { razorpayCustomerId?: string; [key: string]: any } | null
   createdAt: Date
   updatedAt: Date
 }

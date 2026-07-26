@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { DEFAULT_FREE_CREDITS } from '@/lib/billing/constants'
+import { resumePendingSubscription } from '@/lib/billing/razorpay-checkout-client'
 import { createLogger } from '@/lib/logs/console/logger'
 import type {
   BillingStatus,
@@ -485,6 +486,20 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
 
 // Auto-load subscription data when store is first accessed
 if (typeof window !== 'undefined') {
-  // Load data in parallel on store creation
-  useSubscriptionStore.getState().loadData()
+  // Load first so the UI isn't blocked behind a checkout the customer may be
+  // sitting in for minutes, then reconcile (and possibly reopen) whatever
+  // payment was in flight. `refresh` rather than `loadData` on the way out:
+  // an activation just changed the plan, and loadData would hand back the
+  // pre-upgrade snapshot still sitting in the 30s cache.
+  void useSubscriptionStore
+    .getState()
+    .loadData()
+    .then(() => resumePendingSubscription())
+    .then((result) => {
+      if (result.activated) return useSubscriptionStore.getState().refresh()
+    })
+    .catch(() => {
+      // Resuming is best-effort - the subscription.activated webhook remains
+      // the source of truth, so a failure here only delays the UI catching up.
+    })
 }

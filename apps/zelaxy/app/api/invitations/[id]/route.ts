@@ -2,15 +2,28 @@ import { and, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth'
+import {
+  type AcceptOrgInvitationFailureReason,
+  acceptOrgInvitation,
+} from '@/lib/invitations/accept-org-invitation'
 import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
-import { invitation, member, organization, user } from '@/db/schema'
+import { invitation, organization, user } from '@/db/schema'
 
 export const dynamic = 'force-dynamic'
 
 const logger = createLogger('InvitationsAPI')
 
 const AcceptSchema = z.object({ action: z.enum(['accept', 'decline']) })
+
+const STATUS_BY_FAILURE_REASON: Record<AcceptOrgInvitationFailureReason, number> = {
+  'not-found': 404,
+  'already-processed': 404,
+  expired: 410,
+  'email-mismatch': 403,
+  'seat-cap': 400,
+  'server-error': 500,
+}
 
 // GET /api/invitations/[id] — Get invitation details
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -73,66 +86,63 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { action } = validation.data
 
-    const rows = await db
-      .select()
-      .from(invitation)
-      .where(and(eq(invitation.id, id), eq(invitation.status, 'pending')))
-      .limit(1)
-
-    if (rows.length === 0) {
-      return NextResponse.json(
-        { error: 'Invitation not found or already processed' },
-        { status: 404 }
-      )
-    }
-
-    const inv = rows[0]
-
-    if (new Date(inv.expiresAt) < new Date()) {
-      await db.update(invitation).set({ status: 'expired' }).where(eq(invitation.id, id))
-      return NextResponse.json({ error: 'Invitation has expired' }, { status: 410 })
-    }
-
-    if (inv.email !== session.user.email) {
-      return NextResponse.json(
-        { error: 'This invitation is for a different email address' },
-        { status: 403 }
-      )
-    }
-
     if (action === 'decline') {
+      const rows = await db
+        .select()
+        .from(invitation)
+        .where(and(eq(invitation.id, id), eq(invitation.status, 'pending')))
+        .limit(1)
+
+      if (rows.length === 0) {
+        return NextResponse.json(
+          { error: 'Invitation not found or already processed' },
+          { status: 404 }
+        )
+      }
+
+      const inv = rows[0]
+
+      if (new Date(inv.expiresAt) < new Date()) {
+        await db.update(invitation).set({ status: 'expired' }).where(eq(invitation.id, id))
+        return NextResponse.json({ error: 'Invitation has expired' }, { status: 410 })
+      }
+
+      if (inv.email !== session.user.email) {
+        return NextResponse.json(
+          { error: 'This invitation is for a different email address' },
+          { status: 403 }
+        )
+      }
+
       await db.update(invitation).set({ status: 'declined' }).where(eq(invitation.id, id))
       logger.info(`[${requestId}] User ${session.user.id} declined invitation ${id}`)
       return NextResponse.json({ success: true, status: 'declined' })
     }
 
-    // Accept: add user as a member of the organization
-    const existingMember = await db
-      .select({ id: member.id })
-      .from(member)
-      .where(and(eq(member.userId, session.user.id), eq(member.organizationId, inv.organizationId)))
-      .limit(1)
+    // Accept: delegate to the shared helper (lib/invitations/accept-org-invitation.ts) so
+    // token/status/expiry/email-match/seat-cap validation and the workspace-invitation
+    // cascade stay in sync with the other accept entry points.
+    const result = await acceptOrgInvitation({
+      invitationId: id,
+      userId: session.user.id,
+      userEmail: session.user.email,
+    })
 
-    if (existingMember.length === 0) {
-      await db.insert(member).values({
-        id: crypto.randomUUID(),
-        userId: session.user.id,
-        organizationId: inv.organizationId,
-        role: inv.role,
-        createdAt: new Date(),
-      })
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.message },
+        { status: STATUS_BY_FAILURE_REASON[result.reason] }
+      )
     }
 
-    await db.update(invitation).set({ status: 'accepted' }).where(eq(invitation.id, id))
-
     logger.info(
-      `[${requestId}] User ${session.user.id} accepted invitation ${id} for org ${inv.organizationId}`
+      `[${requestId}] User ${session.user.id} accepted invitation ${id} for org ${result.organizationId}`
     )
 
     return NextResponse.json({
       success: true,
       status: 'accepted',
-      organizationId: inv.organizationId,
+      organizationId: result.organizationId,
     })
   } catch (error) {
     logger.error(`[${requestId}] Error processing invitation ${id}:`, error)

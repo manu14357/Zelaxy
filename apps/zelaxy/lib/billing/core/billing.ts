@@ -1,12 +1,13 @@
-import { and, eq } from 'drizzle-orm'
-import { DEFAULT_FREE_CREDITS } from '@/lib/billing/constants'
+import { and, eq, sql } from 'drizzle-orm'
+import { DEFAULT_FREE_CREDITS, getPlanMinimumCost } from '@/lib/billing/constants'
 import {
   resetOrganizationBillingPeriod,
   resetUserBillingPeriod,
 } from '@/lib/billing/core/billing-periods'
 import { getHighestPrioritySubscription } from '@/lib/billing/core/subscription'
 import { getUserUsageData } from '@/lib/billing/core/usage'
-import { requireStripeClient } from '@/lib/billing/stripe-client'
+import { adjustCreditBalance, deductAvailableCredits } from '@/lib/billing/credits/balance'
+import { createOverageBillingPaymentLink } from '@/lib/billing/razorpay/payment-links'
 import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
 import { member, organization, subscription, user, userStats } from '@/db/schema'
@@ -16,16 +17,25 @@ const logger = createLogger('Billing')
 interface BillingResult {
   success: boolean
   chargedAmount?: number
-  invoiceId?: string
+  paymentLinkId?: string
   error?: string
 }
 
 /**
  * BILLING MODEL:
- * 1. User purchases $20 Pro plan → Gets charged $20 immediately via Stripe subscription
- * 2. User uses $15 during the month → No additional charge (covered by $20)
- * 3. User uses $35 during the month → Gets charged $15 overage at month end
- * 4. Usage resets, next month they pay $20 again + any overages
+ * 1. User purchases ₹1,999 Pro plan → Gets charged immediately via a
+ *    Razorpay subscription mandate.
+ * 2. User uses less than their usage-metering budget during the month → No
+ *    additional charge.
+ * 3. User uses more than their budget during the month → Gets sent a
+ *    Razorpay Payment Link for the overage at month end (or mid-cycle, see
+ *    lib/billing/threshold-billing.ts).
+ * 4. Usage resets, next month they pay again + any overages.
+ *
+ * The usage-metering budget (getPlanPricing/getPlanMinimumCost below) is a
+ * SEPARATE numeric domain from what Razorpay actually charges the customer
+ * (see lib/billing/razorpay-pricing.ts) - it tracks real AI-provider spend
+ * and is unrelated to the subscription price.
  */
 
 /**
@@ -35,18 +45,20 @@ export function getPlanPricing(
   plan: string,
   subscription?: any
 ): {
-  basePrice: number // What they pay upfront via Stripe subscription
-  minimum: number // Minimum they're guaranteed to pay
+  basePrice: number // Usage-metering budget included in this plan
+  minimum: number // Minimum they're guaranteed to get before overage
 } {
   switch (plan) {
     case 'free':
       return { basePrice: 0, minimum: 0 } // Free plan has no charges
     case 'pro':
-      return { basePrice: 20, minimum: 20 } // $20/month subscription
+      return { basePrice: getPlanMinimumCost('pro'), minimum: getPlanMinimumCost('pro') }
     case 'team':
-      return { basePrice: 40, minimum: 40 } // $40/seat/month subscription
-    case 'enterprise':
+      // Per-seat budget
+      return { basePrice: getPlanMinimumCost('team'), minimum: getPlanMinimumCost('team') }
+    case 'enterprise': {
       // Get per-seat pricing from metadata
+      const defaultEnterprisePrice = getPlanMinimumCost('enterprise')
       if (subscription?.metadata) {
         const metadata =
           typeof subscription.metadata === 'string'
@@ -56,33 +68,102 @@ export function getPlanPricing(
         // Validate perSeatAllowance is a positive number
         const perSeatAllowance = metadata.perSeatAllowance
         const perSeatPrice =
-          typeof perSeatAllowance === 'number' && perSeatAllowance > 0 ? perSeatAllowance : 100 // Fall back to default for invalid values
+          typeof perSeatAllowance === 'number' && perSeatAllowance > 0
+            ? perSeatAllowance
+            : defaultEnterprisePrice // Fall back to default for invalid values
 
         return { basePrice: perSeatPrice, minimum: perSeatPrice }
       }
-      return { basePrice: 100, minimum: 100 } // Default enterprise pricing
+      return { basePrice: defaultEnterprisePrice, minimum: defaultEnterprisePrice } // Default enterprise pricing
+    }
     default:
       return { basePrice: 0, minimum: 0 }
   }
 }
 
+export type RazorpayCustomerAccount =
+  | { type: 'user'; userId: string }
+  | { type: 'organization'; organizationId: string; memberUserIds: string[] }
+
 /**
- * Get Stripe customer ID for a user or organization
+ * Reverse of getRazorpayCustomerId: given a Razorpay customer id (as seen on
+ * a payment/subscription webhook payload), find which user or organization
+ * it belongs to. Fallback path for webhook handlers - `notes.zelaxyReferenceId`
+ * (stamped on every order/subscription/payment link we create) is the
+ * primary resolution mechanism and doesn't need this lookup at all.
  */
-async function getStripeCustomerId(referenceId: string): Promise<string | null> {
+export async function findAccountByRazorpayCustomerId(
+  customerId: string
+): Promise<RazorpayCustomerAccount | null> {
+  const userRecord = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.razorpayCustomerId, customerId))
+    .limit(1)
+
+  if (userRecord.length > 0) {
+    return { type: 'user', userId: userRecord[0].id }
+  }
+
+  // Organizations store their Razorpay customer id inside a JSON metadata
+  // blob rather than a dedicated indexed column, so this scans all orgs.
+  // Webhook volume is low and this only runs on payment events, not a hot path.
+  const orgRecords = await db
+    .select({ id: organization.id, metadata: organization.metadata })
+    .from(organization)
+
+  for (const org of orgRecords) {
+    if (!org.metadata) continue
+    const metadata = typeof org.metadata === 'string' ? JSON.parse(org.metadata) : org.metadata
+    if (metadata?.razorpayCustomerId === customerId) {
+      const members = await db
+        .select({ userId: member.userId })
+        .from(member)
+        .where(eq(member.organizationId, org.id))
+      return {
+        type: 'organization',
+        organizationId: org.id,
+        memberUserIds: members.map((m) => m.userId),
+      }
+    }
+  }
+
+  return null
+}
+
+/**
+ * Zeroes out an organization's departedMemberUsage accumulator once it has
+ * been folded into a billed (or correctly no-op) overage cycle. Defined here
+ * rather than in organization-billing.ts to avoid a circular import
+ * (organization-billing.ts already imports getPlanPricing from this file).
+ */
+async function resetDepartedMemberUsage(organizationId: string): Promise<void> {
+  await db
+    .update(organization)
+    .set({ departedMemberUsage: '0' })
+    .where(eq(organization.id, organizationId))
+}
+
+/**
+ * Get Razorpay customer ID for a user or organization, if one has been
+ * recorded (set once a subscription successfully authorizes and we learn
+ * its customer_id - see the checkout verify route). Not required for
+ * overage billing (Payment Links take the customer's name/email inline, no
+ * pre-existing customer needed) - this is informational/reused-across-
+ * purchases only.
+ */
+export async function getRazorpayCustomerId(referenceId: string): Promise<string | null> {
   try {
-    // First check if it's a user
     const userRecord = await db
-      .select({ stripeCustomerId: user.stripeCustomerId })
+      .select({ razorpayCustomerId: user.razorpayCustomerId })
       .from(user)
       .where(eq(user.id, referenceId))
       .limit(1)
 
-    if (userRecord.length > 0 && userRecord[0].stripeCustomerId) {
-      return userRecord[0].stripeCustomerId
+    if (userRecord.length > 0 && userRecord[0].razorpayCustomerId) {
+      return userRecord[0].razorpayCustomerId
     }
 
-    // Check if it's an organization
     const orgRecord = await db
       .select({ metadata: organization.metadata })
       .from(organization)
@@ -95,183 +176,15 @@ async function getStripeCustomerId(referenceId: string): Promise<string | null> 
           ? JSON.parse(orgRecord[0].metadata)
           : orgRecord[0].metadata
 
-      if (metadata?.stripeCustomerId) {
-        return metadata.stripeCustomerId
+      if (metadata?.razorpayCustomerId) {
+        return metadata.razorpayCustomerId
       }
     }
 
     return null
   } catch (error) {
-    logger.error('Failed to get Stripe customer ID', { referenceId, error })
+    logger.error('Failed to get Razorpay customer ID', { referenceId, error })
     return null
-  }
-}
-
-/**
- * Create a Stripe invoice for overage billing only
- */
-export async function createOverageBillingInvoice(
-  customerId: string,
-  overageAmount: number,
-  description: string,
-  metadata: Record<string, string> = {}
-): Promise<BillingResult> {
-  try {
-    if (overageAmount <= 0) {
-      logger.info('No overage to bill', { customerId, overageAmount })
-      return { success: true, chargedAmount: 0 }
-    }
-
-    const stripeClient = requireStripeClient()
-
-    // Check for existing overage invoice for this billing period
-    const billingPeriod = metadata.billingPeriod || new Date().toISOString().slice(0, 7)
-
-    // Get the start of the billing period month for filtering
-    const periodStart = new Date(`${billingPeriod}-01`)
-    const periodStartTimestamp = Math.floor(periodStart.getTime() / 1000)
-
-    // Look for invoices created in the last 35 days to cover month boundaries
-    const recentInvoices = await stripeClient.invoices.list({
-      customer: customerId,
-      created: {
-        gte: periodStartTimestamp,
-      },
-      limit: 100,
-    })
-
-    // Check if we already have an overage invoice for this period
-    const existingOverageInvoice = recentInvoices.data.find(
-      (invoice) =>
-        invoice.metadata?.type === 'overage_billing' &&
-        invoice.metadata?.billingPeriod === billingPeriod &&
-        invoice.status !== 'void' // Ignore voided invoices
-    )
-
-    if (existingOverageInvoice) {
-      logger.warn('Overage invoice already exists for this billing period', {
-        customerId,
-        billingPeriod,
-        existingInvoiceId: existingOverageInvoice.id,
-        existingInvoiceStatus: existingOverageInvoice.status,
-        existingAmount: existingOverageInvoice.amount_due / 100,
-      })
-
-      // Return success but with no charge to prevent duplicate billing
-      return {
-        success: true,
-        chargedAmount: 0,
-        invoiceId: existingOverageInvoice.id,
-      }
-    }
-
-    // Get customer to ensure they have an email set
-    const customer = await stripeClient.customers.retrieve(customerId)
-    if (!('email' in customer) || !customer.email) {
-      logger.warn('Customer does not have an email set, Stripe will not send automatic emails', {
-        customerId,
-      })
-    }
-
-    const invoiceItem = await stripeClient.invoiceItems.create({
-      customer: customerId,
-      amount: Math.round(overageAmount * 100), // Convert to cents
-      currency: 'usd',
-      description,
-      metadata: {
-        ...metadata,
-        type: 'overage_billing',
-      },
-    })
-
-    logger.info('Created overage invoice item', {
-      customerId,
-      amount: overageAmount,
-      invoiceItemId: invoiceItem.id,
-    })
-
-    // Create invoice that will include the invoice item
-    const invoice = await stripeClient.invoices.create({
-      customer: customerId,
-      auto_advance: true, // Automatically finalize
-      collection_method: 'charge_automatically', // Charge immediately
-      metadata: {
-        ...metadata,
-        type: 'overage_billing',
-      },
-      description,
-      pending_invoice_items_behavior: 'include', // Explicitly include pending items
-      payment_settings: {
-        payment_method_types: ['card'], // Accept card payments
-      },
-    })
-
-    logger.info('Created overage invoice', {
-      customerId,
-      invoiceId: invoice.id,
-      amount: overageAmount,
-      status: invoice.status,
-    })
-
-    // If invoice is still draft (shouldn't happen with auto_advance), finalize it
-    let finalInvoice = invoice
-    if (invoice.status === 'draft') {
-      logger.warn('Invoice created as draft, manually finalizing', { invoiceId: invoice.id })
-      finalInvoice = await stripeClient.invoices.finalizeInvoice(invoice.id)
-      logger.info('Manually finalized invoice', {
-        invoiceId: finalInvoice.id,
-        status: finalInvoice.status,
-      })
-    }
-
-    // If invoice is open (finalized but not paid), attempt to pay it
-    if (finalInvoice.status === 'open') {
-      try {
-        logger.info('Attempting to pay open invoice', { invoiceId: finalInvoice.id })
-        const paidInvoice = await stripeClient.invoices.pay(finalInvoice.id)
-        logger.info('Successfully paid invoice', {
-          invoiceId: paidInvoice.id,
-          status: paidInvoice.status,
-          amountPaid: paidInvoice.amount_paid / 100,
-        })
-        finalInvoice = paidInvoice
-      } catch (paymentError) {
-        logger.error('Failed to automatically pay invoice', {
-          invoiceId: finalInvoice.id,
-          error: paymentError,
-        })
-        // Don't fail the whole operation if payment fails
-        // Stripe will retry and send payment failure notifications
-      }
-    }
-
-    // Log final invoice status
-    logger.info('Invoice processing complete', {
-      customerId,
-      invoiceId: finalInvoice.id,
-      chargedAmount: overageAmount,
-      description,
-      status: finalInvoice.status,
-      paymentAttempted: finalInvoice.status === 'paid' || finalInvoice.attempted,
-    })
-
-    return {
-      success: true,
-      chargedAmount: overageAmount,
-      invoiceId: finalInvoice.id,
-    }
-  } catch (error) {
-    logger.error('Failed to create overage billing invoice', {
-      customerId,
-      overageAmount,
-      description,
-      error,
-    })
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    }
   }
 }
 
@@ -352,69 +265,129 @@ export async function processUserOverageBilling(userId: string): Promise<Billing
       return { success: true, chargedAmount: 0 }
     }
 
-    // Get Stripe customer ID
-    const stripeCustomerId = await getStripeCustomerId(userId)
-    if (!stripeCustomerId) {
-      logger.error('No Stripe customer ID found for user', { userId })
-      return { success: false, error: 'No Stripe customer ID found' }
+    // Subtract whatever a mid-cycle threshold settlement already billed this
+    // period (see lib/billing/threshold-billing.ts) - overageAmount is the
+    // FULL period overage, not just what's still unbilled.
+    const statsRow = await db
+      .select({ billedOverageThisPeriod: userStats.billedOverageThisPeriod })
+      .from(userStats)
+      .where(eq(userStats.userId, userId))
+      .limit(1)
+    const billedOverageThisPeriod = Number.parseFloat(
+      statsRow[0]?.billedOverageThisPeriod?.toString() || '0'
+    )
+    const unbilledOverage =
+      Math.round(Math.max(0, overageInfo.overageAmount - billedOverageThisPeriod) * 100) / 100
+
+    if (unbilledOverage <= 0) {
+      logger.info('Overage already fully billed via threshold settlement this period', {
+        userId,
+        overageAmount: overageInfo.overageAmount,
+        billedOverageThisPeriod,
+      })
+
+      try {
+        await resetUserBillingPeriod(userId)
+      } catch (resetError) {
+        logger.error('Failed to reset billing period', { userId, error: resetError })
+      }
+
+      return { success: true, chargedAmount: 0 }
     }
 
-    // Get user email to ensure Stripe customer has it set
+    // Apply available prepaid credit before issuing a payment link.
+    const { creditsApplied, remainingAmount } = await deductAvailableCredits(
+      userId,
+      unbilledOverage,
+      { description: `Applied to ${overageInfo.plan} plan overage (period-end billing)` }
+    )
+
+    if (remainingAmount <= 0) {
+      logger.info('Overage fully covered by credits, no payment link needed', {
+        userId,
+        unbilledOverage,
+        creditsApplied,
+      })
+
+      try {
+        await db
+          .update(userStats)
+          .set({
+            billedOverageThisPeriod: sql`${userStats.billedOverageThisPeriod} + ${unbilledOverage}`,
+          })
+          .where(eq(userStats.userId, userId))
+        await resetUserBillingPeriod(userId)
+      } catch (resetError) {
+        logger.error('Failed to reset billing period', { userId, error: resetError })
+      }
+
+      return { success: true, chargedAmount: 0 }
+    }
+
     const userRecord = await db
-      .select({ email: user.email })
+      .select({ email: user.email, name: user.name })
       .from(user)
       .where(eq(user.id, userId))
       .limit(1)
 
-    if (userRecord[0]?.email) {
-      // Update Stripe customer with email if needed
-      const stripeClient = requireStripeClient()
-      try {
-        await stripeClient.customers.update(stripeCustomerId, {
-          email: userRecord[0].email,
-        })
-        logger.info('Updated Stripe customer with email', {
-          userId,
-          stripeCustomerId,
-          email: userRecord[0].email,
-        })
-      } catch (updateError) {
-        logger.warn('Failed to update Stripe customer email', {
-          userId,
-          stripeCustomerId,
-          error: updateError,
-        })
-      }
+    if (!userRecord[0]?.email) {
+      logger.error('No email on file for user, cannot issue an overage payment link', { userId })
+      await refundCreditsForFailedOverageCharge(userId, creditsApplied, overageInfo.plan)
+      return { success: false, error: 'No email on file for user' }
     }
 
-    const description = `Usage overage for ${overageInfo.plan} plan - $${overageInfo.overageAmount.toFixed(2)} above $${overageInfo.basePrice} base`
-    const metadata = {
-      userId,
-      plan: overageInfo.plan,
-      basePrice: overageInfo.basePrice.toString(),
-      actualUsage: overageInfo.actualUsage.toString(),
-      overageAmount: overageInfo.overageAmount.toString(),
-      billingPeriod: new Date().toISOString().slice(0, 7), // YYYY-MM format
+    const description = `Usage overage for ${overageInfo.plan} plan - ₹${remainingAmount.toFixed(2)} above ₹${overageInfo.basePrice} base${creditsApplied > 0 ? ` (after ₹${creditsApplied.toFixed(2)} credits applied)` : ''}`
+    const notes = {
+      zelaxyUserId: userId,
+      zelaxyPlan: overageInfo.plan,
+      zelaxyBasePrice: overageInfo.basePrice.toString(),
+      zelaxyActualUsage: overageInfo.actualUsage.toString(),
+      zelaxyOverageAmount: overageInfo.overageAmount.toString(),
+      zelaxyCreditsApplied: creditsApplied.toString(),
+      zelaxyBillingPeriod: new Date().toISOString().slice(0, 7), // YYYY-MM format
+    }
+    const referenceId = `overage-${userId}-${notes.zelaxyBillingPeriod}-${billedOverageThisPeriod}`
+
+    let result: BillingResult
+    try {
+      const linkResult = await createOverageBillingPaymentLink(
+        userRecord[0].name || 'Zelaxy user',
+        userRecord[0].email,
+        remainingAmount,
+        description,
+        notes,
+        referenceId
+      )
+      result = linkResult
+    } catch (error) {
+      await refundCreditsForFailedOverageCharge(userId, creditsApplied, overageInfo.plan)
+      throw error
     }
 
-    const result = await createOverageBillingInvoice(
-      stripeCustomerId,
-      overageInfo.overageAmount,
-      description,
-      metadata
-    )
+    if (!result.success) {
+      await refundCreditsForFailedOverageCharge(userId, creditsApplied, overageInfo.plan)
+      return result
+    }
 
-    // If billing was successful, reset the user's billing period
-    if (result.success) {
-      try {
-        await resetUserBillingPeriod(userId)
-        logger.info('Successfully reset billing period after charging user overage', { userId })
-      } catch (resetError) {
-        logger.error('Failed to reset billing period after successful overage charge', {
-          userId,
-          error: resetError,
+    // Billing succeeded (credits + payment link issued): mark the full
+    // unbilled overage as billed and reset the period. Incrementing
+    // billedOverageThisPeriod first (rather than relying solely on the reset
+    // below) means that if resetUserBillingPeriod's own update fails, the
+    // next run still won't re-derive and re-bill the same overage from scratch.
+    try {
+      await db
+        .update(userStats)
+        .set({
+          billedOverageThisPeriod: sql`${userStats.billedOverageThisPeriod} + ${unbilledOverage}`,
         })
-      }
+        .where(eq(userStats.userId, userId))
+      await resetUserBillingPeriod(userId)
+      logger.info('Successfully reset billing period after billing user overage', { userId })
+    } catch (resetError) {
+      logger.error('Failed to reset billing period after successful overage charge', {
+        userId,
+        error: resetError,
+      })
     }
 
     return result
@@ -425,7 +398,41 @@ export async function processUserOverageBilling(userId: string): Promise<Billing
 }
 
 /**
+ * Refunds credits deducted in anticipation of a payment link that then
+ * failed to send (missing email, or createOverageBillingPaymentLink
+ * erroring/reporting failure) - otherwise the credits would be silently
+ * lost even though no charge actually went through. Best-effort: logs and
+ * swallows its own failure rather than throwing, since the caller is
+ * already on a failure path and a refund error shouldn't mask the original one.
+ */
+async function refundCreditsForFailedOverageCharge(
+  userId: string,
+  creditsApplied: number,
+  plan: string
+): Promise<void> {
+  if (creditsApplied <= 0) return
+  try {
+    await adjustCreditBalance(userId, creditsApplied, 'admin_adjustment', {
+      description: `Overage billing failed for ${plan} plan - credits refunded`,
+    })
+  } catch (error) {
+    logger.error('Failed to refund credits after a failed overage charge', {
+      userId,
+      creditsApplied,
+      error,
+    })
+  }
+}
+
+/**
  * Process overage billing for an organization (team/enterprise plans)
+ *
+ * Deliberately does NOT apply prepaid credits here (unlike
+ * processUserOverageBilling) - userStats.creditBalance is scoped to a single
+ * user, and an organization's aggregate overage charge has no single natural
+ * owner to deduct from (which member's balance? split how?). Extending
+ * credits to teams needs its own design decision this pass doesn't make;
+ * organization members keep the existing payment-link-only billing path.
  */
 export async function processOrganizationOverageBilling(
   organizationId: string
@@ -439,17 +446,11 @@ export async function processOrganizationOverageBilling(
       return { success: false, error: 'No valid subscription found' }
     }
 
-    // Get organization's Stripe customer ID
-    const stripeCustomerId = await getStripeCustomerId(organizationId)
-    if (!stripeCustomerId) {
-      logger.error('No Stripe customer ID found for organization', { organizationId })
-      return { success: false, error: 'No Stripe customer ID found' }
-    }
-
-    // Get organization owner's email for billing
+    // Get organization owner's name/email to send the overage payment link to
     const orgOwner = await db
       .select({
         userId: member.userId,
+        userName: user.name,
         userEmail: user.email,
       })
       .from(member)
@@ -457,25 +458,14 @@ export async function processOrganizationOverageBilling(
       .where(and(eq(member.organizationId, organizationId), eq(member.role, 'owner')))
       .limit(1)
 
-    if (orgOwner[0]?.userEmail) {
-      // Update Stripe customer with organization owner's email
-      const stripeClient = requireStripeClient()
-      try {
-        await stripeClient.customers.update(stripeCustomerId, {
-          email: orgOwner[0].userEmail,
-        })
-        logger.info('Updated Stripe customer with organization owner email', {
+    if (!orgOwner[0]?.userEmail) {
+      logger.error(
+        'No owner email on file for organization, cannot issue an overage payment link',
+        {
           organizationId,
-          stripeCustomerId,
-          email: orgOwner[0].userEmail,
-        })
-      } catch (updateError) {
-        logger.warn('Failed to update Stripe customer email for organization', {
-          organizationId,
-          stripeCustomerId,
-          error: updateError,
-        })
-      }
+        }
+      )
+      return { success: false, error: 'No owner email on file for organization' }
     }
 
     // Get all organization members
@@ -489,17 +479,30 @@ export async function processOrganizationOverageBilling(
       .innerJoin(user, eq(member.userId, user.id))
       .where(eq(member.organizationId, organizationId))
 
-    if (members.length === 0) {
-      logger.info('No members found for organization overage billing', { organizationId })
+    // Usage from members who left mid-period — would otherwise be silently
+    // dropped from the org's overage total the moment they're removed.
+    const orgRecord = await db
+      .select({ departedMemberUsage: organization.departedMemberUsage })
+      .from(organization)
+      .where(eq(organization.id, organizationId))
+      .limit(1)
+    const departedMemberUsage = Number.parseFloat(
+      orgRecord[0]?.departedMemberUsage?.toString() || '0'
+    )
+
+    if (members.length === 0 && departedMemberUsage <= 0) {
+      logger.info('No members or departed usage found for organization overage billing', {
+        organizationId,
+      })
       return { success: true, chargedAmount: 0 }
     }
 
     // Calculate total team usage across all members
     const { basePrice: basePricePerSeat } = getPlanPricing(subscription.plan, subscription)
     const licensedSeats = subscription.seats || 1
-    const baseSubscriptionAmount = licensedSeats * basePricePerSeat // What Stripe already charged
+    const baseSubscriptionAmount = licensedSeats * basePricePerSeat // What was already paid via the subscription
 
-    let totalTeamUsage = 0
+    let totalTeamUsage = departedMemberUsage
     const memberUsageDetails = []
 
     for (const memberInfo of members) {
@@ -514,7 +517,7 @@ export async function processOrganizationOverageBilling(
       })
     }
 
-    // Calculate team-level overage: total usage beyond what was already paid to Stripe
+    // Calculate team-level overage: total usage beyond what was already paid for
     const totalOverage = Math.max(0, totalTeamUsage - baseSubscriptionAmount)
 
     // Skip if no overage across the organization
@@ -524,12 +527,14 @@ export async function processOrganizationOverageBilling(
         licensedSeats,
         memberCount: members.length,
         totalTeamUsage,
+        departedMemberUsage,
         baseSubscriptionAmount,
       })
 
       // Still reset billing period for all members
       try {
         await resetOrganizationBillingPeriod(organizationId)
+        await resetDepartedMemberUsage(organizationId)
       } catch (resetError) {
         logger.error('Failed to reset organization billing period', {
           organizationId,
@@ -540,32 +545,35 @@ export async function processOrganizationOverageBilling(
       return { success: true, chargedAmount: 0 }
     }
 
-    // Create consolidated overage invoice for the organization
-    const description = `Team usage overage for ${subscription.plan} plan - ${licensedSeats} licensed seats, $${totalTeamUsage.toFixed(2)} total usage, $${totalOverage.toFixed(2)} overage`
-    const metadata = {
-      organizationId,
-      plan: subscription.plan,
-      licensedSeats: licensedSeats.toString(),
-      memberCount: members.length.toString(),
-      basePricePerSeat: basePricePerSeat.toString(),
-      baseSubscriptionAmount: baseSubscriptionAmount.toString(),
-      totalTeamUsage: totalTeamUsage.toString(),
-      totalOverage: totalOverage.toString(),
-      billingPeriod: new Date().toISOString().slice(0, 7), // YYYY-MM format
-      memberDetails: JSON.stringify(memberUsageDetails),
+    // Create a consolidated overage payment link for the organization
+    const description = `Team usage overage for ${subscription.plan} plan - ${licensedSeats} licensed seats, ₹${totalTeamUsage.toFixed(2)} total usage (incl. ₹${departedMemberUsage.toFixed(2)} from departed members), ₹${totalOverage.toFixed(2)} overage`
+    const billingPeriod = new Date().toISOString().slice(0, 7) // YYYY-MM format
+    const notes = {
+      zelaxyOrganizationId: organizationId,
+      zelaxyPlan: subscription.plan,
+      zelaxyLicensedSeats: licensedSeats.toString(),
+      zelaxyMemberCount: members.length.toString(),
+      zelaxyTotalTeamUsage: totalTeamUsage.toString(),
+      zelaxyDepartedMemberUsage: departedMemberUsage.toString(),
+      zelaxyTotalOverage: totalOverage.toString(),
+      zelaxyBillingPeriod: billingPeriod,
     }
+    const referenceId = `overage-org-${organizationId}-${billingPeriod}`
 
-    const result = await createOverageBillingInvoice(
-      stripeCustomerId,
+    const result = await createOverageBillingPaymentLink(
+      orgOwner[0].userName || 'Zelaxy team owner',
+      orgOwner[0].userEmail,
       totalOverage,
       description,
-      metadata
+      notes,
+      referenceId
     )
 
     // If billing was successful, reset billing period for all organization members
     if (result.success) {
       try {
         await resetOrganizationBillingPeriod(organizationId)
+        await resetDepartedMemberUsage(organizationId)
         logger.info('Successfully reset billing period for organization after overage billing', {
           organizationId,
           memberCount: members.length,
@@ -735,7 +743,7 @@ export async function getSimplifiedBillingSummary(
   status: string | null
   seats: number | null
   metadata: any
-  stripeSubscriptionId: string | null
+  razorpaySubscriptionId: string | null
   periodEnd: Date | string | null
   // Usage details
   usage: {
@@ -794,7 +802,7 @@ export async function getSimplifiedBillingSummary(
         totalCurrentUsage += memberUsageData.currentUsage
       }
 
-      // Calculate team-level overage: total usage beyond what was already paid to Stripe
+      // Calculate team-level overage: total usage beyond what was already paid for
       const totalOverage = Math.max(0, totalCurrentUsage - totalBasePrice)
 
       // Get user's personal limits for warnings
@@ -829,7 +837,7 @@ export async function getSimplifiedBillingSummary(
         status: subscription.status || null,
         seats: subscription.seats || null,
         metadata: subscription.metadata || null,
-        stripeSubscriptionId: subscription.stripeSubscriptionId || null,
+        razorpaySubscriptionId: subscription.razorpaySubscriptionId || null,
         periodEnd: subscription.periodEnd || null,
         // Usage details
         usage: {
@@ -886,7 +894,7 @@ export async function getSimplifiedBillingSummary(
       status: subscription?.status || null,
       seats: subscription?.seats || null,
       metadata: subscription?.metadata || null,
-      stripeSubscriptionId: subscription?.stripeSubscriptionId || null,
+      razorpaySubscriptionId: subscription?.razorpaySubscriptionId || null,
       periodEnd: subscription?.periodEnd || null,
       // Usage details
       usage: {
@@ -931,7 +939,7 @@ function getDefaultBillingSummary(type: 'individual' | 'organization') {
     status: null,
     seats: null,
     metadata: null,
-    stripeSubscriptionId: null,
+    razorpaySubscriptionId: null,
     periodEnd: null,
     // Usage details
     usage: {

@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { extractRequestContext, recordAuditLog } from '@/lib/audit/service'
 import { getSession } from '@/lib/auth'
+import { accumulateDepartedMemberUsage } from '@/lib/billing/core/organization-billing'
 import { createLogger } from '@/lib/logs/console/logger'
 import { db } from '@/db'
 import { member, user, userStats } from '@/db/schema'
@@ -291,6 +292,11 @@ export async function DELETE(
     if (targetMember[0].role === 'owner') {
       return NextResponse.json({ error: 'Cannot remove organization owner' }, { status: 400 })
     }
+
+    // Capture this member's in-progress usage into the org's running total
+    // BEFORE removing them, so it isn't silently dropped from the org's
+    // overage bill for the current period.
+    await accumulateDepartedMemberUsage(organizationId, memberId)
 
     // Remove member
     const removedMember = await db

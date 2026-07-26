@@ -1,9 +1,15 @@
 import { render } from '@react-email/components'
 import {
   BatchInvitationEmail,
+  BillingReceiptEmail,
   InvitationEmail,
   OTPVerificationEmail,
+  PaymentFailedEmail,
+  PlanWelcomeEmail,
+  type ReceiptLineItem,
   ResetPasswordEmail,
+  UsageAlertEmail,
+  WorkspaceAddedEmail,
 } from '@/components/emails'
 
 export async function renderOTPEmail(
@@ -65,6 +71,67 @@ export async function renderBatchInvitationEmail(
   )
 }
 
+interface GrantedWorkspace {
+  workspaceName: string
+  permission?: 'admin' | 'write' | 'read'
+}
+
+/**
+ * Renders the "direct-grant" notification email — sent instead of an invitation when the
+ * invitee already belongs to the target organization, so access is granted immediately with
+ * no accept step. See lib/invitations/direct-grant.ts.
+ */
+export async function renderWorkspaceAddedEmail(
+  inviterName: string,
+  workspaces: GrantedWorkspace[],
+  appUrl?: string
+): Promise<string> {
+  return await render(WorkspaceAddedEmail({ inviterName, workspaces, appUrl }))
+}
+
+export async function renderBillingReceiptEmail(props: {
+  name: string
+  heading?: string
+  intro?: string
+  lineItems: ReceiptLineItem[]
+  totalLabel?: string
+  totalValue?: string
+  ctaLabel?: string
+  ctaUrl?: string
+  footnote?: string
+}): Promise<string> {
+  return await render(BillingReceiptEmail(props))
+}
+
+export async function renderPlanWelcomeEmail(props: {
+  name: string
+  planLabel: string
+  appUrl?: string
+  docsUrl?: string
+}): Promise<string> {
+  return await render(PlanWelcomeEmail(props))
+}
+
+export async function renderPaymentFailedEmail(props: {
+  name: string
+  amount?: string
+  reason?: string
+  actionUrl?: string
+}): Promise<string> {
+  return await render(PaymentFailedEmail(props))
+}
+
+export async function renderUsageAlertEmail(props: {
+  name: string
+  planLabel: string
+  percent: number
+  usedLabel?: string
+  limitLabel?: string
+  appUrl?: string
+}): Promise<string> {
+  return await render(UsageAlertEmail(props))
+}
+
 export function getEmailSubject(
   type:
     | 'sign-in'
@@ -73,6 +140,7 @@ export function getEmailSubject(
     | 'reset-password'
     | 'invitation'
     | 'batch-invitation'
+    | 'workspace-added'
 ): string {
   switch (type) {
     case 'sign-in':
@@ -87,6 +155,8 @@ export function getEmailSubject(
       return "You've been invited to join a team on Zelaxy"
     case 'batch-invitation':
       return "You've been invited to join a team and workspaces on Zelaxy"
+    case 'workspace-added':
+      return "You've been given access to a workspace on Zelaxy"
     default:
       return 'Zelaxy'
   }

@@ -1,5 +1,4 @@
-import { DEFAULT_FREE_CREDITS } from '@/lib/billing/constants'
-import { env } from '@/lib/env'
+import { getPlanMinimumCost } from '@/lib/billing/constants'
 
 export function checkEnterprisePlan(subscription: any): boolean {
   return subscription?.plan === 'enterprise' && subscription?.status === 'active'
@@ -21,16 +20,16 @@ export function checkTeamPlan(subscription: any): boolean {
  */
 export function calculateDefaultUsageLimit(subscription: any): number {
   if (!subscription || subscription.status !== 'active') {
-    return env.FREE_TIER_COST_LIMIT || DEFAULT_FREE_CREDITS
+    return getPlanMinimumCost('free')
   }
 
   const seats = subscription.seats || 1
 
   if (subscription.plan === 'pro') {
-    return env.PRO_TIER_COST_LIMIT || 0
+    return getPlanMinimumCost('pro')
   }
   if (subscription.plan === 'team') {
-    return seats * (env.TEAM_TIER_COST_LIMIT || 0)
+    return seats * getPlanMinimumCost('team')
   }
   if (subscription.plan === 'enterprise') {
     const metadata = subscription.metadata || {}
@@ -43,10 +42,10 @@ export function calculateDefaultUsageLimit(subscription: any): number {
       return Number.parseFloat(metadata.totalAllowance)
     }
 
-    return seats * (env.ENTERPRISE_TIER_COST_LIMIT || 0)
+    return seats * getPlanMinimumCost('enterprise')
   }
 
-  return env.FREE_TIER_COST_LIMIT || DEFAULT_FREE_CREDITS
+  return getPlanMinimumCost('free')
 }
 
 /**

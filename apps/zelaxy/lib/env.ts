@@ -57,19 +57,21 @@ export const env = createEnv({
     POSTGRES_URL:                         z.string().url().optional(),            // Alternative PostgreSQL connection string
     REDIS_URL:                            z.string().url().optional(),            // Redis connection string for caching/sessions
 
-    // Payment & Billing
+    // Payment & Billing — Razorpay (India). Two distinct numeric domains on
+    // purpose: *_TIER_COST_LIMIT below is the internal usage-metering budget
+    // (tracks actual AI-provider spend, unchanged unit, unrelated to what a
+    // customer is charged) - see lib/billing/razorpay-pricing.ts for the
+    // customer-facing INR subscription prices Razorpay actually bills.
     BILLING_ENABLED:                      z.boolean().optional(),                 // Enable billing enforcement and usage tracking
-    STRIPE_SECRET_KEY:                    z.string().min(1).optional(),           // Stripe secret key for payment processing
-    STRIPE_BILLING_WEBHOOK_SECRET:        z.string().min(1).optional(),           // Webhook secret for billing events
-    STRIPE_WEBHOOK_SECRET:                z.string().min(1).optional(),           // General Stripe webhook secret
-    STRIPE_FREE_PRICE_ID:                 z.string().min(1).optional(),           // Stripe price ID for free tier
-    FREE_TIER_COST_LIMIT:                 z.number().optional(),                  // Cost limit for free tier users
-    STRIPE_PRO_PRICE_ID:                  z.string().min(1).optional(),           // Stripe price ID for pro tier
-    PRO_TIER_COST_LIMIT:                  z.number().optional(),                  // Cost limit for pro tier users
-    STRIPE_TEAM_PRICE_ID:                 z.string().min(1).optional(),           // Stripe price ID for team tier
-    TEAM_TIER_COST_LIMIT:                 z.number().optional(),                  // Cost limit for team tier users
-    STRIPE_ENTERPRISE_PRICE_ID:           z.string().min(1).optional(),           // Stripe price ID for enterprise tier
-    ENTERPRISE_TIER_COST_LIMIT:           z.number().optional(),                  // Cost limit for enterprise tier users
+    RAZORPAY_KEY_ID:                      z.string().min(1).optional(),           // Razorpay API key id
+    RAZORPAY_KEY_SECRET:                  z.string().min(1).optional(),           // Razorpay API key secret
+    RAZORPAY_WEBHOOK_SECRET:              z.string().min(1).optional(),           // Razorpay webhook signature secret
+    RAZORPAY_PRO_PLAN_ID:                 z.string().min(1).optional(),           // Razorpay Plan ID for the Pro subscription
+    RAZORPAY_TEAM_PLAN_ID:                z.string().min(1).optional(),           // Razorpay Plan ID for the Team subscription (billed per seat via quantity)
+    FREE_TIER_COST_LIMIT:                 z.number().optional(),                  // Usage-metering budget for unsubscribed users
+    PRO_TIER_COST_LIMIT:                  z.number().optional(),                  // Usage-metering budget for Pro plan users
+    TEAM_TIER_COST_LIMIT:                 z.number().optional(),                  // Usage-metering budget for Team plan users (per seat)
+    ENTERPRISE_TIER_COST_LIMIT:           z.number().optional(),                  // Usage-metering budget for Enterprise plan users (per seat)
 
     // Email & Communication
     RESEND_API_KEY:                       z.string().min(1).optional(),           // Resend API key for transactional emails
@@ -261,6 +263,8 @@ export const env = createEnv({
     // Single Sign-On (SSO) feature flags — control the login "Sign in with SSO" button
     NEXT_PUBLIC_SSO_ENABLED:              z.string().optional(),                  // Show SSO login UI (set to "true")
     NEXT_PUBLIC_ORGANIZATIONS_ENABLED:    z.string().optional(),                  // Organizations feature flag mirror for the client
+    NEXT_PUBLIC_BILLING_ENABLED:          z.string().optional(),                  // Billing feature flag mirror for the client (see lib/environment.ts)
+    NEXT_PUBLIC_RAZORPAY_KEY_ID:          z.string().optional(),                  // Razorpay key id - the Checkout widget needs this in the browser (not a secret)
 
     // Client-side Services
     NEXT_PUBLIC_SENTRY_DSN:               z.string().url().optional(),             // Sentry DSN for client-side error tracking (opt-in)
@@ -303,6 +307,8 @@ export const env = createEnv({
     NEXT_PUBLIC_VERCEL_URL: process.env.NEXT_PUBLIC_VERCEL_URL,
     NEXT_PUBLIC_SSO_ENABLED: process.env.NEXT_PUBLIC_SSO_ENABLED,
     NEXT_PUBLIC_ORGANIZATIONS_ENABLED: process.env.NEXT_PUBLIC_ORGANIZATIONS_ENABLED,
+    NEXT_PUBLIC_BILLING_ENABLED: process.env.NEXT_PUBLIC_BILLING_ENABLED,
+    NEXT_PUBLIC_RAZORPAY_KEY_ID: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     NEXT_PUBLIC_BLOB_BASE_URL: process.env.NEXT_PUBLIC_BLOB_BASE_URL,
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,

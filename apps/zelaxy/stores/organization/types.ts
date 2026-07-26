@@ -143,10 +143,15 @@ export interface OrganizationStore extends OrganizationState {
   updateOrganizationSettings: () => Promise<void>
 
   // Team management
-  inviteMember: (email: string, workspaceInvitations?: WorkspaceInvitation[]) => Promise<void>
+  inviteMember: (
+    email: string,
+    workspaceInvitations?: WorkspaceInvitation[],
+    role?: 'member' | 'admin'
+  ) => Promise<void>
   removeMember: (memberId: string, shouldReduceSeats?: boolean) => Promise<void>
   updateMemberRole: (memberId: string, newRole: string) => Promise<void>
   cancelInvitation: (invitationId: string) => Promise<void>
+  resendInvitation: (invitationId: string) => Promise<void>
   updateMemberUsageLimit: (
     userId: string,
     organizationId: string,

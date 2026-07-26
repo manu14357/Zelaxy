@@ -16,7 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { env } from '@/lib/env'
+import { PLAN_TIER_DEFAULTS } from '@/lib/billing/plan-defaults'
+import { RAZORPAY_PLAN_PRICING } from '@/lib/billing/razorpay-pricing'
 
 interface TeamSeatsDialogProps {
   open: boolean
@@ -51,9 +52,13 @@ export function TeamSeatsDialog({
     }
   }, [open, initialSeats])
 
-  const costPerSeat = env.TEAM_TIER_COST_LIMIT ?? 40
-  const totalMonthlyCost = selectedSeats * costPerSeat
-  const costChange = currentSeats ? (selectedSeats - currentSeats) * costPerSeat : 0
+  // pricePerSeat is what Razorpay actually charges; creditsPerSeat is the
+  // internal usage-metering budget included per seat - two different
+  // numeric domains, see lib/billing/razorpay-pricing.ts.
+  const pricePerSeat = RAZORPAY_PLAN_PRICING.team.priceInr
+  const creditsPerSeat = PLAN_TIER_DEFAULTS.team.defaultMinimumCost
+  const totalMonthlyPrice = selectedSeats * pricePerSeat
+  const priceChange = currentSeats ? (selectedSeats - currentSeats) * pricePerSeat : 0
 
   const handleConfirm = async () => {
     await onConfirm(selectedSeats)
@@ -79,15 +84,16 @@ export function TeamSeatsDialog({
             <SelectContent>
               {[1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50].map((num) => (
                 <SelectItem key={num} value={num.toString()}>
-                  {num} {num === 1 ? 'seat' : 'seats'} (${num * costPerSeat}/month)
+                  {num} {num === 1 ? 'seat' : 'seats'} (₹{num * pricePerSeat}/month)
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           <p className='mt-2 text-muted-foreground text-sm'>
-            Your team will have {selectedSeats} {selectedSeats === 1 ? 'seat' : 'seats'} with a
-            total of ${totalMonthlyCost} inference credits per month.
+            Your team will have {selectedSeats} {selectedSeats === 1 ? 'seat' : 'seats'} for ₹
+            {totalMonthlyPrice}/month, with ${selectedSeats * creditsPerSeat} in inference credits
+            included.
           </p>
 
           {showCostBreakdown && currentSeats !== undefined && (
@@ -103,7 +109,7 @@ export function TeamSeatsDialog({
               <div className='mt-2 flex justify-between border-t pt-2 font-medium text-sm'>
                 <span>Monthly cost change:</span>
                 <span>
-                  {costChange > 0 ? '+' : ''}${costChange}
+                  {priceChange > 0 ? '+' : ''}₹{priceChange}
                 </span>
               </div>
             </div>

@@ -33,7 +33,7 @@ export interface SubscriptionData {
   status: string | null
   seats: number | null
   metadata: any | null
-  stripeSubscriptionId: string | null
+  razorpaySubscriptionId: string | null
   periodEnd: Date | null
   features: SubscriptionFeatures
   usage: UsageData
