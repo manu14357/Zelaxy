@@ -1,5 +1,6 @@
 'use client'
 
+import { toast } from 'sonner'
 import { env } from '@/lib/env'
 import { createLogger } from '@/lib/logs/console/logger'
 
@@ -93,50 +94,53 @@ function keepCheckoutInteractive(): void {
 }
 
 /**
- * How long to wait for the checkout iframe to show any sign of life before
- * treating it as blocked. Deliberately generous: this used to be 9s, which
- * sounded reasonable against a fast local connection but was long enough to
- * misfire for real users on a slower network or a busier machine, where the
- * iframe was genuinely still loading rather than blocked. Because a false
- * positive here used to force-navigate the customer away from a widget that
- * would have worked fine, it's now only ever a passive fallback offer (see
- * the caller) - so erring toward fewer, later false positives is the safe
- * direction to round this timeout in.
+ * How long to wait before offering a manual way out of a checkout that may
+ * be stuck. Not a detector - see below for why one isn't possible here.
  */
-const BLOCKED_CHECKOUT_TIMEOUT_MS = 20000
+const STUCK_CHECKOUT_NUDGE_MS = 8000
 
 /**
- * Watches for the checkout iframe reporting in. A checkout that actually runs
- * posts messages to its opener within a second or two on a normal connection;
- * total silence for BLOCKED_CHECKOUT_TIMEOUT_MS means the frame most likely
- * never executed. There is no way to feature-detect an extension or a
- * tracking-prevention rule blocking a third-party payment iframe - the parent
- * page just sees an opaque, permanently blank frame - so absence of chatter is
- * the only signal available, and it's a heuristic, not a certainty.
+ * There is no reliable way to tell, from this page, whether the checkout
+ * iframe actually rendered a usable payment form. Two approaches were tried
+ * and both proven wrong by direct reproduction, not assumption:
+ *
+ *  - postMessage activity: the widget can complete an early handshake with
+ *    its opener - so it "chats" - and then stall before the form itself
+ *    ever paints. A widget that ultimately never works can still look
+ *    "active" by this measure.
+ *  - iframe geometry: checkout.js sizes its `<iframe>` via its own CSS the
+ *    instant the element is created, before the navigation inside it even
+ *    starts. A fully blocked iframe (confirmed via `chrome-error://` in a
+ *    live reproduction) and a working one report the identical bounding
+ *    box. And because the frame is cross-origin, inspecting what actually
+ *    loaded inside it isn't available to us at all - that's the browser's
+ *    same-origin policy, not a gap in this code.
+ *
+ * So this doesn't try to detect anything. It unconditionally offers the
+ * hosted page as a manual fallback after a fixed delay, cancelled the
+ * moment the flow settles through any of Razorpay's real signals (payment
+ * succeeded, the modal was dismissed, payment.failed). If checkout is
+ * working fine, the toast is either never seen (settled first) or is a
+ * harmless, ignorable option sitting alongside a widget that's plainly
+ * usable. If it's silently broken - browser content-blocking, fingerprint
+ * protection, anything else with no visible signal - it's the only way out
+ * that doesn't require already knowing to try a hard refresh.
  */
-function createBlockedCheckoutWatchdog(onBlocked: () => void) {
-  let sawCheckoutActivity = false
-
-  const onMessage = (event: MessageEvent) => {
-    if (typeof event.origin === 'string' && event.origin.endsWith('.razorpay.com')) {
-      sawCheckoutActivity = true
-    }
-  }
-
-  window.addEventListener('message', onMessage)
-
+function scheduleStuckCheckoutNudge(hostedUrl?: string) {
   const timer = window.setTimeout(() => {
-    window.removeEventListener('message', onMessage)
-    if (sawCheckoutActivity) return
-    logger.warn('Razorpay Checkout never initialised - falling back to the hosted page')
-    onBlocked()
-  }, BLOCKED_CHECKOUT_TIMEOUT_MS)
+    toast.info("Payment window not showing up? It's sometimes blocked by a browser extension.", {
+      action: hostedUrl
+        ? {
+            label: 'Open payment page',
+            onClick: () => window.open(hostedUrl, '_blank', 'noopener'),
+          }
+        : undefined,
+      duration: 15000,
+    })
+  }, STUCK_CHECKOUT_NUDGE_MS)
 
   return {
-    cancel: () => {
-      window.clearTimeout(timer)
-      window.removeEventListener('message', onMessage)
-    },
+    cancel: () => window.clearTimeout(timer),
   }
 }
 
@@ -188,8 +192,6 @@ export interface SubscriptionCheckoutResult {
   error?: string
   /** True when the customer closed the widget without paying - not a failure. */
   dismissed?: boolean
-  /** True when the embedded widget never ran and the hosted page should be used. */
-  blocked?: boolean
   /**
    * True when Razorpay refused the recurring mandate because the merchant
    * account isn't approved for it - recoverable by buying the month outright.
@@ -438,26 +440,17 @@ async function openSubscriptionCheckoutWidget(
   await dismissBlockingOverlays()
 
   return await new Promise<SubscriptionCheckoutResult>((resolve) => {
-    // If the frame never reports in, surface it as an ordinary failure with
-    // the hosted page offered as a manual, user-chosen action (new tab) -
-    // never navigate the current tab automatically. The widget may simply
-    // still be loading, and force-navigating away from a working-but-slow
-    // widget is worse than doing nothing: it silently abandons whatever the
-    // customer was doing in it.
     const settle = (result: SubscriptionCheckoutResult) => {
-      watchdog.cancel()
+      nudge.cancel()
       clearCheckoutUrlParam()
       resolve(result)
     }
 
-    const watchdog = createBlockedCheckoutWatchdog(() =>
-      settle({
-        success: false,
-        blocked: true,
-        error: "The payment window didn't load. This can happen with some browser extensions.",
-        hostedUrl: shortUrl,
-      })
-    )
+    // Never auto-resolves anything - see scheduleStuckCheckoutNudge for why
+    // detecting a broken widget isn't possible here. This purely offers a
+    // manual way out after a delay; the flow keeps waiting for a real signal
+    // from Razorpay (payment, dismiss, or failure) regardless.
+    const nudge = scheduleStuckCheckoutNudge(shortUrl)
 
     const razorpay = new window.Razorpay!({
       key: keyId,
@@ -670,6 +663,15 @@ export async function openRazorpayCreditPurchaseCheckout(
     await dismissBlockingOverlays()
 
     return await new Promise<CreditPurchaseResult>((resolve) => {
+      // Orders (unlike Subscriptions) have no hosted page to fall back to,
+      // so this is purely informational - see scheduleStuckCheckoutNudge for
+      // why a widget that never renders can't be reliably detected at all.
+      const nudge = scheduleStuckCheckoutNudge()
+      const settle = (result: CreditPurchaseResult) => {
+        nudge.cancel()
+        resolve(result)
+      }
+
       const razorpay = new window.Razorpay!({
         key: keyId,
         order_id: orderId,
@@ -678,11 +680,11 @@ export async function openRazorpayCreditPurchaseCheckout(
         description: 'Usage credits',
         ...buildCheckoutBranding(params.prefillEmail, params.prefillName),
         handler: () => {
-          resolve({ success: true })
+          settle({ success: true })
         },
         modal: {
           ondismiss: () => {
-            resolve({ success: false, error: 'Checkout was closed before completing payment' })
+            settle({ success: false, error: 'Checkout was closed before completing payment' })
           },
         },
       })
@@ -690,7 +692,7 @@ export async function openRazorpayCreditPurchaseCheckout(
       razorpay.on('payment.failed', (response: unknown) => {
         const failure = response as { error?: { description?: string } }
         logger.error('Razorpay credit purchase payment failed', { response })
-        resolve({ success: false, error: failure.error?.description || 'Payment failed' })
+        settle({ success: false, error: failure.error?.description || 'Payment failed' })
       })
 
       razorpay.open()
