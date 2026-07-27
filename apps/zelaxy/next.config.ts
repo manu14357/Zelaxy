@@ -158,22 +158,23 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Exclude Vercel internal resources and static assets from strict COEP, Google Drive Picker to prevent 'refused to connect' issue
-        source: '/((?!_next|_vercel|api|favicon.ico|w/.*|arena/.*|api/tools/drive).*)',
-        headers: [
-          {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'credentialless',
-          },
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin',
-          },
-        ],
-      },
-      {
-        // For main app routes, Google Drive Picker, and Vercel resources - use permissive policies
-        source: '/(w/.*|arena/.*|api/tools/drive|_next/.*|_vercel/.*)',
+        // Razorpay Checkout and the Google Drive Picker both render in
+        // cross-origin iframes that send no COEP header of their own. COEP is
+        // inherited by nested documents, so any value stricter than
+        // unsafe-none blocks them outright - ERR_BLOCKED_BY_RESPONSE, which
+        // the browser paints as "<host> refused to connect".
+        //
+        // This has to be global, not per-route. A client-side route change
+        // reuses the document that was already loaded, so the policy in force
+        // is whichever page the visitor first landed on - exempting only the
+        // routes that embed something means arriving via any other page still
+        // breaks, and only a hard reload appears to fix it.
+        //
+        // Nothing here needs cross-origin isolation (no SharedArrayBuffer, no
+        // crossOriginIsolated), so there is nothing to trade away. COOP stays
+        // on to keep window.opener isolation, at the value that still permits
+        // OAuth popups.
+        source: '/(.*)',
         headers: [
           {
             key: 'Cross-Origin-Embedder-Policy',

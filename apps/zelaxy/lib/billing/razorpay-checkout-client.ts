@@ -100,31 +100,37 @@ function keepCheckoutInteractive(): void {
 const STUCK_CHECKOUT_NUDGE_MS = 8000
 
 /**
- * There is no reliable way to tell, from this page, whether the checkout
- * iframe actually rendered a usable payment form. Two approaches were tried
- * and both proven wrong by direct reproduction, not assumption:
+ * A last-resort escape hatch, not a detector.
+ *
+ * The long-standing "blank checkout on the first try, fine after a hard
+ * refresh" bug was NOT what this guards against - that was ours:
+ * Cross-Origin-Embedder-Policy: credentialless on the app's own responses,
+ * which the browser inherits into nested documents and which therefore
+ * blocked Razorpay's cross-origin iframe outright (ERR_BLOCKED_BY_RESPONSE,
+ * painted as "api.razorpay.com refused to connect"). Because a client-side
+ * route change keeps the document it started on, the policy that applied
+ * was whichever page the visitor first loaded, and only a hard reload
+ * re-fetched headers - hence the misleading "reload fixes it". Fixed in
+ * next.config.ts by not asking for cross-origin isolation anywhere.
+ *
+ * What remains is genuine third-party blocking: an ad blocker or enterprise
+ * proxy that filters api.razorpay.com. That can't be detected from here.
+ * Two attempts were made and both disproven by direct reproduction:
  *
  *  - postMessage activity: the widget can complete an early handshake with
- *    its opener - so it "chats" - and then stall before the form itself
- *    ever paints. A widget that ultimately never works can still look
- *    "active" by this measure.
+ *    its opener - so it "chats" - and then stall before the form ever
+ *    paints.
  *  - iframe geometry: checkout.js sizes its `<iframe>` via its own CSS the
  *    instant the element is created, before the navigation inside it even
- *    starts. A fully blocked iframe (confirmed via `chrome-error://` in a
- *    live reproduction) and a working one report the identical bounding
- *    box. And because the frame is cross-origin, inspecting what actually
- *    loaded inside it isn't available to us at all - that's the browser's
- *    same-origin policy, not a gap in this code.
+ *    starts, so a blocked frame and a working one report identical
+ *    bounding boxes. Reading what actually loaded inside is barred by
+ *    same-origin policy - a browser guarantee, not a gap in this code.
  *
- * So this doesn't try to detect anything. It unconditionally offers the
- * hosted page as a manual fallback after a fixed delay, cancelled the
- * moment the flow settles through any of Razorpay's real signals (payment
- * succeeded, the modal was dismissed, payment.failed). If checkout is
- * working fine, the toast is either never seen (settled first) or is a
- * harmless, ignorable option sitting alongside a widget that's plainly
- * usable. If it's silently broken - browser content-blocking, fingerprint
- * protection, anything else with no visible signal - it's the only way out
- * that doesn't require already knowing to try a hard refresh.
+ * So this detects nothing. It offers the hosted page after a fixed delay,
+ * cancelled the moment the flow settles through any real Razorpay signal
+ * (payment succeeded, modal dismissed, payment.failed). When checkout is
+ * working the toast is either never seen or is an ignorable option beside
+ * a plainly usable widget.
  */
 function scheduleStuckCheckoutNudge(hostedUrl?: string) {
   const timer = window.setTimeout(() => {
