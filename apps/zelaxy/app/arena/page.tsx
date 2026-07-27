@@ -7,6 +7,27 @@ import { createLogger } from '@/lib/logs/console/logger'
 
 const logger = createLogger('ArenaPage')
 
+/**
+ * Query params worth carrying across the /arena -> /arena/{id}/zelaxy hop.
+ * Deliberately an allowlist: this redirect is the funnel every sign-in passes
+ * through, so forwarding the whole query string wholesale would drag stale
+ * one-shot params (and anything an attacker appended to a shared link) into
+ * the app with it.
+ */
+const FORWARDED_PARAMS = ['upgrade']
+
+function forwardedParams(): string {
+  if (typeof window === 'undefined') return ''
+  const incoming = new URLSearchParams(window.location.search)
+  const forwarded = new URLSearchParams()
+  for (const key of FORWARDED_PARAMS) {
+    const value = incoming.get(key)
+    if (value) forwarded.set(key, value)
+  }
+  const query = forwarded.toString()
+  return query ? `?${query}` : ''
+}
+
 export default function ArenaPage() {
   const router = useRouter()
 
@@ -78,7 +99,9 @@ export default function ArenaPage() {
 
               if (newArena?.id) {
                 logger.info(`Created default arena: ${newArena.id}`)
-                router.replace(`/arena/${newArena.id}/zelaxy`)
+                // Carry intent params through - this is the path a brand new
+                // account takes, i.e. exactly the signup -> buy flow.
+                router.replace(`/arena/${newArena.id}/zelaxy${forwardedParams()}`)
                 return
               }
             }
@@ -100,8 +123,11 @@ export default function ArenaPage() {
         // Prefetch the target route for faster navigation
         router.prefetch(`/arena/${firstArena.id}/zelaxy`)
 
-        // Redirect to the first arena
-        router.replace(`/arena/${firstArena.id}/zelaxy`)
+        // Redirect to the first arena, carrying any intent params through.
+        // /checkout forwards a purchase here as ?upgrade=<plan>, and this hop
+        // used to drop the query string entirely - silently losing the intent
+        // right at the last step.
+        router.replace(`/arena/${firstArena.id}/zelaxy${forwardedParams()}`)
       } catch (error) {
         logger.error('Error fetching arenas for redirect:', error)
         // Redirect to login to reset session state

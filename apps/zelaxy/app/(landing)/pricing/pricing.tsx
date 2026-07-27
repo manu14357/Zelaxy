@@ -82,7 +82,7 @@ const PLANS: Plan[] = [
       { text: 'Unlimited log retention', icon: Database },
     ],
     ctaLabel: 'Get Pro',
-    href: '/signup?plan=pro',
+    href: '/checkout?plan=pro',
     highlight: true,
   },
   {
@@ -97,7 +97,7 @@ const PLANS: Plan[] = [
       { text: 'Dedicated Slack channel', icon: MessageSquare },
     ],
     ctaLabel: 'Get Team',
-    href: '/signup?plan=team',
+    href: '/checkout?plan=team',
   },
 ]
 
@@ -337,7 +337,7 @@ export default function Pricing() {
                       </td>
                       <td className='px-4 py-5 text-center'>
                         <Link
-                          href='/signup?plan=pro'
+                          href='/checkout?plan=pro'
                           className='btn-accent inline-flex h-9 items-center justify-center rounded-lg px-4 font-medium text-[13px]'
                         >
                           Get Pro
@@ -345,7 +345,7 @@ export default function Pricing() {
                       </td>
                       <td className='px-4 py-5 text-center'>
                         <Link
-                          href='/signup?plan=team'
+                          href='/checkout?plan=team'
                           className='btn-ghost inline-flex h-9 items-center justify-center rounded-lg px-4 font-medium text-[13px]'
                         >
                           Get Team

@@ -56,6 +56,24 @@ const validateCallbackUrl = (url: string): boolean => {
   }
 }
 
+/**
+ * Keeps the post-auth destination attached when someone switches from login
+ * to signup. Previously only the invite flow forwarded it, so a visitor who
+ * came from "Get Pro" and had no account yet lost the purchase on that one
+ * click. Encoded because callbackUrl carries its own query string
+ * (`/checkout?plan=pro`), which would otherwise be parsed as params of the
+ * signup URL itself.
+ */
+const buildSignupHref = (isInviteFlow: boolean, callbackUrl: string): string => {
+  const isDefault = !callbackUrl || callbackUrl === '/arena'
+  if (!isInviteFlow && isDefault) return '/signup'
+
+  const params = new URLSearchParams()
+  if (isInviteFlow) params.set('invite_flow', 'true')
+  if (!isDefault) params.set('callbackUrl', callbackUrl)
+  return `/signup?${params.toString()}`
+}
+
 const validatePassword = (passwordValue: string): string[] => {
   const errors: string[] = []
   if (!PASSWORD_VALIDATIONS.required.test(passwordValue)) {
@@ -399,7 +417,7 @@ export default function LoginPage({
       <p className='t-faint mt-6 text-center text-[13px]'>
         Don&apos;t have an account?{' '}
         <Link
-          href={isInviteFlow ? `/signup?invite_flow=true&callbackUrl=${callbackUrl}` : '/signup'}
+          href={buildSignupHref(isInviteFlow, callbackUrl)}
           className='t-accent font-medium transition-opacity hover:opacity-80'
         >
           Sign up free

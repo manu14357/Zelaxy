@@ -212,7 +212,27 @@ describe('LoginPage', () => {
       render(<LoginPage {...defaultProps} />)
 
       const signupLink = screen.getByText(/sign up/i)
-      expect(signupLink).toHaveAttribute('href', '/signup?invite_flow=true&callbackUrl=/invite/123')
+      // callbackUrl is percent-encoded rather than concatenated raw: it can
+      // itself carry a query string (e.g. /checkout?plan=pro), which unencoded
+      // would be parsed as params of the signup URL and lose the destination.
+      expect(signupLink).toHaveAttribute(
+        'href',
+        '/signup?invite_flow=true&callbackUrl=%2Finvite%2F123'
+      )
+    })
+
+    it('should forward a non-invite callbackUrl to signup, encoded', () => {
+      // The pricing page's "Get Pro" sends signed-out visitors through login
+      // with this callback; switching to signup must not drop the purchase.
+      mockSearchParams.get.mockImplementation((param) => {
+        if (param === 'callbackUrl') return '/checkout?plan=pro'
+        return null
+      })
+
+      render(<LoginPage {...defaultProps} />)
+
+      const signupLink = screen.getByText(/sign up/i)
+      expect(signupLink).toHaveAttribute('href', '/signup?callbackUrl=%2Fcheckout%3Fplan%3Dpro')
     })
 
     it('should default to regular signup link when no invite flow', () => {

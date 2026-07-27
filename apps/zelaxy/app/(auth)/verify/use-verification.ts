@@ -58,9 +58,14 @@ export function useVerification({
         setEmail(storedEmail)
       }
 
-      // Check for redirect information (sessionStorage first, cookie fallback)
+      // Check for redirect information (sessionStorage first, cookie fallback).
+      // postAuthRedirectUrl covers non-invite intents parked by signup - e.g.
+      // arriving from "Get Pro" - which otherwise ended on the canvas.
       const storedRedirectUrl =
-        sessionStorage.getItem('inviteRedirectUrl') || getCookie('inviteRedirectUrl')
+        sessionStorage.getItem('inviteRedirectUrl') ||
+        getCookie('inviteRedirectUrl') ||
+        sessionStorage.getItem('postAuthRedirectUrl') ||
+        getCookie('postAuthRedirectUrl')
       if (storedRedirectUrl) {
         setRedirectUrl(storedRedirectUrl)
       }
@@ -151,12 +156,18 @@ export function useVerification({
             document.cookie = 'inviteRedirectUrl=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
             document.cookie = 'isInviteFlow=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
           }
+
+          // One-shot: clear it either way, so a later verification doesn't
+          // replay a stale destination.
+          sessionStorage.removeItem('postAuthRedirectUrl')
+          document.cookie = 'postAuthRedirectUrl=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
         }
 
         // Redirect to proper page after a short delay
         setTimeout(() => {
-          if (isInviteFlow && redirectUrl) {
-            // For invitation flow, redirect to the invitation page
+          // Honour a parked destination for any flow, not just invitations -
+          // an invite link or a plan purchase are both intents worth keeping.
+          if (redirectUrl) {
             router.push(redirectUrl)
           } else {
             // Default redirect to dashboard

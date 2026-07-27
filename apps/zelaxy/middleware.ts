@@ -174,7 +174,13 @@ export async function middleware(request: NextRequest) {
   // Handle protected routes that require authentication
   if (url.pathname.startsWith('/arena')) {
     if (!hasActiveSession) {
-      return NextResponse.redirect(new URL('/login', request.url))
+      // Carry where they were headed, so signing in returns them there rather
+      // than dumping everyone on the default canvas - which silently discarded
+      // deep links (including an in-flight plan purchase) on every expired
+      // session. The login form already validates callbackUrl is same-origin.
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('callbackUrl', `${url.pathname}${url.search}`)
+      return NextResponse.redirect(loginUrl)
     }
 
     // Check if user needs email verification

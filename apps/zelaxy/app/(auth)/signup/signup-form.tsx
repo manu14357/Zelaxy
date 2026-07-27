@@ -348,6 +348,16 @@ function SignupFormContent({
             document.cookie = `inviteRedirectUrl=${encodeURIComponent(redirectUrl)}; path=/; max-age=3600; SameSite=Lax`
           }
         }
+
+        // Park the destination for any non-invite flow too (e.g. arriving from
+        // "Get Pro" on the pricing page). Signup always detours through
+        // /verify, which previously only honoured a redirect for invites - so
+        // every other intent was dropped on the way to the canvas. Kept under
+        // its own key so the invite flow's behaviour is untouched.
+        if (redirectUrl && !isInviteFlow) {
+          sessionStorage.setItem('postAuthRedirectUrl', redirectUrl)
+          document.cookie = `postAuthRedirectUrl=${encodeURIComponent(redirectUrl)}; path=/; max-age=3600; SameSite=Lax`
+        }
       }
 
       // Send verification OTP manually
