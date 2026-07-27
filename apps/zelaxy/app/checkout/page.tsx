@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { isRazorpaySubscriptionPlan } from '@/lib/billing/razorpay-pricing'
 import { isBillingEnabled } from '@/lib/environment'
+import { CheckoutLauncher } from '@/app/checkout/checkout-launcher'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,8 +19,8 @@ export const dynamic = 'force-dynamic'
  * This resolves the two cases explicitly, server-side, before any of that:
  *  - signed out -> /login carrying this same URL as callbackUrl, so the
  *    intent survives the round trip and lands back here once authenticated
- *  - signed in  -> into the app with ?upgrade=<plan>, which opens Checkout
- *    on arrival (see UpgradeIntentHandler)
+ *  - signed in  -> opens Checkout right here (see CheckoutLauncher), then
+ *    enters the app once it settles
  */
 export default async function CheckoutPage({
   searchParams,
@@ -43,5 +44,11 @@ export default async function CheckoutPage({
     redirect(`/login?callbackUrl=${callbackUrl}`)
   }
 
-  redirect(`/arena?upgrade=${plan}`)
+  return (
+    <CheckoutLauncher
+      plan={plan}
+      email={session.user.email ?? undefined}
+      name={session.user.name ?? undefined}
+    />
+  )
 }

@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { getUserEntityPermissions } from '@/lib/permissions/utils'
 import Providers from '@/app/arena/[workspaceId]/providers/providers'
-import { UpgradeIntentHandler } from '@/app/arena/[workspaceId]/upgrade-intent-handler'
 import { AdvancedSidebar } from '@/app/arena/[workspaceId]/zelaxy/[workflowId]/components/advanced-sidebar/advanced-sidebar'
 import { db } from '@/db'
 import { workspace } from '@/db/schema'
@@ -45,7 +44,6 @@ export default async function WorkspaceLayout({
 
   return (
     <Providers>
-      <UpgradeIntentHandler />
       <div className='flex h-screen w-full overflow-hidden'>
         <AdvancedSidebar />
         <div className='sidebar-responsive-margin flex min-w-0 flex-1 flex-col overflow-hidden'>
